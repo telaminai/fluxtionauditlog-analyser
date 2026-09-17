@@ -1,0 +1,140 @@
+INDEPENDENT REVIEW — the two ☐ ledger entries of 2026-09-17 (both on main, gating 1.14.0)
+Date: 2026-09-17 · Reviewer: Claude (the second reader / first re-reviewer of the M46-closure block) · Reviewed main at f56273bf
+Brief: brief_review_ledger_2026-09-17.txt · Ledger: unreviewed-changes.md
+Entry 1: 442582f5 (R4, R5, R6 + R2, half of R3, release checklist §4.0, .gitignore)
+Entry 2: 01b6a4fa (M64.8 point-at-the-fault; M64.9 coverage → topology:verdict) + 473482d0 (the re-pin)
+
+VERDICTS
+  Entry 1 ... READY WITH FOLLOW-UPS   (F1 the declaration guard has a second hole; F2 R4's refusal leaves a `graph` defect in place)
+  Entry 2 ... READY WITH FOLLOW-UPS   (F3 min-version; F4 the spotlight images could not be regenerated here either)
+  Neither finding blocks 1.14.0. Both ledger entries are ticked below with these verdicts.
+
+WHAT I VERIFIED (ran it, on main at f56273bf)
+  git config user.email — the personal address; git log %ae since 16acfc1c: 33 commits, all the personal address.
+  Merge shape: fast-forward, no merge commit; the branch head 58339c9e is NOT an ancestor (the commits were
+    rewritten by the local rebase, as the note required); the re-pin 473482d0 names 01b6a4fa, which IS an ancestor of
+    origin/main (git cat-file -e; git merge-base --is-ancestor). m19-skills/1 is untouched since 16acfc1c.
+  mvn test: 1618 run, 0 failures, 0 errors, 21 skipped (display). The brief's display command, real display:
+    154 run, 0 / 0 / 0. mvn package; verify-m46-agent-api.py 17/17; verify-m48-handoff.py 18/18;
+    verify-m64-spotlight.py 83/83 — all on the jar I built. tools/test_tools.py: pass. mkdocs build --strict: pass.
+    The exact CLAUDE.md rule-1 sweep: prints nothing. All of these match the author's numbers.
+  SEEN RED, repeated (every mutation restored; tree clean after each):
+    R4 — legendIndexOf returns the FIRST match: SpotlightSeriesLabelTest 8 run, exactly 3 failures ("the exact tier
+         has two — it does not fall through to the suffixed one ==> expected: <-1> but was: <0>").
+    R5 — pass -1 as the record count in ActionExecutor.doSpotlight: SpotlightFrameTest (real display) 4 run,
+         exactly 1 failure ("an impossible row touched nothing either — it is never handed to goto").
+    R6 — delete `to?, ` from graph's argument list: InProcessManifestNamesEveryVerbTest 4 run, exactly 1 failure
+         ([graph.to]).
+  MY OWN ATTACK on R6 (the brief asked for a second counterexample) — FOUND ONE, see F1.
+  Old target name: `git grep` for `coverage` as a spotlight TARGET across src, docs/site, docs/skills, tools,
+    help.html — none left (every hit is the `coverage` verb). SpotlightTargetTest asserts it unknown; the suite is green.
+  The skill's verb calls vs VerbSchemas: series.crossings, read.fields, flag.recordIndexes / note / fix,
+    spotlight.targets (entries with target + caption), aggregate.metric / groupBy / filter, goto.recordIndex,
+    coverage — every parameter exists. "There is no verb that lists keys" — true (the only `discover` is
+    open's graphml discovery).
+  The playground (fluxtion-web, read locally): web/src/lib/starter/skills/VENDORED.md says the skills were vendored
+    at a5f94e57 (2026-09-16); its guided-start.SKILL.md mentions no spotlight and names no target. So the M64.9 risk
+    is MOOT until the next re-vendor. web/scripts/vendor-skills.mjs copies the WHOLE `common` array from the index
+    (`take(doc.common, 'common')`, line 164) and treats REQUIRED_COMMON as a minimum, not a list — so "additive,
+    same contract; a generator that copies `common` needs no change" is right: point-at-the-fault arrives on the
+    next run without a script change (MAX_INDEX_ENTRIES 32, MAX_SKILL_BYTES 64 KiB — the skill is 129 lines).
+  Read docs/site/assets/spotlight-findings-light.png (committed bytes): demo data and the neutral home path; no
+    target NAME is visible; callout 3 sits on the status/pairing line and its caption ("the graph fits this log:
+    all 5 nodes that logged are declared") is true of the "fits this log (5/5)" text under it.
+
+WHAT I ONLY READ
+  The measure commits 35518118 / 4e49ea80 / 945dac90 (docs/experience/runs/… RESULTS.md) — a different track,
+  outside this brief; not reviewed here. The spec amendments and tracker wording. The author's response file.
+
+ENTRY 1 — 442582f5
+
+R4, judged.  The refusal at the pointer is the RIGHT contract for the spotlight: "declared, never inferred" means a
+  pointer must not pick between two rows that read the same, whatever made them read the same. CLOSED.
+  But it leaves a defect where it was found → F2.
+  Tier probe (audit "x", external "x", formula labelled "x  (external)" together): the text "x" has exactly one exact
+  match (the audit series) → lit; the text "x  (external)" has TWO exact matches (the external row and the formula) →
+  refused with "2 series … are labelled". No tier falls through when the exact tier has candidates, so nothing is a
+  guess. Correct.
+R5, judged.  CLOSED. precheck takes store.index().size(); goto clamps against s.index() of the same store supplier,
+  and a rolled set is ONE composite LogIndex (fileId per row), so the counts are the same index. While Follow appends
+  the count can only GROW between the precheck and the goto (M65 D-F0: size() is a plain int read of a value only
+  incremented under the lock), so a row that passed cannot be clamped afterwards. With no log open the count is -1
+  and the check is skipped: nothing to reveal, so nothing moves — verified by the frame test's control. goto's
+  clampRow is byte-identical to before (read the diff: ActionExecutor changed 4 lines, none in clampRow). The
+  string comparison of filter / selection / spotlight is adequate for THIS case: the defect was in exactly those
+  three, and an out-of-range row is now refused before anything that could touch a tab or a scroll position runs.
+R6, judged.  CLOSED as a fix, with a second hole → F1.
+R2, R3 (half), §4.0, .gitignore.  READ: the four stale "handoff verb" mentions are gone; `context.showing` is a
+  LinkedHashMap (visible, total); .mcp.json ignored. §4.0 as the person who would follow it: every step is runnable
+  as written; the Screen Recording caveat is accurate (I hit it: capture-conversations exits 1 with the scenarios
+  green — the tracker item M46.11 for separating the two signals is the right follow-up).
+
+F1 — P3, follow-up: the declaration regex still accepts prose that happens to use `name:` notation.
+  src/test/java/…/llm/InProcessManifestNamesEveryVerbTest.java:83; src/main/java/…/llm/PromptBuilder.java (goto line)
+  REPRODUCED: delete `reveal?` from goto's brace list (`{… | at (epoch ms), reveal?}` → `{… | at (epoch ms)}`), leave
+  the prose "reveal:true relaxes the …": InProcessManifestNamesEveryVerbTest 4 run, 0 failures. `reveal` followed
+  by `:` in prose satisfies the declaration form. Restored.
+  The manifest is CORRECT today (every parameter is declared); this is the guard, not the teaching. FIX: check the
+  brace list, not the section — parse the `{…}` after the verb name and require the parameter inside it (or the
+  hand-described verbs' parameter lists as data, compared to VerbSchemas as sets). Then no prose can satisfy it.
+  Pin this counterexample beside the graph.to one.
+
+F2 — P3, follow-up (a `graph` defect, found by R4 and left in place): the same external spec twice yields two rows.
+  src/main/java/…/ui/GraphPanel.java (externalLoaded / the `external` handling in the graph verb)
+  Codex's reproduction: graph {…, external:[E, E]} with the same label is ACCEPTED and draws two identical
+  "x  (external)" rows. The spotlight now refuses to point at them — right — and its advice, "Redraw the graph with
+  distinct labels", is FOLLOWABLE (send the externals with different labels), so the refusal is honest. But the
+  chart itself is wrong: external is replace-by-label, and one call carrying the same label twice should apply
+  the last (or be refused as a duplicate), not draw both. FIX at the graph entrance: dedupe `external` by label
+  within a call (last wins, or refuse naming the label). A formula labelled with the legend's own suffix remains
+  possible and remains the spotlight's refusal to give — that half is correctly at the pointer.
+
+M64.10 (found on the way; asked to decide): a graph target addresses the SELECTED chart only, and re-issuing
+  graph {name: <existing>} updates it without re-selecting its tab. LIMITATION for 1.14.0, documented — not a
+  defect, because nothing promised otherwise and the refusal names the selected graph. Today an agent has no verb
+  that brings a named chart forward (graph {name} updates in place; only newTab selects). The cheap fix after
+  1.14.0: graph {name, select: true}, or let a target carry the chart — graph:<name>:series:<label> — which also
+  removes the "selected chart" ambiguity from the vocabulary. Recommend the second; it is the vocabulary's shape.
+
+ENTRY 2 — 01b6a4fa + 473482d0
+
+M64.8, the skill, read as an agent that has never seen the tool. It does what spec-spotlight ▸ M64.8 says, nearly
+  verbatim: rule 1 ("the pointer follows the evidence, not the script … build the caption from the match") and
+  rule 2 ("finding nothing is a result … light nothing") are its first section, and the worked example shows both
+  outcomes, including the no-spotlight sentence as the result. Nothing in it instructs pointing regardless; the
+  "If you are tempted to" list closes the obvious ways to cheat. The degrade line for an analyser without the verb
+  is present. The worked example's numbers (726 records; 160 points; one crossing at recordIndex 15 with value 2;
+  limit 2; nothing above 99, max 6) are replayed by verify-m64-spotlight.py, which I ran (83/83).
+  One nit, not a finding: step 2's table sends `analyser_series` with `crossings` and says each crossing "comes back
+  with its recordIndex and byteOffset" — true of the verb (VerbSchemas: crossingsObject). Fine.
+M64.9, the rename: complete in this repo (above); the guided-start line names topology:verdict and explains it.
+The re-pin: proven as CI sees it (above); v1 untouched; CanonicalSkillsTest is in the green suite.
+
+F3 — P4, owner call recorded as a follow-up: x-analyser-min-version 1.12.0 on a skill whose point is a 1.14.0 verb.
+  docs/skills/common/point-at-the-fault/SKILL.md:4
+  The author's argument holds technically — the skill degrades to goto-and-say-where, and CanonicalSkillsTest pins
+  the literal line for every skill — but a skill whose PURPOSE is the missing verb is less honest at 1.12.0 than
+  guided-start is. Two acceptable answers: raise it to 1.14.0 when 1.14.0 is cut (a skill edit + re-pin, so batch it
+  with the next one), or keep 1.12.0 and say in the description that pointing needs 1.14.0. Not blocking.
+
+F4 — P4, environment, stated so nobody counts it as done: the four spotlight PNGs were not regenerated by me either.
+  tools/capture-docs.py --spotlight on this session: "no native capture available" for all four; the committed
+  bytes are unchanged. I read spotlight-findings-light.png: no target name visible, captions unchanged and true.
+  The author's statement stands; a machine with the Screen Recording grant should re-run it before the 1.14.0 docs
+  build, if only to prove the new target name renders the same shot.
+
+ONLY A PERSON AT THE SCREEN (unchanged from the tracker ▸ BETWEEN MAIN AND 1.14.0)
+  File ▸ Close log during a slow FIRST load · click, and Escape with focus in a component that consumes Escape,
+  with SEVERAL spotlights lit · AI ▸ Posture, Place mode-selector record…, Clear record · the Project-panel row for
+  a restored log · the six "Ask it to show you" sentences and the guided-start tour on a context-free client · the
+  point-at-the-fault skill on a context-free client (nobody has run it).
+
+OWNER DECISIONS — recommendations
+  1.14.0 before the playground re-vendors: YES. The vendored guided-start predates the spotlight and names no
+    target, so nothing in a generated starter breaks against 1.14.0; and the re-vendor should follow the release,
+    not precede it, so that templates never teach a verb the released analyser lacks.
+  M64.10: ship as a documented limitation; fix after with the target-carries-the-chart form above.
+  The person-at-the-screen checks: do them on the release candidate jar, not before it exists.
+
+HANDOFF
+  No code changed; no skill edited; no rebase or force-push; docs only: this file and the two ledger ticks.

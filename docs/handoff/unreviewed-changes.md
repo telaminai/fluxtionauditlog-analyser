@@ -18,7 +18,7 @@ _Reviewed entries are retired to [`completed/unreviewed-changes-2026-09.md`](com
 
 ## 2026-09-17 — the answers to the M46-closure re-review's R4, R5, R6 reached main unreviewed
 
-- ☐ **`442582f`** `fix(spotlight): re-review R4, R5, R6 - a label must name ONE series; a row the log lacks is refused before goto`
+- ☑ reviewed 2026-09-17 — **READY WITH FOLLOW-UPS** ([review](review_ledger_2026-09-17.txt): R4/R5/R6 seen red again; F1 the declaration guard still accepts prose `name:`; F2 `graph` accepts the same external label twice). **`442582f`** `fix(spotlight): re-review R4, R5, R6 - a label must name ONE series; a row the log lacks is refused before goto`
   **Why it is here:** the block `fix/m46-agent-api-closure` was re-reviewed by two readers who DISAGREED — READY WITH
   FOLLOW-UPS, and NOT READY (R4, R5 required). The owner authorised the merge on the first verdict. The author judged
   the second reader right on both points, fixed them BEFORE the merge, and merged. So this one commit is on main
@@ -44,7 +44,7 @@ _Reviewed entries are retired to [`completed/unreviewed-changes-2026-09.md`](com
 
 ## 2026-09-17 — M64.8 + M64.9, done on main after the merge, as the owner directed; not yet reviewed
 
-- ☐ **`01b6a4f`** `skills+spotlight: M64.8 point-at-the-fault …; M64.9 coverage -> topology:verdict` and
+- ☑ reviewed 2026-09-17 — **READY WITH FOLLOW-UPS** ([review](review_ledger_2026-09-17.txt): skill holds both rules; re-pin proven as CI sees it; playground vendored copy predates the spotlight so the rename is moot until re-vendor; F3 min-version, F4 images not regenerated here either). **`01b6a4f`** `skills+spotlight: M64.8 point-at-the-fault …; M64.9 coverage -> topology:verdict` and
   **`473482d`** `skills: re-pin the m19-skills/2 index …`
   **What & why:** ONE skill edit and ONE re-pin, before 1.14.0. M64.8 — a new canonical skill,
   `docs/skills/common/point-at-the-fault/SKILL.md`, the shape of a fault-finding runbook that ends by spotlighting
