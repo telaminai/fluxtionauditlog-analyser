@@ -998,9 +998,11 @@ public final class GraphPanel extends JPanel {
                     }
                 },
                 err -> finishExtraction());   // best-effort as before — but the in-flight flag must clear
-        } catch (RuntimeException rejected) {
+        } catch (java.util.concurrent.RejectedExecutionException rejected) {
             // impl review F3: a SYNCHRONOUS throw from the runner (a rejected submission at shutdown) would
-            // otherwise leave `extracting` set forever and every later request would only mark `dirty`
+            // otherwise leave `extracting` set forever and every later request would only mark `dirty`.
+            // Narrowed to the one real producer (pass-5 nit): a synchronous test runner whose LANDING throws
+            // has already run finishExtraction() in its finally, and must not have `extracting` cleared again.
             extracting = false;
             throw rejected;
         }

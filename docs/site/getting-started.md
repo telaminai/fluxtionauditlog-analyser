@@ -136,7 +136,9 @@ Clear remembered **searches**, **saved graphs** and **recent files**.
 
 To watch a log as it grows, turn on **Follow** (the toolbar toggle or **File ▸ Follow (tail)**). It polls
 the open **local, heap-loaded** file, appends newly-completed records and auto-scrolls to the newest —
-preserving your flags, filters and selection. (Follow isn't available for S3 or memory-mapped files.)
+preserving your flags, filters and selection. Open graphs re-extract as records arrive, and the view moves only
+to reveal a point that would otherwise be hidden: a chart showing the whole log grows with it, one at the live
+edge slides, one zoomed into the middle holds. (Follow isn't available for S3 or memory-mapped files.)
 
 ---
 

@@ -8,7 +8,13 @@ already resets an unpinned view on every growing tick, so D-F7's hold was defeat
 tail rule, not two) plus four follow-ups, all folded in below. Pass 3
 ([review](../handoff/review_spec_m65_pass3_2026-09-17.md), **READY WITH FOLLOW-UPS — no further spec review**):
 four wording follow-ups folded in below (F1 the capture order and the view's surface, F2 the empty-before case, F3
-programmatic ranges under D-F8, F4 where the seam lives). **IN PROGRESS** on branch `feat/m65-follow-refreshes-graphs`.
+programmatic ranges under D-F8, F4 where the seam lives). **IMPLEMENTED 2026-09-17** on
+`feat/m65-follow-refreshes-graphs`, reviewed twice more against the code — impl pass 4
+([review](../handoff/review_m65_implementation_2026-09-17.md), NOT READY: B1 the extend rule contracted a zoomed-out
+view; F1 the filter's live-index reads; F3 a synchronous runner throw — all landed, [response](../handoff/review_response_m65_impl_2026-09-17.md))
+and impl pass 5 ([review](../handoff/review_m65_implementation_pass5_2026-09-17.md), **READY**, one nit applied) —
+and **merged to `main`**. Open follow-ups: tracker M65.5 (the D-F5 measurement), M65.6 (an unattributed *no log
+loaded* observation).
 Owner question: *"what is the
 lowest overhead way of forcing the graph redraw? should we add something to the plot verb to redraw for new log
 entries?"* **Tracker:** [tracker.md](tracker.md) ▸ M65.
@@ -336,3 +342,4 @@ judged.
 | B1 extend contracted a zoomed-out view | impl review pass 4 | D-F7 restated with the visibility guard in front (rule 1) |
 | F1 filter reads the live index arrays without happens-before on a grown reference | impl review pass 4 | D-F0: the `LogIndex` row arrays are `volatile` |
 | F3 a synchronous runner throw left `extracting` set | impl review pass 4 | D-F6: cleared and rethrown |
+| nit: that catch was wider than its producer | impl review pass 5 | narrowed to `RejectedExecutionException` |

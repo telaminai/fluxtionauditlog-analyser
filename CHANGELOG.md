@@ -10,9 +10,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Follow now refreshes open graphs (M65).** With Follow on, a chart that was already open kept its old points —
   through zoom, Fit, a narrower time range and even an identical re-send of its definition — because the follow
   poll told the table, slider and status bar about new records but never the graphs. Every open chart now
-  re-extracts as records arrive. Where the view lands is a rule, not a reset: a chart showing the whole log grows
-  with it, one pressed to the live edge slides with it, one zoomed into the middle holds exactly; a pinned chart
-  keeps its window; changing the chart's definition still resets the view as before.
+  re-extracts as records arrive. Where the view lands is a rule, not a reset — the view moves only to reveal a point
+  that would otherwise be hidden: a chart that already shows the new point does not move; one showing the whole log
+  grows with it; one pressed to the live edge slides with it; one zoomed into the middle holds exactly; a pinned
+  chart keeps its window; changing the chart's definition still resets the view as before.
 - **`graph` gains `refresh: true`** — re-extract now, for an agent driving an analyser whose Follow is off. The echo
   reports `refreshed: "scheduled" | false`; a re-send that changes nothing (same `series`, same `markers`, same
   `bands`) now re-extracts nothing, where `markers`/`bands` used to re-extract on every presence.

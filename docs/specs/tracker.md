@@ -349,7 +349,7 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
-## M65 · Follow refreshes open graphs — ◧ IN PROGRESS 2026-09-17 on `feat/m65-follow-refreshes-graphs` · three review passes, pass 3 READY WITH FOLLOW-UPS (folded in) · impl reviewed NOT READY 2026-09-17 ([review_m65_implementation_2026-09-17.md](../handoff/review_m65_implementation_2026-09-17.md): B1 the extend rule contracts a zoomed-out view; F1 live-index reads; F3 `extracting` on a synchronous throw) · impl pass 4 NOT READY (B1) → fixed in 533c6538 · impl pass 5 READY 2026-09-17 ([review_m65_implementation_pass5_2026-09-17.md](../handoff/review_m65_implementation_pass5_2026-09-17.md)) — merge to main
+## M65 · Follow refreshes open graphs — ☑ SHIPPED 2026-09-17 (merged to `main` from `feat/m65-follow-refreshes-graphs`; five review passes) · .5/.6 open
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
@@ -377,6 +377,13 @@ via `lastFrom`/`lastTo` in `onFilterChanged`, so the hook is the only mover of a
 READY WITH FOLLOW-UPS — F1 (required, implementer applies) the read view reads `size` + arrays under the index lock and
 `file` *after* it, and serves `record(row)` itself; F2 empty-before lands as reset; F3 D-F8 also silences identical
 programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argument shape. **Known stale under follow, out of scope here: reports and coverage.** About two days.
+
+Implementation: [handoff](../handoff/handoff_m65_implementation_2026-09-17.md); impl
+[pass 4](../handoff/review_m65_implementation_2026-09-17.md) (NOT READY — B1 the extend rule contracted a zoomed-out
+view, F1 the filter reads the live index arrays without happens-before on a grown reference, F3 a synchronous runner
+throw left `extracting` set; all landed, [response](../handoff/review_response_m65_impl_2026-09-17.md)) and
+[pass 5](../handoff/review_m65_implementation_pass5_2026-09-17.md) (**READY**; nit — narrow the F3 catch to
+`RejectedExecutionException` — applied before the merge). Merged to `main` by fast-forward 2026-09-17.
 
 - [M65.0] ☑ 2026-09-17 **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
   default overridden by `HeapLogStore` (size + file + offset/length under the index lock); `SeriesExtractor` walks

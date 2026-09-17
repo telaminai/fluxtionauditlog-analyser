@@ -181,6 +181,11 @@ threshold. A line between two samples implies the value passed through everythin
 - **Style** — stairs (step), line or points.
 - **Zoom / pan** — `+` / `−` / **Fit**, or drag to pan.
 - **Pin** — 📌 fixes a graph to a time window so it stops following the shared filter.
+- **Live, under Follow** — an open graph re-extracts as records arrive. The view moves only to reveal a point
+  that would otherwise be hidden: a chart that already shows it does not move; one showing the whole log grows
+  with it; one pressed to the live edge slides with it; one zoomed into the middle holds. A pinned graph keeps
+  its window and gains the data. Changing the graph's definition still resets the view. An agent can ask for
+  a re-extract with `graph {refresh: true}`; a re-send that changes nothing re-extracts nothing.
 
 ## Export
 
