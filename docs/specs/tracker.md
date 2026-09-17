@@ -349,26 +349,37 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
-## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · reviewed CONDITIONAL 2026-09-17 ([`review_spec_m65_2026-09-17.md`](../handoff/review_spec_m65_2026-09-17.md): C1 the store must publish safely while it grows before the poll drives extraction; C2 coalesce in-flight extractions — the pool is unbounded)
+## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · REVISED same day after review
 
-Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**. Owner question 2026-09-17: *"what is
-the lowest overhead way of forcing the graph redraw? should we add something to the plot verb?"* Observed with the
+Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
+[review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
+C1/C2 required; folded in, plus C3 from its "did not check" list). Owner question 2026-09-17: *"what is the lowest
+overhead way of forcing the graph redraw? should we add something to the plot verb?"* Observed with the
 audit-analyser-bundle: follow appends reach the table, slider, status bar and `series` verb, and a graph created
 afterwards — but a pre-existing graph keeps its cached points through zoom, Fit, a time-range change and an
 identical `graph` re-send, and recomputes only on a *changed* definition. Cause: `pollFollow` hand-notifies six
 consumers and `graphTabs` is not one; the graph's incidental filter echo is classified "time only" and served from
-cache; `addKeys` dedups, `setMarkers`/`setBands` do not. Decisions: the follow poll tells the graphs, through the
-existing structural debounce (D-F1); pinned graphs re-extract but keep their window (D-F2); slider/zoom/Fit stay
-cache-only per M6 (D-F3); `graph` re-sends are idempotent and `refresh: true` is the one forced re-extract, with
-`refreshed` in the echo (D-F4); full re-extract first, incremental only on measured need (D-F5). About a day.
+cache; `addKeys` dedups, `setMarkers`/`setBands` do not. Decisions: the store is publishable while it grows —
+`file` swapped first + volatile, and a read view capturing size+file under the index lock, because the index arrays
+are read unsynchronised and grown by reallocation (D-F0); the follow poll tells the graphs through the existing
+structural debounce (D-F1); pinned graphs re-extract but keep their window (D-F2); slider/zoom/Fit stay cache-only
+per M6 (D-F3); `graph` re-sends are idempotent, `refresh: true` is the one forced re-extract, echo says
+`refreshed: "scheduled"` (D-F4); full re-extract first, incremental only on measured need — noting the poll already
+re-reads and re-frames the whole file per tick (D-F5); one extraction in flight, dirty flag (D-F6); an unpinned
+view follows the tail if it was at the data max, else holds; a definition change still resets (D-F7). **Known
+stale under follow, out of scope here: reports and coverage.** About two days.
 
-- [M65.1] ☐ **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**;
-  `ui/FollowRefreshesGraphTest` (unpinned and pinned), help bullet, CHANGELOG.
-- [M65.2] ☐ **`graph {refresh: true}` + `refreshed` in the echo**; `setMarkers`/`setBands` gain the
-  only-if-changed guard; idempotence test.
+- [M65.0] ☐ **D-F0 — store publishable while growing**: `file` first + volatile; `HeapLogStore` read view;
+  `SeriesExtractor` walks to the captured size; concurrent-append test.
+- [M65.1] ☐ **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
+  D-F6 in-flight coalescing and D-F7 tail-or-hold view; `ui/FollowRefreshesGraphTest` (full-extent, zoomed,
+  pinned — each waits for the generation to land), coalescing test, help clause, CHANGELOG.
+- [M65.2] ☐ **`graph {refresh: true}` + `refreshed: "scheduled"|false` in the echo**; `setMarkers`/`setBands`
+  gain the only-if-changed guard; idempotence test. Schema parity is automatic via `VerbSchemas` tests.
 - [M65.3] ☐ **Manual proof on the bundle**: append a CSV row, `./export-audit.sh`, the open graph shows the
-  point within ~1.2 s untouched; before/after via `screenshot`.
-- [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement.
+  point within ~1.2 s untouched and a zoomed graph keeps its zoom; before/after via `screenshot`.
+- [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement (and the re-frame in
+  `appendFrom` is the larger target if it does).
 
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,
