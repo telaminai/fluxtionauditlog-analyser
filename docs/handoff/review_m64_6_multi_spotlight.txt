@@ -1,0 +1,86 @@
+INDEPENDENT REVIEW — M64.6 several spotlights / M64.7 general guidance
+Date: 2026-09-17 · Reviewer: Codex
+Branch: fix/m46-agent-api-closure · Reviewed HEAD: 251bc0a
+Piece: 96c40b5 · Report: report_m64_6_multi_spotlight.txt
+Brief: brief_review_m46_closure_branch.txt
+Companion: review_m64_spotlight.txt (same reviewer; original target implementation also has a finding).
+
+VERDICT: NOT READY — F1/F2 contradict D-SP6 despite all committed tests being green.
+
+F1 — P2, required: retain a numbering high-water mark until replacement or empty.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SpotlightOverlay.java:87
+  add derives the next number from the CURRENT maximum. Clearing the highest-numbered spotlight lets
+  that number be reused for a different target while the rest of the set remains lit. Reproduced both
+  directly on SpotlightOverlay and through the built jar:
+    spotlight {targets:["status","detail"]}       -> status=1, detail=2
+    spotlight {clear:true,target:"detail"}         -> status=1
+    spotlight {add:true,target:"records"}          -> records=2 (must be 3)
+  The existing unit test removes the MIDDLE member, which cannot expose this error. The chat's earlier
+  "2" now refers to a different thing, exactly the failure D-SP6 prohibits. Keep a next-number counter;
+  reset only on replace/empty and preserve it when remove/remeasure retires the highest member. Add both
+  removal and remeasure regression cases. Fix the code, not the spec's stable-number rule; the tracker
+  assertion that numbers are never reused is currently false.
+
+F2 — P2, required: validate the entire request and union bound BEFORE row reveal changes the view.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java:745-758
+  doSpotlight calls doGoto(reveal:true) for row members BEFORE MainFrame.applySpotlight parses all target
+  names and checks the add-union bound. resolveAll's parse-before-reveal guarantee therefore holds only
+  for its unit-test Surface, not for the real action entrance.
+
+  Reproduced on the jar with demo-quote-series.yaml:
+    filter {text:"nothing-matches-review-probe"}
+    spotlight {targets:["records:row:15","not-a-target"]}
+  The second call refuses the unknown target, but context.filter changes from that text predicate to {}
+  and context.selection changes from [] to record 15 (byteOffset 6347). A rejected request erased the
+  investigation scope. Separately, with six valid targets already lit, add records:row:10 refuses the
+  seventh target but still clears the text filter and selects record 10 (byteOffset 4235).
+
+  Fix: share full validation across the action/frame boundary, including all names and union capacity,
+  before any goto/reveal; then perform the permitted reveal phase and its remeasurement. Assert that
+  filter AND selection AND standing spotlights remain unchanged for these syntactically/capacity-invalid
+  calls. D-SP6 deliberately permits visibility side effects for a valid request that later cannot be
+  displayed; it explicitly does not permit a misspelled member to touch the surface. Preserve that
+  distinction in code and docs. The current all-or-nothing tracker claim overstates the implementation.
+
+VERIFIED
+  - Full suite: 1575 tests, 0 failures/errors, 19 display skips; same after temporary mutations restored.
+  - Requested display suites: 134 tests, 0 failures/errors/skips. Includes the real two-hole pixel test.
+  - verify-m64-spotlight.py on the built jar: 64/64 PASS; the two counterexamples above are missing cases.
+  - Mutation: skip resolveAll's earlier-member remeasurement loop. Exactly its cannot-be-together test
+    failed (11 cases, 1 failure), as the author claimed. Restored. The separate first-hole-only mutation
+    was not repeated; the unmutated two-hole display test was run.
+  - SpotlightGuidanceIsAtEveryEntranceTest: all 5 cases pass. Read the manifest, MCP instructions and
+    conditional system-prompt wiring; spotlight guidance is present on those entrances.
+  - Full capture-docs.py completed, 23 native captures including both spotlight themes. This CLOSES the
+    report's omitted-full-run check. All four regenerated spotlight PNGs match the committed bytes.
+  - Read the four spotlight images and five conversation images; demo/neutral text. The findings caption
+    about all 5 logged nodes being declared agrees with the pairing line; it does not claim full coverage.
+  - Jar build, tools tests, strict docs build and exact CLAUDE.md rule-1 sweep pass. No asset changes retained.
+
+DISPOSITION OF THE AUTHOR'S FLAGGED ITEMS
+  - coverage name: misleading; see the companion review's rename/alias recommendation. It points at the
+    pairing/status line, not a coverage gap. Changing it requires the skill edit and re-pin, not guessing
+    that graph fit means complete coverage.
+  - Content overlap: confirmed in both four-callout shots; callout 1 covers MarketDataEvent and callout 2
+    covers QuotePublisher. Non-blocking placement follow-up for this transient pointer, provided the
+    targets stay readable. The spec allows a least-overlap fallback even for lit content in a crowded
+    frame; CHANGELOG/tracker promises of unconditional non-overlap should be qualified accordingly.
+  - Crossing arrows: allowed by the present algorithm; I found no routing avoidance in source. Non-blocking
+    usability follow-up. I did not construct and visually inspect a crossing-arrow case.
+  - Guidance length: roughly 150 whitespace-delimited words, not the report's ~110. No measured token-cost
+    or behaviour comparison was run. Keep as a measured editorial follow-up, not a speculative blocker;
+    first shorten duplication only if a held-out run shows equivalent pointing behaviour.
+  - add + row reveal: valid calls are allowed to change selection and remove hidden standing targets.
+    That design is documented. F2 is different: INVALID calls mutate before validation and can return
+    early without remeasuring standing targets. The author's valid detail-node end-to-end scenario
+    remains unrun here and should accompany the regression fix.
+  - Click/Escape: still not manually observed, singly or in a set. A person should check each and confirm
+    the dismissing click does not also activate the underlying control.
+  - Six docs sentences / guided-start on a fresh client: still unrun. Successful scripted tool calls do
+    not establish that a context-free assistant chooses them correctly. Keep the held-out acceptance open.
+
+HANDOFF
+  No implementation fixes, rebase, amendment, force-push or merge performed. Author should answer F1/F2
+  and the companion target-resolution finding, with the reproductions above held as regressions. The
+  branch needs another review after those fixes; all five review files remain beside their reports until
+  the owner accepts the work. Main remains untouched.

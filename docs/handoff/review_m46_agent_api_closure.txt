@@ -1,0 +1,51 @@
+INDEPENDENT REVIEW — M46 agent-API closure
+Date: 2026-09-17 · Reviewer: Codex
+Branch: fix/m46-agent-api-closure · Reviewed HEAD: 251bc0a
+Piece: 74a465b · Report: report_m46_agent_api_closure.txt
+Brief: brief_review_m46_closure_branch.txt
+
+VERDICT: READY WITH FOLLOW-UPS
+
+No correctness blocker found in this piece. The analysis recall submits its decision on the EDT while
+the recall itself stays off it. The two graph counts and startup attribution agree with the running jar.
+This verdict does not approve the other four pieces or authorise a merge/release.
+
+F1 — P3, compatibility follow-up: decide the release treatment of the removed echo key.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java:4449,4684
+  Reproduced on the jar: open {graphml} returns graphNodes=20, authoredNodes=10 and no nodes key.
+  Discovery likewise renames its count to authoredNodes. The old key was misleading, but a client reading
+  it still experiences a breaking response change. The CHANGELOG explicitly explains the replacement;
+  I do not require retaining an ambiguous alias. Before release, make the compatibility decision explicit
+  and check any maintained consumers. No downstream consumer migration was exercised in this review.
+
+VERIFIED
+  - mvn test: 1575 run, 0 failures/errors, 19 display skips. Repeated after all temporary mutation probes
+    were restored: the same result. The first sandboxed run's 29 socket errors disappeared with localhost
+    access; they were environment failures, not product findings.
+  - mvn package: success. tools/verify-m46-agent-api.py: 17/17 PASS, against that jar, isolated home.
+  - tools/capture-conversations.py: all five scenarios completed and all five images generated.
+    Read the five conv-*.png images: demo content and neutral paths; no visible real account data found.
+    The regenerated transcript and images were restored after inspection; this review changes no assets.
+  - Mutation: replaced onEdt(() -> openDecision(params)) with openDecision(params). Exactly the one
+    OpenAnalysisDecidesOnTheEdtTest case failed. Restored the source. This is an observed red test.
+  - python3 tools/test_tools.py and mkdocs build --strict: success. Exact CLAUDE.md rule-1 tracked-file
+    sweep: no matches outside its two exemptions. git config user.email is the personal address.
+
+READ AND ASSESSED
+  - pendingRequests pruning is safe in the present driver: submit drains effects synchronously before
+    returning; LogOpening emits OpenLogEffect during that request and the adapter takes its OpenRequest
+    before starting the asynchronous reader. It is the completion that is deferred, not this effect.
+    A later request cannot overtake an older request's takeRequest on this path. This is a source-level
+    argument, not a new interleaving test of the map, and must be revisited if effect delivery changes.
+  - Startup audience policy is unchanged. A restored request remains human-facing; this patch fixes
+    attribution, not shared-home isolation or every possible modal on an unattended startup.
+  - A1/A2 smoke checks establish the tested paths; 24 alternating calls are not a general absence-of-hangs
+    proof. The report states that limitation correctly.
+
+NOT VERIFIED / OWNER HANDOFF
+  - Nobody in this review manually relaunched the app and read the restored-log Project row. The socket
+    attribution is verified; the rendering path was read. Keep the brief's human check open.
+  - Owner decisions remain: whether to cut 1.13.3 for the recall fix, whether to put the capture/verification
+    scripts on the pre-release checklist, and whether to ignore .mcp.json. No such policy change was made.
+  - No implementation fixes, rebase, amendment, force-push or merge performed. Keep this pair live until
+    the whole branch review is answered and accepted, then archive per the brief.

@@ -1,0 +1,57 @@
+INDEPENDENT REVIEW — M44.3b close supersedes
+Date: 2026-09-17 · Reviewer: Codex
+Branch: fix/m46-agent-api-closure · Reviewed HEAD: 251bc0a
+Piece: 69c0329 · Report: report_m44_3b_close_supersedes.txt
+Brief: brief_review_m46_closure_branch.txt
+
+VERDICT: NOT READY — the socket policy works; the human entrance is unavailable for a first pending load.
+
+F1 — P2, required: enable Close log and Reset while a log open is pending.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java:1575,2448,3067
+  updateLifecycleMenu enables Close log only when store != null and Reset only when a store or graph
+  exists. setBusy does not update these predicates. In a fresh analyser the first slow open therefore
+  has no usable menu command to exercise the newly promised supersede behaviour.
+
+  Reproduced with a temporary display test using AsyncOpenInterleavingFrameTest.Frame and its
+  DelayedReader, under an isolated home:
+    1. Open a.slow with format test-slow; wait for reader.entered, without releasing the reader.
+    2. Notify the File menu's menuSelected listeners, then inspect closeLogItem and resetItem on the EDT.
+    3. context.inFlight says "opening .../a.slow"; close.isEnabled() and reset.isEnabled() are BOTH false.
+  The assertion that Close log is enabled failed (1 test, 1 failure, no errors/skips). The reader was
+  released in finally and the temporary test removed. This was programmatic inspection of a real frame,
+  not a claim that someone clicked the menu.
+
+  Fix: include the gate's outstanding log-open state in menu availability and refresh it at start,
+  supersede and completion, without submitting a nested event during effect dispatch. Add a controlled
+  first-load menu test as well as the existing socket test. The owner's policy/spec and the CHANGELOG
+  promise are right; the UI implementation is incomplete. Do not mark the human acceptance complete yet.
+
+VERIFIED
+  - Whole branch: mvn test 1575 run, 0 failures/errors, 19 display skips, before and after mutations.
+  - The brief's Spotlight*Test,AsyncOpen*Test display command: 134 run, 0 failures/errors/skips, including
+    AsyncOpenInterleavingFrameTest's 11 cases. The existing socket close and graph-close control passed.
+  - Mutation: set onCloseRequested's superseded local to null. AsyncOpenReplayTest ran 12 cases with
+    exactly 3 failures (the supersede cases); controls passed. Restored. I did not repeat the author's
+    additional mutated display case; this independently reruns the replay portion of that check.
+  - GeneratedSourceIsPublishableTest (2), SessionGraphShapeTest (5), DescriptorFingerprintTest (3): pass
+    in the full suite. Source and resource SessionProcessor.java copies are byte-identical.
+  - Jar build, tool tests, strict docs build and exact rule-1 sweep passed (shared evidence in M46 review).
+
+READ AND ASSESSED
+  - Read the live Fluxtion framework reference and golden path on 2026-09-17 before judging dispatch:
+    https://raw.githubusercontent.com/telaminai/fluxtion/main/docs/claude.txt
+    https://fluxtion-playground.dev/fluxtion-golden-path.md
+  - Checked the generated CloseRequested branch and all six close listeners/socket entrances. Requests
+    reach requestClose; close effects do not recursively submit it. LOG/ALL invalidate the outstanding
+    log id; GRAPH does not. Late success/failure follows the existing stale-result rejection path.
+  - Correction to the report's downstream concern: the generated branch contains guarded recompute
+    calls, but their guards read openGraph/openLog dirty flags, not operationGate's flag. A bare close
+    request does not dirty those nodes. Returning true from the gate alone does not run those triggers.
+  - Leaving expectedOpId alone when nothing is pending is consistent with the chosen scope. Work is
+    refused on arrival, not interrupted; that is the recorded design, not a cancellation implementation.
+
+NOT VERIFIED / HANDOFF
+  - No manual File-menu click during a slow load. F1 must be fixed before that first-load check can pass.
+  - Did not regenerate through the hosted compiler; reviewed committed output and ran its guard tests.
+  - No findings fixed and no merge performed. Author should answer F1, rerun the controlled menu case
+    and existing interleaving suite, and record the response beside this report/review pair.

@@ -1,0 +1,60 @@
+INDEPENDENT REVIEW — M64 spotlight and guided-start
+Date: 2026-09-17 · Reviewer: Codex
+Branch: fix/m46-agent-api-closure · Reviewed HEAD: 251bc0a
+Pieces: 5d4040b,a62166d,74c951e · Report: report_m64_spotlight.txt
+Brief: brief_review_m46_closure_branch.txt
+Read together with review_m64_6_multi_spotlight.txt, which judges the superseding set behaviour.
+
+VERDICT: NOT READY — F1 violates exact target resolution; held-out/human acceptance is also still open.
+
+F1 — P2, required: do not bind an absent series label to the first prefix match.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphPanel.java:283-292
+  seriesLegendEntry falls back to arbitrary startsWith(label), ostensibly to accommodate " (external)".
+  It therefore accepts a name that is not a series and may choose the wrong member of a similarly named
+  pair. Reproduced on the built jar: draw series quotePublisher.spread, then spotlight
+  {target:"graph:series:quote"}. The call succeeds and echoes graph:series:quote as lit, although no
+  series has that label. This is a pointer to a guessed target, contrary to the closed vocabulary's
+  absent-target refusal and the repo's declared-never-inferred rule.
+  Fix: retain the actual series identity with its legend component, or allow only the exact known
+  display suffix in addition to an exact label. Refuse unknown and ambiguous labels; test two series
+  sharing a prefix as well as an external series. The spec is right; the broad prefix fallback is wrong.
+
+VERIFIED
+  - mvn test: 1575 run, 0 failures/errors, 19 display skips, repeated after restoring mutations.
+  - Spotlight*Test,AsyncOpen*Test with both display flags false-for-headless: 134 tests, no failures,
+    errors or skips. SpotlightFrameTest passed the real-frame screenshot pixel assertions.
+  - Built-jar verify-m64-spotlight.py: 64/64 PASS, including all tested target families, fresh context,
+    row reveal, screenshot retention, refusal and clearing. The prefix negative case above is outside it.
+  - Mutation repeated: remove goto from VIEW_CHANGING_VERBS. Exactly gotoPutsItOut failed (9 tests,
+    1 failure). Restored. I did not repeat the separate screenshot-composite mutation; I ran the positive
+    pixel test and inspected the compositing call in the screenshot path.
+  - CanonicalSkillsTest: 10/10 PASS. The index revision resolves to the guided-start bytes on this branch.
+    The skill explicitly falls back when the spotlight tool is absent; retaining min-version 1.12.0
+    is justified by that optional use. The index must still be re-pinned after the future local rebase.
+  - SpotlightFrameTest is in BOTH the CI ui-frame run list and its fail-if-skipped guard.
+  - Full capture-docs.py: 23 native captures, including all four spotlight shots. The regenerated four
+    spotlight PNGs were byte-identical to the committed files. Read all four: demo/neutral strings,
+    correctly placed highlighted nodes, captions consistent with the fixture and pairing status.
+    Also read all five regenerated conversation shots. No visible sensitive strings found.
+  - Jar build, Python tools, strict docs build and exact rule-1 sweep passed; generated outputs restored.
+
+READ AND ASSESSED
+  - Screenshot capture paints content/panel and then composites the overlay with translated coordinates.
+    Correcting the spec's original glass-pane assumption was necessary and is recorded explicitly.
+  - context.spotlight is before the fresh-start return. Overlay state is transient, and the persistence
+    guard passes. The final echo/context lit-array shape is consistently documented by D-SP6; an alias
+    for the unreleased earlier single shape is unnecessary.
+  - The target named coverage actually resolves to the topology status/pairing line (MainFrame:1872).
+    The current skill explicitly calls it the pairing line, but the name and the spec's "coverage
+    panel/verdict" wording still mislead. Prefer topology:verdict before first release, updating the
+    vocabulary, skill and revision pin together; alternatively document an explicit accurately named
+    alias and deprecate coverage. A pin is a change procedure, not a reason to preserve the misleading name.
+
+NOT VERIFIED / FOLLOW-UPS
+  - A person still needs to watch click and Escape dismiss the overlay, including several lit targets.
+    No synthetic event or source reading is being presented as that manual acceptance.
+  - No context-free guided-start session or fresh-client run of the six docs requests was performed.
+    The brief explicitly assigns those to a person/fresh client. M64.5's text is authored, but that
+    acceptance criterion remains open; do not describe all acceptance as complete.
+  - Neighbouring-content overlap and arrow routing are assessed in the companion review.
+  - No findings fixed, canonical skill edited, rebase or merge performed. Answer F1 before acceptance.
