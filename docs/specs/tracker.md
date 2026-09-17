@@ -1026,8 +1026,10 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
    (`docs/handoff/report_m44_3b_close_supersedes.txt`). Owner's policy: a close supersedes a pending open **of the
    same kind** — log/all/Reset do, a graph close does not. Modelled in the operation gate as a new request event;
    processor regenerated; mutation-checked.
-3. **M48.7** — the `analyser_context` handoff section: the analyser-side slice of authoring modes, and what
-   unblocks the dev-harness loop (M48.10).
+3. ☑ **M48.7** — DONE 2026-09-17 on the same branch, awaiting review
+   (`docs/handoff/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
+   canvas state — `context.handoff`, a new `handoff` verb, *AI ▸ Posture*, a Project-panel row. It unblocks the
+   dev-harness loop (M48.10). **Adds a fifteenth verb — owner to confirm.**
 4. **M64 Spotlight** — spec'd 2026-09-16, analyser-only, five slices, about a day and a half. The next self-contained
    FEATURE once 1–3 are closed.
 5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
@@ -1199,9 +1201,18 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       generator input, so a plain `mvn compile` works and the whole ordering workaround
       (`generated.dependents`, the `default-compile` exclusion, the second compiler execution) can go.
       **The analyser ships the template, so this is ours.**
-- [M48.7] ☐ **`analyser_context` handoff section** — the selector's record as shared canvas state,
-      readable by the LLM through `context`, rendered for the human; posture SETTABLE by either party
-      with derivation only as the default (R7 revised, R10)
+- [M48.7] ☑ **`analyser_context` handoff section — DONE 2026-09-17 on branch `fix/m46-agent-api-closure`,
+      awaiting independent review** (`docs/handoff/report_m48_7_canvas_handoff.txt`). The selector's record
+      and the session's POSTURE are shared canvas state: one `CanvasHandoff.State`, written by an AI client
+      (the new `handoff` verb) or a person (*AI ▸ Posture*, *AI ▸ Place mode-selector record…*) through the
+      same rules, read back in `context.handoff` and on a Project-panel row. Posture is SET by either party;
+      the derived default says it is a guess and a set one names who set it (R7 revised, R10). **The analyser
+      never runs the selector** — whoever ran it places its record. The canvas spec's write rules are applied
+      (typed, attributed, bounded, fail-closed whole, reversible, cleared at a project boundary) and **nothing
+      is persisted** — R9's profile write stays a separate, reviewable slice. **It is a FIFTEENTH VERB**, the
+      first growth of the surface since it was pinned at fourteen: `handoff` is not a lifecycle act so it does
+      not belong on `open`, and `context` must stay read-only. That is the decision here most worth the owner's
+      second look. `tools/verify-m48-handoff.py` holds it on the built jar (12 checks, incl. fresh start).
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
 - [M48.12] ☐ **audit-log header fingerprint carrier** — narrowed twice. The contract is

@@ -1,0 +1,111 @@
+REPORT — M48.7: the handoff record and the session's posture as shared canvas state
+Date: 2026-09-17 · Author: the independent review session · Branch: fix/m46-agent-api-closure (commit 3 of 3)
+Base: origin/main @ 96a11ac (Release 1.13.2). Companion reports on this branch:
+report_m46_agent_api_closure.txt (commit 1) · report_m44_3b_close_supersedes.txt (commit 2).
+Specs: spec-authoring-mode-selector.md (R7 revised, R10, and its new "As built" block) ·
+spec-shared-evidence-canvas.md ("Who writes, and what a write means").
+
+STATE: NOT YET INDEPENDENTLY REVIEWED — this is the ask. `mvn test` 1464 green · `mkdocs build --strict` ·
+sweep clean · `tools/verify-m48-handoff.py` 12/12 and `tools/verify-m46-agent-api.py` 17/17 on the built
+jar · both doc harnesses re-run, shots read.
+
+THE ONE DECISION FOR THE OWNER, FIRST, BECAUSE IT IS THE ONE THAT MATTERS
+  This adds a FIFTEENTH VERB, `handoff`. The surface was deliberately pinned at fourteen — close, project,
+  discover and analysis were each folded into `open` instead, and four tests held the number. I moved the
+  number. My reasoning: the rule those tests guard is that the surface does not grow FOR A CONCEPT AN
+  EXISTING VERB ALREADY NAMES. Those four are lifecycle acts, so they belong on `open`. Posture and the
+  selector's record are not a lifecycle act, and `context` cannot take a write because it must stay
+  read-only (M42's loopback probe depends on that). Overloading either is one name with two meanings — the
+  move D-T4 refused for `rowWhen`. If the owner disagrees, the alternative is `open {posture, handoff}`:
+  about forty lines to move, and the four tests go back to 14. Each updated test states this in its message.
+
+================================================================================
+1. WHAT THE TRACKER LINE MEANT, AND WHAT I TOOK IT TO REQUIRE
+================================================================================
+M48.7 was one sentence. Read against the spec it is two things: (R7 revised) the mode selector's handoff
+record is "shared context, not a view: one piece of state, rendered for the human, exposed to the LLM
+through context, and writable by either"; and (R10) "either party may set the analyser's posture … through
+MCP or the UI, and derivation is only the fallback".
+
+Four choices, each taken FROM the specs rather than invented:
+  a. THE ANALYSER NEVER RUNS THE SELECTOR. R6 says "the analyser calls it"; the spec's own later Correction
+     ("the analyser is the renderer, not the intelligence") supersedes that. Whoever ran the selector
+     PLACES its record. This also keeps D-AI4 (nothing on the AI menu runs anything) intact.
+  b. SESSION STATE, NOTHING PERSISTED. The canvas spec: the profile "grows only through reviewed key
+     families" and "model writes default to reversible curation". Writing a chosen convention back to the
+     profile (R9) is a new key family and is NOT in this slice — recorded as not built, on purpose.
+  c. THE CANVAS'S SEVEN WRITE RULES, APPLIED: visible (one state, two renderings) · typed (a closed record
+     shape; an unknown field is REFUSED, not dropped) · attributed (who, when) · scoped (cleared at a
+     project transition) · reversible (`clear`) · fail-closed (a malformed record is refused WHOLE, and a
+     posture sent in the same call is not applied) · bounded (200 items, 200 chars, one line each).
+  d. DERIVATION IS SIMPLER THAN R10's SENTENCE. "A buildable project" is unknowable without running a
+     build, so: a project open reads as authoring, otherwise research — and the payload SAYS it is a guess.
+
+================================================================================
+2. WHAT CHANGED
+================================================================================
+- llm/CanvasHandoff — the pure model: Posture, Author, PostureSetting, Record, parse(), toContext(), and
+  State.apply(), which validates EVERYTHING before changing ANYTHING. No Swing, fully unit-tested.
+- The verb, along the established path: VerbSchemas (so REST /manifest and MCP tools/list publish it for
+  free) → ActionDispatcher → ActionExecutor (onEdt) → AppControl.handoff (default: not offered) →
+  MainFrame's adapter, attributed AGENT. McpTools marks it neither read-only nor destructive: it is
+  reversible session state.
+- MainFrame: one `handoff` State; `context()` puts `handoff` ABOVE the fresh-start early return (the
+  ONBOARDING trap — proven on the built jar, not assumed); cleared in the ApplyProfile and RestoreSettings
+  effects; the AI menu gains Posture ▸ (three radio items PAINTED from the state each time the menu opens —
+  D-AI2, no state of its own), Place mode-selector record… (a file chooser; reads a file, starts nothing)
+  and Clear mode-selector record (disabled, with the remedy in its tooltip, when there is none).
+- ProjectModel: a posture row (MUTED when derived, NORMAL when set, naming who set it and what the guess
+  would have been) and a mode-selector record row stating the authoring gap. KEYS_READ extended.
+- ProjectPanelIsRevealOnlyTest now also scans CanvasHandoff.java for put("leaf") literals — it is the third
+  place `context` is assembled, and the test's own comment says the honest scope is wherever that happens.
+- Docs in the same commit (the ONBOARDING rule for a new context key): user-guide/assistant.md (the verb,
+  and the tool lists now 15), user-guide/project-panel.md (the rows and keys), connect-an-llm.md (15 tools).
+  All 19 docs screenshots and the 5 conversation shots regenerated from the final jar.
+
+================================================================================
+3. EVIDENCE
+================================================================================
+- CanvasHandoffTest (12): derived-and-says-so · set wins, names who, shows the disagreement · `derived`
+  puts it back · unknown posture refused without re-attributing the standing one · the selector's OWN
+  example record accepted with its null skill · malformed refused whole incl. the posture in the same call
+  · unknown field refused (the example is an `instructions` field — the canvas carries none) · skills
+  parallel to modes · bounds named · clear · project-boundary clear · empty call reads.
+- ProjectModelTest (+3): the rows as a person sees them; and that a context WITHOUT `handoff` adds no row.
+- tools/verify-m48-handoff.py — NEW, 12 checks on the BUILT JAR: served on a fresh start; socket write
+  attributed; refused whole; undeclared param named as ignored (M26.4); project switch clears; clear undoes.
+- EYEBALL, from the regenerated docs/site/assets/ai-menu.png (read before committing): the menu shows
+  Posture ▸ / Place mode-selector record… / a greyed Clear mode-selector record, and the Project panel reads
+  "posture: authoring/deploy — derived from what is open — a starting guess; AI ▸ Posture sets it · this
+  session", muted. Neutral paths throughout.
+
+================================================================================
+4. WHAT A REVIEWER SHOULD ATTACK
+================================================================================
+· THE FIFTEENTH VERB (above). It is the owner's call more than a reviewer's, but say what you think.
+· "REFUSE AN UNKNOWN FIELD" vs the house habit of FORWARD TOLERANCE (M38.7 preserves unknown keys; the
+  format spec tolerates unknown record fields). I chose refusal because this is an agent WRITING to a
+  surface a person reads — a silently dropped field is a fact the agent believes is on the canvas and is
+  not. But when the selector's record gains a field, every older analyser will refuse the whole record.
+  The alternative is accept-and-name-ignored, as the verbs do for params (M26.4). I am not certain I chose
+  right; it is a one-line change either way.
+· POSTURE IS CLEARED AT A PROJECT BOUNDARY. Arguable: posture is the person's intent for the sitting, and
+  a project switch may not change it. I cleared it because the derivation changes at exactly that moment
+  and a stale SET posture would then contradict what is open with nobody having said so recently.
+· NOTHING CONSUMES POSTURE YET. It is stated, settable and rendered; no behaviour branches on it. That is
+  deliberate (R10 asks for the state, and M48.10 is the consumer) but it means this slice is unfalsifiable
+  in use until something reads it.
+· The AI menu's source-text tests (AiMenuTest) still pass; check my additions did not merely avoid its
+  patterns — e.g. the listeners call applyHandoffFromMenu / placeHandoffRecordFromFile, which live outside
+  the menu body the test reads.
+
+================================================================================
+5. NOT DONE
+================================================================================
+· Nobody has CLICKED Posture ▸ or Place mode-selector record…. The menu is painted from state and the
+  panel row is verified by screenshot, but the two menu helpers (a refusal dialog; a file chooser) are
+  Swing nobody has exercised. Two minutes: set a posture, watch the Project panel row change; place a bad
+  JSON file and read the refusal.
+· R9 (persisting a chosen convention to the profile) — deliberately out of scope; needs a key-family review.
+· The in-app assistant's prompt was not re-examined for whether it should mention `handoff`; it builds its
+  verb list from VerbSchemas, so the verb is offered, but no guidance text was added.

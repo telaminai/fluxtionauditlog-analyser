@@ -291,6 +291,23 @@ public final class VerbSchemas {
                         p("remove", arr(string()), "roots to remove")),
                 List.of()));
 
+        s.put("handoff", schema("Write to the shared canvas: the session's POSTURE and the authoring mode "
+                        + "selector's record. Both are read back in context.handoff and shown to the person in "
+                        + "the Project panel — one state, two readers. Session-scoped and reversible: nothing is "
+                        + "persisted, a project switch clears it, and 'clear' undoes it. The analyser never runs "
+                        + "the selector; you run it (it is a headless CLI) and place its --json record here. "
+                        + "With no params, returns the current handoff.",
+                props(
+                        p("posture", enumStr("research", "authoring", "derived"),
+                                "research = research/support, authoring = authoring/deploy. Set it when intent "
+                                        + "changes before any artefact does (\"let's build something new\"). "
+                                        + "'derived' returns to the default guess from what is open."),
+                        pAny("record", "the selector's --json record: {branch, modes[], skills[] (parallel to modes; "
+                                + "null = that mode loads nothing), resolved_figures[], authoring_required[], "
+                                + "selection_candidates{}}. Refused whole, with the reason, if malformed."),
+                        p("clear", enumStr("record", "posture", "all"), "remove what was placed")),
+                List.of()));
+
         return s;
     }
 

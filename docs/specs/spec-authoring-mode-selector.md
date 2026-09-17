@@ -177,6 +177,8 @@ unselectable. (Belongs in [`spec-component-catalogue.md`](spec-component-catalog
 | `Fluxtion-Convention` + site profile | **built, verified** — one word decides the build |
 | mode derivation, incl. mixed sessions | **built** |
 | `--json` handoff record | **built** |
+| the handoff record + posture as shared canvas state (R7 revised, R10) | **built 2026-09-17 (M48.7)** — `context.handoff`, the `handoff` verb, *AI ▸ Posture*, a Project-panel row; session-scoped |
+| writing a chosen convention back to the project profile (R9) | **not built, deliberately** — a new profile key family, which grows only by review |
 | catalogue generation from bytecode | spec'd only — `spec-component-catalogue.md` |
 | the mode-1 selection asset | **not written** |
 | asset fetching from the handoff record | **not built** |
@@ -368,3 +370,25 @@ immediately and no artefact has changed yet.
 MCP or the UI, and derivation is only the fallback when nothing has been set.** The derived default
 remains useful — log open and no project is support; a buildable project open is authoring — but it is
 a starting guess, not a constraint.
+
+### As built (M48.7, 2026-09-17)
+
+- **One state, two writers, two readers.** `CanvasHandoff.State` is held by the frame. The `handoff` verb
+  (an AI client) and the *AI* menu (a person) write through the same `apply`, so the only difference
+  between them is the attribution. `context.handoff` and the Project panel read the same object.
+- **The analyser never runs the selector.** Whoever ran it places its `--json` record: `handoff {record}`
+  over the socket, or *AI ▸ Place mode-selector record…* from a file. R6's *"the analyser calls it"* is
+  superseded by the Correction section above — the LLM or the human is the intelligence.
+- **Derivation is simpler than R10's sentence.** "A *buildable* project" is not something the analyser can
+  know without running a build, so the default is: a project open reads as authoring, otherwise research.
+  It is labelled `source: "derived"` with a note saying it is a guess; a SET posture names who set it and,
+  when the two disagree, what the derivation would have been.
+- **The canvas's write rules, applied** (`spec-shared-evidence-canvas.md`): the record has a closed shape
+  and an unknown field is refused, not dropped; a malformed record is refused WHOLE and a posture sent in
+  the same call is not applied; every list and string is capped; `clear` reverses; a project transition,
+  being a session boundary, clears it. **Nothing is persisted** — R9's profile write is a separate slice.
+- **It is a fifteenth verb.** The surface had been held at fourteen by folding `close`, `project`,
+  `discover` and `analysis` into `open`, because those are all lifecycle acts. `handoff` is not one, and
+  `context` must stay read-only (the M42 loopback probe's non-mutating guarantee depends on it), so
+  overloading either would have been one name with two meanings. This is the decision in this slice most
+  worth an owner's second look.

@@ -42,7 +42,8 @@ class ProjectVerbTest {
     @Test
     void projectIsNotItsOwnVerb_theSurfaceDoesNotGrow() {
         assertFalse(VerbSchemas.all().containsKey("project"));
-        assertEquals(14, VerbSchemas.all().size(), "M35.8 extends 'open' like close and discover did");
+        assertEquals(15, VerbSchemas.all().size(), "M35.8 extends 'open' like close and discover did "
+                + "(15 since M48.7's `handoff` — a concept no existing verb named; see CloseVerbTest)");
     }
 
     // ---- the published surface -----------------------------------------------------------------

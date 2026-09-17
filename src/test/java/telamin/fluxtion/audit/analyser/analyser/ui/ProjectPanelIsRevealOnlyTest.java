@@ -61,8 +61,10 @@ class ProjectPanelIsRevealOnlyTest {
         // context() plus the helpers it assembles from (runbooksForContext, …): the whole file is the honest
         // scope once the builder is split — a key put nowhere in MainFrame is still a key context cannot serve
         String context = mainFrame;
+        // M48.7: the handoff section is assembled by CanvasHandoff.toContext, the third place context is built
+        String handoff = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/CanvasHandoff.java"));
         Set<String> put = new TreeSet<>();
-        Matcher m = Pattern.compile("put\\(\"([A-Za-z]+)\"").matcher(context + facts);
+        Matcher m = Pattern.compile("put\\(\"([A-Za-z]+)\"").matcher(context + facts + handoff);
         while (m.find()) put.add(m.group(1));
         // Map.of literals inside context() — `Map.of("path", r, "tier", ...)` — put keys without put(
         Matcher lit = Pattern.compile("Map\\.of\\(\"([A-Za-z]+)\", [^,]+, \"([A-Za-z]+)\"").matcher(context);

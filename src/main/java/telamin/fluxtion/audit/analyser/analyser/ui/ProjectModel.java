@@ -57,7 +57,10 @@ public record ProjectModel(List<Section> sections) {
             "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default",
             "analyses.name", "analyses.rationale", "analyses.parameters", "analyses.steps", "analyses.from",
             "reportDestinations.name", "reportDestinations.location", "reportDestinations.kind", "reportDestinations.from",
-            "source.rootTiers.form", "source.workspaceRoot", "source.workspaceDir");
+            "source.rootTiers.form", "source.workspaceRoot", "source.workspaceDir",
+            "handoff.posture.value", "handoff.posture.source", "handoff.posture.setBy", "handoff.posture.derivedWouldBe",
+            "handoff.record.modes", "handoff.record.resolvedFigures", "handoff.record.authoringRequired",
+            "handoff.record.selectionCandidates", "handoff.record.setBy");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
             PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports", ANALYSES = "Analyses";
@@ -77,6 +80,33 @@ public record ProjectModel(List<Section> sections) {
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
                     Tone.MUTED, Target.NONE));
+        }
+        // M48.7: the shared canvas's handoff — what an AI client reads in context.handoff, as the person sees
+        // it. A SET posture names who set it; a derived one says it is a guess, because the difference is the
+        // whole of R10. The record row appears only when somebody placed one.
+        Map<String, Object> handoff = map(ctx.get("handoff"));
+        Map<String, Object> posture = map(handoff.get("posture"));
+        if (posture.get("value") != null) {
+            boolean set = "set".equals(posture.get("source"));
+            String detail = set
+                    ? "set by " + posture.get("setBy") + (posture.get("derivedWouldBe") == null ? ""
+                            : " · what is open would suggest " + posture.get("derivedWouldBe"))
+                    : "derived from what is open — a starting guess; AI ▸ Posture sets it";
+            rows.add(new Row("posture: " + posture.get("value"), detail, null, "this session",
+                    set ? Tone.NORMAL : Tone.MUTED, Target.NONE));
+        }
+        Map<String, Object> record = map(handoff.get("record"));
+        if (!record.isEmpty()) {
+            List<Object> gap = list(record.get("authoringRequired"));
+            int questions = map(record.get("selectionCandidates")).size();
+            StringBuilder detail = new StringBuilder("modes ");
+            detail.append(String.join(" + ", list(record.get("modes")).stream().map(String::valueOf).toList()));
+            detail.append(" · ").append(list(record.get("resolvedFigures")).size()).append(" figure(s) resolved · ");
+            detail.append(gap.isEmpty() ? "nothing left to author"
+                    : gap.size() + " to author: " + String.join(", ", gap.stream().map(String::valueOf).toList()));
+            if (questions > 0) detail.append(" · ").append(questions).append(" selection question(s)");
+            rows.add(new Row("mode-selector record", detail.toString(), null,
+                    "placed by " + record.get("setBy") + " · this session", Tone.NORMAL, Target.NONE));
         }
         // M19.12: the only observable fact is the canonical file's configured-key presence. A future
         // Maven invocation may receive a -D override that this process cannot see, so the rule is

@@ -104,6 +104,15 @@ public interface AppControl {
     }
 
     /**
+     * M48.7 — read or write the shared canvas's handoff section ({@link CanvasHandoff}): the session's
+     * posture and the mode selector's record. The state is the frame's; this call attributes the write to
+     * the action socket. Default: not offered.
+     */
+    default ActionResult handoff(java.util.Map<String, Object> params) {
+        return ActionResult.error("'handoff' is not available in this context");
+    }
+
+    /**
      * Select the EventProcessor whose source backs node → class resolution.
      *
      * <p>Needed because inference only runs over candidates found in the package of the

@@ -410,4 +410,57 @@ class ProjectModelTest {
                 "settled: one target for both causes; the wording distinguishes them");
         assertEquals(ProjectModel.Tone.WARN, row.tone(), "it is still wrong, and still warns");
     }
+
+    // ---- M48.7: the handoff as the PERSON sees it — the same state an agent reads in context.handoff --
+
+    private static ProjectModel.Row rowStarting(ProjectModel m, String prefix) {
+        return m.section(ProjectModel.PROJECT).rows().stream()
+                .filter(r -> r.primary().startsWith(prefix)).findFirst().orElse(null);
+    }
+
+    @Test
+    void aDerivedPostureIsShownMuted_andSaysItIsAGuess() {
+        Map<String, Object> ctx = new LinkedHashMap<>(empty());
+        ctx.put("handoff", telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff
+                .toContext(null, null, false));
+
+        ProjectModel.Row row = rowStarting(ProjectModel.from(ctx), "posture:");
+
+        assertEquals("posture: research/support", row.primary());
+        assertTrue(row.secondary().contains("starting guess"), row.secondary());
+        assertEquals(ProjectModel.Tone.MUTED, row.tone(), "a guess is not dressed as a decision");
+    }
+
+    @Test
+    void aSetPostureNamesWhoSetIt_andTheRecordRowStatesTheAuthoringGap() {
+        var state = new telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.State();
+        Map<String, Object> record = new LinkedHashMap<>();
+        record.put("branch", "catalogue");
+        record.put("modes", List.of("0+", "2/3"));
+        record.put("resolved_figures", List.of("adjusted", "alert"));
+        record.put("authoring_required", List.of("netPosition"));
+        assertTrue(state.apply(Map.of("posture", "authoring", "record", record),
+                telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Author.AGENT,
+                java.time.Instant.parse("2026-09-17T10:00:00Z")).isEmpty());
+        Map<String, Object> ctx = new LinkedHashMap<>(empty());
+        ctx.put("handoff", state.toContext(false));
+
+        ProjectModel m = ProjectModel.from(ctx);
+
+        ProjectModel.Row posture = rowStarting(m, "posture:");
+        assertEquals("posture: authoring/deploy", posture.primary());
+        assertTrue(posture.secondary().contains("set by action socket"), posture.secondary());
+        assertTrue(posture.secondary().contains("would suggest research/support"),
+                "the person sees that the agent's setting disagrees with what is open: " + posture.secondary());
+        ProjectModel.Row rec = rowStarting(m, "mode-selector record");
+        assertTrue(rec.secondary().contains("modes 0+ + 2/3"), rec.secondary());
+        assertTrue(rec.secondary().contains("1 to author: netPosition"), rec.secondary());
+        assertTrue(rec.provenance().contains("placed by action socket"), rec.provenance());
+    }
+
+    @Test
+    void withNoHandoffInContext_thePanelAddsNoRow_soOlderContextsRenderAsBefore() {
+        assertNull(rowStarting(ProjectModel.from(empty()), "posture:"));
+        assertNull(rowStarting(ProjectModel.from(empty()), "mode-selector record"));
+    }
 }

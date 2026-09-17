@@ -27,7 +27,7 @@ Three parts, and it matters which is which:
    fresh one with nothing in it.
 
 The client sees **one tool per verb**, `analyser_open`, `analyser_context`, `analyser_filter`,
-`analyser_graph`, `analyser_topology`, `analyser_flag`, `analyser_report` and so on — fourteen in all,
+`analyser_graph`, `analyser_topology`, `analyser_flag`, `analyser_report` and so on — fifteen in all,
 each with its parameter schema, so there is nothing to teach the model. The read-only ones are marked
 read-only; the ones that write files or replace what is loaded are marked destructive so your client asks
 you first. The full verb reference is in [Analyser assistant](user-guide/assistant.md).
@@ -132,16 +132,16 @@ cat ~/.fluxtion-analyser/rest-endpoint
 No file means the transport is off — tick *AI ▸ Local MCP / REST enabled*, or restart with `--rest`.
 
 **Does your client see the tools?** In Claude Code, `/mcp` should show the server connected with
-**14 tools**:
+**15 tools**:
 
 ```text
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 14 tools
+  ⎿ fluxtion-analyser   ✔ connected · 15 tools
        analyser_aggregate · analyser_read · analyser_series
        analyser_filter · analyser_graph · analyser_goto
        analyser_flag · analyser_report · analyser_coverage
        analyser_context · analyser_topology · analyser_screenshot
-       analyser_open · analyser_source_root
+       analyser_open · analyser_source_root · analyser_handoff
 ```
 
 If the server is missing, the client did not launch the bridge. Reopen the analyser setup screen and use

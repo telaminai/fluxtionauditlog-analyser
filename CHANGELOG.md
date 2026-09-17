@@ -26,6 +26,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   bounded view (size and spans captured under the index lock, then the text); the store publishes the text before
   the rows that point into it. Before, a walk overlapping an append could throw on its thread, and the graph's
   best-effort error path swallowed it — the chart just failed to update.
+### Added
+- **A shared canvas for you and an AI client: the session's posture, and the authoring handoff.** Two
+  things both of you can now see and either of you can set. **Posture** — whether this session is
+  *research/support* or *authoring/deploy*. The analyser guesses it from what is open and says when it is
+  only guessing; *AI ▸ Posture*, or the assistant's new `handoff {posture}` action, sets it, because intent
+  changes before any file does. **The authoring mode selector's record** — the modes in force, the figures
+  the catalogue resolved and what is left to author — placed with `handoff {record}` or *AI ▸ Place
+  mode-selector record…*. Both appear on the Project panel and in `context.handoff`, each attributed to
+  whoever set it. The analyser never runs the selector and does not check the record; a malformed one is
+  refused whole, with the reason. It is session state: a project switch clears it and nothing is written to
+  the project profile. **MCP clients now see 15 tools** — `analyser_handoff` is the new one.
+
 ### Fixed
 - **Recalling a saved analysis over the action socket works again.** Since 1.13.0 every agent
   `open {analysis, bind}` ran its steps and then failed with *"SessionDriver is confined to the thread

@@ -120,6 +120,11 @@ public final class ActionExecutor implements RenderExecutor {
             case "source_root" -> {
                 return onEdt(() -> doSourceRoot(params));
             }
+            case "handoff" -> {
+                // M48.7: canvas state, not log state — it needs no log, and it is the frame's to hold
+                if (app == null) return ActionResult.error("'handoff' is not enabled here");
+                return onEdt(() -> app.handoff(params));
+            }
             case "topology" -> {
                 return onEdt(() -> doTopology(params));
             }

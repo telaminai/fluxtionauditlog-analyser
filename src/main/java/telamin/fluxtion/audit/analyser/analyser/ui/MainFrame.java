@@ -1712,6 +1712,31 @@ public final class MainFrame extends JFrame {
         glossary.addActionListener(e -> PointerDialog.glossary(this, config, this::onProfileEdited, projectRoot(), profileFile()));
         ai.add(glossary);
 
+        // M48.7 / R10: the session's posture is SET by either party; derivation is only the default. These
+        // items are BOUND to the one handoff state (D-AI2) — painted from it each time the menu opens, the
+        // same state an agent reads in context.handoff and writes with the `handoff` verb.
+        ai.addSeparator();
+        JMenu postureMenu = new JMenu("Posture");
+        postureMenu.setToolTipText("What this session is for — shared with an AI client through context.handoff");
+        JRadioButtonMenuItem postureDerived = new JRadioButtonMenuItem("Derived");
+        postureDerived.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "derived")));
+        JRadioButtonMenuItem postureResearch = new JRadioButtonMenuItem("Research / support");
+        postureResearch.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "research")));
+        JRadioButtonMenuItem postureAuthoring = new JRadioButtonMenuItem("Authoring / deploy");
+        postureAuthoring.addActionListener(e -> applyHandoffFromMenu(Map.of("posture", "authoring")));
+        postureMenu.add(postureDerived);
+        postureMenu.add(postureResearch);
+        postureMenu.add(postureAuthoring);
+        ai.add(postureMenu);
+        JMenuItem placeRecord = new JMenuItem("Place mode-selector record…");
+        placeRecord.setToolTipText("Put the authoring mode selector's --json record on the shared canvas — "
+                + "the analyser shows it and serves it in context; it never starts the selector itself");
+        placeRecord.addActionListener(e -> placeHandoffRecordFromFile());
+        ai.add(placeRecord);
+        JMenuItem clearRecord = new JMenuItem("Clear mode-selector record");
+        clearRecord.addActionListener(e -> applyHandoffFromMenu(Map.of("clear", "record")));
+        ai.add(clearRecord);
+
         ai.addSeparator();
         JMenuItem exchange = new JMenuItem("Report exchange directory…");
         exchange.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged,
@@ -1740,11 +1765,67 @@ public final class MainFrame extends JFrame {
                 AiMenuModel.Item exchange = AiMenuModel.showExchange(config);
                 showExchange.setEnabled(exchange.enabled());
                 showExchange.setToolTipText(exchange.tooltip());
+                // M48.7: painted from the handoff state, never remembered here (D-AI2)
+                var set = handoff.posture();
+                var derived = telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.derive(project.hasProject());
+                postureDerived.setText("Derived — currently " + derived.label());
+                postureDerived.setSelected(set == null);
+                postureResearch.setSelected(set != null && set.posture()
+                        == telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Posture.RESEARCH);
+                postureAuthoring.setSelected(set != null && set.posture()
+                        == telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Posture.AUTHORING);
+                clearRecord.setEnabled(handoff.record() != null);
+                clearRecord.setToolTipText(handoff.record() == null
+                        ? "No record is on the canvas — AI ▸ Place mode-selector record… puts one there"
+                        : "Remove the record " + handoff.record().setBy().label() + " placed");
             }
             @Override public void menuDeselected(javax.swing.event.MenuEvent e) { }
             @Override public void menuCanceled(javax.swing.event.MenuEvent e) { }
         });
         return ai;
+    }
+
+    /**
+     * M48.7 — the shared canvas's handoff section: the session's posture and the mode selector's record.
+     * ONE state with two writers (the `handoff` verb and the AI menu) and two readers (`context.handoff`
+     * and the Project panel). Session-scoped: a project transition clears it; nothing is persisted.
+     */
+    private final telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.State handoff =
+            new telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.State();
+
+    /** The person's half of the write path — the same rules as the socket's, attributed to "you". */
+    private void applyHandoffFromMenu(Map<String, Object> params) {
+        var refused = handoff.apply(params, telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Author.HUMAN,
+                java.time.Instant.now());
+        if (refused.isPresent()) {
+            JOptionPane.showMessageDialog(this, refused.get(), "Handoff not changed", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        refreshProjectPanel();
+        status.setText("Shared canvas updated — an AI client sees it in context.handoff");
+    }
+
+    /**
+     * Place the selector's {@code --json} output from a file the person chooses. The analyser reads the
+     * file and nothing else: it does not start the selector (D-AI4 — nothing on this menu runs anything).
+     */
+    private void placeHandoffRecordFromFile() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("The mode selector's --json record");
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        Object parsed;
+        try {
+            Path file = fc.getSelectedFile().toPath();
+            if (Files.size(file) > 1_000_000) throw new java.io.IOException("larger than 1 MB — not a selector record");
+            parsed = telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(Files.readString(file));
+        } catch (java.io.IOException | RuntimeException ex) {
+            JOptionPane.showMessageDialog(this, "Could not read a JSON record from that file: " + ex.getMessage(),
+                    "Handoff not changed", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Map<String, Object> params = new java.util.LinkedHashMap<>();
+        params.put("record", parsed);
+        applyHandoffFromMenu(params);
     }
 
     /** The profile file a pointer edit lands in — named in the dialog, because it is committed (D-AI7). */
@@ -3785,12 +3866,14 @@ public final class MainFrame extends JFrame {
                         r.loaded() ? project.activeName() : null, 0, r.message());
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProfileEffect e -> {
+                handoff.clear();       // M48.7: a project transition is a session boundary; what was placed was the last one's
                 applyProjectSettings();
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RestoreSettingsEffect e -> {
                 project.close();
+                handoff.clear();       // M48.7: leaving a project ends the session the handoff belonged to
                 applyProjectSettings();
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored(opId);
             }
@@ -4396,6 +4479,19 @@ public final class MainFrame extends JFrame {
             return List.copyOf(config.sourceRoots);
         }
 
+        /** M48.7: the socket's half of the handoff write path — the same rules as the menu's, attributed to the agent. */
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult handoff(Map<String, Object> params) {
+            var refused = handoff.apply(params == null ? Map.of() : params,
+                    telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.Author.AGENT, java.time.Instant.now());
+            if (refused.isPresent()) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refused.get());
+            }
+            refreshProjectPanel();          // one state, two renderings: the person sees what the agent wrote
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("handoff", "handoff",
+                    handoff.toContext(project.hasProject()));
+        }
+
         /** M38.4 D-C5: bind, then run each step through the socket's own dispatcher; stop at the first failure. */
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult runAnalysis(String name, Map<String, String> bindings) {
@@ -4726,6 +4822,10 @@ public final class MainFrame extends JFrame {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
+            // M48.7: the shared canvas's handoff — the session's posture (set, or derived and SAID to be
+            // derived) and the mode selector's record when someone has placed one. Above the fresh-start
+            // return on purpose: posture has an answer with nothing open, and that is when it is asked.
+            out.put("handoff", handoff.toContext(project.hasProject()));
             // M38.3: the environments the project declares, so an agent can name one when it opens a log
             if (!config.environments.isEmpty()) {
                 List<Map<String, Object>> envs = new ArrayList<>();
