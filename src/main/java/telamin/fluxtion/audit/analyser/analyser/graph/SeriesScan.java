@@ -82,10 +82,11 @@ public final class SeriesScan {
         boolean truncated = false;
         TreeMap<String, double[]> buckets = bucket == null ? null : new TreeMap<>();   // key → [count,min,max,sum]
 
-        for (int row = 0; row < store.size(); row++) {
+        var view = store.readView();   // bounded walk: the `series` verb runs off the EDT while follow appends (M65 D-F0)
+        for (int row = 0; row < view.size(); row++) {
             if (!filter.test(index, row)) continue;
             Long logTime = index.logTime(row);
-            List<NodeLog> nodeLogs = store.record(row).nodeLogs();
+            List<NodeLog> nodeLogs = view.record(row).nodeLogs();
 
             // An UNTIMED record cannot produce a point (there is no x for it) but it did OBSERVE
             // values, and under LOCF the carry is "last known value" — so it must still update the

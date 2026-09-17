@@ -16,7 +16,7 @@ import java.nio.file.Path;
  */
 public final class HeapLogStore implements LogStore {
 
-    private String file;                 // grows in follow/tail mode (append-only)
+    private volatile String file;        // grows in follow/tail mode (append-only); volatile: read off-EDT by readView()
     private final LogIndex index;
     private Path source;                  // set when built from a file, so follow can re-read it
 
@@ -50,13 +50,17 @@ public final class HeapLogStore implements LogStore {
         if (full.length() == file.length()) return 0;    // no growth
         final int before = index.size();
         final int[] seen = {0};
+        // M65 D-F0 part 1: publish the TEXT before the rows that point into it. The file is append-only, so
+        // every row already indexed keeps valid offsets in the longer string, and a reader that sees a new row
+        // under the index lock therefore sees a `file` that contains it. The old order (rows first, text last)
+        // left a window in which a walker could read a row whose span lay past the end of the old string.
+        this.file = full;
         // require a terminator so a record still being written isn't indexed until complete; the
         // first `before` records are byte-identical (append-only) so we skip them and add the rest
         RecordFramer.frame(full, raw -> {
             if (seen[0]++ < before) return;
             index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
-        this.file = full;
         return index.size() - before;
     }
 
@@ -85,6 +89,31 @@ public final class HeapLogStore implements LogStore {
     public String rawText(int row) {
         int start = (int) index.offset(row);
         return file.substring(start, start + index.length(row));
+    }
+
+    /**
+     * M65 D-F0 part 2 — the view a walker takes while follow may append. ORDER MATTERS: {@code size} and the
+     * span arrays are captured under the index lock, and the text is read AFTER the lock is released. The
+     * writer's order is {@code file = full} (volatile) then {@code index.add} (locked), so a reader that saw row
+     * {@code k} under the lock sees a text that contains it. Reading the text BEFORE the lock would pair an old
+     * string with a new size — the very race part 1 closes. Rows are served from the captured arrays and
+     * string, never from the live index, which is read unsynchronised.
+     */
+    @Override
+    public ReadView readView() {
+        final LogIndex.RowSpans spans = index.rowSpans();   // size + arrays, UNDER the lock …
+        final String text = file;                            // … then the text, AFTER it (volatile read)
+        return new ReadView() {
+            @Override public int size() { return spans.size(); }
+            @Override public LogIndex index() { return index; }
+            @Override public String rawText(int row) {
+                int start = (int) spans.offset(row);
+                return text.substring(start, start + spans.length(row));
+            }
+            @Override public LogRecord record(int row) {
+                return RecordParser.parse(rawText(row), spans.offset(row));
+            }
+        };
     }
 
     @Override

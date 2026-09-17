@@ -236,6 +236,42 @@ public final class LogIndex {
      * the index lock; because arrays only grow via {@code copyOf}, a captured reference still holds
      * valid data for {@code [0, size)}. Follow-mode appends after the snapshot simply aren't seen.
      */
+    /**
+     * The row spans a walker may read while follow appends (M65 D-F0): {@code size} and the {@code offset} /
+     * {@code length} column references, captured TOGETHER under the index lock — the lock {@link #add} holds, so
+     * every row below {@code size} is fully written (happens-before), and a captured array reference keeps
+     * holding those rows because growth is copy-on-grow. The backing text must be read by the caller AFTER this
+     * returns, never before: see {@code HeapLogStore.readView()} for the order and why.
+     */
+    public synchronized RowSpans rowSpans() {
+        return new RowSpans(size, offset, length);
+    }
+
+    /** Bounded {@code [0, size)} spans; safe to read from any thread. */
+    public static final class RowSpans {
+        private final int size;
+        private final long[] offset;
+        private final int[] length;
+
+        RowSpans(int size, long[] offset, int[] length) {
+            this.size = size;
+            this.offset = offset;
+            this.length = length;
+        }
+
+        public int size() { return size; }
+
+        public long offset(int row) {
+            java.util.Objects.checkIndex(row, size);
+            return offset[row];
+        }
+
+        public int length(int row) {
+            java.util.Objects.checkIndex(row, size);
+            return length[row];
+        }
+    }
+
     public synchronized Snapshot snapshot() {
         // capture column-array refs AND defensive copies of the dictionaries under the lock, so an
         // off-EDT reader never touches the live resizable Dictionary lists that follow-mode grows

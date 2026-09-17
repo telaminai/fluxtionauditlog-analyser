@@ -54,6 +54,36 @@ public interface LogStore extends AutoCloseable {
         return java.util.List.of();
     }
 
+    /**
+     * A bounded view for a walk that may overlap a follow append (M65 D-F0). {@link #size()} is fixed when the
+     * view is taken; {@link #record}/{@link #rawText} serve rows below it from data captured with that size, so a
+     * walker never reads a row the store is still writing. Take one per walk; do not hold it across walks.
+     */
+    interface ReadView {
+        int size();
+
+        LogIndex index();
+
+        LogRecord record(int row);
+
+        String rawText(int row);
+    }
+
+    /**
+     * The default is a live view with its size fixed at creation — correct for every store that never grows.
+     * A store that supports follow overrides it with a locked capture ({@code HeapLogStore}).
+     */
+    default ReadView readView() {
+        final LogStore self = this;
+        final int n = size();
+        return new ReadView() {
+            @Override public int size() { return n; }
+            @Override public LogIndex index() { return self.index(); }
+            @Override public LogRecord record(int row) { java.util.Objects.checkIndex(row, n); return self.record(row); }
+            @Override public String rawText(int row) { java.util.Objects.checkIndex(row, n); return self.rawText(row); }
+        };
+    }
+
     Long minLogTime();
 
     Long maxLogTime();

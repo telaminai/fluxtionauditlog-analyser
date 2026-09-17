@@ -80,12 +80,13 @@ public final class MarkerExtractor {
 
         List<MarkerSeries.MarkerPoint> points = new ArrayList<>();
         int skippedNoY = 0;
-        var index = store.index();
-        for (int row = 0; row < store.size(); row++) {
+        var view = store.readView();   // bounded walk — rides the same extraction pass as the series (M65 D-F0)
+        var index = view.index();
+        for (int row = 0; row < view.size(); row++) {
             if (!filter.testExceptTime(index, row)) continue;   // acrossAllTime — the chart windows the view
             Long logTime = index.logTime(row);
             if (logTime == null) continue;
-            List<NodeLog> nodeLogs = store.record(row).nodeLogs();
+            List<NodeLog> nodeLogs = view.record(row).nodeLogs();
 
             // update the LOCF carry from every touched ref (same rule as bands/series)
             for (GraphKey k : whenRefs) updateCarry(carry, nodeLogs, k);

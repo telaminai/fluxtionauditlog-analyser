@@ -31,12 +31,13 @@ public final class SeriesExtractor {
      */
     public static Series extract(LogStore store, FilterState filter, GraphKey key, boolean acrossAllTime) {
         Series series = new Series(key);
-        var index = store.index();
-        for (int row = 0; row < store.size(); row++) {
+        var view = store.readView();   // bounded: a follow append during the walk is not seen (M65 D-F0)
+        var index = view.index();
+        for (int row = 0; row < view.size(); row++) {
             if (acrossAllTime ? !filter.testExceptTime(index, row) : !filter.test(index, row)) continue;
             Long logTime = index.logTime(row);
             if (logTime == null) continue;
-            LogRecord rec = store.record(row);
+            LogRecord rec = view.record(row);
             KV chosen = lastMatching(rec.nodeLogs(), key);
             if (chosen == null) continue;
             var d = chosen.graphValue();   // numeric, or boolean mapped to +1.0/-1.0
@@ -63,15 +64,16 @@ public final class SeriesExtractor {
     public static Series extractExpr(LogStore store, FilterState filter, Expr expr, String label,
                                      boolean acrossAllTime, Resolve policy) {
         Series series = new Series(label);
-        var index = store.index();
+        var view = store.readView();   // bounded walk (M65 D-F0)
+        var index = view.index();
         Set<GraphKey> refs = expr.refs();
         Evaluator eval = expr.newEvaluator();   // ONE per scan — rolling windows reset with the scan (W0)
         java.util.Map<GraphKey, Double> carry = new java.util.HashMap<>();   // LOCF last-known finite value
 
-        for (int row = 0; row < store.size(); row++) {
+        for (int row = 0; row < view.size(); row++) {
             if (acrossAllTime ? !filter.testExceptTime(index, row) : !filter.test(index, row)) continue;
             Long logTime = index.logTime(row);
-            List<NodeLog> nodeLogs = store.record(row).nodeLogs();
+            List<NodeLog> nodeLogs = view.record(row).nodeLogs();
 
             if (policy == Resolve.STRICT) {
                 java.util.Map<GraphKey, Double> vals = new java.util.HashMap<>();
@@ -113,8 +115,9 @@ public final class SeriesExtractor {
         Set<String> found = new LinkedHashSet<>();
         if (wantedDisplays == null || wantedDisplays.isEmpty()) return found;
         Set<String> pending = new java.util.HashSet<>(wantedDisplays);
-        for (int row = 0; row < store.size() && !pending.isEmpty(); row++) {
-            for (NodeLog nl : store.record(row).nodeLogs()) {
+        var view = store.readView();   // bounded walk (M65 D-F0)
+        for (int row = 0; row < view.size() && !pending.isEmpty(); row++) {
+            for (NodeLog nl : view.record(row).nodeLogs()) {
                 for (KV kv : nl.entries()) {
                     if (kv.key() == null || kv.graphValue().isEmpty()) continue;
                     String display = nl.instanceId() + "." + kv.key();
@@ -131,12 +134,13 @@ public final class SeriesExtractor {
     /** Discovers numeric graph keys by scanning up to {@code limit} filtered records. */
     public static List<GraphKey> discover(LogStore store, FilterState filter, int limit) {
         Set<GraphKey> keys = new LinkedHashSet<>();
-        var index = store.index();
+        var view = store.readView();   // bounded walk (M65 D-F0)
+        var index = view.index();
         int scanned = 0;
-        for (int row = 0; row < store.size() && scanned < limit; row++) {
+        for (int row = 0; row < view.size() && scanned < limit; row++) {
             if (!filter.test(index, row)) continue;
             scanned++;
-            for (NodeLog nl : store.record(row).nodeLogs()) {
+            for (NodeLog nl : view.record(row).nodeLogs()) {
                 for (KV kv : nl.entries()) {
                     if (kv.key() != null && kv.graphValue().isPresent()) {   // numeric or boolean
                         keys.add(new GraphKey(nl.instanceId(), kv.key()));
