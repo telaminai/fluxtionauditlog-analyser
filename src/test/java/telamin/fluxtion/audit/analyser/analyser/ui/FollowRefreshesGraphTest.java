@@ -113,6 +113,17 @@ class FollowRefreshesGraphTest {
     }
 
     @Test
+    void aChartWithRoomToSpareOnTheRightHolds_untilTheLiveEdgeReachesIt() throws IOException {
+        Rig r = rig(INLINE);
+        r.panel.chart().setViewWindow(1500L, 3500L);   // past the live edge: the next point at 3000 is already in view
+        r.tick(3000, 3);
+        assertEquals(3, r.points());
+        assertView(1500, 3500, r.view());   // hold: nothing was hidden, so nothing moves (M65.3 live proof)
+        r.tick(4000, 4);                    // now the new point falls outside → slide, same width
+        assertView(2000, 4000, r.view());
+    }
+
+    @Test
     void aChartZoomedIntoTheMiddleHolds() throws IOException {
         Rig r = rig(INLINE);
         r.panel.chart().setViewWindow(1200L, 1700L);

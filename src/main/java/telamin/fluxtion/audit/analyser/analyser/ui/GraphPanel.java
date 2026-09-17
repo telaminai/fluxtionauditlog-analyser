@@ -1004,7 +1004,9 @@ public final class GraphPanel extends JPanel {
      * points (rule 0: the first data is an extend from nothing) → as before: the pinned range, else the
      * filter's window. New DATA on an unpinned chart, tested in order: the view covered the whole old range →
      * <b>extend</b> (left edge stays, right edge to the new maximum); its right edge was at the old maximum →
-     * <b>slide</b> (same width, right edge to the new maximum); otherwise <b>hold</b> exactly.
+     * AND the new maximum falls outside the view → <b>slide</b> (same width, right edge to the new maximum);
+     * otherwise <b>hold</b> exactly — including a view that reaches past the live edge and already contains
+     * the new point (M65.3 live proof: such a window was slid though nothing was hidden).
      */
     private void landWindow(ExtractReason reason, double[] viewBefore, long[] dataBefore) {
         if (isPinned() || reason == ExtractReason.DEFINITION || viewBefore == null || dataBefore == null) {
@@ -1016,7 +1018,7 @@ public final class GraphPanel extends JPanel {
         long oldMin = dataBefore[0], oldMax = dataBefore[1], newMax = dataNow[1];
         double v0 = viewBefore[0], v1 = viewBefore[1];
         if (v0 <= oldMin && v1 >= oldMax) chart.setViewWindow((long) v0, newMax);              // extend
-        else if (v1 >= oldMax) chart.setViewWindow((long) (newMax - (v1 - v0)), newMax);        // slide
+        else if (v1 >= oldMax && v1 < newMax) chart.setViewWindow((long) (newMax - (v1 - v0)), newMax);   // slide
         else chart.setViewWindow((long) v0, (long) v1);                                          // hold
     }
 

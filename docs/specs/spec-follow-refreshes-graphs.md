@@ -212,9 +212,12 @@ extraction and `newMax` after it, tested in this order:
 1. the view covered the whole data range (left edge ≤ `oldMin` **and** right edge ≥ `oldMax`) → **extend**: left
    edge stays, right edge to `newMax` — what `resetView` would give; a person who never zoomed keeps seeing the
    whole log;
-2. else right edge ≥ `oldMax` → **slide**: width unchanged, right edge to `newMax` — a person pressed against the
-   live edge follows it;
-3. else → **hold** exactly — a person studying the middle is not disturbed.
+2. else right edge ≥ `oldMax` **and** right edge < `newMax` → **slide**: width unchanged, right edge to `newMax`
+   — a person pressed against the live edge follows it;
+3. else → **hold** exactly — a person studying the middle is not disturbed, and neither is one whose window
+   already reaches past the live edge and so already contains the new point. *(Refined after the M65.3 live proof,
+   2026-09-17: a window zoomed with room to spare on the right was slid though nothing was hidden; the owner chose
+   the hold. Pressed exactly to the old edge still slides, because the new point lands past it.)*
 
 0. (before all three) the previous extraction had **no points** — no view, no `oldMin`/`oldMax` to compare
    against — → behave as `resetView`: the first data is an extend from nothing (pass-3 F2).
@@ -283,7 +286,10 @@ files it as a defect.
    (D-F8, pass-3 F3).
 5. **Manual — the bundle loop**: with the audit-analyser-bundle running and follow on, append a CSV row and run
    `./export-audit.sh`; the open graph shows the new point within ~1.2 s (poll + debounce) without touching it,
-   and a zoomed-in graph keeps its zoom. Screenshot before/after via the `screenshot` verb.
+   and a zoomed-in graph keeps its zoom. Screenshot before/after via the `screenshot` verb. **Done 2026-09-17 on
+   the branch jar** (`m65-proof-*.png` in the exchange directory): extend proved at full extent (17 → 18 markers,
+   axis to the new time); a zoom reaching past the live edge slid as then specified (19 markers, same width) —
+   which is what prompted the rule-2 refinement above.
 6. **Help** (`help/help.html`, the Follow bullet): today it says *"flags, filters and selection are preserved"* —
    which is true and stays as written. Add one clause: *"open graphs re-extract."* (Review F2: the first draft
    misread the preserved list as an updates-live list.)
@@ -323,3 +329,4 @@ judged.
 | F2 empty-before → behave as `resetView` | pass 3 | D-F7 rule 0 |
 | F3 D-F8 also silences identical programmatic ranges | pass 3 | D-F8 consequence; acceptance 4 |
 | F4 the seam lives in `ui`, `core` unchanged | pass 3 | acceptance 3 |
+| slide fired when the new point was already in view | M65.3 live proof | D-F7 rule 2 gains `right edge < newMax` |

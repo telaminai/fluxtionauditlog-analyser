@@ -370,7 +370,7 @@ structural debounce (D-F1); pinned graphs re-extract but keep their window (D-F2
 per M6 (D-F3); `graph` re-sends are idempotent, `refresh: true` is the one forced re-extract, echo says
 `refreshed: "scheduled"` (D-F4); full re-extract first, incremental only on measured need — noting the poll already
 re-reads and re-frames the whole file per tick (D-F5); one extraction in flight, dirty flag (D-F6); an unpinned
-view extends if it covered the whole range, slides if pressed to the live edge, else holds; a definition change
+view extends if it covered the whole range, slides if pressed to the live edge and the new point falls outside it, else holds; a definition change
 still resets, and coalesced requests merge DEFINITION-wins (D-F7); the slider echo is inert for an unchanged window
 via `lastFrom`/`lastTo` in `onFilterChanged`, so the hook is the only mover of an unpinned view on a data tick
 (D-F8). Pass 3 [review_spec_m65_pass3_2026-09-17.md](../handoff/review_spec_m65_pass3_2026-09-17.md):
@@ -388,7 +388,7 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
   package-private extraction-runner seam; help clause, CHANGELOG.
 - [M65.2] ☑ 2026-09-17 **`graph {refresh: true}` + `refreshed: "scheduled"|false` in the echo**; `setMarkers`/`setBands`
   gain the only-if-changed guard; idempotence test. Schema parity is automatic via `VerbSchemas` tests.
-- [M65.3] ☐ **Manual proof on the bundle** (needs the analyser restarted on the branch jar): append a CSV row, `./export-audit.sh`, the open graph shows the
+- [M65.3] ☑ 2026-09-17 **Manual proof on the bundle** on the branch jar — extend and slide proved live; the slide case prompted the D-F7 rule-2 refinement (slide only when the new point falls outside the view): append a CSV row, `./export-audit.sh`, the open graph shows the
   point within ~1.2 s untouched and a zoomed graph keeps its zoom; before/after via `screenshot`.
 - [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement (and the re-frame in
   `appendFrom` is the larger target if it does).
