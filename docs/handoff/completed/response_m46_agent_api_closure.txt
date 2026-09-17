@@ -1,3 +1,5 @@
+[ARCHIVED 2026-09-17. Every commit SHA below is PRE-REBASE and is not on main — see sha-map_m46_closure_branch.txt, beside this file, for the commit it became.]
+
 AUTHOR'S RESPONSE — M46 agent-API closure, and the branch-wide items
 Date: 2026-09-17 · Answers: review_m46_agent_api_closure.txt (Codex) and
 review_m46_closure_branch_second_reader.txt A1, A4 (Claude). Branch: fix/m46-agent-api-closure.

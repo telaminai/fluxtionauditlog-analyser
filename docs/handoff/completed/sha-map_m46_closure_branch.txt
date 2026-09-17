@@ -1,0 +1,58 @@
+SHA MAP — branch fix/m46-agent-api-closure, as reviewed  ->  main, as merged
+Date: 2026-09-17
+
+The block was reviewed on its branch and reached main by a LOCAL rebase onto origin/main 16acfc1 (M65), fast-forwarded
+as 16acfc1..fd75c67 — rule 3: no merge commit, nothing force-pushed. A rebase rewrites every commit, so EVERY SHA in
+the archived briefs, reports, reviews, responses and the re-review of this block names a commit that is NOT on main.
+Those documents are a record of what was reviewed and are archived with their words unchanged; each carries a
+one-line header pointing here. This is how to find, on main, the commit any of them is talking about.
+
+  as reviewed   on main     subject
+  -----------   -------     -------
+  74a465b       21027a2     fix(agent-api): M46 A3-A5, and open {analysis} failing on every call since 1.13.0
+  69c0329       63d532d     feat(session): M44.3b - a close supersedes a pending open of the same kind
+  4cafad0       c0e4836     feat(canvas): M48.7 - posture and the mode selector's record as shared canvas state
+  802f780       dc45931     docs: record the owner's decisions - handoff is the fifteenth verb; a close supersedes of the same kind
+  5d4040b       11a3497     feat(spotlight): M64 - an AI client can point at the thing on screen
+  a62166d       cdaa696     skills: guided-start spotlights before each beat speaks (M64.5)
+  74c951e       c860660     skills: re-pin the m19-skills/2 index to the revision carrying the spotlight beats
+  96c40b5       dbd81b7     feat(spotlight): M64.6/.7 - several numbered callouts at once; 'point before you explain' at every assistant entrance
+  0c99a0c       62de234     docs(handoff): main has moved - the branch can no longer be fast-forwarded; state the rebase + re-pin merge
+  251bc0a       e975bfb     docs(handoff): review brief for the five pieces on fix/m46-agent-api-closure
+  f53c42e       38c57a2     docs(handoff): independently review the five analyser branch pieces
+  270d237       f353594     docs(handoff): second-reader review of the five branch pieces — merge rehearsal, re-pin still required, 1.13.3 recommended
+  1ddd4ef       73185c3     docs(handoff): second-reader review — A6, fold the handoff verb into open before it ships
+  b0180a9       62a5cb5     docs: M64.8 — a runbook that finds a fault class ends in a spotlight (owner direction; spec, tracker, review A7)
+  638e5a0       78a34d9     fix(session): M44.3b review F1 - Close log and Reset are available while a first load is pending
+  7d0ecc6       99fe89a     refactor(canvas): M48.7 review - the shared canvas is written through open, not a verb of its own; F1, F2
+  a2a951f       a491705     fix(spotlight): M64 review F1 - graph:series names a series exactly, never the first label that starts with it
+  af827cd       f242bd9     fix(spotlight): M64.6 review F1, F2 - numbers are a high-water mark; a wrong call is judged whole before any reveal
+  226d2bd       f949bd2     docs(handoff): M46 review - the removed echo key stated as a decision; one authoritative merge note (A1)
+  83190ec       464c3ef     docs(handoff): re-review brief - what each answer claims, what to attack, and the rebase nobody has run
+  58339c9       591c6a3     docs(handoff): re-review of the five answered pieces — READY WITH FOLLOW-UPS; R1 the rebase needs one word (graph.refresh)
+  b8ef121       6837209     docs(handoff): add independent re-review evidence and remaining blockers
+  4687b2b       442582f     fix(spotlight): re-review R4, R5, R6 - a label must name ONE series; a row the log lacks is refused before goto
+
+Two commits exist ONLY on main — they are the merge itself:
+  9c43326   integrate: M65 meets the M46 closure block - one Unreleased changelog; the built-in assistant is told graph.refresh
+  fd75c67   skills: re-pin after rebase - the index names the rewritten guided-start commit, an ancestor of main
+
+THE MERGE, AS IT HAPPENED (against the note in report_m46_agent_api_closure.txt > MERGE)
+  conflicts   CHANGELOG.md at 74a465b and at 4cafad0. Nothing else — no source file, not docs/specs/tracker.md —
+              although the review-fix commits touched CHANGELOG.md six more times; those replayed cleanly.
+              Resolved keep-both, then folded BY HAND in 9c43326: one Unreleased, one Added / Changed / Fixed, 14
+              entries (none lost — counted before and after), one tool count (15).
+  R1          InProcessManifestNamesEveryVerbTest red on [graph.refresh] exactly as both re-reviewers predicted; seen
+              red, then the built-in assistant's manifest taught `refresh?` — in 9c43326, an ordinary commit.
+  re-pin      a62166d -> cdaa696. `git cat-file -e` and `git merge-base --is-ancestor cdaa696 HEAD` both pass; the old
+              pin is NOT an ancestor. CanonicalSkillsTest had stayed green against the OLD pin, as A1 warned it would.
+  gates       on the merged tree, before the push: mvn test 1615 run / 0 failures / 0 errors / 21 skipped (display);
+              the display command 151 / 0 / 0 / 0; mvn package; verify-m46 17/17, verify-m48 18/18, verify-m64 78/78;
+              tools/test_tools.py; mkdocs build --strict; the rule-1 sweep prints nothing; personal user.email.
+  one departure from the note: origin/main was fast-forwarded FROM THE MERGE BRANCH (git push origin merge/...:main),
+              not through local main, because local main carries three of the owner's own unpushed commits under
+              docs/experience/ and pushing it would have published them. The result on origin is identical.
+
+NOT REVIEWED BY ANYONE: 442582f (as reviewed: 4687b2b) — the answers to the re-review's R4, R5 and R6. The merge was
+authorised on the first re-reader's verdict; the second re-reader required R4/R5 first. They were fixed before the
+merge and are entered in docs/handoff/unreviewed-changes.md for a reviewer to tick.

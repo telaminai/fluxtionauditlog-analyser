@@ -1,3 +1,5 @@
+[ARCHIVED 2026-09-17. Every commit SHA below is PRE-REBASE and is not on main — see sha-map_m46_closure_branch.txt, beside this file, for the commit it became.]
+
 INDEPENDENT REVIEW — M64.6 several spotlights / M64.7 general guidance
 Date: 2026-09-17 · Reviewer: Codex
 Branch: fix/m46-agent-api-closure · Reviewed HEAD: 251bc0a

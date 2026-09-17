@@ -1,3 +1,5 @@
+[ARCHIVED 2026-09-17. Every commit SHA below is PRE-REBASE and is not on main — see sha-map_m46_closure_branch.txt, beside this file, for the commit it became.]
+
 REPORT — M46 analyser-side closure: A1–A5 verified or fixed, and a released `open {analysis}` regression
 Date: 2026-09-17 · Author: the independent review session (the one behind review_perf_w10_branch_2026-09-14)
 Branch: fix/m46-agent-api-closure · Base: origin/main @ 96a11ac (Release 1.13.2) · commit 1 of 3 (74a465b)
@@ -20,6 +22,9 @@ HOW TO REVIEW IT
   git diff origin/main...HEAD                      # the whole block; main is untouched by it
   mvn package && python3 tools/verify-m46-agent-api.py      # 17 checks on the built jar, opens a window
   python3 tools/capture-conversations.py           # must complete all five scenarios
+  >>> MERGED 2026-09-17 as 16acfc1..fd75c67. What actually happened — the conflicts hit, the R1 step, the re-pin,
+  the gate numbers, and one departure from this note (origin/main was fast-forwarded from the merge branch, not
+  through local main) — is recorded in sha-map_m46_closure_branch.txt, beside this file.
   MERGE — THE AUTHORITATIVE NOTE FOR THE WHOLE BRANCH (rewritten 2026-09-17 after the second reader's rehearsal,
   A1; it supersedes the merge notes in report_m64_spotlight.txt and brief_review_m46_closure_branch.txt, which
   predicted a tracker.md conflict from "six docs-only commits" and were wrong on both counts).

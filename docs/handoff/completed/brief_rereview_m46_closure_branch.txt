@@ -1,3 +1,5 @@
+[ARCHIVED 2026-09-17. Every commit SHA below is PRE-REBASE and is not on main — see sha-map_m46_closure_branch.txt, beside this file, for the commit it became.]
+
 RE-REVIEW BRIEF — branch fix/m46-agent-api-closure, after the author's answers to both review rounds
 Date: 2026-09-17
 Work under re-review: the five fix commits 638e5a0..226d2bd (on top of b0180a9), and the five response files.

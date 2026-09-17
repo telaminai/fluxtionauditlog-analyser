@@ -1,9 +1,10 @@
 # Spec — spotlight: the tutor points at the thing on screen
 
-**Status:** IMPLEMENTED 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review
-(`docs/handoff/report_m64_spotlight.txt`); **extended the same day by D-SP6 and D-SP7** (owner direction: several
+**Status:** ON MAIN 2026-09-17 (M64.1–.7; reviewed in two rounds and a two-reader re-review — record in
+`docs/handoff/completed/`, SHA map beside it). M64.8/.9/.10 are open and GATE the 1.14.0 release. Originally: implemented on branch `fix/m46-agent-api-closure`
+(`docs/handoff/completed/report_m64_spotlight.txt`); **extended the same day by D-SP6 and D-SP7** (owner direction: several
 spotlights and callouts at once; the guidance in the GENERAL assistant guidance, not one skill —
-`docs/handoff/report_m64_6_multi_spotlight.txt`) — see *As built* at the end, which records **one assumption of this
+`docs/handoff/completed/report_m64_6_multi_spotlight.txt`) — see *As built* at the end, which records **one assumption of this
 spec that was wrong** (D-SP1/D-SP5: the screenshot does NOT paint the glass pane) and how it was corrected.
 PROPOSED 2026-09-16 (owner question: *"how difficult would it be to create a callout in a separate
 window that points to the item the guided-start runbook wants to highlight?"*). **Tracker:** [tracker.md](tracker.md) ▸ M64.

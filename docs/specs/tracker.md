@@ -334,8 +334,8 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M64 · Spotlight — the tutor points at the thing on screen — ☑ ALL SEVEN SLICES DONE 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review
-_Report: `docs/handoff/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
+## M64 · Spotlight — the tutor points at the thing on screen — ◧ M64.1–.7 ON MAIN 2026-09-17 (reviewed three times; `fd75c67`); M64.8/.9/.10 OPEN and GATE 1.14.0
+_Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
 the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
 shot showed NO spotlight (the display test measured `696 → 696` outside the cut-out). The verb now composites a live
 spotlight. It is the **fifteenth verb** — nothing else points (`goto`/`topology` select, `screenshot` records);
@@ -369,7 +369,7 @@ for the display test and skill edit.
   executor used to reveal a row before the set was judged); callouts laid out to avoid a cut-out or another callout
   where there is room, least-covering otherwise, and they may still cover un-lit content; echo and `context` share one shape `spotlight: {lit: […]}`. Headless
   `SpotlightSetTest` / `SpotlightOverlayTest` / `SpotlightGeometryTest`, a real-frame two-node test, 17 more checks on
-  the built jar; **two mutation checks**. Report: `docs/handoff/report_m64_6_multi_spotlight.txt`.
+  the built jar; **two mutation checks**. Report: `docs/handoff/completed/report_m64_6_multi_spotlight.txt`.
 - [M64.7] ☑ **The spotlight guidance in the GENERAL assistant guidance** (owner direction; spec D-SP7) — one paragraph,
   `SpotlightVocabulary.GUIDANCE`, at every entrance: in-app action manifest (which had never been told the verb
   existed), copy-prompt REST manifest, MCP server `instructions`, system prompt — held by one test. For people: user
@@ -608,7 +608,7 @@ retrieval-dated evidence table, because those are live documents that can change
   before the new graph, `LogArrival` judges against the previously observed B and its close effect clears the
   current A. Remedy, processor-side: distinguish a real log ARRIVAL from a refresh of observed state, and bind
   a close effect to the identity of the graph actually judged. Review: `docs/handoff/completed/review_analyser_1.13.1_pass2_2026-09-16.md`.
-- [M44.3b] ☑ **DONE 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review — a close
+- [M44.3b] ☑ **ON MAIN 2026-09-17 (`63d532d` + review fix `78a34d9`; reviewed READY on the re-review) — a close
   SUPERSEDES a pending open OF THE SAME KIND** (owner's decision, 2026-09-17: *"close should supersede of the same
   kind"*). A new request event, `CloseRequested(opId, LOG|GRAPH|ALL)`, is submitted by the six close REQUEST
   entrances (three menu items, the socket's `open {close}`) before the adapter closes; `OperationGate` takes the
@@ -1060,26 +1060,37 @@ session-processor decision, M52 the binary audit reader, M45 the GraphML vocabul
 runtime 1.0.15 / compiler 1.0.67). `[Unreleased]` carries the M46 agent-API closure below. Owner's chosen
 sequence, 2026-09-17: **close off open work before opening new** — items 1–3._
 
-1. ☑ **M46 analyser-side closure** (M46.5/.6/.7 + M46.10) — DONE 2026-09-17 on branch
-   **`fix/m46-agent-api-closure`**, awaiting independent review before it meets main
-   (`docs/handoff/report_m46_agent_api_closure.txt` says how to review it). A1/A2 were already fixed by M44.3 and
-   sat ☐ for sixteen days; A3–A5 and a released `open {analysis}` regression were fixed. _These ticks are true of
-   the branch; they become true of main when it merges._
-2. ☑ **M44.3b** — DONE 2026-09-17 on the same branch, awaiting review
-   (`docs/handoff/report_m44_3b_close_supersedes.txt`). Owner's policy: a close supersedes a pending open **of the
+**ITEMS 1–4 ARE ON MAIN — merged 2026-09-17 as `16acfc1..fd75c67`** (local rebase onto M65, fast-forward; two review
+rounds and a re-review by two readers; the whole record, and the map from every as-reviewed SHA to its commit on main,
+is [`docs/handoff/completed/sha-map_m46_closure_branch.txt`](../handoff/completed/sha-map_m46_closure_branch.txt)).
+They ship together as **1.14.0 — no 1.13.3** (Decisions). **BETWEEN MAIN AND 1.14.0:** (a) M64.8 + M64.9 — one skill
+edit, one re-pin; (b) one ☐ in the ledger — the answers to the re-review's R4/R5/R6 (`442582f`) reached main
+unreviewed; (c) the person-at-the-screen checks, which nobody but the owner can do: *File ▸ Close log* during a slow
+FIRST load · click, and Escape with focus in a component that consumes Escape (an open combo, the search-history
+popup), while SEVERAL spotlights are lit · *AI ▸ Posture*, *Place mode-selector record…*, *Clear record* · the
+Project-panel row for a restored log · the six "Ask it to show you" sentences and the guided-start tour on a
+context-free client; (d) the pre-release checklist, `docs/admin/release-process.md` §4.0. Still open after that, not
+gating: the valid `add` + `detail:node` end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE
+(147 words) against a held-out run, M64.10, M46.11.
+
+1. ☑ **M46 analyser-side closure** (M46.5/.6/.7 + M46.10) — **ON MAIN** (`21027a2`; reviewed READY WITH FOLLOW-UPS)
+   (`docs/handoff/completed/report_m46_agent_api_closure.txt`). A1/A2 were already fixed by M44.3 and
+   sat ☐ for sixteen days; A3–A5 and a released `open {analysis}` regression were fixed — in 1.14.0, not patched.
+2. ☑ **M44.3b** — **ON MAIN** (`63d532d`, `78a34d9`)
+   (`docs/handoff/completed/report_m44_3b_close_supersedes.txt`). Owner's policy: a close supersedes a pending open **of the
    same kind** — log/all/Reset do, a graph close does not. Modelled in the operation gate as a new request event;
    processor regenerated; mutation-checked.
-3. ☑ **M48.7** — DONE 2026-09-17 on the same branch, awaiting review
-   (`docs/handoff/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
+3. ☑ **M48.7** — **ON MAIN** (`c0e4836`, `99fe89a`)
+   (`docs/handoff/completed/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
    canvas state — `context.handoff`, `open {posture | record}`, *AI ▸ Posture*, a Project-panel row. It unblocks
    the dev-harness loop (M48.10). It was a verb of its own for a day; **folded into `open` by owner decision
    2026-09-17** after the second review (Decisions), so it adds no tool.
-4. ☑ **M64 Spotlight** — DONE 2026-09-17 on the same branch, all seven slices (incl. M64.6 several at once, M64.7 general guidance), awaiting review
-   (`docs/handoff/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
+4. ◧ **M64 Spotlight** — M64.1–.7 **ON MAIN** (`11a3497`, `dbd81b7`, `a491705`, `f242bd9`, `442582f`); M64.8/.9 gate 1.14.0
+   (`docs/handoff/completed/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
    result in normal use. The fifteenth verb (the only one added); the screenshot now composites the overlay (the spec assumed it already did).
 5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
-6. **Pre-release gate to add** (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`
+6. ☑ **Pre-release gate ADDED 2026-09-17** — `docs/admin/release-process.md` §4.0 (owner decision). Was: (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`
    join the release checklist. 1.13.0–1.13.2 shipped a broken `open {analysis}` through four review passes because
    neither was run.
 7. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
@@ -1140,8 +1151,8 @@ correct graph. **Every item below is a communication failure, not a correctness 
   green — which let an agent ship plain Java and report all six requirements met. Upstream.
 - [M46.4] ☐ **U5–U8 · bootstrap deadlock, audit "setters" that dispatch, lifecycle records, `addEventAudit`
   naming.** Four agents hit the bootstrap; four hit the log pollution. Upstream + docs.
-- [M46.5] ☑ **A1 — VERIFIED FIXED 2026-09-17, by M44.3** _(awaiting independent review:
-  `docs/handoff/report_m46_agent_api_closure.txt`)_. Reproduced against the built jar on a virgin instance
+- [M46.5] ☑ **A1 — VERIFIED FIXED 2026-09-17, by M44.3** _(on main; reviewed:
+  `docs/handoff/completed/report_m46_agent_api_closure.txt`)_. Reproduced against the built jar on a virgin instance
   under an isolated home: `open {log, graphml}` echoes `pairing: pending` while the load is in flight, never
   a verdict about the previous log; `context.graphPairing` and `coverage` each return the same answer twice.
   This entry sat ☐ for sixteen days after the fix shipped because nothing re-ran the reproduction —
@@ -1253,8 +1264,7 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
       generator input, so a plain `mvn compile` works and the whole ordering workaround
       (`generated.dependents`, the `default-compile` exclusion, the second compiler execution) can go.
       **The analyser ships the template, so this is ours.**
-- [M48.7] ☑ **`analyser_context` handoff section — DONE 2026-09-17 on branch `fix/m46-agent-api-closure`,
-      awaiting independent review** (`docs/handoff/report_m48_7_canvas_handoff.txt`). The selector's record
+- [M48.7] ☑ **`analyser_context` handoff section — ON MAIN 2026-09-17 (`c0e4836`, review fixes `99fe89a`; reviewed)** (`docs/handoff/completed/report_m48_7_canvas_handoff.txt`). The selector's record
       and the session's POSTURE are shared canvas state: one `CanvasHandoff.State`, written by an AI client
       (`open {posture | record}`, and `open {close: "handoff"}` to take it back) or a person (*AI ▸ Posture*, *AI ▸ Place mode-selector record…*) through the
       same rules, read back in `context.handoff` and on a Project-panel row. Posture is SET by either party;

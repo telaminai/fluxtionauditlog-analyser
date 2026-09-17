@@ -1,3 +1,5 @@
+[ARCHIVED 2026-09-17. Every commit SHA below is PRE-REBASE and is not on main — see sha-map_m46_closure_branch.txt, beside this file, for the commit it became.]
+
 READER NOTE: an independent Codex addendum follows the preserved Claude review below. Its branch verdict
 is NOT READY, with new required findings R4/R5 and independently confirmed integration failure R1.
 
