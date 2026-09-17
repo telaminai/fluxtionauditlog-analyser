@@ -128,6 +128,24 @@ spotlights and callouts"*. **That sentence of D-SP2 is superseded by this sectio
   `topology:node:<typo>` sent from the Graph tab would have left a chart note's spotlight painted over the Topology
   tab. Not reproduced before it was fixed — the new behaviour is what is tested.)
 
+**Amended after review (2026-09-17) — two places where the code did not do what the bullets above say.**
+
+- *"A number is kept for the life of its spotlight … a new one never reuses a spoken number."* The first
+  implementation derived the next number from the CURRENT maximum, so it held only while the highest member stayed
+  lit: light 1 and 2, put out 2, add another, and the newcomer was "2". The overlay now keeps a **high-water mark**
+  that restarts only when the set is replaced or emptied (by `clear`, by putting the last one out, or by a
+  re-measure retiring the last one). My own test removed the MIDDLE member, which cannot expose this; the
+  regression tests remove the highest, and retire it by re-measure.
+- *"A set is all-or-nothing … every name is parsed before the surface is touched."* True of `resolveAll`, and NOT
+  of the verb: the executor revealed a `records:row` through `goto`'s path — which relaxes the filter and changes
+  the selection — BEFORE the frame parsed the rest of the set or checked `add`'s bound. So
+  `{targets: ["records:row:15", "not-a-target"]}` was refused and had still erased the person's filter; so had a
+  seventh target added to six. The rule is now one pure function, `SpotlightTarget.precheck(requests, litNow)` —
+  the grammar, EVERY name, and the bound over the union — applied by the executor before its first reveal (and
+  again by the frame). **The line, stated:** a call that is WRONG touches nothing; a call that is well-formed but
+  cannot be shown (a node the graph does not have; two things on different tabs) may have brought another view
+  forward finding that out, and says so. The first is a guarantee; the second is what "revealed first" costs.
+
 ## D-SP7 — *when* to point is general guidance, stated once and present at every entrance
 
 As first built, the only text telling an assistant to point was the verb's own description and the guided-start

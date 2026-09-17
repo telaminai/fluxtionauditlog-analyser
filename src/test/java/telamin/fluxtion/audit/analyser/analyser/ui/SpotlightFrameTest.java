@@ -41,6 +41,7 @@ class SpotlightFrameTest {
     private static final String GRAPH = "src/test/resources/topology/demo-quote-processor.graphml";
     private static final String NODE = "priceListener";
     private static final String OTHER = "quotePublisher";
+    private static final String SERIES_LOG = "src/main/resources/demo/demo-quote-series.yaml";
 
     private static BufferedImage shoot(AsyncOpenInterleavingFrameTest.Frame f, Path to) throws Exception {
         onEdt(() -> render(f.ex, "screenshot", Map.of("path", to.toString())));
@@ -191,6 +192,67 @@ class SpotlightFrameTest {
         onEdt(() -> render(f.ex, "spotlight", Map.of("targets", java.util.List.of(first, second))));
         Thread.sleep(200);
         return one;
+    }
+
+    /**
+     * Review of M64.6, F2 — the reviewer's two reproductions, on a real frame with a real log. A call that is
+     * WRONG (a misspelt member; a seventh) used to reveal its {@code records:row} first, through goto's path,
+     * which relaxed the filter and changed the selection — so a REFUSED request erased the investigation scope.
+     */
+    @Test
+    void aRefusedCall_leavesTheFilter_theSelection_andTheStandingSpotlightsExactlyAsTheyWere(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                f.frame.validate();
+            });
+            onEdt(() -> render(f.ex, "open", Map.of("log", Path.of(SERIES_LOG).toAbsolutePath().toString())));
+            long deadline = System.currentTimeMillis() + 20_000;
+            AtomicReference<Object> records = new AtomicReference<>();
+            while (records.get() == null && System.currentTimeMillis() < deadline) {
+                onEdt(() -> records.set(find(find(render(f.ex, "context", Map.of()), "log"), "records")));
+                Thread.sleep(50);
+            }
+            assertNotNull(records.get(), "the series log never loaded");
+
+            onEdt(() -> render(f.ex, "filter", Map.of("text", "nothing-matches-review-probe")));
+            onEdt(() -> render(f.ex, "spotlight", Map.of("targets", java.util.List.of("status", "toolbar:flag"))));
+            AtomicReference<String> before = new AtomicReference<>();
+            onEdt(() -> before.set(scope(f)));
+            assertTrue(before.get().contains("nothing-matches-review-probe"), before.get());
+
+            // 1. a misspelt member beside a row
+            AtomicReference<ActionResult> refused = new AtomicReference<>();
+            onEdt(() -> refused.set(f.ex.render("spotlight", new java.util.LinkedHashMap<>(Map.of("targets",
+                    java.util.List.of("records:row:15", "not-a-target"))))));
+            assertFalse(refused.get().ok());
+            onEdt(() -> assertEquals(before.get(), scope(f),
+                    "a call refused for a misspelt member touched NOTHING: filter, selection, standing spotlights"));
+
+            // 2. a seventh, by add, that is a row
+            onEdt(() -> render(f.ex, "spotlight", Map.of("targets", java.util.List.of("status", "toolbar:open",
+                    "toolbar:flag", "toolbar:explain", "toolbar:follow", "records"))));
+            AtomicReference<String> six = new AtomicReference<>();
+            onEdt(() -> six.set(scope(f)));
+            onEdt(() -> refused.set(f.ex.render("spotlight", new java.util.LinkedHashMap<>(Map.of(
+                    "target", "records:row:10", "add", true)))));
+            assertFalse(refused.get().ok());
+            assertTrue(String.valueOf(refused.get().toMap()).contains("at most 6"), String.valueOf(refused.get().toMap()));
+            onEdt(() -> assertEquals(six.get(), scope(f), "nor did a seventh: the bound is judged before the row is revealed"));
+
+            // control: a VALID row call is still allowed to reveal — that is what D-SP6 permits
+            onEdt(() -> render(f.ex, "spotlight", Map.of("target", "records:row:15")));
+            onEdt(() -> assertFalse(scope(f).contains("nothing-matches-review-probe"),
+                    "a valid row is revealed the way goto reveals one — the filter is relaxed for it"));
+        }
+    }
+
+    /** The three things a refused call must not move, as context states them. */
+    private static String scope(AsyncOpenInterleavingFrameTest.Frame f) {
+        Map<String, Object> ctx = render(f.ex, "context", Map.of());
+        return "filter=" + find(ctx, "filter") + " selection=" + find(ctx, "selection") + " spotlight=" + find(ctx, "spotlight");
     }
 
     @Test

@@ -108,6 +108,40 @@ class SpotlightSetTest {
         assertNull(SpotlightTarget.captionError(null));
     }
 
+    // ---- judged WHOLE before anything is revealed (review of M64.6, F2) -----------------------------------
+
+    @Test
+    void aMisspeltMemberIsCaughtBeforeAnyReveal_soTheRowBesideItCannotHaveMovedTheFilter() {
+        Requests asked = SpotlightTarget.requests(Map.of("targets", List.of("records:row:15", "not-a-target")));
+        assertTrue(asked.ok(), "the GRAMMAR is fine — it is a list of names; one of the names is wrong");
+
+        String why = SpotlightTarget.precheck(asked, List.of());
+        assertTrue(why != null && why.contains("unknown spotlight target 'not-a-target'"), why);
+        assertTrue(why.contains("The vocabulary is:"), "and it still teaches the vocabulary");
+    }
+
+    @Test
+    void theBoundIsOverTheUNION_ofWhatIsLitAndWhatIsAsked_andIsCheckedBeforeAnyReveal() {
+        List<String> six = List.of("status", "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow", "records");
+        Requests seventh = SpotlightTarget.requests(Map.of("target", "records:row:10", "add", true));
+
+        String why = SpotlightTarget.precheck(seventh, six);
+        assertTrue(why != null && why.contains("at most " + SpotlightTarget.MAX_LIT) && why.contains("6 are lit"), why);
+
+        assertNull(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of("target", "STATUS", "add", true)), six),
+                "re-lighting one ALREADY lit adds nothing to the union, however it is capitalised");
+        assertNull(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of("target", "records:row:10")), six),
+                "and without add the call REPLACES the set, so what is lit does not count");
+    }
+
+    @Test
+    void aGrammarErrorIsThePrechecksAnswerToo_oneFunctionSaysEverythingThatCanBeSaidWithoutTheScreen() {
+        assertTrue(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of("targets", List.of())), List.of()).contains("non-empty"));
+        assertTrue(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of()), List.of()).contains("'target' is required"));
+        assertNull(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of("target", "topology:node:ghost")), List.of()),
+                "a well-formed name that turns out not to exist is NOT a precheck matter — finding out is the reveal");
+    }
+
     // ---- a set lights WHOLE, or not at all ------------------------------------------------------------
 
     @Test

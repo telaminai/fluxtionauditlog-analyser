@@ -1,0 +1,56 @@
+AUTHOR'S RESPONSE — M64.6 several spotlights / M64.7 general guidance
+Date: 2026-09-17 · Answers: review_m64_6_multi_spotlight.txt (Codex) and the second reader's re-derivation of F2.
+Branch: fix/m46-agent-api-closure. Read with response_m64_spotlight.txt.
+
+Both findings are right, and both are the same kind of failure on my part: a claim written in the spec, the tracker
+and the CHANGELOG ("never reused", "all-or-nothing") that my own tests did not actually hold.
+
+F1 (P2, required) — spotlight numbers were reused after the HIGHEST was removed.                         FIXED.
+  add() derived the next number from the current maximum. My test removed the MIDDLE member, which cannot expose
+  that — the reviewer's observation, and exactly why a green test proved nothing.
+  What changed — SpotlightOverlay keeps `nextNumber`, a high-water mark. It restarts only when the set is replaced
+  (light()) or emptied — by clearSpotlight(), by remove() of the last one, or by a remeasure that retires the last
+  one (one private wentDark()). A target re-lit in place still keeps its number.
+  Held by — SpotlightOverlayTest +3: the reviewer's reproduction (status, detail; remove detail; add records → 3);
+  the same through remeasure retiring the highest; and the three ways the numbers DO restart. Built jar:
+  verify-m64-spotlight.py "status=1, detail=2, detail out, records added -> records is 3, NOT a reused 2".
+  SEEN RED: with `nextNumber++` put back to max+1, exactly the two new reuse tests fail (expected 3 was 2).
+
+F2 (P2, required) — a REJECTED request cleared the filter and changed the selection.                     FIXED.
+  ActionExecutor.doSpotlight revealed records:row members through goto's path before MainFrame.applySpotlight had
+  parsed the rest of the set or checked add's bound. resolveAll's parse-before-reveal guarantee held for its
+  unit-test Surface and not for the verb.
+  What changed — one pure function, SpotlightTarget.precheck(requests, litNow): the grammar, EVERY target name, and
+  the bound over the UNION of what is lit and what is asked. The executor applies it BEFORE its first reveal (it
+  learns what is lit through a new read-only AppControl.spotlightLit()); the frame applies the same function again
+  at its own entrance, replacing its inline union check. {clear: true} returns before any of this, as before.
+  THE LINE, as the reviewer drew it and the spec now states it (D-SP6, "Amended after review"): a call that is
+  WRONG touches nothing; a call that is well-formed but cannot be shown may have brought another view forward
+  finding that out, and says so (wentOut / the refusal's "went out" clause). precheck is the first half only — a
+  well-formed `topology:node:ghost` is deliberately NOT its business.
+  Held by — SpotlightSetTest +3 (headless): the misspelt member beside a row; the union bound incl. re-lighting one
+  already lit in different capitals, and that without `add` what is lit does not count; grammar errors answered by
+  the same function. SpotlightFrameTest +1, on a REAL frame with the demo series log, both reviewer reproductions:
+  filter + two standing spotlights, then (1) {targets: [records:row:15, not-a-target]} and (2) six lit +
+  {add, records:row:10} — after each, context's filter AND selection AND spotlight are string-identical to before;
+  plus the control that a VALID row still relaxes the filter. Built jar: the same five checks.
+  SEEN RED: with the executor's precheck removed, the frame test fails at reproduction 1 — "a call refused for a
+  misspelt member touched NOTHING … expected: <filter={text=nothing-matc…". Restored.
+  NOT DONE from the reviewer's list: the valid `add` + detail:node end-to-end scenario (a standing detail:node
+  spotlight going out because an added row changed the selection). remeasure's retirement is unit-tested; that
+  exact path through the frame is still unrun. Carried as a follow-up, not claimed.
+
+DISPOSITION OF THE NON-BLOCKING ITEMS
+  · Unconditional non-overlap promises — QUALIFIED, as asked: CHANGELOG and tracker now say "where there is room;
+    least-covering otherwise; may still cover content that is not lit". The spec already described the fallback.
+  · Crossing arrows — unchanged; still no routing avoidance and no test. Follow-up.
+  · Guidance length — the reviewer's count is right and mine was wrong: GUIDANCE is 147 whitespace-delimited words,
+    not "~110" (counted from the source this time). Unchanged; I agree it should be shortened only against a
+    held-out run that shows equivalent pointing, not on a guess.
+  · `coverage` — see response_m64_spotlight.txt: accepted, recorded as M64.9, after the merge with M64.8's skill edit.
+  · Tracker's "numbers never reused" / "all-or-nothing" — were false as written; the M64.6 line now says each became
+    true only after this review, and names which finding.
+
+Built jar: tools/verify-m64-spotlight.py 73/73 (was 64: +3 series labels, +1 numbering, +5 refused-call scope).
+STILL OPEN: click and Escape on a lit SET, seen by a person (narrowed by the second reader's A3 to Escape with
+focus in a component that consumes it); the six docs sentences and guided-start on a context-free client.

@@ -56,6 +56,13 @@ public final class SpotlightOverlay extends JComponent {
     }
 
     private final List<Lit> lit = new ArrayList<>();
+    /**
+     * The next number to hand out — a HIGH-WATER MARK, not "the current maximum plus one" (review of M64.6,
+     * F1). Deriving it from what is lit let a number be reused: light 1 and 2, put out 2, add another, and
+     * the newcomer was "2" — so the chat's earlier "2" now named a different thing, the exact failure stable
+     * numbers exist to prevent. It restarts only when the set is replaced or emptied.
+     */
+    private int nextNumber = 1;
     private final Runnable onDismissed;
 
     public SpotlightOverlay(Runnable onDismissed) {
@@ -74,6 +81,7 @@ public final class SpotlightOverlay extends JComponent {
     /** Light ONE thing, replacing whatever was lit. */
     public void light(String targetName, Rectangle bounds, String caption) {
         lit.clear();
+        nextNumber = 1;
         add(targetName, bounds, caption);
     }
 
@@ -84,16 +92,16 @@ public final class SpotlightOverlay extends JComponent {
      */
     public int add(String targetName, Rectangle bounds, String caption) {
         String words = caption == null || caption.isBlank() ? null : caption.trim();
-        int n = lit.stream().mapToInt(Lit::n).max().orElse(0) + 1;
         for (int i = 0; i < lit.size(); i++) {
             if (lit.get(i).target().equalsIgnoreCase(targetName)) {
-                n = lit.get(i).n();
+                int n = lit.get(i).n();
                 lit.set(i, new Lit(n, targetName, new Rectangle(bounds), words));
                 setVisible(true);
                 repaint();
                 return n;
             }
         }
+        int n = nextNumber++;
         lit.add(new Lit(n, targetName, new Rectangle(bounds), words));
         setVisible(true);
         repaint();
@@ -103,7 +111,7 @@ public final class SpotlightOverlay extends JComponent {
     /** Put ONE out. True when it was lit. The others keep their numbers. */
     public boolean remove(String targetName) {
         boolean was = lit.removeIf(l -> l.target().equalsIgnoreCase(targetName));
-        if (lit.isEmpty()) setVisible(false);
+        if (lit.isEmpty()) wentDark();
         repaint();
         return was;
     }
@@ -121,7 +129,7 @@ public final class SpotlightOverlay extends JComponent {
             if (at.isPresent() && !at.get().isEmpty()) lit.set(i, new Lit(l.n(), l.target(), new Rectangle(at.get()), l.caption()));
             else out.add(0, lit.remove(i).target());
         }
-        if (lit.isEmpty()) setVisible(false);
+        if (lit.isEmpty()) wentDark();
         repaint();
         return out;
     }
@@ -130,8 +138,14 @@ public final class SpotlightOverlay extends JComponent {
     public void clearSpotlight() {
         if (!isLit()) return;
         lit.clear();
-        setVisible(false);
+        wentDark();
         repaint();
+    }
+
+    /** Nothing is lit: stop swallowing clicks, and let the numbers start again — nobody is referring to them. */
+    private void wentDark() {
+        nextNumber = 1;
+        setVisible(false);
     }
 
     private void dismiss() {

@@ -1985,16 +1985,10 @@ public final class MainFrame extends JFrame {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("spotlight", "spotlight", echo);
         }
         SpotlightTarget.Requests asked = SpotlightTarget.requests(params);
-        if (!asked.ok()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(asked.error());
-        if (asked.add()) {
-            java.util.Set<String> names = new java.util.HashSet<>();
-            spotlight.lit().forEach(l -> names.add(l.target().toLowerCase(java.util.Locale.ROOT)));
-            asked.requests().forEach(r -> names.add(String.valueOf(r.target()).trim().toLowerCase(java.util.Locale.ROOT)));
-            if (names.size() > SpotlightTarget.MAX_LIT) {
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("at most " + SpotlightTarget.MAX_LIT + " spotlights at once — " + spotlight.lit().size()
-                        + " are lit. Put one out first ({clear: true, target: …}), or light a new set without 'add'");
-            }
-        }
+        // the same judgement the executor made before it revealed any row — repeated here because this is the
+        // frame's entrance too, and a rule stated once in a pure function costs nothing to apply twice
+        String wrong = SpotlightTarget.precheck(asked, spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList());
+        if (wrong != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(wrong);
         java.util.List<String> names = asked.requests().stream().map(SpotlightTarget.Request::target).toList();
         SpotlightTarget.SetResolution set = SpotlightTarget.resolveAll(names, spotlightSurface);
         if (!set.ok()) {
@@ -4764,6 +4758,11 @@ public final class MainFrame extends JFrame {
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult spotlight(Map<String, Object> params) {
             return applySpotlight(params == null ? Map.of() : params);
+        }
+
+        @Override
+        public java.util.List<String> spotlightLit() {
+            return spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList();
         }
 
         /** M64 D-SP3: a view-changing verb is about to run. */

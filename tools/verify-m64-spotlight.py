@@ -179,6 +179,33 @@ def main():
                   r.get("ok") is True and [(i.get("n"), i.get("target")) for i in items(r)]
                   == [(1, "status"), (3, "toolbar:open")], r)
 
+            print("stable numbers: putting out the HIGHEST does not free its number (review F1)")
+            a.act("spotlight", targets=["status", "detail"])
+            a.act("spotlight", clear=True, target="detail")
+            r = a.act("spotlight", target="records", add=True)
+            check("status=1, detail=2, detail out, records added -> records is 3, NOT a reused 2",
+                  [(i.get("n"), i.get("target")) for i in items(r)] == [(1, "status"), (3, "records")], r)
+
+            print("a call that is WRONG touches nothing - judged whole before any row is revealed (review F2)")
+            a.act("filter", text="nothing-matches-review-probe")
+            a.act("spotlight", targets=["status", "toolbar:flag"])
+            scope = lambda c: (c.get("filter"), c.get("selection"), c.get("spotlight"))
+            before = scope(a.context())
+            r = a.act("spotlight", targets=["records:row:15", "not-a-target"])
+            check("a misspelt member beside a row is refused", r.get("ok") is False and "not-a-target" in json.dumps(r), r)
+            check("and the filter, the selection and the standing spotlights are exactly as they were",
+                  scope(a.context()) == before and "nothing-matches-review-probe" in json.dumps(before), (before, scope(a.context())))
+            a.act("spotlight", targets=["status", "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow", "records"])
+            before = scope(a.context())
+            r = a.act("spotlight", target="records:row:10", add=True)
+            check("a SEVENTH that is a row is refused with the bound", r.get("ok") is False and "at most 6" in json.dumps(r), r)
+            check("and it did not clear the filter or select record 10 on its way to being refused",
+                  scope(a.context()) == before, (before, scope(a.context())))
+            r = a.act("spotlight", target="records:row:15")
+            check("control: a VALID row is still revealed through goto's path - the filter is relaxed for it",
+                  lit(r) and "nothing-matches-review-probe" not in json.dumps(a.context().get("filter")), a.context().get("filter"))
+            a.act("filter", text="")
+
             seven = ["status", "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow", "records", "detail"]
             r = a.act("spotlight", targets=seven)
             check("a seventh is refused with the bound, not silently dropped",

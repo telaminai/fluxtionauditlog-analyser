@@ -265,6 +265,39 @@ public record SpotlightTarget(Family family, String argument, String name) {
         return new Requests(List.copyOf(out), add, null);
     }
 
+    /**
+     * Everything about a call that can be judged WITHOUT touching the screen — judged first, so that a call
+     * refused for any of these reasons has moved nothing (review of M64.6, F2). Returns the reason, or null.
+     *
+     * <p>{@link #resolveAll} already parsed every name before its first reveal, but the verb's real entrance
+     * reveals a {@code records:row} through {@code goto}'s path BEFORE it gets that far — and that reveal
+     * relaxes the filter and changes the selection. So {@code spotlight {targets: ["records:row:15",
+     * "not-a-target"]}} was refused and had still erased the person's filter; likewise a seventh target
+     * added to six. The grammar, every name, and the bound over the union of what is lit and what is asked
+     * are therefore checked here, by the executor, before it reveals anything.
+     *
+     * <p>What this deliberately does NOT cover: a well-formed call whose target turns out not to be on screen
+     * (a node the graph does not have; two things on different tabs). Finding that out IS the reveal, and
+     * D-SP6 permits its side effects. The line is: a call that is WRONG touches nothing; a call that is
+     * right but cannot be shown may have brought another view forward, and says so.
+     */
+    public static String precheck(Requests asked, java.util.Collection<String> litNow) {
+        if (!asked.ok()) return asked.error();
+        java.util.Set<String> union = new java.util.HashSet<>();
+        if (asked.add() && litNow != null) for (String name : litNow) union.add(name.trim().toLowerCase(Locale.ROOT));
+        int standing = union.size();
+        for (Request r : asked.requests()) {
+            Parsed parsed = parse(r.target());
+            if (!parsed.ok()) return parsed.error();
+            union.add(parsed.target().name().toLowerCase(Locale.ROOT));
+        }
+        if (asked.add() && union.size() > MAX_LIT) {
+            return "at most " + MAX_LIT + " spotlights at once — " + standing + " are lit. Put one out first "
+                    + "({clear: true, target: …}), or light a new set without 'add'";
+        }
+        return null;
+    }
+
     /** Why a caption is refused, or null when it is fine (null and blank captions are fine: no callout). */
     public static String captionError(String caption) {
         if (caption == null) return null;

@@ -364,8 +364,10 @@ for the display test and skill edit.
   **The pin names a commit on this branch: merge by fast-forward WITHOUT rebasing the branch, or re-pin after.**
 - [M64.6] ☑ **Several spotlights and callouts at once** (owner direction 2026-09-17; spec D-SP6) —
   `{targets: [{target, caption}]}`, at most six, all-or-nothing, things that cannot be on screen together refused
-  naming the pair; `{add}`, `{clear, target}`; numbered on screen and in the echo, numbers never reused; callouts laid
-  out to cover neither a cut-out nor each other; echo and `context` share one shape `spotlight: {lit: […]}`. Headless
+  naming the pair; `{add}`, `{clear, target}`; numbered on screen and in the echo, numbers never reused (**true only
+  after review F1** — a high-water mark, not max+1); a WRONG call touches nothing (**true only after review F2** — the
+  executor used to reveal a row before the set was judged); callouts laid out to avoid a cut-out or another callout
+  where there is room, least-covering otherwise, and they may still cover un-lit content; echo and `context` share one shape `spotlight: {lit: […]}`. Headless
   `SpotlightSetTest` / `SpotlightOverlayTest` / `SpotlightGeometryTest`, a real-frame two-node test, 17 more checks on
   the built jar; **two mutation checks**. Report: `docs/handoff/report_m64_6_multi_spotlight.txt`.
 - [M64.7] ☑ **The spotlight guidance in the GENERAL assistant guidance** (owner direction; spec D-SP7) — one paragraph,

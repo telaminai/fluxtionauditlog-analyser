@@ -60,6 +60,49 @@ class SpotlightOverlayTest {
         assertFalse(o.remove("records"), "putting out what is not lit is not an error, just false");
     }
 
+    /**
+     * Review of M64.6, F1. The test above removes the MIDDLE member, which cannot expose the defect: the next
+     * number was "current maximum + 1", so it was only REUSED when the HIGHEST member went. These remove it.
+     */
+    @Test
+    void puttingOutTheHIGHESTNumber_doesNotFreeItForTheNextTarget_theReviewersReproduction() {
+        SpotlightOverlay o = new SpotlightOverlay(null);
+        o.add("status", A, null);
+        o.add("detail", B, null);
+
+        assertTrue(o.remove("detail"));
+        assertEquals(3, o.add("records", B, null), "the chat already said \"2\" about something else");
+        assertEquals(List.of("1:status", "3:records"), names(o));
+    }
+
+    @Test
+    void aTargetThatRemeasureRetires_doesNotFreeItsNumberEither() {
+        SpotlightOverlay o = new SpotlightOverlay(null);
+        o.add("status", A, null);
+        o.add("graph:note:1", B, null);
+
+        assertEquals(List.of("graph:note:1"), o.remeasure(name -> name.equals("status") ? Optional.of(A) : Optional.empty()));
+        assertEquals(3, o.add("records", B, null));
+    }
+
+    @Test
+    void theNumbersRestartOnlyWhenTheSetIsReplacedOrEmptied() {
+        SpotlightOverlay o = new SpotlightOverlay(null);
+        o.add("status", A, null);
+        o.add("detail", B, null);
+        o.light("records", A, null);
+        assertEquals(List.of("1:records"), names(o), "replaced: nobody refers to the old numbers any more");
+
+        o.add("detail", B, null);
+        o.remove("records");
+        o.remove("detail");
+        assertEquals(1, o.add("status", A, null), "emptied one by one is emptied too");
+
+        o.add("detail", B, null);
+        o.remeasure(name -> Optional.empty());
+        assertEquals(1, o.add("status", A, null), "and emptied by a re-measure");
+    }
+
     @Test
     void remeasureMovesWhatIsStillThere_andPutsOutWhatIsNot_sayingWhich() {
         SpotlightOverlay o = new SpotlightOverlay(null);

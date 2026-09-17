@@ -124,6 +124,14 @@ public interface AppControl {
      * M64 D-SP3 — put the spotlight out because the VIEW is about to change. A spotlight that outlives its
      * context points at the wrong thing, which is worse than none. Silent when nothing is lit.
      */
+    /**
+     * M64.6 — the targets lit right now, by name. Read by the executor so that a {@code spotlight} call can be
+     * judged WHOLE — including {@code add}'s bound over what is already lit — before it reveals anything.
+     */
+    default java.util.List<String> spotlightLit() {
+        return java.util.List.of();
+    }
+
     default void clearSpotlight() {
     }
 
