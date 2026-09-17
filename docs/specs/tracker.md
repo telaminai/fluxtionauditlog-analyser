@@ -349,7 +349,7 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
-## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · REVISED same day after review · pass 2 reviewed CONDITIONAL, folded in
+## M65 · Follow refreshes open graphs — ☐ READY TO IMPLEMENT 2026-09-17 · three review passes, pass 3 READY WITH FOLLOW-UPS
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
@@ -373,7 +373,10 @@ re-reads and re-frames the whole file per tick (D-F5); one extraction in flight,
 view extends if it covered the whole range, slides if pressed to the live edge, else holds; a definition change
 still resets, and coalesced requests merge DEFINITION-wins (D-F7); the slider echo is inert for an unchanged window
 via `lastFrom`/`lastTo` in `onFilterChanged`, so the hook is the only mover of an unpinned view on a data tick
-(D-F8). **Known stale under follow, out of scope here: reports and coverage.** About two days.
+(D-F8). Pass 3 [review_spec_m65_pass3_2026-09-17.md](../handoff/review_spec_m65_pass3_2026-09-17.md):
+READY WITH FOLLOW-UPS — F1 (required, implementer applies) the read view reads `size` + arrays under the index lock and
+`file` *after* it, and serves `record(row)` itself; F2 empty-before lands as reset; F3 D-F8 also silences identical
+programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argument shape. **Known stale under follow, out of scope here: reports and coverage.** About two days.
 
 - [M65.0] ☐ **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
   default overridden by `HeapLogStore` (size + file + offset/length under the index lock); `SeriesExtractor` walks
