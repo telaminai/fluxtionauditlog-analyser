@@ -25,6 +25,25 @@ In practice:
   than one that finds a real limitation, and this audience is being asked to trust the instrument.
 - Do not read the whole log and summarise it. That is testimony. Put it on their screen.
 
+## Point before you speak
+
+"It is on screen" is not the same as "they know where to look" — the window is two thousand pixels wide
+and they are new to it. So each beat has the same three moves:
+
+1. **Spotlight the thing you are about to talk about:** `analyser_spotlight {"target": "…", "caption": "…"}`.
+   The window dims, that one thing is cut out, and your caption points at it.
+2. **Say one sentence.** The caption is a few words saying *why to look here*; the sentence belongs in
+   your chat, where it is clearly yours. The spotlight shows **where** — never let it stand in for **what**.
+3. **Take the screenshot that proves the spotlight is on it:** `analyser_screenshot {…}`. `context` also
+   reports what is lit. If it is lit in the wrong place, say so and light it again.
+
+A spotlight goes out by itself on any click, on Escape, and on any verb that changes the view (`open`,
+`filter`, `goto`, `graph`, `topology`) — so light it **after** the view is how you want it, not before.
+A target that is not on screen is revealed first; one that does not exist is refused, never lit on nothing.
+
+**If `analyser_spotlight` is not among your tools** the analyser is older than the verb. Carry on without
+it — every beat below still works — and tell them where to look in words.
+
 ## Before you start: whose data?
 
 Call `analyser_context {}` first and branch on what is already open.
@@ -63,6 +82,10 @@ analyser_topology {}         → put the graph on screen
 still open when you call `open`, the echo describes the graph against *that* log. `context` is computed
 after, and is the one to trust.
 
+**Spotlight it, then speak:** select a record and light its node list —
+`analyser_goto {"recordIndex": 3}` then `analyser_spotlight {"target": "detail", "caption": "read this list top to bottom"}`
+(or one node in it: `detail:node:<instanceId>`, and the same node on the graph: `topology:node:<instanceId>`).
+
 Ask them to look at one record's node list. The point to make, once:
 
 > The order you are looking at is **dispatch order**, and it was derived by the compiler before the
@@ -82,6 +105,11 @@ analyser_coverage {}
 ```
 
 On the demo above this reports **6 declared, 5 covered, 1 uncovered**. Let them read it off the screen.
+
+**Spotlight it, then speak:** light the node that never logged — the echo's `neverLogged` names it —
+with `analyser_spotlight {"target": "topology:node:<that instanceId>", "caption": "declared, and silent in this run"}`.
+`coverage` lights the Topology tab's own verdict line instead, if the sentence you want is the pairing one.
+
 Then the point:
 
 > That is a declared node with **no audit output in this run**. It needs the declared graph *and* the
@@ -120,6 +148,10 @@ analyser_flag   {"recordIndexes": [15], "note": "why it crossed"}
 
 **`flag` takes `recordIndexes` — an ARRAY.** The singular is refused; guessing it wastes a turn in front
 of the person you are showing.
+
+**Spotlight it, then speak:** `goto` changed the view, so light the record *after* it —
+`analyser_spotlight {"target": "records:row:15", "caption": "the crossing — flagged so you can come back"}`.
+If you drew a chart, `graph` lights the plot and `graph:note:<n>` one numbered note on it.
 
 They end with a bookmarked record they can reopen. That is the loop: a question, an anchor in the
 evidence, and something durable.
