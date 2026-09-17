@@ -1117,7 +1117,11 @@ empty when both its panels were toggled off, and `context.handoff.posture.note` 
 `handoff {posture}`, a verb folded into `open` before the release — and a docs change (`51fbdc6`: the tutorial shows
 *New project from template…* and names the bundle's `guided-start` runbook; the guided-start page gets screenshots).
 **The three `verify-*.py` scripts were re-run on main `51fbdc6`** — clean build, clean tree, the jar's class bytes
-checked to carry both fixes: 17/17, 18/18, 83/83, each exit 0. Still the owner's, carried from the list above: the
+checked to carry both fixes: 17/17, 18/18, 83/83, each exit 0. **And again on main `2f26eb7`**, after
+`screenshot {scope: "menu:…"}` gained `menuItems` (app code, so the run was repeated): clean build, clean tree, the
+jar checked to carry all three post-release changes — 17/17, 18/18, 83/83, each exit 0, and no harness analyser left
+running. `2f26eb7` is the last commit that changes anything the jar contains; tracker-only commits after it do not
+reopen this. Still the owner's, carried from the list above: the
 person-at-the-screen checks that were not done before 1.14.0 went out, and the playground re-vendor of the skills. **CLAUDE.md rule 1's two checks, same day, main `88d19ba`:**
 `git config user.email` is the personal address; `git log --format='%ae' | sort | uniq -c` shows the two
 employer-domain totals UNCHANGED at 132 and 82 (= the 214 rule 1 records), the newest of either dated 2026-08-20, and
