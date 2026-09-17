@@ -35,7 +35,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   you would say them (`tab:topology`, `records:row:12`, `detail:node:<id>`, `topology:node:<id>`, `coverage`,
   `graph:note:2`, `graph:series:<label>`, `project:log`, `toolbar:flag`, `status`). A target that is off screen
   is brought on screen first — a filtered-out record is revealed the way `goto` reveals one — and one that
-  does not exist is refused with the reason, never lit on nothing. The caption is tagged *assistant*, because
+  does not exist is refused with the reason, never lit on nothing. A chart series is named by its **exact**
+  label: a prefix of one (`graph:series:quote`) is refused rather than bound to the first series that starts
+  with it. The caption is tagged *assistant*, because
   it is the client's words and not something the analyser established. A spotlight goes out on any click,
   Escape, `{clear: true}` or any action that changes the view, and nothing about one is ever saved. The
   guided-start skill now spotlights before each beat speaks. **MCP clients see 15 tools** — `analyser_spotlight`

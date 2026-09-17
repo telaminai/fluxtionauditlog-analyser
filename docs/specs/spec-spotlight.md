@@ -178,6 +178,21 @@ the first thing to test on Linux.
 Both were taken as proposed because the owner asked for the implementation without answering them; either is a small
 change if the answer is different.
 
+## After review (2026-09-17) — what the two reviews changed, and what they did not
+
+- **`graph:series:<label>` is EXACT** (first round, M64 F1). It fell back to `startsWith` "because an external
+  series' entry carries a suffix the caller has no reason to know about" — so `graph:series:quote` lit
+  `quotePublisher.spread` and echoed the invented name as lit, and of two series sharing a prefix it took the
+  first drawn. A pointer at a guessed target is what D-SP2's closed vocabulary exists to refuse. Now: the exact
+  label, or the exact label plus the ONE suffix the legend itself writes (`GraphPanel.EXTERNAL_SUFFIX`), and
+  nothing looser; the bare label means the audit series when both exist. `GraphPanel.legendIndexOf` is pure and
+  tested headless; seen red with `startsWith` put back (3 of 5).
+- **Numbers are a high-water mark** (M64.6 F1) and **a call is validated WHOLE before any reveal** (M64.6 F2) — see
+  D-SP6, amended in place below its bullets.
+- **NOT changed here: the `coverage` target's name.** Both reviews say it misleads (it lights the PAIRING line), and
+  they are right. It is tracker M64.9, after the merge, with M64.8 — the guided-start skill names the target, and
+  no skill is touched on this branch.
+
 ## M64.8 — a runbook that finds a fault class ends in a spotlight (owner direction 2026-09-17; not built)
 
 The strongest use of the verb is not the tutor but the **runbook**: a runbook written to find one class of fault

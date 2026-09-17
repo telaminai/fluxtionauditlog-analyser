@@ -374,6 +374,11 @@ for the display test and skill edit.
   guide ▸ *Ask it to show you* (what to say; light AND dark screenshots via `capture-docs.py --spotlight`) and the
   in-app help. The guided-start skill is deliberately NOT touched: its beats point at one thing, and a second edit
   would mean a second re-pin on a branch.
+- [M64.9] ☐ **Rename the `coverage` target to `topology:verdict`** (both reviews, 2026-09-17; AFTER the merge, in the
+  same skill edit and re-pin as M64.8) — it lights the Topology tab's PAIRING line ("fits this log 5/5"), not a
+  coverage gap; the name misled its own author into a false caption (report_m64_6 §2). The guided-start skill names
+  the target, so the vocabulary, `SpotlightVocabulary.TEXT`, the skill and the index pin move together. Unreleased:
+  rename, no alias. Not done on the branch by owner instruction — no skill is touched there.
 - [M64.8] ☐ **A runbook that finds a fault class ends in a spotlight** (owner direction 2026-09-17; spec ▸ M64.8) —
   one canonical skill under `docs/skills/common` showing the shape (filter to the fault class → confirm with `read` →
   `spotlight` the matched target, caption built from the match; not finding it lights nothing), pinned (two commits)

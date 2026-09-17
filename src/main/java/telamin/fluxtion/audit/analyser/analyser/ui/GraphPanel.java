@@ -219,7 +219,7 @@ public final class GraphPanel extends JPanel {
         int idx = 0;
         for (GraphKey k : activeKeys) legendLabels.add(legendRow(k.display(), idx++));
         for (Derived d : activeExprs) legendLabels.add(legendRow(d.label(), idx++));
-        for (var s : externalSpecs) legendLabels.add(legendRow(s.label() + "  (external)", idx++));
+        for (var s : externalSpecs) legendLabels.add(legendRow(s.label() + EXTERNAL_SUFFIX, idx++));
         // Markers get rows too (M32.9). Without them a chart draws glyphs that nothing on screen
         // names — which is also what makes D-M1's "one meaning, one series, one glyph" worth the
         // restriction: the rule only buys an honest key if the key exists.
@@ -284,21 +284,44 @@ public final class GraphPanel extends JPanel {
         return chart;
     }
 
+    /** What the legend appends to an external series' label, so it can never pass as audit evidence. */
+    static final String EXTERNAL_SUFFIX = "  (external)";
+
     /**
-     * M64 — the legend entry for a series, by the label a person reads on it, or null. Matched exactly
-     * first, then as a prefix, because an external series' entry carries a "  (external)" suffix the
-     * caller has no reason to know about.
+     * M64 — the legend entry for a series, by the label a person reads on it, or null when there is no such
+     * series. See {@link #legendIndexOf}: declared, never guessed.
      */
     public java.awt.Component seriesLegendEntry(String label) {
-        if (label == null || label.isBlank()) return null;
-        java.awt.Component prefixMatch = null;
+        List<String> texts = new ArrayList<>();
+        List<java.awt.Component> entries = new ArrayList<>();
         for (java.awt.Component c : legendLabels.getComponents()) {
-            String text = c instanceof JLabel l ? l.getText() : null;
-            if (text == null) continue;
-            if (text.equals(label)) return c;
-            if (prefixMatch == null && text.startsWith(label)) prefixMatch = c;
+            if (c instanceof JLabel l && l.getText() != null) {
+                texts.add(l.getText());
+                entries.add(c);
+            }
         }
-        return prefixMatch;
+        int i = legendIndexOf(texts, label);
+        return i < 0 ? null : entries.get(i);
+    }
+
+    /**
+     * Which legend entry {@code label} names, or -1. EXACT, or exact plus the one suffix the legend itself
+     * adds to an external series — and nothing looser. It used to fall back to {@code startsWith}, so
+     * {@code graph:series:quote} lit {@code quotePublisher.spread} and echoed the invented name as lit, and of
+     * two series sharing a prefix it chose whichever came first (review of M64, F1): a pointer at a GUESSED
+     * target, which the closed vocabulary exists to refuse. An audit series and an external one with the
+     * same label are told apart by asking for the suffixed text; the bare label means the audit series.
+     */
+    static int legendIndexOf(List<String> legendTexts, String label) {
+        if (label == null || label.isBlank()) return -1;
+        String wanted = label.trim();
+        int external = -1;
+        for (int i = 0; i < legendTexts.size(); i++) {
+            String text = legendTexts.get(i);
+            if (text.equals(wanted)) return i;
+            if (external < 0 && text.equals(wanted + EXTERNAL_SUFFIX)) external = i;
+        }
+        return external;
     }
 
     /** One overlay row: a plot-colour swatch + the full label, with a right-click "Remove". */
@@ -1091,8 +1114,8 @@ public final class GraphPanel extends JPanel {
     /** Remove a series (raw or derived) by its display label — the overlay's right-click "Remove". */
     private void removeSeriesByLabel(String label) {
         // legend rows suffix external labels for display — strip before matching
-        String bare = label.endsWith("  (external)")
-                ? label.substring(0, label.length() - "  (external)".length()).trim() : label;
+        String bare = label.endsWith(EXTERNAL_SUFFIX)
+                ? label.substring(0, label.length() - EXTERNAL_SUFFIX.length()).trim() : label;
         if (externalSpecs.stream().anyMatch(s -> s.label().equals(bare))) {
             setExternal(externalSpecs.stream().filter(s -> !s.label().equals(bare)).toList());
             return;

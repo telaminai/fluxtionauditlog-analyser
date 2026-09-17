@@ -102,6 +102,16 @@ def main():
                 r = a.act("spotlight", target=target)
                 check("%s lights" % target, lit(r) and area(r) > 0, r)
 
+            print("a series is named EXACTLY - never bound to the first label that starts with it (review F1)")
+            r = a.act("spotlight", target="graph:series:quote")
+            check("graph:series:quote is REFUSED - it is a prefix of quotePublisher.spread, not a series",
+                  r.get("ok") is False and "not on the selected graph" in json.dumps(r), r)
+            a.act("graph", name="Spread", series=["quotePublisher.spread", "quotePublisher.liveOrders"])
+            r = a.act("spotlight", target="graph:series:quotePublisher")
+            check("with TWO series sharing a prefix, the prefix lights neither", r.get("ok") is False, r)
+            r = a.act("spotlight", target="graph:series:quotePublisher.liveOrders")
+            check("and each is still lit by its own exact label", lit(r) and targets(r) == ["graph:series:quotePublisher.liveOrders"], r)
+
             print("a target that is off screen is REVEALED first")
             a.act("spotlight", target="tab:summary")
             r = a.act("spotlight", target="topology:node:quotePublisher", caption="every price ends up here")

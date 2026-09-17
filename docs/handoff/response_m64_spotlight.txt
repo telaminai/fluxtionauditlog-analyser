@@ -1,0 +1,39 @@
+AUTHOR'S RESPONSE — M64 spotlight and guided-start
+Date: 2026-09-17 · Answers: review_m64_spotlight.txt (Codex) and review_m46_closure_branch_second_reader.txt A3
+(Claude). Branch: fix/m46-agent-api-closure. Read with response_m64_6_multi_spotlight.txt.
+
+F1 (P2, required) — an absent series label bound to the first prefix match.                             FIXED.
+  The finding is right and the defect was mine: the javadoc even explained the prefix fallback as a convenience
+  for the " (external)" suffix. It accepted names that are no series, echoed them as lit, and chose arbitrarily
+  between two series sharing a prefix — declared-never-inferred, broken by a convenience.
+  What changed — GraphPanel: `seriesLegendEntry` now defers to a pure static `legendIndexOf(texts, label)`: the
+  exact label, else the exact label + GraphPanel.EXTERNAL_SUFFIX (one constant, now also used where the legend
+  writes the suffix and where it strips it), else -1. When an audit series and an external one share a label the
+  bare label is the audit series and the suffixed text names the external one — so no label is ambiguous, which is
+  how "refuse ambiguous labels" is met: there are none left to refuse.
+  Held by — SpotlightSeriesLabelTest (5, headless): exact; the reviewer's `quote`; two series sharing the prefix
+  `quotePublisher.spre`; an external series by its own label and by the suffixed text, and NOT by a near-miss
+  suffix; the shared-label case in both orders; null/blank/empty. On the built jar, verify-m64-spotlight.py gains
+  three checks: `graph:series:quote` refused; with two series sharing a prefix, the prefix lights neither; each is
+  still lit by its exact label.
+  SEEN RED: with `text.equals(wanted)` put back to `startsWith`, 3 of the 5 fail (expected -1 was 0; expected -1
+  was 2; expected 1 was 0). Restored.
+
+`coverage` names the PAIRING line — DECLINED ON THIS BRANCH, accepted in substance.
+  Both reviewers are right that the name misleads, and I would rename rather than alias (unreleased). But the
+  guided-start skill names the target, so a rename is a skill edit and a re-pin, and the owner's instruction for
+  this round is that no skill is touched on the branch. Recorded as tracker M64.9 ☐, to be done after the merge in
+  the SAME skill edit and re-pin as M64.8, so the index moves once. spec-spotlight.md ▸ "After review" says so.
+  I agree with the reviewer that "a pin is a change procedure, not a reason to preserve the misleading name" — the
+  pin is why it waits one merge, not why it stays.
+
+A3 (second reader) — narrowing the human check.                                                       ACCEPTED.
+  The dismissing click cannot reach the control beneath (the glass pane takes the press), so that need not be
+  checked by hand. What a person should try is Escape while focus is in a component that consumes Escape itself
+  (a combo with its popup open; the search field's history popup). Not done by me — I cannot.
+
+STILL OPEN, and not claimed: a person watching click and Escape put spotlights out; the held-out guided-start run
+and the six docs sentences on a context-free client. The tracker's M64 heading says "ALL SEVEN SLICES DONE"; the
+acceptance line for the held-out run is still [~] in the spec and I have not changed that.
+CanonicalSkillsTest green here proves nothing about CI after a rebase (second reader A1) — see
+response_m46_agent_api_closure.txt and the updated merge note.
