@@ -2448,6 +2448,7 @@ public final class MainFrame extends JFrame {
     private void setBusy(boolean busy) {
         loadInFlight = busy;
         progress.setVisible(busy);
+        refreshCloseItems();        // a pending load is something to close: at start, supersede and completion
         if (busy) {
             // review B1: a verdict is about a PAIR. The log half is being replaced, so the verdict
             // retires with it; context says pending until the load lands (or fails, below).
@@ -3064,9 +3065,21 @@ public final class MainFrame extends JFrame {
         noteLogState();
         noteGraphState();
         syncRecordsCard();          // M36: the start page shows exactly when there is no log
-        if (closeLogItem != null) closeLogItem.setEnabled(store != null);
+        refreshCloseItems();
+    }
+
+    /**
+     * What there is to close — which includes a log that is still ARRIVING (M44.3b, review F1). A close
+     * supersedes a pending open, but on a fresh analyser the first slow load has no store yet, so an item
+     * enabled only by {@code store != null} left a person no way to ask for it: the policy worked from the
+     * socket and was unreachable from the menu. Enablement only — this submits nothing to the session, so
+     * {@link #setBusy} can call it from inside an effect's dispatch.
+     */
+    private void refreshCloseItems() {
+        boolean logToClose = store != null || loadInFlight;
+        if (closeLogItem != null) closeLogItem.setEnabled(logToClose);
         if (closeGraphItem != null) closeGraphItem.setEnabled(topologyPanel.hasGraph());
-        if (resetItem != null) resetItem.setEnabled(store != null || topologyPanel.hasGraph());
+        if (resetItem != null) resetItem.setEnabled(logToClose || topologyPanel.hasGraph());
     }
 
     /**
@@ -4077,14 +4090,23 @@ public final class MainFrame extends JFrame {
      *
      * <p>Called from the REQUEST entrances only — the menu items and the socket's {@code open {close}}.
      * {@code closeLog()}/{@code closeGraph()} are also the adapter's half of the processor's own close
-     * EFFECTS, mid-dispatch, where a second submit would be re-entrant; hence the guard, and hence this is
-     * not inside them.
+     * EFFECTS, mid-dispatch, where a second submit would be re-entrant; hence this is not inside them, and
+     * hence a call from inside a dispatch is a loud protocol violation rather than a silent no-op.
      *
      * @return what the close superseded (e.g. {@code "opening /path"}), or null when nothing was pending
      */
     private String requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target target) {
         var driver = session;
-        if (driver == null || driver.isDispatching()) return null;     // never built: nothing can be pending
+        if (driver == null) return null;                // the session was never built: nothing can be pending
+        if (driver.isDispatching()) {
+            // Two different things used to share one silent `return null` here (second reader, A2): "nothing was
+            // pending" and "your request was never submitted". No caller runs inside a dispatch today; one that
+            // did would have had its close performed WITHOUT the supersede it asked for, and no way to tell.
+            throw new telamin.fluxtion.audit.analyser.analyser.session.SessionDriver.ProtocolViolation(
+                    "requestClose(" + target + ") was called from inside a session dispatch. It belongs to the REQUEST "
+                            + "entrances (a menu item, the socket's open {close}); an effect closes with closeLog()/"
+                            + "closeGraph() directly and must not ask again.");
+        }
         String pending = driver.processor().operationGate.inFlightWhat();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested(
                 driver.nextOpId(), target));

@@ -87,7 +87,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   request the session processor hears, and one that covers the log supersedes a pending open exactly as a
   newer open or a project switch does: the late result is refused, the busy indicator clears at once, and
   the assistant's echo names what was cancelled in `supersededPendingOpen`. Closing only the graph leaves a
-  loading log alone.
+  loading log alone. *Close log* and *Reset* are available while a log is still arriving — including the very
+  first load on a fresh analyser, when nothing is open yet and there was otherwise no menu command to ask with.
 - **The `open {graphml}` echo names the graph's size and its authored count separately.** One key,
   `nodes`, held the AUTHORED count — 10 for the demo graph whose status bar says 20 — beside a pairing
   verdict, where it read as the graph's size. It is now `graphNodes` and `authoredNodes`, and

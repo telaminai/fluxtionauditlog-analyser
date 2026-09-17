@@ -217,6 +217,45 @@ class AsyncOpenInterleavingFrameTest {
         }
     }
 
+    /**
+     * Review F1 (M44.3b): the policy must be reachable by a PERSON. On a fresh analyser the first slow load
+     * has no store yet, and Close log / Reset were enabled only by a store — so the supersede worked from the
+     * socket and had no menu command. This drives the menu item itself, from the first-load state.
+     */
+    @Test
+    void m44_3b_onAFreshAnalyser_theMenuCanCloseAFirstLoadThatIsStillPending(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path slowA = Files.writeString(tmp.resolve("a.slow"), "slow");
+        DelayedReader reader = new DelayedReader(false, "nodeA");
+        try (Frame f = new Frame(tmp, reader)) {
+            javax.swing.JMenuItem closeLog = (javax.swing.JMenuItem) field(f.frame, "closeLogItem");
+            javax.swing.JMenuItem closeGraph = (javax.swing.JMenuItem) field(f.frame, "closeGraphItem");
+            javax.swing.JMenuItem reset = (javax.swing.JMenuItem) field(f.frame, "resetItem");
+            onEdt(() -> {
+                assertFalse(closeLog.isEnabled(), "control: with nothing open and nothing arriving there is nothing to close");
+                assertFalse(reset.isEnabled());
+            });
+            onEdt(() -> render(f.ex, "open", Map.of("log", slowA.toString(), "format", "test-slow")));
+            reader.awaitEntered();
+            onEdt(() -> {
+                assertEquals("opening " + slowA, find(render(f.ex, "context", Map.of()), "inFlight"));
+                assertTrue(closeLog.isEnabled(), "a log that is still ARRIVING is something to close");
+                assertTrue(reset.isEnabled(), "and Reset covers it too");
+                assertFalse(closeGraph.isEnabled(), "a pending LOG is not a graph: nothing else became closable");
+                closeLog.doClick(0);                                    // the person asks
+            });
+            onEdt(() -> {
+                assertNull(find(render(f.ex, "context", Map.of()), "inFlight"), "the menu's close superseded the load");
+                assertFalse(closeLog.isEnabled(), "and with it gone there is nothing left to close");
+                assertFalse(reset.isEnabled());
+            });
+            reader.release.countDown();
+            awaitStale(f);
+            assertNull(f.processorLog(), "the superseded load opened nothing — no log arrived after the person closed it");
+            onEdt(() -> assertFalse(closeLog.isEnabled(), "and the stale arrival re-enabled nothing"));
+        }
+    }
+
     @Test
     void m44_3b_control_closingTheGraphIsNotAboutTheLog_theLoadSurvives(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

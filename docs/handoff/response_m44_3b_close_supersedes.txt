@@ -1,0 +1,37 @@
+AUTHOR'S RESPONSE — M44.3b close supersedes
+Date: 2026-09-17 · Answers: review_m44_3b_close_supersedes.txt (Codex) and
+review_m46_closure_branch_second_reader.txt A2 (Claude). Branch: fix/m46-agent-api-closure.
+
+F1 (P2, required) — Close log / Reset disabled during the first pending load.            FIXED. The finding is right.
+  The policy worked from the socket and had no menu command on a fresh analyser: both items were enabled by
+  `store != null`, and a first load has no store until it lands.
+  What changed — MainFrame: the three setEnabled lines moved out of updateLifecycleMenu() into
+  refreshCloseItems(), whose predicate is `store != null || loadInFlight` for Close log, and that-or-a-graph for
+  Reset. Close graph is unchanged (a pending LOG is not a graph). setBusy() calls refreshCloseItems(), and setBusy
+  is already the single funnel for the three moments the reviewer named — start (setBusy(true)), supersede
+  (requestClose → syncBusyWithGate → setBusy(false)) and completion. refreshCloseItems() submits NOTHING to the
+  session (updateLifecycleMenu's noteLogState/noteGraphState stay where they were), so calling it from inside an
+  effect's dispatch is safe — the constraint the review stated.
+  Held by — AsyncOpenInterleavingFrameTest.m44_3b_onAFreshAnalyser_theMenuCanCloseAFirstLoadThatIsStillPending:
+  fresh frame (control: both items disabled) → slow open → reader entered → Close log AND Reset enabled, Close graph
+  not → closeLog.doClick() → context.inFlight gone and both items disabled again BEFORE the reader returns → release
+  → the stale arrival opens nothing and re-enables nothing. It drives the real JMenuItem's listener; it is still
+  not a person clicking, and the human check stays open.
+  SEEN RED: with the predicate put back to `store != null` exactly this test fails — "a log that is still ARRIVING
+  is something to close ==> expected: <true> but was: <false>" (12 run, 1 failure). Restored; 12/12.
+
+A2 (P4, second reader) — requestClose conflated "never built" with "dispatching".           FIXED, the louder way.
+  The guard is now two statements. `driver == null` still returns null (nothing can be pending). A call from inside
+  a dispatch now throws SessionDriver.ProtocolViolation naming the rule (request entrances only; an effect closes
+  with closeLog()/closeGraph() directly). I chose the throw over a split comment because the silent branch would
+  have PERFORMED the close without the supersede the caller asked for — a wrong outcome with no signal. It is
+  unreachable today (the six entrances are all EDT-outside-dispatch, as the second reader listed), so nothing
+  changes for a user; no test, because there is no caller to drive it from.
+
+The reviewer's correction to my report (the generated branch's guarded recomputes read openGraph/openLog dirty
+flags, not the gate's) is accepted; the report's "downstream concern" paragraph was wrong to worry.
+
+CHANGELOG: the existing Unreleased ▸ Changed entry for this behaviour gains the sentence that the menu items are
+available during a first load — it is one user-visible behaviour, not two.
+NOT DONE / still open: a person clicking File ▸ Close log during a slow load. Regeneration through the hosted
+compiler was not repeated (nothing generated changed).
