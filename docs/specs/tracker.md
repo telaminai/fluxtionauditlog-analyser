@@ -1087,8 +1087,10 @@ context-free client; (d) the pre-release checklist, `docs/admin/release-process.
 on the 1.14.0 candidate, main `b8b1aaf`, 2026-09-17:** exit 0, all five scenarios, five native captures, no
 `NOT REGENERATED`. All five images READ (demo data, neutral paths) and restored as re-renders. The transcript's only
 difference was `"visible"`/`"total"` changing places — committed ONCE, deliberately: since the `context.showing` fix
-that order is what the product always emits, so the page now matches it and the next run has no diff. The three
-`verify-*.py` lines were last run on the merged tree (17/17, 18/18, 83/83); re-run them on the release commit. Still open after that, not
+that order is what the product always emits, so the page now matches it and the next run has no diff. **The three `verify-*.py` lines were RUN
+on the release candidate, main `cdef22c`, 2026-09-17** — a CLEAN build of the jar from exactly that commit, tree
+clean: `verify-m46-agent-api.py` 17/17, `verify-m48-handoff.py` 18/18, `verify-m64-spotlight.py` 83/83, each exit 0.
+(The commit that records this changes only this file; if any CODE lands before the release, run them again.) Still open after that, not
 gating: the valid `add` + `detail:node` end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE
 (147 words) against a held-out run, M64.10, M46.11.
 
