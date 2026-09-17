@@ -4,6 +4,9 @@ Base: origin/main @ 96a11ac (Release 1.13.2). Companion reports on this branch:
 report_m46_agent_api_closure.txt · report_m44_3b_close_supersedes.txt · report_m48_7_canvas_handoff.txt
 Spec: docs/specs/spec-spotlight.md — read its new "As built" section first; it records one wrong assumption.
 
+EXTENDED THE SAME DAY by report_m64_6_multi_spotlight.txt (several at once; general guidance). Where this report
+says "one at a time", "47 checks", or gives the echo as {target, bounds}, that later report supersedes it.
+
 STATE: NOT YET INDEPENDENTLY REVIEWED — this is the ask. `mvn test` green · display suites green locally with
 CI's flags · `mkdocs build --strict` · sweep clean · `tools/verify-m64-spotlight.py` 47/47 on the built jar.
 

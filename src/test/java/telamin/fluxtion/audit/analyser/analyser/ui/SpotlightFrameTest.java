@@ -40,6 +40,7 @@ class SpotlightFrameTest {
 
     private static final String GRAPH = "src/test/resources/topology/demo-quote-processor.graphml";
     private static final String NODE = "priceListener";
+    private static final String OTHER = "quotePublisher";
 
     private static BufferedImage shoot(AsyncOpenInterleavingFrameTest.Frame f, Path to) throws Exception {
         onEdt(() -> render(f.ex, "screenshot", Map.of("path", to.toString())));
@@ -84,7 +85,7 @@ class SpotlightFrameTest {
             // where the app SAYS it lit, in the coordinates of this very image
             SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
             AtomicReference<java.awt.Rectangle> cut = new AtomicReference<>();
-            onEdt(() -> cut.set(javax.swing.SwingUtilities.convertRectangle(overlay, overlay.cutOut(),
+            onEdt(() -> cut.set(javax.swing.SwingUtilities.convertRectangle(overlay, overlay.cutOutOf("topology:node:" + NODE),
                     f.frame.getContentPane())));
             java.awt.Rectangle hole = cut.get();
             assertNotNull(hole);
@@ -107,6 +108,89 @@ class SpotlightFrameTest {
             onEdt(() -> assertNull(find(render(f.ex, "context", Map.of()), "spotlight"),
                     "a verb that changes the view ends the spotlight; context reports nothing after it"));
         }
+    }
+
+    /**
+     * M64.6 — two nodes lit TOGETHER on a real frame: both cut-outs untouched in the screenshot, the ground
+     * between them dimmed, each numbered in {@code context}; then a set with one bad member lights nothing
+     * new, and {@code add} / {@code clear + target} change exactly one.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void twoNodesLitTogether_bothCutOutInTheScreenshot_numbered_andASetIsAllOrNothing(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path exchange = Files.createDirectories(tmp.resolve("exchange"));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                AppConfig config = (AppConfig) field(f.frame, "config");
+                config.assistantExports = true;
+                config.assistantExportDir = exchange.toString();
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                f.frame.validate();
+            });
+            onEdt(() -> render(f.ex, "open", Map.of("graphml", Path.of(GRAPH).toAbsolutePath().toString())));
+            onEdt(() -> render(f.ex, "spotlight", Map.of("target", "tab:topology")));
+            onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
+            Thread.sleep(400);
+            BufferedImage before = shoot(f, exchange.resolve("before.png"));
+
+            String first = "topology:node:" + NODE, second = "topology:node:" + OTHER;
+            AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+            onEdt(() -> echo.set(render(f.ex, "spotlight", Map.of("targets", java.util.List.of(
+                    Map.of("target", first, "caption", "every price arrives here"),
+                    Map.of("target", second, "caption", "and leaves here"))))));
+            Thread.sleep(300);
+
+            AtomicReference<Object> lit = new AtomicReference<>();
+            onEdt(() -> lit.set(find(find(render(f.ex, "context", Map.of()), "spotlight"), "lit")));
+            java.util.List<Map<String, Object>> items = (java.util.List<Map<String, Object>>) lit.get();
+            assertEquals(java.util.List.of(1, 2), items.stream().map(m -> m.get("n")).toList(), "numbered in the order asked");
+            assertEquals(java.util.List.of(first, second), items.stream().map(m -> m.get("target")).toList());
+
+            BufferedImage after = shoot(f, exchange.resolve("after.png"));
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            AtomicReference<java.awt.Rectangle[]> cuts = new AtomicReference<>();
+            onEdt(() -> cuts.set(new java.awt.Rectangle[]{
+                    javax.swing.SwingUtilities.convertRectangle(overlay, overlay.cutOutOf(first), f.frame.getContentPane()),
+                    javax.swing.SwingUtilities.convertRectangle(overlay, overlay.cutOutOf(second), f.frame.getContentPane())}));
+            for (java.awt.Rectangle hole : cuts.get()) {
+                // sampled at the right-hand edge's middle: the number badge sits on the TOP-LEFT corner
+                int x = hole.x + hole.width - 12, y = hole.y + hole.height / 2;
+                assertEquals(before.getRGB(x, y), after.getRGB(x, y), "INSIDE each cut-out the image is untouched: " + hole);
+            }
+            assertFalse(cuts.get()[0].intersects(cuts.get()[1]), "two different nodes, two holes");
+            int ox = 12, oy = after.getHeight() - 12;
+            assertTrue(brightness(after, ox, oy) < brightness(before, ox, oy) * 0.85, "and the rest is dimmed ONCE, not twice");
+            int single = brightnessAfterLightingOne(f, exchange, ox, oy, first, second);
+            assertEquals(single, brightness(after, ox, oy), 6, "two spotlights dim the ground exactly as much as one");
+
+            // a set with one bad member is refused WHOLE — and what was lit is still lit
+            AtomicReference<ActionResult> refused = new AtomicReference<>();
+            onEdt(() -> refused.set(f.ex.render("spotlight", new java.util.LinkedHashMap<>(Map.of("targets",
+                    java.util.List.of("status", "topology:node:noSuchNode"))))));
+            assertFalse(refused.get().ok());
+            assertTrue(String.valueOf(refused.get().toMap()).contains("'topology:node:noSuchNode': "), String.valueOf(refused.get().toMap()));
+            onEdt(() -> assertEquals(2, ((java.util.List<?>) find(find(render(f.ex, "context", Map.of()), "spotlight"), "lit")).size()));
+
+            // add keeps; clear + target puts out exactly one, and the other keeps its number
+            onEdt(() -> render(f.ex, "spotlight", Map.of("target", "status", "caption", "the pairing verdict", "add", true)));
+            onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true, "target", first)));
+            onEdt(() -> lit.set(find(find(render(f.ex, "context", Map.of()), "spotlight"), "lit")));
+            items = (java.util.List<Map<String, Object>>) lit.get();
+            assertEquals(java.util.List.of(2, 3), items.stream().map(m -> m.get("n")).toList(),
+                    "putting one out does not renumber the rest");
+        }
+    }
+
+    private static int brightnessAfterLightingOne(AsyncOpenInterleavingFrameTest.Frame f, Path exchange, int x, int y,
+                                                  String first, String second) throws Exception {
+        onEdt(() -> render(f.ex, "spotlight", Map.of("target", first)));
+        Thread.sleep(200);
+        int one = brightness(shoot(f, exchange.resolve("one.png")), x, y);
+        onEdt(() -> render(f.ex, "spotlight", Map.of("targets", java.util.List.of(first, second))));
+        Thread.sleep(200);
+        return one;
     }
 
     @Test

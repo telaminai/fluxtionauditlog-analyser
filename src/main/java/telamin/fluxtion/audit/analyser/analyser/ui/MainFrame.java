@@ -1810,13 +1810,12 @@ public final class MainFrame extends JFrame {
      * that can no longer be measured puts the spotlight out — pointing at where something used to be is
      * the failure this whole feature is careful about.
      */
-    private void relightSpotlight() {
-        if (!spotlight.isLit()) return;
-        SpotlightTarget.Parsed parsed = SpotlightTarget.parse(spotlight.targetName());
-        java.util.Optional<java.awt.Rectangle> bounds = parsed.ok()
-                ? spotlightSurface.bounds(parsed.target()) : java.util.Optional.empty();
-        if (bounds.isPresent() && !bounds.get().isEmpty()) spotlight.moveTo(bounds.get());
-        else spotlight.clearSpotlight();
+    private java.util.List<String> relightSpotlight() {
+        if (!spotlight.isLit()) return java.util.List.of();
+        return spotlight.remeasure(name -> {
+            SpotlightTarget.Parsed parsed = SpotlightTarget.parse(name);
+            return parsed.ok() ? spotlightSurface.bounds(parsed.target()) : java.util.Optional.empty();
+        });
     }
 
     /** The frame's answer to "where is this, and can you bring it on screen?" — Swing behind a pure interface. */
@@ -1961,38 +1960,84 @@ public final class MainFrame extends JFrame {
         return c == null ? java.util.Optional.empty() : inOverlay(c, c.getVisibleRect());
     }
 
-    /** The socket's entrance: resolve, light, and say exactly where — or refuse with the reason. */
+    /**
+     * The socket's entrance: resolve, light, and say exactly where — or refuse with the reason.
+     *
+     * <p>A call lights ONE target or a SET ({@code targets}), and a set is all-or-nothing. Without
+     * {@code add} it replaces what is lit; with it, what is lit stays. Either way the reveal of a new target
+     * can take a standing one off screen (another tab) — that one goes OUT, and the answer says so, because
+     * a spotlight left pointing at a hidden thing is the failure this feature exists to avoid.
+     */
     private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult applySpotlight(Map<String, Object> params) {
         if (Boolean.TRUE.equals(params.get("clear"))) {
-            boolean was = spotlight.isLit();
-            spotlight.clearSpotlight();
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("spotlight", "cleared",
-                    Map.of("wasLit", was));
+            boolean was;
+            Object only = params.get("target");
+            if (only == null) {
+                was = spotlight.isLit();
+                spotlight.clearSpotlight();
+            } else {
+                was = spotlight.remove(only.toString().trim());
+            }
+            Map<String, Object> echo = new java.util.LinkedHashMap<>();
+            echo.put("cleared", only == null ? "all" : only.toString().trim());
+            echo.put("wasLit", was);
+            echo.put("lit", litEcho(false));
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("spotlight", "spotlight", echo);
         }
-        Object rawCaption = params.get("caption");
-        String caption = rawCaption == null ? null : rawCaption.toString().trim();
-        if (caption != null && (caption.length() > 160 || caption.chars().anyMatch(ch -> ch == '\n' || ch == '\r'))) {
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                    "'caption' is ONE short line (at most 160 characters) — the sentence belongs in your chat, "
-                            + "where it is clearly yours; the caption only says why to look here");
+        SpotlightTarget.Requests asked = SpotlightTarget.requests(params);
+        if (!asked.ok()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(asked.error());
+        if (asked.add()) {
+            java.util.Set<String> names = new java.util.HashSet<>();
+            spotlight.lit().forEach(l -> names.add(l.target().toLowerCase(java.util.Locale.ROOT)));
+            asked.requests().forEach(r -> names.add(String.valueOf(r.target()).trim().toLowerCase(java.util.Locale.ROOT)));
+            if (names.size() > SpotlightTarget.MAX_LIT) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("at most " + SpotlightTarget.MAX_LIT + " spotlights at once — " + spotlight.lit().size()
+                        + " are lit. Put one out first ({clear: true, target: …}), or light a new set without 'add'");
+            }
         }
-        Object rawTarget = params.get("target");
-        SpotlightTarget.Resolution r = SpotlightTarget.resolve(rawTarget == null ? null : rawTarget.toString(),
-                spotlightSurface);
-        if (!r.lit()) {
-            // refused, and the spotlight already showing (if any) is left alone — a failed request changes nothing
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(r.reason());
+        java.util.List<String> names = asked.requests().stream().map(SpotlightTarget.Request::target).toList();
+        SpotlightTarget.SetResolution set = SpotlightTarget.resolveAll(names, spotlightSurface);
+        if (!set.ok()) {
+            // refused: nothing new is lit. What WAS lit stays — unless the attempt's reveal hid it, in which
+            // case it goes out and the refusal says so rather than leaving it pointing at a hidden tab.
+            java.util.List<String> hidden = relightSpotlight();
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(set.reason() + (hidden.isEmpty() ? ""
+                    : ". Trying brought another view forward, so " + hidden + " is no longer on screen and went out"));
         }
-        spotlight.light(r.target().name(), r.bounds(), caption);
+        java.util.List<String> wentOut = java.util.List.of();
+        if (asked.add()) wentOut = relightSpotlight();
+        else spotlight.clearSpotlight();
+        for (int i = 0; i < set.lit().size(); i++) {
+            SpotlightTarget.Resolution r = set.lit().get(i);
+            spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
+        }
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
-        java.awt.Rectangle inContent = SwingUtilities.convertRectangle(spotlight, spotlight.cutOut(), getContentPane());
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
-        echo.put("target", r.target().name());
-        if (caption != null && !caption.isBlank()) echo.put("caption", caption);
-        echo.put("bounds", Map.of("x", inContent.x, "y", inContent.y, "width", inContent.width, "height", inContent.height));
-        echo.put("note", "lit in the window, in the coordinates of a default `screenshot` — take one to check it "
-                + "is where you meant. It goes out on any click, Escape, {clear: true}, or a verb that changes the view.");
-        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("spotlight", "lit", echo);
+        echo.put("lit", litEcho(true));
+        if (!wentOut.isEmpty()) echo.put("wentOut", wentOut);
+        echo.put("note", "lit in the window; bounds are in the coordinates of a default `screenshot` — take one to "
+                + "check each is where you meant. "
+                + (spotlight.lit().size() > 1 ? "Each carries its number (n) on screen: use it in your sentence. " : "")
+                + "They go out on any click, Escape, {clear: true}, or a verb that changes the view.");
+        // keyed "spotlight", and shaped as context.spotlight is: a client learns {lit: [...]} once
+        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("spotlight", "spotlight", echo);
+    }
+
+    /** What is lit, as {@code context} and the verb's echo both state it — one shape, so a client learns it once. */
+    private java.util.List<Map<String, Object>> litEcho(boolean withBounds) {
+        java.util.List<Map<String, Object>> out = new java.util.ArrayList<>();
+        for (SpotlightOverlay.Lit l : spotlight.lit()) {
+            Map<String, Object> one = new java.util.LinkedHashMap<>();
+            one.put("n", l.n());
+            one.put("target", l.target());
+            if (l.caption() != null) one.put("caption", l.caption());
+            if (withBounds) {
+                java.awt.Rectangle c = SwingUtilities.convertRectangle(spotlight, spotlight.cutOutOf(l.target()), getContentPane());
+                one.put("bounds", Map.of("x", c.x, "y", c.y, "width", c.width, "height", c.height));
+            }
+            out.add(one);
+        }
+        return out;
     }
 
     /**
@@ -5056,10 +5101,7 @@ public final class MainFrame extends JFrame {
             // screenshot) can confirm what it pointed at. Above the fresh-start return: a tab, the toolbar
             // and the status line can be lit with nothing open. Nothing else anywhere holds a spotlight.
             if (spotlight.isLit()) {
-                Map<String, Object> lit = new java.util.LinkedHashMap<>();
-                lit.put("target", spotlight.targetName());
-                if (spotlight.caption() != null) lit.put("caption", spotlight.caption());
-                out.put("spotlight", lit);
+                out.put("spotlight", Map.of("lit", litEcho(false)));
             }
             // M48.7: the shared canvas's handoff — the session's posture (set, or derived and SAID to be
             // derived) and the mode selector's record when someone has placed one. Above the fresh-start

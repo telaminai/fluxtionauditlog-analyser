@@ -1,12 +1,14 @@
 REPORT — M46 analyser-side closure: A1–A5 verified or fixed, and a released `open {analysis}` regression
 Date: 2026-09-17 · Author: the independent review session (the one behind review_perf_w10_branch_2026-09-14)
 Branch: fix/m46-agent-api-closure · Base: origin/main @ 96a11ac (Release 1.13.2) · commit 1 of 3 (74a465b)
-The branch carries FOUR independent pieces, one report each, at the owner's direction:
+The branch carries FIVE independent pieces, one report each, at the owner's direction:
   1  this report                                  M46 agent-API closure + the open {analysis} regression
   2  report_m44_3b_close_supersedes.txt           a close supersedes a pending open of the same kind
   3  report_m48_7_canvas_handoff.txt              posture + the selector's record as shared canvas state
   4  report_m64_spotlight.txt                     an AI client can point — READ ITS MERGE NOTE before rebasing:
                                                   it re-pins a canonical skill to a commit on this branch
+  5  report_m64_6_multi_spotlight.txt             several spotlights + callouts at once; the spotlight guidance
+                                                  at every assistant entrance; user docs in light and dark
 They can be reviewed separately. Commit 3 asked the owner for one decision — a fifteenth verb — and the owner
 confirmed it on 2026-09-17 (tracker > Decisions). M64 Spotlight follows on the same branch.
 Owner-directed: "1, then 3 and 4 — that closes off work", and "move this work to a feature branch so it

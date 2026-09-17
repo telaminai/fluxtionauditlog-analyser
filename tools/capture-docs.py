@@ -15,6 +15,7 @@ Usage
 -----
     python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
     python3 tools/capture-docs.py --mcp      # regenerate only the MCP setup/dialog shots
+    python3 tools/capture-docs.py --spotlight  # regenerate only the spotlight shots (light AND dark)
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
 Runs the app under an isolated home (/tmp/analyser-docs/home) so no real setting can reach a shot.
@@ -545,8 +546,49 @@ def capture_projects_menu():
     finish_capture()
 
 
+def capture_spotlight(finish=True):
+    """M64: the spotlight, in BOTH themes — one thing lit, and a finding lit as several numbered callouts.
+
+    Its own launches, and LAST in a full run: a spotlight left lit would be in every shot that followed, and
+    a view-changing verb would silently clear it before its own capture. The scene is the demo's one real
+    finding — a declared node that never logged — because the page these illustrate is about asking an
+    assistant to point at what it FOUND, not at furniture. Every caption here must be TRUE OF THE THING IT
+    POINTS AT: the first draft captioned the pairing line "coverage is not complete" while the line itself
+    read "fits this log (5/5)" — caught by reading the image, which is the only check a caption gets.
+    """
+    for theme, suffix in (("Light", ""), ("Dark", "-dark")):
+        print("spotlight (%s)" % theme.lower())
+        ep = launch(theme)
+        seed(ep)
+        act(ep, "goto", {"recordIndex": 3, "reveal": True})
+        act(ep, "topology", {"showAll": True})
+        time.sleep(1)
+
+        act(ep, "spotlight", {"target": "topology:node:spreadCalculator",
+                              "caption": "declared in the graph, and silent in this run"})
+        time.sleep(0.6)                     # the deferred re-measure, then a repaint
+        capture(ep, "spotlight%s.png" % suffix)
+
+        lit = act(ep, "spotlight", {"targets": [
+            {"target": "topology:node:priceListener", "caption": "every price arrives here"},
+            {"target": "topology:node:spreadCalculator", "caption": "fed by 1 - declared, but silent in this run"},
+            {"target": "coverage", "caption": "the graph fits this log: all 5 nodes that logged are declared"},
+            {"target": "records:row:3", "caption": "the cycle on screen: read its node list"}]})
+        if len((lit.get("spotlight") or {}).get("lit", [])) != 4:
+            sys.exit("the four-callout scene did not light whole: %s" % lit)
+        time.sleep(0.6)
+        capture(ep, "spotlight-findings%s.png" % ("-dark" if suffix else "-light"))
+        act(ep, "spotlight", {"clear": True})
+    if finish:
+        finish_capture()
+
+
 def main():
     ASSETS.mkdir(parents=True, exist_ok=True)
+
+    if "--spotlight" in sys.argv:
+        capture_spotlight()
+        return
 
     if "--tutorial" in sys.argv:
         capture_tutorial()
@@ -720,14 +762,7 @@ def main():
     # the saved analysis's offer — the human-facing half of context.runbooks / vocabulary / analyses
     capture(ep, "ai-runbooks-panel.png")
 
-    # M64: the spotlight, as a tutor lights it — one declared node that never logged, with the caption tagged as
-    # the assistant's words. LAST in the run and put out straight after: a spotlight left lit would be in every
-    # shot that followed, and a view-changing verb would silently clear it before its own capture.
-    act(ep, "spotlight", {"target": "topology:node:spreadCalculator",
-                          "caption": "declared in the graph, and silent in this run"})
-    time.sleep(0.6)                     # the deferred re-measure, then a repaint
-    capture(ep, "spotlight.png")
-    act(ep, "spotlight", {"clear": True})
+    capture_spotlight(finish=False)
 
     finish_capture()
 

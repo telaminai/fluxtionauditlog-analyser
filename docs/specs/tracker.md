@@ -334,7 +334,7 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M64 · Spotlight — the tutor points at the thing on screen — ☑ ALL FIVE SLICES DONE 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review
+## M64 · Spotlight — the tutor points at the thing on screen — ☑ ALL SEVEN SLICES DONE 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review
 _Report: `docs/handoff/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
 the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
 shot showed NO spotlight (the display test measured `696 → 696` outside the cut-out). The verb now composites a live
@@ -362,6 +362,18 @@ for the display test and skill edit.
 - [M64.5] ☑ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin) — written so
   a client on an analyser older than the verb carries on; re-pinned by the established two-commit practice.
   **The pin names a commit on this branch: merge by fast-forward WITHOUT rebasing the branch, or re-pin after.**
+- [M64.6] ☑ **Several spotlights and callouts at once** (owner direction 2026-09-17; spec D-SP6) —
+  `{targets: [{target, caption}]}`, at most six, all-or-nothing, things that cannot be on screen together refused
+  naming the pair; `{add}`, `{clear, target}`; numbered on screen and in the echo, numbers never reused; callouts laid
+  out to cover neither a cut-out nor each other; echo and `context` share one shape `spotlight: {lit: […]}`. Headless
+  `SpotlightSetTest` / `SpotlightOverlayTest` / `SpotlightGeometryTest`, a real-frame two-node test, 17 more checks on
+  the built jar; **two mutation checks**. Report: `docs/handoff/report_m64_6_multi_spotlight.txt`.
+- [M64.7] ☑ **The spotlight guidance in the GENERAL assistant guidance** (owner direction; spec D-SP7) — one paragraph,
+  `SpotlightVocabulary.GUIDANCE`, at every entrance: in-app action manifest (which had never been told the verb
+  existed), copy-prompt REST manifest, MCP server `instructions`, system prompt — held by one test. For people: user
+  guide ▸ *Ask it to show you* (what to say; light AND dark screenshots via `capture-docs.py --spotlight`) and the
+  in-app help. The guided-start skill is deliberately NOT touched: its beats point at one thing, and a second edit
+  would mean a second re-pin on a branch.
 
 ## M65 · Follow refreshes open graphs — ☑ SHIPPED 2026-09-17 (merged to `main` from `feat/m65-follow-refreshes-graphs`; five review passes) · .5/.6 open
 
@@ -1044,7 +1056,7 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
    (`docs/handoff/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
    canvas state — `context.handoff`, a new `handoff` verb, *AI ▸ Posture*, a Project-panel row. It unblocks the
    dev-harness loop (M48.10). Adds a fifteenth verb, `handoff` — **confirmed by the owner 2026-09-17** (Decisions).
-4. ☑ **M64 Spotlight** — DONE 2026-09-17 on the same branch, all five slices, awaiting review
+4. ☑ **M64 Spotlight** — DONE 2026-09-17 on the same branch, all seven slices (incl. M64.6 several at once, M64.7 general guidance), awaiting review
    (`docs/handoff/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
    result in normal use. A sixteenth verb; the screenshot now composites the overlay (the spec assumed it already did).
 5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The

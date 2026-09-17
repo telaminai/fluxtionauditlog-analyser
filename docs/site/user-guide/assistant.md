@@ -84,8 +84,59 @@ drive the same verbs:
   exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
   whose dirty contract stops it early, is silent by design, and the result says so.
 
+- **spotlight** — point at what it is talking about: dim the window, cut out up to six things, and give
+  each a short numbered callout. See [Ask it to show you](#ask-it-to-show-you) below.
+
 `GET /manifest` publishes a JSON schema for every verb, so a foreign agent learns the shapes up front
 instead of trial-and-erroring against the structured errors.
+
+## Ask it to show you
+
+An explanation you have to map onto the screen yourself is half an explanation. Any assistant driving the
+analyser — the built-in one, or an MCP client such as Claude Code — can **point**: it dims the window, cuts
+out the things it is talking about, and gives each a short numbered callout. You ask for it in plain words:
+
+| You say | What the assistant can do with it |
+|---|---|
+| *"Show me where the spread first crossed 0.004 — point at it."* | it finds the record, selects it, and lights that row |
+| *"Which node never logged? Highlight it on the graph."* | it runs coverage, opens the Topology tab, and lights the node |
+| *"Walk me through this cycle and highlight each step."* | it lights the record, the node's lines in the detail, and the node on the graph — numbered 1, 2, 3 — and its sentences use the numbers |
+| *"Highlight everything involved in that breach."* | up to six things lit together, each with its own callout |
+| *"Point at the note on the chart you mean."* | it lights that numbered note on the plot |
+| *"Clear the highlights."* | they go out (so does any click, or Escape) |
+
+(How an assistant answers is up to the assistant; the right-hand column is what the actions make possible,
+and what the guidance it is given asks of it.)
+
+One thing lit — here, the demo's one real finding, a node the graph declares that never wrote audit output:
+
+![A spotlight in the light theme: the window dimmed, one topology node cut out, and the assistant's caption pointing at it](../assets/spotlight.png)
+
+![The same spotlight in the dark theme](../assets/spotlight-dark.png)
+
+And a finding that is a **relation** between things — the node every price arrives at, the node it feeds
+that stayed silent, the line where the analyser states how the graph fits the log, and the record on screen —
+lit together and numbered, so the assistant's sentence (*"1 feeds 2, and 2 never logged"*) finds its place
+on your screen:
+
+![Four numbered callouts in the light theme: two topology nodes, the Topology tab's verdict line and a records row](../assets/spotlight-findings-light.png)
+
+![The same four callouts in the dark theme](../assets/spotlight-findings-dark.png)
+
+Four things worth knowing before you rely on it:
+
+- **A callout is the assistant's words, not the analyser's.** That is why every one is tagged *assistant*. It
+  shows you **where** to look; whether the claim is true is what the thing it points at tells you. If a callout
+  says something the screen under it does not bear out, believe the screen.
+- **Highlights are temporary by design.** Any click, Escape, or any change of view (a new filter, another
+  record, a redrawn chart) puts them out, because a highlight left pointing at where something *used to be* is
+  worse than none. Nothing about one is ever saved — not in settings, a project, a graph or a report. A finding
+  you want to keep is a **flag**, a **chart note** or a **report**: ask for one of those as well.
+- **Everything lit has to be on screen together.** A topology node and a note on a chart live on different
+  tabs, so the assistant lights those one after the other rather than at once — and says so if you ask for both.
+- **An assistant is told to do this unprompted** — the guidance travels with every way one connects (the
+  built-in assistant, a copied prompt, an MCP client) — but only where you would otherwise have to hunt. If it
+  explains something without pointing, *"show me"* is all you need to say.
 
 ## Connect an MCP client
 
@@ -104,24 +155,21 @@ The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`
 `analyser_source_root`, `analyser_handoff` and `analyser_spotlight` — with full parameter schemas, so
 there's nothing to paste into a prompt.
 
-`spotlight` lets an AI client **point**. It can already open, filter, select, draw and screenshot; what it
-could not do was say *"this, here"*. `spotlight {target, caption}` dims the window, cuts one named thing
-out, and draws a short caption with an arrow to it:
-
-![A spotlight: the window dimmed, one topology node cut out, and the assistant's caption pointing at it](../assets/spotlight.png)
+`spotlight` lets an AI client **point** ([Ask it to show you](#ask-it-to-show-you) has the pictures and
+what to say). `spotlight {target, caption}` lights one thing; `spotlight {targets: [{target, caption}, …]}`
+lights up to six together, numbered `n` on screen and in the echo so the client's sentence can refer to
+them; `{add: true}` keeps what is already lit, and `{clear: true, target}` puts out just one (the others keep
+their numbers — the chat that named them has already been read). A set is **all or nothing**: one target that
+does not exist, or two that cannot be on screen together, refuses the whole call with the reason.
 
 The targets are a small fixed vocabulary, named as you would say them — `tab:topology`,
 `records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `coverage`, `graph`,
 `graph:note:2`, `graph:series:<label>`, `project:log`, `toolbar:flag`, `status`. A target that is off
 screen is brought on screen first (its tab selected, its row scrolled to — a filtered-out record is
 revealed the way `goto` reveals one — its node centred); one that does not exist is **refused with the
-reason**, never lit on nothing. The caption is tagged *assistant* because it is the client's words, not a
-fact the analyser established: a spotlight shows **where**, never **what**. It is deliberately fragile —
-any click, Escape, `spotlight {clear: true}`, or any verb that changes the view (`open`, `filter`, `goto`,
-`graph`, `topology`) puts it out, because a spotlight left pointing at where something used to be is worse
-than none. `screenshot` and `context` leave it lit: they are how the client checks it lit what it meant,
-and a screenshot shows the spotlight exactly as you see it. Nothing about a spotlight is ever saved — not
-in settings, a project, a graph or a report.
+reason**, never lit on nothing. `screenshot` and `context` leave a spotlight lit: they are how the client
+checks it lit what it meant — `context.spotlight.lit` lists what is lit, and a screenshot shows it exactly as
+you see it.
 
 `handoff` writes to the **shared canvas** — state you and the AI client both see and either of you can
 set. Two things live there. **Posture**: whether this session is *research/support* or

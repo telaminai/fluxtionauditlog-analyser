@@ -39,6 +39,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   it is the client's words and not something the analyser established. A spotlight goes out on any click,
   Escape, `{clear: true}` or any action that changes the view, and nothing about one is ever saved. The
   guided-start skill now spotlights before each beat speaks. **MCP clients see 16 tools.**
+- **Several things can be lit at once, each with its own numbered callout — and assistants are now told
+  when to point.** A finding is usually a relation: *this* node, *that* record, the crossing on the chart.
+  `spotlight {targets: [{target, caption}, …]}` lights up to six together; they are numbered on screen and in
+  the reply, so the assistant's sentence ("1 feeds 2, and 2 never logged") finds its place on your screen.
+  `{add: true}` keeps what is lit, `{clear: true, target}` puts out just one, and a set is all-or-nothing —
+  one target that is not there, or two that cannot be on screen together (different tabs), refuses the whole
+  call with the reason. Callouts are placed to avoid covering one another or anything else being pointed at.
+  The guidance *point before you explain* now reaches an assistant however it connects — the built-in
+  assistant, a copied prompt, or an MCP client — instead of living only in one skill; so you can simply say
+  *"show me"* or *"highlight it"*. The user guide's new **Ask it to show you** section has what to say, in
+  light and dark.
 - **A screenshot shows the spotlight.** The `screenshot` action paints the window's content, which a
   glass-pane overlay is not part of, so a client checking what it had lit would have got an undimmed image.
   It now composites a live spotlight exactly where it is on screen.

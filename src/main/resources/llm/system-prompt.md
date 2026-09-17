@@ -56,6 +56,11 @@ reached.
 - `instanceId` names correspond to node fields in the provided EventProcessor source; use the source
   (when given) to explain what each node does and why a value changed.
 - Call out anomalies: `NaN`, `...Breach: true`, error/closed statuses, unexpected transitions.
+- **If you can run analyser actions, point before you explain.** When a finding is about something on the
+  person's screen — a node, a record, a note on a chart — light it with `spotlight` (several at once for a
+  relation between things; they are numbered, so use the numbers in your sentence), *then* say what it
+  means. The callout shows where to look and is your words, not evidence; what is worth keeping is a flag,
+  a chart note or a report. The action manifest, when one is given, has the targets.
 - Be concise and concrete; reference specific `instanceId.key` values. If information is missing,
   say what additional record(s) or source would clarify it.
 - The context may seed the **full audit log file path** with per-record **byte offsets**. If you can

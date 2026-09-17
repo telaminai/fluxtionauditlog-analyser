@@ -27,13 +27,23 @@ v = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v)
 
 
+def items(reply):
+    """What a spotlight reply (or context) says is lit: [{n, target, caption?, bounds?}]."""
+    return ((reply or {}).get("spotlight") or {}).get("lit") or []
+
+
 def lit(reply):
-    return reply.get("ok") is True and isinstance(reply.get("lit"), dict)
+    return reply.get("ok") is True and len(items(reply)) > 0
 
 
 def area(reply):
-    b = (reply.get("lit") or {}).get("bounds") or {}
-    return b.get("width", 0) * b.get("height", 0)
+    """The SMALLEST cut-out in the reply - so a set passes only if every member has an area."""
+    boxes = [(i.get("bounds") or {}) for i in items(reply)]
+    return min((b.get("width", 0) * b.get("height", 0) for b in boxes), default=0)
+
+
+def targets(context):
+    return [i.get("target") for i in items(context)]
 
 
 def main():
@@ -60,12 +70,12 @@ def main():
                 check("%s lights with nothing open" % target, lit(r) and area(r) > 0, r)
             ctx = a.context()
             check("context reports the live spotlight, on a fresh start (above the early return)",
-                  (ctx.get("spotlight") or {}).get("target") == "project", ctx.get("spotlight"))
+                  targets(ctx) == ["project"], ctx.get("spotlight"))
             r = a.act("spotlight", target="topology:node:priceListener")
             check("a node with no topology open is REFUSED with a reason to act on, never lit on nothing",
                   r.get("ok") is False and "open {graphml}" in json.dumps(r), r)
             check("and the refused request left the standing spotlight alone",
-                  (a.context().get("spotlight") or {}).get("target") == "project", a.context().get("spotlight"))
+                  targets(a.context()) == ["project"], a.context().get("spotlight"))
 
             print("an unknown target names the vocabulary")
             r = a.act("spotlight", target="topolgy:node:x")
@@ -102,12 +112,12 @@ def main():
 
             print("the tutor's own check: context, then a screenshot")
             a.act("spotlight", target="topology:node:priceListener", caption="this node sees every price first")
-            spot = a.context().get("spotlight") or {}
-            check("context names the target and carries the caption", spot.get("target") == "topology:node:priceListener"
-                  and "sees every price" in str(spot.get("caption")), spot)
+            spot = items(a.context())
+            check("context names the target and carries the caption", targets(a.context()) == ["topology:node:priceListener"]
+                  and "sees every price" in str(spot[0].get("caption")), spot)
             shot = a.act("screenshot", path=os.path.join(exchange, "lit.png"))
             check("a screenshot can be taken WITHOUT putting the spotlight out",
-                  shot.get("ok") is True and (a.context().get("spotlight") or {}).get("target") == "topology:node:priceListener", shot)
+                  shot.get("ok") is True and targets(a.context()) == ["topology:node:priceListener"], shot)
 
             print("each view-changing verb puts it out")
             for verb, params in (("filter", {"text": ""}), ("goto", {"recordIndex": 1}),
@@ -116,6 +126,65 @@ def main():
                 a.act("spotlight", target="status")
                 a.act(verb, **params)
                 check("%s puts the spotlight out" % verb, "spotlight" not in a.settled_context(), a.context().get("spotlight"))
+
+            print("SEVERAL at once - a finding is usually a relation (M64.6)")
+            a.act("goto", recordIndex=15)
+            r = a.act("spotlight", targets=[
+                {"target": "topology:node:priceListener", "caption": "every price arrives here"},
+                {"target": "topology:node:quotePublisher", "caption": "and leaves here"},
+                {"target": "coverage", "caption": "the verdict"},
+                "records:row:15"])
+            check("four things on screen together light as ONE call, every one with an area",
+                  lit(r) and len(items(r)) == 4 and area(r) > 0, r)
+            check("they are numbered in the order asked, in the echo and in context",
+                  [i.get("n") for i in items(r)] == [1, 2, 3, 4] and [i.get("n") for i in items(a.context())] == [1, 2, 3, 4], r)
+            check("a callout is optional per target", "caption" not in items(r)[3] and "caption" in items(r)[0], items(r))
+            shot = a.act("screenshot", path=os.path.join(exchange, "four.png"))
+            check("a screenshot leaves all four lit", shot.get("ok") is True and len(items(a.context())) == 4, shot)
+
+            r = a.act("spotlight", targets=["status", "topology:node:ghost"])
+            check("a set with ONE bad member is refused whole, naming the member",
+                  r.get("ok") is False and "'topology:node:ghost': " in json.dumps(r), r)
+            check("and the four that were lit are still lit", len(items(a.context())) == 4, a.context().get("spotlight"))
+
+            r = a.act("spotlight", targets=["topology:node:priceListener", "graph:note:1"])
+            check("two things on DIFFERENT tabs are refused: they cannot be on screen together",
+                  r.get("ok") is False and "cannot be on screen at the same time" in json.dumps(r), r)
+            check("and the refusal says which standing spotlights its reveal took off screen",
+                  "went out" in json.dumps(r), r)
+
+            a.act("spotlight", target="status", caption="one")
+            r = a.act("spotlight", target="toolbar:flag", caption="two", add=True)
+            check("{add: true} keeps what is lit and numbers the new one after it",
+                  [(i.get("n"), i.get("target")) for i in items(r)] == [(1, "status"), (2, "toolbar:flag")], r)
+            r = a.act("spotlight", target="status", caption="one, reworded", add=True)
+            check("adding a target ALREADY lit re-lights it in place - same number, never twice",
+                  [(i.get("n"), i.get("caption")) for i in items(r)] == [(1, "one, reworded"), (2, "two")], r)
+            r = a.act("spotlight", target="status")
+            check("without add, a call REPLACES the set", targets(r) == ["status"], r)
+            a.act("spotlight", target="toolbar:flag", add=True)
+            a.act("spotlight", target="toolbar:open", add=True)
+            r = a.act("spotlight", clear=True, target="toolbar:flag")
+            check("{clear: true, target} puts out exactly that one, and the others KEEP their numbers",
+                  r.get("ok") is True and [(i.get("n"), i.get("target")) for i in items(r)]
+                  == [(1, "status"), (3, "toolbar:open")], r)
+
+            seven = ["status", "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow", "records", "detail"]
+            r = a.act("spotlight", targets=seven)
+            check("a seventh is refused with the bound, not silently dropped",
+                  r.get("ok") is False and "at most 6" in json.dumps(r), r)
+            a.act("spotlight", targets=seven[:6])
+            r = a.act("spotlight", target=seven[6], add=True)
+            check("and add cannot take the lit set past the bound either",
+                  r.get("ok") is False and "at most 6" in json.dumps(r) and len(items(a.context())) == 6, r)
+            r = a.act("spotlight", targets=["status"], caption="whose?")
+            check("a top-level caption beside a list is refused - it would belong to none of them", r.get("ok") is False, r)
+            r = a.act("spotlight", targets=[{"target": "status", "colour": "red"}])
+            check("an unknown field in an entry is refused, never ignored", r.get("ok") is False and "colour" in json.dumps(r), r)
+
+            a.act("spotlight", targets=["status", "records"])
+            a.act("goto", recordIndex=2)
+            check("a view-changing verb puts ALL of them out", "spotlight" not in a.settled_context(), a.context().get("spotlight"))
 
             a.act("spotlight", target="status")
             r = a.act("spotlight", clear=True)

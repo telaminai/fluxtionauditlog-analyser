@@ -1,7 +1,9 @@
 # Spec — spotlight: the tutor points at the thing on screen
 
 **Status:** IMPLEMENTED 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review
-(`docs/handoff/report_m64_spotlight.txt`) — see *As built* at the end, which records **one assumption of this
+(`docs/handoff/report_m64_spotlight.txt`); **extended the same day by D-SP6 and D-SP7** (owner direction: several
+spotlights and callouts at once; the guidance in the GENERAL assistant guidance, not one skill —
+`docs/handoff/report_m64_6_multi_spotlight.txt`) — see *As built* at the end, which records **one assumption of this
 spec that was wrong** (D-SP1/D-SP5: the screenshot does NOT paint the glass pane) and how it was corrected.
 PROPOSED 2026-09-16 (owner question: *"how difficult would it be to create a callout in a separate
 window that points to the item the guided-start runbook wants to highlight?"*). **Tracker:** [tracker.md](tracker.md) ▸ M64.
@@ -86,6 +88,61 @@ canvas applies to its record marker ("held as its own transient field so it can 
 `guided-start` gains one line per beat: *spotlight the thing you are about to talk about, then say one sentence,
 then take the screenshot that proves the spotlight is on it.* No other verb changes. `screenshot` already paints
 the glass pane because it captures the window the app painted (M35 series, "painted by the app").
+
+## D-SP6 — several at once, because a finding is a relation (added 2026-09-17, owner direction)
+
+D-SP2 closed with *"One spotlight at a time; a new one replaces the last."* That was right for a tour — each beat
+points at one thing — and wrong for a diagnosis, where the thing to be shown is usually a RELATION: this node feeds
+that one, which never logged, in the cycle on this row. The owner, on seeing the verb work: *"in normal operation an
+LLM can explain a result by spotlighting specific areas with callouts … this is useful"*, then *"support multiple
+spotlights and callouts"*. **That sentence of D-SP2 is superseded by this section; the rest of D-SP2 stands.**
+
+- `spotlight {target, caption}` is unchanged and still REPLACES what is lit.
+- `spotlight {targets: [{target, caption?} | "<target>", …]}` lights a SET — at most **six**
+  (`SpotlightVocabulary.MAX_LIT`; bounded, because past six nothing is being pointed at). Each entry carries its own
+  one-line callout; a top-level `caption` beside a list is refused (it would belong to none of them), as are an
+  unknown field in an entry and a target named twice.
+- **A set is all-or-nothing** (the canvas's validate-before-mutate rule). Every name is parsed before the surface is
+  touched; then each is revealed and measured, and after each reveal every EARLIER member is measured again, because
+  revealing one target can hide another (a topology node and a chart note live on different tabs). Two things that
+  cannot be on screen together are refused **naming the pair** and saying what to do instead (*light them one after
+  the other*). It is the same pure function shape as `resolve` — `SpotlightTarget.resolveAll(names, Surface)` — and
+  tested headless with a surface that has tabs.
+- `{add: true}` keeps what is lit. A target already lit is re-lit in place (same number, new callout), never twice.
+  The bound applies to the union. A standing spotlight that the new target's reveal takes off screen **goes out**, and
+  the echo's `wentOut` names it.
+- `{clear: true}` puts all out; `{clear: true, target}` exactly one.
+- **Numbered.** With more than one lit, each cut-out carries a number badge and its callout is tagged
+  *assistant · n*; the echo and `context` carry `n`. A number is kept for the life of its spotlight — putting one out
+  does NOT renumber the rest, and a new one never reuses a spoken number — because the chat that named them
+  (*"2 never logged"*) has already been read. Numbers restart when the set is replaced or emptied.
+- **Callout placement** is `SpotlightGeometry.layout`: each callout is tried on the same four sides in the same
+  order as the single rule, and the first side covering NO cut-out and NO callout already placed wins; when every
+  side covers something, the least-covering side wins (overlapped can be read; off screen cannot). With one spotlight
+  it is exactly the single rule — asserted.
+- **One shape, learnt once.** The verb's echo and `context` both say `spotlight: {lit: [{n, target, caption?}]}` (the
+  echo adds `bounds` per entry). D-SP4's `spotlight: {target, caption}` is superseded — the verb was unreleased, so
+  there was no client to keep compatible.
+- A refused call lights nothing new. What was lit STAYS — unless the attempt's own reveal took it off screen, in
+  which case it goes out and the refusal says so. (As first built a refusal never re-measured; by reading, a failed
+  `topology:node:<typo>` sent from the Graph tab would have left a chart note's spotlight painted over the Topology
+  tab. Not reproduced before it was fixed — the new behaviour is what is tested.)
+
+## D-SP7 — *when* to point is general guidance, stated once and present at every entrance
+
+As first built, the only text telling an assistant to point was the verb's own description and the guided-start
+skill. So an assistant diagnosing a real log had the verb and no reason to reach for it. `SpotlightVocabulary.GUIDANCE`
+is one paragraph — point before you explain; one thing or a numbered set; light AFTER the view-changing verbs; a
+callout is your words, shows WHERE, is not evidence and is never saved; the durable forms are flags, chart notes and
+reports; point when the person would otherwise have to hunt, not for every sentence — and it is printed at **every
+way an assistant arrives**: the in-app assistant's action manifest (which also gains the verb and its targets: until
+now the built-in assistant could run `spotlight` but was never told it existed), the copy-prompt REST manifest, the
+MCP bridge's server `instructions`, and (conditionally — the copy path may have no actions) the system prompt.
+`SpotlightGuidanceIsAtEveryEntranceTest` holds all four; a fifth entrance belongs in that test.
+
+For PEOPLE, the user guide gains **Ask it to show you** (what to say; the four things worth knowing; one spotlight
+and a four-callout finding, each in the light AND the dark theme, generated by `capture-docs.py --spotlight` under
+the isolated home), and the in-app help gains the same paragraph.
 
 ## Acceptance
 
@@ -175,3 +232,21 @@ frame resize); a target that can no longer be measured puts the spotlight out.
 - [~] The guided-start skill spotlights before each beat speaks — **done** (and written so a client on an analyser
       older than the verb simply carries on). The **held-out re-run by a context-free client is NOT done**: it is the
       run spec-guided-start's tracker item already owes, and it needs a person and a fresh client.
+
+### Acceptance, D-SP6 / D-SP7 (2026-09-17)
+
+- [x] The input grammar, the bound, duplicates, per-entry captions — `SpotlightSetTest` (11, headless).
+- [x] All-or-nothing; a misspelling anywhere touches nothing; the cannot-be-together pair is named —
+      `SpotlightSetTest`, **mutation-checked** (drop the re-measure of earlier members → exactly
+      `twoThingsThatCannotBeOnScreenTogether…` red, with the misleading *"is not in the graph"* it would have said).
+- [x] Numbering, re-light in place, put one out without renumbering, re-measure says what went out —
+      `SpotlightOverlayTest` (5, headless).
+- [x] Callout layout: equals the single rule for one; neighbours and a stack cover neither a cut-out nor each other;
+      crowded stays on screen — `SpotlightGeometryTest` (+6).
+- [x] On a real frame: two nodes lit together, BOTH cut-outs byte-identical to the unlit screenshot, the ground dimmed
+      once not twice, numbered in `context`, a bad set refused with the two still lit, `add` and `clear + target` —
+      `SpotlightFrameTest` (+1), **mutation-checked** (cut only the first hole → red, second hole tinted).
+- [x] On the built jar — `tools/verify-m64-spotlight.py`, now 64 checks (+17).
+- [x] The guidance at every entrance — `SpotlightGuidanceIsAtEveryEntranceTest` (5).
+- [x] Dark theme **seen**: `spotlight-dark.png` and `spotlight-findings-dark.png`, generated and read. (Open note of
+      the first report, closed.)

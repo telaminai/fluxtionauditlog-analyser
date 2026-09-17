@@ -48,6 +48,75 @@ public final class SpotlightGeometry {
     }
 
     /**
+     * Place SEVERAL callouts (M64.6). {@code sizes.get(i)} is callout {@code i}'s size, or null when that
+     * spotlight has no caption (its slot in the answer is null too).
+     *
+     * <p>Each is placed in turn beside its own cut-out — the same four sides, in the same order, as
+     * {@link #captionBox} — and the first side that covers NO cut-out and NO callout already placed wins. A
+     * callout that hides another thing being pointed at defeats the pointing, so that is what is avoided
+     * first. When every side covers something, the side covering the LEAST wins: an overlapped callout can
+     * still be read, one off screen cannot. With one spotlight this is exactly {@link #captionBox}.
+     */
+    public static java.util.List<Rectangle> layout(java.util.List<Rectangle> cutOuts, java.util.List<Dimension> sizes,
+                                                   Dimension frame) {
+        java.util.List<Rectangle> placed = new java.util.ArrayList<>();
+        for (int i = 0; i < cutOuts.size(); i++) {
+            Dimension size = sizes.get(i);
+            if (size == null) {
+                placed.add(null);
+                continue;
+            }
+            Rectangle best = null;
+            long bestCost = Long.MAX_VALUE;
+            for (Rectangle candidate : candidates(cutOuts.get(i), size, frame)) {
+                long cost = 0;
+                for (Rectangle cut : cutOuts) cost += overlap(candidate, cut);
+                for (Rectangle other : placed) if (other != null) cost += overlap(candidate, other);
+                if (cost < bestCost) {
+                    best = candidate;
+                    bestCost = cost;
+                }
+                if (cost == 0) break;
+            }
+            placed.add(best);
+        }
+        return placed;
+    }
+
+    /** The sides with room, in {@link #captionBox}'s order, each clamped into the frame; INSIDE always last. */
+    private static java.util.List<Rectangle> candidates(Rectangle cutOut, Dimension size, Dimension frame) {
+        int centredX = cutOut.x + (cutOut.width - size.width) / 2;
+        int centredY = cutOut.y + (cutOut.height - size.height) / 2;
+        Rectangle below = new Rectangle(centredX, cutOut.y + cutOut.height + GAP, size.width, size.height);
+        Rectangle above = new Rectangle(centredX, cutOut.y - GAP - size.height, size.width, size.height);
+        Rectangle right = new Rectangle(cutOut.x + cutOut.width + GAP, centredY, size.width, size.height);
+        Rectangle left = new Rectangle(cutOut.x - GAP - size.width, centredY, size.width, size.height);
+        java.util.List<Rectangle> out = new java.util.ArrayList<>();
+        if (below.y + below.height + MARGIN <= frame.height) out.add(clampX(below, frame));
+        if (above.y >= MARGIN) out.add(clampX(above, frame));
+        if (right.x + right.width + MARGIN <= frame.width) out.add(clampY(right, frame));
+        if (left.x >= MARGIN) out.add(clampY(left, frame));
+        Rectangle inside = new Rectangle(centredX, cutOut.y + cutOut.height - size.height - MARGIN, size.width, size.height);
+        out.add(clampY(clampX(inside, frame), frame));
+        return out;
+    }
+
+    private static long overlap(Rectangle a, Rectangle b) {
+        Rectangle both = a.intersection(b);
+        return both.isEmpty() ? 0 : (long) both.width * both.height;
+    }
+
+    /**
+     * Where a spotlight's number goes: centred on its cut-out's top-left corner, kept inside the frame. A
+     * number is how the tutor's sentence ("② is the node that never logged") finds its cut-out.
+     */
+    public static Rectangle badge(Rectangle cutOut, int diameter, Dimension frame) {
+        int x = clamp(cutOut.x - diameter / 2, 2, Math.max(2, frame.width - diameter - 2));
+        int y = clamp(cutOut.y - diameter / 2, 2, Math.max(2, frame.height - diameter - 2));
+        return new Rectangle(x, y, diameter, diameter);
+    }
+
+    /**
      * The arrow: from the caption's edge nearest the cut-out to the cut-out's edge nearest the caption.
      * Returns {from, to}; both are the same point when the caption sits inside the cut-out (no arrow).
      */

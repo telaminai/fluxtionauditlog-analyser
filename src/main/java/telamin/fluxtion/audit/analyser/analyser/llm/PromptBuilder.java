@@ -229,11 +229,16 @@ public final class PromptBuilder {
                 + "  goto   {byteOffset | recordIndex | at (epoch ms), reveal?} -> selects the record; reveal:true relaxes the\n"
                 + "          filter if the record is hidden (else the echo names which filter hides it)\n"
                 + "  flag   {byteOffsets[] | recordIndexes[], note?} -> bookmarks records so your findings are reviewable\n"
+                + "  spotlight {target, caption?} | {targets:[{target, caption?}], add?} | {clear:true, target?} -> dims the\n"
+                + "          window and cuts out what you are talking about, each with a one-line callout. Targets: "
+                + SpotlightVocabulary.TEXT + "\n"
+                + SpotlightVocabulary.GUIDANCE + "\n"
                 + "Prefer a dimension/flag filter (index, ms). filter.text is a SLOW raw byte scan — the result "
                 + "reports scan:index|raw. Up to " + maxActionsPerReply + " actions per reply.\n"
                 + "To ILLUSTRATE an action without running it, use an ```analyser-action-example``` fence (never executed).\n"
                 + "On your FIRST reply, briefly tell the user you can compute over the index and build views "
-                + "(filter / graph / goto / flag) in the analyser on request — so they know this chat drives the app.";
+                + "(filter / graph / goto / flag) in the analyser on request, and point at what you find (spotlight) — so "
+                + "they know this chat drives the app.";
     }
 
     /**
@@ -251,6 +256,7 @@ public final class PromptBuilder {
                 + "aggregate {metric, groupBy, filter?} returns typed counts/rates over the index (scan:index|raw); "
                 + "prefer a dimension/flag filter. Up to " + maxActionsPerReply + " actions per reply. Loopback only; "
                 + "do NOT send an Origin header.\n"
+                + SpotlightVocabulary.GUIDANCE + "\n"
                 + "Tell the user up front that you can drive this analyser (compute + build filter/graph/goto/flag views), "
                 + "so it's clear this session is interactive with the app.";
     }

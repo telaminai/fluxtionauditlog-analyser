@@ -193,6 +193,152 @@ public record SpotlightTarget(Family family, String argument, String name) {
         return new Resolution(Outcome.LIT, target, new Rectangle(bounds.get()), null);
     }
 
+    // ---- several at once (M64.6) --------------------------------------------------------------------
+
+    public static final int MAX_LIT = telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.MAX_LIT;
+    public static final int MAX_CAPTION = telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.MAX_CAPTION;
+
+    /** One thing to light, and the callout that goes with it (may be null: a cut-out needs no words). */
+    public record Request(String target, String caption) {
+    }
+
+    /**
+     * What a {@code spotlight} call asked for. {@code add} keeps what is already lit; without it the call
+     * REPLACES the lit set. Exactly one of {@code requests} / {@code error} is meaningful.
+     */
+    public record Requests(List<Request> requests, boolean add, String error) {
+        public boolean ok() {
+            return error == null;
+        }
+    }
+
+    /**
+     * Read a call's parameters: either {@code target} (+ {@code caption}), or {@code targets} — a list whose
+     * entries are {@code {target, caption?}} objects or bare target names. Pure, so the verb's whole input
+     * grammar is tested headless. Nothing is resolved here; this only says what was asked.
+     */
+    public static Requests requests(java.util.Map<String, Object> params) {
+        boolean add = Boolean.TRUE.equals(params.get("add"));
+        Object one = params.get("target");
+        Object many = params.get("targets");
+        if (one != null && many != null) {
+            return refuse("give 'target' (one) or 'targets' (several), not both");
+        }
+        List<Request> out = new java.util.ArrayList<>();
+        if (many == null) {
+            out.add(new Request(one == null ? null : one.toString(), text(params.get("caption"))));
+        } else {
+            if (!(many instanceof List<?> list) || list.isEmpty()) {
+                return refuse("'targets' is a non-empty list of {target, caption?}");
+            }
+            if (params.get("caption") != null) {
+                return refuse("with 'targets' each entry carries its own 'caption' — a top-level caption would belong to none of them");
+            }
+            for (Object entry : list) {
+                if (entry instanceof java.util.Map<?, ?> m) {
+                    for (Object key : m.keySet()) {
+                        if (!"target".equals(key) && !"caption".equals(key)) {
+                            return refuse("a 'targets' entry has only 'target' and 'caption' — not '" + key + "'");
+                        }
+                    }
+                    Object t = m.get("target");
+                    out.add(new Request(t == null ? null : t.toString(), text(m.get("caption"))));
+                } else if (entry instanceof String name) {
+                    out.add(new Request(name, null));
+                } else {
+                    return refuse("a 'targets' entry is {target, caption?} or a target name");
+                }
+            }
+        }
+        if (out.size() > MAX_LIT) {
+            return refuse("at most " + MAX_LIT + " spotlights at once — " + out.size() + " were asked for. "
+                    + "More than that and nothing on screen is being pointed at any more");
+        }
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (Request r : out) {
+            String why = captionError(r.caption());
+            if (why != null) return refuse(why);
+            if (r.target() != null && !seen.add(r.target().trim().toLowerCase(Locale.ROOT))) {
+                return refuse("'" + r.target().trim() + "' is named twice — one target carries one callout");
+            }
+        }
+        return new Requests(List.copyOf(out), add, null);
+    }
+
+    /** Why a caption is refused, or null when it is fine (null and blank captions are fine: no callout). */
+    public static String captionError(String caption) {
+        if (caption == null) return null;
+        if (caption.length() > MAX_CAPTION || caption.chars().anyMatch(ch -> ch == '\n' || ch == '\r')) {
+            return "'caption' is ONE short line (at most " + MAX_CAPTION + " characters) — the sentence belongs in "
+                    + "your chat, where it is clearly yours; the caption only says why to look here";
+        }
+        return null;
+    }
+
+    private static String text(Object o) {
+        if (o == null) return null;
+        String s = o.toString().trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    private static Requests refuse(String why) {
+        return new Requests(List.of(), false, why);
+    }
+
+    /** The answer for a SET: every member lit, or none — with the one reason. */
+    public record SetResolution(List<Resolution> lit, String reason) {
+        public boolean ok() {
+            return reason == null;
+        }
+    }
+
+    /**
+     * Resolve several names as ONE request: all of them light, or none does (validate everything before
+     * anything changes — the same rule the canvas handoff applies to a record).
+     *
+     * <p>Every name is parsed before the surface is touched, so a misspelling in the third entry reveals
+     * nothing. Then each is revealed and measured in order, and after each reveal every EARLIER target is
+     * measured again — because revealing a later target can hide an earlier one (a topology node and a
+     * chart note live on different tabs). Two things that cannot be on screen together are refused, naming
+     * the pair, rather than lit half-true.
+     */
+    public static SetResolution resolveAll(List<String> names, Surface surface) {
+        if (names == null || names.isEmpty()) return new SetResolution(List.of(), parse(null).error());
+        List<SpotlightTarget> targets = new java.util.ArrayList<>();
+        for (String name : names) {
+            Parsed parsed = parse(name);
+            if (!parsed.ok()) return new SetResolution(List.of(), parsed.error());
+            targets.add(parsed.target());
+        }
+        for (int i = 0; i < targets.size(); i++) {
+            SpotlightTarget target = targets.get(i);
+            surface.reveal(target);
+            if (measured(surface, target).isEmpty()) {
+                return new SetResolution(List.of(), (targets.size() > 1 ? "'" + target.name() + "': " : "")
+                        + surface.whyNotVisible(target));
+            }
+            for (int j = 0; j < i; j++) {
+                if (measured(surface, targets.get(j)).isEmpty()) {
+                    return new SetResolution(List.of(), "'" + targets.get(j).name() + "' and '" + target.name()
+                            + "' cannot be on screen at the same time — bringing the second into view hid the "
+                            + "first. Light them one after the other");
+                }
+            }
+        }
+        List<Resolution> lit = new java.util.ArrayList<>();
+        for (SpotlightTarget target : targets) {                 // measured LAST: a later reveal may have scrolled an earlier one
+            Optional<Rectangle> bounds = measured(surface, target);
+            if (bounds.isEmpty()) return new SetResolution(List.of(), surface.whyNotVisible(target));
+            lit.add(new Resolution(Outcome.LIT, target, new Rectangle(bounds.get()), null));
+        }
+        return new SetResolution(List.copyOf(lit), null);
+    }
+
+    private static Optional<Rectangle> measured(Surface surface, SpotlightTarget target) {
+        Optional<Rectangle> bounds = surface.bounds(target);
+        return bounds.isEmpty() || bounds.get().width <= 0 || bounds.get().height <= 0 ? Optional.empty() : bounds;
+    }
+
     /** Verbs that change the view, and therefore end a spotlight (D-SP3): it would point at the wrong thing. */
     public static final List<String> VIEW_CHANGING_VERBS = List.of("open", "filter", "goto", "graph", "topology");
 }

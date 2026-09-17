@@ -63,11 +63,15 @@ public final class McpBridge {
 
     static final String SERVER_NAME = "fluxtion-audit-log-analyser";
 
-    private static final String INSTRUCTIONS =
+    static final String INSTRUCTIONS =
             "Drives a running Fluxtion Audit Log Analyser over its localhost action socket. "
             + "Query verbs (analyser_aggregate, analyser_read) read the loaded audit log; the render verbs "
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
-            + "The analyser must be running with the REST transport enabled (Settings > Assistant).";
+            + "The analyser must be running with the REST transport enabled (Settings > Assistant). "
+            // M64.6: server instructions are the one text EVERY MCP client is handed before it picks a tool,
+            // so this is where "when to point" has to be for it to be general rather than a skill's habit
+            + telamin.fluxtion.audit.analyser.analyser.llm.SpotlightVocabulary.GUIDANCE
+                    .replace("`spotlight`", "analyser_spotlight");
 
     /** Tool list and identity are static for a process, so a client may cache them. */
     private static final long CACHE_TTL_MS = 3_600_000L;

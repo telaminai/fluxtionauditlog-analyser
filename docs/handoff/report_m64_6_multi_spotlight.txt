@@ -1,0 +1,118 @@
+REPORT — M64.6 several spotlights and callouts at once · M64.7 the spotlight guidance in the GENERAL guidance
+Date: 2026-09-17 · Author: the independent review session · Branch: fix/m46-agent-api-closure (piece 5 of 5)
+Follows report_m64_spotlight.txt (read that first; its HOW TO MERGE note still governs the branch — this piece does
+NOT touch a canonical skill, so it adds no new pin). Spec: docs/specs/spec-spotlight.md, new D-SP6 and D-SP7.
+Owner direction, verbatim: "add the spotlight guidance to the general assistant guidance" · "support multiple
+spotlights and callouts" · "add to the docs the spotlight for both light and dark themes so a user knows how to ask
+the LLM to highlight findings".
+
+STATE: NOT YET INDEPENDENTLY REVIEWED — this is the ask. `mvn test` green · display suites green with CI's flags ·
+`mkdocs build --strict` · sweep clean · tools/verify-m64-spotlight.py 64/64 on the built jar (was 47).
+
+HOW TO REVIEW IT
+  git fetch origin && git switch fix/m46-agent-api-closure
+  git show HEAD --stat                                   # this piece is the last commit on the branch
+  mvn package && python3 tools/verify-m64-spotlight.py   # opens a window; 64 checks
+  mvn test -Dtest='Spotlight*Test' -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
+  python3 tools/capture-docs.py --spotlight              # regenerates ONLY the four spotlight shots, both themes
+
+================================================================================
+1. WHAT CHANGED, AND WHICH EARLIER DECISION EACH PART SUPERSEDES
+================================================================================
+D-SP2 said "One spotlight at a time; a new one replaces the last." Right for a tour, wrong for a diagnosis, where
+the thing to show is a RELATION. That one sentence is superseded by D-SP6; the spec says so in place.
+
+  spotlight {target, caption}                       unchanged; still REPLACES what is lit
+  spotlight {targets: [{target, caption?} | "name"]} a SET, at most 6 (SpotlightVocabulary.MAX_LIT)
+  … {add: true}                                     keeps what is lit; same target re-lit in place, same number
+  spotlight {clear: true} / {clear: true, target}   all / exactly one
+
+· ALL-OR-NOTHING. SpotlightTarget.resolveAll(names, Surface): parse EVERYTHING before the surface is touched; then
+  reveal+measure each, and after each reveal re-measure every earlier member — revealing a chart note hides a
+  topology node (different tabs). Such a pair is refused NAMING THE PAIR and saying "light them one after the other".
+· NUMBERED. >1 lit → a badge on each cut-out, callout tagged "assistant · n", `n` in echo and context. A number
+  lives as long as its spotlight: putting one out does not renumber, and a new one never reuses a spoken number
+  (the chat that said "2 never logged" has already been read). Restart on replace/empty.
+· LAYOUT. SpotlightGeometry.layout: same four sides, same order as the single rule; first side covering no cut-out
+  and no placed callout wins; else least-covering. For one spotlight it IS the single rule (asserted over six cases).
+· ONE SHAPE. Echo and context both: spotlight: {lit: [{n, target, caption?}]} (echo adds bounds). This REPLACES
+  D-SP4's context.spotlight {target, caption} and the first echo's {lit: {target, bounds}}. Unreleased verb, so no
+  client to keep compatible — but it IS a second shape within one day, and the reviewer may prefer I had kept the
+  single form as an alias. I judged one shape learnt once to be worth more.
+· A REFUSED CALL now re-measures what was standing. If the attempt's own reveal took a standing spotlight off
+  screen, it goes out and the refusal says which. The first report's "a refused spotlight changes nothing" was true
+  of the lit set but, by reading, not of where it was painted. Not reproduced before fixing; the new behaviour is
+  what is tested (verify script: "the refusal says which standing spotlights its reveal took off screen").
+· Caption validation and the request grammar moved out of MainFrame into SpotlightTarget.requests / captionError —
+  pure, so the whole input grammar is tested headless. ActionExecutor reveals EVERY records:row in a set via goto's
+  path; the last one is left selected.
+
+M64.7 — SpotlightVocabulary.GUIDANCE, one paragraph, at every entrance an assistant arrives through:
+  PromptBuilder.inProcessActionManifest   + the verb line and its targets. FINDING: the built-in assistant could
+                                            always RUN spotlight (the dispatcher allows it) but its manifest lists
+                                            verbs by hand and was never told — M64 shipped the verb to MCP/REST only.
+  PromptBuilder.restActionManifest        the copy-prompt path
+  McpBridge.INSTRUCTIONS                  server instructions — the one text every MCP client gets before choosing
+                                          a tool. Now package-private so the test can read it.
+  llm/system-prompt.md                    one CONDITIONAL bullet ("if you can run analyser actions…") — the copy
+                                          path may have none.
+For people: user-guide/assistant.md ▸ "Ask it to show you" (what to say, four things worth knowing), the actions
+list gains `spotlight`, in-app help gains the paragraph, CHANGELOG ▸ Added.
+
+================================================================================
+2. EVIDENCE
+================================================================================
+· Headless: SpotlightSetTest (11) · SpotlightOverlayTest (5) · SpotlightGeometryTest (+6 → 16) ·
+  SpotlightGuidanceIsAtEveryEntranceTest (5). SpotlightTargetTest (59) untouched and green.
+· Real frame: SpotlightFrameTest +1 — two nodes lit together; BOTH cut-outs byte-identical to the unlit screenshot
+  (sampled away from the badge corner); ground dimmed the same as for one (not twice); numbered 1,2 in context; a
+  set with a ghost member refused with the two still lit; add then clear+target leaves [2, 3].
+  SpotlightFrameTest is already in ci.yml's ui-frame list and skip guard — no CI change needed.
+· MUTATION CHECKS, both run and reverted:
+  (a) overlay subtracts only the FIRST hole → exactly the two-node frame test red (second hole tinted:
+      expected -1446156 was -8354938).
+  (b) resolveAll skips re-measuring earlier members → exactly `twoThingsThatCannotBeOnScreenTogether…` red — and the
+      message it WOULD have given was "topology:node:a is not in the graph": false, and the reason the pair check
+      exists rather than leaving it to the final measure.
+· Built jar: verify-m64-spotlight.py 64/64 — the 17 new: four lit as one call, numbered in echo AND context, optional
+  callout, screenshot leaves four lit, bad member refuses whole + four still lit, different-tabs pair refused + says
+  what went out, add, re-light in place, replace, clear+target keeps numbers, seventh refused, add past the bound
+  refused, top-level caption with a list refused, unknown entry field refused, a view-changing verb puts ALL out.
+· Images — generated by capture-docs.py --spotlight under the isolated home and READ, all four:
+  spotlight.png, spotlight-dark.png, spotlight-findings-light.png, spotlight-findings-dark.png. Demo content,
+  neutral paths. THE READING CAUGHT SOMETHING: my first four-callout scene captioned the Topology verdict line
+  "which is why coverage is not complete" while the line under it read "fits this log (5/5)". A callout that the
+  screen under it contradicts is the exact failure the docs page warns the reader about. Recaptioned to what the
+  line says; the harness's docstring records it.
+
+================================================================================
+3. WHAT A REVIEWER SHOULD ATTACK
+================================================================================
+· `coverage` AS A TARGET NAME. It lights the Topology tab's status line, which states the PAIRING verdict ("fits this
+  log 5/5"), not the coverage gap. My own mis-caption (above) is evidence the name misleads. M64 chose it because the
+  spec's vocabulary had it and there is no coverage panel. Renaming it (e.g. `topology:verdict`) changes a pinned
+  vocabulary and the re-pinned skill text mentions `coverage` — so I did NOT, and flag it instead.
+· CALLOUTS STILL COVER CONTENT THAT IS NOT LIT. layout() avoids cut-outs and other callouts only. In both findings
+  shots callout 1 sits on the MarketDataEvent node and callout 2 on QuotePublisher. Avoiding everything needs the
+  overlay to know the scene; I judged that out of scope for a transient pointer. Same note as the first report,
+  now more visible with four.
+· ARROWS CAN CROSS. Arrows are drawn before boxes so none crosses a callout BOX, but two arrows may cross each other
+  or pass over a cut-out. No test, no avoidance.
+· THE BOUND OF SIX is a judgement. Four already fills the demo window.
+· GUIDANCE LENGTH. GUIDANCE adds ~110 words to MCP `instructions` and to both manifests. Every client pays it on
+  every session. I think "when to point" earns it; a reviewer weighing token cost may want it shorter.
+· THE DOCS TABLE describes what an assistant CAN do with a request, and says so beneath it. Nobody has run those six
+  sentences against a context-free client. It is the same owed held-out run as the first report's, now larger.
+· `add` + REVEAL SIDE EFFECTS. {add:true, target: records:row:N} runs goto's reveal, which selects record N and so
+  changes the detail pane; a standing detail:node spotlight then goes out (reported in wentOut). Honest, but an agent
+  may be surprised. Tested only through remeasure's unit test, not end to end.
+
+================================================================================
+4. NOT DONE
+================================================================================
+· The guided-start skill is deliberately untouched (its beats point at one thing; a second edit = a second re-pin on
+  a branch). Its sentence "that one thing is cut out" remains true of the call it shows.
+· Still nobody has SEEN a click or Escape put spotlights out — now "all of them at once". Ten seconds with an agent.
+· No per-callout dismissal by the person (a click puts everything out). By design, but untested as a preference.
+· A full `capture-docs.py` run was not repeated; only --spotlight. The full run now ends by calling the same
+  function, so it produces these four too — by reading the code, not by running it.

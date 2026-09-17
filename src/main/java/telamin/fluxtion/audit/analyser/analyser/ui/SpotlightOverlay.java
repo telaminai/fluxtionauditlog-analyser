@@ -37,16 +37,25 @@ import java.util.List;
  * <p><b>The caption is TESTIMONY</b> (D-SP2) — the tutor's words, not a fact the app established — so it
  * is tagged "assistant" and drawn in the muted callout style, never in the app's own status colours.
  *
- * <p><b>Transient by construction</b> (D-SP4): the only state is the two fields below. Nothing here is
- * read by the config, the profile, a saved graph or a report.
+ * <p><b>Several at once</b> (M64.6): a finding is often a relation — <i>this</i> node, <i>that</i> record, the
+ * crossing on the chart — so up to {@link SpotlightTarget#MAX_LIT} things can be lit together, each with its
+ * own callout. They are NUMBERED when there is more than one, so the tutor's sentence ("② never logged")
+ * finds its cut-out. A number is kept for the life of its spotlight: putting one out does not renumber the
+ * rest, because the chat that named them has already been read.
+ *
+ * <p><b>Transient by construction</b> (D-SP4): the only state is the list below. Nothing here is read by the
+ * config, the profile, a saved graph or a report.
  */
 public final class SpotlightOverlay extends JComponent {
 
     private static final String TAG = "assistant";
+    private static final int BADGE = 22;
 
-    private String targetName;
-    private Rectangle target;
-    private String caption;
+    /** One lit thing: its number, the target's name, where it is (overlay coordinates), its callout or null. */
+    public record Lit(int n, String target, Rectangle bounds, String caption) {
+    }
+
+    private final List<Lit> lit = new ArrayList<>();
     private final Runnable onDismissed;
 
     public SpotlightOverlay(Runnable onDismissed) {
@@ -62,28 +71,65 @@ public final class SpotlightOverlay extends JComponent {
                 JComponent.WHEN_IN_FOCUSED_WINDOW);
     }
 
-    /** Light {@code bounds} (overlay coordinates). One spotlight at a time: a new one replaces the last. */
+    /** Light ONE thing, replacing whatever was lit. */
     public void light(String targetName, Rectangle bounds, String caption) {
-        this.targetName = targetName;
-        this.target = new Rectangle(bounds);
-        this.caption = caption == null || caption.isBlank() ? null : caption.trim();
+        lit.clear();
+        add(targetName, bounds, caption);
+    }
+
+    /**
+     * Light one MORE thing, keeping what is lit. A target already lit is re-lit in place (same number, new
+     * callout) rather than lit twice. Returns the number it carries. The caller holds the bound
+     * ({@link SpotlightTarget#MAX_LIT}); the overlay draws whatever it is given.
+     */
+    public int add(String targetName, Rectangle bounds, String caption) {
+        String words = caption == null || caption.isBlank() ? null : caption.trim();
+        int n = lit.stream().mapToInt(Lit::n).max().orElse(0) + 1;
+        for (int i = 0; i < lit.size(); i++) {
+            if (lit.get(i).target().equalsIgnoreCase(targetName)) {
+                n = lit.get(i).n();
+                lit.set(i, new Lit(n, targetName, new Rectangle(bounds), words));
+                setVisible(true);
+                repaint();
+                return n;
+            }
+        }
+        lit.add(new Lit(n, targetName, new Rectangle(bounds), words));
         setVisible(true);
         repaint();
+        return n;
     }
 
-    /** Move a live spotlight — the frame was resized and its target is somewhere else now. */
-    public void moveTo(Rectangle bounds) {
-        if (!isLit()) return;
-        this.target = new Rectangle(bounds);
+    /** Put ONE out. True when it was lit. The others keep their numbers. */
+    public boolean remove(String targetName) {
+        boolean was = lit.removeIf(l -> l.target().equalsIgnoreCase(targetName));
+        if (lit.isEmpty()) setVisible(false);
         repaint();
+        return was;
     }
 
-    /** Put it out. Silent when nothing is lit. */
+    /**
+     * Measure every lit target again — the frame was resized, or the layout a reveal queued has now run.
+     * One that can no longer be measured goes OUT (pointing at where something used to be is the failure
+     * this feature is careful about); the names that went out are returned so the caller can say so.
+     */
+    public List<String> remeasure(java.util.function.Function<String, java.util.Optional<Rectangle>> whereIs) {
+        List<String> out = new ArrayList<>();
+        for (int i = lit.size() - 1; i >= 0; i--) {
+            Lit l = lit.get(i);
+            java.util.Optional<Rectangle> at = whereIs.apply(l.target());
+            if (at.isPresent() && !at.get().isEmpty()) lit.set(i, new Lit(l.n(), l.target(), new Rectangle(at.get()), l.caption()));
+            else out.add(0, lit.remove(i).target());
+        }
+        if (lit.isEmpty()) setVisible(false);
+        repaint();
+        return out;
+    }
+
+    /** Put them all out. Silent when nothing is lit. */
     public void clearSpotlight() {
         if (!isLit()) return;
-        targetName = null;
-        target = null;
-        caption = null;
+        lit.clear();
         setVisible(false);
         repaint();
     }
@@ -95,20 +141,25 @@ public final class SpotlightOverlay extends JComponent {
     }
 
     public boolean isLit() {
-        return target != null;
+        return !lit.isEmpty();
     }
 
-    public String targetName() {
-        return targetName;
+    /** What is lit, in the order it was lit. A copy. */
+    public List<Lit> lit() {
+        return List.copyOf(lit);
     }
 
-    public String caption() {
-        return caption;
+    /** One target's cut-out as drawn, in overlay coordinates; null when it is not lit. */
+    public Rectangle cutOutOf(String targetName) {
+        for (Lit l : lit) {
+            if (l.target().equalsIgnoreCase(targetName)) return SpotlightGeometry.cutOut(l.bounds(), getSize());
+        }
+        return null;
     }
 
-    /** The cut-out as drawn, in overlay coordinates; null when nothing is lit. */
-    public Rectangle cutOut() {
-        return target == null ? null : SpotlightGeometry.cutOut(target, getSize());
+    /** A number is drawn once there is more than one thing to tell apart — or once this one has been called "②". */
+    private boolean numbered(Lit l) {
+        return lit.size() > 1 || l.n() > 1;
     }
 
     @Override
@@ -123,10 +174,10 @@ public final class SpotlightOverlay extends JComponent {
     }
 
     /**
-     * Paint a live spotlight onto another component's image — the {@code screenshot} verb paints the
+     * Paint the live spotlights onto another component's image — the {@code screenshot} verb paints the
      * CONTENT PANE (or one panel), which does not include the glass pane, so without this the tutor's own
-     * verification shot would show no spotlight. {@code g} is that component's graphics; the spotlight is
-     * translated so the cut-out lands on the same pixels it covers on screen.
+     * verification shot would show no spotlight. {@code g} is that component's graphics; the overlay is
+     * translated so each cut-out lands on the same pixels it covers on screen.
      */
     public void paintOnto(Graphics2D g, Component painted) {
         if (!isLit() || painted == null) return;
@@ -144,56 +195,97 @@ public final class SpotlightOverlay extends JComponent {
         boolean dark = ThemeManager.isDark();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-        Rectangle cut = SpotlightGeometry.cutOut(target, size);
-        RoundRectangle2D hole = new RoundRectangle2D.Double(cut.x, cut.y, cut.width, cut.height, 10, 10);
-        Area dim = new Area(new Rectangle(0, 0, size.width, size.height));
-        dim.subtract(new Area(hole));
-        g.setColor(new Color(0, 0, 0, dark ? 150 : 115));
-        g.fill(dim);
-
-        Color accent = UiTheme.accent();
-        g.setColor(accent);
-        g.setStroke(new BasicStroke(2f));
-        g.draw(hole);
-
-        if (caption == null) return;
         g.setFont(getFont() == null ? g.getFont() : getFont().deriveFont(13f));
         FontMetrics fm = g.getFontMetrics();
+        Color accent = UiTheme.accent();
+
+        // ONE dim with a hole per spotlight: overlapping cut-outs merge, and nothing lit is ever tinted
+        List<Rectangle> cuts = new ArrayList<>();
+        Area dim = new Area(new Rectangle(0, 0, size.width, size.height));
+        for (Lit l : lit) {
+            Rectangle cut = SpotlightGeometry.cutOut(l.bounds(), size);
+            cuts.add(cut);
+            dim.subtract(new Area(hole(cut)));
+        }
+        g.setColor(new Color(0, 0, 0, dark ? 150 : 115));
+        g.fill(dim);
+        g.setColor(accent);
+        g.setStroke(new BasicStroke(2f));
+        for (Rectangle cut : cuts) g.draw(hole(cut));
+
         int pad = 10, tagGap = 4;
         int maxText = Math.max(160, Math.min(380, size.width - 80));
-        List<String> lines = wrap(fm, caption, maxText);
-        int textW = fm.stringWidth(TAG);
-        for (String line : lines) textW = Math.max(textW, fm.stringWidth(line));
-        Dimension box = new Dimension(textW + pad * 2 + 6, (lines.size() + 1) * fm.getHeight() + tagGap + pad * 2);
-        Rectangle at = SpotlightGeometry.captionBox(cut, box, size);
+        List<List<String>> wrapped = new ArrayList<>();
+        List<String> tags = new ArrayList<>();
+        List<Dimension> boxes = new ArrayList<>();
+        for (Lit l : lit) {
+            String tag = numbered(l) ? TAG + " · " + l.n() : TAG;
+            tags.add(tag);
+            if (l.caption() == null) {
+                wrapped.add(List.of());
+                boxes.add(null);
+                continue;
+            }
+            List<String> lines = wrap(fm, l.caption(), maxText);
+            int textW = fm.stringWidth(tag);
+            for (String line : lines) textW = Math.max(textW, fm.stringWidth(line));
+            wrapped.add(lines);
+            boxes.add(new Dimension(textW + pad * 2 + 6, (lines.size() + 1) * fm.getHeight() + tagGap + pad * 2));
+        }
+        List<Rectangle> callouts = SpotlightGeometry.layout(cuts, boxes, size);
 
-        Point[] arrow = SpotlightGeometry.arrow(at, cut);
-        if (!arrow[0].equals(arrow[1])) {
+        // arrows first, so a callout box is never crossed by another spotlight's arrow
+        for (int i = 0; i < lit.size(); i++) {
+            Rectangle at = callouts.get(i);
+            if (at == null) continue;
+            Point[] arrow = SpotlightGeometry.arrow(at, cuts.get(i));
+            if (arrow[0].equals(arrow[1])) continue;
             g.setColor(accent);
             g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g.drawLine(arrow[0].x, arrow[0].y, arrow[1].x, arrow[1].y);
             g.fill(arrowHead(arrow[0], arrow[1]));
         }
 
-        Color fill = dark ? new Color(0x1B1F24) : new Color(0xFFFFFF);
-        g.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 244));
-        g.fillRoundRect(at.x, at.y, at.width, at.height, 8, 8);
-        g.setColor(dark ? new Color(0x3D444D) : new Color(0xC2CAD3));
-        g.setStroke(new BasicStroke(1f));
-        g.drawRoundRect(at.x, at.y, at.width, at.height, 8, 8);
-        g.setColor(accent);
-        g.fillRoundRect(at.x, at.y, 4, at.height, 4, 4);
+        for (int i = 0; i < lit.size(); i++) {
+            Rectangle at = callouts.get(i);
+            if (at == null) continue;
+            Color fill = dark ? new Color(0x1B1F24) : new Color(0xFFFFFF);
+            g.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 244));
+            g.fillRoundRect(at.x, at.y, at.width, at.height, 8, 8);
+            g.setColor(dark ? new Color(0x3D444D) : new Color(0xC2CAD3));
+            g.setStroke(new BasicStroke(1f));
+            g.drawRoundRect(at.x, at.y, at.width, at.height, 8, 8);
+            g.setColor(accent);
+            g.fillRoundRect(at.x, at.y, 4, at.height, 4, 4);
 
-        int y = at.y + pad + fm.getAscent();
-        g.setColor(UiTheme.mutedForeground());
-        g.drawString(TAG, at.x + pad + 6, y);              // testimony is labelled as testimony
-        y += fm.getHeight() + tagGap;
-        g.setColor(dark ? new Color(0xC9D1D9) : new Color(0x24292F));
-        for (String line : lines) {
-            g.drawString(line, at.x + pad + 6, y);
-            y += fm.getHeight();
+            int y = at.y + pad + fm.getAscent();
+            g.setColor(UiTheme.mutedForeground());
+            g.drawString(tags.get(i), at.x + pad + 6, y);      // testimony is labelled as testimony
+            y += fm.getHeight() + tagGap;
+            g.setColor(dark ? new Color(0xC9D1D9) : new Color(0x24292F));
+            for (String line : wrapped.get(i)) {
+                g.drawString(line, at.x + pad + 6, y);
+                y += fm.getHeight();
+            }
         }
+
+        // the numbers last: a badge is what ties a cut-out to its callout and to the tutor's sentence
+        for (int i = 0; i < lit.size(); i++) {
+            Lit l = lit.get(i);
+            if (!numbered(l)) continue;
+            Rectangle b = SpotlightGeometry.badge(cuts.get(i), BADGE, size);
+            g.setColor(accent);
+            g.fillOval(b.x, b.y, b.width, b.height);
+            g.setColor(Color.WHITE);
+            g.setFont(g.getFont().deriveFont(java.awt.Font.BOLD, 12f));
+            FontMetrics bm = g.getFontMetrics();
+            String n = Integer.toString(l.n());
+            g.drawString(n, b.x + (b.width - bm.stringWidth(n)) / 2, b.y + (b.height - bm.getHeight()) / 2 + bm.getAscent());
+        }
+    }
+
+    private static RoundRectangle2D hole(Rectangle cut) {
+        return new RoundRectangle2D.Double(cut.x, cut.y, cut.width, cut.height, 10, 10);
     }
 
     private static Path2D arrowHead(Point from, Point to) {

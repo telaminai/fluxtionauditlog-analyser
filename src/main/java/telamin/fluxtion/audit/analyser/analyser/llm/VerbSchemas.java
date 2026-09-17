@@ -308,19 +308,34 @@ public final class VerbSchemas {
                         p("clear", enumStr("record", "posture", "all"), "remove what was placed")),
                 List.of()));
 
-        s.put("spotlight", schema("POINT at one thing on screen for the person you are working with: the window "
-                        + "dims, the target is cut out, and one short caption with an arrow says why. Use it BEFORE "
-                        + "you talk about something, then take a screenshot to check it is lit where you meant. "
-                        + "The target is revealed first (its tab selected, its row scrolled to, its node centred). "
-                        + "Transient: one at a time, never saved, and it goes out on any click, Escape, "
-                        + "{clear: true}, or any verb that changes the view (open, filter, goto, graph, topology). "
+        s.put("spotlight", schema("POINT at what you are talking about, for the person you are working with: the "
+                        + "window dims, each target is cut out, and a short callout with an arrow says why. Use it "
+                        + "BEFORE you talk about something on screen — a finding, an anomaly, the step of an "
+                        + "explanation — then take a screenshot to check it is lit where you meant. A target is "
+                        + "revealed first (its tab selected, its row scrolled to, its node centred). "
+                        + "ONE thing: {target, caption}. A RELATION between things — this node, that record, the "
+                        + "crossing on the chart — is up to " + SpotlightVocabulary.MAX_LIT + " lit together: "
+                        + "{targets: [{target, caption}, …]}. Several are NUMBERED on screen and in the echo (n): "
+                        + "say the number in your sentence. A set is all-or-nothing, and things that cannot be on "
+                        + "screen together (different tabs) are refused — light them one after the other. "
+                        + "A call REPLACES what is lit unless {add: true}. Transient: never saved, and it all goes "
+                        + "out on any click, Escape, {clear: true}, or any verb that changes the view (open, "
+                        + "filter, goto, graph, topology) — so light AFTER the view is how you want it. The callout "
+                        + "shows WHERE; your chat says WHAT. Durable findings are flags, notes and reports. "
                         + "Targets: " + SpotlightVocabulary.TEXT,
                 props(
                         p("target", string(), "one of the targets above, e.g. tab:topology, records:row:12, "
-                                + "topology:node:priceListener, graph:note:2, project:log, toolbar:flag, status"),
-                        p("caption", string(), "ONE short line saying why to look here. It is shown as YOUR "
-                                + "words (testimony), not as a fact the analyser established."),
-                        p("clear", bool(), "true puts the spotlight out")),
+                                + "topology:node:priceListener, graph:note:2, project:log, toolbar:flag, status. "
+                                + "With {clear: true} it names the ONE spotlight to put out"),
+                        p("caption", string(), "ONE short line (at most " + SpotlightVocabulary.MAX_CAPTION
+                                + " characters) saying why to look here. It is shown as YOUR words (testimony), "
+                                + "not as a fact the analyser established."),
+                        p("targets", arr(spotlightEntry()), "several at once, instead of target/caption: up to "
+                                + SpotlightVocabulary.MAX_LIT + " entries, each {target, caption?}"),
+                        p("add", bool(), "true keeps what is already lit and adds to it (default: replace). A "
+                                + "standing spotlight the new reveal takes off screen goes out, and the echo's "
+                                + "wentOut names it"),
+                        p("clear", bool(), "true puts every spotlight out — or, with 'target', just that one")),
                 List.of()));
 
         return s;
@@ -387,6 +402,16 @@ public final class VerbSchemas {
     private static Map<String, Object> type(String t) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("type", t);
+        return m;
+    }
+
+    private static Map<String, Object> spotlightEntry() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("target", string(), "one of the spotlight targets"),
+                p("caption", string(), "this target's one-line callout")));
+        m.put("required", List.of("target"));
         return m;
     }
 

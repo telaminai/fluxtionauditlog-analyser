@@ -96,6 +96,70 @@ class SpotlightGeometryTest {
         assertEquals(arrow[0], arrow[1]);
     }
 
+    // ---- several callouts (M64.6) ------------------------------------------------------------------------
+
+    @Test
+    void withOneSpotlight_theLayoutIsExactlyTheSingleCaptionRule() {
+        for (Rectangle cut : new Rectangle[]{new Rectangle(500, 100, 200, 40), new Rectangle(500, 740, 200, 40),
+                new Rectangle(0, 0, 300, 800), new Rectangle(900, 0, 300, 800), frame(), new Rectangle(2, 100, 20, 20)}) {
+            assertEquals(SpotlightGeometry.captionBox(cut, CAPTION, FRAME),
+                    SpotlightGeometry.layout(java.util.List.of(cut), java.util.List.of(CAPTION), FRAME).get(0), cut.toString());
+        }
+    }
+
+    @Test
+    void twoNeighbours_getCalloutsThatCoverNeitherCutOutNorEachOther() {
+        Rectangle a = new Rectangle(400, 300, 160, 60), b = new Rectangle(580, 300, 160, 60);   // side by side
+        java.util.List<Rectangle> at = SpotlightGeometry.layout(java.util.List.of(a, b), java.util.List.of(CAPTION, CAPTION), FRAME);
+
+        assertFalse(at.get(0).intersects(at.get(1)), "two callouts on top of each other can be read by nobody: " + at);
+        for (Rectangle callout : at) {
+            assertTrue(frame().contains(callout), callout.toString());
+            assertFalse(callout.intersects(a) || callout.intersects(b),
+                    "a callout hiding the OTHER thing being pointed at defeats the pointing: " + callout);
+        }
+    }
+
+    @Test
+    void aStackOfTargets_putsTheMiddleCalloutBeside_becauseAboveAndBelowAreTaken() {
+        Rectangle top = new Rectangle(500, 200, 200, 40), mid = new Rectangle(500, 270, 200, 40), low = new Rectangle(500, 340, 200, 40);
+        java.util.List<Rectangle> at = SpotlightGeometry.layout(java.util.List.of(top, mid, low),
+                java.util.List.of(CAPTION, CAPTION, CAPTION), FRAME);
+        for (int i = 0; i < 3; i++) {
+            for (Rectangle cut : new Rectangle[]{top, mid, low}) assertFalse(at.get(i).intersects(cut), i + " covers " + cut);
+            for (int j = 0; j < i; j++) assertFalse(at.get(i).intersects(at.get(j)), i + " covers callout " + j);
+        }
+    }
+
+    @Test
+    void aSpotlightWithNoCaptionHasNoCallout_andTakesNoRoomFromTheOthers() {
+        Rectangle a = new Rectangle(400, 300, 160, 60), b = new Rectangle(580, 300, 160, 60);
+        java.util.List<Dimension> sizes = new java.util.ArrayList<>();
+        sizes.add(null);
+        sizes.add(CAPTION);
+        java.util.List<Rectangle> at = SpotlightGeometry.layout(java.util.List.of(a, b), sizes, FRAME);
+        assertEquals(null, at.get(0));
+        assertFalse(at.get(1).intersects(a));
+    }
+
+    @Test
+    void whenEverySideCoversSomething_theLeastCoveredSideWins_neverOffScreen() {
+        Dimension small = new Dimension(400, 300);
+        Rectangle a = new Rectangle(20, 20, 360, 100), b = new Rectangle(20, 160, 360, 100);
+        java.util.List<Rectangle> at = SpotlightGeometry.layout(java.util.List.of(a, b),
+                java.util.List.of(new Dimension(300, 120), new Dimension(300, 120)), small);
+        for (Rectangle callout : at) {
+            assertTrue(new Rectangle(0, 0, small.width, small.height).contains(callout), "on screen, even crowded: " + callout);
+        }
+    }
+
+    @Test
+    void theNumberSitsOnTheCutOutsCorner_andStaysInsideTheFrame() {
+        assertEquals(new Rectangle(89, 89, 22, 22), SpotlightGeometry.badge(new Rectangle(100, 100, 50, 20), 22, FRAME));
+        assertTrue(frame().contains(SpotlightGeometry.badge(new Rectangle(0, 0, 50, 20), 22, FRAME)));
+        assertTrue(frame().contains(SpotlightGeometry.badge(new Rectangle(1195, 795, 5, 5), 22, FRAME)));
+    }
+
     // ---- the canvas transform: topology:node:<id> must land on the box a person sees ------------------
 
     @Test

@@ -749,11 +749,12 @@ public final class ActionExecutor implements RenderExecutor {
      * the very spotlight this is about to light.
      */
     private ActionResult doSpotlight(Map<String, Object> params) {
-        SpotlightTarget.Parsed parsed = SpotlightTarget.parse(str(params.get("target")));
-        if (parsed.ok() && parsed.target().family() == SpotlightTarget.Family.RECORDS_ROW
-                && !Boolean.TRUE.equals(params.get("clear"))) {
-            LogStore s = store.get();
-            if (s != null) {
+        LogStore s = store.get();
+        SpotlightTarget.Requests asked = SpotlightTarget.requests(params);
+        if (s != null && asked.ok() && !Boolean.TRUE.equals(params.get("clear"))) {
+            for (SpotlightTarget.Request one : asked.requests()) {       // several rows: each revealed, the last left selected
+                SpotlightTarget.Parsed parsed = SpotlightTarget.parse(one.target());
+                if (!parsed.ok() || parsed.target().family() != SpotlightTarget.Family.RECORDS_ROW) continue;
                 Map<String, Object> reveal = new LinkedHashMap<>();
                 reveal.put("recordIndex", parsed.target().number());
                 reveal.put("reveal", true);
