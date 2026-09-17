@@ -1715,7 +1715,7 @@ public final class MainFrame extends JFrame {
 
         // M48.7 / R10: the session's posture is SET by either party; derivation is only the default. These
         // items are BOUND to the one handoff state (D-AI2) — painted from it each time the menu opens, the
-        // same state an agent reads in context.handoff and writes with the `handoff` verb.
+        // same state an agent reads in context.handoff and writes with `open {posture | record}`.
         ai.addSeparator();
         JMenu postureMenu = new JMenu("Posture");
         postureMenu.setToolTipText("What this session is for — shared with an AI client through context.handoff");
@@ -1910,7 +1910,17 @@ public final class MainFrame extends JFrame {
                 case TOPOLOGY, TOPOLOGY_NODE, COVERAGE -> !topologyPanel.hasTopology()
                         ? "no topology is open — open {graphml} first"
                         : "'" + t.name() + "' is not in the graph as currently shown (it may be hidden scaffolding, or filtered by focus)";
-                case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> selectedGraphPanel() == null
+                case GRAPH_SERIES -> {
+                    GraphPanel g = selectedGraphPanel();
+                    int matches = g == null ? 0 : g.seriesLegendMatches(t.argument());
+                    yield g == null ? "no graph is open — the graph verb draws one"
+                            // re-review R4: two rows can read identically (the same external given twice; a formula
+                            // labelled with the legend's own suffix). Lighting the first would be a guess.
+                            : matches > 1 ? matches + " series on the selected graph are labelled '" + t.argument()
+                            + "' — a spotlight cannot tell which you mean. Redraw the graph with distinct labels"
+                            : "'" + t.name() + "' is not on the selected graph";
+                }
+                case GRAPH, GRAPH_NOTE -> selectedGraphPanel() == null
                         ? "no graph is open — the graph verb draws one"
                         : "'" + t.name() + "' is not on the selected graph";
                 case PROJECT, PROJECT_ROW -> "the Project panel is hidden or has no such section — its rail toggle shows it";
@@ -1987,7 +1997,8 @@ public final class MainFrame extends JFrame {
         SpotlightTarget.Requests asked = SpotlightTarget.requests(params);
         // the same judgement the executor made before it revealed any row — repeated here because this is the
         // frame's entrance too, and a rule stated once in a pure function costs nothing to apply twice
-        String wrong = SpotlightTarget.precheck(asked, spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList());
+        String wrong = SpotlightTarget.precheck(asked, spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList(),
+                store == null ? -1 : store.index().size());
         if (wrong != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(wrong);
         java.util.List<String> names = asked.requests().stream().map(SpotlightTarget.Request::target).toList();
         SpotlightTarget.SetResolution set = SpotlightTarget.resolveAll(names, spotlightSurface);
@@ -2036,7 +2047,7 @@ public final class MainFrame extends JFrame {
 
     /**
      * M48.7 — the shared canvas's handoff section: the session's posture and the mode selector's record.
-     * ONE state with two writers (the `handoff` verb and the AI menu) and two readers (`context.handoff`
+     * ONE state with two writers (`open {posture | record}` and the AI menu) and two readers (`context.handoff`
      * and the Project panel). Session-scoped: a project transition clears it; nothing is persisted.
      */
     private final telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff.State handoff =
@@ -5285,9 +5296,12 @@ public final class MainFrame extends JFrame {
             }
             if (filter.text() != null && !filter.text().isBlank()) f.put("text", filter.text());
             out.put("filter", f);
-            out.put("showing", Map.of(
-                    "visible", tablePanel.viewRowCount(),
-                    "total", store == null ? 0 : store.size()));
+            // ordered on purpose: Map.of's iteration order changes from run to run, which made the GENERATED
+            // sample-conversations page flip these two lines on every capture (re-review R3)
+            Map<String, Object> showing = new java.util.LinkedHashMap<>();
+            showing.put("visible", tablePanel.viewRowCount());
+            showing.put("total", store == null ? 0 : store.size());
+            out.put("showing", showing);
 
             List<Map<String, Object>> selected = new ArrayList<>();
             for (LogRecord r : selectedRecords) {

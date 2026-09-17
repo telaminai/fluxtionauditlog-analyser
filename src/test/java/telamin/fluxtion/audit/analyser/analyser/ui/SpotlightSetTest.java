@@ -142,6 +142,23 @@ class SpotlightSetTest {
                 "a well-formed name that turns out not to exist is NOT a precheck matter — finding out is the reveal");
     }
 
+    /** Re-review R5: whether a record EXISTS is a fact about the store, knowable without the screen. */
+    @Test
+    void aRowTheLogDoesNotHave_isRefusedBeforeAnyReveal_becauseGotoWouldClampItToADifferentRecord() {
+        Requests row = SpotlightTarget.requests(Map.of("target", "records:row:99999"));
+        String why = SpotlightTarget.precheck(row, List.of(), 726);
+        assertTrue(why != null && why.contains("there is no record 99999") && why.contains("(0 to 725)"), why);
+        assertTrue(why.contains("Nothing was changed"), "and it SAYS the scope is intact — that is the promise: " + why);
+
+        assertNull(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of("target", "records:row:725")), List.of(), 726), "the last one exists");
+        assertTrue(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of("target", "records:row:726")), List.of(), 726) != null, "one past it does not");
+        assertTrue(SpotlightTarget.precheck(SpotlightTarget.requests(Map.of("targets", List.of("status", "records:row:9"))), List.of(), 3)
+                .startsWith("'records:row:9': "), "in a set, the refusal names the member");
+        assertNull(SpotlightTarget.precheck(row, List.of(), -1),
+                "with NO log open there is nothing to reveal, so nothing to protect: the surface refuses it, untouched");
+        assertTrue(SpotlightTarget.precheck(row, List.of(), 0).contains("this log has 0 records"));
+    }
+
     // ---- a set lights WHOLE, or not at all ------------------------------------------------------------
 
     @Test

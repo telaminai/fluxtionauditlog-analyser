@@ -305,23 +305,49 @@ public final class GraphPanel extends JPanel {
     }
 
     /**
+     * How many legend entries {@code label} could mean — so a refusal can say "two series are called that"
+     * rather than "there is no such series", which would be false.
+     */
+    public int seriesLegendMatches(String label) {
+        List<String> texts = new ArrayList<>();
+        for (java.awt.Component c : legendLabels.getComponents()) {
+            if (c instanceof JLabel l && l.getText() != null) texts.add(l.getText());
+        }
+        return legendMatches(texts, label).size();
+    }
+
+    /**
      * Which legend entry {@code label} names, or -1. EXACT, or exact plus the one suffix the legend itself
      * adds to an external series — and nothing looser. It used to fall back to {@code startsWith}, so
      * {@code graph:series:quote} lit {@code quotePublisher.spread} and echoed the invented name as lit, and of
      * two series sharing a prefix it chose whichever came first (review of M64, F1): a pointer at a GUESSED
      * target, which the closed vocabulary exists to refuse. An audit series and an external one with the
      * same label are told apart by asking for the suffixed text; the bare label means the audit series.
+     *
+     * <p><b>And it must name exactly ONE</b> (re-review R4). Labels are not unique: the same external spec can be
+     * given twice, and a formula's label is free text that may itself end in the legend's suffix — so two rows
+     * can read identically, and "return the first" was still a guess, merely a rarer one. More than one
+     * candidate at the winning tier is -1, and {@link #legendMatches} lets the refusal say why.
      */
     static int legendIndexOf(List<String> legendTexts, String label) {
-        if (label == null || label.isBlank()) return -1;
+        List<Integer> matches = legendMatches(legendTexts, label);
+        return matches.size() == 1 ? matches.get(0) : -1;
+    }
+
+    /**
+     * Every legend entry {@code label} could mean, at the first tier that has any: the exact text, else the
+     * exact text plus the legend's own external suffix. Empty = no such series; more than one = ambiguous.
+     */
+    static List<Integer> legendMatches(List<String> legendTexts, String label) {
+        List<Integer> exact = new ArrayList<>(), suffixed = new ArrayList<>();
+        if (label == null || label.isBlank()) return exact;
         String wanted = label.trim();
-        int external = -1;
         for (int i = 0; i < legendTexts.size(); i++) {
             String text = legendTexts.get(i);
-            if (text.equals(wanted)) return i;
-            if (external < 0 && text.equals(wanted + EXTERNAL_SUFFIX)) external = i;
+            if (text.equals(wanted)) exact.add(i);
+            else if (text.equals(wanted + EXTERNAL_SUFFIX)) suffixed.add(i);
         }
-        return external;
+        return exact.isEmpty() ? suffixed : exact;
     }
 
     /** One overlay row: a plot-colour swatch + the full label, with a right-click "Remove". */

@@ -201,6 +201,11 @@ def main():
             check("a SEVENTH that is a row is refused with the bound", r.get("ok") is False and "at most 6" in json.dumps(r), r)
             check("and it did not clear the filter or select record 10 on its way to being refused",
                   scope(a.context()) == before, (before, scope(a.context())))
+            r = a.act("spotlight", target="records:row:99999")
+            check("a row this log does NOT HAVE is refused, naming the range (goto would have clamped it to the last record)",
+                  r.get("ok") is False and "there is no record 99999" in json.dumps(r), r)
+            check("and it neither cleared the filter nor selected the last record",
+                  scope(a.context()) == before, (before, scope(a.context())))
             r = a.act("spotlight", target="records:row:15")
             check("control: a VALID row is still revealed through goto's path - the filter is relaxed for it",
                   lit(r) and "nothing-matches-review-probe" not in json.dumps(a.context().get("filter")), a.context().get("filter"))
@@ -222,6 +227,25 @@ def main():
             a.act("spotlight", targets=["status", "records"])
             a.act("goto", recordIndex=2)
             check("a view-changing verb puts ALL of them out", "spotlight" not in a.settled_context(), a.context().get("spotlight"))
+
+            print("a label must name exactly ONE series (re-review R4)")
+            csv = os.path.join(exchange, "x.csv")
+            with open(csv, "w") as f:
+                f.write("time,value\n1750000000000,1\n1750000001000,2\n")
+            ext = {"path": csv, "label": "x", "time": "time", "timeFormat": "epochMillis", "zone": "UTC", "value": "value"}
+            a.act("graph", name="Duplicates", series=["quotePublisher.spread"], external=[ext, ext])
+            r = a.act("spotlight", target="graph:series:x")
+            check("the SAME external given twice makes two identical legend rows - the label lights NEITHER, and says there are two",
+                  r.get("ok") is False and "2 series" in json.dumps(r), r)
+            a.act("graph", name="Collision", series=["quotePublisher.spread"],
+                  exprs=[{"label": "x  (external)", "expr": "quotePublisher.spread"}], external=[ext])
+            r = a.act("spotlight", target="graph:series:x  (external)")
+            check("a FORMULA labelled with the legend's own suffix collides with the external series - refused too",
+                  r.get("ok") is False and "2 series" in json.dumps(r), r)
+            r = a.act("spotlight", target="graph:series:quotePublisher.spread")
+            check("and the unambiguous series on that same graph still lights", lit(r), r)
+            # LAST on purpose: these draw NEW chart tabs, and re-issuing an existing named graph does not re-select its
+            # tab — a spotlight addresses the SELECTED chart only — so anything after this would be looking at "Collision".
 
             a.act("spotlight", target="status")
             r = a.act("spotlight", clear=True)

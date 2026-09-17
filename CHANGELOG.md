@@ -37,7 +37,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   is brought on screen first — a filtered-out record is revealed the way `goto` reveals one — and one that
   does not exist is refused with the reason, never lit on nothing. A chart series is named by its **exact**
   label: a prefix of one (`graph:series:quote`) is refused rather than bound to the first series that starts
-  with it. The caption is tagged *assistant*, because
+  with it, and a label that two series on the chart share is refused too, saying there are two — lighting the
+  first would be a guess. The caption is tagged *assistant*, because
   it is the client's words and not something the analyser established. A spotlight goes out on any click,
   Escape, `{clear: true}` or any action that changes the view, and nothing about one is ever saved. The
   guided-start skill now spotlights before each beat speaks. **MCP clients see 15 tools** — `analyser_spotlight`
@@ -48,8 +49,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   the reply, so the assistant's sentence ("1 feeds 2, and 2 never logged") finds its place on your screen.
   `{add: true}` keeps what is lit, `{clear: true, target}` puts out just one, and a set is all-or-nothing —
   one target that is not there, or two that cannot be on screen together (different tabs), refuses the whole
-  call with the reason, and a call that is simply wrong (a misspelt target, a seventh) is refused before
-  anything moves: your filter and selection are exactly as they were. A number is never reused while the set
+  call with the reason, and a call that is simply wrong (a misspelt target, a seventh, a record the log does
+  not have) is refused before anything moves: your filter and selection are exactly as they were. A number is never reused while the set
   stands, even after the highest one is put out, because your chat has already said "2". Callouts are placed
   to avoid covering one another or another lit target where there is room; in a crowded window the
   least-covering side wins, and a callout can still sit over content that is not lit.

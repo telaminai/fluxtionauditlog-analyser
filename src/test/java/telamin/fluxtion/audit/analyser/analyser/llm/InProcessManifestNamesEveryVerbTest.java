@@ -64,12 +64,35 @@ class InProcessManifestNamesEveryVerbTest {
             if (!(props instanceof Map<?, ?> m)) continue;
             String section = sections.getOrDefault(e.getKey(), "");
             for (Object param : m.keySet()) {
-                if (!Pattern.compile("(?<![A-Za-z])" + Pattern.quote(param.toString()) + "(?![A-Za-z])").matcher(section).find()) {
-                    missing.add(e.getKey() + "." + param);
-                }
+                if (!declared(section, param.toString())) missing.add(e.getKey() + "." + param);
             }
         }
         assertEquals(List.of(), missing, "published parameters the built-in assistant is never told about");
+    }
+
+    /**
+     * Is {@code param} DECLARED in this section — written as a parameter, not merely present as a word?
+     *
+     * <p>The first version asked only for the word, and ordinary prose satisfied it (re-review R6): with
+     * {@code to?} deleted from graph's argument list, "from PINs the graph to a fixed window" still passed for
+     * {@code graph.to}. A declaration is the name followed by what a parameter is followed by in this
+     * manifest's own notation: {@code ?} (optional), {@code []}, or — after optional space — one of
+     * {@code : , } ] | = (}. Prose words are followed by other words.
+     */
+    static boolean declared(String section, String param) {
+        return Pattern.compile("(?<![A-Za-z.])" + Pattern.quote(param) + "(?:\\?|\\[\\]|\\s*[:,}\\]|=(])")
+                .matcher(section).find();
+    }
+
+    @Test
+    void aWordInProseIsNotADeclaration_theCounterexampleFromTheReReview() {
+        String prose = "  graph  {name, from?} -> from PINs the graph to a fixed window";
+        assertFalse(declared(prose, "to"), "'to' appears only as an English word");
+        assertTrue(declared(prose, "from"));
+        assertTrue(declared("  graph  {name, from?, to?, newTab?}", "to"));
+        assertTrue(declared("  read {recordIndex | byteOffset (+ file? on a rolled set) | at (epoch ms)}", "at"));
+        assertTrue(declared("  x {a, b} -> first sentence.", "b"), "the derived lines' form: {a, b}");
+        assertFalse(declared("  flag {note?} -> what you found and a fix to try", "fix"));
     }
 
     @Test

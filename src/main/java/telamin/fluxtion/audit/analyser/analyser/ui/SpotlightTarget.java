@@ -282,6 +282,22 @@ public record SpotlightTarget(Family family, String argument, String name) {
      * right but cannot be shown may have brought another view forward, and says so.
      */
     public static String precheck(Requests asked, java.util.Collection<String> litNow) {
+        return precheck(asked, litNow, -1);
+    }
+
+    /**
+     * As above, and: a {@code records:row:<n>} must be a record this log HAS (re-review R5).
+     * {@code recordCount} is the open log's size, or negative when no log is open (the surface then refuses the
+     * row with "no log is open", having touched nothing, because there is nothing to reveal).
+     *
+     * <p>I had put an out-of-range row on the other side of the line — "well-formed, finding out is the
+     * reveal". It is not: whether record 99999 exists is a fact about the store, knowable without the screen.
+     * And the reveal did not merely fail to find it — {@code goto} CLAMPS an index to the last record, so
+     * {@code spotlight {target: "records:row:99999"}} relaxed the person's filter, selected the LAST record,
+     * and then refused without mentioning either. goto's clamping is goto's contract and stays; the spotlight
+     * simply never asks goto for a row that does not exist.
+     */
+    public static String precheck(Requests asked, java.util.Collection<String> litNow, int recordCount) {
         if (!asked.ok()) return asked.error();
         java.util.Set<String> union = new java.util.HashSet<>();
         if (asked.add() && litNow != null) for (String name : litNow) union.add(name.trim().toLowerCase(Locale.ROOT));
@@ -289,6 +305,11 @@ public record SpotlightTarget(Family family, String argument, String name) {
         for (Request r : asked.requests()) {
             Parsed parsed = parse(r.target());
             if (!parsed.ok()) return parsed.error();
+            if (recordCount >= 0 && parsed.target().family() == Family.RECORDS_ROW && parsed.target().number() >= recordCount) {
+                return "'" + parsed.target().name() + "': there is no record " + parsed.target().number() + " — this log has "
+                        + recordCount + (recordCount == 0 ? " records" : " (0 to " + (recordCount - 1) + ")")
+                        + ". Nothing was changed: your filter, selection and spotlights are as they were";
+            }
             union.add(parsed.target().name().toLowerCase(Locale.ROOT));
         }
         if (asked.add() && union.size() > MAX_LIT) {

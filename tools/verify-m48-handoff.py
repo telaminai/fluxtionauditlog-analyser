@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-M48.7 on the BUILT JAR - the `handoff` verb and `context.handoff`, over the action socket, isolated home.
+M48.7 on the BUILT JAR - the shared canvas: `open {posture | record}`, `open {close: "handoff"}` and
+`context.handoff`, over the action socket, isolated home. (It was a `handoff` verb for one day; folded into `open`.)
 
 What only a real run can show: that the section is served on a FRESH START (it has to sit above
 context()'s early return - twice in this project a correctly-put fact was invisible to agents because it

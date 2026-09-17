@@ -83,3 +83,6 @@ docs/experience/runs/round-58/flat/
 # This pattern is why a stray 4MB default.iprof found in the repo ROOT on 2026-09-11 was never at
 # risk on this branch - it is matched by name, not by living under target/. Keep it that way.
 *.iprof
+
+# a machine-local MCP client registration (points at this machine's jar/launcher) — never shared
+.mcp.json

@@ -145,6 +145,13 @@ spotlights and callouts"*. **That sentence of D-SP2 is superseded by this sectio
   again by the frame). **The line, stated:** a call that is WRONG touches nothing; a call that is well-formed but
   cannot be shown (a node the graph does not have; two things on different tabs) may have brought another view
   forward finding that out, and says so. The first is a guarantee; the second is what "revealed first" costs.
+- **Re-review R5 moved one case across that line, correctly.** I had called an out-of-range `records:row:<n>`
+  "well-formed — finding out is the reveal". Whether record 99999 EXISTS is a fact about the store, knowable
+  without the screen; and the reveal did not merely fail to find it — `goto` CLAMPS an index, so the call relaxed
+  the person's filter, selected the LAST record, and then refused mentioning neither. `precheck` now takes the
+  open log's record count and refuses such a row first, saying the range and that nothing was changed. `goto`'s
+  clamping is `goto`'s contract and is untouched. What remains on the "may move the view" side is only what truly
+  needs the screen: a node the graph does not have, a note a chart does not have, two things on different tabs.
 
 ## D-SP7 — *when* to point is general guidance, stated once and present at every entrance
 
@@ -205,6 +212,12 @@ change if the answer is different.
   label, or the exact label plus the ONE suffix the legend itself writes (`GraphPanel.EXTERNAL_SUFFIX`), and
   nothing looser; the bare label means the audit series when both exist. `GraphPanel.legendIndexOf` is pure and
   tested headless; seen red with `startsWith` put back (3 of 5).
+- **…and it must name exactly ONE** (re-review R4). My answer to F1 claimed that with exact matching "no label is
+  ambiguous". False: the same external spec can be given twice, and a formula's label is free text that may itself
+  end in the legend's suffix, so two legend rows can read identically — and "the first" was still a guess. More than
+  one candidate at the winning tier (exact, else exact + suffix) is now a refusal that SAYS there are two and to
+  redraw with distinct labels. `GraphPanel.legendMatches`; three headless regressions; both reviewer reproductions on
+  the built jar; seen red with "first match" put back.
 - **Numbers are a high-water mark** (M64.6 F1) and **a call is validated WHOLE before any reveal** (M64.6 F2) — see
   D-SP6, amended in place below its bullets.
 - **NOT changed here: the `coverage` target's name.** Both reviews say it misleads (it lights the PAIRING line), and
@@ -249,9 +262,11 @@ lands on the pixels it covers on screen, and `SpotlightFrameTest` holds it: with
 red with those numbers. The consequence is a good one — the tutor's verification shot is now a statement about the
 real overlay rather than an accident of what `paint` reaches — but it was not free, as the spec claimed.
 
-**It is a sixteenth verb.** The action surface is held down by four tests whose rule is that it does not grow *for a
-concept an existing verb already names*. Nothing points: `goto` and `topology` SELECT, `screenshot` RECORDS. So this
-clears the same bar `handoff` did (tracker ▸ Decisions), and each guard test now says so.
+**It is the fifteenth verb — the ONE verb this work adds.** (This paragraph said "a sixteenth" on the day, when
+M48.7's `handoff` was briefly a verb of its own; that was folded into `open` before it shipped.) The action surface
+is held down by four tests whose rule is that it does not grow *for a concept an existing verb already names*.
+Nothing points: `goto` and `topology` SELECT, `screenshot` RECORDS — so `spotlight` clears that bar, and each guard
+test says so. `handoff` did not clear it, which is why it is on `open` (tracker ▸ Decisions).
 
 **The shape D-SP3 asked for.** `SpotlightTarget` owns the vocabulary and `resolve(name, Surface)` — parse, reveal,
 measure — with the frame behind a three-method interface, so all of it is tested headless with a map for a surface.

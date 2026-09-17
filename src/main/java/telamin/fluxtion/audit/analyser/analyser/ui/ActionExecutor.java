@@ -754,7 +754,9 @@ public final class ActionExecutor implements RenderExecutor {
         // Judge the WHOLE call before the first reveal (review of M64.6, F2). goto's reveal relaxes the filter and
         // changes the selection, so a call refused for a misspelt member — or for being a seventh — must be
         // refused HERE, not after a row in the same call has already erased the person's investigation scope.
-        String wrong = SpotlightTarget.precheck(asked, app.spotlightLit());
+        // …and a row this log does not have (re-review R5): goto CLAMPS an index, so an out-of-range row used to
+        // relax the filter and select the LAST record before the spotlight refused it.
+        String wrong = SpotlightTarget.precheck(asked, app.spotlightLit(), s == null ? -1 : s.index().size());
         if (wrong != null) return ActionResult.error(wrong);
         if (s != null) {
             for (SpotlightTarget.Request one : asked.requests()) {       // several rows: each revealed, the last left selected

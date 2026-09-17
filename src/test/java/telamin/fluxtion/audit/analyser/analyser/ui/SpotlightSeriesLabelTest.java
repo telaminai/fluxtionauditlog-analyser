@@ -46,6 +46,33 @@ class SpotlightSeriesLabelTest {
         assertEquals(0, GraphPanel.legendIndexOf(both, "mid" + GraphPanel.EXTERNAL_SUFFIX));
     }
 
+    // ---- re-review R4: a label must name exactly ONE row. My first answer claimed no label COULD be ambiguous;
+    // ---- both of these were accepted by the graph verb and lit "the first" on the built jar.
+
+    @Test
+    void theSameExternalGivenTwice_makesTwoIdenticalRows_andTheLabelNamesNeither() {
+        List<String> twice = List.of("quotePublisher.spread", "x" + GraphPanel.EXTERNAL_SUFFIX, "x" + GraphPanel.EXTERNAL_SUFFIX);
+        assertEquals(-1, GraphPanel.legendIndexOf(twice, "x"), "two candidates: choosing the first is a guess");
+        assertEquals(-1, GraphPanel.legendIndexOf(twice, "x" + GraphPanel.EXTERNAL_SUFFIX));
+        assertEquals(List.of(1, 2), GraphPanel.legendMatches(twice, "x"), "and the refusal can say there are two");
+        assertEquals(0, GraphPanel.legendIndexOf(twice, "quotePublisher.spread"), "the unambiguous one is untouched");
+    }
+
+    @Test
+    void aFormulaLabelledWithTheLegendsOwnSuffix_collidesWithTheExternalSeries_andIsRefusedToo() {
+        List<String> collision = List.of("quotePublisher.spread", "x" + GraphPanel.EXTERNAL_SUFFIX /* a formula's label */,
+                "x" + GraphPanel.EXTERNAL_SUFFIX /* the external series x */);
+        assertEquals(-1, GraphPanel.legendIndexOf(collision, "x" + GraphPanel.EXTERNAL_SUFFIX));
+        assertEquals(2, GraphPanel.legendMatches(collision, "x" + GraphPanel.EXTERNAL_SUFFIX).size());
+    }
+
+    @Test
+    void twoAuditSeriesWithOneLabel_areAmbiguous_evenThoughAnExternalOneWouldHaveBeenUnique() {
+        List<String> both = List.of("mid", "mid", "mid" + GraphPanel.EXTERNAL_SUFFIX);
+        assertEquals(-1, GraphPanel.legendIndexOf(both, "mid"), "the exact tier has two — it does not fall through to the suffixed one");
+        assertEquals(2, GraphPanel.legendIndexOf(both, "mid" + GraphPanel.EXTERNAL_SUFFIX), "which is still nameable by its own text");
+    }
+
     @Test
     void nothingIsNotASeries() {
         assertEquals(-1, GraphPanel.legendIndexOf(LEGEND, null));

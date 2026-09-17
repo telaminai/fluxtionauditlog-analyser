@@ -92,6 +92,29 @@ the change, never reconstructed at release time.
 
 ## 4. Cutting a release — the whole procedure
 
+### 4.0 Pre-release checklist — what CI cannot see
+
+The workflow runs the unit suite. It does not launch the app, and three released versions (1.13.0–1.13.2)
+shipped an `open {analysis}` that failed on **every call** through four independent reviews, because every one
+of them read the code and ran the unit suite and none drove the path. So, on the commit you are about to
+release, on a machine with a display (each script launches the BUILT jar under an isolated `user.home`, drives it
+over the action socket with a hard per-call timeout, and exits non-zero on any failure):
+
+- [ ] `mvn package`
+- [ ] `python3 tools/verify-m46-agent-api.py` — first verdict after open, no REST hang, honest echoes, `open {analysis}`
+- [ ] `python3 tools/verify-m48-handoff.py` — the shared canvas through `open {posture | record}`
+- [ ] `python3 tools/verify-m64-spotlight.py` — every spotlight target, sets, refusals that touch nothing
+- [ ] `python3 tools/capture-conversations.py` — all five scenarios must complete. It rewrites
+      `docs/site/sample-conversations.md` and five `conv-*.png`: **read** the diff and the images (CLAUDE.md
+      rule 1) and commit them only if the content changed; restore them otherwise. Needs macOS Screen Recording
+      permission for the terminal — without it the scenarios still run but the script exits 1 for the missing
+      images (tracker: make those two separate signals).
+- [ ] CLAUDE.md rule 1's two checks: `git config user.email` is the personal address, and
+      `git log --format='%ae' | sort | uniq -c` shows no new employer-domain commits.
+- [ ] The person-at-the-screen items the tracker lists as open for this release. No script substitutes for them.
+
+### 4.1 The release itself
+
 1. GitHub → Actions → **Release** → *Run workflow* → enter the version (e.g. `1.4.2`).
 2. There is no step 2.
 

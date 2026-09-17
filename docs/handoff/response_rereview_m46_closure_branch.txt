@@ -1,0 +1,74 @@
+AUTHOR'S RESPONSE — the re-review of fix/m46-agent-api-closure (both readers)
+Date: 2026-09-17 · Answers: rereview_m46_closure_branch.txt — the Claude re-review (READY WITH FOLLOW-UPS; R1–R3) and
+the Codex addendum (NOT READY; R4, R5 required, R6 follow-up; R1–R3 confirmed).
+
+THE TWO READERS DISAGREED, and the owner's merge instruction was written from the first. I took the stricter reading
+on the two points where they differ, because on both the stricter reader is RIGHT and my earlier response was
+wrong: R4 and R5 are fixed below, BEFORE the merge. Nobody has reviewed these fixes. They are therefore recorded
+in docs/handoff/unreviewed-changes.md as unreviewed when the block reaches main — the merge was authorised on the
+first verdict, and I am not claiming the second reader's approval for code they have not seen.
+
+R4 (P2, required, Codex) — exact labels can still match several legend rows; the spotlight lit the first.  FIXED.
+  My response to M64 F1 said "no label is ambiguous any more". FALSE, and I asserted it without trying to break it.
+  The same external spec can be given twice; a formula's label is free text and may end in the legend's own
+  "  (external)" suffix. Two rows then read identically, and returning the first is the same guess F1 was about,
+  merely rarer.
+  What changed — GraphPanel.legendMatches(texts, label): every candidate at the first tier that has any (exact, else
+  exact + suffix). legendIndexOf returns an index only when there is exactly ONE. seriesLegendMatches(label) lets
+  MainFrame's refusal say so: "2 series on the selected graph are labelled 'x' — a spotlight cannot tell which you
+  mean. Redraw the graph with distinct labels" — rather than the false "is not on the selected graph".
+  I did NOT enforce unique labels at the graph verb's entrance (the reviewer's alternative): that changes what the
+  graph verb accepts, for a transient pointer's sake. Refusing at the pointer is the smaller contract.
+  Held by — SpotlightSeriesLabelTest +3: the same external twice; the formula/external suffix collision; two audit
+  series with one label NOT falling through to a unique suffixed one. Built jar, both reviewer reproductions
+  verbatim (a CSV in the exchange directory, external:[E,E]; then exprs label "x  (external)" + external E): refused,
+  "2 series", and the unambiguous series on the same graph still lights.
+  SEEN RED: with "exactly one" put back to "first match", those three tests fail (expected -1 was 1, 1, 0).
+
+R5 (P2, required, Codex) — an impossible row cleared the filter and selected a different record.            FIXED.
+  I drew the line in the wrong place. I wrote that an out-of-range records:row was "well-formed — finding out is the
+  reveal". Whether record 99999 exists is a fact about the STORE, knowable without the screen. And the first
+  re-reader's analysis stopped at targetRow, as mine did: clampRow turns 99999 into the LAST record, so the call
+  relaxed the filter, selected that record, and refused mentioning neither.
+  What changed — SpotlightTarget.precheck gains the open log's record count (negative = no log open, where there is
+  nothing to reveal and so nothing to protect). A records:row at or past it is refused first: "there is no record
+  99999 — this log has 726 (0 to 725). Nothing was changed: your filter, selection and spotlights are as they were".
+  Applied by the executor before any goto, and by the frame. goto's clamping is goto's contract and is UNTOUCHED, as
+  the reviewer asked. spec-spotlight D-SP6 records that this case moved across the line, and what is left on the
+  "may move the view" side: only what truly needs the screen.
+  Held by — SpotlightSetTest +1 (the range, the last record, one past it, the member named inside a set, no log, an
+  empty log); SpotlightFrameTest: reproduction 3 added to the real-frame scope test — filter + six lit spotlights,
+  then records:row:99999 → context's filter, selection and spotlight string-identical; built jar: the same, 2 checks.
+  SEEN RED: with the executor passing -1 for the record count, the frame test fails at exactly that step.
+  STILL TRUE, and said by the reviewer: string-comparing context cannot see scroll position or the selected tab.
+
+R6 (P3, follow-up, Codex) — the inventory test accepted a prose word as a parameter.                        FIXED.
+  The guard I claimed against future omissions could be satisfied by English. The test now asks for a DECLARATION:
+  the name followed by `?`, `[]`, or (after optional space) one of `: , } ] | = (` — what a parameter is followed by
+  in this manifest's own notation. The existing manifest passed unchanged (every parameter was already declared).
+  SEEN RED with the reviewer's own counterexample: delete `to?, ` from graph's argument list, leaving only the prose
+  "from/to PIN the graph to a fixed window" → [graph.to]. A unit test pins the counterexample's shape.
+  This matters for R1: it is this test that catches M65's graph.refresh at the merge.
+
+R1 (P2, both) — after the rebase the inventory test is red on graph.refresh.        DONE AT THE MERGE, as instructed.
+  It cannot be fixed on the branch: `refresh` is not a parameter here, and teaching the built-in assistant a
+  parameter that does not exist yet would be the inverse defect. It is an ordinary commit on the local merge
+  branch, after the rebase (Codex is right that "merge commit" must not be read literally — rule 3). The merge note
+  carries the step. Combined-tree gates are reported in the hand-back, not here.
+R2 (P4, both) — four stale "handoff verb" mentions.                                                         FIXED.
+  MainFrame ×2, tools/verify-m48-handoff.py's docstring, spec-spotlight.md's "sixteenth verb" paragraph (rewritten:
+  the fifteenth, the ONE verb this work adds, and why `handoff` did not clear the bar).
+R3 (P4, both) — capture-conversations exit status; echo key order.                  HALF FIXED, HALF TRACKED.
+  Key order FIXED: context.showing was a Map.of; now ordered, so the generated page stops flipping two lines.
+  Exit status TRACKED as M46.11, worded as Codex put it: two signals, and never a required capture failure exiting 0.
+
+OWNER DECISIONS — recorded in tracker ▸ Decisions, not made by me: 1.14.0 together, no 1.13.3 (A4 closed as decided;
+M46.10 says "ships in 1.14.0, not patched"); the merge does not wait for M64.9, the release does; the harnesses are
+on the pre-release checklist (docs/admin/release-process.md §4.0, new); `.mcp.json` git-ignored.
+
+FOUND ON THE WAY (tracker M64.10, not fixed): a graph target addresses the SELECTED chart only, and re-issuing an
+existing named graph does not re-select its tab — my first placement of the R4 checks broke a later check that way.
+Built jar after all of the above: tools/verify-m64-spotlight.py 78/78 (was 73: +2 impossible row, +3 ambiguity).
+
+NOT DONE, carried: the valid add + detail:node end-to-end scenario; arrow routing; the guidance-length held-out
+run; every person-at-the-screen check.

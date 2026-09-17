@@ -242,6 +242,13 @@ class SpotlightFrameTest {
             assertTrue(String.valueOf(refused.get().toMap()).contains("at most 6"), String.valueOf(refused.get().toMap()));
             onEdt(() -> assertEquals(six.get(), scope(f), "nor did a seventh: the bound is judged before the row is revealed"));
 
+            // 3. re-review R5: a row this log does not have. goto CLAMPS an index, so this used to relax the filter
+            //    and select the LAST record, then refuse without mentioning either.
+            onEdt(() -> refused.set(f.ex.render("spotlight", new java.util.LinkedHashMap<>(Map.of("target", "records:row:99999")))));
+            assertFalse(refused.get().ok());
+            assertTrue(String.valueOf(refused.get().toMap()).contains("there is no record 99999"), String.valueOf(refused.get().toMap()));
+            onEdt(() -> assertEquals(six.get(), scope(f), "an impossible row touched nothing either — it is never handed to goto"));
+
             // control: a VALID row call is still allowed to reveal — that is what D-SP6 permits
             onEdt(() -> render(f.ex, "spotlight", Map.of("target", "records:row:15")));
             onEdt(() -> assertFalse(scope(f).contains("nothing-matches-review-probe"),

@@ -376,6 +376,12 @@ for the display test and skill edit.
   guide ▸ *Ask it to show you* (what to say; light AND dark screenshots via `capture-docs.py --spotlight`) and the
   in-app help. The guided-start skill is deliberately NOT touched: its beats point at one thing, and a second edit
   would mean a second re-pin on a branch.
+- [M64.10] ☐ **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
+  several named graphs open, `graph`, `graph:note:<n>` and `graph:series:<label>` mean "on whichever chart tab is
+  showing", and re-issuing `graph {name: <existing>}` updates that graph WITHOUT re-selecting its tab — so an agent
+  that drew chart B and then refreshed chart A gets "'graph:note:1' is not on the selected graph". Either the
+  refusal should name the selected graph and the ones that DO have the target, or the vocabulary should let a
+  target name its graph (`graph:<name>:note:<n>`). Decide with M64.9; it is the same vocabulary edit.
 - [M64.9] ☐ **Rename the `coverage` target to `topology:verdict`** (both reviews, 2026-09-17; AFTER the merge, in the
   same skill edit and re-pin as M64.8) — it lights the Topology tab's PAIRING line ("fits this log 5/5"), not a
   coverage gap; the name misled its own author into a false caption (report_m64_6 §2). The guided-start skill names
@@ -1154,7 +1160,14 @@ correct graph. **Every item below is a communication failure, not a correctness 
   opId, as `pendingRolledSets` does, so the session processor is untouched). Sharing a home between runs is
   still the harness's to fix (H1). **A5:** an unbound step cursor said "no records" with ten open; it now
   says no record is SELECTED and how to select one, and the echo carries `recordsOpen`.
-- [M46.10] ☑ **`open {analysis}` failed on every call since 1.13.0 — FIXED 2026-09-17** _(found doing the
+- [M46.11] ☐ **`tools/capture-conversations.py`: two signals, not one** (re-review R3). When the five scenarios
+  pass and only the native image capture is unavailable (no Screen Recording grant; a headless box) it exits 1,
+  which reads as "scenarios failed" — so the pre-release checklist cannot use it there. Give it an explicit
+  scenarios-only mode or a distinct exit status; do NOT make a required capture failure exit 0. (The other half of
+  R3 is DONE: `context.showing` was a `Map.of`, whose order changes per run, so the generated page flipped
+  `"total"`/`"visible"` on every capture — now ordered.)
+- [M46.10] ☑ **`open {analysis}` failed on every call since 1.13.0 — FIXED 2026-09-17; SHIPS IN 1.14.0, not patched
+  (owner, tracker ▸ Decisions)** _(found doing the
   above; same report)_. The recall runs off the EDT on purpose; the ignored-parameters decision it then
   submits to the session processor did too, and the driver is confined to the EDT (M44.3 D-A1), so the
   steps ran and the call then failed with a protocol violation. Released in 1.13.0–1.13.2 through four
@@ -1300,6 +1313,19 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 12-line reproduction.
 
 ## Decisions (resolved)
+
+- **This block ships as 1.14.0, together — NO 1.13.3, NO cherry-pick** _(owner, 2026-09-17, after the re-review)_.
+  The `open {analysis}` regression released in 1.13.0–1.13.2 (M46.10) is therefore **fixed in 1.14.0, not patched**:
+  the second reader recommended cutting 1.13.3 from the fix commit first (A4); the owner declined, and A4 is closed
+  as decided, not open. One consequence, stated: the commit that fixes it also REMOVES the `nodes` reply key
+  (M46 A3), so that removal is a 1.14.0 change and is announced as one — deliberate, no alias.
+- **The merge of `fix/m46-agent-api-closure` does NOT wait for M64.9; the 1.14.0 RELEASE does** _(owner, same day)_.
+  M64.8 (the runbook that points) and M64.9 (`coverage` → `topology:verdict`) are ONE skill edit and ONE re-pin,
+  on main, after the merge and before that release — so the first release of `spotlight` teaches the intended
+  target name and the skills index moves once.
+- **The built-jar harnesses are on the pre-release checklist** _(owner, same day)_:
+  `tools/capture-conversations.py` and the three `tools/verify-*.py`, in `docs/admin/release-process.md` §4.0, with
+  the reason they are there (four reviews, three releases, one path nobody drove). `.mcp.json` is git-ignored.
 
 - **REVERSED the same day — `handoff` is NOT a verb; the shared canvas is written through `open`** _(owner,
   2026-09-17, after the second-reader review's A6)_. `open {posture}`, `open {record}` and
