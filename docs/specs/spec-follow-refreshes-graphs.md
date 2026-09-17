@@ -1,8 +1,11 @@
 # Spec — follow refreshes open graphs
 
-**Status:** PROPOSED 2026-09-17 · **REVISED 2026-09-17 after review** ([review](../handoff/review_spec_m65_2026-09-17.md),
-verdict CONDITIONAL: diagnosis and fix accepted; two conditions C1/C2 and six findings, all folded in below, plus a
-third condition C3 the author raised from the reviewer's *"did not check"* list). Owner question: *"what is the
+**Status:** PROPOSED 2026-09-17 · **REVISED twice the same day after review.** Pass 1
+([review](../handoff/review_spec_m65_2026-09-17.md), CONDITIONAL): diagnosis and fix accepted; C1/C2 and six findings
+folded in, plus C3 the author raised from the reviewer's *"did not check"* list. Pass 2
+([review](../handoff/review_spec_m65_pass2_2026-09-17.md), CONDITIONAL): every new claim verified; C4 (the slider echo
+already resets an unpinned view on every growing tick, so D-F7's hold was defeated before extraction ran) and C5 (one
+tail rule, not two) plus four follow-ups, all folded in below. Owner question: *"what is the
 lowest overhead way of forcing the graph redraw? should we add something to the plot verb to redraw for new log
 entries?"* **Tracker:** [tracker.md](tracker.md) ▸ M65.
 **Related:** M6 graphing (the extraction cache and the time-slider-never-re-parses rule this spec must keep),
@@ -81,10 +84,21 @@ the string race and leaves the array race open.
 `newCachedThreadPool`; `reExtract`'s `gen != extractGen` check drops a stale **result**. An extraction that outlives
 the ~1 s poll (a large log, several windowed formulas) is joined by another every tick, and they accumulate.
 
-**Re-extraction resets an unpinned view (review "did not check", confirmed by the author → C3).**
+**Re-extraction resets an unpinned view (pass-1 "did not check", confirmed by the author → C3).**
 `ChartPanel.setSeries` calls `resetView()`; `reExtract`'s success path then calls `applyWindow()`, which sets the
 filter's window when unpinned. A person zoomed into a live chart would be thrown back to the full window on every
-tick that carried data. Today this happens only on a structural change the person caused themselves.
+tick that carried data.
+
+**And the slider echo already does that today, before any extraction exists (pass-2 C4).** On a tick that grew the
+log, `pollFollow` calls `timeSlider.extendAbsMax(mx)` — which fires exactly when `newMax > absMax`, i.e. on the data
+ticks — and it ends in `publish()` → `FilterState.setTimeRange(from, to)`, which calls `fireChanged()` **even when
+`from`/`to` are unchanged**. `GraphPanel.onFilterChanged` sees a non-structural change and, unpinned, calls
+`chart.setViewWindow(filter.from, filter.to)`; with the slider at full extent `publish` sends `(null, null)`, so the
+view becomes the full extent of the cached series. So the first revision's sentence *"today this happens only on a
+structural change the person caused themselves"* was wrong for the unpinned case: the reset happens on every
+growing tick, synchronously on the EDT, **before** the extraction lands via `invokeLater`. A hold implemented only
+on the extraction's landing would hold a window the echo had already reset. Nobody noticed because with follow on
+the graph never refreshed at all — the M65 bug hid it.
 
 ## The owner's two questions, answered
 
@@ -109,8 +123,9 @@ graphTabs.onRecordsAppended();
 
 Cost: one re-extract per poll tick that carried data — at most one per second, off the EDT, the same work a
 dimension change costs today, and (D-F6) never more than one in flight. Zoom, Fit and the slider stay cache-only;
-nothing in M6's smoothness rule changes. **Precondition:** D-F0 — the walk must be safe against the append it is now
-guaranteed to overlap.
+nothing in M6's smoothness rule changes. **Preconditions:** D-F0 — the walk must be safe against the append it is now
+guaranteed to overlap — and D-F8 — the slider echo must be inert for an unchanged window, so the hook is the *only*
+thing that moves an unpinned view on a data tick (the invariant D-F7 relies on; pass-2 F4).
 
 ### Q2 — should the `graph` verb get a redraw/refresh option?
 
@@ -138,9 +153,11 @@ moment follow drives extraction. The verb's contract is *"define the graph"*; fr
 1. `HeapLogStore.appendFrom` assigns `this.file = full` **before** the framing loop adds index rows, and `file` is
    `volatile`. The file is append-only, so every existing row's offsets are valid in the new string; a reader that
    sees a new row also sees the string that contains it.
-2. A walker never reads `size()` per iteration. `HeapLogStore` exposes a **read view** taken once per walk —
-   `size` and the `file` reference captured together under the index lock (the lock `add` already holds; the
-   `synchronized snapshot()` the index already has is the shape) — and the extractor iterates to that captured
+2. A walker never reads `size()` per iteration. The **read view** is a `default` method on the `LogStore`
+   interface returning a live view over `size()` — so `MappedLogStore`, `RolledLogStore` and `SpiLogStore` are
+   untouched (pass-2 F2) — and `HeapLogStore` overrides it with a locked capture, taken once per walk, of `size`,
+   the `file` reference **and the `offset`/`length` arrays** (the index's existing `synchronized snapshot()` is the
+   shape but carries `offset` without `length`; `rawText(row)` needs both). The extractor iterates to the captured
    size only. Rows below it are fully written by the lock's happens-before; a stale array reference still holds
    them because copy-on-grow preserves prefixes. `SeriesExtractor`'s four `store.size()` loops take the view.
 
@@ -176,12 +193,31 @@ machine class, with the trigger being >~50 ms per extraction **or** D-F6's dirty
 it and run once more. Two lines in each callback, one in `onRecordsAppended`. The generation check stays for
 results; this stops the work.
 
-**D-F7 — the view follows the tail, or holds.** *(C3.)* On the success path of a re-extract that was **not**
-caused by a definition change, an unpinned chart does not `resetView()`. Instead: if the view's right edge was at
-(or beyond) the previous data maximum, the window slides so its right edge is at the new maximum and its width is
-unchanged — tail semantics, what a person watching a live chart expects; otherwise the view is held exactly. A
-definition change keeps today's behaviour (reset, then the filter window), because the person asked for a
-different chart. Implemented as a flag on the extraction request (`reason: DATA | DEFINITION`) read on landing.
+**D-F7 — the view extends, slides, or holds — one rule.** *(C3, C5.)* On the success path of a re-extract whose
+reason is `DATA`, an unpinned chart does not `resetView()`. With `oldMin`/`oldMax` the data range before the
+extraction and `newMax` after it, tested in this order:
+
+1. the view covered the whole data range (left edge ≤ `oldMin` **and** right edge ≥ `oldMax`) → **extend**: left
+   edge stays, right edge to `newMax` — what `resetView` would give; a person who never zoomed keeps seeing the
+   whole log;
+2. else right edge ≥ `oldMax` → **slide**: width unchanged, right edge to `newMax` — a person pressed against the
+   live edge follows it;
+3. else → **hold** exactly — a person studying the middle is not disturbed.
+
+A re-extract whose reason is `DEFINITION` keeps today's behaviour (reset, then the filter window), because the
+person asked for a different chart. The reason rides the extraction request; **when requests coalesce (the
+structural debounce, or D-F6's `dirty` flag) the pending run's reason is `DEFINITION` if any coalesced request
+was, otherwise `DATA`** (pass-2 F1) — the wrong merge is silent, a definition change landing as `DATA` and holding
+a window that no longer means anything.
+
+**D-F8 — the slider echo is inert for an unchanged window.** *(C4.)* `GraphPanel.onFilterChanged` gains
+`lastFrom`/`lastTo` beside the existing `lastDims`/`lastText`/`lastGroupMode`, and the non-structural branch
+re-windows **only when `filter.fromMillis()`/`toMillis()` differ from the last pair it applied**. A real slider
+move still re-windows (M6 untouched); the `extendAbsMax → publish → setTimeRange` echo on a data tick, which
+resends the same `(from, to)`, no longer does. This is the local form the review recommends over skipping
+`fireChanged` in `FilterState.setTimeRange`, because the reports panel and possibly other listeners are refreshed
+by exactly that echo on a follow tick. With D-F8 in place, D-F1's hook is the **only** thing that moves an
+unpinned view on a data tick, which is what makes D-F7's rule meaningful.
 
 ## Not in scope
 
@@ -200,13 +236,22 @@ different chart. Implemented as a flag on the extraction request (`reason: DATA 
    third record to the file, drive the store append and the new hook, then **wait for the extraction generation
    to land** — poll the chart's series count with a deadline, or expose the pending generation; pumping the
    debounce alone is not enough because the walk runs on the pool and lands via `invokeLater` (review F3) —
-   and assert 3 points **and** the marker legend count is 3 after the same wait (review F4). Three variants:
-   unpinned at full extent → 3 points, window extended to the new maximum (D-F7 tail); unpinned zoomed into the
-   middle → 3 points, **window unchanged** (D-F7 hold); pinned → 3 points, window unchanged (D-F2).
+   and assert 3 points **and** the marker legend count is 3 after the same wait (review F4). **The test drives the
+   tick the way `pollFollow` does — `appendFrom`, then `timeSlider.extendAbsMax`, then the hook — not the hook
+   alone**, or the D-F8 mutant is not covered and the app fails where the test passes (pass-2 C4). Four variants:
+   unpinned at full extent → 3 points, left edge unchanged, right edge at the new maximum (D-F7 **extend**);
+   unpinned zoomed to the last stretch with the right edge at the old maximum → 3 points, same width, right edge
+   at the new maximum (D-F7 **slide**); unpinned zoomed into the middle → 3 points, **window unchanged** (D-F7
+   **hold**); pinned → 3 points, window unchanged (D-F2).
 2. **Test — D-F0 concurrency**: a store spy appends two records during the walk's Nth `record(row)`; the walk
    completes with the pre-append count and no exception; a second walk sees all rows.
-3. **Test — D-F6 coalescing**: hold the extraction with a latch, call `onRecordsAppended` three times, release;
-   exactly two extractions ran (the held one and one follow-up).
+3. **Test — D-F6 coalescing and D-F7 reason merge**: hold the extraction, call `onRecordsAppended` three times,
+   release; exactly two extractions ran (the held one and one follow-up) and the follow-up's reason is `DATA`.
+   Repeat with a key added (`addKeys`) while held: the follow-up lands as `DEFINITION` and the view resets
+   (pass-2 F1). **The seam** (pass-2 F3): `GraphPanel` runs its walk through a package-private
+   `extractionRunner` — default `Background::run` — that a headless test replaces with one that parks the work on
+   a latch and delivers on the test thread; `GraphTabsBindIsNotAnEditTest` shows headless bind but not pool
+   control, so the seam is named here rather than invented mid-implementation.
 4. **Test — verb idempotence**: `graph {series:[k]}` twice → `refreshed: false` on the second; the same with
    `markers` re-sent unchanged; with `refresh: true` → `refreshed: "scheduled"` and the generation advanced.
 5. **Manual — the bundle loop**: with the audit-analyser-bundle running and follow on, append a CSV row and run
@@ -215,15 +260,17 @@ different chart. Implemented as a flag on the extraction request (`reason: DATA 
 6. **Help** (`help/help.html`, the Follow bullet): today it says *"flags, filters and selection are preserved"* —
    which is true and stays as written. Add one clause: *"open graphs re-extract."* (Review F2: the first draft
    misread the preserved list as an updates-live list.)
-7. **CHANGELOG ▸ Unreleased**: *"Follow now refreshes open graphs (a zoomed chart holds its view; one at full
-   extent follows the tail); the store is safe to read while follow appends; `graph` gains `refresh`; identical
-   `graph` re-sends no longer re-extract on `markers`/`bands`."*
+7. **CHANGELOG ▸ Unreleased**: *"Follow now refreshes open graphs (a chart at full extent grows with the log, one
+   pressed to the live edge slides with it, one zoomed into the middle holds); the slider echo no longer resets an
+   unpinned zoom on every follow tick; the store is safe to read while follow appends; `graph` gains `refresh`;
+   identical `graph` re-sends no longer re-extract on `markers`/`bands`."*
 
 ## Effort
 
-D-F0 (both parts + test 2): half a day. D-F1 + D-F6 + D-F7 with tests 1 and 3, help, CHANGELOG: one day.
+D-F0 (both parts + test 2): half a day. D-F1 + D-F6 + D-F7 + D-F8 with tests 1 and 3, help, CHANGELOG: one day.
 D-F4 + test 4: half a day. D-F5: not scheduled. **Two days**, against the first draft's one; the extra day is the
-two conditions and the view rule.
+conditions and the view rules. Pass 2 added D-F8 and the reason merge without moving the estimate, as the review
+judged.
 
 ## Review record
 
@@ -239,3 +286,9 @@ two conditions and the view rule.
 | F5 reports/coverage known stale | review | *Not in scope* + tracker note |
 | F6 schema parity is automatic | review | D-F4 |
 | poll already O(file) per tick | author | D-F5 cost note |
+| C4 slider echo resets an unpinned view every growing tick, before extraction lands | pass 2 | D-F8; C3 paragraph corrected; acceptance 1 drives the full tick |
+| C5 tail rule contradicted acceptance 1 | pass 2 | D-F7 rewritten as extend / slide / hold |
+| F1 `reason` merge under coalescing | pass 2 | D-F7 DEFINITION-wins; acceptance 3 |
+| F2 read view on the `LogStore` interface; carry `length` | pass 2 | D-F0 part 2 |
+| F3 name the pool seam | pass 2 | acceptance 3 |
+| F4 the hook is the only mover of an unpinned view on a data tick | pass 2 | Q1 preconditions; D-F8 |

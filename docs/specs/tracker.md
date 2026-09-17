@@ -349,7 +349,7 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
-## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · REVISED same day after review · pass 2 reviewed CONDITIONAL
+## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · REVISED same day after review · pass 2 reviewed CONDITIONAL, folded in
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
@@ -370,14 +370,19 @@ structural debounce (D-F1); pinned graphs re-extract but keep their window (D-F2
 per M6 (D-F3); `graph` re-sends are idempotent, `refresh: true` is the one forced re-extract, echo says
 `refreshed: "scheduled"` (D-F4); full re-extract first, incremental only on measured need — noting the poll already
 re-reads and re-frames the whole file per tick (D-F5); one extraction in flight, dirty flag (D-F6); an unpinned
-view follows the tail if it was at the data max, else holds; a definition change still resets (D-F7). **Known
-stale under follow, out of scope here: reports and coverage.** About two days.
+view extends if it covered the whole range, slides if pressed to the live edge, else holds; a definition change
+still resets, and coalesced requests merge DEFINITION-wins (D-F7); the slider echo is inert for an unchanged window
+via `lastFrom`/`lastTo` in `onFilterChanged`, so the hook is the only mover of an unpinned view on a data tick
+(D-F8). **Known stale under follow, out of scope here: reports and coverage.** About two days.
 
-- [M65.0] ☐ **D-F0 — store publishable while growing**: `file` first + volatile; `HeapLogStore` read view;
-  `SeriesExtractor` walks to the captured size; concurrent-append test.
+- [M65.0] ☐ **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
+  default overridden by `HeapLogStore` (size + file + offset/length under the index lock); `SeriesExtractor` walks
+  to the captured size; concurrent-append test.
 - [M65.1] ☐ **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
-  D-F6 in-flight coalescing and D-F7 tail-or-hold view; `ui/FollowRefreshesGraphTest` (full-extent, zoomed,
-  pinned — each waits for the generation to land), coalescing test, help clause, CHANGELOG.
+  D-F6 in-flight coalescing, D-F7 extend/slide/hold + DEFINITION-wins reason merge, and D-F8 `lastFrom`/`lastTo`
+  echo guard; `ui/FollowRefreshesGraphTest` drives the tick as `pollFollow` does (append, `extendAbsMax`, hook)
+  in four variants, each waiting for the generation to land; coalescing + reason-merge test through the
+  package-private extraction-runner seam; help clause, CHANGELOG.
 - [M65.2] ☐ **`graph {refresh: true}` + `refreshed: "scheduled"|false` in the echo**; `setMarkers`/`setBands`
   gain the only-if-changed guard; idempotence test. Schema parity is automatic via `VerbSchemas` tests.
 - [M65.3] ☐ **Manual proof on the bundle**: append a CSV row, `./export-audit.sh`, the open graph shows the
