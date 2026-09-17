@@ -349,11 +349,15 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
-## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · REVISED same day after review
+## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17 · REVISED same day after review · pass 2 reviewed CONDITIONAL
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
-C1/C2 required; folded in, plus C3 from its "did not check" list). Owner question 2026-09-17: *"what is the lowest
+C1/C2 required; folded in, plus C3 from its "did not check" list); pass 2
+[review_spec_m65_pass2_2026-09-17.md](../handoff/review_spec_m65_pass2_2026-09-17.md) (CONDITIONAL — every new code
+claim verified; C4 the slider echo already re-windows an unpinned chart on each growing tick, so D-F7's hold needs a
+`lastFrom`/`lastTo` guard in `onFilterChanged`; C5 D-F7's "width unchanged" slide contradicts acceptance 1's "window
+extended" — one extend/slide/hold rule; F1 `reason` merges DEFINITION-wins across debounce and `dirty`). Owner question 2026-09-17: *"what is the lowest
 overhead way of forcing the graph redraw? should we add something to the plot verb?"* Observed with the
 audit-analyser-bundle: follow appends reach the table, slider, status bar and `series` verb, and a graph created
 afterwards — but a pre-existing graph keeps its cached points through zoom, Fit, a time-range change and an
