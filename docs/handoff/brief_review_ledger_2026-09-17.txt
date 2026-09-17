@@ -1,0 +1,128 @@
+INDEPENDENT REVIEW BRIEF — the two ☐ ledger entries of 2026-09-17 (both already ON MAIN, neither reviewed)
+Date: 2026-09-17
+Ledger: docs/handoff/unreviewed-changes.md — the two entries dated 2026-09-17. They gate the 1.14.0 release.
+
+  git fetch origin && git switch main && git pull --rebase
+  git show 442582f --stat          # entry 1
+  git show 01b6a4f --stat          # entry 2 — the bytes
+  git show 473482d --stat          # entry 2 — the re-pin
+
+YOUR ROLE
+
+You are the INDEPENDENT REVIEWER. Read CLAUDE.md, docs/ONBOARDING.md and docs/handoff/REVIEWER-ORIENTATION.md first.
+The author is another LLM session; you did not write this. Do not trust the ledger's "verified by the author" lines —
+each names something it claims to have SEEN RED; repeat at least one per entry.
+
+Background you need, and where it is: the block fix/m46-agent-api-closure was reviewed in two rounds and re-reviewed
+by two readers who DISAGREED (READY WITH FOLLOW-UPS / NOT READY). The owner authorised the merge on the first
+verdict. The author judged the stricter reader right, fixed R4/R5/R6 before merging, and merged — so those fixes
+reached main unseen (entry 1). Then, at the owner's direction, M64.8 + M64.9 were done directly on main as one skill
+edit and one re-pin (entry 2). Everything is archived in docs/handoff/completed/:
+  rereview_m46_closure_branch.txt            the two re-reviews; R4, R5, R6 are in the Codex addendum
+  response_rereview_m46_closure_branch.txt   the author's answer to them
+  sha-map_m46_closure_branch.txt             EVERY SHA in the archived files is pre-rebase — this maps them to main
+Spec: docs/specs/spec-spotlight.md (D-SP6 "Amended after review", "After review", and M64.8).
+
+ENTRY 1 — 442582f  fix(spotlight): re-review R4, R5, R6
+
+R4 — a label must name exactly ONE series.
+  GraphPanel.legendMatches / legendIndexOf / seriesLegendMatches; MainFrame's GRAPH_SERIES refusal text.
+  Two legend rows can read identically (the same external spec given twice; a formula labelled with the legend's own
+  "  (external)" suffix). It used to light the first; it now refuses, saying how many share the label.
+  · THE DESIGN CHOICE TO JUDGE: the author refused at the POINTER instead of enforcing unique labels at the `graph`
+    verb's entrance (the re-reviewer's offered alternative). A chart with two identically labelled series is still
+    drawable. Is refusing at the spotlight the right contract, or does it leave the real defect in place?
+  · Tiers: exact first, else exact + suffix. Probe the boundary: an audit series "x", an external "x", AND a formula
+    labelled "x  (external)" together. Which does each of the two texts name — and is any answer a guess?
+  · The refusal says "Redraw the graph with distinct labels". Can an agent actually do that for two EXTERNAL specs with
+    the same label (external is replace-by-label)? If not, the advice is unfollowable.
+R5 — a row the log does not have is refused before goto can clamp it.
+  SpotlightTarget.precheck(requests, litNow, recordCount); ActionExecutor.doSpotlight; MainFrame.applySpotlight.
+  · recordCount is store.index().size(). Is that the SAME index goto clamps against (ActionExecutor.clampRow) —
+    for a ROLLED SET (several files, one index?) and WHILE FOLLOW IS APPENDING (can the count move between the
+    precheck and the goto, so a row that passed the precheck is then clamped)? M65 made the store safe to read while
+    it grows; check precheck reads it that safely.
+  · With NO log open the check is skipped on purpose (nothing to reveal, so nothing to protect). Confirm nothing moves.
+  · The re-reviewer asked that goto's own clamping NOT change. Confirm it did not.
+  · The frame regression string-compares context's filter / selection / spotlight before and after. It cannot see
+    scroll position or the selected tab. Decide whether that matters for THIS case.
+R6 — the in-app manifest inventory test now requires a DECLARATION, not a word.
+  InProcessManifestNamesEveryVerbTest.declared(): the name followed by `?`, `[]`, or optional space + one of : , } ] | = (
+  · Break it: find prose in PromptBuilder.inProcessActionManifest that "declares" a parameter by accident (a word
+    before a comma or colon — "…, to a fixed window:" ). If you can delete a real declaration and stay green, it is
+    still not a guard. The re-reviewer's own counterexample (graph.to) is pinned as a unit test; find a second.
+Also in this commit: four stale "handoff verb" mentions (R2); context.showing ordered (half of R3; the other half is
+tracker M46.11); docs/admin/release-process.md §4.0, a NEW pre-release checklist — read it as the person who will
+follow it: is every step runnable as written?; .gitignore gains .mcp.json.
+FOUND ON THE WAY, not fixed (tracker M64.10): a graph target addresses the SELECTED chart only, and re-issuing
+graph {name: <existing>} updates that graph WITHOUT re-selecting its tab. Decide: defect or limitation — and whether an
+agent has ANY way today to bring a named chart forward.
+
+ENTRY 2 — 01b6a4f + 473482d  M64.8 point-at-the-fault; M64.9 coverage -> topology:verdict; one re-pin
+
+M64.8 — docs/skills/common/point-at-the-fault/SKILL.md. READ IT AS AN AGENT THAT HAS NEVER SEEN THE TOOL.
+  · Does it make an agent point at what it FOUND (rule 1: the pointer follows the evidence, caption built from the
+    match) and light NOTHING when it finds nothing (rule 2)? Compare with spec-spotlight.md ▸ M64.8 — the two rules
+    should survive nearly verbatim. Is anything in the skill an instruction to point regardless?
+  · Every verb call and parameter in it must be real: check each against VerbSchemas (series.crossings, read.fields,
+    flag.recordIndexes/note/fix, spotlight.targets, coverage). A skill that teaches a parameter that does not exist
+    fails silently in front of a user.
+  · Its worked example claims: demo-quote-series.yaml, 726 records; riskMonitor.liveOrders, 160 points, ONE crossing
+    above 1 at recordIndex 15 with value 2; riskMonitor.limit 2 on that record; nothing above 99, max 6.
+    tools/verify-m64-spotlight.py replays it call for call — RUN IT, and also break one number in the script's
+    expectation to see it go red, so you know the replay is real.
+  · x-analyser-min-version is 1.12.0 although the skill's point is a verb that ships in 1.14.0. The author's argument:
+    it degrades ("if analyser_spotlight is not among your tools … goto, and say where in words"), as guided-start
+    does, and CanonicalSkillsTest pins that literal line for every skill. Is a skill whose PURPOSE is the missing verb
+    honest at 1.12.0?
+  · It joined m19-skills/2 ▸ common, so THE SELECTION GREW BY ONE for every template. The index comment calls that
+    "additive, same contract; a generator that copies `common` needs no change". If you can read the playground repo
+    (scripts/vendor-skills.mjs and whatever consumes the index), check that claim; otherwise say you could not.
+  · Nobody has run the skill on a context-free client. Do not claim it; list it for the owner.
+M64.9 — the spotlight target `coverage` is now `topology:verdict`. Rename, NO alias (the verb is unreleased).
+  · grep the whole repo for the old TARGET (not the `coverage` VERB, which is untouched): docs/site, docs/skills,
+    tools, src, help.html, sample-conversations.md. `coverage` as a target must now be UNKNOWN and answered with the
+    vocabulary — SpotlightTargetTest asserts it; confirm on the jar.
+  · THE RISK OUTSIDE THIS REPO: the playground vendors guided-start. Until it re-vendors, a generated starter may
+    carry a guided-start that names the old target, which this analyser now refuses. Find out which guided-start the
+    playground currently vendors (the pre-spotlight one names no target at all, which would make this moot) and say.
+  · docs/site/assets/spotlight-findings-light.png / -dark.png were NOT regenerated. No target NAME is visible in them
+    and the captions are unchanged, but tools/capture-docs.py now sends the new name and has not been re-run since.
+    Run `python3 tools/capture-docs.py --spotlight`, READ the four images, and restore them if nothing changed.
+THE RE-PIN — 473482d: revision 01b6a4f, two hashes (guided-start moved; point-at-the-fault is new), `common` gains
+  the path. Verify as CI sees it, not as this clone does:
+      git cat-file -e 01b6a4f && git merge-base --is-ancestor 01b6a4f origin/main
+  and that m19-skills/1 is byte-identical to before (CanonicalSkillsTest holds it; say that you ran it).
+
+HOW TO VERIFY — run these; do not take "green" on trust. Author's numbers on main:
+  git config user.email                                  # the personal address
+  mvn test                                               # 1618 run, 0 failures, 0 errors, 21 skipped (display)
+  mvn test -Dtest='Spotlight*Test,AsyncOpen*Test' -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
+                                                         # 154 run, 0 / 0 / 0
+  mvn package && git checkout -- dependency-reduced-pom.xml
+  python3 tools/verify-m46-agent-api.py                  # 17/17
+  python3 tools/verify-m48-handoff.py                    # 18/18
+  python3 tools/verify-m64-spotlight.py                  # 83/83
+  python3 tools/test_tools.py && mkdocs build --strict
+  the anonymisation sweep EXACTLY as CLAUDE.md rule 1 writes it — must print nothing. (Not repeated here: its terms
+  may be spelled only in the two files that state the rule.)
+SEEN-RED claims to repeat (at least one per entry): R4 — make legendIndexOf return the first match → three
+SpotlightSeriesLabelTest cases fail; R5 — pass -1 as the record count in ActionExecutor.doSpotlight →
+SpotlightFrameTest fails at the impossible-row step; R6 — delete `to?, ` from graph's argument list →
+InProcessManifestNamesEveryVerbTest reports [graph.to]. Restore every mutation; leave the tree clean.
+
+WHAT TO PRODUCE
+
+One file: docs/handoff/review_ledger_2026-09-17.txt. A verdict PER ENTRY (READY / READY WITH FOLLOW-UPS /
+CONDITIONAL / NOT READY); findings numbered F1… with severity, file:line, how you reproduced it and what would fix
+it; and a plain statement of what you VERIFIED versus what you only READ. Then TICK the ledger: each entry becomes
+`☑ reviewed 2026-09-…` with a one-line verdict, or stays ☐ with the finding that blocks it. Commit both to main and
+push (docs only — `git pull --rebase` first; main is trunk, keep it linear, never force-push).
+
+Do NOT fix code findings yourself unless the owner asks. Do not edit any skill under docs/skills — a skill edit needs
+a re-pin, and that is the author's to do in one step.
+
+OWNER-ONLY — surface with a recommendation, do not decide:
+  · whether 1.14.0 may ship before the playground re-vendors the skills (see the M64.9 risk above);
+  · the person-at-the-screen checks in docs/specs/tracker.md ▸ "BETWEEN MAIN AND 1.14.0";
+  · M64.10: fix before 1.14.0, or ship as a documented limitation.
