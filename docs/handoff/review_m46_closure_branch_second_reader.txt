@@ -10,7 +10,7 @@ round in every case: the branch as a whole is NOT READY until the first round's 
 VERDICT PER PIECE (unchanged from the first round, with my additions)
   1. M46 agent-API closure (74a465b2)      READY WITH FOLLOW-UPS   — plus A4 below (release recommendation)
   2. M44.3b close supersedes (69c03290)     NOT READY (first-round F1) — A2 confirms the busy projection is right
-  3. M48.7 canvas handoff (4cafad01+802f7800) NOT READY (first-round F1/F2) — F2 re-derived from source
+  3. M48.7 canvas handoff (4cafad01+802f7800) NOT READY (first-round F1/F2) — F2 re-derived from source; A6 suggests folding the verb into `open`
   4. M64 spotlight (5d4040b0..74c951e4)     NOT READY (first-round F1) — A3 narrows the human check
   5. M64.6/.7 several spotlights (96c40b59) NOT READY (first-round F1/F2) — F2 re-derived from source
 
@@ -96,6 +96,23 @@ A4 — owner decision, with a recommendation: cut 1.13.3 for the `open {analysis
 A5 — P4, the first round's CHANGELOG note (M48.7 review, "15 tools" at line 45 vs 16 at line 21): still present
   at f53c42e6; and after the rebase the same block gains M65's lines, so fix the count in the same edit that
   resolves the CHANGELOG conflict.
+
+A6 — suggestion (owner asked for it to be recorded): fold the `handoff` verb into `open` before it ships.
+  src/main/java/.../llm/VerbSchemas.java:289, src/main/java/.../ui/ActionExecutor.java:133 (the only verb wiring)
+  The verb-ness of the piece is two lines; everything of substance — the typed record, CanvasHandoff.State's
+  validate-before-mutate, attribution, the project-boundary clear, `context.handoff`, the Project panel row — is
+  unchanged by this. `open` already means "put this in force" and already carries `analysis` and `project`, so:
+      open {posture: "support"}            open {record: {...}}            open {close: "handoff"}
+  with the close idiom mirroring the existing `open {close: "project"}`. Reading stays `context.handoff`.
+  What it touches on this branch: the two wiring lines; the four verb-count guards back to 15 (with the spotlight
+  verb) each stating the reason; tools/verify-m48-handoff.py's calls; docs/site/user-guide/assistant.md's tool
+  list; the CHANGELOG line; the tracker ▸ Decisions entry that records the fifteenth verb (reverse it, with the
+  reason) and spec-authoring-mode-selector.md where it names the verb. An hour or two, in files the author is
+  about to reopen for the first round's F1/F2 on this piece — and F1 (not advertised to the built-in assistant)
+  stops existing, because `open` is already in the hand-written manifest; the new parameters still need a
+  sentence there. The token saving is small; the gain is fifteen tools instead of sixteen and ONE "in force"
+  verb with one close idiom. Unreleased today, so this is the cheapest it will ever be; after 1.13.3 ships with
+  the verb it becomes a compatibility decision.
 
 NOT VERIFIED (and by whom it must be)
   - I did not re-run the three tools/verify-*.py scripts, tools/capture-conversations.py or capture-docs.py; the
