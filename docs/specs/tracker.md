@@ -334,7 +334,7 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M64 · Spotlight — the tutor points at the thing on screen — ◧ M64.1–.7 ON MAIN 2026-09-17 (reviewed three times; `fd75c67`); M64.8/.9/.10 OPEN and GATE 1.14.0
+## M64 · Spotlight — the tutor points at the thing on screen — ◧ M64.1–.9 ON MAIN 2026-09-17 (.1–.7 reviewed three times, `fd75c67`; .8/.9 after the merge, unreviewed); M64.10 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
 the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
 shot showed NO spotlight (the display test measured `696 → 696` outside the cut-out). The verb now composites a live
@@ -382,12 +382,24 @@ for the display test and skill edit.
   that drew chart B and then refreshed chart A gets "'graph:note:1' is not on the selected graph". Either the
   refusal should name the selected graph and the ones that DO have the target, or the vocabulary should let a
   target name its graph (`graph:<name>:note:<n>`). Decide with M64.9; it is the same vocabulary edit.
-- [M64.9] ☐ **Rename the `coverage` target to `topology:verdict`** (both reviews, 2026-09-17; AFTER the merge, in the
-  same skill edit and re-pin as M64.8) — it lights the Topology tab's PAIRING line ("fits this log 5/5"), not a
+- [M64.9] ☑ **`coverage` → `topology:verdict` — DONE 2026-09-17 on main, in the same skill edit and re-pin as M64.8**
+  (rename, no alias: `coverage` as a TARGET is now an unknown name answered with the vocabulary; the `coverage` VERB
+  is untouched. Vocabulary, `SpotlightVocabulary.TEXT`, parser, frame, guided-start's one line, user guide, CHANGELOG,
+  spec D-SP2, `capture-docs.py`, the jar script.) _As recorded before it was done:_ (both reviews, 2026-09-17; AFTER
+  the merge, in the same skill edit and re-pin as M64.8) — it lights the Topology tab's PAIRING line ("fits this log 5/5"), not a
   coverage gap; the name misled its own author into a false caption (report_m64_6 §2). The guided-start skill names
   the target, so the vocabulary, `SpotlightVocabulary.TEXT`, the skill and the index pin move together. Unreleased:
   rename, no alias. Not done on the branch by owner instruction — no skill is touched there.
-- [M64.8] ☐ **A runbook that finds a fault class ends in a spotlight** (owner direction 2026-09-17; spec ▸ M64.8) —
+- [M64.8] ☑ **DONE 2026-09-17 on main: `docs/skills/common/point-at-the-fault/SKILL.md`** — the SHAPE (state the fault
+  as checkable → find with `series`/`aggregate`/`coverage` → confirm with `read` → `spotlight` the matched targets as
+  one numbered call → `flag` to make it last), the two safety rules verbatim from the spec, what a caption may and may
+  not say, and a worked example on the demo series log with BOTH outcomes — found (record 15, liveOrders 2 = limit 2)
+  and found-nothing (lights nothing). Degrades on an analyser without the verb, so `x-analyser-min-version` stays
+  1.12.0. In `m19-skills/2` ▸ `common`, so the SELECTION grew by one for every template — additive, same contract.
+  **Every number in it was checked on the jar and is now REPLAYED by `tools/verify-m64-spotlight.py`** (a skill's
+  example must not rot). **STILL THE OWNER'S:** re-vendor into the playground starter (`scripts/vendor-skills.mjs` in
+  the playground repo) — nothing in this repo can do it — and try it on a context-free client.
+  _As recorded before it was built:_ **A runbook that finds a fault class ends in a spotlight** (owner direction 2026-09-17; spec ▸ M64.8) —
   one canonical skill under `docs/skills/common` showing the shape (filter to the fault class → confirm with `read` →
   `spotlight` the matched target, caption built from the match; not finding it lights nothing), pinned (two commits)
   and vendored into the playground starter. After the merge: it is a third skill edit and re-pin.
@@ -1063,8 +1075,8 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
 **ITEMS 1–4 ARE ON MAIN — merged 2026-09-17 as `16acfc1..fd75c67`** (local rebase onto M65, fast-forward; two review
 rounds and a re-review by two readers; the whole record, and the map from every as-reviewed SHA to its commit on main,
 is [`docs/handoff/completed/sha-map_m46_closure_branch.txt`](../handoff/completed/sha-map_m46_closure_branch.txt)).
-They ship together as **1.14.0 — no 1.13.3** (Decisions). **BETWEEN MAIN AND 1.14.0:** (a) M64.8 + M64.9 — one skill
-edit, one re-pin; (b) one ☐ in the ledger — the answers to the re-review's R4/R5/R6 (`442582f`) reached main
+They ship together as **1.14.0 — no 1.13.3** (Decisions). **BETWEEN MAIN AND 1.14.0:** (a) ~~M64.8 + M64.9~~ DONE on
+main the same day — one skill edit, one re-pin; the playground re-vendor of the new skill is the owner's; (b) one ☐ in the ledger — the answers to the re-review's R4/R5/R6 (`442582f`) reached main
 unreviewed; (c) the person-at-the-screen checks, which nobody but the owner can do: *File ▸ Close log* during a slow
 FIRST load · click, and Escape with focus in a component that consumes Escape (an open combo, the search-history
 popup), while SEVERAL spotlights are lit · *AI ▸ Posture*, *Place mode-selector record…*, *Clear record* · the
@@ -1085,7 +1097,7 @@ gating: the valid `add` + `detail:node` end-to-end scenario, callout arrow routi
    canvas state — `context.handoff`, `open {posture | record}`, *AI ▸ Posture*, a Project-panel row. It unblocks
    the dev-harness loop (M48.10). It was a verb of its own for a day; **folded into `open` by owner decision
    2026-09-17** after the second review (Decisions), so it adds no tool.
-4. ◧ **M64 Spotlight** — M64.1–.7 **ON MAIN** (`11a3497`, `dbd81b7`, `a491705`, `f242bd9`, `442582f`); M64.8/.9 gate 1.14.0
+4. ◧ **M64 Spotlight** — M64.1–.7 **ON MAIN** (`11a3497`, `dbd81b7`, `a491705`, `f242bd9`, `442582f`); M64.8/.9 done on main after the merge
    (`docs/handoff/completed/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
    result in normal use. The fifteenth verb (the only one added); the screenshot now composites the overlay (the spec assumed it already did).
 5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The

@@ -163,7 +163,8 @@ their numbers — the chat that named them has already been read). A set is **al
 does not exist, or two that cannot be on screen together, refuses the whole call with the reason.
 
 The targets are a small fixed vocabulary, named as you would say them — `tab:topology`,
-`records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `coverage`, `graph`,
+`records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `topology:verdict` (the line where the
+analyser states how the graph fits the log), `graph`,
 `graph:note:2`, `graph:series:<label>`, `project:log`, `toolbar:flag`, `status`. A target that is off
 screen is brought on screen first (its tab selected, its row scrolled to — a filtered-out record is
 revealed the way `goto` reveals one — its node centred); one that does not exist is **refused with the

@@ -12,7 +12,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   thing out, and draws a short caption with an arrow to it — so when an assistant explains a result it can
   light the record, the node's lines in the detail, the node on the graph, a numbered note on a chart or a
   series in its legend, rather than describing where to look. Targets are a small fixed vocabulary named as
-  you would say them (`tab:topology`, `records:row:12`, `detail:node:<id>`, `topology:node:<id>`, `coverage`,
+  you would say them (`tab:topology`, `records:row:12`, `detail:node:<id>`, `topology:node:<id>`, `topology:verdict`,
   `graph:note:2`, `graph:series:<label>`, `project:log`, `toolbar:flag`, `status`). A target that is off screen
   is brought on screen first — a filtered-out record is revealed the way `goto` reveals one — and one that
   does not exist is refused with the reason, never lit on nothing. A chart series is named by its **exact**
@@ -23,6 +23,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   Escape, `{clear: true}` or any action that changes the view, and nothing about one is ever saved. The
   guided-start skill now spotlights before each beat speaks. **MCP clients see 15 tools** — `analyser_spotlight`
   is the new one.
+- **A runbook that finds a fault now ends in "here it is".** A new skill ships with the analyser,
+  `point-at-the-fault` (*AI ▸ Find skills…*, and in every generated starter once the playground re-vendors): the
+  shape of a runbook that checks a log for ONE class of fault — state it as something checkable, let the analyser
+  scan for it, confirm it on the record, then light the record and the node that reported it, with a caption quoted
+  from the match. Its two rules are the point: the pointer follows the evidence, never the script; and finding
+  nothing is a result — it says what it checked and lights nothing. Its worked example runs on the demo data, and
+  the release checklist replays it call for call.
 - **Several things can be lit at once, each with its own numbered callout — and assistants are now told
   when to point.** A finding is usually a relation: *this* node, *that* record, the crossing on the chart.
   `spotlight {targets: [{target, caption}, …]}` lights up to six together; they are numbered on screen and in

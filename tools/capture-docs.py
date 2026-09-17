@@ -572,7 +572,7 @@ def capture_spotlight(finish=True):
         lit = act(ep, "spotlight", {"targets": [
             {"target": "topology:node:priceListener", "caption": "every price arrives here"},
             {"target": "topology:node:spreadCalculator", "caption": "fed by 1 - declared, but silent in this run"},
-            {"target": "coverage", "caption": "the graph fits this log: all 5 nodes that logged are declared"},
+            {"target": "topology:verdict", "caption": "the graph fits this log: all 5 nodes that logged are declared"},
             {"target": "records:row:3", "caption": "the cycle on screen: read its node list"}]})
         if len((lit.get("spotlight") or {}).get("lit", [])) != 4:
             sys.exit("the four-callout scene did not light whole: %s" % lit)

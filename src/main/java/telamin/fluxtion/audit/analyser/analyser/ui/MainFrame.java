@@ -1825,7 +1825,7 @@ public final class MainFrame extends JFrame {
             switch (t.family()) {
                 case TAB -> selectSideTab(t.argument());
                 case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> selectSideTab("graph");
-                case TOPOLOGY, COVERAGE -> selectSideTab("topology");
+                case TOPOLOGY, TOPOLOGY_VERDICT -> selectSideTab("topology");
                 case TOPOLOGY_NODE -> {
                     selectSideTab("topology");
                     var canvas = topologyPanel.canvas();
@@ -1869,7 +1869,7 @@ public final class MainFrame extends JFrame {
                     yield at == null ? java.util.Optional.empty()
                             : inOverlay(canvas, at.intersection(canvas.getVisibleRect()));
                 }
-                case COVERAGE -> visiblePart(topologyPanel.statusComponent());
+                case TOPOLOGY_VERDICT -> visiblePart(topologyPanel.statusComponent());
                 case GRAPH -> {
                     GraphPanel g = selectedGraphPanel();
                     yield g == null ? java.util.Optional.empty()
@@ -1907,7 +1907,7 @@ public final class MainFrame extends JFrame {
                         : "record " + t.argument() + " is not in the table — it is out of range, or still filtered out";
                 case DETAIL_NODE -> "'" + t.argument() + "' has no block in the record detail — select a record in "
                         + "which it logged (records:row:<n>), and use the Logical view";
-                case TOPOLOGY, TOPOLOGY_NODE, COVERAGE -> !topologyPanel.hasTopology()
+                case TOPOLOGY, TOPOLOGY_NODE, TOPOLOGY_VERDICT -> !topologyPanel.hasTopology()
                         ? "no topology is open — open {graphml} first"
                         : "'" + t.name() + "' is not in the graph as currently shown (it may be hidden scaffolding, or filtered by focus)";
                 case GRAPH_SERIES -> {

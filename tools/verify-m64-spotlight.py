@@ -95,7 +95,7 @@ def main():
             a.act("goto", recordIndex=15)
             for target in ("tab:summary", "tab:source", "tab:graph", "tab:reports", "tab:assistant", "tab:topology",
                            "records", "records:row:15", "detail", "detail:node:quotePublisher", "topology",
-                           "topology:node:priceListener", "coverage",
+                           "topology:node:priceListener", "topology:verdict",
                            "graph", "graph:series:quotePublisher.spread", "graph:note:1",
                            "project", "project:log", "project:graph", "project:processors", "project:roots",
                            "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow", "status"):
@@ -142,7 +142,7 @@ def main():
             r = a.act("spotlight", targets=[
                 {"target": "topology:node:priceListener", "caption": "every price arrives here"},
                 {"target": "topology:node:quotePublisher", "caption": "and leaves here"},
-                {"target": "coverage", "caption": "the verdict"},
+                {"target": "topology:verdict", "caption": "the verdict"},
                 "records:row:15"])
             check("four things on screen together light as ONE call, every one with an area",
                   lit(r) and len(items(r)) == 4 and area(r) > 0, r)
@@ -227,6 +227,33 @@ def main():
             a.act("spotlight", targets=["status", "records"])
             a.act("goto", recordIndex=2)
             check("a view-changing verb puts ALL of them out", "spotlight" not in a.settled_context(), a.context().get("spotlight"))
+
+            print("the point-at-the-fault skill's WORKED EXAMPLE, call for call - a skill's numbers must not rot (M64.8)")
+            a.act("filter", text="")
+            r = a.act("series", expr="riskMonitor.liveOrders", crossings={"above": 1})
+            res = r.get("result") or {}
+            events = (res.get("crossings") or {}).get("aboveEvents") or []
+            check("series finds ONE crossing above 1: record 15, value 2, over 160 points",
+                  res.get("points") == 160 and [(e.get("recordIndex"), e.get("value")) for e in events] == [(15, 2.0)], r)
+            r = a.act("read", recordIndex=15, count=1, fields=["riskMonitor.*"])
+            vals = ((r.get("result") or {}).get("records") or [{}])[0].get("values") or {}
+            check("and the record bears the claim out: liveOrders 2, limit 2",
+                  vals.get("riskMonitor.liveOrders") == "2" and vals.get("riskMonitor.limit") == "2", vals)
+            r = a.act("spotlight", targets=[
+                {"target": "records:row:15", "caption": "liveOrders 2 = limit 2 - first time it is reached"},
+                {"target": "topology:node:riskMonitor", "caption": "the node that reports it"}])
+            check("the evidence lights as ONE numbered call: the record and the node that reported it",
+                  lit(r) and [(i.get("n"), i.get("target")) for i in items(r)]
+                  == [(1, "records:row:15"), (2, "topology:node:riskMonitor")], r)
+            r = a.act("flag", recordIndexes=[15], note="live orders reached the risk limit (2 = 2)",
+                      fix="riskMonitor.limit - is 2 the intended cap?")
+            check("and flagging it (note + fix) leaves the spotlights lit - flag changes no view",
+                  r.get("ok") is True and len(items(a.context())) == 2, r)
+            r = a.act("series", expr="riskMonitor.liveOrders", crossings={"above": 99})
+            res = r.get("result") or {}
+            check("the SAME runbook finding nothing: no crossings above 99, max 6 - and then it lights nothing",
+                  ((res.get("crossings") or {}).get("aboveEvents")) == [] and (res.get("stats") or {}).get("max") == 6.0, r)
+            a.act("spotlight", clear=True)
 
             print("a label must name exactly ONE series (re-review R4)")
             csv = os.path.join(exchange, "x.csv")

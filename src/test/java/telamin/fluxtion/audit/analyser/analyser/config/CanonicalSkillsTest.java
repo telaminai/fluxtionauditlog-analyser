@@ -30,7 +30,7 @@ class CanonicalSkillsTest {
     void exactlyTheCanonicalSkillsAreDiscoverableWithRequiredFrontmatter() throws Exception {
         SkillDiscovery.Found found = SkillDiscovery.find(ROOT, Map.of());
         assertEquals(Set.of("load-audit-log", "replay-a-run", "run-embedded", "run-mongoose-server",
-                        "add-a-node", "guided-start"),
+                        "add-a-node", "guided-start", "point-at-the-fault"),
                 found.candidates().stream().map(SkillDiscovery.Candidate::name).collect(Collectors.toSet()));
         assertFalse(found.truncated());
         for (SkillDiscovery.Candidate skill : found.candidates()) {

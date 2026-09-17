@@ -32,7 +32,13 @@ public record SpotlightTarget(Family family, String argument, String name) {
         DETAIL_NODE("detail:node:<instanceId>", true),
         TOPOLOGY("topology", false),
         TOPOLOGY_NODE("topology:node:<instanceId>", true),
-        COVERAGE("coverage", false),
+        /**
+         * The Topology tab's own verdict line — where the analyser states how the graph FITS the log ("fits this
+         * log 5/5"). It was called {@code coverage} until M64.9: it lights the PAIRING verdict, not a coverage
+         * gap, and the name misled its own author into captioning it "coverage is not complete" over a line that
+         * read 5/5. Renamed before the verb's first release, so there is no alias to carry.
+         */
+        TOPOLOGY_VERDICT("topology:verdict", false),
         GRAPH("graph", false),
         GRAPH_NOTE("graph:note:<n>", true),
         GRAPH_SERIES("graph:series:<label>", true),
@@ -86,12 +92,12 @@ public record SpotlightTarget(Family family, String argument, String name) {
             case "tab" -> member(Family.TAB, rest, TABS, name);
             case "toolbar" -> member(Family.TOOLBAR, rest, TOOLBAR_BUTTONS, name);
             case "status" -> bare(Family.STATUS, rest, name);
-            case "coverage" -> bare(Family.COVERAGE, rest, name);
             case "records" -> rest == null ? ok(Family.RECORDS, null, name)
                     : sub(rest, "row", Family.RECORDS_ROW, name, true);
             case "detail" -> rest == null ? ok(Family.DETAIL, null, name)
                     : sub(rest, "node", Family.DETAIL_NODE, name, false);
             case "topology" -> rest == null ? ok(Family.TOPOLOGY, null, name)
+                    : rest.trim().equalsIgnoreCase("verdict") ? ok(Family.TOPOLOGY_VERDICT, null, name)
                     : sub(rest, "node", Family.TOPOLOGY_NODE, name, false);
             case "graph" -> {
                 if (rest == null) yield ok(Family.GRAPH, null, name);

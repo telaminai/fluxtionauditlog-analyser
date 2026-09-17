@@ -108,7 +108,8 @@ On the demo above this reports **6 declared, 5 covered, 1 uncovered**. Let them 
 
 **Spotlight it, then speak:** light the node that never logged — the echo's `neverLogged` names it —
 with `analyser_spotlight {"target": "topology:node:<that instanceId>", "caption": "declared, and silent in this run"}`.
-`coverage` lights the Topology tab's own verdict line instead, if the sentence you want is the pairing one.
+`topology:verdict` lights the Topology tab's own verdict line instead — where the analyser states how the graph
+fits the log — if the sentence you want is the pairing one.
 
 Then the point:
 

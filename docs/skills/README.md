@@ -15,7 +15,7 @@ it in `context.runbooks[]`, so a model can pick the right one without opening al
 
 | Directory | When it is selected |
 |---|---|
-| `common/` | **always** — any Fluxtion processor writing an audit log |
+| `common/` | **always** — any Fluxtion processor writing an audit log: `load-audit-log`, `guided-start` (the tour), `point-at-the-fault` (the SHAPE of a fault-finding runbook that ends by spotlighting the evidence it matched — the one a project's own runbooks copy; M64.8) |
 | `mongoose/` | the processor is hosted by a Mongoose server |
 | `embedded/` | the processor runs in-process via `DataFlowConnector` |
 | `spring/` | the graph is authored as Spring XML and compiled ahead of time |

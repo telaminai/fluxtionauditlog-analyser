@@ -38,7 +38,7 @@ public final class SpotlightVocabulary {
 
     public static final String TEXT =
             "tab:<summary|source|graph|topology|reports|assistant> · records · records:row:<recordIndex> · "
-                    + "detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · coverage · "
+                    + "detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · "
                     + "graph · graph:note:<n> · graph:series:<label> · project · "
                     + "project:<log|graph|processors|roots> · toolbar:<open|flag|explain|follow> · status";
 }

@@ -53,7 +53,7 @@ class SpotlightTargetTest {
     @ValueSource(strings = {
             "tab:summary", "tab:source", "tab:graph", "tab:topology", "tab:reports", "tab:assistant",
             "records", "records:row:12", "detail", "detail:node:priceListener",
-            "topology", "topology:node:priceListener", "coverage",
+            "topology", "topology:node:priceListener", "topology:verdict",
             "graph", "graph:note:2", "graph:series:quotePublisher.spread",
             "project", "project:log", "project:graph", "project:processors", "project:roots",
             "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow", "status"})
@@ -71,7 +71,7 @@ class SpotlightTargetTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"tab:topology", "records:row:12", "detail:node:priceListener",
-            "topology:node:priceListener", "coverage", "graph:note:2", "graph:series:spread", "project:log",
+            "topology:node:priceListener", "topology:verdict", "graph:note:2", "graph:series:spread", "project:log",
             "toolbar:flag", "status"})
     void aTargetTheSurfaceCannotShowIsNOT_VISIBLE_withTheSurfacesReason_neverASpotlightOnNothing(String name) {
         SpotlightTarget.Resolution r = SpotlightTarget.resolve(name, new FakeSurface());
@@ -93,7 +93,7 @@ class SpotlightTargetTest {
     @ParameterizedTest
     @ValueSource(strings = {"topolgy", "tab:topolgy", "tab", "tab:", "records:row", "records:row:abc", "records:row:-1",
             "records:col:3", "topology:node:", "graph:note:two", "graph:legend:x", "project:reports", "toolbar:next",
-            "status:line", "coverage:panel", ""})
+            "status:line", "coverage", "coverage:panel", "topology:verdict:line", "topology:verdicts", ""})
     void aMisspeltOrMalformedTargetIsUNKNOWN_namesTheVocabulary_andNeverTouchesTheSurface(String name) {
         FakeSurface surface = new FakeSurface();
 

@@ -57,7 +57,7 @@ and is taken only when a runbook beat is written that must point outside the fra
 | `records` · `records:row:<recordIndex>` | the records table; one row (revealed first, as `goto` does) | beat 1 — "the order in the list IS the order it ran" |
 | `detail` · `detail:node:<instanceId>` | the record detail; one node's block in the logical view | beat 1 — "one record's node list" |
 | `topology` · `topology:node:<instanceId>` | the canvas; one node's box (the canvas already knows its bounds) | beats 1 and 2 — the graph, then a node that never ran |
-| `coverage` | the coverage panel/verdict | beat 2 |
+| `topology:verdict` _(was `coverage` until M64.9)_ | the Topology tab's own verdict line — how the graph FITS the log | beat 2 |
 | `graph` · `graph:note:<n>` · `graph:series:<label>` | the chart; a numbered note's rule; a series' legend entry | beat 3 |
 | `project` · `project:<row>` | the Project panel; one of its rows (log, graph, processors, roots) | "what is in force" |
 | `toolbar:<open\|flag\|explain\|follow>` · `status` | a toolbar button; the status line | the pairing verdict lives in the status line |
@@ -221,11 +221,13 @@ change if the answer is different.
   the built jar; seen red with "first match" put back.
 - **Numbers are a high-water mark** (M64.6 F1) and **a call is validated WHOLE before any reveal** (M64.6 F2) — see
   D-SP6, amended in place below its bullets.
-- **NOT changed here: the `coverage` target's name.** Both reviews say it misleads (it lights the PAIRING line), and
-  they are right. It is tracker M64.9, after the merge, with M64.8 — the guided-start skill names the target, and
-  no skill is touched on this branch.
+- **The `coverage` target is now `topology:verdict`** (M64.9, done on main after the merge, in the same skill edit
+  and re-pin as M64.8). Both reviews said the old name misled — it lights the PAIRING line ("fits this log 5/5"), not a
+  coverage gap — and its own author had proved it, captioning that line "coverage is not complete". Renamed before
+  the verb's first release, so there is NO alias: `coverage` as a target is now an unknown name that is answered
+  with the vocabulary. (`coverage` the VERB is untouched.)
 
-## M64.8 — a runbook that finds a fault class ends in a spotlight (owner direction 2026-09-17; not built)
+## M64.8 — a runbook that finds a fault class ends in a spotlight (owner direction 2026-09-17; BUILT the same day, on main: `docs/skills/common/point-at-the-fault/SKILL.md`)
 
 The strongest use of the verb is not the tutor but the **runbook**: a runbook written to find one class of fault
 walks the log, and when it finds the fault it spotlights the evidence — the row, node or series it matched — with a
@@ -248,7 +250,12 @@ Two rules make the pattern safe in front of someone who cannot tell a demo from 
 so every generated template project carries it. A project's own runbooks (which the profile only points at, M38.1) are
 where authors apply the shape to their own fault class; the skill is what they copy.
 
-**Not this branch.** It is a third skill edit and re-pin; it follows the merge, not precedes it.
+**Not the feature branch.** It followed the merge, as one skill edit and one re-pin together with M64.9's rename.
+**As built:** the skill is named for when to reach for it (`point-at-the-fault`), not for the pattern. The two rules
+above are in it nearly verbatim, and a third section the rules imply — *what a caption may and may not say* — came
+from this work's own mistake (a caption that contradicted the line it pointed at). Its worked example shows BOTH
+outcomes on the demo data, and `tools/verify-m64-spotlight.py` replays it call for call, because a skill whose numbers
+have rotted teaches the opposite of rule 1. The playground re-vendor is the owner's and is not done.
 
 ## As built (2026-09-17)
 
@@ -276,8 +283,8 @@ go away. What ends a spotlight is ONE list, `SpotlightTarget.VIEW_CHANGING_VERBS
 (`ActionExecutor.render`) before the verb runs — so the spec's mutation check holds literally: remove `goto` from it
 and exactly `gotoPutsItOut` goes red.
 
-**What each target resolves to, where the spec left room.** `coverage` lights the Topology tab's own status line —
-that is where the pairing/coverage verdict is stated for a person; there is no separate coverage panel.
+**What each target resolves to, where the spec left room.** `topology:verdict` (first built as `coverage`) lights the
+Topology tab's own status line — that is where the pairing verdict is stated for a person; there is no coverage panel.
 `project:<row>` lights a SECTION of the Project panel (*Audit log*, *Graph*, *Event processors*, *Source roots*).
 `graph:note:<n>` uses the number printed on the note's pin, by walking the same column map the chart paints from.
 `records:row:<n>` reveals a filtered-out record through `goto`'s own reveal path, called directly — the public verb
