@@ -5,7 +5,11 @@
 folded in, plus C3 the author raised from the reviewer's *"did not check"* list. Pass 2
 ([review](../handoff/review_spec_m65_pass2_2026-09-17.md), CONDITIONAL): every new claim verified; C4 (the slider echo
 already resets an unpinned view on every growing tick, so D-F7's hold was defeated before extraction ran) and C5 (one
-tail rule, not two) plus four follow-ups, all folded in below. Owner question: *"what is the
+tail rule, not two) plus four follow-ups, all folded in below. Pass 3
+([review](../handoff/review_spec_m65_pass3_2026-09-17.md), **READY WITH FOLLOW-UPS — no further spec review**):
+four wording follow-ups folded in below (F1 the capture order and the view's surface, F2 the empty-before case, F3
+programmatic ranges under D-F8, F4 where the seam lives). **IN PROGRESS** on branch `feat/m65-follow-refreshes-graphs`.
+Owner question: *"what is the
 lowest overhead way of forcing the graph redraw? should we add something to the plot verb to redraw for new log
 entries?"* **Tracker:** [tracker.md](tracker.md) ▸ M65.
 **Related:** M6 graphing (the extraction cache and the time-slider-never-re-parses rule this spec must keep),
@@ -157,9 +161,17 @@ moment follow drives extraction. The verb's contract is *"define the graph"*; fr
    interface returning a live view over `size()` — so `MappedLogStore`, `RolledLogStore` and `SpiLogStore` are
    untouched (pass-2 F2) — and `HeapLogStore` overrides it with a locked capture, taken once per walk, of `size`,
    the `file` reference **and the `offset`/`length` arrays** (the index's existing `synchronized snapshot()` is the
-   shape but carries `offset` without `length`; `rawText(row)` needs both). The extractor iterates to the captured
-   size only. Rows below it are fully written by the lock's happens-before; a stale array reference still holds
-   them because copy-on-grow preserves prefixes. `SeriesExtractor`'s four `store.size()` loops take the view.
+   shape but carries `offset` without `length`; `rawText(row)` needs both). **Capture order** (pass-3 F1): `size`
+   and the arrays are read **under the index lock** (a new `synchronized` method on `LogIndex`, since they are its
+   privates); **`file` is read after the lock is released** — it is a `HeapLogStore` field the writer swaps
+   outside the lock, and the writer's order is `file = full` (volatile) → `add(k)` (lock), so a reader that saw row
+   *k* under the lock sees a `file` that contains it. Reading `file` *before* the lock would pair an old string
+   with a new size — the C1 race again. **The view's surface**: the walk calls `view.record(row)` / `view.rawText(row)`
+   served from the captured arrays and string; a walk that still called `store.record(row)` would read the live
+   arrays unsynchronised, which is the race part 2 exists to close. The extractor iterates to the captured size
+   only. Rows below it are fully written by the lock's happens-before; a stale array reference still holds them
+   because copy-on-grow preserves prefixes. `SeriesExtractor`'s four `store.size()` loops take the view, and so
+   does `MarkerExtractor`, which rides the same extraction pass.
 
 Pinned by a test that appends while a walker is mid-log (a latch inside a test extractor, or a store spy that
 appends on the Nth `record(row)` call) and asserts the walk completes with the pre-append count and no exception.
@@ -204,6 +216,9 @@ extraction and `newMax` after it, tested in this order:
    live edge follows it;
 3. else → **hold** exactly — a person studying the middle is not disturbed.
 
+0. (before all three) the previous extraction had **no points** — no view, no `oldMin`/`oldMax` to compare
+   against — → behave as `resetView`: the first data is an extend from nothing (pass-3 F2).
+
 A re-extract whose reason is `DEFINITION` keeps today's behaviour (reset, then the filter window), because the
 person asked for a different chart. The reason rides the extraction request; **when requests coalesce (the
 structural debounce, or D-F6's `dirty` flag) the pending run's reason is `DEFINITION` if any coalesced request
@@ -218,6 +233,13 @@ resends the same `(from, to)`, no longer does. This is the local form the review
 `fireChanged` in `FilterState.setTimeRange`, because the reports panel and possibly other listeners are refreshed
 by exactly that echo on a follow tick. With D-F8 in place, D-F1's hook is the **only** thing that moves an
 unpinned view on a data tick, which is what makes D-F7's rule meaningful.
+
+**A consequence to state, not a regression** (pass-3 F3): `FilterState.setTimeRange` is also called
+programmatically — two `ActionExecutor` verbs, `SeriesScan`, and `FilterSnapshot` when a report re-issues. With the
+guard, a verb that re-sends the range the chart last applied while the person has zoomed no longer re-windows the
+chart. That is consistent with M6 — a time-only change is a view change, and the view did not change — and an
+agent that wants the window reset has Fit and the zoom verbs. It is on acceptance 4's idempotence list so nobody
+files it as a defect.
 
 ## Not in scope
 
@@ -251,9 +273,14 @@ unpinned view on a data tick, which is what makes D-F7's rule meaningful.
    (pass-2 F1). **The seam** (pass-2 F3): `GraphPanel` runs its walk through a package-private
    `extractionRunner` — default `Background::run` — that a headless test replaces with one that parks the work on
    a latch and delivers on the test thread; `GraphTabsBindIsNotAnEditTest` shows headless bind but not pool
-   control, so the seam is named here rather than invented mid-implementation.
+   control, so the seam is named here rather than invented mid-implementation. **Where it lives** (pass-3 F4):
+   `Background` is in `core`, not `ui`; the seam is a package-private functional interface in `ui` beside
+   `GraphPanel` with `Background.run`'s three-argument shape (`Supplier<T>`, `Consumer<T>`, `Consumer<Throwable>`),
+   so `core` is unchanged.
 4. **Test — verb idempotence**: `graph {series:[k]}` twice → `refreshed: false` on the second; the same with
-   `markers` re-sent unchanged; with `refresh: true` → `refreshed: "scheduled"` and the generation advanced.
+   `markers` re-sent unchanged; with `refresh: true` → `refreshed: "scheduled"` and the generation advanced; and a
+   time-only `filter` re-sent with the range the chart last applied leaves a zoomed chart's view where it was
+   (D-F8, pass-3 F3).
 5. **Manual — the bundle loop**: with the audit-analyser-bundle running and follow on, append a CSV row and run
    `./export-audit.sh`; the open graph shows the new point within ~1.2 s (poll + debounce) without touching it,
    and a zoomed-in graph keeps its zoom. Screenshot before/after via the `screenshot` verb.
@@ -292,3 +319,7 @@ judged.
 | F2 read view on the `LogStore` interface; carry `length` | pass 2 | D-F0 part 2 |
 | F3 name the pool seam | pass 2 | acceptance 3 |
 | F4 the hook is the only mover of an unpinned view on a data tick | pass 2 | Q1 preconditions; D-F8 |
+| F1 capture order (size + arrays under the lock, `file` after) and the view serves `record(row)` | pass 3 | D-F0 part 2 |
+| F2 empty-before → behave as `resetView` | pass 3 | D-F7 rule 0 |
+| F3 D-F8 also silences identical programmatic ranges | pass 3 | D-F8 consequence; acceptance 4 |
+| F4 the seam lives in `ui`, `core` unchanged | pass 3 | acceptance 3 |

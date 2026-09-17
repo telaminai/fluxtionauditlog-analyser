@@ -349,7 +349,7 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
-## M65 · Follow refreshes open graphs — ☐ READY TO IMPLEMENT 2026-09-17 · three review passes, pass 3 READY WITH FOLLOW-UPS
+## M65 · Follow refreshes open graphs — ◧ IN PROGRESS 2026-09-17 on `feat/m65-follow-refreshes-graphs` · three review passes, pass 3 READY WITH FOLLOW-UPS (folded in)
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
@@ -378,10 +378,10 @@ READY WITH FOLLOW-UPS — F1 (required, implementer applies) the read view reads
 `file` *after* it, and serves `record(row)` itself; F2 empty-before lands as reset; F3 D-F8 also silences identical
 programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argument shape. **Known stale under follow, out of scope here: reports and coverage.** About two days.
 
-- [M65.0] ☐ **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
+- [M65.0] ◧ **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
   default overridden by `HeapLogStore` (size + file + offset/length under the index lock); `SeriesExtractor` walks
   to the captured size; concurrent-append test.
-- [M65.1] ☐ **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
+- [M65.1] ◧ **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
   D-F6 in-flight coalescing, D-F7 extend/slide/hold + DEFINITION-wins reason merge, and D-F8 `lastFrom`/`lastTo`
   echo guard; `ui/FollowRefreshesGraphTest` drives the tick as `pollFollow` does (append, `extendAbsMax`, hook)
   in four variants, each waiting for the generation to land; coalescing + reason-merge test through the
