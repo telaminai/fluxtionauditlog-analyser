@@ -80,8 +80,26 @@ class InProcessManifestNamesEveryVerbTest {
      * {@code : , } ] | = (}. Prose words are followed by other words.
      */
     static boolean declared(String section, String param) {
-        return Pattern.compile("(?<![A-Za-z.])" + Pattern.quote(param) + "(?:\\?|\\[\\]|\\s*[:,}\\]|=(])")
-                .matcher(section).find();
+        // Second hole (ledger review 2026-09-17, F1): prose can use the notation too — "reveal:true relaxes …"
+        // declared goto.reveal after `reveal?` was deleted from its argument list. So a declaration is the name
+        // INSIDE a brace group: the {…} forms are the argument lists, and prose between them is not.
+        Pattern name = Pattern.compile("(?<![A-Za-z.])" + Pattern.quote(param) + "(?![A-Za-z])");
+        for (String group : braceGroups(section)) {
+            if (name.matcher(group).find()) return true;
+        }
+        return false;
+    }
+
+    /** Every top-level {@code {…}} group in the section, nested braces included in their group. */
+    static List<String> braceGroups(String section) {
+        List<String> out = new ArrayList<>();
+        int depth = 0, start = -1;
+        for (int i = 0; i < section.length(); i++) {
+            char c = section.charAt(i);
+            if (c == '{') { if (depth++ == 0) start = i; }
+            else if (c == '}' && depth > 0 && --depth == 0) out.add(section.substring(start, i + 1));
+        }
+        return out;
     }
 
     @Test
@@ -93,6 +111,18 @@ class InProcessManifestNamesEveryVerbTest {
         assertTrue(declared("  read {recordIndex | byteOffset (+ file? on a rolled set) | at (epoch ms)}", "at"));
         assertTrue(declared("  x {a, b} -> first sentence.", "b"), "the derived lines' form: {a, b}");
         assertFalse(declared("  flag {note?} -> what you found and a fix to try", "fix"));
+    }
+
+    @Test
+    void proseInTheNotationIsNotADeclarationEither_theSecondCounterexample() {
+        // ledger review F1: with `reveal?` deleted from goto's list, "reveal:true relaxes …" still passed the
+        // followed-by-a-colon form. Only the brace groups are argument lists.
+        String prose = "  goto   {recordIndex | at (epoch ms)} -> selects the record; reveal:true relaxes the filter";
+        assertFalse(declared(prose, "reveal"), "'reveal:' in prose is not an argument list");
+        assertTrue(declared("  goto   {recordIndex | at (epoch ms), reveal?} -> selects; reveal:true relaxes", "reveal"));
+        assertTrue(declared("  open   {posture: research|authoring|derived} or {record: {branch, modes[]}} -> …", "modes"),
+                "a name inside a nested group counts");
+        assertEquals(List.of("{a, b}", "{c: {d}}"), braceGroups("x {a, b} prose {c: {d}} tail"));
     }
 
     @Test

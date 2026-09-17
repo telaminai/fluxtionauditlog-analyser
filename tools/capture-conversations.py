@@ -319,7 +319,16 @@ def main():
     PAGE.write_text("\n".join(t.lines).rstrip() + "\n")
     print(f"wrote {PAGE.relative_to(REPO)} ({len(t.lines)} lines); shots: {len(cd._captured)}")
     if cd._failed:
-        sys.exit(f"captures failed: {cd._failed}")
+        # TWO signals, not one (tracker M46.11; release-process §4.0): the scenarios all completed — every verb
+        # answered and every cited claim was found, or we would have exited above — so the pre-release
+        # checklist's "all five scenarios must complete" line is MET. What did not happen is the native image
+        # capture, which needs macOS Screen Recording for the terminal. That is a warning on a machine without
+        # the grant, and a failure only when the caller asked for the images (--require-images).
+        print(f"WARNING: {len(cd._failed)} image(s) NOT regenerated (no native capture available): {cd._failed}\n"
+              "         the transcript was written and every scenario completed; grant Screen Recording to this "
+              "terminal and re-run to regenerate the images before committing docs", file=sys.stderr)
+        if "--require-images" in sys.argv:
+            sys.exit(3)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **`graph` given the same `external` label twice in one call now draws one series, not two.** `external` is
+  replace-by-label, but one call carrying a label twice drew two identical legend rows — which a spotlight then
+  rightly refused to point at. The later entry applies and the echo's `warnings` says so.
+
 ## [1.14.1] - 2026-09-17
 
 ### Changed

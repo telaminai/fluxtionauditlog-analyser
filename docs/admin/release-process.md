@@ -106,9 +106,10 @@ over the action socket with a hard per-call timeout, and exits non-zero on any f
 - [ ] `python3 tools/verify-m64-spotlight.py` — every spotlight target, sets, refusals that touch nothing
 - [ ] `python3 tools/capture-conversations.py` — all five scenarios must complete. It rewrites
       `docs/site/sample-conversations.md` and five `conv-*.png`: **read** the diff and the images (CLAUDE.md
-      rule 1) and commit them only if the content changed; restore them otherwise. Needs macOS Screen Recording
-      permission for the terminal — without it the scenarios still run but the script exits 1 for the missing
-      images (tracker: make those two separate signals).
+      rule 1) and commit them only if the content changed; restore them otherwise. Two signals: exit 0 means every
+      scenario completed (this line is met); a `WARNING: … image(s) NOT regenerated` on stderr means the terminal
+      lacks macOS Screen Recording permission, so the images could not be captured — grant it and re-run before
+      committing docs (`--require-images` makes that a failure, exit 3, for a machine that should have the grant).
 - [ ] CLAUDE.md rule 1's two checks: `git config user.email` is the personal address, and
       `git log --format='%ae' | sort | uniq -c` shows no new employer-domain commits.
 - [ ] The person-at-the-screen items the tracker lists as open for this release. No script substitutes for them.

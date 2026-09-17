@@ -397,6 +397,15 @@ public final class ActionExecutor implements RenderExecutor {
                             resolved.path(), new telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.Spec(
                                     label, spec.time(), spec.timeFormat(), spec.zone(), spec.value(),
                                     spec.offsetMillis()));
+                    if (externalLoaded.containsKey(label)) {
+                        // ledger review F2: external is replace-by-label, and one call carrying the same label twice
+                        // drew TWO identical legend rows — which the spotlight then rightly refused to point at.
+                        // The later entry applies, and the echo says so.
+                        externalSpecs.removeIf(earlier -> label.equals(earlier.label()));
+                        externalEcho.removeIf(prev -> label.equals(prev.get("label")));
+                        externalWarnings.add("external label '" + label + "' given twice in one call — a label names ONE "
+                                + "series, so the later entry replaced the earlier");
+                    }
                     externalSpecs.add(spec);
                     externalLoaded.put(label, r.series());
                     Map<String, Object> e = new LinkedHashMap<>();
