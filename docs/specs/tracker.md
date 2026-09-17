@@ -370,7 +370,7 @@ structural debounce (D-F1); pinned graphs re-extract but keep their window (D-F2
 per M6 (D-F3); `graph` re-sends are idempotent, `refresh: true` is the one forced re-extract, echo says
 `refreshed: "scheduled"` (D-F4); full re-extract first, incremental only on measured need — noting the poll already
 re-reads and re-frames the whole file per tick (D-F5); one extraction in flight, dirty flag (D-F6); an unpinned
-view extends if it covered the whole range, slides if pressed to the live edge and the new point falls outside it, else holds; a definition change
+view moves only to reveal a point that would otherwise be hidden — hold if already visible, else extend if it covered the whole range, else slide if pressed to the live edge, else hold; a definition change
 still resets, and coalesced requests merge DEFINITION-wins (D-F7); the slider echo is inert for an unchanged window
 via `lastFrom`/`lastTo` in `onFilterChanged`, so the hook is the only mover of an unpinned view on a data tick
 (D-F8). Pass 3 [review_spec_m65_pass3_2026-09-17.md](../handoff/review_spec_m65_pass3_2026-09-17.md):
@@ -392,6 +392,11 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
   point within ~1.2 s untouched and a zoomed graph keeps its zoom; before/after via `screenshot`.
 - [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement (and the re-frame in
   `appendFrom` is the larger target if it does).
+- [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
+  machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
+- [M65.6] ☐ **Check on `main`**: `graph` answered *no log loaded* right after a command-line open while `context`
+  showed the log loaded; `open {log}` over the verb cleared it (impl review §5, observed not attributed — M65 did
+  not touch that path).
 
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,

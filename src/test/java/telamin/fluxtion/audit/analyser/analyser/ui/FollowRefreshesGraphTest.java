@@ -113,6 +113,17 @@ class FollowRefreshesGraphTest {
     }
 
     @Test
+    void aChartZoomedOutPastBothEndsHolds_thenExtendsWhenTheLiveEdgePassesIt() throws IOException {
+        Rig r = rig(INLINE);
+        r.panel.chart().setViewWindow(500L, 3500L);    // zoomed OUT: room on both sides of the data [1000, 2000]
+        r.tick(3000, 3);
+        assertEquals(3, r.points());
+        assertView(500, 3500, r.view());    // hold: the point at 3000 was already visible (impl review B1)
+        r.tick(4000, 4);                    // past the view now, and the view covered the whole old range → extend
+        assertView(500, 4000, r.view());
+    }
+
+    @Test
     void aChartWithRoomToSpareOnTheRightHolds_untilTheLiveEdgeReachesIt() throws IOException {
         Rig r = rig(INLINE);
         r.panel.chart().setViewWindow(1500L, 3500L);   // past the live edge: the next point at 3000 is already in view

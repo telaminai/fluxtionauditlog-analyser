@@ -170,7 +170,9 @@ moment follow drives extraction. The verb's contract is *"define the graph"*; fr
    served from the captured arrays and string; a walk that still called `store.record(row)` would read the live
    arrays unsynchronised, which is the race part 2 exists to close. The extractor iterates to the captured size
    only. Rows below it are fully written by the lock's happens-before; a stale array reference still holds them
-   because copy-on-grow preserves prefixes. `SeriesExtractor`'s four `store.size()` loops take the view, and so
+   because copy-on-grow preserves prefixes; and because the filter reads the LIVE index for those rows, the index's
+   row arrays are `volatile`, so a reference observed after a growth carries the prefix copied into it (impl review
+   F1 — the JMM does not otherwise guarantee that through a newly observed reference). `SeriesExtractor`'s four `store.size()` loops take the view, and so
    does `MarkerExtractor`, which rides the same extraction pass.
 
 Pinned by a test that appends while a walker is mid-log (a latch inside a test extractor, or a store spy that
@@ -205,22 +207,23 @@ machine class, with the trigger being >~50 ms per extraction **or** D-F6's dirty
 it and run once more. Two lines in each callback, one in `onRecordsAppended`. The generation check stays for
 results; this stops the work.
 
-**D-F7 — the view extends, slides, or holds — one rule.** *(C3, C5.)* On the success path of a re-extract whose
-reason is `DATA`, an unpinned chart does not `resetView()`. With `oldMin`/`oldMax` the data range before the
-extraction and `newMax` after it, tested in this order:
+**D-F7 — the view extends, slides, or holds — one rule.** *(C3, C5; restated at impl review pass 4.)* On the
+success path of a re-extract whose reason is `DATA`, an unpinned chart does not `resetView()`. With `oldMin`/`oldMax`
+the data range before the extraction and `newMax` after it, tested in this order:
 
-1. the view covered the whole data range (left edge ≤ `oldMin` **and** right edge ≥ `oldMax`) → **extend**: left
-   edge stays, right edge to `newMax` — what `resetView` would give; a person who never zoomed keeps seeing the
-   whole log;
-2. else right edge ≥ `oldMax` **and** right edge < `newMax` → **slide**: width unchanged, right edge to `newMax`
-   — a person pressed against the live edge follows it;
-3. else → **hold** exactly — a person studying the middle is not disturbed, and neither is one whose window
-   already reaches past the live edge and so already contains the new point. *(Refined after the M65.3 live proof,
-   2026-09-17: a window zoomed with room to spare on the right was slid though nothing was hidden; the owner chose
-   the hold. Pressed exactly to the old edge still slides, because the new point lands past it.)*
+0. the previous extraction had **no points** — no view, no `oldMin`/`oldMax` to compare against — → behave as
+   `resetView`: the first data is an extend from nothing (pass-3 F2);
+1. `newMax` ≤ the view's right edge → **hold**: the new point is already visible, so nothing moves. This covers a
+   view zoomed **out** past both ends of the data (impl review B1: the earlier extend rule pulled its right edge
+   back to the data on every tick) and a view reaching past the live edge (the M65.3 live proof);
+2. else the view covered the whole old range (left edge ≤ `oldMin` **and** right edge ≥ `oldMax`) → **extend**:
+   left edge stays, right edge to `newMax` — a person who never zoomed keeps seeing the whole log;
+3. else right edge ≥ `oldMax` → **slide**: width unchanged, right edge to `newMax` — a person pressed against the
+   live edge follows it;
+4. else → **hold** exactly — a person studying the middle is not disturbed.
 
-0. (before all three) the previous extraction had **no points** — no view, no `oldMin`/`oldMax` to compare
-   against — → behave as `resetView`: the first data is an extend from nothing (pass-3 F2).
+**The view moves only to reveal a point that would otherwise be hidden.** That one sentence is the rule; 1–4 are
+its cases.
 
 A re-extract whose reason is `DEFINITION` keeps today's behaviour (reset, then the filter window), because the
 person asked for a different chart. The reason rides the extraction request; **when requests coalesce (the
@@ -329,4 +332,7 @@ judged.
 | F2 empty-before → behave as `resetView` | pass 3 | D-F7 rule 0 |
 | F3 D-F8 also silences identical programmatic ranges | pass 3 | D-F8 consequence; acceptance 4 |
 | F4 the seam lives in `ui`, `core` unchanged | pass 3 | acceptance 3 |
-| slide fired when the new point was already in view | M65.3 live proof | D-F7 rule 2 gains `right edge < newMax` |
+| slide fired when the new point was already in view | M65.3 live proof | D-F7: hold when the new point is already visible (first as a rule-2 clause) |
+| B1 extend contracted a zoomed-out view | impl review pass 4 | D-F7 restated with the visibility guard in front (rule 1) |
+| F1 filter reads the live index arrays without happens-before on a grown reference | impl review pass 4 | D-F0: the `LogIndex` row arrays are `volatile` |
+| F3 a synchronous runner throw left `extracting` set | impl review pass 4 | D-F6: cleared and rethrown |

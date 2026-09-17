@@ -935,7 +935,8 @@ public final class GraphPanel extends JPanel {
                          List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markers,
                          List<String> markerNotes) { }
         extracting = true;
-        extractionRunner.run(
+        try {
+            extractionRunner.run(
                 () -> {
                     List<Series> out = new ArrayList<>();
                     for (GraphKey k : keys) out.add(SeriesExtractor.extract(s, f, k, true));   // acrossAllTime
@@ -997,16 +998,23 @@ public final class GraphPanel extends JPanel {
                     }
                 },
                 err -> finishExtraction());   // best-effort as before — but the in-flight flag must clear
+        } catch (RuntimeException rejected) {
+            // impl review F3: a SYNCHRONOUS throw from the runner (a rejected submission at shutdown) would
+            // otherwise leave `extracting` set forever and every later request would only mark `dirty`
+            extracting = false;
+            throw rejected;
+        }
     }
 
     /**
      * D-F7 — where the view lands after an extraction. A DEFINITION change, a pinned graph, or no previous
      * points (rule 0: the first data is an extend from nothing) → as before: the pinned range, else the
-     * filter's window. New DATA on an unpinned chart, tested in order: the view covered the whole old range →
-     * <b>extend</b> (left edge stays, right edge to the new maximum); its right edge was at the old maximum →
-     * AND the new maximum falls outside the view → <b>slide</b> (same width, right edge to the new maximum);
-     * otherwise <b>hold</b> exactly — including a view that reaches past the live edge and already contains
-     * the new point (M65.3 live proof: such a window was slid though nothing was hidden).
+     * filter's window. New DATA on an unpinned chart, one rule with the guard in front (impl review pass 4):
+     * the new maximum is already inside the view → <b>hold</b> (nothing was hidden, so nothing moves — a
+     * zoomed-out view is not contracted, a view past the live edge is not slid); else the view covered the whole
+     * old range → <b>extend</b> (left edge stays, right edge to the new maximum); else its right edge was at the
+     * old maximum → <b>slide</b> (same width, right edge to the new maximum); else <b>hold</b>. The view moves
+     * only to reveal a point that would otherwise be hidden.
      */
     private void landWindow(ExtractReason reason, double[] viewBefore, long[] dataBefore) {
         if (isPinned() || reason == ExtractReason.DEFINITION || viewBefore == null || dataBefore == null) {
@@ -1017,8 +1025,9 @@ public final class GraphPanel extends JPanel {
         if (dataNow == null) { applyWindow(); return; }
         long oldMin = dataBefore[0], oldMax = dataBefore[1], newMax = dataNow[1];
         double v0 = viewBefore[0], v1 = viewBefore[1];
-        if (v0 <= oldMin && v1 >= oldMax) chart.setViewWindow((long) v0, newMax);              // extend
-        else if (v1 >= oldMax && v1 < newMax) chart.setViewWindow((long) (newMax - (v1 - v0)), newMax);   // slide
+        if (newMax <= v1) chart.setViewWindow((long) v0, (long) v1);                            // hold: already visible
+        else if (v0 <= oldMin && v1 >= oldMax) chart.setViewWindow((long) v0, newMax);          // extend
+        else if (v1 >= oldMax) chart.setViewWindow((long) (newMax - (v1 - v0)), newMax);        // slide
         else chart.setViewWindow((long) v0, (long) v1);                                          // hold
     }
 

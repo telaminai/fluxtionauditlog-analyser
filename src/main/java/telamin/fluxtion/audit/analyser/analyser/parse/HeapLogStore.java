@@ -54,6 +54,10 @@ public final class HeapLogStore implements LogStore {
         // every row already indexed keeps valid offsets in the longer string, and a reader that sees a new row
         // under the index lock therefore sees a `file` that contains it. The old order (rows first, text last)
         // left a window in which a walker could read a row whose span lay past the end of the old string.
+        // If the framing below throws midway, `file` is new and the index partially extended: every indexed
+        // row still has a valid span (no reader can throw), and the unindexed tail is picked up the next time
+        // the file GROWS — a same-length re-read returns 0 above. Before, the retry was immediate but readers
+        // could throw meanwhile (impl review F2).
         this.file = full;
         // require a terminator so a record still being written isn't indexed until complete; the
         // first `before` records are byte-identical (append-only) so we skip them and add the rest

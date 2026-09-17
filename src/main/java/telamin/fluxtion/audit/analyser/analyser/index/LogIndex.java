@@ -18,22 +18,27 @@ public final class LogIndex {
 
     public static final long NO_TIME = Long.MIN_VALUE;
 
-    private long[] offset = new long[1024];
-    private int[] length = new int[1024];
-    private long[] logTime = new long[1024];
-    private long[] eventTime = new long[1024];
-    private long[] endTime = new long[1024];
-    private int[] dimId = new int[1024];
-    private int[] loggerId = new int[1024];
-    private int[] threadId = new int[1024];
-    private int[] eventId = new int[1024];
-    private int[] eventStrId = new int[1024];
-    private int[] groupingId = new int[1024];
-    private int[] callbackId = new int[1024];
-    private int[] declaringTypeId = new int[1024];
-    private int[] nodeLogsCount = new int[1024];
-    private byte[] flags = new byte[1024];
-    private byte[] fileId = new byte[1024];   // 0 for single-file stores; set by a rolled composite (M30)
+    // The row arrays are VOLATILE (M65 impl review F1): a walker on another thread reads them through the LIVE
+    // index for rows below a size it captured under the lock (FilterState.test via ReadView.index()). Growth
+    // swaps the reference in ensure(); without volatile a reader could observe the NEW reference with no
+    // happens-before on the prefix copied into it. A volatile store publishes the array's contents with the
+    // reference. Cost: a load-acquire per element read on AArch64, nothing on x86.
+    private volatile long[] offset = new long[1024];
+    private volatile int[] length = new int[1024];
+    private volatile long[] logTime = new long[1024];
+    private volatile long[] eventTime = new long[1024];
+    private volatile long[] endTime = new long[1024];
+    private volatile int[] dimId = new int[1024];
+    private volatile int[] loggerId = new int[1024];
+    private volatile int[] threadId = new int[1024];
+    private volatile int[] eventId = new int[1024];
+    private volatile int[] eventStrId = new int[1024];
+    private volatile int[] groupingId = new int[1024];
+    private volatile int[] callbackId = new int[1024];
+    private volatile int[] declaringTypeId = new int[1024];
+    private volatile int[] nodeLogsCount = new int[1024];
+    private volatile byte[] flags = new byte[1024];
+    private volatile byte[] fileId = new byte[1024];   // 0 for single-file stores; set by a rolled composite (M30)
     private int size = 0;
 
     /** Registered member files of a rolled set, in load order; empty for a single-file index. */
