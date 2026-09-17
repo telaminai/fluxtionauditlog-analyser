@@ -720,6 +720,15 @@ def main():
     # the saved analysis's offer — the human-facing half of context.runbooks / vocabulary / analyses
     capture(ep, "ai-runbooks-panel.png")
 
+    # M64: the spotlight, as a tutor lights it — one declared node that never logged, with the caption tagged as
+    # the assistant's words. LAST in the run and put out straight after: a spotlight left lit would be in every
+    # shot that followed, and a view-changing verb would silently clear it before its own capture.
+    act(ep, "spotlight", {"target": "topology:node:spreadCalculator",
+                          "caption": "declared in the graph, and silent in this run"})
+    time.sleep(0.6)                     # the deferred re-measure, then a repaint
+    capture(ep, "spotlight.png")
+    act(ep, "spotlight", {"clear": True})
+
     finish_capture()
 
 

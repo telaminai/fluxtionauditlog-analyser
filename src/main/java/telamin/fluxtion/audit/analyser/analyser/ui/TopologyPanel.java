@@ -540,6 +540,11 @@ public final class TopologyPanel extends JPanel {
         return canvas;
     }
 
+    /** M64: this tab's own status line — where the pairing/coverage verdict is stated, and what {@code coverage} lights. */
+    public JComponent statusComponent() {
+        return status;
+    }
+
     /** Whether a graph is loaded — asked of the graph, not of the filtered view, which can be empty. */
     public boolean hasTopology() {
         return !fullTopology.isEmpty();

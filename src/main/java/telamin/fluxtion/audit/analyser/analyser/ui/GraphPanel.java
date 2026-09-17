@@ -279,6 +279,28 @@ public final class GraphPanel extends JPanel {
         if (kept.size() != markerSpecs.size()) setMarkers(kept);
     }
 
+    /** M64: the chart this tab draws, so a spotlight can ask it where a note is. */
+    public ChartPanel chartPanel() {
+        return chart;
+    }
+
+    /**
+     * M64 — the legend entry for a series, by the label a person reads on it, or null. Matched exactly
+     * first, then as a prefix, because an external series' entry carries a "  (external)" suffix the
+     * caller has no reason to know about.
+     */
+    public java.awt.Component seriesLegendEntry(String label) {
+        if (label == null || label.isBlank()) return null;
+        java.awt.Component prefixMatch = null;
+        for (java.awt.Component c : legendLabels.getComponents()) {
+            String text = c instanceof JLabel l ? l.getText() : null;
+            if (text == null) continue;
+            if (text.equals(label)) return c;
+            if (prefixMatch == null && text.startsWith(label)) prefixMatch = c;
+        }
+        return prefixMatch;
+    }
+
     /** One overlay row: a plot-colour swatch + the full label, with a right-click "Remove". */
     private JComponent legendRow(String label, int paletteIndex) {
         JLabel l = new JLabel(label, swatch(ChartPanel.paletteColor(paletteIndex)), SwingConstants.LEFT);

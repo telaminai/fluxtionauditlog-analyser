@@ -34,11 +34,14 @@ class CloseVerbTest {
         assertFalse(VerbSchemas.all().containsKey("close"),
                 "M35.1 extends 'open' rather than adding a verb — closing is the same "
                         + "lifecycle concept, and the verb surface is a compatibility surface");
-        // 15 since M48.7. The rule this test guards is that the surface does not grow FOR A CONCEPT AN
-        // EXISTING VERB ALREADY NAMES — close, project, discover and analysis are all lifecycle acts, so
-        // they went onto `open`. `handoff` (the shared canvas's posture and selector record) is not a
-        // lifecycle act and no verb names it; putting it on `open` would be one name with two meanings.
-        assertEquals(15, VerbSchemas.all().size(),
+        // 16. The rule this test guards is that the surface does not grow FOR A CONCEPT AN EXISTING VERB
+        // ALREADY NAMES — close, project, discover and analysis are all lifecycle acts, so they went onto
+        // `open`. Two concepts since have had no verb to go on, each decided by the owner:
+        //   15  `handoff`   (M48.7)  the shared canvas's posture and selector record — not a lifecycle act,
+        //                            and `context` must stay read-only. Owner, 2026-09-17.
+        //   16  `spotlight` (M64)    POINTING at something for a person. No verb points: goto selects,
+        //                            topology selects, screenshot records. spec-spotlight.md specifies it.
+        assertEquals(16, VerbSchemas.all().size(),
                 "a new verb is a compatibility decision — if this number moved, say which concept no existing verb named");
     }
 

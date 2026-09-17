@@ -1,0 +1,131 @@
+REPORT — M64 Spotlight: an AI client can point at the thing on screen (all five slices)
+Date: 2026-09-17 · Author: the independent review session · Branch: fix/m46-agent-api-closure (piece 4 of 4)
+Base: origin/main @ 96a11ac (Release 1.13.2). Companion reports on this branch:
+report_m46_agent_api_closure.txt · report_m44_3b_close_supersedes.txt · report_m48_7_canvas_handoff.txt
+Spec: docs/specs/spec-spotlight.md — read its new "As built" section first; it records one wrong assumption.
+
+STATE: NOT YET INDEPENDENTLY REVIEWED — this is the ask. `mvn test` green · display suites green locally with
+CI's flags · `mkdocs build --strict` · sweep clean · `tools/verify-m64-spotlight.py` 47/47 on the built jar.
+
+>>> HOW TO MERGE THIS BRANCH — READ BEFORE REBASING ANYTHING
+    M64.5 edits a CANONICAL SKILL, and docs/skills/m19-skills/2/index.json pins the git REVISION that contains
+    its bytes (CanonicalSkillsTest reads that revision from history). The pin therefore names a commit ON THIS
+    BRANCH. If the branch is REBASED, that commit's SHA changes, the pinned revision stops existing on main, and
+    CanonicalSkillsTest goes red there. So: FAST-FORWARD main to this branch without rebasing the branch — local
+    main's own unpushed commits (docs/experience only, disjoint from this work) rebase on top of it instead:
+        git switch main && git rebase fix/m46-agent-api-closure && git push
+    If origin/main has moved and the branch MUST be rebased, re-pin afterwards (one small commit: the new SHA of
+    the "skills: guided-start spotlights…" commit into index.json's `revision`). This fragility is the index's
+    design, not this change's — it has bitten before — but it is sharper on a branch.
+
+================================================================================
+1. THE SPEC'S ONE WRONG ASSUMPTION — AND WHY IT MATTERS MORE THAN ANYTHING ELSE HERE
+================================================================================
+D-SP1 and D-SP5 both rest on: "`screenshot` already paints the glass pane because it captures the window the
+app painted". IT DOES NOT. The verb paints getContentPane() (or one panel for a scoped shot). The glass pane is
+a sibling of the layered pane under the root pane — part of neither. The whole verification loop the spec
+designs (spotlight → screenshot → "is it lit where I meant?") would have returned an UNDIMMED image of a window
+that was visibly dimmed on screen: the tutor would have been checking nothing, and told it had checked.
+
+Found by the display test on its first real-frame run: brightness outside the cut-out `696 → 696`. Fixed by
+compositing: SpotlightOverlay.paintOnto(g, painted), called from the screenshot verb after it paints, translated
+so the cut-out lands on the same pixels it covers on screen — for the default shot and for the scoped ones.
+MUTATION-CHECKED: remove that one call and SpotlightFrameTest goes red with exactly those numbers. The spec is
+corrected in place (rule: fix the spec too; never silently diverge).
+
+================================================================================
+2. WHAT WAS BUILT, SLICE BY SLICE
+================================================================================
+M64.1  ui/SpotlightTarget — the closed vocabulary (15 forms in 8 families), parse(), and
+       resolve(name, Surface): parse → reveal → measure → LIT | NOT_VISIBLE | UNKNOWN. `Surface` is three
+       methods (reveal, bounds, whyNotVisible); the frame implements it with Swing, the tests with a map.
+       An UNKNOWN name never touches the surface. The vocabulary text the verb schema prints
+       (llm/SpotlightVocabulary — VerbSchemas cannot depend on ui) is asserted identical to the parser's.
+M64.2  ui/SpotlightOverlay — the frame's glass pane. Dim, cut out, ring, caption, arrow; out on any mouse press
+       and on Escape. Caption styled after the topology callout and TAGGED "assistant": it is testimony (D-SP2).
+       ui/SpotlightGeometry — "the caption sits in whichever quadrant has room" as arithmetic: below, above,
+       right, left, else INSIDE the cut-out rather than off screen; always clamped into the frame.
+M64.3  The verb, along the established path (VerbSchemas → dispatcher → ActionExecutor → AppControl → frame).
+       ONE list — SpotlightTarget.VIEW_CHANGING_VERBS — applied in ONE place (ActionExecutor.render, before the
+       verb runs). `context.spotlight {target, caption}` only while lit, and ABOVE context()'s fresh-start
+       early return. SpotlightIsNeverPersistedTest checks the CODE: no package that persists anything
+       (config, report, graph, export, session) may contain the word.
+M64.4  SpotlightFrameTest — real frame, real screenshot verb, pixel-sampled: INSIDE the cut-out the image is
+       byte-identical to the unlit shot; OUTSIDE it is dimmed; `context` reports the target; a view-changing
+       verb clears it; an unknown node is refused and lights nothing. Added to ci.yml's ui-frame job in BOTH
+       places: the -Dtest list and the fail-if-skipped guard.
+M64.5  docs/skills/common/guided-start/SKILL.md — a "Point before you speak" section and one spotlight line per
+       beat. Written so a client on an analyser OLDER than the verb carries on: `x-analyser-min-version` stays
+       1.12.0 (CanonicalSkillsTest pins that line for every skill, and bumping it would fail generator version
+       gates for a verb the tour does not need). Re-pinned by the established two-commit practice.
+
+Panel accessors added, all read-only: TopologyCanvas.screenBoundsOf (+ static toScreen, tested),
+TopologyPanel.statusComponent, ChartPanel.noteBounds/plotBounds, GraphPanel.chartPanel/seriesLegendEntry,
+DetailPanel.nodeBlockBounds/revealNodeBlock, ProjectPanel.sectionBounds.
+
+================================================================================
+3. DECISIONS I TOOK WHERE THE SPEC LEFT ROOM — each is reversible
+================================================================================
+· The spec's two "Open for the owner" questions were taken AS PROPOSED (scroll to the target; one-line caption),
+  because the owner asked for the implementation without answering them.
+· `coverage` lights the Topology tab's own status line. There is no separate "coverage panel" in the UI; that
+  line is where the pairing/coverage verdict is stated for a person.
+· `project:<row>` lights a SECTION of the Project panel, mapped log→Audit log, graph→Graph,
+  processors→Event processors, roots→Source roots.
+· A REFUSED spotlight leaves a standing one lit. The spec says "a new one replaces the last"; it does not say
+  what a FAILED new one does. Fail-closed seemed right: a failed request changes nothing.
+· The dismissing click is CONSUMED — it puts the spotlight out and does nothing else. Passing it through would
+  make "click anywhere to dismiss" also press whatever was under the pointer.
+· A SIXTEENTH VERB. The owner confirmed `handoff` as the fifteenth the same day with the rider that the next
+  verb clears the same bar. Nothing points: goto/topology SELECT, screenshot RECORDS. The four guard tests
+  state both additions and their reasons. The spec itself specifies the verb (M64.3), so I did not treat this
+  as a fresh decision — but it is the second growth of the surface in one day, and worth a conscious nod.
+
+================================================================================
+4. EVIDENCE
+================================================================================
+· Unit: SpotlightTargetTest (59) · SpotlightGeometryTest (10, incl. the canvas transform) ·
+  SpotlightEndsWhenTheViewChangesTest (9: five that clear, four groups that must not) ·
+  SpotlightIsNeverPersistedTest (3).
+· MUTATION CHECKS, both run and reverted: (a) remove "goto" from VIEW_CHANGING_VERBS → EXACTLY ONE test red,
+  gotoPutsItOut — the spec's own acceptance wording; I removed an exact-list assertion of mine that would have
+  made it two. (b) remove the screenshot composite → SpotlightFrameTest red, 696 → 696.
+· Built jar: tools/verify-m64-spotlight.py, 47 checks — four families lit with NOTHING open; context on a fresh
+  start; a node with no topology refused with "open {graphml} first" and the standing spotlight left alone; a
+  misspelt target teaches the vocabulary; a two-line caption refused; all 26 forms lit with a log, graph and
+  chart open (incl. detail:node, graph:series, graph:note); a node on a hidden tab revealed; a FILTERED-OUT
+  row revealed through goto's path; screenshot taken WITHOUT clearing; each of the five verbs clears; clear.
+  (Its first run failed on graph:series — MY SCRIPT passed `keys` to the graph verb, which ignores it and says
+  so. The script now asserts its own setup drew the series, so it cannot light an empty chart and pass.)
+· Eyeball: docs/site/assets/spotlight.png, generated by capture-docs.py under its isolated home and READ —
+  dimmed window, SpreadCalculator cut out with a ring, arrow, caption tagged "assistant", neutral paths.
+
+================================================================================
+5. WHAT A REVIEWER SHOULD ATTACK
+================================================================================
+· THE CAPTION CAN COVER CONTENT. Placement avoids the CUT-OUT and the frame edge; it does not avoid other
+  things on screen. In spotlight.png the caption box overlaps the QuotePublisher node beneath. For a transient
+  pointer I judged that acceptable; a reviewer may not.
+· FIRST-SHOW LAYOUT. reveal() calls sideTabs.validate() so a just-selected tab has a size before it is measured,
+  and the adapter re-measures via invokeLater and on resize. The canvas's own first fit-to-view happens on a
+  queued resize event, so the ECHO's bounds can be stale for a Topology tab shown for the very first time, while
+  the overlay itself corrects a moment later. The display test sleeps 300 ms for this. Is there a cleaner way?
+· THE OVERLAY SWALLOWS INPUT WHILE LIT. The glass pane is visible and has a mouse listener, so every press goes
+  to it. That is the design ("any click dismisses") but it means a person cannot interact with the app while a
+  spotlight is up without first dismissing it — one extra click. Keyboard focus is NOT taken.
+· THE HUMAN HAS NO WAY TO LIGHT ONE. By design (it is a tutor's act) — but it also means the only way to see a
+  spotlight is an agent, which is why the eyeball evidence is a generated screenshot and not a menu item.
+· `SpotlightIsNeverPersistedTest` names the persisting packages by hand. A NEW persisting package would not be
+  covered until someone adds it; the test fails if a listed package disappears, but not if one appears.
+
+================================================================================
+6. NOT DONE
+================================================================================
+· The spec's last acceptance line: a re-run of the docs-site guided-start prompt by a CONTEXT-FREE client that
+  uses spotlight without being told how. It is the held-out run spec-guided-start's tracker item already owes;
+  it needs a person and a fresh client, and I am neither.
+· Nobody has SEEN a spotlight dismissed by a click or by Escape. Both are three lines of Swing; the tests cover
+  clear-by-verb and clear-by-request only. Ten seconds with any agent connected.
+· The separate-window form (D-SP1's extension) — deliberately not built; no runbook beat points outside the frame.
+· Dark theme: the overlay reads ThemeManager.isDark() at paint time so it should follow a switch, but no dark
+  screenshot of a spotlight was generated or read.

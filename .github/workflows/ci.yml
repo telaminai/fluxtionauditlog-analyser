@@ -75,11 +75,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xvfb
       - name: Run the frame lifecycle tests on a display
         run: >
-          xvfb-run -a mvn -B test -Dtest='PairingDuringLoadFrameTest,AsyncOpenInterleavingFrameTest'
+          xvfb-run -a mvn -B test -Dtest='PairingDuringLoadFrameTest,AsyncOpenInterleavingFrameTest,SpotlightFrameTest'
           -Dsurefire.failIfNoSpecifiedTests=false -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
-      - name: Fail if either suite skipped
+      - name: Fail if any suite skipped
         run: |
-          for c in PairingDuringLoadFrameTest AsyncOpenInterleavingFrameTest; do
+          # SpotlightFrameTest (M64): pixel-samples the screenshot verb's image for the cut-out. It is the
+          # only test that would notice the screenshot no longer compositing the glass pane.
+          for c in PairingDuringLoadFrameTest AsyncOpenInterleavingFrameTest SpotlightFrameTest; do
             f=$(ls target/surefire-reports/TEST-*$c.xml)
             echo "$c $(grep -o 'tests="[0-9]*" errors="[0-9]*" skipped="[0-9]*" failures="[0-9]*"' "$f")"
             grep -q 'skipped="0"' "$f" || { echo "$c skipped — no display reached the JVM"; exit 1; }

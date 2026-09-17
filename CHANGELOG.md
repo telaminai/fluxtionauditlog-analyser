@@ -27,6 +27,21 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   the rows that point into it. Before, a walk overlapping an append could throw on its thread, and the graph's
   best-effort error path swallowed it — the chart just failed to update.
 ### Added
+- **An AI client can now point.** It could already open, filter, select, draw and screenshot; what it could
+  not do was say *"this, here"*. The new `spotlight {target, caption}` action dims the window, cuts one named
+  thing out, and draws a short caption with an arrow to it — so when an assistant explains a result it can
+  light the record, the node's lines in the detail, the node on the graph, a numbered note on a chart or a
+  series in its legend, rather than describing where to look. Targets are a small fixed vocabulary named as
+  you would say them (`tab:topology`, `records:row:12`, `detail:node:<id>`, `topology:node:<id>`, `coverage`,
+  `graph:note:2`, `graph:series:<label>`, `project:log`, `toolbar:flag`, `status`). A target that is off screen
+  is brought on screen first — a filtered-out record is revealed the way `goto` reveals one — and one that
+  does not exist is refused with the reason, never lit on nothing. The caption is tagged *assistant*, because
+  it is the client's words and not something the analyser established. A spotlight goes out on any click,
+  Escape, `{clear: true}` or any action that changes the view, and nothing about one is ever saved. The
+  guided-start skill now spotlights before each beat speaks. **MCP clients see 16 tools.**
+- **A screenshot shows the spotlight.** The `screenshot` action paints the window's content, which a
+  glass-pane overlay is not part of, so a client checking what it had lit would have got an undimmed image.
+  It now composites a live spotlight exactly where it is on screen.
 - **A shared canvas for you and an AI client: the session's posture, and the authoring handoff.** Two
   things both of you can now see and either of you can set. **Posture** — whether this session is
   *research/support* or *authoring/deploy*. The analyser guesses it from what is open and says when it is

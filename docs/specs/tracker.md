@@ -334,7 +334,14 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M64 · Spotlight — the tutor points at the thing on screen — ☐ PROPOSED 2026-09-16
+## M64 · Spotlight — the tutor points at the thing on screen — ☑ ALL FIVE SLICES DONE 2026-09-17 on branch `fix/m46-agent-api-closure`, awaiting independent review
+_Report: `docs/handoff/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
+the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
+shot showed NO spotlight (the display test measured `696 → 696` outside the cut-out). The verb now composites a live
+spotlight. It is a **sixteenth verb** — nothing else points (`goto`/`topology` select, `screenshot` records), the
+same bar `handoff` cleared (Decisions). Held on the built jar by `tools/verify-m64-spotlight.py` (47 checks: every
+family, fresh start, a filtered-out row revealed, each view-changing verb). **Not done:** the held-out re-run of the
+guided-start prompt by a context-free client — it needs a person and a fresh client._
 
 Spec: **[spec-spotlight.md](spec-spotlight.md)**. Owner question 2026-09-16: a callout that points at the item the
 guided-start runbook wants to highlight. Decisions: glass-pane overlay first, a separate window only when a beat
@@ -343,11 +350,18 @@ resolution, dumb overlay that clears on any view-changing verb (D-SP3); transien
 only while showing (D-SP4); one line per beat in the skill, no other verb changes (D-SP5). About a day plus half
 for the display test and skill edit.
 
-- [M64.1] ☐ **`SpotlightTarget.resolve` + the eight target families**, headless-tested per entry.
-- [M64.2] ☐ **The glass-pane overlay** (dim, cut-out, arrow, caption; clears on click/Escape/`clear`/view change).
-- [M64.3] ☐ **`spotlight` verb + `context.spotlight`**, the persisted-forms-never-contain-one test.
-- [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
-- [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
+- [M64.1] ☑ **`SpotlightTarget.resolve` + the eight target families**, headless-tested per entry — 59 cases over a
+  map-backed surface: every entry lit, not-visible, unknown; an unknown name never touches the surface.
+- [M64.2] ☑ **The glass-pane overlay** (dim, cut-out, arrow, caption; clears on click/Escape/`clear`/view change) —
+  caption placement is `SpotlightGeometry`, arithmetic with its own tests; the caption is tagged *assistant*.
+- [M64.3] ☑ **`spotlight` verb + `context.spotlight`**, the persisted-forms-never-contain-one test — which checks the
+  CODE: no package that persists anything may know the word. One list says which verbs end a spotlight;
+  **mutation-checked** (remove `goto` → exactly `gotoPutsItOut` red).
+- [M64.4] ☑ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node — `SpotlightFrameTest`,
+  in the job's run list AND its fail-if-skipped guard. **Mutation-checked** (remove the screenshot composite → red).
+- [M64.5] ☑ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin) — written so
+  a client on an analyser older than the verb carries on; re-pinned by the established two-commit practice.
+  **The pin names a commit on this branch: merge by fast-forward WITHOUT rebasing the branch, or re-pin after.**
 
 ## M65 · Follow refreshes open graphs — ☑ SHIPPED 2026-09-17 (merged to `main` from `feat/m65-follow-refreshes-graphs`; five review passes) · .5/.6 open
 
@@ -1030,8 +1044,9 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
    (`docs/handoff/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
    canvas state — `context.handoff`, a new `handoff` verb, *AI ▸ Posture*, a Project-panel row. It unblocks the
    dev-harness loop (M48.10). Adds a fifteenth verb, `handoff` — **confirmed by the owner 2026-09-17** (Decisions).
-4. **M64 Spotlight** — spec'd 2026-09-16, analyser-only, five slices, about a day and a half. The next self-contained
-   FEATURE once 1–3 are closed.
+4. ☑ **M64 Spotlight** — DONE 2026-09-17 on the same branch, all five slices, awaiting review
+   (`docs/handoff/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
+   result in normal use. A sixteenth verb; the screenshot now composites the overlay (the spec assumed it already did).
 5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
 6. **Pre-release gate to add** (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`

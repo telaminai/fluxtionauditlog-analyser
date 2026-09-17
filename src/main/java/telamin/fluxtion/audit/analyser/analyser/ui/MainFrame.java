@@ -178,6 +178,7 @@ public final class MainFrame extends JFrame {
         llmPanel.setVocabularySupplier(this::vocabularyText);   // M38.2: the glossary reaches the assistant's prompt
         actionControl = new AppControlAdapter();
         actionExecutor.bind(topologyPanel, actionControl);
+        installSpotlight();                          // M64: the glass pane, and re-measuring on resize
         refreshProjectPanel();                       // M37: state the empty session too
         refreshMcpIndicator();                       // D-AI9: and say whether an AI client reaches us
         startMcpIndicatorWatch();
@@ -1785,6 +1786,215 @@ public final class MainFrame extends JFrame {
         return ai;
     }
 
+    // ---- M64: the spotlight ------------------------------------------------------------------------
+
+    /**
+     * The glass pane. The ONLY place a spotlight exists (D-SP4): nothing here is read by the config, the
+     * profile, a saved graph or a report, so a restart shows none and none can leak into an artefact.
+     */
+    private final SpotlightOverlay spotlight = new SpotlightOverlay(null);
+
+    /** Install the overlay, and keep a live spotlight on its target when the frame is resized. */
+    private void installSpotlight() {
+        setGlassPane(spotlight);
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) {
+                relightSpotlight();
+            }
+        });
+    }
+
+    /**
+     * Re-measure a live spotlight's target WITHOUT revealing it again: after a resize, or once the layout
+     * a reveal queued has actually run (a tab shown for the first time has no size until then). A target
+     * that can no longer be measured puts the spotlight out — pointing at where something used to be is
+     * the failure this whole feature is careful about.
+     */
+    private void relightSpotlight() {
+        if (!spotlight.isLit()) return;
+        SpotlightTarget.Parsed parsed = SpotlightTarget.parse(spotlight.targetName());
+        java.util.Optional<java.awt.Rectangle> bounds = parsed.ok()
+                ? spotlightSurface.bounds(parsed.target()) : java.util.Optional.empty();
+        if (bounds.isPresent() && !bounds.get().isEmpty()) spotlight.moveTo(bounds.get());
+        else spotlight.clearSpotlight();
+    }
+
+    /** The frame's answer to "where is this, and can you bring it on screen?" — Swing behind a pure interface. */
+    private final SpotlightTarget.Surface spotlightSurface = new SpotlightTarget.Surface() {
+
+        @Override public void reveal(SpotlightTarget t) {
+            switch (t.family()) {
+                case TAB -> selectSideTab(t.argument());
+                case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> selectSideTab("graph");
+                case TOPOLOGY, COVERAGE -> selectSideTab("topology");
+                case TOPOLOGY_NODE -> {
+                    selectSideTab("topology");
+                    var canvas = topologyPanel.canvas();
+                    java.awt.Rectangle at = canvas.screenBoundsOf(t.argument());
+                    // centred only when it is not already fully in view: a jump nobody needed loses context
+                    if (at != null && !canvas.getVisibleRect().contains(at)) canvas.centreOn(t.argument());
+                }
+                case DETAIL_NODE -> detailPanel.revealNodeBlock(t.argument());
+                case RECORDS_ROW -> {
+                    int view = tablePanel.viewRowOf(t.number());          // the row itself was revealed by goto
+                    if (view >= 0) tablePanel.table().scrollRectToVisible(tablePanel.table().getCellRect(view, 0, true));
+                }
+                default -> { }                                            // always on screen, or not revealable
+            }
+            // a tab selected a moment ago has not been laid out yet; do it now so bounds() measures the truth
+            if (sideTabs != null) sideTabs.validate();
+        }
+
+        @Override public java.util.Optional<java.awt.Rectangle> bounds(SpotlightTarget t) {
+            return switch (t.family()) {
+                case TAB -> {
+                    int i = sideTabs == null ? -1 : sideTabs.indexOfTab(sideTabTitle(t.argument()));
+                    yield i < 0 ? java.util.Optional.empty() : inOverlay(sideTabs, sideTabs.getBoundsAt(i));
+                }
+                case RECORDS -> visiblePart(tablePanel);
+                case RECORDS_ROW -> {
+                    JTable table = tablePanel.table();
+                    int view = tablePanel.viewRowOf(t.number());
+                    if (view < 0) yield java.util.Optional.empty();
+                    java.awt.Rectangle row = table.getCellRect(view, 0, true);
+                    row.x = 0;
+                    row.width = table.getWidth();
+                    yield inOverlay(table, row.intersection(table.getVisibleRect()));
+                }
+                case DETAIL -> visiblePart(detailPanel);
+                case DETAIL_NODE -> inOverlay(detailPanel, detailPanel.nodeBlockBounds(t.argument()));
+                case TOPOLOGY -> visiblePart(topologyPanel.canvas());
+                case TOPOLOGY_NODE -> {
+                    var canvas = topologyPanel.canvas();
+                    java.awt.Rectangle at = canvas.isShowing() ? canvas.screenBoundsOf(t.argument()) : null;
+                    yield at == null ? java.util.Optional.empty()
+                            : inOverlay(canvas, at.intersection(canvas.getVisibleRect()));
+                }
+                case COVERAGE -> visiblePart(topologyPanel.statusComponent());
+                case GRAPH -> {
+                    GraphPanel g = selectedGraphPanel();
+                    yield g == null ? java.util.Optional.empty()
+                            : inOverlay(g.chartPanel(), g.chartPanel().isShowing() ? g.chartPanel().plotBounds() : null);
+                }
+                case GRAPH_NOTE -> {
+                    GraphPanel g = selectedGraphPanel();
+                    yield g == null || !g.chartPanel().isShowing() ? java.util.Optional.empty()
+                            : inOverlay(g.chartPanel(), g.chartPanel().noteBounds(t.number()));
+                }
+                case GRAPH_SERIES -> {
+                    GraphPanel g = selectedGraphPanel();
+                    java.awt.Component entry = g == null ? null : g.seriesLegendEntry(t.argument());
+                    yield entry instanceof JComponent c ? visiblePart(c) : java.util.Optional.empty();
+                }
+                case PROJECT -> visiblePart(projectPanel);
+                case PROJECT_ROW -> inOverlay(projectPanel, projectPanel == null ? null
+                        : projectPanel.sectionBounds(projectSectionTitle(t.argument())));
+                case TOOLBAR -> {
+                    JComponent button = null;
+                    if (toolBar != null) {
+                        for (java.awt.Component c : toolBar.getComponents()) {
+                            if (c instanceof AbstractButton b && t.argument().equalsIgnoreCase(b.getText())) button = b;
+                        }
+                    }
+                    yield visiblePart(button);
+                }
+                case STATUS -> visiblePart(status);
+            };
+        }
+
+        @Override public String whyNotVisible(SpotlightTarget t) {
+            return switch (t.family()) {
+                case RECORDS_ROW -> store == null ? "no log is open, so there is no record " + t.argument()
+                        : "record " + t.argument() + " is not in the table — it is out of range, or still filtered out";
+                case DETAIL_NODE -> "'" + t.argument() + "' has no block in the record detail — select a record in "
+                        + "which it logged (records:row:<n>), and use the Logical view";
+                case TOPOLOGY, TOPOLOGY_NODE, COVERAGE -> !topologyPanel.hasTopology()
+                        ? "no topology is open — open {graphml} first"
+                        : "'" + t.name() + "' is not in the graph as currently shown (it may be hidden scaffolding, or filtered by focus)";
+                case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> selectedGraphPanel() == null
+                        ? "no graph is open — the graph verb draws one"
+                        : "'" + t.name() + "' is not on the selected graph";
+                case PROJECT, PROJECT_ROW -> "the Project panel is hidden or has no such section — its rail toggle shows it";
+                default -> "'" + t.name() + "' is not on screen";
+            };
+        }
+    };
+
+    private GraphPanel selectedGraphPanel() {
+        String name = graphTabs.selectedGraphName();
+        return name == null ? null : graphTabs.graphNamed(name);
+    }
+
+    private static String sideTabTitle(String word) {
+        return switch (word) {
+            case "summary" -> "Summary";
+            case "source" -> "Source";
+            case "graph" -> "Graph";
+            case "topology" -> "Topology";
+            case "reports" -> "Reports";
+            default -> "Analyser assistant";
+        };
+    }
+
+    private void selectSideTab(String word) {
+        int i = sideTabs == null ? -1 : sideTabs.indexOfTab(sideTabTitle(word));
+        if (i >= 0 && sideTabs.getSelectedIndex() != i) sideTabs.setSelectedIndex(i);
+    }
+
+    private static String projectSectionTitle(String word) {
+        return switch (word) {
+            case "log" -> ProjectModel.LOG;
+            case "graph" -> ProjectModel.GRAPH;
+            case "processors" -> ProjectModel.PROCESSORS;
+            default -> ProjectModel.ROOTS;
+        };
+    }
+
+    /** A rectangle in {@code c}'s coordinates, as the overlay sees it; empty for null or no area. */
+    private java.util.Optional<java.awt.Rectangle> inOverlay(java.awt.Component c, java.awt.Rectangle r) {
+        if (c == null || r == null || r.isEmpty() || !c.isShowing()) return java.util.Optional.empty();
+        return java.util.Optional.of(SwingUtilities.convertRectangle(c, r, spotlight));
+    }
+
+    /** The part of a component that is actually on screen — a scrolled-away target is not "here". */
+    private java.util.Optional<java.awt.Rectangle> visiblePart(JComponent c) {
+        return c == null ? java.util.Optional.empty() : inOverlay(c, c.getVisibleRect());
+    }
+
+    /** The socket's entrance: resolve, light, and say exactly where — or refuse with the reason. */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult applySpotlight(Map<String, Object> params) {
+        if (Boolean.TRUE.equals(params.get("clear"))) {
+            boolean was = spotlight.isLit();
+            spotlight.clearSpotlight();
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("spotlight", "cleared",
+                    Map.of("wasLit", was));
+        }
+        Object rawCaption = params.get("caption");
+        String caption = rawCaption == null ? null : rawCaption.toString().trim();
+        if (caption != null && (caption.length() > 160 || caption.chars().anyMatch(ch -> ch == '\n' || ch == '\r'))) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                    "'caption' is ONE short line (at most 160 characters) — the sentence belongs in your chat, "
+                            + "where it is clearly yours; the caption only says why to look here");
+        }
+        Object rawTarget = params.get("target");
+        SpotlightTarget.Resolution r = SpotlightTarget.resolve(rawTarget == null ? null : rawTarget.toString(),
+                spotlightSurface);
+        if (!r.lit()) {
+            // refused, and the spotlight already showing (if any) is left alone — a failed request changes nothing
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(r.reason());
+        }
+        spotlight.light(r.target().name(), r.bounds(), caption);
+        SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
+        java.awt.Rectangle inContent = SwingUtilities.convertRectangle(spotlight, spotlight.cutOut(), getContentPane());
+        Map<String, Object> echo = new java.util.LinkedHashMap<>();
+        echo.put("target", r.target().name());
+        if (caption != null && !caption.isBlank()) echo.put("caption", caption);
+        echo.put("bounds", Map.of("x", inContent.x, "y", inContent.y, "width", inContent.width, "height", inContent.height));
+        echo.put("note", "lit in the window, in the coordinates of a default `screenshot` — take one to check it "
+                + "is where you meant. It goes out on any click, Escape, {clear: true}, or a verb that changes the view.");
+        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("spotlight", "lit", echo);
+    }
+
     /**
      * M48.7 — the shared canvas's handoff section: the session's posture and the mode selector's record.
      * ONE state with two writers (the `handoff` verb and the AI menu) and two readers (`context.handoff`
@@ -2050,8 +2260,12 @@ public final class MainFrame extends JFrame {
         add(statusBar, BorderLayout.SOUTH);
     }
 
+    /** Kept so a spotlight can find a button by the word on it (M64 {@code toolbar:<name>}). */
+    private JToolBar toolBar;
+
     private JToolBar buildToolBar() {
         JToolBar tb = new JToolBar();
+        toolBar = tb;
         tb.setFloatable(false);
         tb.setBorder(BorderFactory.createEmptyBorder(3, 4, 3, 4));   // a little breathing room
         tb.add(toolButton("Open", ToolIcons.open(), "Open a log file", this::chooseFile));
@@ -4479,6 +4693,18 @@ public final class MainFrame extends JFrame {
             return List.copyOf(config.sourceRoots);
         }
 
+        /** M64: light or put out the spotlight. The resolution is pure ({@link SpotlightTarget}); this only supplies the frame. */
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult spotlight(Map<String, Object> params) {
+            return applySpotlight(params == null ? Map.of() : params);
+        }
+
+        /** M64 D-SP3: a view-changing verb is about to run. */
+        @Override
+        public void clearSpotlight() {
+            spotlight.clearSpotlight();
+        }
+
         /** M48.7: the socket's half of the handoff write path — the same rules as the menu's, attributed to the agent. */
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult handoff(Map<String, Object> params) {
@@ -4636,6 +4862,10 @@ public final class MainFrame extends JFrame {
                         target.getWidth(), target.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
                 java.awt.Graphics2D g = img.createGraphics();
                 target.paint(g);
+                // M64: the glass pane is NOT part of the content pane (or of a panel), so a live spotlight
+                // has to be composited here — otherwise the shot a tutor takes to check what it lit would
+                // show no spotlight at all. spec-spotlight assumed the opposite; it is corrected there.
+                spotlight.paintOnto(g, target);
                 g.dispose();
                 Path out = Path.of(path);
                 if (out.getParent() != null) Files.createDirectories(out.getParent());
@@ -4821,6 +5051,15 @@ public final class MainFrame extends JFrame {
             {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
+            }
+            // M64 D-SP4: the live spotlight, and ONLY while one is lit — so the tutor's own loop (context →
+            // screenshot) can confirm what it pointed at. Above the fresh-start return: a tab, the toolbar
+            // and the status line can be lit with nothing open. Nothing else anywhere holds a spotlight.
+            if (spotlight.isLit()) {
+                Map<String, Object> lit = new java.util.LinkedHashMap<>();
+                lit.put("target", spotlight.targetName());
+                if (spotlight.caption() != null) lit.put("caption", spotlight.caption());
+                out.put("spotlight", lit);
             }
             // M48.7: the shared canvas's handoff — the session's posture (set, or derived and SAID to be
             // derived) and the mode selector's record when someone has placed one. Above the fresh-start

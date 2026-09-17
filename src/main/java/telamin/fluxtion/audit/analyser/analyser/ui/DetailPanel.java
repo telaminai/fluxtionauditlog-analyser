@@ -168,6 +168,42 @@ public final class DetailPanel extends JPanel {
         }
     }
 
+    /**
+     * M64 — one node's block in the LOGICAL view, in this panel's coordinates, or null when the node did
+     * not log in the shown record(s) or the raw Text view is showing (it has no per-node blocks). The
+     * blocks are the ones {@link LogicalLogView#layout} already computed for painting and clicking.
+     */
+    public java.awt.Rectangle nodeBlockBounds(String instanceId) {
+        java.awt.Rectangle inText = nodeBlockInText(instanceId);
+        if (inText == null) return null;
+        java.awt.Rectangle visible = inText.intersection(text.getVisibleRect());
+        return visible.isEmpty() ? null : javax.swing.SwingUtilities.convertRectangle(text, visible, this);
+    }
+
+    /** M64: scroll one node's block into view — "here" that is off screen is not here. */
+    public void revealNodeBlock(String instanceId) {
+        java.awt.Rectangle inText = nodeBlockInText(instanceId);
+        if (inText != null) text.scrollRectToVisible(inText);
+    }
+
+    private java.awt.Rectangle nodeBlockInText(String instanceId) {
+        if (!logical || instanceId == null) return null;
+        for (LogicalLogView.Block b : layout.blocks()) {
+            if (!instanceId.equals(b.instanceId())) continue;
+            try {
+                var top = text.modelToView2D(b.start());
+                var bottom = text.modelToView2D(Math.max(b.start(), b.end() - 1));
+                if (top == null || bottom == null) return null;
+                int y = (int) Math.floor(top.getY());
+                int height = (int) Math.ceil(bottom.getY() + bottom.getHeight()) - y;
+                return new java.awt.Rectangle(0, y, Math.max(1, text.getWidth()), Math.max(1, height));
+            } catch (javax.swing.text.BadLocationException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     public void showRecords(List<LogRecord> records) {
         methodByInstance.clear();
         shownRecords.clear();

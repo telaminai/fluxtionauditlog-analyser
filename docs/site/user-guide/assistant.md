@@ -101,8 +101,27 @@ machine, not a command you need to reconstruct.
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
 `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open`,
-`analyser_source_root` and `analyser_handoff` — with full parameter schemas, so there's nothing to paste
-into a prompt.
+`analyser_source_root`, `analyser_handoff` and `analyser_spotlight` — with full parameter schemas, so
+there's nothing to paste into a prompt.
+
+`spotlight` lets an AI client **point**. It can already open, filter, select, draw and screenshot; what it
+could not do was say *"this, here"*. `spotlight {target, caption}` dims the window, cuts one named thing
+out, and draws a short caption with an arrow to it:
+
+![A spotlight: the window dimmed, one topology node cut out, and the assistant's caption pointing at it](../assets/spotlight.png)
+
+The targets are a small fixed vocabulary, named as you would say them — `tab:topology`,
+`records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `coverage`, `graph`,
+`graph:note:2`, `graph:series:<label>`, `project:log`, `toolbar:flag`, `status`. A target that is off
+screen is brought on screen first (its tab selected, its row scrolled to — a filtered-out record is
+revealed the way `goto` reveals one — its node centred); one that does not exist is **refused with the
+reason**, never lit on nothing. The caption is tagged *assistant* because it is the client's words, not a
+fact the analyser established: a spotlight shows **where**, never **what**. It is deliberately fragile —
+any click, Escape, `spotlight {clear: true}`, or any verb that changes the view (`open`, `filter`, `goto`,
+`graph`, `topology`) puts it out, because a spotlight left pointing at where something used to be is worse
+than none. `screenshot` and `context` leave it lit: they are how the client checks it lit what it meant,
+and a screenshot shows the spotlight exactly as you see it. Nothing about a spotlight is ever saved — not
+in settings, a project, a graph or a report.
 
 `handoff` writes to the **shared canvas** — state you and the AI client both see and either of you can
 set. Two things live there. **Posture**: whether this session is *research/support* or
@@ -282,12 +301,13 @@ server actually connected, then say what you want:
 $ claude
 
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 15 tools
+  ⎿ fluxtion-analyser   ✔ connected · 16 tools
        analyser_aggregate · analyser_read · analyser_series
        analyser_filter · analyser_graph · analyser_goto
        analyser_flag · analyser_report · analyser_coverage
        analyser_context · analyser_topology · analyser_screenshot
        analyser_open · analyser_source_root · analyser_handoff
+       analyser_spotlight
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.

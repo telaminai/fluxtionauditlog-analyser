@@ -254,6 +254,28 @@ public final class ChartPanel extends JPanel {
         return notes;
     }
 
+    /**
+     * M64 — where numbered note {@code n} is drawn (1-based, the number on its pin): its dashed rule and
+     * pin, in this panel's coordinates. Walks the SAME column map {@link #paintNotes} does, so the number
+     * a spotlight is given is the number a person reads on the plot. Null when there is no such note or
+     * the plot has no view yet.
+     */
+    public java.awt.Rectangle noteBounds(int n) {
+        if (n < 1 || notes.notes().isEmpty() || Double.isNaN(vx0)) return null;
+        int index = 0;
+        for (var entry : notes.byColumn(vx0, vx1, plotW).entrySet()) {
+            for (var ignored : entry.getValue()) {
+                if (++index == n) return new java.awt.Rectangle(plotX + entry.getKey() - 9, plotY, 18, plotH);
+            }
+        }
+        return null;
+    }
+
+    /** M64: the plot area itself, in this panel's coordinates — what {@code graph} lights. */
+    public java.awt.Rectangle plotBounds() {
+        return new java.awt.Rectangle(plotX, plotY, plotW, plotH);
+    }
+
     /** True when a right-hand scale is being drawn, so the caller can widen the right margin. */
     private int rightMargin() {
         return axes.hasRightAxis() ? 56 : R;

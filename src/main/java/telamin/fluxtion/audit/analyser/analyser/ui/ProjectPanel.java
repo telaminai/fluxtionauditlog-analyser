@@ -50,6 +50,22 @@ public final class ProjectPanel extends JPanel {
         return model;
     }
 
+    /** The section blocks as last rendered, by the model's section title — so a spotlight can say "this one". */
+    private final java.util.Map<String, JComponent> sectionsByTitle = new java.util.LinkedHashMap<>();
+
+    /**
+     * M64 — one section's block ({@link ProjectModel#LOG}, {@code GRAPH}, …), scrolled into view, in this
+     * panel's coordinates; null when the model has no such section. Reveal-only, like everything here:
+     * it scrolls and reports a rectangle, and changes nothing.
+     */
+    public java.awt.Rectangle sectionBounds(String title) {
+        JComponent sec = sectionsByTitle.get(title);
+        if (sec == null || !sec.isShowing()) return null;
+        sec.scrollRectToVisible(new java.awt.Rectangle(0, 0, sec.getWidth(), sec.getHeight()));
+        java.awt.Rectangle visible = sec.getVisibleRect();
+        return visible.isEmpty() ? null : SwingUtilities.convertRectangle(sec, visible, this);
+    }
+
     /**
      * Owner, 2026-08-27: the panel kept the old theme's colours after Theme ▸ …. Every row sets its foreground,
      * font and borders explicitly from UiTheme at render time, and updateComponentTreeUI leaves explicit values
@@ -68,6 +84,7 @@ public final class ProjectPanel extends JPanel {
         // viewport to their caret)
         final int scrolledTo = scroll == null ? 0 : scroll.getVerticalScrollBar().getValue();
         body.removeAll();
+        sectionsByTitle.clear();
         // review N4: the toggle says "Project"; the panel also states what is merely in force
         JLabel caption = new JLabel("What is in force — what `context` reports, for people");
         UiTheme.status(caption);
@@ -81,6 +98,7 @@ public final class ProjectPanel extends JPanel {
             sec.setBorder(UiTheme.section(s.title()));
             sec.setAlignmentX(LEFT_ALIGNMENT);
             for (ProjectModel.Row r : s.rows()) sec.add(row(r));
+            sectionsByTitle.put(s.title(), sec);
             body.add(sec);
             body.add(Box.createVerticalStrut(UiTheme.GAP));
         }

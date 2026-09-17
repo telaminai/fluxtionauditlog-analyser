@@ -110,6 +110,16 @@ public final class ActionExecutor implements RenderExecutor {
 
     @Override
     public ActionResult render(String action, Map<String, Object> params) {
+        // M64 D-SP3: a verb that changes the view puts the spotlight out FIRST. A spotlight that outlives its
+        // context points at the wrong thing, which is worse than none. The list is SpotlightTarget's, so
+        // what ends a spotlight is stated once; `screenshot` and `context` are deliberately not on it —
+        // they are how the tutor checks what it lit.
+        if (app != null && SpotlightTarget.VIEW_CHANGING_VERBS.contains(action)) {
+            onEdt(() -> {
+                app.clearSpotlight();
+                return null;
+            });
+        }
         // these three do not read the records table, and two of them exist precisely to get a log open —
         // requiring one first would make them useless
         switch (action) {
@@ -124,6 +134,12 @@ public final class ActionExecutor implements RenderExecutor {
                 // M48.7: canvas state, not log state — it needs no log, and it is the frame's to hold
                 if (app == null) return ActionResult.error("'handoff' is not enabled here");
                 return onEdt(() -> app.handoff(params));
+            }
+            case "spotlight" -> {
+                // M64: needs no log — a tab, the toolbar, the status line and the Project panel are all
+                // there on a fresh start, which is when a tutor first says "look here"
+                if (app == null) return ActionResult.error("'spotlight' is not enabled here");
+                return onEdt(() -> doSpotlight(params));
             }
             case "topology" -> {
                 return onEdt(() -> doTopology(params));
@@ -724,6 +740,29 @@ public final class ActionExecutor implements RenderExecutor {
      * and a wait on the EDT blocks the completion it waits for (the first live run timed out that way while
      * the log sat loaded). Each step hops to the EDT on its own through render().
      */
+    /**
+     * M64 — light the spotlight. A row target is REVEALED through the {@code goto} path first (D-SP2:
+     * "a target that is not on screen is first revealed with the same moves the existing verbs use"), so a
+     * filtered-out record is brought into the table the way {@code goto {reveal: true}} brings it, and is
+     * selected — which also puts it in the record detail for a following {@code detail:node} spotlight.
+     * It calls {@link #doGoto} directly rather than {@code render("goto")}: the public verb would put out
+     * the very spotlight this is about to light.
+     */
+    private ActionResult doSpotlight(Map<String, Object> params) {
+        SpotlightTarget.Parsed parsed = SpotlightTarget.parse(str(params.get("target")));
+        if (parsed.ok() && parsed.target().family() == SpotlightTarget.Family.RECORDS_ROW
+                && !Boolean.TRUE.equals(params.get("clear"))) {
+            LogStore s = store.get();
+            if (s != null) {
+                Map<String, Object> reveal = new LinkedHashMap<>();
+                reveal.put("recordIndex", parsed.target().number());
+                reveal.put("reveal", true);
+                doGoto(s, reveal);
+            }
+        }
+        return app.spotlight(params);
+    }
+
     private ActionResult doOpenAnalysis(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
         // M38.4: recall a saved analysis — its steps run through render(), so each keeps its own guards.

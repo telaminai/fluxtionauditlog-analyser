@@ -308,6 +308,21 @@ public final class VerbSchemas {
                         p("clear", enumStr("record", "posture", "all"), "remove what was placed")),
                 List.of()));
 
+        s.put("spotlight", schema("POINT at one thing on screen for the person you are working with: the window "
+                        + "dims, the target is cut out, and one short caption with an arrow says why. Use it BEFORE "
+                        + "you talk about something, then take a screenshot to check it is lit where you meant. "
+                        + "The target is revealed first (its tab selected, its row scrolled to, its node centred). "
+                        + "Transient: one at a time, never saved, and it goes out on any click, Escape, "
+                        + "{clear: true}, or any verb that changes the view (open, filter, goto, graph, topology). "
+                        + "Targets: " + SpotlightVocabulary.TEXT,
+                props(
+                        p("target", string(), "one of the targets above, e.g. tab:topology, records:row:12, "
+                                + "topology:node:priceListener, graph:note:2, project:log, toolbar:flag, status"),
+                        p("caption", string(), "ONE short line saying why to look here. It is shown as YOUR "
+                                + "words (testimony), not as a fact the analyser established."),
+                        p("clear", bool(), "true puts the spotlight out")),
+                List.of()));
+
         return s;
     }
 

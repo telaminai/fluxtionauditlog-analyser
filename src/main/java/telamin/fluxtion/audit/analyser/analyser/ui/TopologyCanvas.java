@@ -541,6 +541,27 @@ public final class TopologyCanvas extends JPanel {
         repaint();
     }
 
+    /**
+     * M64 — where a node's box is ON SCREEN, in this canvas's own coordinates, or null when the node is
+     * not in the current view (filtered out, or no such id). The canvas already knows this — it is how
+     * it paints and hit-tests — so the spotlight asks rather than recomputing the layout.
+     */
+    public java.awt.Rectangle screenBoundsOf(String id) {
+        if (id == null || layout.isEmpty()) return null;
+        TopologyLayout.NodeBox box = layout.box(id);
+        return box == null ? null : toScreen(box.x(), box.y(), box.width(), box.height(), scale, offsetX, offsetY);
+    }
+
+    /** World → screen, as {@link #paintComponent} applies it. Static so the arithmetic is tested without a canvas. */
+    static java.awt.Rectangle toScreen(double x, double y, double w, double h,
+                                       double scale, double offsetX, double offsetY) {
+        int left = (int) Math.floor(x * scale + offsetX);
+        int top = (int) Math.floor(y * scale + offsetY);
+        int right = (int) Math.ceil((x + w) * scale + offsetX);
+        int bottom = (int) Math.ceil((y + h) * scale + offsetY);
+        return new java.awt.Rectangle(left, top, right - left, bottom - top);
+    }
+
     public double zoom() {
         return scale;
     }

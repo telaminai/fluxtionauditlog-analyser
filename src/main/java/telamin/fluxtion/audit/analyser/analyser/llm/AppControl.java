@@ -113,6 +113,21 @@ public interface AppControl {
     }
 
     /**
+     * M64 — light, or put out, the spotlight: a transient overlay that points at one named thing on
+     * screen for the person. Default: not offered (there is no screen to point at).
+     */
+    default ActionResult spotlight(java.util.Map<String, Object> params) {
+        return ActionResult.error("'spotlight' is not available in this context");
+    }
+
+    /**
+     * M64 D-SP3 — put the spotlight out because the VIEW is about to change. A spotlight that outlives its
+     * context points at the wrong thing, which is worse than none. Silent when nothing is lit.
+     */
+    default void clearSpotlight() {
+    }
+
+    /**
      * Select the EventProcessor whose source backs node → class resolution.
      *
      * <p>Needed because inference only runs over candidates found in the package of the
