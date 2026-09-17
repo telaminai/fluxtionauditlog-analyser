@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-09-17
+
 ### Changed
 - **`screenshot {scope: "menu:File"}` says where each menu item is.** With a menu open, the reply now lists the
   menu's items — text, whether enabled, and bounds relative to the window it reports — so an assistant, or the
