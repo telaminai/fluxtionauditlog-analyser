@@ -33,11 +33,13 @@
     "RE-PINNED 2026-09-16: load-audit-log, run-mongoose-server and add-a-node learned from an agent's session report on the 1.13.0 bundle (see CHANGELOG). Same contract, same selection; only the revision and the three hashes moved. Bundles generated from the earlier revision keep their own pinned bytes.",
     "RE-PINNED 2026-09-16 (second time): add-a-node and run-mongoose-server reworded after the 1.13.1 independent review; same contract, same selection.",
     "RE-PINNED 2026-09-17: guided-start spotlights before each beat speaks (M64.5). Same contract, same selection; only the revision and the guided-start hash moved. The pinned revision was made on a feature branch - if that branch is ever rebased, this revision must be re-pinned to the rewritten commit.",
-    "RE-PINNED 2026-09-17 (after the rebase onto main): the branch WAS rebased, so the commit above was rewritten; the revision now names the rewritten one, which is an ancestor of main. Same bytes, same hashes. CanonicalSkillsTest had stayed green locally against the OLD revision only because its commit object was still in the clone - it would have been red on CI."
+    "RE-PINNED 2026-09-17 (after the rebase onto main): the branch WAS rebased, so the commit above was rewritten; the revision now names the rewritten one, which is an ancestor of main. Same bytes, same hashes. CanonicalSkillsTest had stayed green locally against the OLD revision only because its commit object was still in the clone - it would have been red on CI.",
+    "RE-PINNED 2026-09-17 (M64.8 + M64.9, one edit): THE SELECTION GREW BY ONE. `common` gains point-at-the-fault - the shape of a fault-finding runbook that ends by spotlighting the evidence it matched - so every template now selects it; additive, same contract, and a generator that copies `common` needs no change. guided-start changed by one line: the spotlight target that lights the Topology tab's verdict line is `topology:verdict` (it was `coverage`, which misnamed what it lights). Bundles generated from an earlier revision keep their own pinned bytes; the playground must re-vendor to pick these up."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
-    "common/guided-start/SKILL.md"
+    "common/guided-start/SKILL.md",
+    "common/point-at-the-fault/SKILL.md"
   ],
   "specialisations": {
     "mongoose": {
@@ -65,10 +67,11 @@
       ]
     }
   },
-  "revision": "cdaa69605d57cb401f5e1fee9fdf35c16587c6c1",
+  "revision": "01b6a4fa0e6ebc64e4f33c03e7cf4866da7239f0",
   "sha256": {
     "common/load-audit-log/SKILL.md": "1fa42762aed0cb8f0f004e42cccdfb4e7111388a4d6e55b3d3a43369dab14d59",
-    "common/guided-start/SKILL.md": "6b68dca8a15924d70426c57c441524afbbdcbd1763773a5df34808d79d3e1b01",
+    "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
+    "common/point-at-the-fault/SKILL.md": "0193e5b2fb4ea903ff22b3cce0ce5460457e1d400a560eda8d0a237d1cf1f1c5",
     "mongoose/run-mongoose-server/SKILL.md": "1e7b0e627cc957f31a5f1c15f3dda1b97a7e8526b9f1fb06152bca4c0e014fe4",
     "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
     "spring/add-a-node/SKILL.md": "ec76851eeebe9b71bb70239cdcbfbebf73676f19feb7abaa1f05acb2511116a0",
