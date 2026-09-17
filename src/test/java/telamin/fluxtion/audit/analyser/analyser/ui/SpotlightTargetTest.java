@@ -55,8 +55,10 @@ class SpotlightTargetTest {
             "records", "records:row:12", "detail", "detail:node:priceListener",
             "topology", "topology:node:priceListener", "topology:verdict",
             "graph", "graph:note:2", "graph:series:quotePublisher.spread",
+            "graph:Spread", "graph:Spread:note:2", "graph:Spread:series:quotePublisher.spread",
             "project", "project:log", "project:graph", "project:processors", "project:roots",
-            "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow", "status"})
+            "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow",
+            "menu:File", "menu:File:Open log…", "status"})
     void everyVocabularyEntryLightsWhenItsTargetIsVisible(String name) {
         FakeSurface surface = new FakeSurface();
         surface.where.put(name, new Rectangle(10, 20, 100, 30));
@@ -93,7 +95,8 @@ class SpotlightTargetTest {
     @ParameterizedTest
     @ValueSource(strings = {"topolgy", "tab:topolgy", "tab", "tab:", "records:row", "records:row:abc", "records:row:-1",
             "records:col:3", "topology:node:", "graph:note:two", "graph:legend:x", "project:reports", "toolbar:next",
-            "status:line", "coverage", "coverage:panel", "topology:verdict:line", "topology:verdicts", ""})
+            "status:line", "coverage", "coverage:panel", "topology:verdict:line", "topology:verdicts", "",
+            "graph:", "graph:a:b:series:x", "graph:Spread:note:", "graph:Spread:series:", "menu", "menu:", "menu::Open log…"})
     void aMisspeltOrMalformedTargetIsUNKNOWN_namesTheVocabulary_andNeverTouchesTheSurface(String name) {
         FakeSurface surface = new FakeSurface();
 
@@ -135,6 +138,38 @@ class SpotlightTargetTest {
     }
 
     // ---- one vocabulary, stated once ----------------------------------------------------------------
+
+    @Test
+    void aGraphTargetMayNameItsChart_orMeanTheSelectedOne_M64_10() {
+        assertNull(SpotlightTarget.parse("graph:note:2").target().graph(), "no name: the SELECTED chart");
+        assertNull(SpotlightTarget.parse("graph:series:spread").target().graph());
+        SpotlightTarget named = SpotlightTarget.parse("graph:Spread (bid/ask):note:2").target();
+        assertEquals(SpotlightTarget.Family.GRAPH_NOTE, named.family());
+        assertEquals("Spread (bid/ask)", named.graph(), "the chart, exactly as named");
+        assertEquals(2, named.number());
+        SpotlightTarget series = SpotlightTarget.parse("graph:Spread:series:quotePublisher.spread").target();
+        assertEquals(SpotlightTarget.Family.GRAPH_SERIES, series.family());
+        assertEquals("Spread", series.graph());
+        assertEquals("quotePublisher.spread", series.argument());
+        SpotlightTarget plot = SpotlightTarget.parse("graph:Spread").target();
+        assertEquals(SpotlightTarget.Family.GRAPH, plot.family());
+        assertEquals("Spread", plot.graph(), "the chart's plot itself");
+        assertTrue(SpotlightTarget.parse("graph:a:b:series:x").error().contains("cannot contain ':'"),
+                "a chart name with a colon is unreachable, and the refusal says why");
+    }
+
+    @Test
+    void aMenuTargetNamesTheMenu_andOptionallyOneItem_M64_11() {
+        SpotlightTarget menu = SpotlightTarget.parse("menu:File").target();
+        assertEquals(SpotlightTarget.Family.MENU, menu.family());
+        assertEquals("File", menu.menuName());
+        SpotlightTarget item = SpotlightTarget.parse("menu:File:New project from template…").target();
+        assertEquals(SpotlightTarget.Family.MENU_ITEM, item.family());
+        assertEquals("File", item.menuName());
+        assertEquals("New project from template…", item.menuItem());
+        assertEquals(SpotlightTarget.Family.MENU_ITEM, SpotlightTarget.parse("menu:AI:Connect an AI client…").target().family());
+        assertFalse(SpotlightTarget.parse("menu:").ok());
+    }
 
     @Test
     void theWordsAnAgentIsGivenAreTheVocabularyTheParserAccepts() {

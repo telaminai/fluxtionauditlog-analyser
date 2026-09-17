@@ -257,6 +257,48 @@ from this work's own mistake (a caption that contradicted the line it pointed at
 outcomes on the demo data, and `tools/verify-m64-spotlight.py` replays it call for call, because a skill whose numbers
 have rotted teaches the opposite of rule 1. The playground re-vendor is the owner's and is not done.
 
+## M64.10 / M64.11 — a target names its chart; a target reaches a menu item (built 2026-09-17, branch `feat/m64-10-11-named-graph-and-menu-targets`)
+
+**D-SP8 — a graph target may name its chart.** `graph[:<name>]`, `graph[:<name>]:note:<n>`,
+`graph[:<name>]:series:<label>`. The bare forms keep meaning the SELECTED chart. A named form selects that chart
+first — a reveal, like a tab — then measures. A chart named `note` or `series`, or one whose name contains `:`, is
+unreachable by name (the parser refuses the colon and says so); nothing else is lost. When the selected chart lacks
+the target, the refusal names the selected chart AND the charts that have it, in the form to send next
+(`… is not on the selected graph ('Orders'). It is on [Spread] — name the chart: graph:Spread:series:…`). An
+unknown name is refused naming the open charts; a refused call selects nothing. `SpotlightTarget.graph()` carries
+the name; `MainFrame.graphFor / alsoOn / noSuchGraph` do the rest. Held by `SpotlightTargetTest` (parse) and
+`NamedGraphAndMenuSpotlightFrameTest` (a real frame, two charts).
+
+**D-SP9 — a menu item is a target.** `menu:<Menu>` (the open popup) and `menu:<Menu>:<item>` (one item, by its
+text, case-insensitive). The four questions M64.11 raised, answered:
+1. *Heavyweight popups.* FlatLaf shows a menu as a HEAVYWEIGHT window whenever it paints a drop shadow (always on
+   macOS), above the glass pane, where nothing can be dimmed or cut out. For a menu that is about to be lit the frame
+   asks for no shadow and a lightweight popup (`Popup.dropShadowPainted=false`, `Popup.forceHeavyWeight=false`, the
+   popup's own lightweight flag); it then lives in the window's layered pane, under the overlay. If it is STILL a
+   separate window (it does not fit inside the frame) the target is refused with that reason rather than lit
+   wrongly. The trade is a shadowless menu while it is lit.
+2. *The dismissing click.* The overlay still swallows every press. A press that lands ON a lit menu item's cut-out
+   dismisses the spotlight and then CHOOSES the item (`JMenuItem.doClick`), so "click here" means what it says; a
+   press anywhere else dismisses as before, and the menu closes with it.
+3. *Keeping the menu open.* The reveal is the opening (`MenuSelectionManager.setSelectedPath`, the same call the
+   screenshot verb's `menu:` scope uses); nothing in lighting moves focus, so the menu stays until something closes
+   it.
+4. *Closing.* A `PopupMenuListener` on each lit menu puts the menu's spotlights out when the popup goes — Escape, a
+   click elsewhere, the item chosen. `{clear: true}` and a view-changing verb close the menu they opened
+   (`MainFrame.clearSpotlightHere`); a replacing set that lights the same menu keeps it open; a request refused after
+   opening a menu closes it again. Escape reaches the overlay's binding first and the popup's key handler second, so
+   one press does both — designed, not yet exercised by a test (posted keys need window focus; see
+   `PersonAtTheScreenFrameTest`).
+Also: the `screenshot` verb paints any lightweight popup from the layered pane's POPUP layer into the shot at its
+place, so a lit menu item is in the picture a tutor takes to check. Submenus (`AI ▸ Posture ▸ …`) and dialogs are out
+of reach — a dialog is D-SP1's deferred separate-window form. Held by `NamedGraphAndMenuSpotlightFrameTest`
+(lit inside the window, painted into the shot, chosen by a press, out when the menu closes, refusals) and
+`tools/verify-m64-spotlight.py` on the built jar.
+
+**M64.12 (from the held-out run).** The guidance every client is handed now says a call replaces what is lit unless
+it adds; the user guide's first "Ask it to show you" sentence names a threshold the demo log crosses, and a second
+sentence shows the menu target.
+
 ## As built (2026-09-17)
 
 **One assumption above was wrong, and the spec is corrected here rather than quietly diverged from.** D-SP1's table

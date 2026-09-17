@@ -21,7 +21,12 @@ import java.util.Set;
  * can you bring it on screen?". The frame implements it with Swing; the tests implement it with a map.
  * That is what lets every vocabulary entry, and the not-visible and unknown cases, be tested headless.
  */
-public record SpotlightTarget(Family family, String argument, String name) {
+public record SpotlightTarget(Family family, String argument, String name, String graph) {
+
+    /** Most targets name no chart: {@code graph} is null, and a graph family means the SELECTED chart (M64.10). */
+    public SpotlightTarget(Family family, String argument, String name) {
+        this(family, argument, name, null);
+    }
 
     /** The eight families of D-SP2, split where a family has a whole-and-part form. */
     public enum Family {
@@ -39,12 +44,25 @@ public record SpotlightTarget(Family family, String argument, String name) {
          * read 5/5. Renamed before the verb's first release, so there is no alias to carry.
          */
         TOPOLOGY_VERDICT("topology:verdict", false),
-        GRAPH("graph", false),
-        GRAPH_NOTE("graph:note:<n>", true),
-        GRAPH_SERIES("graph:series:<label>", true),
+        /**
+         * A graph target names its chart or means the SELECTED one (M64.10): {@code graph:note:2} is the note on
+         * whichever chart tab is showing; {@code graph:Spread:note:2} is note 2 on the chart named "Spread", and
+         * lighting it selects that chart first. A chart literally named {@code note} or {@code series} is
+         * unreachable by name — the two words are the part keywords.
+         */
+        GRAPH("graph[:<name>]", false),
+        GRAPH_NOTE("graph[:<name>]:note:<n>", true),
+        GRAPH_SERIES("graph[:<name>]:series:<label>", true),
         PROJECT("project", false),
         PROJECT_ROW("project:<log|graph|processors|roots>", true),
         TOOLBAR("toolbar:<open|flag|explain|follow>", true),
+        /**
+         * A top-level menu's open popup, or one item in it (M64.11): lighting it OPENS the menu and keeps it
+         * open; it goes out when the menu closes. A submenu's items are not reachable; a dialog is a separate
+         * window and never will be from here (D-SP1).
+         */
+        MENU("menu:<Menu>", true),
+        MENU_ITEM("menu:<Menu>:<item>", true),
         STATUS("status", false);
 
         private final String form;
@@ -104,7 +122,29 @@ public record SpotlightTarget(Family family, String argument, String name) {
                 String part = rest.toLowerCase(Locale.ROOT);
                 if (part.startsWith("note")) yield sub(rest, "note", Family.GRAPH_NOTE, name, true);
                 if (part.startsWith("series")) yield sub(rest, "series", Family.GRAPH_SERIES, name, false);
-                yield unknown("'" + name + "' is not graph, " + Family.GRAPH_NOTE.form() + " or " + Family.GRAPH_SERIES.form());
+                // M64.10: graph:<name>[:note:<n> | :series:<label>] — the chart is NAMED, not "the selected one"
+                int note = part.indexOf(":note:"), series = part.indexOf(":series:");
+                int cut = note < 0 ? series : series < 0 ? note : Math.min(note, series);
+                String chart = (cut < 0 ? rest : rest.substring(0, cut)).trim();
+                if (chart.isEmpty()) yield unknown("'" + name + "' names no chart — the form is " + Family.GRAPH.form());
+                if (chart.indexOf(':') >= 0) {           // a chart name cannot carry ':' here — that is the part separator
+                    yield unknown("'" + name + "' is not graph, " + Family.GRAPH_NOTE.form() + " or " + Family.GRAPH_SERIES.form()
+                            + " (a chart's name cannot contain ':')");
+                }
+                if (cut < 0) yield withGraph(ok(Family.GRAPH, null, name), chart);
+                String partAfter = rest.substring(cut + 1);
+                Parsed inner = partAfter.toLowerCase(Locale.ROOT).startsWith("note")
+                        ? sub(partAfter, "note", Family.GRAPH_NOTE, name, true)
+                        : sub(partAfter, "series", Family.GRAPH_SERIES, name, false);
+                yield inner.ok() ? withGraph(inner, chart) : inner;
+            }
+            case "menu" -> {
+                if (rest == null || rest.isBlank()) yield unknown("'" + name + "' names no menu — the form is " + Family.MENU.form());
+                int colon = rest.indexOf(':');
+                String menu = (colon < 0 ? rest : rest.substring(0, colon)).trim();
+                String item = colon < 0 ? "" : rest.substring(colon + 1).trim();
+                if (menu.isEmpty()) yield unknown("'" + name + "' names no menu — the form is " + Family.MENU.form());
+                yield item.isEmpty() ? ok(Family.MENU, menu, name) : ok(Family.MENU_ITEM, menu + ":" + item, name);
             }
             case "project" -> rest == null ? ok(Family.PROJECT, null, name)
                     : member(Family.PROJECT_ROW, rest, PROJECT_ROWS, name);
@@ -145,6 +185,23 @@ public record SpotlightTarget(Family family, String argument, String name) {
 
     private static Parsed ok(Family family, String argument, String name) {
         return new Parsed(new SpotlightTarget(family, argument, name), null);
+    }
+
+    private static Parsed withGraph(Parsed parsed, String chart) {
+        SpotlightTarget t = parsed.target();
+        return new Parsed(new SpotlightTarget(t.family(), t.argument(), t.name(), chart), null);
+    }
+
+    /** For a MENU_ITEM: the menu's name (the part before the first colon of the argument). */
+    public String menuName() {
+        int colon = argument.indexOf(':');
+        return colon < 0 ? argument : argument.substring(0, colon);
+    }
+
+    /** For a MENU_ITEM: the item's text (everything after the first colon). */
+    public String menuItem() {
+        int colon = argument.indexOf(':');
+        return colon < 0 ? "" : argument.substring(colon + 1);
     }
 
     private static Parsed unknown(String why) {

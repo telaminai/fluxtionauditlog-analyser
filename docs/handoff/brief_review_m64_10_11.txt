@@ -1,0 +1,77 @@
+INDEPENDENT REVIEW BRIEF — branch feat/m64-10-11-named-graph-and-menu-targets (M64.10, M64.11, M64.12)
+Date: 2026-09-17
+Work under review:  git log --oneline origin/main..origin/feat/m64-10-11-named-graph-and-menu-targets
+Report: docs/handoff/report_m64_10_11.txt (read it first; its last section says what the author thinks is weakest).
+Spec: docs/specs/spec-spotlight.md ▸ "M64.10 / M64.11" (D-SP8, D-SP9). Tracker: M64.10, M64.11, M64.12.
+
+YOUR ROLE
+You are the INDEPENDENT REVIEWER. Another session implemented this; you did not. Read CLAUDE.md, docs/ONBOARDING.md
+and docs/handoff/REVIEWER-ORIENTATION.md first. Do not trust the report — verify every claim against the source
+at the commit, and run the tests yourself. The author is the session that also wrote this repo's earlier M64 reviews;
+review it as if it were not.
+
+WHAT CHANGED
+  SpotlightTarget      the record gains `graph` (a chart name, nullable); the parser accepts graph:<name>[:note:<n>|
+                       :series:<label>] and refuses ':' in a chart name; two new families MENU / MENU_ITEM.
+  SpotlightVocabulary  TEXT gains the new forms (SpotlightTargetTest holds TEXT == Family forms); GUIDANCE gains
+                       one clause: a call replaces what is lit unless add: true (M64.12a).
+  MainFrame            reveal selects a NAMED chart / opens a menu; bounds and refusals for both; alsoOn() names the
+                       charts that have a target the selected one lacks; a lit menu asks FlatLaf for a shadowless
+                       LIGHTWEIGHT popup; a PopupMenuListener puts menu spotlights out when the menu closes;
+                       clearSpotlightHere() closes a menu its spotlights opened; a press on a lit menu item chooses it
+                       (SpotlightOverlay.setOnPressed); the screenshot verb paints POPUP-layer components into the shot.
+  SpotlightOverlay     mousePressed hands (point, what-was-lit) to the frame after dismissing.
+  Tests                SpotlightTargetTest +14 parse cases; NamedGraphAndMenuSpotlightFrameTest (2, real frame, in the
+                       CI ui-frame job); tools/verify-m64-spotlight.py +10 checks on the built jar.
+  Docs                 spec D-SP8/D-SP9, user guide (targets; two "Ask it to show you" rows), CHANGELOG, tracker.
+
+WHAT TO ATTACK
+  1. The grammar. graph:<name> where the name contains "note"/"series" as a WORD (a chart named "Series A"):
+     parse("graph:Series A:series:x") — is the cut at the first ":series:" right, and does "graph:Series A" (no part)
+     light the plot? What does parse("graph:note:2:series:x") do? Is refusing ':' in a name the right call, or should
+     a name be quoted?
+  2. alsoOn() for GRAPH_NOTE uses ChartPanel.noteBounds(n) on charts that are NOT showing. Does noteBounds return
+     non-null for a chart tab that is not selected (its component has no size)? If it returns null, the refusal will
+     never name another chart for a note — a silent gap. Write the test that draws two charts with notes and asks
+     for the note on the wrong one.
+  3. The lightweight-popup request. The frame sets the two FlatLaf client properties on the JPopupMenu each time it
+     opens a menu for a spotlight and never removes them: the menu is shadowless from then on, even when opened by
+     hand. Acceptable? If not, restore them when the menu closes (the PopupMenuListener is already there).
+     Also: under which LAF do the display tests run? NamedGraphAndMenuSpotlightFrameTest installs FlatLightLaf
+     because the bare rig gets Aqua on macOS, whose ScreenPopupFactory is heavyweight-only. Confirm CI (xvfb,
+     Metal by default) still exercises the FlatLaf path, not Metal's.
+  4. The press-through. spotlightPressed() matches the press against the lit target's bounds AS MEASURED (overlay
+     coordinates) and calls JMenuItem.doClick via invokeLater. Between the press and the doClick the menu has already
+     closed (the grabber saw the press). Does doClick on a closed menu's item still fire its action for every kind of
+     item (JMenuItem, JCheckBoxMenuItem "Follow (tail)", JRadioButtonMenuItem)? The test uses "Close log" only.
+  5. Escape with a lit menu: designed (overlay binding first, then the popup's key handler), NOT tested — posted keys
+     need window focus, which xvfb gives. Add the case to PersonAtTheScreenFrameTest's pattern if you can: light
+     menu:File:Close log, post Escape, expect the menu closed AND nothing lit after ONE press.
+  6. A menu opened by the spotlight while ANOTHER menu was open by hand; a menu target in a `targets` set together
+     with a tab target (the reveal of the tab does not close the menu — or does it?); `add: true` with a menu target
+     when a menu is already lit.
+  7. The screenshot popup painting: it paints every showing POPUP-layer component, translated. A tooltip is also a
+     lightweight popup — is a tooltip now painted into every screenshot taken while the mouse rests on a control?
+  8. M64.12b: the user guide's first sentence changed from a spread threshold to liveOrders above 1. Is that row's
+     promise ("it finds the record, selects it, and lights that row") true of the demo series log — record 15?
+
+HOW TO VERIFY — run these; do not take "green" on trust. Author's numbers are in the report.
+  git config user.email                                  # the personal address
+  mvn clean test                                         # clean: SpotlightVocabulary constants are inlined by javac
+  mvn test -Dtest='Spotlight*Test,AsyncOpen*Test,NamedGraphAndMenuSpotlightFrameTest,PersonAtTheScreenFrameTest' \
+      -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
+  mvn package && git checkout -- dependency-reduced-pom.xml && python3 tools/verify-m64-spotlight.py
+  mkdocs build --strict; the CLAUDE.md rule-1 sweep, exactly as written there.
+  SEEN-RED claims to repeat (report §mutations): put the parser's colon rule back to "a name may contain ':'" →
+  SpotlightTargetTest's unknown case graph:legend:x fails; make alsoOn() return "" → the frame test's "It is on
+  [Spread]" assertion fails; remove the two FlatLaf client properties → the menu test refuses with "separate window"
+  on macOS (not under xvfb — say which you ran).
+
+ONLY A PERSON AT THE SCREEN: a lit menu item, clicked with a real mouse, chooses it; Escape over a lit menu;
+what a shadowless File menu looks like next to the others.
+
+WHAT TO PRODUCE
+docs/handoff/review_m64_10_11.txt on the branch: a verdict (READY / READY WITH FOLLOW-UPS / CONDITIONAL / NOT
+READY); findings numbered F1… with severity, file:line, how you reproduced it and what would fix it; what you
+VERIFIED versus only READ. Commit it to the branch and push. Do not fix findings yourself; do not rebase, amend or
+force-push. The merge to main is the owner's, after acceptance, as a local rebase + fast-forward (rule 3).

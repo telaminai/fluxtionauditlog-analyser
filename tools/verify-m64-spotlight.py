@@ -15,6 +15,7 @@ Reuses the harness in verify-m46-agent-api.py: a hard per-call timeout, so a han
 import glob
 import importlib.util
 import json
+import time
 import os
 import shutil
 import sys
@@ -260,10 +261,11 @@ def main():
             with open(csv, "w") as f:
                 f.write("time,value\n1750000000000,1\n1750000001000,2\n")
             ext = {"path": csv, "label": "x", "time": "time", "timeFormat": "epochMillis", "zone": "UTC", "value": "value"}
-            a.act("graph", name="Duplicates", series=["quotePublisher.spread"], external=[ext, ext])
+            r = a.act("graph", name="Duplicates", series=["quotePublisher.spread"], external=[ext, ext])
+            check("the SAME external given twice: the later entry applies and the echo says so (ledger review F2, 1.14.2)",
+                  r.get("ok") is True and "given twice" in json.dumps(r), r)
             r = a.act("spotlight", target="graph:series:x")
-            check("the SAME external given twice makes two identical legend rows - the label lights NEITHER, and says there are two",
-                  r.get("ok") is False and "2 series" in json.dumps(r), r)
+            check("so the label names ONE series, and lights it", lit(r), r)
             a.act("graph", name="Collision", series=["quotePublisher.spread"],
                   exprs=[{"label": "x  (external)", "expr": "quotePublisher.spread"}], external=[ext])
             r = a.act("spotlight", target="graph:series:x  (external)")
@@ -273,6 +275,35 @@ def main():
             check("and the unambiguous series on that same graph still lights", lit(r), r)
             # LAST on purpose: these draw NEW chart tabs, and re-issuing an existing named graph does not re-select its
             # tab — a spotlight addresses the SELECTED chart only — so anything after this would be looking at "Collision".
+
+            # M64.10 - a graph target may NAME its chart; the selected-chart refusal says where the series IS
+            a.act("graph", newTab=True, name="Named A", series=["quotePublisher.liveOrders"])
+            a.act("graph", newTab=True, name="Named B", series=["quotePublisher.spread"])
+            time.sleep(0.6)
+            r = a.act("spotlight", target="graph:series:quotePublisher.liveOrders")
+            check("on the SELECTED chart (Named B) the series is absent: refused naming the selected chart",
+                  r.get("ok") is False and "the selected graph ('Named B')" in json.dumps(r), r)
+            check("and the refusal names a chart that HAS it, in the form to send next",
+                  "name the chart: graph:" in json.dumps(r) and ":series:quotePublisher.liveOrders" in json.dumps(r), r)
+            r = a.act("spotlight", target="graph:Named A:series:quotePublisher.liveOrders", caption="named chart")
+            check("graph:<name>:series:<label> selects that chart and lights the series",
+                  lit(r) and targets(r) == ["graph:Named A:series:quotePublisher.liveOrders"], r)
+            r = a.act("spotlight", target="graph:Nope:note:1")
+            check("an unknown chart name is refused, naming the open charts",
+                  r.get("ok") is False and "no graph named 'Nope'" in json.dumps(r) and "Named A" in json.dumps(r), r)
+            check("and the standing spotlight is untouched", targets(a.context()) == ["graph:Named A:series:quotePublisher.liveOrders"], a.context())
+            # M64.11 - a menu item: the reveal opens the menu; it is lit INSIDE the window; a clear closes the menu
+            r = a.act("spotlight", target="menu:File:Close log", caption="closes the log")
+            check("menu:File:Close log opens the File menu and lights the item, with an area", lit(r) and area(r) > 0, r)
+            r = a.act("screenshot", path=os.path.join(exchange, "menu-lit.png"))
+            check("a screenshot with a lit menu item is written (the popup is painted into the shot)", r.get("ok") is True, r)
+            r = a.act("spotlight", clear=True)
+            check("clearing a lit menu item closes the menu with it", r.get("ok") is True and "spotlight" not in a.context(), r)
+            r = a.act("spotlight", target="menu:File:Nope")
+            check("an unknown item is refused naming the menu's items",
+                  r.get("ok") is False and "no item 'Nope' in the File menu" in json.dumps(r), r)
+            r = a.act("spotlight", target="menu:Nope")
+            check("an unknown menu is refused naming the menus", r.get("ok") is False and "no menu 'Nope'" in json.dumps(r), r)
 
             a.act("spotlight", target="status")
             r = a.act("spotlight", clear=True)

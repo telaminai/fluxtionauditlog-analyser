@@ -30,7 +30,9 @@ public final class SpotlightVocabulary {
                     + "the node that never logged, the record where a value crossed, a note on a chart — light it "
                     + "with `spotlight` first, then say your sentence. One thing: {target, caption}. A relation "
                     + "between things: {targets: [{target, caption}, …]} — up to " + MAX_LIT + " at once, "
-                    + "numbered on screen, so use the numbers in your sentence (\"1 feeds 2; 2 never logged\"). "
+                    + "numbered on screen, so use the numbers in your sentence (\"1 feeds 2; 2 never logged\"); "
+                    + "a call REPLACES what is lit unless it says {add: true}, so a step-by-step walk sends one "
+                    + "call with all its targets, or adds. "
                     + "Light AFTER filter / goto / graph / topology: a verb that changes the view puts a spotlight "
                     + "out, as does any click. A callout is YOUR words and shows WHERE to look; it is not evidence "
                     + "and is never saved — a finding worth keeping is a flag, a chart note or a report. Point when "
@@ -39,6 +41,7 @@ public final class SpotlightVocabulary {
     public static final String TEXT =
             "tab:<summary|source|graph|topology|reports|assistant> · records · records:row:<recordIndex> · "
                     + "detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · "
-                    + "graph · graph:note:<n> · graph:series:<label> · project · "
-                    + "project:<log|graph|processors|roots> · toolbar:<open|flag|explain|follow> · status";
+                    + "graph[:<name>] · graph[:<name>]:note:<n> · graph[:<name>]:series:<label> · project · "
+                    + "project:<log|graph|processors|roots> · toolbar:<open|flag|explain|follow> · menu:<Menu> · "
+                    + "menu:<Menu>:<item> · status";
 }

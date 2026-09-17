@@ -64,6 +64,7 @@ public final class SpotlightOverlay extends JComponent {
      */
     private int nextNumber = 1;
     private final Runnable onDismissed;
+    private java.util.function.BiConsumer<Point, List<Lit>> onPressed = (p, l) -> { };
 
     public SpotlightOverlay(Runnable onDismissed) {
         this.onDismissed = onDismissed == null ? () -> { } : onDismissed;
@@ -71,11 +72,18 @@ public final class SpotlightOverlay extends JComponent {
         setVisible(false);
         addMouseListener(new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) {
+                List<Lit> was = lit();
                 dismiss();
+                onPressed.accept(e.getPoint(), was);   // M64.11: the frame may choose a lit menu item under the press
             }
         });
         registerKeyboardAction(e -> dismiss(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_IN_FOCUSED_WINDOW);
+    }
+
+    /** The dismissing press, with what was lit at that moment and where it was pressed (overlay coordinates). */
+    public void setOnPressed(java.util.function.BiConsumer<Point, List<Lit>> onPressed) {
+        this.onPressed = onPressed == null ? (p, l) -> { } : onPressed;
     }
 
     /** Light ONE thing, replacing whatever was lit. */

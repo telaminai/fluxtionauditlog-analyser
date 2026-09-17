@@ -358,7 +358,7 @@ resolution, dumb overlay that clears on any view-changing verb (D-SP3); transien
 only while showing (D-SP4); one line per beat in the skill, no other verb changes (D-SP5). About a day plus half
 for the display test and skill edit.
 
-- [M64.11] ☐ **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
+- [M64.11] ☑ **BUILT 2026-09-17 on `feat/m64-10-11-named-graph-and-menu-targets` (spec D-SP9; `NamedGraphAndMenuSpotlightFrameTest`; verify script) — awaiting review.** Was: **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
   step "File ▸ New project from template…" could not be spotlit, because no target reaches a menu). An assistant
   asked *"where is that setting?"* can today only open the menu (`screenshot {scope: "menu:File"}`) and describe
   the item; it should be able to LIGHT it. **Groundwork done the same day:** with a menu open the screenshot verb
@@ -373,12 +373,12 @@ for the display test and skill edit.
   sure one Escape does not need pressing twice. A DIALOG (the template picker, Settings) is a separate window and
   stays out of reach: that is D-SP1's deferred separate-window form, not this item. Until then the docs mark menus
   and dialogs with `tools/AnnotateShot.java`, drawn unlike the spotlight on purpose.
-- [M64.12] ☐ **Two things the held-out run showed** (2026-09-17, [record](../handoff/completed/heldout_m64_2026-09-17.md)):
+- [M64.12] ☑ **DONE 2026-09-17 on the same branch** — (a) the guidance says a call replaces unless `add: true`; (b) the guide's first sentence now names `liveOrders` above 1. Was: **Two things the held-out run showed** (2026-09-17, [record](../handoff/completed/heldout_m64_2026-09-17.md)):
   (a) a client narrating step by step sends one `spotlight {target}` per step and each REPLACES the last — the schema description
   should say "to keep what is lit and add to it, send `add: true`" (one sentence in `VerbSchemas`); (b) the user guide's first
   "Ask it to show you" sentence names a threshold the demo log never crosses (`spread` sits near 0.02) — use one it does
   (`riskMonitor.liveOrders` above 1 at record 15, the point-at-the-fault example) so a fresh client is not made to say "no crossing".
-- [M64.10] ☐ **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
+- [M64.10] ☑ **BUILT 2026-09-17 on the same branch (spec D-SP8): `graph:<name>:note|series:…` selects and lights; the selected-chart refusal names where the target is — awaiting review.** Was: **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
   several named graphs open, `graph`, `graph:note:<n>` and `graph:series:<label>` mean "on whichever chart tab is
   showing", and re-issuing `graph {name: <existing>}` updates that graph WITHOUT re-selecting its tab — so an agent
   that drew chart B and then refreshed chart A gets "'graph:note:1' is not on the selected graph". Either the

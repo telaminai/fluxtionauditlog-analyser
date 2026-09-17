@@ -99,7 +99,8 @@ out the things it is talking about, and gives each a short numbered callout. You
 
 | You say | What the assistant can do with it |
 |---|---|
-| *"Show me where the spread first crossed 0.004 — point at it."* | it finds the record, selects it, and lights that row |
+| *"Show me where live orders first went above 1 — point at it."* | it finds the record, selects it, and lights that row |
+| *"Where do I start a project from a template?"* | it opens the File menu and lights *New project from template…* |
 | *"Which node never logged? Highlight it on the graph."* | it runs coverage, opens the Topology tab, and lights the node |
 | *"Walk me through this cycle and highlight each step."* | it lights the record, the node's lines in the detail, and the node on the graph — numbered 1, 2, 3 — and its sentences use the numbers |
 | *"Highlight everything involved in that breach."* | up to six things lit together, each with its own callout |
@@ -166,7 +167,10 @@ does not exist, or two that cannot be on screen together, refuses the whole call
 The targets are a small fixed vocabulary, named as you would say them — `tab:topology`,
 `records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `topology:verdict` (the line where the
 analyser states how the graph fits the log), `graph`,
-`graph:note:2`, `graph:series:<label>`, `project:log`, `toolbar:flag`, `status`. A target that is off
+`graph:note:2`, `graph:series:<label>` (the selected chart) or `graph:<name>:note:2`, `graph:<name>:series:<label>`
+(a chart by name — lighting it selects that chart), `project:log`, `toolbar:flag`, `menu:File` and
+`menu:File:New project from template…` (the menu opens and the item is lit; a click on it chooses it, and the
+spotlight goes out with the menu), `status`. A target that is off
 screen is brought on screen first (its tab selected, its row scrolled to — a filtered-out record is
 revealed the way `goto` reveals one — its node centred); one that does not exist is **refused with the
 reason**, never lit on nothing. `screenshot` and `context` leave a spotlight lit: they are how the client

@@ -6,6 +6,22 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **A spotlight target can name its chart.** `graph:<name>:note:<n>` and `graph:<name>:series:<label>` light a
+  note or series on the chart called `<name>`, selecting that chart first; the bare forms still mean the selected
+  chart. When the selected chart does not have the target, the refusal now names the selected chart and the charts
+  that do, in the form to send next.
+- **A spotlight target can be a menu item.** `menu:File` lights a top-level menu's open popup and
+  `menu:File:New project from template…` lights one item in it: the menu opens, the item is cut out inside the
+  window, a `screenshot` paints the open menu into the shot, a click on the lit item chooses it, and the spotlight
+  goes out when the menu closes (Escape, a click elsewhere, `{clear: true}`). A submenu's items and dialogs are
+  not reachable. An assistant asked *"where is that setting?"* can now point at it.
+
+### Changed
+- The spotlight guidance every client is handed says that a call **replaces** what is lit unless it sends
+  `add: true`, so a step-by-step walk lights its steps in one call or adds — a context-free client narrating a
+  cycle lost step 1 when it lit step 2.
+
 ### Fixed
 - **`graph` given the same `external` label twice in one call now draws one series, not two.** `external` is
   replace-by-label, but one call carrying a label twice drew two identical legend rows — which a spotlight then

@@ -1823,6 +1823,7 @@ public final class MainFrame extends JFrame {
     /** Install the overlay, and keep a live spotlight on its target when the frame is resized. */
     private void installSpotlight() {
         setGlassPane(spotlight);
+        spotlight.setOnPressed(this::spotlightPressed);   // M64.11: a press on a lit menu item chooses it
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent e) {
                 relightSpotlight();
@@ -1850,7 +1851,12 @@ public final class MainFrame extends JFrame {
         @Override public void reveal(SpotlightTarget t) {
             switch (t.family()) {
                 case TAB -> selectSideTab(t.argument());
-                case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> selectSideTab("graph");
+                case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> {
+                    selectSideTab("graph");
+                    // M64.10: a target that NAMES its chart selects that chart first — a reveal, like a tab
+                    if (t.graph() != null && graphTabs.graphNamed(t.graph()) != null) graphTabs.selectGraph(t.graph());
+                }
+                case MENU, MENU_ITEM -> openMenuForSpotlight(t.menuName());   // M64.11: the reveal IS opening the menu
                 case TOPOLOGY, TOPOLOGY_VERDICT -> selectSideTab("topology");
                 case TOPOLOGY_NODE -> {
                     selectSideTab("topology");
@@ -1897,17 +1903,17 @@ public final class MainFrame extends JFrame {
                 }
                 case TOPOLOGY_VERDICT -> visiblePart(topologyPanel.statusComponent());
                 case GRAPH -> {
-                    GraphPanel g = selectedGraphPanel();
+                    GraphPanel g = graphFor(t);
                     yield g == null ? java.util.Optional.empty()
                             : inOverlay(g.chartPanel(), g.chartPanel().isShowing() ? g.chartPanel().plotBounds() : null);
                 }
                 case GRAPH_NOTE -> {
-                    GraphPanel g = selectedGraphPanel();
+                    GraphPanel g = graphFor(t);
                     yield g == null || !g.chartPanel().isShowing() ? java.util.Optional.empty()
                             : inOverlay(g.chartPanel(), g.chartPanel().noteBounds(t.number()));
                 }
                 case GRAPH_SERIES -> {
-                    GraphPanel g = selectedGraphPanel();
+                    GraphPanel g = graphFor(t);
                     java.awt.Component entry = g == null ? null : g.seriesLegendEntry(t.argument());
                     yield entry instanceof JComponent c ? visiblePart(c) : java.util.Optional.empty();
                 }
@@ -1923,6 +1929,14 @@ public final class MainFrame extends JFrame {
                     }
                     yield visiblePart(button);
                 }
+                case MENU -> {
+                    javax.swing.JMenu m = topLevelMenu(t.menuName());
+                    yield m == null ? java.util.Optional.empty() : inWindowPopupPart(m.getPopupMenu());
+                }
+                case MENU_ITEM -> {
+                    JMenuItem item = menuItemFor(t);
+                    yield item == null ? java.util.Optional.empty() : inWindowPopupPart(item);
+                }
                 case STATUS -> visiblePart(status);
             };
         }
@@ -1937,23 +1951,161 @@ public final class MainFrame extends JFrame {
                         ? "no topology is open — open {graphml} first"
                         : "'" + t.name() + "' is not in the graph as currently shown (it may be hidden scaffolding, or filtered by focus)";
                 case GRAPH_SERIES -> {
-                    GraphPanel g = selectedGraphPanel();
+                    GraphPanel g = graphFor(t);
+                    if (t.graph() != null && g == null) yield noSuchGraph(t.graph());
                     int matches = g == null ? 0 : g.seriesLegendMatches(t.argument());
                     yield g == null ? "no graph is open — the graph verb draws one"
                             // re-review R4: two rows can read identically (the same external given twice; a formula
                             // labelled with the legend's own suffix). Lighting the first would be a guess.
-                            : matches > 1 ? matches + " series on the selected graph are labelled '" + t.argument()
+                            : matches > 1 ? matches + " series on " + chartWord(t) + " are labelled '" + t.argument()
                             + "' — a spotlight cannot tell which you mean. Redraw the graph with distinct labels"
-                            : "'" + t.name() + "' is not on the selected graph";
+                            : "'" + t.name() + "' is not on " + chartWord(t) + alsoOn(t);
                 }
-                case GRAPH, GRAPH_NOTE -> selectedGraphPanel() == null
-                        ? "no graph is open — the graph verb draws one"
-                        : "'" + t.name() + "' is not on the selected graph";
+                case GRAPH, GRAPH_NOTE -> {
+                    GraphPanel g = graphFor(t);
+                    if (t.graph() != null && g == null) yield noSuchGraph(t.graph());
+                    yield g == null ? "no graph is open — the graph verb draws one"
+                            : "'" + t.name() + "' is not on " + chartWord(t) + alsoOn(t);
+                }
+                case MENU -> topLevelMenu(t.menuName()) == null
+                        ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames()
+                        : "the " + t.menuName() + " menu opened as a separate window here — it does not fit inside the "
+                        + "analyser window, so it cannot be lit. Enlarge the window and try again";
+                case MENU_ITEM -> {
+                    javax.swing.JMenu m = topLevelMenu(t.menuName());
+                    yield m == null ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames()
+                            : menuItemFor(t) == null ? "no item '" + t.menuItem() + "' in the " + m.getText() + " menu — its items are "
+                            + menuItemTexts(m) + " (a submenu's items cannot be lit)"
+                            : "the " + m.getText() + " menu opened as a separate window here — it does not fit inside the "
+                            + "analyser window, so it cannot be lit. Enlarge the window and try again";
+                }
                 case PROJECT, PROJECT_ROW -> "the Project panel is hidden or has no such section — its rail toggle shows it";
                 default -> "'" + t.name() + "' is not on screen";
             };
         }
     };
+
+    // ---- M64.10: a graph target's chart — the named one, else the selected one -------------------------------
+
+    private GraphPanel graphFor(SpotlightTarget t) {
+        return t.graph() == null ? selectedGraphPanel() : graphTabs.graphNamed(t.graph());
+    }
+
+    private String noSuchGraph(String name) {
+        return "no graph named '" + name + "' — the open graphs are " + graphTabs.graphNames();
+    }
+
+    private String chartWord(SpotlightTarget t) {
+        return t.graph() != null ? "graph '" + t.graph() + "'" : "the selected graph ('" + graphTabs.selectedGraphName() + "')";
+    }
+
+    /** The refusal names the charts that DO have the target, so the caller can name one: graph:<name>:… */
+    private String alsoOn(SpotlightTarget t) {
+        java.util.List<String> have = new java.util.ArrayList<>();
+        for (String name : graphTabs.graphNames()) {
+            GraphPanel g = graphTabs.graphNamed(name);
+            if (g == null || (t.graph() == null && name.equals(graphTabs.selectedGraphName()))) continue;
+            boolean has = switch (t.family()) {
+                case GRAPH_SERIES -> g.seriesLegendMatches(t.argument()) == 1;
+                case GRAPH_NOTE -> g.chartPanel().noteCount() >= t.number();   // a fact, not a measurement of a chart that is not showing
+                default -> false;
+            };
+            if (has) have.add(name);
+        }
+        if (have.isEmpty()) return "";
+        String part = t.family() == SpotlightTarget.Family.GRAPH_NOTE ? ":note:" + t.argument() : ":series:" + t.argument();
+        return ". It is on " + have + " — name the chart: graph:" + have.get(0) + part;
+    }
+
+    // ---- M64.11: menu targets — the reveal opens the menu; it goes out when the menu closes ------------------
+
+    /** Put every spotlight out — and a menu that was opened only to be lit closes with them. */
+    private void clearSpotlightHere() {
+        boolean litMenu = spotlight.lit().stream().anyMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5));
+        spotlight.clearSpotlight();
+        if (litMenu) javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath();
+    }
+
+    private final java.util.Set<javax.swing.JMenu> menusWiredForSpotlight = new java.util.HashSet<>();
+
+    private void openMenuForSpotlight(String menuName) {
+        javax.swing.JMenu m = topLevelMenu(menuName);
+        if (m == null) return;
+        if (menusWiredForSpotlight.add(m)) {
+            m.getPopupMenu().addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+                @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) { }
+                @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) { }
+                @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+                    // a lit menu that closes (Escape, a click elsewhere, the item chosen) takes its spotlights with it:
+                    // pointing at where a menu used to be is the failure this feature is careful about
+                    SwingUtilities.invokeLater(() -> {
+                        if (spotlight.lit().stream().anyMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5))
+                                && !m.getPopupMenu().isShowing()) {
+                            spotlight.clearSpotlight();
+                        }
+                    });
+                }
+            });
+        }
+        if (!m.getPopupMenu().isShowing()) {
+            // FlatLaf shows menus as HEAVYWEIGHT windows when it paints a drop shadow (always on macOS) — above the
+            // glass pane, so nothing could be dimmed or cut out. For a menu that is going to be lit, ask for no
+            // shadow and a lightweight popup: it then lives in this window's layered pane, under the overlay.
+            m.getPopupMenu().putClientProperty("Popup.dropShadowPainted", Boolean.FALSE);
+            m.getPopupMenu().putClientProperty("Popup.forceHeavyWeight", Boolean.FALSE);
+            m.getPopupMenu().setLightWeightPopupEnabled(true);
+            javax.swing.MenuSelectionManager.defaultManager().setSelectedPath(
+                    new javax.swing.MenuElement[]{getJMenuBar(), m, m.getPopupMenu()});
+        }
+    }
+
+    private JMenuItem menuItemFor(SpotlightTarget t) {
+        javax.swing.JMenu m = topLevelMenu(t.menuName());
+        if (m == null) return null;
+        for (java.awt.Component c : m.getPopupMenu().getComponents()) {
+            if (c instanceof JMenuItem item && item.getText() != null && item.getText().trim().equalsIgnoreCase(t.menuItem().trim())) return item;
+        }
+        return null;
+    }
+
+    private static java.util.List<String> menuItemTexts(javax.swing.JMenu m) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (java.awt.Component c : m.getPopupMenu().getComponents()) {
+            if (c instanceof JMenuItem item && item.getText() != null && !item.getText().isBlank()) out.add(item.getText());
+        }
+        return out;
+    }
+
+    /**
+     * A popup (or an item in it) as the overlay sees it — only when the popup is LIGHTWEIGHT, i.e. inside this
+     * window's layered pane, under the glass pane. A popup that does not fit the window becomes a heavyweight
+     * window above everything: it cannot be dimmed or cut out, so it is "not visible" to the spotlight.
+     */
+    private java.util.Optional<java.awt.Rectangle> inWindowPopupPart(JComponent c) {
+        if (c == null || !c.isShowing() || SwingUtilities.getWindowAncestor(c) != this) return java.util.Optional.empty();
+        return visiblePart(c);
+    }
+
+    /** The overlay's dismissing press, with what was lit: a press ON a lit menu item chooses it (M64.11). */
+    private void spotlightPressed(java.awt.Point at, java.util.List<SpotlightOverlay.Lit> wasLit) {
+        for (SpotlightOverlay.Lit l : wasLit) {
+            if (!l.target().regionMatches(true, 0, "menu:", 0, 5) || !l.bounds().contains(at)) continue;
+            SpotlightTarget.Parsed parsed = SpotlightTarget.parse(l.target());
+            if (!parsed.ok() || parsed.target().family() != SpotlightTarget.Family.MENU_ITEM) continue;
+            JMenuItem item = menuItemFor(parsed.target());
+            if (item != null && item.isEnabled()) SwingUtilities.invokeLater(item::doClick);
+            return;
+        }
+    }
+
+    /** Is this POPUP-layer component a menu, or the panel a lightweight popup wraps one in? */
+    private static boolean holdsAMenu(java.awt.Component c) {
+        if (c instanceof javax.swing.JPopupMenu) return true;
+        if (c instanceof java.awt.Container ct) {
+            for (java.awt.Component child : ct.getComponents()) if (holdsAMenu(child)) return true;
+        }
+        return false;
+    }
 
     private GraphPanel selectedGraphPanel() {
         String name = graphTabs.selectedGraphName();
@@ -2010,7 +2162,7 @@ public final class MainFrame extends JFrame {
             Object only = params.get("target");
             if (only == null) {
                 was = spotlight.isLit();
-                spotlight.clearSpotlight();
+                clearSpotlightHere();
             } else {
                 was = spotlight.remove(only.toString().trim());
             }
@@ -2032,12 +2184,18 @@ public final class MainFrame extends JFrame {
             // refused: nothing new is lit. What WAS lit stays — unless the attempt's reveal hid it, in which
             // case it goes out and the refusal says so rather than leaving it pointing at a hidden tab.
             java.util.List<String> hidden = relightSpotlight();
+            // M64.11: a menu opened for a target that was then refused must not be left hanging open
+            if (names.stream().anyMatch(n -> n.regionMatches(true, 0, "menu:", 0, 5))
+                    && spotlight.lit().stream().noneMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5))) {
+                javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath();
+            }
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(set.reason() + (hidden.isEmpty() ? ""
                     : ". Trying brought another view forward, so " + hidden + " is no longer on screen and went out"));
         }
         java.util.List<String> wentOut = java.util.List.of();
         if (asked.add()) wentOut = relightSpotlight();
-        else spotlight.clearSpotlight();
+        else if (names.stream().anyMatch(n -> n.regionMatches(true, 0, "menu:", 0, 5))) spotlight.clearSpotlight();  // the new set needs the menu open
+        else clearSpotlightHere();
         for (int i = 0; i < set.lit().size(); i++) {
             SpotlightTarget.Resolution r = set.lit().get(i);
             spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
@@ -4806,7 +4964,7 @@ public final class MainFrame extends JFrame {
         /** M64 D-SP3: a view-changing verb is about to run. */
         @Override
         public void clearSpotlight() {
-            spotlight.clearSpotlight();
+            clearSpotlightHere();
         }
 
         /** M48.7: the socket's half of the handoff write path — the same rules as the menu's, attributed to the agent. */
@@ -4966,6 +5124,15 @@ public final class MainFrame extends JFrame {
                         target.getWidth(), target.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
                 java.awt.Graphics2D g = img.createGraphics();
                 target.paint(g);
+                // M64.11: a lightweight popup (an open menu) lives in the layered pane's POPUP layer, not in the
+                // content pane — paint it into the shot at its place, so a lit menu item is where it is on screen
+                for (java.awt.Component popup : getLayeredPane().getComponentsInLayer(javax.swing.JLayeredPane.POPUP_LAYER)) {
+                    if (!popup.isShowing() || !holdsAMenu(popup)) continue;   // a tooltip is a popup too; it is not the point
+                    java.awt.Point at = SwingUtilities.convertPoint(popup.getParent(), popup.getLocation(), target);
+                    java.awt.Graphics2D pg = (java.awt.Graphics2D) g.create(at.x, at.y, popup.getWidth(), popup.getHeight());
+                    popup.paint(pg);
+                    pg.dispose();
+                }
                 // M64: the glass pane is NOT part of the content pane (or of a panel), so a live spotlight
                 // has to be composited here — otherwise the shot a tutor takes to check what it lit would
                 // show no spotlight at all. spec-spotlight assumed the opposite; it is corrected there.

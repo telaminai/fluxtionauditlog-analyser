@@ -260,6 +260,11 @@ public final class ChartPanel extends JPanel {
      * a spotlight is given is the number a person reads on the plot. Null when there is no such note or
      * the plot has no view yet.
      */
+    /** How many notes the chart carries — a fact about the chart, whether or not it is showing (M64.10 alsoOn). */
+    public int noteCount() {
+        return notes.notes().size();
+    }
+
     public java.awt.Rectangle noteBounds(int n) {
         if (n < 1 || notes.notes().isEmpty() || Double.isNaN(vx0)) return null;
         int index = 0;
