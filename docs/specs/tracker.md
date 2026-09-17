@@ -13,7 +13,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 implementation and review record (M65.5/.6 stay), M44.3/.3a/.3b (the open slices stay), and delivery-order items 1–3
 and 6. Six handoff files moved to `docs/handoff/completed/` (the M65 implementation handoff, its two impl reviews and
 the response; the 2026-09-17 ledger review and its brief) and the two reviewed 2026-09-17 ledger entries to
-`completed/unreviewed-changes-2026-09.md`. The person-at-the-screen checks and the playground re-vendor stay open
+`completed/unreviewed-changes-2026-09.md`. The person-at-the-screen checks stay open; the playground re-vendor was done the same day
 (▸ *Suggested delivery order*).
 
 **Tidied 2026-09-17.** The finish-first round closed READY on its third independent pass (`d78a0144`; M44.3 + M44.3a, N1 and the clamp fixtures, the skill rewording, the note-rule fix). The eleven reviewed ledger entries of 2026-09-16/17 and their seventeen review, response and probe files moved to `docs/handoff/completed/` (ledger: `completed/unreviewed-changes-2026-09.md`). `main` carries the 1.13.2 candidate (CHANGELOG ▸ Unreleased, eight entries). Open decisions: M44.3b (close/reset during a pending open), M64 (spotlight, spec'd).
@@ -411,7 +411,7 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
 
 - [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
   machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
-- [M65.6] ☐ **Check on `main`**: `graph` answered *no log loaded* right after a command-line open while `context`
+- [M65.6] ☑ **CHECKED 2026-09-17, not reproduced** on the 1.14.1 jar (command-line log + `--rest`: `context` showed the log and `graph` drew; the earlier answer came while a load was still in flight — if it recurs, capture `context.inFlight`). Was: **Check on `main`**: `graph` answered *no log loaded* right after a command-line open while `context`
   showed the log loaded; `open {log}` over the verb cleared it (impl review §5, observed not attributed — M65 did
   not touch that path).
 
@@ -1017,8 +1017,7 @@ employer's). **STILL OPEN — the person-at-the-screen checks, which nobody but 
 RELEASED jar:** *File ▸ Close log* during a slow FIRST load · click, and Escape with focus in a component that consumes
 Escape (an open combo, the search-history popup), while SEVERAL spotlights are lit · *AI ▸ Posture*, *Place
 mode-selector record…*, *Clear record* · the Project-panel row for a restored log · the six "Ask it to show you"
-sentences and the guided-start tour on a context-free client. **The owner's next step is the playground re-vendor of
-the skills** (`scripts/vendor-skills.mjs` in the playground repo; until it runs, a generated starter teaches the
+sentences and the guided-start tour on a context-free client. **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`.mjs` in the playground repo; until it runs, a generated starter teaches the
 `coverage` target this analyser refuses). Still open after that, not gating: the valid `add` + `detail:node`
 end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
 M64.10, M46.11.
@@ -1106,7 +1105,7 @@ correct graph. **Every item below is a communication failure, not a correctness 
   opId, as `pendingRolledSets` does, so the session processor is untouched). Sharing a home between runs is
   still the harness's to fix (H1). **A5:** an unbound step cursor said "no records" with ten open; it now
   says no record is SELECTED and how to select one, and the echo carries `recordsOpen`.
-- [M46.11] ☐ **`tools/capture-conversations.py`: two signals, not one** (re-review R3). When the five scenarios
+- [M46.11] ☑ **DONE 2026-09-17 (`9e1d0c7c`)** — exit 0 + a stderr WARNING when only the native capture is unavailable; `--require-images` makes that exit 3; release-process §4.0 updated. Was: **`tools/capture-conversations.py`: two signals, not one** (re-review R3). When the five scenarios
   pass and only the native image capture is unavailable (no Screen Recording grant; a headless box) it exits 1,
   which reads as "scenarios failed" — so the pre-release checklist cannot use it there. Give it an explicit
   scenarios-only mode or a distinct exit status; do NOT make a required capture failure exit 0. (The other half of
