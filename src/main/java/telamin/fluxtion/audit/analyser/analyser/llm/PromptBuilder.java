@@ -191,12 +191,12 @@ public final class PromptBuilder {
                 + "The app runs it; QUERY results are fed back so you can reason on real numbers, then you answer.\n"
                 + "Verbs:\n"
                 + "  aggregate (query) {metric: count|rate_per_min|nan_count|breach_count, "
-                + "groupBy: dimension|thread|hour|minute|day|none, filter?: {dimensions[], from, to, text}}\n"
+                + "groupBy: dimension|thread|hour|minute|day|none, filter?: {dimensions[], from, to, text}, limit?: max buckets}\n"
                 + "  series (query) {expr: \"instanceId.key\" or a formula, resolve?: STRICT|LOCF, filter?,\n"
                 + "          crossings?: {above?, below?}, limit?, buckets?: minute|hour} -> stats (min/max/mean with\n"
                 + "          timestamps) and threshold-entry events WITH record anchors — ask 'where does X exceed Y'\n"
                 + "          in ONE call instead of paging records and doing arithmetic\n"
-                + "  read (query) {recordIndex | byteOffset | at (epoch ms, at-or-before), count? | before?/after?,\n"
+                + "  read (query) {recordIndex | byteOffset (+ file? on a rolled set) | at (epoch ms, at-or-before), count? | before?/after?,\n"
                 + "          fields?: [\"instanceId.key\"|\"instanceId.*\"]} -> N records around an anchor (default "
                 + ReadService.DEFAULT_COUNT + ",\n"
                 + "          max " + ReadService.MAX_COUNT + "). fields projects compact values rows instead of raw "
@@ -225,20 +225,64 @@ public final class PromptBuilder {
                 + "          y?, payload?}] = event glyphs (fills on a price line); when = bare key fires where\n"
                 + "          logged, or a truthy formula; y = key/formula | series:<label> | axis (rug lane);\n"
                 + "          payload = a key whose text shows on hover; click a marker selects its record.\n"
+                + "          explanation = a multi-line write-up drawn ON the plot (survives an exported PNG);\n"
+                + "          notes:[{recordIndex | at, text, series?}] = numbered pins on moments, listed beneath the plot —\n"
+                + "          a finding that STAYS on the chart (a spotlight does not); clearNotes:true drops them.\n"
                 + "          rename with {name:\"old\", rename:\"new\"}\n"
-                + "  goto   {byteOffset | recordIndex | at (epoch ms), reveal?} -> selects the record; reveal:true relaxes the\n"
+                + "  goto   {byteOffset (+ file? on a rolled set) | recordIndex | at (epoch ms), reveal?} -> selects the record; reveal:true relaxes the\n"
                 + "          filter if the record is hidden (else the echo names which filter hides it)\n"
-                + "  flag   {byteOffsets[] | recordIndexes[], note?} -> bookmarks records so your findings are reviewable\n"
+                + "  flag   {byteOffsets[] | recordIndexes[], note?, fix?} -> bookmarks records so your findings are reviewable;\n"
+                + "          note = what you found, fix = the likely cause or where to look (giving one keeps the other)\n"
                 + "  spotlight {target, caption?} | {targets:[{target, caption?}], add?} | {clear:true, target?} -> dims the\n"
                 + "          window and cuts out what you are talking about, each with a one-line callout. Targets: "
                 + SpotlightVocabulary.TEXT + "\n"
                 + SpotlightVocabulary.GUIDANCE + "\n"
+                + "  open   {log | logs[], graphml?, processor?, format?, provenance?} -> open an audit log and/or a\n"
+                + "          processor graph; {discover: \"graphml\"} lists candidate graphs and opens nothing;\n"
+                + "          {project} applies a project (a session boundary: log and graph close); {analysis, bind?}\n"
+                + "          recalls a saved analysis; {close: log|graph|all|project|handoff} closes.\n"
+                + "          THE SHARED CANVAS, which you and the person both see (read it in context.handoff):\n"
+                + "          {posture: research|authoring|derived} — set it when intent changes before any artefact\n"
+                + "          does (\"let's build something new\" = authoring); 'derived' returns to the analyser's guess.\n"
+                + "          {record: {branch, modes[], skills[], resolved_figures[], authoring_required[],\n"
+                + "          selection_candidates{}}} — the authoring mode selector's --json output; refused WHOLE\n"
+                + "          with the reason if malformed. A canvas write goes ALONE (posture and record may share\n"
+                + "          a call; nothing else may), is attributed to you in the Project panel, and\n"
+                + "          {close: \"handoff\"} takes both off again.\n"
+                + otherVerbs()
                 + "Prefer a dimension/flag filter (index, ms). filter.text is a SLOW raw byte scan — the result "
                 + "reports scan:index|raw. Up to " + maxActionsPerReply + " actions per reply.\n"
                 + "To ILLUSTRATE an action without running it, use an ```analyser-action-example``` fence (never executed).\n"
                 + "On your FIRST reply, briefly tell the user you can compute over the index and build views "
                 + "(filter / graph / goto / flag) in the analyser on request, and point at what you find (spotlight) — so "
                 + "they know this chat drives the app.";
+    }
+
+    /** The verbs {@link #inProcessActionManifest} describes by hand, with the detail a model needs to use them well. */
+    static final java.util.Set<String> HAND_DESCRIBED = java.util.Set.of(
+            "aggregate", "series", "read", "filter", "graph", "goto", "flag", "spotlight", "open");
+
+    /**
+     * Every OTHER verb, derived from {@link VerbSchemas} — name, parameter names, and the first sentence of
+     * its description. The hand-written list above drifted twice in one day: M48.7 added a canvas verb and M64
+     * added {@code spotlight}, and the built-in assistant was told about neither, while the REST and MCP
+     * entrances — which derive from the schemas — were. (It had never been told about {@code open} either.) A verb added from now on appears here without anyone remembering.
+     */
+    private static String otherVerbs() {
+        StringBuilder out = new StringBuilder("Also available — parameter names shown; a wrong name or value is refused "
+                + "with the reason, never silently ignored:\n");
+        for (var e : VerbSchemas.all().entrySet()) {
+            if (HAND_DESCRIBED.contains(e.getKey())) continue;
+            if (!(e.getValue() instanceof Map<?, ?> schema)) continue;
+            Object props = schema.get("properties");
+            String params = props instanceof Map<?, ?> m ? String.join(", ", m.keySet().stream().map(String::valueOf).toList()) : "";
+            String desc = String.valueOf(schema.get("description"));
+            int stop = desc.indexOf(". ");
+            if (stop > 0) desc = desc.substring(0, stop + 1);
+            if (desc.length() > 200) desc = desc.substring(0, 197) + "…";
+            out.append("  ").append(e.getKey()).append(" {").append(params).append("} -> ").append(desc).append('\n');
+        }
+        return out.toString();
     }
 
     /**

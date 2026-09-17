@@ -38,7 +38,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   does not exist is refused with the reason, never lit on nothing. The caption is tagged *assistant*, because
   it is the client's words and not something the analyser established. A spotlight goes out on any click,
   Escape, `{clear: true}` or any action that changes the view, and nothing about one is ever saved. The
-  guided-start skill now spotlights before each beat speaks. **MCP clients see 16 tools.**
+  guided-start skill now spotlights before each beat speaks. **MCP clients see 15 tools** — `analyser_spotlight`
+  is the new one.
 - **Several things can be lit at once, each with its own numbered callout — and assistants are now told
   when to point.** A finding is usually a relation: *this* node, *that* record, the crossing on the chart.
   `spotlight {targets: [{target, caption}, …]}` lights up to six together; they are numbered on screen and in
@@ -56,13 +57,22 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A shared canvas for you and an AI client: the session's posture, and the authoring handoff.** Two
   things both of you can now see and either of you can set. **Posture** — whether this session is
   *research/support* or *authoring/deploy*. The analyser guesses it from what is open and says when it is
-  only guessing; *AI ▸ Posture*, or the assistant's new `handoff {posture}` action, sets it, because intent
+  only guessing; *AI ▸ Posture*, or the assistant's `open {posture}`, sets it, because intent
   changes before any file does. **The authoring mode selector's record** — the modes in force, the figures
-  the catalogue resolved and what is left to author — placed with `handoff {record}` or *AI ▸ Place
+  the catalogue resolved and what is left to author — placed with `open {record}` or *AI ▸ Place
   mode-selector record…*. Both appear on the Project panel and in `context.handoff`, each attributed to
   whoever set it. The analyser never runs the selector and does not check the record; a malformed one is
-  refused whole, with the reason. It is session state: a project switch clears it and nothing is written to
-  the project profile. **MCP clients now see 15 tools** — `analyser_handoff` is the new one.
+  refused whole, with the reason — including one whose `branch` is not a string, which used to be stringified
+  into a record that looked valid. It is session state: a project switch clears it, `open {close: "handoff"}`
+  takes it off again (the same idiom as `open {close: "project"}`), and nothing is written to the project
+  profile. It lives on `open` — the action that already means *put this in force* — so it adds no tool; a
+  canvas write goes alone, and combined with anything else `open` does it is refused rather than half applied.
+- **The built-in assistant is told about every action and every parameter.** Its list of actions is the one
+  written by hand, and it had drifted: it never mentioned `open`, `topology`, `coverage`, `report`,
+  `screenshot`, `context` or `source_root`, nor seven parameters of the ones it did (a flag's `fix`, a chart's
+  `notes` and `explanation`, a rolled set's `file`, …) — while an MCP or REST client, whose list is generated,
+  was offered all of them. The missing ones are now derived from the same schemas, and a test holds every
+  published action AND parameter to having a line, so the next one cannot be forgotten.
 
 ### Fixed
 - **Recalling a saved analysis over the action socket works again.** Since 1.13.0 every agent

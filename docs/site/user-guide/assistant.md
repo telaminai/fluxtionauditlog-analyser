@@ -152,7 +152,7 @@ machine, not a command you need to reconstruct.
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
 `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open`,
-`analyser_source_root`, `analyser_handoff` and `analyser_spotlight` — with full parameter schemas, so
+`analyser_source_root` and `analyser_spotlight` — with full parameter schemas, so
 there's nothing to paste into a prompt.
 
 `spotlight` lets an AI client **point** ([Ask it to show you](#ask-it-to-show-you) has the pictures and
@@ -171,18 +171,20 @@ reason**, never lit on nothing. `screenshot` and `context` leave a spotlight lit
 checks it lit what it meant — `context.spotlight.lit` lists what is lit, and a screenshot shows it exactly as
 you see it.
 
-`handoff` writes to the **shared canvas** — state you and the AI client both see and either of you can
-set. Two things live there. **Posture**: whether this session is *research/support* or
+`open` also writes to the **shared canvas** — state you and the AI client both see and either of you can
+set — because `open` is the verb that already means *put this in force*. Two things live there. **Posture**: whether this session is *research/support* or
 *authoring/deploy*. The analyser guesses it from what is open (a project open reads as authoring) and
-**says when it is only guessing**; `handoff {posture: "authoring"}` — or *AI ▸ Posture* — sets it, which
+**says when it is only guessing**; `open {posture: "authoring"}` — or *AI ▸ Posture* — sets it, which
 matters because intent changes before any file does (*"let's build something new"*). **The authoring
-mode selector's record**: `handoff {record: {…}}` places the selector's `--json` output, so the modes in
+mode selector's record**: `open {record: {…}}` places the selector's `--json` output, so the modes in
 force, the figures the catalogue resolved and what is left to author sit where both of you can read
 them (*AI ▸ Place mode-selector record…* does the same from a file). The analyser **never runs the
 selector** and does not check the record — it carries it, attributed to whoever placed it. Both are read
 back in `context.handoff` and shown on the **Project panel**; both belong to the session — a project
-switch clears them, `handoff {clear: "all"}` undoes them, and nothing is written to the project profile.
-A malformed record is refused whole, with the reason.
+switch clears them, `open {close: "handoff"}` takes them off again (the same idiom as
+`open {close: "project"}`), and nothing is written to the project profile. A malformed record is refused
+whole, with the reason; and a canvas write goes **alone** — combined with a log, a graph or anything else
+`open` does, the call is refused rather than half applied.
 
 `open {analysis: name, bind: {…}}` recalls a saved analysis (*Portable context ▸ Repeatable analyses*) —
 `context.analyses` lists them with their parameters; steps run through this surface and stop at the first failure.
@@ -349,13 +351,12 @@ server actually connected, then say what you want:
 $ claude
 
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 16 tools
+  ⎿ fluxtion-analyser   ✔ connected · 15 tools
        analyser_aggregate · analyser_read · analyser_series
        analyser_filter · analyser_graph · analyser_goto
        analyser_flag · analyser_report · analyser_coverage
        analyser_context · analyser_topology · analyser_screenshot
-       analyser_open · analyser_source_root · analyser_handoff
-       analyser_spotlight
+       analyser_open · analyser_source_root · analyser_spotlight
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.

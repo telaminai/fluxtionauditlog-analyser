@@ -112,3 +112,8 @@ Four choices, each taken FROM the specs rather than invented:
 · R9 (persisting a chosen convention to the profile) — deliberately out of scope; needs a key-family review.
 · The in-app assistant's prompt was not re-examined for whether it should mention `handoff`; it builds its
   verb list from VerbSchemas, so the verb is offered, but no guidance text was added.
+  >>> CORRECTION 2026-09-17 (review F1): THE SENTENCE ABOVE IS FALSE. inProcessActionManifest is a HAND-WRITTEN
+  list; only restActionManifest derives from VerbSchemas. The built-in assistant was never told about this verb
+  (or about `open`). I asserted it without reading the method. Fixed — see response_m48_7_canvas_handoff.txt.
+  ALSO SUPERSEDED: every mention of a `handoff` VERB in this report. By owner decision the same day (second
+  reader A6) the canvas is written through `open {posture | record}` / `open {close: "handoff"}`.

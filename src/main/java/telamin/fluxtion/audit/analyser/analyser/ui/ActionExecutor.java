@@ -114,7 +114,10 @@ public final class ActionExecutor implements RenderExecutor {
         // context points at the wrong thing, which is worse than none. The list is SpotlightTarget's, so
         // what ends a spotlight is stated once; `screenshot` and `context` are deliberately not on it —
         // they are how the tutor checks what it lit.
-        if (app != null && SpotlightTarget.VIEW_CHANGING_VERBS.contains(action)) {
+        // …except `open`'s canvas form (M48.7): posture and the selector's record change no view.
+        boolean changesTheView = SpotlightTarget.VIEW_CHANGING_VERBS.contains(action)
+                && !("open".equals(action) && params != null && isCanvasWrite(params));
+        if (app != null && changesTheView) {
             onEdt(() -> {
                 app.clearSpotlight();
                 return null;
@@ -124,16 +127,12 @@ public final class ActionExecutor implements RenderExecutor {
         // requiring one first would make them useless
         switch (action) {
             case "open" -> {
+                if (isCanvasWrite(params)) return onEdt(() -> doOpenCanvas(params));   // M48.7: needs no log, opens no file
                 if (params.get("analysis") != null) return doOpenAnalysis(params);   // M38.4: off the EDT, see method
                 return onEdt(() -> doOpen(params));
             }
             case "source_root" -> {
                 return onEdt(() -> doSourceRoot(params));
-            }
-            case "handoff" -> {
-                // M48.7: canvas state, not log state — it needs no log, and it is the frame's to hold
-                if (app == null) return ActionResult.error("'handoff' is not enabled here");
-                return onEdt(() -> app.handoff(params));
             }
             case "spotlight" -> {
                 // M64: needs no log — a tab, the toolbar, the status line and the Project panel are all
@@ -786,6 +785,59 @@ public final class ActionExecutor implements RenderExecutor {
         return r;
     }
 
+    // ---- M48.7: the shared canvas, on the verb that already means "put this in force" ------------------
+
+    /** The two things `open` puts on the canvas, and the one way it takes them off. */
+    private static final Set<String> CANVAS_PARAMS = Set.of("posture", "record");
+
+    private static boolean isCanvasWrite(Map<String, Object> params) {
+        return params.get("posture") != null || params.get("record") != null
+                || "handoff".equalsIgnoreCase(str(params.get("close")));
+    }
+
+    /**
+     * {@code open {posture}}, {@code open {record}} and {@code open {close: "handoff"}} — the session's
+     * posture and the authoring mode selector's record (M48.7). This was its own verb, {@code handoff}, for
+     * a day; it was folded in before it shipped (second reader, A6) because {@code open} already means "put
+     * this in force" and already has the close idiom {@code open {close: "project"}} — one verb, one way
+     * to undo, fifteen tools instead of sixteen. Everything of substance is unchanged and lives in
+     * {@link telamin.fluxtion.audit.analyser.analyser.llm.CanvasHandoff}.
+     *
+     * <p><b>A canvas write goes alone.</b> The rest of {@code open} names what it ignored; a write to shared
+     * state is refused instead, whole, because "half of what you asked was applied" is the one answer a
+     * typed, fail-closed canvas may not give.
+     */
+    private ActionResult doOpenCanvas(Map<String, Object> params) {
+        if (app == null) return ActionResult.error("'open' is not enabled here");
+        boolean closing = "handoff".equalsIgnoreCase(str(params.get("close")));
+        List<String> others = new ArrayList<>();
+        for (Map.Entry<String, Object> e : params.entrySet()) {
+            if (e.getValue() == null) continue;
+            boolean mine = closing ? e.getKey().equals("close") : CANVAS_PARAMS.contains(e.getKey());
+            if (!mine) others.add(e.getKey());
+        }
+        if (!others.isEmpty()) {
+            return ActionResult.error((closing ? "open {close: \"handoff\"}" : "a canvas write (posture / record)")
+                    + " goes ALONE — this call also carried " + others + ". Nothing was applied: send "
+                    + (closing && (params.get("posture") != null || params.get("record") != null)
+                    ? "the close and the write separately — which half of \"set it and remove it\" was meant is not "
+                    + "something to guess" : "them as separate calls"));
+        }
+        Map<String, Object> write = new LinkedHashMap<>();
+        if (closing) {
+            write.put("clear", "all");
+        } else {
+            if (params.get("posture") != null) write.put("posture", params.get("posture"));
+            if (params.get("record") != null) write.put("record", params.get("record"));
+        }
+        ActionResult r = app.handoff(write);
+        if (!r.ok() || !closing) return r;
+        Map<String, Object> echo = new LinkedHashMap<>();
+        echo.put("closed", "handoff");
+        echo.put("handoff", r.toMap().get("handoff"));
+        return ActionResult.ok("open", "applied", echo);
+    }
+
     private ActionResult doOpen(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
         if (params.get("project") != null) {
@@ -835,7 +887,8 @@ public final class ActionExecutor implements RenderExecutor {
         String processor = str(params.get("processor"));
         if (log == null && graphml == null && processor == null) {
             return ActionResult.error(
-                    "'open' needs 'log', 'graphml', 'processor', 'project', 'close' or 'discover'");
+                    "'open' needs 'log', 'graphml', 'processor', 'project', 'analysis', 'posture', 'record', "
+                            + "'close' or 'discover'");
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         boolean logLoading = false;

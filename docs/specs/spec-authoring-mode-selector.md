@@ -177,7 +177,7 @@ unselectable. (Belongs in [`spec-component-catalogue.md`](spec-component-catalog
 | `Fluxtion-Convention` + site profile | **built, verified** — one word decides the build |
 | mode derivation, incl. mixed sessions | **built** |
 | `--json` handoff record | **built** |
-| the handoff record + posture as shared canvas state (R7 revised, R10) | **built 2026-09-17 (M48.7)** — `context.handoff`, the `handoff` verb, *AI ▸ Posture*, a Project-panel row; session-scoped |
+| the handoff record + posture as shared canvas state (R7 revised, R10) | **built 2026-09-17 (M48.7)** — `context.handoff`, `open {posture | record}` (a verb of its own, `handoff`, for one day — folded into `open` before it shipped), *AI ▸ Posture*, a Project-panel row; session-scoped |
 | writing a chosen convention back to the project profile (R9) | **not built, deliberately** — a new profile key family, which grows only by review |
 | catalogue generation from bytecode | spec'd only — `spec-component-catalogue.md` |
 | the mode-1 selection asset | **not written** |
@@ -373,10 +373,10 @@ a starting guess, not a constraint.
 
 ### As built (M48.7, 2026-09-17)
 
-- **One state, two writers, two readers.** `CanvasHandoff.State` is held by the frame. The `handoff` verb
+- **One state, two writers, two readers.** `CanvasHandoff.State` is held by the frame. `open {posture | record}`
   (an AI client) and the *AI* menu (a person) write through the same `apply`, so the only difference
   between them is the attribution. `context.handoff` and the Project panel read the same object.
-- **The analyser never runs the selector.** Whoever ran it places its `--json` record: `handoff {record}`
+- **The analyser never runs the selector.** Whoever ran it places its `--json` record: `open {record}`
   over the socket, or *AI ▸ Place mode-selector record…* from a file. R6's *"the analyser calls it"* is
   superseded by the Correction section above — the LLM or the human is the intelligence.
 - **Derivation is simpler than R10's sentence.** "A *buildable* project" is not something the analyser can
@@ -385,11 +385,20 @@ a starting guess, not a constraint.
   when the two disagree, what the derivation would have been.
 - **The canvas's write rules, applied** (`spec-shared-evidence-canvas.md`): the record has a closed shape
   and an unknown field is refused, not dropped; a malformed record is refused WHOLE and a posture sent in
-  the same call is not applied; every list and string is capped; `clear` reverses; a project transition,
+  the same call is not applied; every list and string is capped; `open {close: "handoff"}` reverses; a project transition,
   being a session boundary, clears it. **Nothing is persisted** — R9's profile write is a separate slice.
-- **It is a fifteenth verb.** The surface had been held at fourteen by folding `close`, `project`,
-  `discover` and `analysis` into `open`, because those are all lifecycle acts. `handoff` is not one, and
-  `context` must stay read-only (the M42 loopback probe's non-mutating guarantee depends on it), so
-  overloading either would have been one name with two meanings. **Confirmed by the owner, 2026-09-17**
-  (*"keep the 15th verb, handoff is fine"*) and recorded under the tracker's Decisions — with the rider that
-  the next verb still has to clear the same bar.
+- **It is NOT a verb — it is `open` (decided twice on 2026-09-17; this is the second decision).** As first
+  built it was a fifteenth verb, `handoff`, on the argument that the canvas write is not a lifecycle act and so
+  did not belong with `close`, `project`, `discover` and `analysis` on `open`; the owner confirmed that. The
+  second-reader review (A6) pointed out that `open` does not mean "a lifecycle act", it means **put this in
+  force** — exactly what setting a posture or placing the record does — and that it already has the idiom for
+  taking something out of force. The owner took the fold: `open {posture}`, `open {record}`,
+  `open {close: "handoff"}` (mirroring `open {close: "project"}`); reading stays `context.handoff`. `context`
+  staying read-only (the M42 loopback probe's non-mutating guarantee) was never in question. Two rules came with
+  the fold: a canvas write goes ALONE — `open`'s other forms name what they ignored, but shared state is refused
+  whole rather than half applied — and `open {close: "all"}` does not touch the canvas (it is about the log and
+  the graph). Tracker ▸ Decisions records the reversal and why.
+- **After review (2026-09-17).** The required scalar `branch` is held to `String` as the list members already
+  were — it used to be stringified, so `{"branch": {"instructions": "…"}}` was ACCEPTED as the branch
+  `"{instructions=…}"`. And the built-in assistant is now told: its hand-written action manifest had never
+  mentioned this, or `open` at all; it is now held to an inventory of every published verb and parameter.

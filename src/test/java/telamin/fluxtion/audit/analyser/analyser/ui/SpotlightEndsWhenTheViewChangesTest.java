@@ -92,7 +92,9 @@ class SpotlightEndsWhenTheViewChangesTest {
     void theQueryAndCanvasVerbsLeaveItLit() {
         assertEquals(0, clearsCausedBy("coverage", Map.of()));
         assertEquals(0, clearsCausedBy("series", Map.of("expr", "quotePublisher.spread")));
-        assertEquals(0, clearsCausedBy("handoff", Map.of("posture", "authoring")));
+        // the canvas form of `open` (M48.7, folded in from the one-day `handoff` verb) changes no view
+        assertEquals(0, clearsCausedBy("open", Map.of("posture", "authoring")));
+        assertEquals(0, clearsCausedBy("open", Map.of("close", "handoff")));
         assertEquals(0, clearsCausedBy("flag", Map.of("recordIndex", 3)));
     }
 

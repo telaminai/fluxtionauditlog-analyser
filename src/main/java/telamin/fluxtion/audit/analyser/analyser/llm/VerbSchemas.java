@@ -228,7 +228,9 @@ public final class VerbSchemas {
                 req("path")));
 
         s.put("open", schema("Open an audit log and/or a processor .graphml — or CLOSE what is open. "
-                        + "Reaches the FILESYSTEM: it points the app at any readable path.",
+                        + "Reaches the FILESYSTEM: it points the app at any readable path. Also puts the two "
+                        + "things of the SHARED CANVAS in force — the session's posture and the authoring mode "
+                        + "selector's record (posture / record below; read them back in context.handoff).",
                 props(
                         p("log", string(), "path to an audit log, or an s3:// URI"),
                         p("logs", arr(string()), "an explicit ROLLED SET (M30): the member files, any "
@@ -253,7 +255,23 @@ public final class VerbSchemas {
                                 + "the mismatch banner name a SYSTEM rather than a temp file. Never "
                                 + "inferred — omit it and the analyser says nothing rather than "
                                 + "guessing"),
-                        p("close", enumStr("log", "graph", "all", "project"), "close what is open "
+                        p("posture", enumStr("research", "authoring", "derived"),
+                                "SHARED CANVAS (M48.7): this session's posture — research = research/support, "
+                                        + "authoring = authoring/deploy. Set it when intent changes before any "
+                                        + "artefact does (\"let's build something new\"). 'derived' returns to the "
+                                        + "analyser's guess from what is open. Read back in context.handoff and "
+                                        + "shown to the person in the Project panel, attributed to you. Session-"
+                                        + "scoped: never persisted, and a project switch clears it. A canvas "
+                                        + "write goes ALONE — combined with any other open param it is refused "
+                                        + "whole, never half-applied"),
+                        pAny("record", "SHARED CANVAS (M48.7): the authoring mode selector's --json record, placed "
+                                + "so you and the person read one state: {branch, modes[], skills[] (parallel to "
+                                + "modes; null = that mode loads nothing), resolved_figures[], "
+                                + "authoring_required[], selection_candidates{}}. The analyser never runs the "
+                                + "selector — you do (it is a headless CLI). Typed and bounded; refused WHOLE "
+                                + "with the reason if malformed, and a posture in the same call is then not "
+                                + "applied either. May accompany 'posture', nothing else"),
+                        p("close", enumStr("log", "graph", "all", "project", "handoff"), "close what is open "
                                 + "(M35.1) — the counterpart of opening, and the way to switch cleanly "
                                 + "between systems. Log-DERIVED state clears (records, filter, shading, "
                                 + "step cursor, flags); named graphs, focuses, source roots and reports "
@@ -262,7 +280,9 @@ public final class VerbSchemas {
                                 + "and restores YOUR OWN settings — the ones in force before any project "
                                 + "was opened — which is a session boundary too: the log and graph "
                                 + "close with it, and the echo says so. Ignored when combined with "
-                                + "log/graphml/processor"),
+                                + "log/graphml/processor. 'handoff' takes posture AND record off the shared "
+                                + "canvas (posture returns to derived) and goes alone, like the write it undoes; "
+                                + "'all' does not touch the canvas — it is about the log and the graph"),
                         p("project", string(), "path to a project's .analyser/project.fluxtion-settings, "
                                 + "or the project directory (M35.8). APPLIES the project — it does not "
                                 + "ask: source roots, Maven repos, event processors, named graphs, "
@@ -289,23 +309,6 @@ public final class VerbSchemas {
                 props(
                         p("add", arr(string()), "roots to add"),
                         p("remove", arr(string()), "roots to remove")),
-                List.of()));
-
-        s.put("handoff", schema("Write to the shared canvas: the session's POSTURE and the authoring mode "
-                        + "selector's record. Both are read back in context.handoff and shown to the person in "
-                        + "the Project panel — one state, two readers. Session-scoped and reversible: nothing is "
-                        + "persisted, a project switch clears it, and 'clear' undoes it. The analyser never runs "
-                        + "the selector; you run it (it is a headless CLI) and place its --json record here. "
-                        + "With no params, returns the current handoff.",
-                props(
-                        p("posture", enumStr("research", "authoring", "derived"),
-                                "research = research/support, authoring = authoring/deploy. Set it when intent "
-                                        + "changes before any artefact does (\"let's build something new\"). "
-                                        + "'derived' returns to the default guess from what is open."),
-                        pAny("record", "the selector's --json record: {branch, modes[], skills[] (parallel to modes; "
-                                + "null = that mode loads nothing), resolved_figures[], authoring_required[], "
-                                + "selection_candidates{}}. Refused whole, with the reason, if malformed."),
-                        p("clear", enumStr("record", "posture", "all"), "remove what was placed")),
                 List.of()));
 
         s.put("spotlight", schema("POINT at what you are talking about, for the person you are working with: the "

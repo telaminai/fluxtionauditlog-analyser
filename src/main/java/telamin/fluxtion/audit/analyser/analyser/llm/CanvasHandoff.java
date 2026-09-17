@@ -122,7 +122,14 @@ public final class CanvasHandoff {
                         + "; an unrecognised field is refused rather than silently dropped");
             }
         }
-        String branch = text(m.get("branch"));
+        // a TYPED record (review F2): text() stringifies anything, so {"branch": {"instructions": "…"}} used to be
+        // ACCEPTED as the branch "{instructions=…}". The list members were already held to String; so is this.
+        Object rawBranch = m.get("branch");
+        if (rawBranch != null && !(rawBranch instanceof String)) {
+            return refuse("'branch' must be a string (the selector's branch, e.g. \"catalogue\") — got "
+                    + jsonKind(rawBranch));
+        }
+        String branch = text(rawBranch);
         if (branch == null) return refuse("'branch' is required (the selector's branch, e.g. \"catalogue\")");
         if (invalidText(branch)) return refuse("'branch' must be one line of at most " + MAX_TEXT + " characters");
 
@@ -243,6 +250,9 @@ public final class CanvasHandoff {
                         + "\"set it and remove it\" was meant is not something to guess");
             }
             PostureSetting newPosture = posture;
+            if (rawPosture != null && !(rawPosture instanceof String)) {
+                return Optional.of("'posture' must be the string research, authoring or derived — got " + jsonKind(rawPosture));
+            }
             if (rawPosture != null) {
                 String p = rawPosture.toString().trim().toLowerCase(Locale.ROOT);
                 if (p.equals("derived")) {
@@ -289,6 +299,14 @@ public final class CanvasHandoff {
 
     private static Parsed refuse(String why) {
         return new Parsed(null, why);
+    }
+
+    private static String jsonKind(Object o) {
+        if (o instanceof Map<?, ?>) return "an object";
+        if (o instanceof List<?>) return "a list";
+        if (o instanceof Boolean) return "a boolean";
+        if (o instanceof Number) return "a number";
+        return o.getClass().getSimpleName();
     }
 
     private static String text(Object o) {

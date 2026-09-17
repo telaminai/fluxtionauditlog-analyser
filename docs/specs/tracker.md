@@ -338,8 +338,8 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 _Report: `docs/handoff/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
 the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
 shot showed NO spotlight (the display test measured `696 → 696` outside the cut-out). The verb now composites a live
-spotlight. It is a **sixteenth verb** — nothing else points (`goto`/`topology` select, `screenshot` records), the
-same bar `handoff` cleared (Decisions). Held on the built jar by `tools/verify-m64-spotlight.py` (47 checks: every
+spotlight. It is the **fifteenth verb** — nothing else points (`goto`/`topology` select, `screenshot` records);
+it was the sixteenth for a day, until M48.7's `handoff` was folded into `open` (Decisions). Held on the built jar by `tools/verify-m64-spotlight.py` (47 checks: every
 family, fresh start, a filtered-out row revealed, each view-changing verb). **Not done:** the held-out re-run of the
 guided-start prompt by a context-free client — it needs a person and a fresh client._
 
@@ -1058,11 +1058,12 @@ sequence, 2026-09-17: **close off open work before opening new** — items 1–3
    processor regenerated; mutation-checked.
 3. ☑ **M48.7** — DONE 2026-09-17 on the same branch, awaiting review
    (`docs/handoff/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
-   canvas state — `context.handoff`, a new `handoff` verb, *AI ▸ Posture*, a Project-panel row. It unblocks the
-   dev-harness loop (M48.10). Adds a fifteenth verb, `handoff` — **confirmed by the owner 2026-09-17** (Decisions).
+   canvas state — `context.handoff`, `open {posture | record}`, *AI ▸ Posture*, a Project-panel row. It unblocks
+   the dev-harness loop (M48.10). It was a verb of its own for a day; **folded into `open` by owner decision
+   2026-09-17** after the second review (Decisions), so it adds no tool.
 4. ☑ **M64 Spotlight** — DONE 2026-09-17 on the same branch, all seven slices (incl. M64.6 several at once, M64.7 general guidance), awaiting review
    (`docs/handoff/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
-   result in normal use. A sixteenth verb; the screenshot now composites the overlay (the spec assumed it already did).
+   result in normal use. The fifteenth verb (the only one added); the screenshot now composites the overlay (the spec assumed it already did).
 5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
 6. **Pre-release gate to add** (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`
@@ -1235,16 +1236,19 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
 - [M48.7] ☑ **`analyser_context` handoff section — DONE 2026-09-17 on branch `fix/m46-agent-api-closure`,
       awaiting independent review** (`docs/handoff/report_m48_7_canvas_handoff.txt`). The selector's record
       and the session's POSTURE are shared canvas state: one `CanvasHandoff.State`, written by an AI client
-      (the new `handoff` verb) or a person (*AI ▸ Posture*, *AI ▸ Place mode-selector record…*) through the
+      (`open {posture | record}`, and `open {close: "handoff"}` to take it back) or a person (*AI ▸ Posture*, *AI ▸ Place mode-selector record…*) through the
       same rules, read back in `context.handoff` and on a Project-panel row. Posture is SET by either party;
       the derived default says it is a guess and a set one names who set it (R7 revised, R10). **The analyser
       never runs the selector** — whoever ran it places its record. The canvas spec's write rules are applied
       (typed, attributed, bounded, fail-closed whole, reversible, cleared at a project boundary) and **nothing
-      is persisted** — R9's profile write stays a separate, reviewable slice. **It is a FIFTEENTH VERB**, the
-      first growth of the surface since it was pinned at fourteen: `handoff` is not a lifecycle act so it does
-      not belong on `open`, and `context` must stay read-only. **The owner confirmed it on 2026-09-17** (*"keep
-      the 15th verb, handoff is fine"* — tracker ▸ Decisions). `tools/verify-m48-handoff.py` holds it on the
-      built jar (12 checks, incl. fresh start).
+      is persisted** — R9's profile write stays a separate, reviewable slice. **It was a verb of its own
+      (`handoff`) for one day and was FOLDED INTO `open` before it shipped** (second reader A6; owner decision,
+      2026-09-17 — tracker ▸ Decisions): `open` already means *put this in force* and already has the close idiom.
+      A canvas write goes ALONE — combined with any other `open` parameter it is refused whole. After review:
+      a non-string `branch` is refused (it used to be stringified into a valid-looking record), and the
+      built-in assistant's hand-written manifest — which had never been told about this, about `open`, or about
+      seven parameters of verbs it did list — is now held to an inventory of every published verb AND
+      parameter. `tools/verify-m48-handoff.py` holds it on the built jar (18 checks, incl. fresh start).
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
 - [M48.12] ☐ **audit-log header fingerprint carrier** — narrowed twice. The contract is
@@ -1290,14 +1294,23 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 
 ## Decisions (resolved)
 
-- **`handoff` is the fifteenth verb** _(owner, 2026-09-17: "keep the 15th verb, handoff is fine")_. The action
-  surface had been held at fourteen by folding `close`, `project`, `discover` and `analysis` into `open`, and
-  four tests pinned the number. The rule those tests guard stands and is now stated in them: **the surface does
-  not grow for a concept an existing verb already names.** Those four are lifecycle acts, so they belong on
-  `open`. The shared canvas's posture and mode-selector record (M48.7) are not a lifecycle act, and `context`
-  must stay read-only because M42's loopback probe depends on it — so overloading either would have been one
-  name with two meanings. Recorded so a reviewer does not relitigate it; the NEXT verb still has to clear the
-  same bar, and "M48.7 added one" is not an argument for it.
+- **REVERSED the same day — `handoff` is NOT a verb; the shared canvas is written through `open`** _(owner,
+  2026-09-17, after the second-reader review's A6)_. `open {posture}`, `open {record}` and
+  `open {close: "handoff"}`, mirroring `open {close: "project"}`; reading stays `context.handoff`. **Why the
+  earlier decision (below) was wrong:** it argued the canvas write is "not a lifecycle act", so it did not belong
+  on `open`. But `open` does not mean "a lifecycle act" — it means **put this in force**, which is what setting a
+  posture or placing the selector's record does, and it already carries the one idiom for taking something out of
+  force. The verb-ness of M48.7 was two lines of wiring; everything of substance (`CanvasHandoff`'s typed,
+  attributed, fail-closed state, `context.handoff`, the Project-panel row) is unchanged. Unreleased, so this was
+  the cheapest it would ever be; after a release it would have been a compatibility decision. The surface is
+  FIFTEEN: the fourteen, plus `spotlight` (M64) — the one concept no existing verb named. One consequence is
+  stated rather than hidden: `open`'s other forms name what they ignored, but a canvas write is REFUSED when
+  combined with anything else, because shared state may not be half applied.
+  _Superseded, kept for the record:_ ~~`handoff` is the fifteenth verb (owner, 2026-09-17: "keep the 15th verb,
+  handoff is fine") — the canvas's posture and record are not a lifecycle act, and `context` must stay read-only
+  because M42's loopback probe depends on it.~~ The `context`-stays-read-only half still holds. The rule the four
+  guard tests state also still holds, and is the rule this reversal applies: **the surface does not grow for a
+  concept an existing verb already names**; the NEXT verb still has to clear that bar.
 - **A close supersedes a pending open of the same kind** _(owner, 2026-09-17; M44.3b)_. Close log, close all and
   Reset take the id of an outstanding log open, so its late result is refused; closing the graph alone does not,
   and a close with nothing outstanding changes nothing in the gate. It is D-A3 — the last deliberate request

@@ -53,8 +53,8 @@ def main():
                   p.get("source") == "derived" and "guess" in str(p.get("note")), p)
             check("with no project open the guess is research/support", p.get("value") == "research/support", p)
 
-            reply = a.act("handoff", posture="authoring", record=RECORD)
-            check("handoff {posture, record} is accepted", reply.get("ok") is True, reply)
+            reply = a.act("open", posture="authoring", record=RECORD)
+            check("open {posture, record} is accepted - the canvas is written through `open`", reply.get("ok") is True, reply)
             ctx = a.context()
             p, rec = posture(ctx), (ctx.get("handoff") or {}).get("record") or {}
             check("context reads back the SET posture, attributed to the action socket",
@@ -66,14 +66,34 @@ def main():
                   rec.get("modes") == ["0+", "2/3"] and rec.get("skills") == [None, "fluxtion-node-authoring"]
                   and rec.get("authoringRequired") == ["netPosition"] and rec.get("setBy") == "action socket", rec)
 
-            bad = a.act("handoff", posture="research", record={"branch": "c", "modes": "0+"})
+            gone = a.act("handoff", posture="research")
+            check("`handoff` is NOT a verb - it was one for a day and was folded into `open` before it shipped",
+                  gone.get("ok") is False and "unknown verb" in json.dumps(gone), gone)
+
+            bad = a.act("open", posture="research", record={"branch": "c", "modes": "0+"})
             check("a malformed record is REFUSED, with the reason",
                   bad.get("ok") is False and "must be a list" in json.dumps(bad), bad)
             check("and the posture sent in the same call was NOT applied - refused whole",
                   posture(a.context()).get("value") == "authoring/deploy", posture(a.context()))
 
-            ignored = a.act("handoff", posture="authoring", colour="blue")
-            check("an undeclared param is named as ignored (M26.4)", "colour" in json.dumps(ignored), ignored)
+            # review F2: a required SCALAR is typed too - this used to be accepted as branch "{instructions=invented}"
+            typed = a.act("open", posture="research", record={"branch": {"instructions": "invented"}, "modes": ["0"]})
+            check("a `branch` that is not a string is REFUSED, never stringified into a valid-looking record",
+                  typed.get("ok") is False and "'branch' must be a string" in json.dumps(typed), typed)
+            h = a.context().get("handoff") or {}
+            check("and neither the record nor the posture beside it changed",
+                  (h.get("record") or {}).get("branch") == RECORD["branch"]
+                  and (h.get("posture") or {}).get("value") == "authoring/deploy", h)
+
+            mixed = a.act("open", posture="research", log=os.path.join(work, "no-such.yaml"))
+            check("a canvas write goes ALONE: combined with a log it is refused whole, and names what it carried",
+                  mixed.get("ok") is False and "goes ALONE" in json.dumps(mixed) and "log" in json.dumps(mixed), mixed)
+            check("so the posture did not change, and nothing started loading",
+                  posture(a.context()).get("value") == "authoring/deploy" and "inFlight" not in a.context(), a.context().get("handoff"))
+
+            ignored = a.act("open", posture="authoring", colour="blue")
+            check("an undeclared param is never silently honoured: the call is refused and names it",
+                  ignored.get("ok") is False and "colour" in json.dumps(ignored), ignored)
 
             a.act("open", project=project)
             h = a.settled_context().get("handoff") or {}
@@ -82,9 +102,14 @@ def main():
                   (h.get("posture") or {}).get("source") == "derived"
                   and (h.get("posture") or {}).get("value") == "authoring/deploy", h)
 
-            a.act("handoff", posture="research")
-            a.act("handoff", clear="all")
-            check("clear undoes it", posture(a.context()).get("source") == "derived", posture(a.context()))
+            a.act("open", posture="research", record=RECORD)
+            closed = a.act("open", close="handoff")
+            h = a.context().get("handoff") or {}
+            check("open {close: \"handoff\"} takes both off - the same idiom as open {close: \"project\"}",
+                  closed.get("ok") is True and (closed.get("applied") or {}).get("closed") == "handoff"
+                  and "record" not in h and (h.get("posture") or {}).get("source") == "derived", closed)
+            check("and it closed ONLY the canvas: the project is still open",
+                  bool(a.context().get("project")), a.context().get("project"))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 

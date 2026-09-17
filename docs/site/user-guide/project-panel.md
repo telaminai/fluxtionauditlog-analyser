@@ -53,7 +53,7 @@ been placed, `record` (`modes`, `resolvedFigures`, `authoringRequired`, `selecti
 
 The **posture** row says what this session is for — *research/support* or *authoring/deploy*. Drawn
 muted, it is the analyser's guess from what is open, and says so; drawn normally, somebody set it, and
-the row names who — you (*AI ▸ Posture*) or an AI client (the `handoff` verb) — and what the guess would
+the row names who — you (*AI ▸ Posture*) or an AI client (`open {posture}`) — and what the guess would
 have been when the two disagree. The **mode-selector record** row appears when you or a client has placed
 the authoring mode selector's output on the canvas: the modes in force, how many figures the catalogue
 resolved, and what is left to author. Both rows belong to the session: a project switch clears them.

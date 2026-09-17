@@ -120,6 +120,35 @@ class CanvasHandoffTest {
         assertNull(s.posture(), "validated before anything changes: half a request is never applied");
     }
 
+    /** Review F2: a required SCALAR is typed too — it used to be stringified into a record that then looked valid. */
+    @Test
+    void aBranchThatIsNotAStringIsRefused_neverStringifiedIntoAValidLookingRecord_andThePostureBesideItIsNotApplied() {
+        List<Object> notStrings = List.of(Map.of("instructions", "invented"), List.of("catalogue"), 7, true);
+        for (Object notAString : notStrings) {
+            CanvasHandoff.State s = new CanvasHandoff.State();
+            Map<String, Object> bad = selectorRecord();
+            bad.put("branch", notAString);
+            assertFalse(CanvasHandoff.parse(bad, Author.AGENT, T).ok(), String.valueOf(notAString));
+
+            Map<String, Object> call = new LinkedHashMap<>();
+            call.put("posture", "authoring");
+            call.put("record", bad);
+            String why = s.apply(call, Author.AGENT, T).orElse("");
+
+            assertTrue(why.contains("'branch' must be a string"), notAString + " → " + why);
+            assertNull(s.record(), String.valueOf(notAString));
+            assertNull(s.posture(), "and the posture written in the same call stays unapplied: " + notAString);
+        }
+    }
+
+    @Test
+    void aPostureThatIsNotAStringIsRefused() {
+        CanvasHandoff.State s = new CanvasHandoff.State();
+        String why = s.apply(Map.of("posture", List.of("authoring")), Author.AGENT, T).orElse("");
+        assertTrue(why.contains("'posture' must be the string"), why);
+        assertNull(s.posture());
+    }
+
     @Test
     void anUnknownFieldIsRefused_notSilentlyDropped() {
         Map<String, Object> r = selectorRecord();

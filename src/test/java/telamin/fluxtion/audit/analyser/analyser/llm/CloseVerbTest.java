@@ -34,14 +34,19 @@ class CloseVerbTest {
         assertFalse(VerbSchemas.all().containsKey("close"),
                 "M35.1 extends 'open' rather than adding a verb — closing is the same "
                         + "lifecycle concept, and the verb surface is a compatibility surface");
-        // 16. The rule this test guards is that the surface does not grow FOR A CONCEPT AN EXISTING VERB
+        // 15. The rule this test guards is that the surface does not grow FOR A CONCEPT AN EXISTING VERB
         // ALREADY NAMES — close, project, discover and analysis are all lifecycle acts, so they went onto
-        // `open`. Two concepts since have had no verb to go on, each decided by the owner:
-        //   15  `handoff`   (M48.7)  the shared canvas's posture and selector record — not a lifecycle act,
-        //                            and `context` must stay read-only. Owner, 2026-09-17.
-        //   16  `spotlight` (M64)    POINTING at something for a person. No verb points: goto selects,
+        // `open`. ONE concept since has had no verb to go on:
+        //   15  `spotlight` (M64)    POINTING at something for a person. No verb points: goto selects,
         //                            topology selects, screenshot records. spec-spotlight.md specifies it.
-        assertEquals(16, VerbSchemas.all().size(),
+        // And one that briefly did, and was folded back BEFORE it shipped (second reader A6; owner, 2026-09-17):
+        //       `handoff`   (M48.7)  the shared canvas's posture and selector record. It was the fifteenth
+        //                            verb for a day. `open` already means "put this in force" and already has
+        //                            the close idiom, so it is now open {posture | record} and
+        //                            open {close: "handoff"} — this rule, applied to the verb that broke it.
+        assertFalse(VerbSchemas.all().containsKey("handoff"),
+                "M48.7's canvas write lives on 'open' (posture / record / close: \"handoff\"), not on a verb of its own");
+        assertEquals(15, VerbSchemas.all().size(),
                 "a new verb is a compatibility decision — if this number moved, say which concept no existing verb named");
     }
 

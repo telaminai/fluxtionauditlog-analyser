@@ -109,7 +109,7 @@ public interface AppControl {
      * the action socket. Default: not offered.
      */
     default ActionResult handoff(java.util.Map<String, Object> params) {
-        return ActionResult.error("'handoff' is not available in this context");
+        return ActionResult.error("the shared canvas (open {posture | record}) is not available in this context");
     }
 
     /**

@@ -1,0 +1,76 @@
+AUTHOR'S RESPONSE — M48.7 shared handoff canvas
+Date: 2026-09-17 · Answers: review_m48_7_canvas_handoff.txt (Codex) and
+review_m46_closure_branch_second_reader.txt A5, A6 (Claude). Branch: fix/m46-agent-api-closure.
+
+A6 (second reader; OWNER DECISION TAKEN) — fold the `handoff` verb into `open`.                         DONE.
+  open {posture: "…"} · open {record: {…}} · open {close: "handoff"} — mirroring open {close: "project"}. Reading
+  stays context.handoff. CanvasHandoff, its State.apply, attribution, the project-boundary clear, the Project panel
+  row and the AI menu are UNCHANGED; AppControl.handoff is kept as the adapter's entrance and is now reached from
+  ActionExecutor.doOpenCanvas. Removed: the VerbSchemas entry, the dispatcher case, the executor case.
+  Two rules I had to decide, stated so the re-review can disagree:
+  · A CANVAS WRITE GOES ALONE. open's other forms honour what they can and NAME what they ignored (M26.4). For a
+    write to shared state I refuse instead, whole: open {posture, log} applies neither. "Half of what you asked was
+    applied" is the one answer a fail-closed canvas may not give. posture + record may share a call (they always
+    could). open {close: "handoff", posture} is refused as "set it and remove it". Consequence: an undeclared
+    parameter beside a canvas write (open {posture, colour}) is now REFUSED naming it, where the old verb accepted
+    the call and listed it under ignoredParams. Stricter, and consistent with the rule.
+  · open {close: "all"} DOES NOT TOUCH THE CANVAS. "all" is Reset — the log and the graph. The canvas has its own
+    close. The schema says so.
+  · LOST, deliberately: the old verb's clear: "record" | "posture". posture: "derived" still clears the posture
+    alone; there is no socket form that removes the record and keeps a set posture (the AI menu's Clear record item
+    still does, for a person). A new record replaces the old one, which is the case an agent actually has. Easy to
+    add as close: "handoff:record" if the re-review wants it; I did not invent it unasked.
+  · NOT a view-changing verb in this form: ActionExecutor.render exempts open's canvas form from the
+    clear-the-spotlight rule (the old verb was never on that list). SpotlightEndsWhenTheViewChangesTest pins both
+    open {posture} and open {close: "handoff"} as NOT clearing.
+  Followed through: the four verb-count guards back to 15, each stating the reason (CloseVerbTest also asserts
+  `handoff` is not a key); VerbSchemasTest's verb set; tools/verify-m48-handoff.py; user-guide/assistant.md (prose
+  + tool list), connect-an-llm.md (fifteen / 15 tools, list), project-panel.md; CHANGELOG; tracker ▸ Decisions
+  (REVERSED, with why the first argument was wrong, the superseded text struck through and kept); tracker M48.7 +
+  delivery order + the M64 block's "sixteenth"; spec-authoring-mode-selector.md status table and As built.
+  Held by — OpenCanvasVerbTest (5, headless, a recording AppControl double): what reaches the canvas and that
+  NOTHING else is touched; close handoff → the canvas's own clear, never app.close; canvas+log refused with zero
+  AppControl calls; set-and-remove refused; close: "log" untouched. verify-m48-handoff.py on the built jar: 18/18
+  (was 12), incl. "`handoff` is NOT a verb" (unknown verb) and close:"handoff" leaving the project open.
+
+F1 (P2, required) — the built-in assistant was never told.                       FIXED, and the finding was bigger.
+  The reviewer is right and my report was WRONG: I wrote that the in-app manifest "builds its verb list from
+  VerbSchemas". It does not; I had not read the method. The report now carries a dated CORRECTION at that sentence.
+  With the fold, F1 became "document the new open parameters in the in-app manifest" — but `open` WAS NOT IN THE
+  HAND-WRITTEN MANIFEST EITHER (the second reader's A6 assumed it was). The hand list was aggregate, series, read,
+  filter, graph, goto, flag — seven of what were then sixteen verbs.
+  What changed — PromptBuilder.inProcessActionManifest: `open` is now hand-described, with the canvas contract
+  spelled out (posture's three values, the record's shape, refused WHOLE, goes ALONE, attributed to you, read back
+  in context.handoff, close: "handoff"). Every verb NOT hand-described is DERIVED from VerbSchemas by otherVerbs()
+  — name, parameter names, first sentence — so a verb added from now on is offered without anyone remembering.
+  THE INVENTORY the reviewer asked for — InProcessManifestNamesEveryVerbTest (3): every published verb has exactly
+  one section; every hand-described name is still a verb; and EVERY PUBLISHED PARAMETER is named inside its own
+  verb's section. SEEN RED on first run, against pre-existing text: seven parameters the built-in assistant had
+  never been told about — aggregate.limit, read.file, graph.explanation, graph.notes, graph.clearNotes, goto.file,
+  flag.fix. All seven added to their hand-written lines. (So the drift predates this branch; M48.7 and M64 were
+  only the two newest instances.)
+
+F2 (P2, required) — a non-string `branch` was stringified into a valid record.                          FIXED.
+  CanvasHandoff.parse: `branch` must be `instanceof String` before text() normalises it, as the list members
+  already were; the refusal names the JSON kind it got. I applied the same guard to `posture` in State.apply — a
+  non-string could never match the closed set, so it was already refused, but with a message that printed the
+  object; now it says what type it wanted.
+  Held by — CanvasHandoffTest.aBranchThatIsNotAStringIsRefused… over an object (the reviewer's reproduction), a
+  list, a number and a boolean, each WITH a posture in the same call that must stay unapplied; and
+  aPostureThatIsNotAStringIsRefused. On the built jar: verify-m48-handoff.py sends the reviewer's exact record and
+  checks the refusal AND that neither the standing record nor the posture changed.
+  SEEN RED: not re-run under mutation by me. The reviewer reproduced acceptance on the pre-fix jar
+  (ok() == true, branch "{instructions=invented}"); the new test asserts the opposite of that observed behaviour.
+
+A5 / first-round note — "15 tools" vs "16" in one Unreleased block.                                      FIXED.
+  One count now, 15, stated once (on the spotlight entry, naming analyser_spotlight as the new tool); the canvas
+  entry says it adds no tool and why. The second reader's point stands for the merge: the CHANGELOG conflicts
+  twice on rebase, so re-check the count in that same edit.
+
+The reviewer's note that my report names no mutation for this piece: correct, it did not. The reviewer's own
+(assign posture before validating the record → exactly the atomic-refusal test red) is the right one and I have
+nothing to add to it.
+
+NOT DONE / still open: nobody has clicked AI ▸ Posture, Place mode-selector record…, or Clear record. R9 (profile
+write) and M48.10 remain separate slices. tools/capture-docs.py was not re-run for this piece — no screenshot shows
+a verb name.

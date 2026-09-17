@@ -4781,7 +4781,7 @@ public final class MainFrame extends JFrame {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refused.get());
             }
             refreshProjectPanel();          // one state, two renderings: the person sees what the agent wrote
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("handoff", "handoff",
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "handoff",
                     handoff.toContext(project.hasProject()));
         }
 
