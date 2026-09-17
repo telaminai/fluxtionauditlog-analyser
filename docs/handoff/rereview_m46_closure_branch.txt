@@ -1,0 +1,170 @@
+RE-REVIEW — branch fix/m46-agent-api-closure, after the author's answers to both rounds
+Date: 2026-09-17 · Re-reviewer: Claude (the second reader of round two) · Reviewed HEAD: 83190ec8
+Brief: brief_rereview_m46_closure_branch.txt · Fix commits: 638e5a0b, 7d0ecc6a, a2a951fd, af827cdd, 226d2bd6
+Responses: response_m44_3b_close_supersedes.txt · response_m48_7_canvas_handoff.txt · response_m64_spotlight.txt ·
+response_m64_6_multi_spotlight.txt · response_m46_agent_api_closure.txt
+
+VERDICTS
+  M44.3b close supersedes ........ READY                 (F1 closed, A2 closed; one human check open)
+  M48.7  canvas via open ......... READY WITH FOLLOW-UPS (F1, F2, A5, A6 closed; R2 stale comments)
+  M64    spotlight ............... READY WITH FOLLOW-UPS (F1 closed; `coverage` rename deferred to M64.9 — see owner items)
+  M64.6  several spotlights ...... READY WITH FOLLOW-UPS (F1, F2 closed; add + detail:node scenario still unrun, as stated)
+  M46    agent-API closure ....... READY WITH FOLLOW-UPS (F1 decided and stated; A1 closed; A4 is the owner's)
+  BRANCH ......................... READY WITH FOLLOW-UPS — mergeable, with ONE step the merge note does not yet
+                                   have (R1): after the rebase, the manifest inventory test is red on M65's new
+                                   `graph.refresh` parameter until one word is added. Everything else is green
+                                   on the branch AND on the rehearsed rebase.
+
+PER FINDING — both rounds
+
+M44.3b
+  F1 (Codex, P2)   CLOSED. refreshCloseItems(): Close log enabled by `store != null || loadInFlight`, Reset by
+                   that-or-a-graph; called from setBusy. loadInFlight has ONE writer, setBusy (grep: a single
+                   assignment, MainFrame:2443), so "setBusy is the only funnel" holds by construction — S3, rolled
+                   sets, failed loads and project switches all reach it (the B2 paths from 1.13.2). refreshCloseItems
+                   submits nothing (three setEnabled calls). The new frame test drives JMenuItem.doClick, i.e. the
+                   real ActionListener a person's click reaches; it is still not a person.
+                   RAN: mutation — predicate back to `store != null`; AsyncOpenInterleavingFrameTest on a real
+                   display: 12 run, exactly 1 failure ("a log that is still ARRIVING is something to close").
+  A2 (Claude, P4)  CLOSED, the louder way. requestClose throws ProtocolViolation inside a dispatch. Checked the six
+                   entrances again (three File-menu listeners, three socket verbs): all run on the EDT outside a
+                   dispatch — a menu click cannot interleave with a synchronous submit, and the socket verbs reach
+                   the frame through onEdt. Unreachable today; the throw is the right shape for the first caller
+                   that gets it wrong.
+
+M48.7
+  A6 (owner)       CLOSED. open {posture} · open {record} · open {close: "handoff"}; the echo's action is "open"
+                   (MainFrame:4440, 4543). isCanvasWrite() is shared by the dispatcher and by render's view-change
+                   exemption, so the two agree on what a canvas write is. The canvas check sits BEFORE the analysis
+                   branch (ActionExecutor:130–131): open {analysis, posture} is refused whole, naming `analysis`,
+                   not silently dropped. "Goes ALONE" — two failure conventions on one verb — is acceptable: the
+                   refusal names every parameter it would not apply, so a client learns the rule from one refusal,
+                   and the schema states it. open {posture, colour} now refused rather than accepted-with-
+                   ignoredParams: agree; fail-closed shared state may not be half applied.
+                   LOST form (clear the record alone, keep the posture): acceptable to leave out. An agent's real
+                   case is "replace the record"; a person has the menu item. If it is ever wanted, close:
+                   "handoff:record" is the obvious spelling. Not a finding.
+  F1 (Codex, P2)   CLOSED, and the author's correction accepted: `open` was never in the hand-written manifest
+                   either, so my A6 assumed wrongly. Now hand-described with the canvas contract; other verbs
+                   derived. RAN the inventory test under two attacks the brief asked for: dropped `file` from goto's
+                   brace list → red on [goto.file]; dropped `file` from read's brace list → red on [read.file]. The
+                   word-boundary match did NOT let prose mask either. Residual risk: a parameter whose name also
+                   appears as an ordinary word in its own verb's prose; neither of my attacks found one. Accepted.
+  F2 (Codex, P2)   CLOSED. RAN: mutation — instanceof guard removed (text(rawBranch) unconditionally);
+                   CanvasHandoffTest: 14 run, exactly 1 failure ("{instructions=invented} ==> expected: <false>").
+  A5 (Claude, P4)  CLOSED. One count, 15, once, on the spotlight entry; the canvas entry says it adds no tool.
+                   READ: user-guide/assistant.md and connect-an-llm.md both say 15 / fifteen; no analyser_handoff.
+  Reversal record  READ: tracker ▸ Decisions has the superseded text struck and kept; spec-authoring-mode-selector
+                   ▸ As built names the open forms; the four guards at 15 with reasons. Leftovers → R2.
+
+M64
+  F1 (Codex, P2)   CLOSED. legendIndexOf: exact, else exact + EXTERNAL_SUFFIX, else -1. Attacked the "no label is
+                   ambiguous" claim: two EXTERNAL series with one label collapse in externalLoaded (a map keyed by
+                   label), so there is one legend entry; an audit series literally named "x  (external)" beside an
+                   external "x" gives two identical legend texts and the exact match returns the first — the audit
+                   one — deterministically. A GraphKey label cannot contain the double-space suffix in practice.
+                   RAN: mutation — equals → startsWith; SpotlightSeriesLabelTest: 5 run, exactly 3 failures.
+  `coverage` name  DEFERRED to M64.9, with M64.8's skill edit and re-pin — the owner's "no skill on this branch"
+                   instruction makes that right. See owner items for whether the RELEASE waits.
+  A3 (Claude)      CLOSED (accepted; nothing to build). Human check narrowed to Escape under a focused popup.
+
+M64.6
+  F1 (Codex, P2)   CLOSED. nextNumber is a high-water mark; wentDark() (called by clearSpotlight, and by remove/
+                   remeasure when the set empties) and light() reset it. applySpotlight's non-add path clears then
+                   adds, so numbers restart at 1 on a replace; an `add` refused by precheck touches the overlay not
+                   at all, so nothing moves. RAN: mutation — nextNumber++ → max+1; SpotlightOverlayTest: 8 run,
+                   exactly 2 failures ("the chat already said 2 about something else").
+  F2 (Codex, P2)   CLOSED. precheck(requests, litNow) — grammar, every name, the union bound — runs in the
+                   executor before the first reveal and again at the frame. THE LINE, attacked with the brief's
+                   case: records:row:99999 is well-formed, passes precheck, and then doGoto resolves the row BEFORE
+                   any reveal (ActionExecutor doGoto: targetRow → `row < 0` → error, lines 2–9; reveal at 22–23),
+                   so an out-of-range row touches neither filter nor selection. Right side of the line. The frame
+                   regression compares filter, selection and spotlight as strings: adequate for the finding; scroll
+                   position and the selected tab are outside `context` and outside the claim.
+  Non-blocking     Overlap promises qualified in CHANGELOG/tracker (READ). Guidance 147 words, unchanged pending a
+                   held-out run — agree. Crossing arrows — follow-up, agree. add + detail:node end-to-end — still
+                   unrun, said so; carry it.
+
+M46
+  F1 (Codex, P3)   CLOSED AS A DECISION: remove, no alias, stated in the CHANGELOG. Consumers checked in this repo
+                   only; I could not check the playground's vendored skills from here either. Owner item below.
+  A1 (Claude, P2)  CLOSED — and then R1 found the step it still lacks. The rewritten note is the one authoritative
+                   note; its conflict list matched my rehearsal today (below) exactly.
+  A4 (owner)       NOT DONE, correctly. Recommendation repeated below with the author's caveat.
+
+NEW FINDINGS
+
+R1 — P2, against the MERGE NOTE (not a piece): after the rebase the inventory test is red on `graph.refresh`.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/PromptBuilder.java (the hand-written `graph` line);
+  docs/handoff/report_m46_agent_api_closure.txt ▸ MERGE
+  REPRODUCED: throwaway rebase of 83190ec8 onto origin/main 16acfc1c, union-resolved the two CHANGELOG hunks,
+  full suite: 1610 run, 1 failure — InProcessManifestNamesEveryVerbTest, "published parameters the built-in
+  assistant is never told about ==> expected: <[]> but was: <[graph.refresh]>". M65 added `refresh` to `graph`
+  on main; the branch's hand-described `graph` section predates it. This is the inventory test doing exactly what
+  it was built for, one merge early.
+  FIX: one word — add `refresh?` (with its one-line meaning: re-extract now) to the `graph` line of
+  inProcessActionManifest in the merge commit, and add that step to the merge note between "resolve CHANGELOG"
+  and "mvn test". Also from the rehearsal: a mechanical keep-both leaves TWO Fixed and TWO Changed headings in
+  the Unreleased block (M65's sections stacked after the branch's); the note already says to fold them into one
+  each — do it by hand, not by union.
+
+R2 — P4, leftovers that still call `handoff` a verb (docs and comments only; nothing executable).
+  src/main/java/.../ui/MainFrame.java:1718 ("writes with the `handoff` verb"), :2039 ("two writers (the `handoff`
+  verb and the AI menu)"); docs/specs/spec-spotlight.md:252 ("**It is a sixteenth verb.**" — the spotlight is the
+  fifteenth now); tools/verify-m48-handoff.py:3 (docstring). Historical handoff reports are allowed to. Four
+  one-line edits; fold into the merge commit or the first commit after.
+
+R3 — P4, tools/capture-conversations.py exit status and the echo's key order (tracker item recommended).
+  On this machine the script completed all five scenarios and wrote the 454-line transcript, but could not
+  regenerate the five PNGs ("no native capture available" — this session has no screen-capture grant) and exited 1,
+  which reads as "scenarios failed". Two things worth a tracker line: (a) exit 0 with a warning when scenarios pass
+  and only capture is unavailable, so the pre-release checklist gets a usable signal on a headless or unpermitted
+  machine; (b) the "total"/"visible" key-order nondeterminism the author saw is a HashMap in an echo — one
+  LinkedHashMap makes the generated page's diff stable. Yes, it deserves its own item; it is small.
+
+WHAT I VERIFIED (ran it)
+  git config user.email — the personal address.
+  mvn test at 83190ec8: 1598 run, 0 failures, 0 errors, 21 skipped (stale reports from an earlier rebased run
+    excluded; with them the raw count reads 1610).
+  The brief's display command, real display: 147 run, 0 failures, 0 errors, 0 skipped.
+  mvn package; tools/verify-m46-agent-api.py 17/17; tools/verify-m48-handoff.py 18/18; tools/verify-m64-spotlight.py
+    73/73 — all on the jar I built.
+  tools/capture-conversations.py: five scenarios completed, transcript written; images NOT regenerated (R3);
+    output restored, nothing committed.
+  tools/test_tools.py: pass. mkdocs build --strict: pass. Exact CLAUDE.md rule-1 sweep: prints nothing.
+  Five mutations (one per fix commit) + two inventory attacks — results inline above; every mutation restored,
+    tree clean (git status empty) before and after.
+  THE REBASE, rehearsed on a throwaway branch (never pushed; deleted): conflicts CHANGELOG.md at 74a465b2 and
+    4cafad01 — nothing else, the five fix commits included; rebased suite 1610 run, 1 failure (R1). The real
+    branch, main and origin untouched. CanonicalSkillsTest was green on the rebased tree, which per A1 proves
+    nothing about CI: the re-pin stays mandatory.
+  Bisectability: not checked per intermediate commit; the author states the full gates ran once on the final tree.
+
+WHAT I ONLY READ
+  The generated SessionProcessor (unchanged this round; its guard tests are in the suite). The spec amendments
+  (D-SP6 "Amended after review", D-F… n/a). The tracker and CHANGELOG wording. The response files' claims that I
+  did not repeat: the author's own SEEN RED for M64.6 F2 (executor precheck removed → frame test red) — I ran the
+  numbering mutation for that piece instead.
+
+ONLY A PERSON AT THE SCREEN
+  File ▸ Close log during a slow first load (the test drives the listener, not a hand). Escape with focus in a
+  component that consumes Escape (a combo with its popup open; the search history popup) while spotlights are lit.
+  AI ▸ Posture; Place mode-selector record…; Clear record. The Project panel row for a restored log. The six "Ask
+  it to show you" sentences and the guided-start tour on a context-free client.
+
+OWNER DECISIONS — recommendations, not made
+  1.13.3 first, by cherry-picking 74a465b2 whole. The removed `nodes` key is documented, no consumer was found in
+    this repo, and one commit beats two variants of it. If a removed reply key in a patch release is unwelcome, the
+    one-line alternative (the onEdt fix + OpenAnalysisDecidesOnTheEdtTest) is real and small; then the key removal
+    ships in 1.14.0. Either way, do not let 1.13.3 wait for this branch.
+  Whether the MERGE waits for M64.9 (`coverage` → `topology:verdict`): no — but the RELEASE that first carries
+    spotlight should. M64.8 and M64.9 are one skill edit and one re-pin after the merge; do them before 1.14.0 so
+    no released vocabulary ever carries the misleading name.
+  tools/capture-conversations.py and tools/verify-*.py on the pre-release checklist: yes. The open {analysis}
+    regression lived through three releases because nothing on the checklist exercised that path. Fix R3(a) first
+    so the capture script's exit code means what the checklist needs.
+  `.mcp.json` in .gitignore: yes — it is a per-machine registration, never a repo artefact.
+
+HANDOFF
+  No fixes made; no rebase, amend, merge or force-push; main and docs/skills untouched. This file is the only
+  commit. The merge can proceed by the authoritative note plus R1's one-word step and the by-hand CHANGELOG fold.
