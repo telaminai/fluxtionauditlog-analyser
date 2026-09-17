@@ -1,3 +1,6 @@
+READER NOTE: an independent Codex addendum follows the preserved Claude review below. Its branch verdict
+is NOT READY, with new required findings R4/R5 and independently confirmed integration failure R1.
+
 RE-REVIEW — branch fix/m46-agent-api-closure, after the author's answers to both rounds
 Date: 2026-09-17 · Re-reviewer: Claude (the second reader of round two) · Reviewed HEAD: 83190ec8
 Brief: brief_rereview_m46_closure_branch.txt · Fix commits: 638e5a0b, 7d0ecc6a, a2a951fd, af827cdd, 226d2bd6
@@ -168,3 +171,197 @@ OWNER DECISIONS — recommendations, not made
 HANDOFF
   No fixes made; no rebase, amend, merge or force-push; main and docs/skills untouched. This file is the only
   commit. The merge can proceed by the authoritative note plus R1's one-word step and the by-hand CHANGELOG fold.
+
+================================================================================
+INDEPENDENT ADDENDUM — Codex, 2026-09-17
+================================================================================
+Reviewed implementation: 83190ec8ff304ed208e8eb89efe6ccdd6f0ea3c5 (638e5a0..226d2bd).
+The preceding review arrived as commit 58339c9 while these independent checks were running. It is preserved
+verbatim above. This addendum disagrees with its closure of M64 F1 and M64.6 F2 and with its branch verdict.
+Numbering continues after its R1-R3 so replies can identify findings unambiguously.
+
+INDEPENDENT VERDICTS
+  M44.3b ........ READY WITH FOLLOW-UPS — code fix verified; human slow-load menu check remains.
+  M48.7 ......... READY WITH FOLLOW-UPS — canvas fixes verified; inventory guard limitation R6.
+  M64 ........... NOT READY — exact-prefix defect fixed, ambiguous labels still accepted (R4).
+  M64.6 ......... NOT READY — numbers fixed; refused out-of-range rows still mutate scope silently (R5).
+  M46 ........... READY WITH FOLLOW-UPS — compatibility decision documented; owner release decision remains.
+  BRANCH ........ NOT READY — R4 and R5 require answers; combined tree also fails its required gate (R1).
+No implementation fixes made. The following are independently observed results, not acceptance of the other
+review's claims. A deterministic first match is still a guess when the same target text names two legend rows.
+
+FINDING DISPOSITIONS — every numbered finding from both original rounds
+
+M44.3b F1 — CLOSED. Source has one loadInFlight assignment, in setBusy; refreshCloseItems only sets menu enabled
+  states and submits no session event. Read local, S3 and rolled-set starts, failed/completed/stale arrivals and
+  project/close transitions. They use the same busy/gate path. The real JMenuItem listener is driven by doClick.
+  Repeated seen-red: restored store != null predicate, ran AsyncOpenInterleavingFrameTest with a real display:
+  12 tests, 1 failure on first-load Close log availability. Exact original bytes restored afterward.
+Second A2 — CLOSED. Read all six requestClose entrances: three File menu listeners and three AppControl.close
+  cases reached outside dispatch on the EDT. Effects call the closing methods directly. No reachable dispatch
+  caller found; the new ProtocolViolation distinguishes misuse from an absent driver. This is source review,
+  not a deliberately triggered production exception. Human menu click remains a follow-up.
+
+M48.7 F1 — CLOSED WITH FOLLOW-UP. The missing verb/canvas teaching is present; all seven named omissions now have
+  descriptions consistent with VerbSchemas and their handlers. Full tests pass. However the claimed parameter
+  inventory can accept prose instead of teaching a parameter: independently demonstrated in R6. This does not
+  undo the current canvas documentation fix. The combined M65 omission is separately R1 against the merge note.
+M48.7 F2 — CLOSED. Repeated seen-red by disabling the instanceof branch guard so text(rawBranch) runs for every
+  value: CanvasHandoffTest, 14 tests, 1 failure for the object-valued branch. Restored. Built-jar verifier checks
+  the rejected typed record also leaves the prior posture/record unchanged (18/18 checks passed).
+Second A5 — CLOSED. Current Unreleased has one tool count, 15. Rebased keep-both result independently read:
+  one Unreleased block, exactly one Added/Fixed/Changed, the same single 15-tool statement.
+Second A6 — CLOSED WITH FOLLOW-UP. Shared isCanvasWrite is used both for dispatch and the spotlight exemption;
+  dispatch checks the canvas before the analysis branch. Live REST probes independently refused posture plus
+  colour, analysis and log, naming each extra parameter and saying nothing was applied. Schema teaches that
+  canvas writes go alone. This deliberate stricter failure convention is reasonable. Source and tests keep the
+  rejection ahead of canvas mutation/view-changing work. Clear-record-alone is a loss of agent convenience;
+  leave it as an explicit future parity item if a use case needs it, not a blocker for the authorised fold.
+  Read reversal record and tool lists; confirm the four stale descriptions in existing R2. No skill was edited.
+
+M64 F1 — NOT CLOSED. The prefix reproduction now refuses correctly, confirmed by verifier. Repeated seen-red:
+  equals(wanted) -> startsWith(wanted), SpotlightSeriesLabelTest, 5 tests, 3 failures. Restored. The response's
+  stronger assertion that ambiguity is impossible is false: live duplicate/collision probes and screenshots R4.
+Second A3 — CLOSED WITH FOLLOW-UP. Accept the narrowed human Escape check, not a claim it has happened. Read the
+  glass pane's mouse dismissal and WHEN_IN_FOCUSED_WINDOW Escape binding; focused controls can consume Escape.
+  No human observation claimed. The misleading coverage name is a separate owner decision, with M64.9 recorded.
+
+M64.6 F1 — CLOSED. High-water nextNumber, replacement and wentDark paths read. Repeated seen-red: max+1 in place
+  of nextNumber++, SpotlightOverlayTest, 8 tests, 2 failures. Restored. Built-jar verifier also observes the new
+  number after removing the highest. Non-add clear-then-add resets; precheck refusal does not consume a number.
+M64.6 F2 — NOT CLOSED in full. Both ORIGINAL invalid-name/union-limit reproductions are fixed and pass the real
+  frame and built-jar tests. The expressly requested out-of-range case still erases the filter and selects the
+  last row before refusing, with no disclosure of either change (R5). The other review's targetRow analysis
+  stopped before clampRow; a too-large record index is clamped, not rejected. The corrected D-SP6 permits some
+  visibility changes when resolving a valid target, but requires disclosure; it does not justify revealing an
+  unrelated clamped row for a target that cannot exist. Fix the code, not weaken this contract.
+Second A7 — CLOSED WITH FOLLOW-UP. Accepted and tracked M64.8 after merge. Read its disposition; did not edit or
+  try the runbook/skill with a context-free client. The valid add plus standing detail:node retirement scenario
+  remains an explicitly unrun follow-up. Context string comparison covers the original scope/selection bug;
+  it cannot establish unchanged scrolling or tab selection. Overlap qualifications accepted; crossing arrows,
+  guidance length (147 words), and held-out example requests remain follow-ups, not verified outcomes.
+
+M46 F1 — CLOSED WITH FOLLOW-UP. CHANGELOG now states deliberate removal, no alias, and the replacement keys.
+  Read-only cross-repo check: fluxtion-web at b83709a, web/src/lib/starter/skills/*.SKILL.md plus starter sources
+  and docs. load-audit-log and guided-start use context.graphPairing; no consumer of the removed open/discover
+  nodes echo was found. This is wider than this repo, not proof that all external clients are compatible.
+  Repeated M46 seen-red: removed onEdt around openDecision in doOpenAnalysis; OpenAnalysisDecidesOnTheEdtTest,
+  1 test, 1 failure (thread confinement). Restored. Built-jar M46 verifier passed 17/17.
+Second A1 — NOT CLOSED for the current merge readiness claim. The corrected note recognises M65 and mandatory
+  re-pin, but the combined tree fails on graph.refresh (existing R1, independently reproduced below). The note
+  must include the manifest integration change and successful combined validation before declaring readiness.
+Second A4 — NOT CLOSED — intentionally owner-only. No release/cherry-pick performed; recommendation below.
+
+NEW FINDINGS / CORRECTIONS TO THE PRECEDING REVIEW
+
+R4 — P2, required: exact labels can still identify multiple legend rows, and spotlight silently picks the first.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphPanel.java:312 (and :213).
+  Reproduction on the built jar, isolated user.home and enabled exchange directory:
+    1. Open demo-quote-series.yaml and demo-quote-processor.graphml.
+    2. In the exchange directory create a CSV:
+         time,value
+         1750000000000,1
+         1750000001000,2
+    3. graph {name:"Duplicates", series:["quotePublisher.spread"], external:[E,E]}, where
+       E={path:<csv>,label:"x",time:"time",timeFormat:"epochMillis",zone:"UTC",value:"value"}.
+       Both entries are accepted. spotlight {target:"graph:series:x"} returns ok:true and lights the first.
+       The screenshot visibly contains TWO "x  (external)" legend rows.
+    4. A distinct collision, without duplicate external inputs:
+       graph {name:"Collision",series:["quotePublisher.spread"],
+              exprs:[{label:"x  (external)",expr:"quotePublisher.spread"}],external:[E]}.
+       Both labels are accepted. spotlight {target:"graph:series:x  (external)"} returns ok:true and lights
+       the formula row. Both formula and external rows have the identical displayed label. Screenshot read.
+  Why the previous review is wrong: externalLoaded is a map, but legend construction iterates externalSpecs,
+  a list. Derived expression labels are arbitrary display labels and can contain the external suffix, regardless
+  of restrictions on GraphKey. Current tests cover an audit/external bare-name precedence rule, not these cases.
+  Fix: detect multiple matching legend candidates and refuse with an ambiguity reason; preserve unambiguous
+  exact/suffix behaviour. Alternatively enforce a genuinely unique naming contract at all chart entrances.
+  Add regressions for duplicate external specs and a derived/external suffix collision. Spec is right to require
+  a declared target rather than a guessed first match; the implementation/response claim is wrong.
+
+R5 — P2, required: an impossible row target silently clears the filter and selects a different record.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java:758-760
+  (targetRow :638 delegates to clampRow :684-685).
+  Reproduction on the built jar with demo-quote-series.yaml (726 records):
+    goto {recordIndex:0}; filter {text:"nothing-matches-rereview"}; spotlight {target:"status"}; context.
+    spotlight {target:"records:row:99999"}; context.
+  Observed BEFORE: filter={text:"nothing-matches-rereview"}, selection=[], status spotlight lit as number 1.
+  Reply: {ok:false,error:"record 99999 is not in the table — it is out of range, or still filtered out"}.
+  Observed AFTER: filter={}, selection=[{logTime:1767259092000,byteOffset:309445,event:"MarketDataEvent"}],
+  the same status spotlight still lit. No wentOut and no mention of filter/selection mutation in the refusal.
+  Cause: goto clamps 99999 to the last row and reveals it before the actual spotlight bounds are checked.
+  Fix: validate ALL requested row indices against the current store size before ANY goto reveal, alongside the
+  whole-request preflight. Refuse a missing row without changing filter, selection, scrolling or standing lights.
+  Add this filtered, lit-status case to the real-frame/built-jar regressions. Do not change general goto's clamping
+  contract merely to fix spotlight. This is still an undisclosed loss of the person's investigation scope.
+
+R6 — P3, follow-up: the inventory test does accept an ordinary prose word as a published parameter.
+  src/test/java/telamin/fluxtion/audit/analyser/analyser/llm/InProcessManifestNamesEveryVerbTest.java:67
+  and src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/PromptBuilder.java:207,217.
+  Reproduced by removing "to?, " from graph's argument list and changing "from/to PIN the graph to a fixed
+  window" to "from PINs the graph to a fixed window". Ran mvn test -Dtest=InProcessManifestNamesEveryVerbTest:
+  3 tests, zero failures. The remaining ordinary word "to" satisfies the regex despite removal of the graph.to
+  teaching. Restored exact bytes. This supplies the counterexample the preceding review's file probes missed.
+  Fix: derive an explicit parameter-name inventory for every verb (including hand-described ones), or validate
+  machine-distinguishable parameter declarations rather than every word in prose. Keep semantic contract tests.
+  Current graph.to teaching is correct; this is a weakness in the claimed guard against future omissions.
+
+R1 independently CONFIRMED — 1610 tests, 1 failure, 0 errors, 21 skipped on the combined tree; failure is
+  InProcessManifestNamesEveryVerbTest reporting [graph.refresh]. The correct remedy is an ordinary integration
+  commit on the later local merge branch, documenting refresh and updating the merge note, followed by combined
+  gates. The preceding review's suggestion to put it in a "merge commit" must not override rule 3's linear
+  fast-forward workflow. No fix applied during this review.
+R2 independently CONFIRMED by search/read; non-blocking documentation/comment cleanup.
+R3 observation differs here: all five conversation scenarios AND all five native PNG captures succeeded, exit 0.
+  A capture-permission failure on another machine remains credible, but do not hide a required capture failure
+  behind unconditional exit 0. Prefer an explicit scenarios-only option/separate result if the checklist needs
+  separate signals. Stable echo key order is a reasonable small follow-up for reproducible generated docs.
+
+INDEPENDENT VERIFICATION / REBASE REHEARSAL
+  Start: fetched origin; already on fix/m46-agent-api-closure. Requested pull --rebase refused the owner's dirty
+  .idea files. Local HEAD and origin were both 83190ec, so no stash or branch rewrite was needed. The owner then
+  supplied the other review, committed/pushed as 58339c9; it changes only this review file, not tested code.
+  Ran mvn test: 1598, 0 failures, 0 errors, 21 display skips. Ran the brief's display command: 147, 0/0/0.
+  Ran mvn package; restored generated dependency-reduced-pom.xml. Built-jar scripts: M46 17/17, M48 18/18,
+  M64 73/73. capture-conversations.py: five scenarios, five native screenshots, exit 0; all outputs restored.
+  tools/test_tools.py passed; mkdocs build --strict passed. Personal git email verified.
+  Five seen-red mutations above, plus the deliberately green inventory counterexample; all source bytes
+  restored. Then full mvn test again: 1598, 0 failures, 0 errors, 21 skips. Implementation diff empty.
+  The exact CLAUDE.md rule-1 sweep is run again on the final staged review; no forbidden matches outside its
+  two permitted files. No generated images or transcripts committed. R4's two probe screenshots were inspected.
+
+  Created worktree /tmp/analyser-rereview-merge, scratch/rereview-m46 at 83190ec. Rebased ONLY that disposable
+  branch onto origin/main 16acfc1cd37e575463dbd09c537d1d27684fb858. Completed scratch HEAD:
+  43b16c529e2437be94eb5ee5d430cc8189a2ee98. Conflicts ONLY in CHANGELOG.md, at replayed 74a465b, 69c0329 and
+  226d2bd. The first resolution consolidated/reordered section headings, so later stops differ from the other
+  review's placement of keep-both text. This is resolution-dependent, not a new source conflict. Final content
+  keeps the branch and M65 entries; read one Unreleased, one Added/Fixed/Changed, one tool count (15).
+  Combined mvn test: 1610, 1 failure (R1), 0 errors, 21 skipped.
+  Combined display command: 147, 0 failures, 0 errors, 0 skipped.
+  No combined success claimed. No skill re-pin performed. CanonicalSkillsTest passes using the locally present
+  original commit object; that pinned revision is not an ancestor of the rebased HEAD. Re-pin and ancestry proof
+  remain mandatory in the later authorised integration. Scratch worktree/branch removed after recording results.
+  Real feature branch never rebased; local main untouched; scratch never pushed.
+
+  READ ONLY: source paths, specs, tracker, both rounds' reports/responses, other review and cross-repo consumers.
+  Not repeated: full capture-docs.py, hosted compiler regeneration, intermediate-commit bisectability, valid
+  add/detail:node end-to-end scenario. No assertion that any human-only check or fresh-client run has happened.
+
+OWNER-ONLY DECISIONS AND CHECKS — RECOMMENDATIONS, NOT ACTIONS
+  • 1.13.3 first: recommend a targeted ordinary patch containing the onEdt fix AND its regression test. Whole
+    74a465b also removes nodes; do not take that unrelated compatibility break merely to fix analysis recall.
+  • Removed reply key in a patch: recommend retaining compatibility in a patch or deferring removal to an
+    explicitly announced version. The absence of a consumer in the repos inspected is not universal evidence.
+  • M64.9: merge need not wait solely for the coverage rename, but the first release of spotlight should, so
+    users and fresh clients learn the intended name. M64.8/M64.9 skill editing/re-pin remains later owner scope.
+  • Add the REST verifiers and conversation harness to the pre-release checklist, with display/capture needs
+    explicit. Add the machine-local .mcp.json to .gitignore if the owner accepts; not edited here.
+  • A person still needs to try File > Close log during a slow first load; Escape with an open combo/search
+    history popup while several spotlights are lit; AI > Posture / Place mode-selector record / Clear record;
+    the restored-log Project row; and the six example requests plus guided-start on a context-free client.
+    Tests and synthetic events do not substitute for those observations. Click dismissal of a lit set also
+    remains a human observation, despite event-handler/unit coverage.
+
+HANDOFF: answer R4/R5 before approval; integrate and demonstrate R1 green when authorised. R2/R3/R6 and the
+explicit human/held-out checks remain follow-ups. This addendum changes only the requested review artifact;
+owner workspace changes, main, implementation and docs/skills are preserved. No owner decision made.
