@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+- **The two getting-started pages now show what they describe.** *From playground to analyser* adds the in-app
+  route to the same bundle — *File ▸ New project from template…*, with the File menu and the template picker
+  pictured — and says what the bundle had all along but the page never mentioned: it declares `guided-start` as
+  one of its runbooks, so with an AI client connected *"give me the guided tour of this project"* is the whole
+  prompt. *Guided start* gains its first screenshots (the Start page it opens on, and a spotlight mid-tour) and a
+  closing pointer to the tutorial. Its prompt still uses the demo set, on purpose: nothing to build, no key.
+
 ### Fixed
 - **The left column no longer starts expanded and empty.** With *Event types* and *Project* both toggled off, the
   analyser opened with the left column as wide as it was last dragged (517 px in the report) and nothing in it —

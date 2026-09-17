@@ -17,6 +17,21 @@ unzip audit-analyser-bundle.zip
 cd audit-analyser-bundle
 ```
 
+**Or get the same bundle without leaving the analyser.** *File ▸ New project from template…* reads the
+playground's live catalogue, shows each template's description and whether it needs a build key **before
+anything is downloaded**, and unpacks the one you choose into a new or empty directory. The generated project's
+profile becomes the active project, so the first action of step 2 (*Open project…*) is already done when it
+finishes; opening the GraphML is still yours to do, for the reason step 2 gives.
+
+![The File menu's project group, with New project from template in its own section below the log and GraphML openers](assets/projects-file-menu.png)
+
+![The template picker: the Audit analyser bundle selected, "Build key: none required", and the catalogue's own description of what the bundle contains](assets/template-picker.png)
+
+The analyser **does not run downloaded code**: when the project is ready it shows the build, run, export and
+stop commands for you to copy, and you decide whether to paste them into a terminal. Either route gives you the
+same directory; [Projects ▸ Start from a playground template](user-guide/projects.md#start-from-a-playground-template)
+has the details of what the download will and will not do.
+
 This is a complete Maven project, not a prebuilt application you cannot inspect:
 
 | Path | What it is |
@@ -26,7 +41,7 @@ This is a complete Maven project, not a prebuilt application you cannot inspect:
 | `src/main/resources/com/example/myapp/generated/MarketProcessor.graphml` | the exact topology emitted with that processor |
 | `config/server-config.yml` | the Mongoose deployment: feed → processor → sink, with Chronicle audit capture |
 | `.analyser/project.fluxtion-settings` | portable analyser context: source root, processor and runbook pointers |
-| `.claude/skills/` | this project's run/export/stop and load-log procedures |
+| `.claude/skills/` | this project's procedures, written for an AI assistant: run/export/stop the server, load the log, add a node — and **`guided-start`, a tour of the analyser** (step 5) |
 | `CLAUDE.md` / `AGENTS.md` | the context an IDE agent receives when it opens the project |
 
 ## 2. Inspect the graph before it runs
@@ -131,6 +146,23 @@ resolves the launcher for this installation and provides the exact client record
 hard-coded command from this tutorial.
 
 ![The generated generic MCP client record, using a neutral isolated documentation home](assets/mcp-generic-setup.png)
+
+**Would you rather be shown than read steps 2–4?** The bundle declares a runbook for that. Once your client is
+connected, say:
+
+```text
+Give me the guided tour of this project in the analyser.
+```
+
+You do not need to tell it how. The project's profile points at `.claude/skills/guided-start/SKILL.md`, the
+analyser lists it among the project's runbooks in `context`, and the assistant reads it from your checkout — the
+analyser stores no instructions and runs nothing. The tour drives the window while you watch: what ran and in
+what order, which declared nodes never logged, and one question answered and bookmarked. Its one rule is that it
+**points rather than tells** — every figure is one you read off the screen yourself — and with analyser 1.14 or
+later it points literally, dimming the window and lighting the thing it is about to talk about.
+
+This is the one step that **needs an AI client connected to the analyser** (the dialog above). Without one,
+nothing is lost: steps 2–4 are the same tour by hand, and the Start page's own actions open the demo set.
 
 The useful division of labour is strict: the analyser reads evidence and changes its own views; your IDE
 agent edits code. After any explanation, click the plotted point or flagged record and follow it back to

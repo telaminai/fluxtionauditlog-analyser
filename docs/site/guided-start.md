@@ -61,6 +61,22 @@ Use the demo set at ~/.fluxtion-analyser/demo/ unless I already have my own log 
 ask me before opening anything, because opening a project closes what I have.
 ```
 
+## What you will see
+
+The analyser opens on its Start page — no log, no project, and the demo set one click away. Your assistant
+starts from here:
+
+![The analyser's Start page: nothing open, the demo log one click away, and the three questions a log alone will not answer](assets/start-page.png)
+
+Then it drives the window. From analyser 1.14 it also **points**: before it talks about something it dims the
+window, lights that one thing, and says in a few words why to look there. The callout is tagged *assistant*
+because it is the assistant's words — what it points at is what tells you whether the claim is true.
+
+![A spotlight during the tour: the window dimmed, one declared node that never logged cut out, and the assistant's caption pointing at it](assets/spotlight.png)
+
+Any click, or Escape, puts a spotlight out. Nothing about one is ever saved — what the tour leaves behind is
+the bookmark from its third beat.
+
 ## What it will show you
 
 **What ran, and in what order.** Position in a record is dispatch order, derived by the compiler before
@@ -97,3 +113,11 @@ analyser
 
 The Start page has the same demo set behind its own actions, and *AI ▸ Connect an AI client…* does the
 connection step whenever you want it. See [Install](install.md) and [Connecting an LLM to the analyser](connect-an-llm.md).
+
+## Next: the same tour on a real project
+
+This page uses the demo set on purpose — nothing to build, no key, no project. When you want the tour on a
+system you can run and change, [From playground to analyser in 10 minutes](tutorial-playground.md) starts from a
+playground template (*File ▸ New project from template…* fetches it from inside the analyser). That project
+**declares this same tour as one of its runbooks**, so with a client connected *"give me the guided tour of this
+project"* is the whole prompt.
