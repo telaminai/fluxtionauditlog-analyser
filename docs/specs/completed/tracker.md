@@ -3335,3 +3335,120 @@ _Two of the three are plain config today (`setSupportBufferAndTrigger(false)`,
 defect. The third, re-entrancy, is W4 and needs its build-time detection before a profile should turn
 it off. **The decision is whether a profile named LOWEST_LATENCY should give up two more capabilities
 by default**, given it already gives up the audit log and conditional propagation and says so._
+
+## Tidy 2026-09-17 — ticked items archived per rule 7 (moved verbatim from the live tracker; shipped in 1.14.0/1.14.1)
+
+### M64 · Spotlight — .1–.9 (M64.10 and M64.11 remain live)
+- [M64.1] ☑ **`SpotlightTarget.resolve` + the eight target families**, headless-tested per entry — 59 cases over a
+  map-backed surface: every entry lit, not-visible, unknown; an unknown name never touches the surface.
+- [M64.2] ☑ **The glass-pane overlay** (dim, cut-out, arrow, caption; clears on click/Escape/`clear`/view change) —
+  caption placement is `SpotlightGeometry`, arithmetic with its own tests; the caption is tagged *assistant*.
+- [M64.3] ☑ **`spotlight` verb + `context.spotlight`**, the persisted-forms-never-contain-one test — which checks the
+  CODE: no package that persists anything may know the word. One list says which verbs end a spotlight;
+  **mutation-checked** (remove `goto` → exactly `gotoPutsItOut` red).
+- [M64.4] ☑ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node — `SpotlightFrameTest`,
+  in the job's run list AND its fail-if-skipped guard. **Mutation-checked** (remove the screenshot composite → red).
+- [M64.5] ☑ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin) — written so
+  a client on an analyser older than the verb carries on; re-pinned by the established two-commit practice.
+  **The pin names a commit on this branch: merge by fast-forward WITHOUT rebasing the branch, or re-pin after.**
+- [M64.6] ☑ **Several spotlights and callouts at once** (owner direction 2026-09-17; spec D-SP6) —
+  `{targets: [{target, caption}]}`, at most six, all-or-nothing, things that cannot be on screen together refused
+  naming the pair; `{add}`, `{clear, target}`; numbered on screen and in the echo, numbers never reused (**true only
+  after review F1** — a high-water mark, not max+1); a WRONG call touches nothing (**true only after review F2** — the
+  executor used to reveal a row before the set was judged); callouts laid out to avoid a cut-out or another callout
+  where there is room, least-covering otherwise, and they may still cover un-lit content; echo and `context` share one shape `spotlight: {lit: […]}`. Headless
+  `SpotlightSetTest` / `SpotlightOverlayTest` / `SpotlightGeometryTest`, a real-frame two-node test, 17 more checks on
+  the built jar; **two mutation checks**. Report: `docs/handoff/completed/report_m64_6_multi_spotlight.txt`.
+- [M64.7] ☑ **The spotlight guidance in the GENERAL assistant guidance** (owner direction; spec D-SP7) — one paragraph,
+  `SpotlightVocabulary.GUIDANCE`, at every entrance: in-app action manifest (which had never been told the verb
+  existed), copy-prompt REST manifest, MCP server `instructions`, system prompt — held by one test. For people: user
+  guide ▸ *Ask it to show you* (what to say; light AND dark screenshots via `capture-docs.py --spotlight`) and the
+  in-app help. The guided-start skill is deliberately NOT touched: its beats point at one thing, and a second edit
+  would mean a second re-pin on a branch.
+- [M64.9] ☑ **`coverage` → `topology:verdict` — DONE 2026-09-17 on main, in the same skill edit and re-pin as M64.8**
+  (rename, no alias: `coverage` as a TARGET is now an unknown name answered with the vocabulary; the `coverage` VERB
+  is untouched. Vocabulary, `SpotlightVocabulary.TEXT`, parser, frame, guided-start's one line, user guide, CHANGELOG,
+  spec D-SP2, `capture-docs.py`, the jar script.) _As recorded before it was done:_ (both reviews, 2026-09-17; AFTER
+  the merge, in the same skill edit and re-pin as M64.8) — it lights the Topology tab's PAIRING line ("fits this log 5/5"), not a
+  coverage gap; the name misled its own author into a false caption (report_m64_6 §2). The guided-start skill names
+  the target, so the vocabulary, `SpotlightVocabulary.TEXT`, the skill and the index pin move together. Unreleased:
+  rename, no alias. Not done on the branch by owner instruction — no skill is touched there.
+- [M64.8] ☑ **DONE 2026-09-17 on main: `docs/skills/common/point-at-the-fault/SKILL.md`** — the SHAPE (state the fault
+  as checkable → find with `series`/`aggregate`/`coverage` → confirm with `read` → `spotlight` the matched targets as
+  one numbered call → `flag` to make it last), the two safety rules verbatim from the spec, what a caption may and may
+  not say, and a worked example on the demo series log with BOTH outcomes — found (record 15, liveOrders 2 = limit 2)
+  and found-nothing (lights nothing). Degrades on an analyser without the verb, so `x-analyser-min-version` stays
+  1.12.0. In `m19-skills/2` ▸ `common`, so the SELECTION grew by one for every template — additive, same contract.
+  **Every number in it was checked on the jar and is now REPLAYED by `tools/verify-m64-spotlight.py`** (a skill's
+  example must not rot). **STILL THE OWNER'S:** re-vendor into the playground starter (`scripts/vendor-skills.mjs` in
+  the playground repo) — nothing in this repo can do it — and try it on a context-free client.
+  _As recorded before it was built:_ **A runbook that finds a fault class ends in a spotlight** (owner direction 2026-09-17; spec ▸ M64.8) —
+  one canonical skill under `docs/skills/common` showing the shape (filter to the fault class → confirm with `read` →
+  `spotlight` the matched target, caption built from the match; not finding it lights nothing), pinned (two commits)
+  and vendored into the playground starter. After the merge: it is a third skill edit and re-pin.
+
+### M65 · Follow refreshes open graphs — .0–.4, with the implementation and review record (M65.5 and M65.6 remain live)
+Implementation: [handoff](../../handoff/completed/handoff_m65_implementation_2026-09-17.md); impl
+[pass 4](../../handoff/completed/review_m65_implementation_2026-09-17.md) (NOT READY — B1 the extend rule contracted a zoomed-out
+view, F1 the filter reads the live index arrays without happens-before on a grown reference, F3 a synchronous runner
+throw left `extracting` set; all landed, [response](../../handoff/completed/review_response_m65_impl_2026-09-17.md)) and
+[pass 5](../../handoff/completed/review_m65_implementation_pass5_2026-09-17.md) (**READY**; nit — narrow the F3 catch to
+`RejectedExecutionException` — applied before the merge). Merged to `main` by fast-forward 2026-09-17.
+
+- [M65.0] ☑ 2026-09-17 **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
+  default overridden by `HeapLogStore` (size + file + offset/length under the index lock); `SeriesExtractor` walks
+  to the captured size; concurrent-append test.
+- [M65.1] ☑ 2026-09-17 **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
+  D-F6 in-flight coalescing, D-F7 extend/slide/hold + DEFINITION-wins reason merge, and D-F8 `lastFrom`/`lastTo`
+  echo guard; `ui/FollowRefreshesGraphTest` drives the tick as `pollFollow` does (append, `extendAbsMax`, hook)
+  in four variants, each waiting for the generation to land; coalescing + reason-merge test through the
+  package-private extraction-runner seam; help clause, CHANGELOG.
+- [M65.2] ☑ 2026-09-17 **`graph {refresh: true}` + `refreshed: "scheduled"|false` in the echo**; `setMarkers`/`setBands`
+  gain the only-if-changed guard; idempotence test. Schema parity is automatic via `VerbSchemas` tests.
+- [M65.3] ☑ 2026-09-17 **Manual proof on the bundle** on the branch jar — extend and slide proved live; the slide case prompted the D-F7 rule-2 refinement (slide only when the new point falls outside the view): append a CSV row, `./export-audit.sh`, the open graph shows the
+  point within ~1.2 s untouched and a zoomed graph keeps its zoom; before/after via `screenshot`.
+- [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement (and the re-frame in
+  `appendFrom` is the larger target if it does).
+
+### M44 · Session transitions — M44.3, M44.3a and M44.3b (the open slices and the AGPL owner decision remain live)
+- [M44.3a] ☑ **DONE 2026-09-16 with M44.3** — `LogArrival` judges on `LogOpened` only; `CloseGraphEffect` names the graph judged; pinned by `AsyncOpenReplayTest.aRefreshObservationDoesNotJudge` and the real-frame suite. Original entry: **A refresh observation can close the graph that replaced the one judged** (1.13.1 review R2-F3,
+  confirmed pre-existing on 1.13.0; recorded here per R3-F3). Reproduction: A/A → start a FAILING load → open
+  graph B → reopen graph A, all in one EDT turn; when the failure settles no graph remains, though the last
+  deliberate request was A, which fits the still-open log A. `updateLifecycleMenu` observes the unchanged log
+  before the new graph, `LogArrival` judges against the previously observed B and its close effect clears the
+  current A. Remedy, processor-side: distinguish a real log ARRIVAL from a refresh of observed state, and bind
+  a close effect to the identity of the graph actually judged. Review: `docs/handoff/completed/review_analyser_1.13.1_pass2_2026-09-16.md`.
+- [M44.3b] ☑ **ON MAIN 2026-09-17 (`63d532d` + review fix `78a34d9`; reviewed READY on the re-review) — a close
+  SUPERSEDES a pending open OF THE SAME KIND** (owner's decision, 2026-09-17: *"close should supersede of the same
+  kind"*). A new request event, `CloseRequested(opId, LOG|GRAPH|ALL)`, is submitted by the six close REQUEST
+  entrances (three menu items, the socket's `open {close}`) before the adapter closes; `OperationGate` takes the
+  id and retires `inFlightWhat` **only when the close covers the log and an open is outstanding** — a graph close,
+  and any close with nothing pending, change nothing, which is the review's constraint (*do not give every close a
+  new meaning*). The late load is then refused by the existing stale-result path; the busy projection follows the
+  gate as it does for a project transition; the socket echo carries `supersededPendingOpen`; the audit record says
+  `superseded: opening …` so a reader can tell a superseded open from a failed one (D-A5). Processor regenerated
+  (`-Pregen`): one new dispatch branch, fingerprint changed, attribution strip and publishability guard green.
+  **Mutation-checked:** with the supersede neutered, exactly the three supersede replay tests and the real-frame
+  test fail and both controls still pass. Display suites 16/16 locally with CI's flags, no skips. Original entry:
+  `close {log}` during a pending open closed the previous log and the pending one still landed and was accepted
+  (finish-first review F6).
+- [M44.3] ☑ **IMPLEMENTED 2026-09-16; independent pass 3 at `d78a0144`: READY, 2026-09-17 — B2's immediate busy/pairing projection CLOSED; earlier B1/B3, export F4 and call-boundary F5 acceptance stands.** The adapter now follows the gate at a successful or failed project boundary, before the retired reader returns. Existing/current-graph pairing, progress visibility and newer-pending controls independently verified; exactly two boundary tests fail on the pre-fix jar. Full verify 1,431/0/0/14; local and exact-tip CI display suites 14/14 with no skips. See [pass-3 review](../../handoff/completed/review_analyser_finish_first_pass3_2026-09-17.md). M44.3b and the separate owner/dependency decision below remain open. (Spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; processor regenerated, 38 nodes.) Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](../spec-async-session-driver.md)** — the
+  ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
+
+### Suggested delivery order — shipped
+_Items 1–3 and 6 of the 2026-09-17 refresh; the numbers are as they stood there._
+1. ☑ **M46 analyser-side closure** (M46.5/.6/.7 + M46.10) — **ON MAIN** (`21027a2`; reviewed READY WITH FOLLOW-UPS)
+   (`docs/handoff/completed/report_m46_agent_api_closure.txt`). A1/A2 were already fixed by M44.3 and
+   sat ☐ for sixteen days; A3–A5 and a released `open {analysis}` regression were fixed — in 1.14.0, not patched.
+2. ☑ **M44.3b** — **ON MAIN** (`63d532d`, `78a34d9`)
+   (`docs/handoff/completed/report_m44_3b_close_supersedes.txt`). Owner's policy: a close supersedes a pending open **of the
+   same kind** — log/all/Reset do, a graph close does not. Modelled in the operation gate as a new request event;
+   processor regenerated; mutation-checked.
+3. ☑ **M48.7** — **ON MAIN** (`c0e4836`, `99fe89a`)
+   (`docs/handoff/completed/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
+   canvas state — `context.handoff`, `open {posture | record}`, *AI ▸ Posture*, a Project-panel row. It unblocks
+   the dev-harness loop (M48.10). It was a verb of its own for a day; **folded into `open` by owner decision
+   2026-09-17** after the second review (Decisions), so it adds no tool.
+6. ☑ **Pre-release gate ADDED 2026-09-17** — `docs/admin/release-process.md` §4.0 (owner decision). Was: (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`
+   join the release checklist. 1.13.0–1.13.2 shipped a broken `open {analysis}` through four review passes because
+   neither was run.

@@ -10,9 +10,9 @@ tail rule, not two) plus four follow-ups, all folded in below. Pass 3
 four wording follow-ups folded in below (F1 the capture order and the view's surface, F2 the empty-before case, F3
 programmatic ranges under D-F8, F4 where the seam lives). **IMPLEMENTED 2026-09-17** on
 `feat/m65-follow-refreshes-graphs`, reviewed twice more against the code — impl pass 4
-([review](../handoff/review_m65_implementation_2026-09-17.md), NOT READY: B1 the extend rule contracted a zoomed-out
-view; F1 the filter's live-index reads; F3 a synchronous runner throw — all landed, [response](../handoff/review_response_m65_impl_2026-09-17.md))
-and impl pass 5 ([review](../handoff/review_m65_implementation_pass5_2026-09-17.md), **READY**, one nit applied) —
+([review](../handoff/completed/review_m65_implementation_2026-09-17.md), NOT READY: B1 the extend rule contracted a zoomed-out
+view; F1 the filter's live-index reads; F3 a synchronous runner throw — all landed, [response](../handoff/completed/review_response_m65_impl_2026-09-17.md))
+and impl pass 5 ([review](../handoff/completed/review_m65_implementation_pass5_2026-09-17.md), **READY**, one nit applied) —
 and **merged to `main`**. Open follow-ups: tracker M65.5 (the D-F5 measurement), M65.6 (an unattributed *no log
 loaded* observation).
 Owner question: *"what is the

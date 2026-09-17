@@ -8,6 +8,14 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ## Shipped — archived
 
+**Tidied 2026-09-17, after 1.14.0/1.14.1 (rule 7).** Twenty ☑ items and one ⊘ moved verbatim to
+[`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-17*: M64.1–.9 (M64.10/.11 stay), M65.0–.4 with its
+implementation and review record (M65.5/.6 stay), M44.3/.3a/.3b (the open slices stay), and delivery-order items 1–3
+and 6. Six handoff files moved to `docs/handoff/completed/` (the M65 implementation handoff, its two impl reviews and
+the response; the 2026-09-17 ledger review and its brief) and the two reviewed 2026-09-17 ledger entries to
+`completed/unreviewed-changes-2026-09.md`. The person-at-the-screen checks and the playground re-vendor stay open
+(▸ *Suggested delivery order*).
+
 **Tidied 2026-09-17.** The finish-first round closed READY on its third independent pass (`d78a0144`; M44.3 + M44.3a, N1 and the clamp fixtures, the skill rewording, the note-rule fix). The eleven reviewed ledger entries of 2026-09-16/17 and their seventeen review, response and probe files moved to `docs/handoff/completed/` (ledger: `completed/unreviewed-changes-2026-09.md`). `main` carries the 1.13.2 candidate (CHANGELOG ▸ Unreleased, eight entries). Open decisions: M44.3b (close/reset during a pending open), M64 (spotlight, spec'd).
 
 **Tidied 2026-09-16 (rule 7).** Eight ☑ items moved verbatim to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-16*: the cross-transport schema contract, five M57 items (M57.1/.4 stay), M50.13 and its superseded original. Three closed handoffs moved to `docs/handoff/completed/` (round-11 response, the `perf/w10` branch review, the M52 hot-path report) and the three reviewed 2026-09-03/-15 ledger entries to `completed/unreviewed-changes-2026-09.md`. The 1.13.1 review cycle closed the same day: **READY WITH FOLLOW-UPS after four independent passes** (ledger + `docs/handoff/completed/review_analyser_1.13.1_*`), follow-ups done, **M44.3a** the one deferred item.
@@ -334,7 +342,7 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M64 · Spotlight — the tutor points at the thing on screen — ◧ M64.1–.9 ON MAIN 2026-09-17 (.1–.7 reviewed three times, `fd75c67`; .8/.9 after the merge, unreviewed); M64.10 open
+## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.9 SHIPPED in 1.14.0 (archived); .10/.11 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
 the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
 shot showed NO spotlight (the display test measured `696 → 696` outside the cut-out). The verb now composites a live
@@ -350,32 +358,6 @@ resolution, dumb overlay that clears on any view-changing verb (D-SP3); transien
 only while showing (D-SP4); one line per beat in the skill, no other verb changes (D-SP5). About a day plus half
 for the display test and skill edit.
 
-- [M64.1] ☑ **`SpotlightTarget.resolve` + the eight target families**, headless-tested per entry — 59 cases over a
-  map-backed surface: every entry lit, not-visible, unknown; an unknown name never touches the surface.
-- [M64.2] ☑ **The glass-pane overlay** (dim, cut-out, arrow, caption; clears on click/Escape/`clear`/view change) —
-  caption placement is `SpotlightGeometry`, arithmetic with its own tests; the caption is tagged *assistant*.
-- [M64.3] ☑ **`spotlight` verb + `context.spotlight`**, the persisted-forms-never-contain-one test — which checks the
-  CODE: no package that persists anything may know the word. One list says which verbs end a spotlight;
-  **mutation-checked** (remove `goto` → exactly `gotoPutsItOut` red).
-- [M64.4] ☑ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node — `SpotlightFrameTest`,
-  in the job's run list AND its fail-if-skipped guard. **Mutation-checked** (remove the screenshot composite → red).
-- [M64.5] ☑ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin) — written so
-  a client on an analyser older than the verb carries on; re-pinned by the established two-commit practice.
-  **The pin names a commit on this branch: merge by fast-forward WITHOUT rebasing the branch, or re-pin after.**
-- [M64.6] ☑ **Several spotlights and callouts at once** (owner direction 2026-09-17; spec D-SP6) —
-  `{targets: [{target, caption}]}`, at most six, all-or-nothing, things that cannot be on screen together refused
-  naming the pair; `{add}`, `{clear, target}`; numbered on screen and in the echo, numbers never reused (**true only
-  after review F1** — a high-water mark, not max+1); a WRONG call touches nothing (**true only after review F2** — the
-  executor used to reveal a row before the set was judged); callouts laid out to avoid a cut-out or another callout
-  where there is room, least-covering otherwise, and they may still cover un-lit content; echo and `context` share one shape `spotlight: {lit: […]}`. Headless
-  `SpotlightSetTest` / `SpotlightOverlayTest` / `SpotlightGeometryTest`, a real-frame two-node test, 17 more checks on
-  the built jar; **two mutation checks**. Report: `docs/handoff/completed/report_m64_6_multi_spotlight.txt`.
-- [M64.7] ☑ **The spotlight guidance in the GENERAL assistant guidance** (owner direction; spec D-SP7) — one paragraph,
-  `SpotlightVocabulary.GUIDANCE`, at every entrance: in-app action manifest (which had never been told the verb
-  existed), copy-prompt REST manifest, MCP server `instructions`, system prompt — held by one test. For people: user
-  guide ▸ *Ask it to show you* (what to say; light AND dark screenshots via `capture-docs.py --spotlight`) and the
-  in-app help. The guided-start skill is deliberately NOT touched: its beats point at one thing, and a second edit
-  would mean a second re-pin on a branch.
 - [M64.11] ☐ **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
   step "File ▸ New project from template…" could not be spotlit, because no target reaches a menu). An assistant
   asked *"where is that setting?"* can today only open the menu (`screenshot {scope: "menu:File"}`) and describe
@@ -397,29 +379,8 @@ for the display test and skill edit.
   that drew chart B and then refreshed chart A gets "'graph:note:1' is not on the selected graph". Either the
   refusal should name the selected graph and the ones that DO have the target, or the vocabulary should let a
   target name its graph (`graph:<name>:note:<n>`). Decide with M64.9; it is the same vocabulary edit.
-- [M64.9] ☑ **`coverage` → `topology:verdict` — DONE 2026-09-17 on main, in the same skill edit and re-pin as M64.8**
-  (rename, no alias: `coverage` as a TARGET is now an unknown name answered with the vocabulary; the `coverage` VERB
-  is untouched. Vocabulary, `SpotlightVocabulary.TEXT`, parser, frame, guided-start's one line, user guide, CHANGELOG,
-  spec D-SP2, `capture-docs.py`, the jar script.) _As recorded before it was done:_ (both reviews, 2026-09-17; AFTER
-  the merge, in the same skill edit and re-pin as M64.8) — it lights the Topology tab's PAIRING line ("fits this log 5/5"), not a
-  coverage gap; the name misled its own author into a false caption (report_m64_6 §2). The guided-start skill names
-  the target, so the vocabulary, `SpotlightVocabulary.TEXT`, the skill and the index pin move together. Unreleased:
-  rename, no alias. Not done on the branch by owner instruction — no skill is touched there.
-- [M64.8] ☑ **DONE 2026-09-17 on main: `docs/skills/common/point-at-the-fault/SKILL.md`** — the SHAPE (state the fault
-  as checkable → find with `series`/`aggregate`/`coverage` → confirm with `read` → `spotlight` the matched targets as
-  one numbered call → `flag` to make it last), the two safety rules verbatim from the spec, what a caption may and may
-  not say, and a worked example on the demo series log with BOTH outcomes — found (record 15, liveOrders 2 = limit 2)
-  and found-nothing (lights nothing). Degrades on an analyser without the verb, so `x-analyser-min-version` stays
-  1.12.0. In `m19-skills/2` ▸ `common`, so the SELECTION grew by one for every template — additive, same contract.
-  **Every number in it was checked on the jar and is now REPLAYED by `tools/verify-m64-spotlight.py`** (a skill's
-  example must not rot). **STILL THE OWNER'S:** re-vendor into the playground starter (`scripts/vendor-skills.mjs` in
-  the playground repo) — nothing in this repo can do it — and try it on a context-free client.
-  _As recorded before it was built:_ **A runbook that finds a fault class ends in a spotlight** (owner direction 2026-09-17; spec ▸ M64.8) —
-  one canonical skill under `docs/skills/common` showing the shape (filter to the fault class → confirm with `read` →
-  `spotlight` the matched target, caption built from the match; not finding it lights nothing), pinned (two commits)
-  and vendored into the playground starter. After the merge: it is a third skill edit and re-pin.
 
-## M65 · Follow refreshes open graphs — ☑ SHIPPED 2026-09-17 (merged to `main` from `feat/m65-follow-refreshes-graphs`; five review passes) · .5/.6 open
+## M65 · Follow refreshes open graphs — ◧ SHIPPED in 1.14.0 (archived); .5/.6 open
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
@@ -448,27 +409,6 @@ READY WITH FOLLOW-UPS — F1 (required, implementer applies) the read view reads
 `file` *after* it, and serves `record(row)` itself; F2 empty-before lands as reset; F3 D-F8 also silences identical
 programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argument shape. **Known stale under follow, out of scope here: reports and coverage.** About two days.
 
-Implementation: [handoff](../handoff/handoff_m65_implementation_2026-09-17.md); impl
-[pass 4](../handoff/review_m65_implementation_2026-09-17.md) (NOT READY — B1 the extend rule contracted a zoomed-out
-view, F1 the filter reads the live index arrays without happens-before on a grown reference, F3 a synchronous runner
-throw left `extracting` set; all landed, [response](../handoff/review_response_m65_impl_2026-09-17.md)) and
-[pass 5](../handoff/review_m65_implementation_pass5_2026-09-17.md) (**READY**; nit — narrow the F3 catch to
-`RejectedExecutionException` — applied before the merge). Merged to `main` by fast-forward 2026-09-17.
-
-- [M65.0] ☑ 2026-09-17 **D-F0 — store publishable while growing**: `file` first + volatile; read view as a `LogStore`
-  default overridden by `HeapLogStore` (size + file + offset/length under the index lock); `SeriesExtractor` walks
-  to the captured size; concurrent-append test.
-- [M65.1] ☑ 2026-09-17 **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**, with
-  D-F6 in-flight coalescing, D-F7 extend/slide/hold + DEFINITION-wins reason merge, and D-F8 `lastFrom`/`lastTo`
-  echo guard; `ui/FollowRefreshesGraphTest` drives the tick as `pollFollow` does (append, `extendAbsMax`, hook)
-  in four variants, each waiting for the generation to land; coalescing + reason-merge test through the
-  package-private extraction-runner seam; help clause, CHANGELOG.
-- [M65.2] ☑ 2026-09-17 **`graph {refresh: true}` + `refreshed: "scheduled"|false` in the echo**; `setMarkers`/`setBands`
-  gain the only-if-changed guard; idempotence test. Schema parity is automatic via `VerbSchemas` tests.
-- [M65.3] ☑ 2026-09-17 **Manual proof on the bundle** on the branch jar — extend and slide proved live; the slide case prompted the D-F7 rule-2 refinement (slide only when the new point falls outside the view): append a CSV row, `./export-audit.sh`, the open graph shows the
-  point within ~1.2 s untouched and a zoomed graph keeps its zoom; before/after via `screenshot`.
-- [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement (and the re-frame in
-  `appendFrom` is the larger target if it does).
 - [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
   machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
 - [M65.6] ☐ **Check on `main`**: `graph` answered *no log loaded* right after a command-line open while `context`
@@ -621,36 +561,13 @@ retrieval-dated evidence table, because those are live documents that can change
 - [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
   our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
 
-## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3 (async driver, the open as a decision) + M44.3a DONE 2026-09-16
+## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived); the next slices and the AGPL owner decision open
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
 
 - [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
   recommends.** ☐ **Blocker before the dependency lands:** the runtime's published POM declares AGPL-3.0
   jar. ☐ **Residue:** the five dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`,
-- [M44.3a] ☑ **DONE 2026-09-16 with M44.3** — `LogArrival` judges on `LogOpened` only; `CloseGraphEffect` names the graph judged; pinned by `AsyncOpenReplayTest.aRefreshObservationDoesNotJudge` and the real-frame suite. Original entry: **A refresh observation can close the graph that replaced the one judged** (1.13.1 review R2-F3,
-  confirmed pre-existing on 1.13.0; recorded here per R3-F3). Reproduction: A/A → start a FAILING load → open
-  graph B → reopen graph A, all in one EDT turn; when the failure settles no graph remains, though the last
-  deliberate request was A, which fits the still-open log A. `updateLifecycleMenu` observes the unchanged log
-  before the new graph, `LogArrival` judges against the previously observed B and its close effect clears the
-  current A. Remedy, processor-side: distinguish a real log ARRIVAL from a refresh of observed state, and bind
-  a close effect to the identity of the graph actually judged. Review: `docs/handoff/completed/review_analyser_1.13.1_pass2_2026-09-16.md`.
-- [M44.3b] ☑ **ON MAIN 2026-09-17 (`63d532d` + review fix `78a34d9`; reviewed READY on the re-review) — a close
-  SUPERSEDES a pending open OF THE SAME KIND** (owner's decision, 2026-09-17: *"close should supersede of the same
-  kind"*). A new request event, `CloseRequested(opId, LOG|GRAPH|ALL)`, is submitted by the six close REQUEST
-  entrances (three menu items, the socket's `open {close}`) before the adapter closes; `OperationGate` takes the
-  id and retires `inFlightWhat` **only when the close covers the log and an open is outstanding** — a graph close,
-  and any close with nothing pending, change nothing, which is the review's constraint (*do not give every close a
-  new meaning*). The late load is then refused by the existing stale-result path; the busy projection follows the
-  gate as it does for a project transition; the socket echo carries `supersededPendingOpen`; the audit record says
-  `superseded: opening …` so a reader can tell a superseded open from a failed one (D-A5). Processor regenerated
-  (`-Pregen`): one new dispatch branch, fingerprint changed, attribution strip and publishability guard green.
-  **Mutation-checked:** with the supersede neutered, exactly the three supersede replay tests and the real-frame
-  test fail and both controls still pass. Display suites 16/16 locally with CI's flags, no skips. Original entry:
-  `close {log}` during a pending open closed the previous log and the pending one still landed and was accepted
-  (finish-first review F6).
-- [M44.3] ☑ **IMPLEMENTED 2026-09-16; independent pass 3 at `d78a0144`: READY, 2026-09-17 — B2's immediate busy/pairing projection CLOSED; earlier B1/B3, export F4 and call-boundary F5 acceptance stands.** The adapter now follows the gate at a successful or failed project boundary, before the retired reader returns. Existing/current-graph pairing, progress visibility and newer-pending controls independently verified; exactly two boundary tests fail on the pre-fix jar. Full verify 1,431/0/0/14; local and exact-tip CI display suites 14/14 with no skips. See [pass-3 review](../handoff/completed/review_analyser_finish_first_pass3_2026-09-17.md). M44.3b and the separate owner/dependency decision below remain open. (Spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; processor regenerated, 38 nodes.) Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
-  ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
 - [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
 - [M44.3] ☐ **Owner decision still open:** the runtime's published POM declares AGPL-3.0 and the analyser
 
@@ -1084,89 +1001,49 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 _Refreshed 2026-09-17 — the previous refresh was 2026-08-28 and had gone three weeks and five releases stale (its
 item 1 was "Release 1.12.0"). Shipped since: **1.12.0**, **1.13.0–1.13.2** (M44.3 the asynchronous open as a
 session-processor decision, M52 the binary audit reader, M45 the GraphML vocabulary, M50's performance spine on
-runtime 1.0.15 / compiler 1.0.67). `[Unreleased]` carries the M46 agent-API closure below. Owner's chosen
-sequence, 2026-09-17: **close off open work before opening new** — items 1–3._
+runtime 1.0.15 / compiler 1.0.67), and now **1.14.0/1.14.1** (below). The owner's chosen sequence of 2026-09-17 —
+**close off open work before opening new** — was followed: its first three items shipped and are archived._
 
-**ITEMS 1–4 ARE ON MAIN — merged 2026-09-17 as `16acfc1..fd75c67`** (local rebase onto M65, fast-forward; two review
-rounds and a re-review by two readers; the whole record, and the map from every as-reviewed SHA to its commit on main,
-is [`docs/handoff/completed/sha-map_m46_closure_branch.txt`](../handoff/completed/sha-map_m46_closure_branch.txt)).
-They ship together as **1.14.0 — no 1.13.3** (Decisions). **BETWEEN MAIN AND 1.14.0:** (a) ~~M64.8 + M64.9~~ DONE on
-main the same day — one skill edit, one re-pin; the playground re-vendor of the new skill is the owner's; (b) ~~the two ledger entries~~ REVIEWED 2026-09-17, both READY WITH FOLLOW-UPS (`docs/handoff/review_ledger_2026-09-17.txt`; F1–F3 are
-follow-ups, none gating; its F4 — the spotlight screenshots not re-run since the `topology:verdict` rename — is CLOSED:
-`capture-docs.py --spotlight` ran whole on main `b8b1aaf`, four native captures, both dark images byte-identical and
-both light ones read and found to be re-renders, so nothing was committed); (c) the person-at-the-screen checks, which nobody but the owner can do: *File ▸ Close log* during a slow
-FIRST load · click, and Escape with focus in a component that consumes Escape (an open combo, the search-history
-popup), while SEVERAL spotlights are lit · *AI ▸ Posture*, *Place mode-selector record…*, *Clear record* · the
-Project-panel row for a restored log · the six "Ask it to show you" sentences and the guided-start tour on a
-context-free client; (d) the pre-release checklist, `docs/admin/release-process.md` §4.0 — **its `capture-conversations.py` line was RUN
-on the 1.14.0 candidate, main `b8b1aaf`, 2026-09-17:** exit 0, all five scenarios, five native captures, no
-`NOT REGENERATED`. All five images READ (demo data, neutral paths) and restored as re-renders. The transcript's only
-difference was `"visible"`/`"total"` changing places — committed ONCE, deliberately: since the `context.showing` fix
-that order is what the product always emits, so the page now matches it and the next run has no diff. **The three `verify-*.py` lines were RUN
-on the release candidate, main `cdef22c`, 2026-09-17** — a CLEAN build of the jar from exactly that commit, tree
-clean: `verify-m46-agent-api.py` 17/17, `verify-m48-handoff.py` 18/18, `verify-m64-spotlight.py` 83/83, each exit 0.
-**RE-RUN 2026-09-17 on main `a88f7dd`** — the in-app help gained two paragraphs after `cdef22c`, a bundled
-resource, so the run was repeated rather than argued to be unaffected: clean build, clean tree, the jar confirmed
-to carry the new help — 17/17, 18/18, 83/83 again, each exit 0. `a88f7dd` is the last commit that changes anything
-the jar contains; commits after it that touch only `docs/specs/tracker.md` do not reopen this. If CODE or a bundled
-resource lands before the release, run them again.
+**1.14.0 WAS RELEASED 2026-09-17 (`37f6812`), AND 1.14.1 THE SAME DAY.** 1.14.0 carried items 1–3 and 6 of the sequence
+above — now in [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-17* — with M65 and M64.8/.9 (the whole
+review record and the map from every as-reviewed SHA to its commit on main:
+`docs/handoff/completed/sha-map_m46_closure_branch.txt`). 1.14.1 carried the tutorial docs (*New project from
+template…* pictured and marked, the guided-start page's first screenshots), the left-column fix (it started expanded and
+empty with both panels toggled off; `context.handoff.posture.note` named the folded `handoff` verb) and
+`screenshot {scope: "menu:…"}` reporting `menuItems`. The three `verify-*.py` scripts were last run on main `2f26eb7`
+(17/17, 18/18, 83/83; the last pre-1.14.1 commit that changed the jar) and rule 1's two checks on `88d19ba` (the two
+employer-domain totals unchanged at 132 and 82; three 2026-09-16 commits carry a tool vendor's address, not an
+employer's). **STILL OPEN — the person-at-the-screen checks, which nobody but the owner can do, now to be done on the
+RELEASED jar:** *File ▸ Close log* during a slow FIRST load · click, and Escape with focus in a component that consumes
+Escape (an open combo, the search-history popup), while SEVERAL spotlights are lit · *AI ▸ Posture*, *Place
+mode-selector record…*, *Clear record* · the Project-panel row for a restored log · the six "Ask it to show you"
+sentences and the guided-start tour on a context-free client. **The owner's next step is the playground re-vendor of
+the skills** (`scripts/vendor-skills.mjs` in the playground repo; until it runs, a generated starter teaches the
+`coverage` target this analyser refuses). Still open after that, not gating: the valid `add` + `detail:node`
+end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
+M64.10, M46.11.
 
-**1.14.0 WAS RELEASED 2026-09-17 (`37f6812`).** Since it, on main and under CHANGELOG ▸ Unreleased — i.e. the content
-of the NEXT release: two defects the owner found on 1.14.0 itself (`446c9d4`) — the left column started expanded and
-empty when both its panels were toggled off, and `context.handoff.posture.note` told an assistant to call
-`handoff {posture}`, a verb folded into `open` before the release — and a docs change (`51fbdc6`: the tutorial shows
-*New project from template…* and names the bundle's `guided-start` runbook; the guided-start page gets screenshots).
-**The three `verify-*.py` scripts were re-run on main `51fbdc6`** — clean build, clean tree, the jar's class bytes
-checked to carry both fixes: 17/17, 18/18, 83/83, each exit 0. **And again on main `2f26eb7`**, after
-`screenshot {scope: "menu:…"}` gained `menuItems` (app code, so the run was repeated): clean build, clean tree, the
-jar checked to carry all three post-release changes — 17/17, 18/18, 83/83, each exit 0, and no harness analyser left
-running. `2f26eb7` is the last commit that changes anything the jar contains; tracker-only commits after it do not
-reopen this. Still the owner's, carried from the list above: the
-person-at-the-screen checks that were not done before 1.14.0 went out, and the playground re-vendor of the skills. **CLAUDE.md rule 1's two checks, same day, main `88d19ba`:**
-`git config user.email` is the personal address; `git log --format='%ae' | sort | uniq -c` shows the two
-employer-domain totals UNCHANGED at 132 and 82 (= the 214 rule 1 records), the newest of either dated 2026-08-20, and
-every one of the 51 commits since the v1.13.2 tag on the personal address. One thing the count surfaces that rule 1
-does not mention: three commits of 2026-09-16 carry a tool vendor's address (an AI coding agent's default identity),
-not an employer's — harmless, but it means a session ran without the repo-local `user.email` applying. Still open after that, not
-gating: the valid `add` + `detail:node` end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE
-(147 words) against a held-out run, M64.10, M46.11.
-
-1. ☑ **M46 analyser-side closure** (M46.5/.6/.7 + M46.10) — **ON MAIN** (`21027a2`; reviewed READY WITH FOLLOW-UPS)
-   (`docs/handoff/completed/report_m46_agent_api_closure.txt`). A1/A2 were already fixed by M44.3 and
-   sat ☐ for sixteen days; A3–A5 and a released `open {analysis}` regression were fixed — in 1.14.0, not patched.
-2. ☑ **M44.3b** — **ON MAIN** (`63d532d`, `78a34d9`)
-   (`docs/handoff/completed/report_m44_3b_close_supersedes.txt`). Owner's policy: a close supersedes a pending open **of the
-   same kind** — log/all/Reset do, a graph close does not. Modelled in the operation gate as a new request event;
-   processor regenerated; mutation-checked.
-3. ☑ **M48.7** — **ON MAIN** (`c0e4836`, `99fe89a`)
-   (`docs/handoff/completed/report_m48_7_canvas_handoff.txt`): the handoff record and the session's posture as shared
-   canvas state — `context.handoff`, `open {posture | record}`, *AI ▸ Posture*, a Project-panel row. It unblocks
-   the dev-harness loop (M48.10). It was a verb of its own for a day; **folded into `open` by owner decision
-   2026-09-17** after the second review (Decisions), so it adds no tool.
-4. ◧ **M64 Spotlight** — M64.1–.7 **ON MAIN** (`11a3497`, `dbd81b7`, `a491705`, `f242bd9`, `442582f`); M64.8/.9 done on main after the merge
+1. ◧ **M64 Spotlight** — M64.1–.7 **ON MAIN** (`11a3497`, `dbd81b7`, `a491705`, `f242bd9`, `442582f`); M64.8/.9 done on main after the merge
    (`docs/handoff/completed/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
    result in normal use. The fifteenth verb (the only one added); the screenshot now composites the overlay (the spec assumed it already did).
-5. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
+2. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
-6. ☑ **Pre-release gate ADDED 2026-09-17** — `docs/admin/release-process.md` §4.0 (owner decision). Was: (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`
-   join the release checklist. 1.13.0–1.13.2 shipped a broken `open {analysis}` through four review passes because
-   neither was run.
-7. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
+3. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
    written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`.
-8. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-9. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
+4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
+5. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
    before its native audit and conditional VAL-12 evidence), **M19.3/.4** (tutorial, publish-gated on
    the playground Download), and **M19.8** (bench in CI).
-10. **The small schedulable remnants**, any time: the golden-fixture follow-ups (N1 + the clamp fixture), **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
+6. **The small schedulable remnants**, any time: the golden-fixture follow-ups (N1 + the clamp fixture), **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
    rule-1 upstream ask.
-11. **Cross-repo** _(this line predates the 2026-09-17 refresh and was NOT re-verified in it — check
+7. **Cross-repo** _(this line predates the 2026-09-17 refresh and was NOT re-verified in it — check
    [upstream-asks.md](../proposals/upstream-asks.md) for which of these have since been filed)_ **— the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
    UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, **UP-MNG-03** (the server supplying the environment) has its analyser-side
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
-12. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
-13. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism
+8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
+9. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism
    spine (compiler), **M52.6** (mongoose), **M57.4** (generator-http shading), **M51** (starter template), the
    **M19** tutorial (publish-gated on the playground Download).
 
@@ -1382,6 +1259,7 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 
 ## Decisions (resolved)
 
+- **1.14.0 shipped 2026-09-17 with the whole M46-closure block, M65 and M64.8/.9; no 1.13.3** _(owner)_.
 - **This block ships as 1.14.0, together — NO 1.13.3, NO cherry-pick** _(owner, 2026-09-17, after the re-review)_.
   The `open {analysis}` regression released in 1.13.0–1.13.2 (M46.10) is therefore **fixed in 1.14.0, not patched**:
   the second reader recommended cutting 1.13.3 from the fix commit first (A4); the owner declined, and A4 is closed

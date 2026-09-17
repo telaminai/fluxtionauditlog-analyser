@@ -75,11 +75,7 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-09-17 (v1.13.1 released 2026-09-16 after four independent review passes; v1.13.0 the same day; `main` holds the reviewed 1.13.2 candidate — M44.3 the asynchronous open as a session-processor decision with M44.3a, three lifecycle fixes and the framed audit export, plus the note-rule zoom fix; **M65** follow refreshes open graphs — the store publishable while it grows, one extraction in flight, the view moves only to reveal a hidden point, `graph {refresh}`; and, merged 2026-09-17 for **1.14.0** (no 1.13.3 — owner): **M46** agent-API closure incl. the
-`open {analysis}` regression released in 1.13.0–1.13.2, **M44.3b** a close supersedes a pending open, **M48.7** the
-shared canvas written through `open {posture | record}`, **M64** `spotlight` — the fifteenth verb: up to six numbered
-callouts, `point-at-the-fault` the runbook that ends in one; before releasing 1.14.0 see tracker ▸ *BETWEEN MAIN AND
-1.14.0* and `docs/admin/release-process.md` §4.0; earlier: v1.11.0 2026-08-27, v1.12.0):** MCP bridge
+`docs/specs/completed/tracker.md`. **Shipped through 2026-09-17 (v1.14.0 and v1.14.1 released 2026-09-17: the M46 agent-API closure, M44.3b close supersedes a pending open, M48.7 the shared canvas through `open {posture | record}`, M64 spotlight .1–.9 incl. the point-at-the-fault skill and `topology:verdict`, M65 follow refreshes open graphs; earlier: v1.13.0–1.13.2 2026-09-16, v1.12.0, v1.11.0 2026-08-27):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +
