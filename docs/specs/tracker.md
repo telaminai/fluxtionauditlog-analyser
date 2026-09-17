@@ -349,6 +349,27 @@ for the display test and skill edit.
 - [M64.4] ☐ **Display test** in the `ui-frame` job: pixel-sampled cut-out over a topology node.
 - [M64.5] ☐ **`guided-start` skill: spotlight before each beat speaks** (canonical bytes → index re-pin).
 
+## M65 · Follow refreshes open graphs — ☐ PROPOSED 2026-09-17
+
+Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**. Owner question 2026-09-17: *"what is
+the lowest overhead way of forcing the graph redraw? should we add something to the plot verb?"* Observed with the
+audit-analyser-bundle: follow appends reach the table, slider, status bar and `series` verb, and a graph created
+afterwards — but a pre-existing graph keeps its cached points through zoom, Fit, a time-range change and an
+identical `graph` re-send, and recomputes only on a *changed* definition. Cause: `pollFollow` hand-notifies six
+consumers and `graphTabs` is not one; the graph's incidental filter echo is classified "time only" and served from
+cache; `addKeys` dedups, `setMarkers`/`setBands` do not. Decisions: the follow poll tells the graphs, through the
+existing structural debounce (D-F1); pinned graphs re-extract but keep their window (D-F2); slider/zoom/Fit stay
+cache-only per M6 (D-F3); `graph` re-sends are idempotent and `refresh: true` is the one forced re-extract, with
+`refreshed` in the echo (D-F4); full re-extract first, incremental only on measured need (D-F5). About a day.
+
+- [M65.1] ☐ **`GraphPanel.onRecordsAppended` → `GraphTabs.onRecordsAppended` → one line in `pollFollow`**;
+  `ui/FollowRefreshesGraphTest` (unpinned and pinned), help bullet, CHANGELOG.
+- [M65.2] ☐ **`graph {refresh: true}` + `refreshed` in the echo**; `setMarkers`/`setBands` gain the
+  only-if-changed guard; idempotence test.
+- [M65.3] ☐ **Manual proof on the bundle**: append a CSV row, `./export-audit.sh`, the open graph shows the
+  point within ~1.2 s untouched; before/after via `screenshot`.
+- [M65.4] ⊘ **Incremental extraction** — not scheduled; opens only on the D-F5 measurement.
+
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,
 reviewed and merged — full record in **[completed/tracker.md](completed/tracker.md)**.
