@@ -6,26 +6,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-### Changed
-- **Follow now refreshes open graphs (M65).** With Follow on, a chart that was already open kept its old points —
-  through zoom, Fit, a narrower time range and even an identical re-send of its definition — because the follow
-  poll told the table, slider and status bar about new records but never the graphs. Every open chart now
-  re-extracts as records arrive. Where the view lands is a rule, not a reset — the view moves only to reveal a point
-  that would otherwise be hidden: a chart that already shows the new point does not move; one showing the whole log
-  grows with it; one pressed to the live edge slides with it; one zoomed into the middle holds exactly; a pinned
-  chart keeps its window; changing the chart's definition still resets the view as before.
-- **`graph` gains `refresh: true`** — re-extract now, for an agent driving an analyser whose Follow is off. The echo
-  reports `refreshed: "scheduled" | false`; a re-send that changes nothing (same `series`, same `markers`, same
-  `bands`) now re-extracts nothing, where `markers`/`bands` used to re-extract on every presence.
-
-### Fixed
-- **The slider's follow echo no longer resets an unpinned zoom on every growing tick.** Extending the slider's range
-  re-sent the same time window, and a chart re-windowed on it each second — invisible until now only because the
-  chart never refreshed at all.
-- **The log store is safe to read while Follow appends to it.** Series extraction and the `series` verb walk a
-  bounded view (size and spans captured under the index lock, then the text); the store publishes the text before
-  the rows that point into it. Before, a walk overlapping an append could throw on its thread, and the graph's
-  best-effort error path swallowed it — the chart just failed to update.
 ### Added
 - **An AI client can now point.** It could already open, filter, select, draw and screenshot; what it could
   not do was say *"this, here"*. The new `spotlight {target, caption}` action dims the window, cuts one named
@@ -81,22 +61,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   was offered all of them. The missing ones are now derived from the same schemas, and a test holds every
   published action AND parameter to having a line, so the next one cannot be forgotten.
 
-### Fixed
-- **Recalling a saved analysis over the action socket works again.** Since 1.13.0 every agent
-  `open {analysis, bind}` ran its steps and then failed with *"SessionDriver is confined to the thread
-  that created it"*: the recall deliberately runs off the UI thread, but the decision it records
-  afterwards was submitted to the session processor from that same thread. The decision is now made on
-  the processor's thread. Found by re-running the sample-conversations harness, which had not been run
-  since the asynchronous open landed; `tools/verify-m46-agent-api.py` now checks it on the built jar.
-- **A log reopened at startup is no longer attributed to "you".** `context.log.openedBy` had two values,
-  so a fresh `--rest` instance that restored the previous session's log told an agent it had opened a
-  log it had never asked for — a sibling run's, when two runs shared a home. It now says *"the previous
-  session — restored at startup, not opened in this one"*, and a path given on the command line says so
-  too. The Project panel shows the same words.
-- **`topology` no longer says "no records" while records are open.** Until a record is selected the step
-  cursor is empty, and its label claimed the log was. The position now reads *"no record selected — 10
-  open; goto {recordIndex} to step through one"* and the echo carries `recordsOpen`.
-
 ### Changed
 - **Closing the log while one is still loading now cancels that load.** *File ▸ Close log*, *Reset* and
   the assistant's `open {close: "log" | "all"}` used to close the previous log and let the pending one
@@ -113,6 +77,39 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   is no `nodes` key any more, because a key that misleads is not made safe by putting a better one beside it.
   A client that read `nodes` gets nothing where it used to get a number — read `authoredNodes` for the same
   value, or `graphNodes` for what it was usually taken to mean.
+- **Follow now refreshes open graphs (M65).** With Follow on, a chart that was already open kept its old points —
+  through zoom, Fit, a narrower time range and even an identical re-send of its definition — because the follow
+  poll told the table, slider and status bar about new records but never the graphs. Every open chart now
+  re-extracts as records arrive. Where the view lands is a rule, not a reset — the view moves only to reveal a point
+  that would otherwise be hidden: a chart that already shows the new point does not move; one showing the whole log
+  grows with it; one pressed to the live edge slides with it; one zoomed into the middle holds exactly; a pinned
+  chart keeps its window; changing the chart's definition still resets the view as before.
+- **`graph` gains `refresh: true`** — re-extract now, for an agent driving an analyser whose Follow is off. The echo
+  reports `refreshed: "scheduled" | false`; a re-send that changes nothing (same `series`, same `markers`, same
+  `bands`) now re-extracts nothing, where `markers`/`bands` used to re-extract on every presence.
+
+### Fixed
+- **Recalling a saved analysis over the action socket works again.** Since 1.13.0 every agent
+  `open {analysis, bind}` ran its steps and then failed with *"SessionDriver is confined to the thread
+  that created it"*: the recall deliberately runs off the UI thread, but the decision it records
+  afterwards was submitted to the session processor from that same thread. The decision is now made on
+  the processor's thread. Found by re-running the sample-conversations harness, which had not been run
+  since the asynchronous open landed; `tools/verify-m46-agent-api.py` now checks it on the built jar.
+- **A log reopened at startup is no longer attributed to "you".** `context.log.openedBy` had two values,
+  so a fresh `--rest` instance that restored the previous session's log told an agent it had opened a
+  log it had never asked for — a sibling run's, when two runs shared a home. It now says *"the previous
+  session — restored at startup, not opened in this one"*, and a path given on the command line says so
+  too. The Project panel shows the same words.
+- **`topology` no longer says "no records" while records are open.** Until a record is selected the step
+  cursor is empty, and its label claimed the log was. The position now reads *"no record selected — 10
+  open; goto {recordIndex} to step through one"* and the echo carries `recordsOpen`.
+- **The slider's follow echo no longer resets an unpinned zoom on every growing tick.** Extending the slider's range
+  re-sent the same time window, and a chart re-windowed on it each second — invisible until now only because the
+  chart never refreshed at all.
+- **The log store is safe to read while Follow appends to it.** Series extraction and the `series` verb walk a
+  bounded view (size and spans captured under the index lock, then the text); the store publishes the text before
+  the rows that point into it. Before, a walk overlapping an append could throw on its thread, and the graph's
+  best-effort error path swallowed it — the chart just failed to update.
 
 ## [1.13.2] - 2026-09-17
 
