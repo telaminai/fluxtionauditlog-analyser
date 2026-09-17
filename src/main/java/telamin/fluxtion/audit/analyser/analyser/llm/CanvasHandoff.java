@@ -188,7 +188,7 @@ public final class CanvasHandoff {
             posture.put("value", derived.label());
             posture.put("source", "derived");
             posture.put("note", "a starting guess from what is open (" + (projectOpen ? "a project is open" : "no project is open")
-                    + ") — derivation lags intent; set it with handoff {posture} or AI ▸ Posture");
+                    + ") — derivation lags intent; set it with open {posture} or AI ▸ Posture");
         }
         out.put("posture", posture);
         if (record != null) {

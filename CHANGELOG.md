@@ -6,6 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- **The left column no longer starts expanded and empty.** With *Event types* and *Project* both toggled off, the
+  analyser opened with the left column as wide as it was last dragged (517 px in the report) and nothing in it —
+  it looked like a panel that had failed to draw. Toggling the panels off while running collapsed the column to
+  its rail; starting that way did not, because the rule was written twice and the startup copy ignored what was
+  showing. It is one rule now, and a panel that IS showing still reopens at the width you chose.
+- **`context` no longer tells an assistant to call a verb that does not exist.** While the session's posture is
+  only a guess, `context.handoff.posture.note` said *"set it with handoff {posture}"* — but that verb was folded
+  into `open` before 1.14.0 shipped, so an assistant that followed the note was refused. It now says
+  `open {posture}`, and a test holds every shipped text to never showing a call to the removed verb.
+
 ## [1.14.0] - 2026-09-17
 
 ### Added

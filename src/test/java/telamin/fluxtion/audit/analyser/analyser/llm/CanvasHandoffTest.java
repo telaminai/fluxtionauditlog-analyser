@@ -52,6 +52,20 @@ class CanvasHandoffTest {
         assertEquals("authoring/deploy", posture(s.toContext(true)).get("value"), "a project open reads as authoring");
     }
 
+    /**
+     * Shipped wrong in 1.14.0: the note an agent reads in {@code context.handoff.posture} said "set it with
+     * handoff {posture}" — a verb folded into {@code open} before that release. Four stale mentions were found in
+     * review; this one, the only one an AGENT acts on, was not. The instruction must name a verb that exists.
+     */
+    @Test
+    void theDerivedNoteTellsAnAgentHowToSetIt_withAVerbThatExists() {
+        String note = String.valueOf(((Map<?, ?>) new CanvasHandoff.State().toContext(false).get("posture")).get("note"));
+        assertTrue(note.contains("open {posture}"), note);
+        assertFalse(note.contains("handoff {"), "`handoff` was a verb for one day and never shipped: " + note);
+        assertTrue(VerbSchemas.all().containsKey("open") && !VerbSchemas.all().containsKey("handoff"),
+                "and if the verb surface ever changes again, this note changes with it");
+    }
+
     @Test
     void set_itWinsOverTheDerivation_namesWhoSetIt_andSaysWhatTheDerivationWouldHaveBeen() {
         CanvasHandoff.State s = new CanvasHandoff.State();

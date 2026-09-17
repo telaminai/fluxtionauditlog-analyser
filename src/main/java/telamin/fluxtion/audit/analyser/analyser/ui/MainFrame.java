@@ -486,6 +486,18 @@ public final class MainFrame extends JFrame {
     }
 
     /**
+     * Where the west column's divider belongs: at the width the person chose while a panel is showing, and
+     * shrunk to the rail when none is. ONE rule, because it was written twice and the two disagreed — toggling
+     * both panels off collapsed the column, but STARTING with both off did not: the frame opened with an empty
+     * column as wide as the last chosen width (517 px in the report), which reads as a panel that failed to
+     * draw. The startup path set the chosen width unconditionally, and {@link #layoutWest}'s collapse is skipped
+     * while the rail is being built, because the split pane that owns the divider does not exist yet.
+     */
+    static int westDividerFor(boolean hasPanel, int chosenWidth, int railWidth) {
+        return hasPanel ? Math.max(chosenWidth, railWidth + 8) : railWidth + 4;
+    }
+
+    /**
      * The west column's centre: Event types, the Project panel, both in a vertical split, or nothing.
      * Rebuilt on every toggle rather than hiding a split-pane child — JSplitPane keeps giving an invisible
      * child its share, and the divider is persisted only when both are showing (it is meaningless otherwise).
@@ -513,9 +525,7 @@ public final class MainFrame extends JFrame {
         }
         // both toggles off: the column shrinks to the rail; a toggle back on reopens it at the chosen width
         if (westOuter != null) {
-            westOuter.setDividerLocation(events || loaded
-                    ? Math.max(config.westWidth, navRail.getPreferredSize().width + 8)
-                    : navRail.getPreferredSize().width + 4);
+            westOuter.setDividerLocation(westDividerFor(events || loaded, config.westWidth, navRail.getPreferredSize().width));
         }
         west.revalidate();
         west.repaint();
@@ -2288,7 +2298,8 @@ public final class MainFrame extends JFrame {
         westOuter.setResizeWeight(0.0);              // extra window width goes to the records, as before
         westOuter.setContinuousLayout(true);
         westOuter.setBorder(BorderFactory.createEmptyBorder());
-        westOuter.setDividerLocation(Math.max(config.westWidth, navRail.getPreferredSize().width + 8));
+        // the SAME rule layoutWest applies on a toggle — a frame that starts with both panels off starts collapsed
+        westOuter.setDividerLocation(westDividerFor(westHasPanel(), config.westWidth, navRail.getPreferredSize().width));
         westOuter.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
             if (westHasPanel()) config.westWidth = westOuter.getDividerLocation();   // a collapsed rail is not a choice of width
         });
