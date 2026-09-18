@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-09-18
+
 ### Added
 - **A spotlight target can name its chart.** `graph:<name>:note:<n>` and `graph:<name>:series:<label>` light a
   note or series on the chart called `<name>`, selecting that chart first; the bare forms still mean the selected
