@@ -82,7 +82,7 @@ jobs:
           # SpotlightFrameTest (M64): pixel-samples the screenshot verb's image for the cut-out. It is the
           # only test that would notice the screenshot no longer compositing the glass pane.
           for c in PairingDuringLoadFrameTest AsyncOpenInterleavingFrameTest SpotlightFrameTest WestColumnStartsCollapsedFrameTest MenuScreenshotFrameTest PersonAtTheScreenFrameTest NamedGraphAndMenuSpotlightFrameTest; do
-            f=$(ls target/surefire-reports/TEST-*$c.xml)
+            f=$(ls target/surefire-reports/TEST-*.$c.xml)   # anchored on the class name: NamedGraphAndMenuSpotlightFrameTest also ends in SpotlightFrameTest
             echo "$c $(grep -o 'tests="[0-9]*" errors="[0-9]*" skipped="[0-9]*" failures="[0-9]*"' "$f")"
             grep -q 'skipped="0"' "$f" || { echo "$c skipped — no display reached the JVM"; exit 1; }
             grep -q 'tests="0"' "$f" && { echo "$c: no tests ran"; exit 1; } || true
