@@ -1,0 +1,166 @@
+INDEPENDENT REVIEW — branch feat/m64-10-11-named-graph-and-menu-targets (M64.10, M64.11, M64.12)
+Date: 2026-09-18 · Reviewer: Claude (a different session from the author's) · Reviewed HEAD: ef10e663 (one commit
+above main deb227f8) · Brief: brief_review_m64_10_11.txt · Report: report_m64_10_11.txt
+Judged against docs/specs/spec-spotlight.md ▸ "M64.10 / M64.11" (D-SP8, D-SP9, M64.12).
+
+VERDICT: NOT READY — two required findings (F2, F3), both in the paths this branch adds, both reproduced on a real
+frame and both small to fix. Everything the report CLAIMS is true: every gate number matched, both seen-red claims
+repeat. What is wrong is what the tests did not reach: the FIRST lighting of a note on a named chart, and lighting a
+second menu after a first. Fix F2 and F3, add the two cases to NamedGraphAndMenuSpotlightFrameTest, re-run the
+display command and the jar script, and this is READY WITH FOLLOW-UPS (F1, F4–F7).
+
+================================================================================
+FINDINGS
+================================================================================
+
+F1 — P3, required before release (not before merge): a chart whose NAME begins with "note" or "series" is
+     unreachable, and the refusal misdescribes it. The spec says only a chart named EXACTLY note/series is lost.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SpotlightTarget.java:96-100 (the `case "graph"` branch:
+  `if (part.startsWith("note"))` / `startsWith("series")` decide the BARE forms before the named path is tried)
+  REPRODUCED (parser, headless, against target/classes at the commit):
+    graph:Series A                -> UNKNOWN: 'graph:Series A' is not of the form graph[:<name>]:series:<label>
+    graph:Series A:series:x       -> UNKNOWN (same)
+    graph:Notes on spread         -> UNKNOWN: … is not of the form graph[:<name>]:note:<n>
+    graph:Notes on spread:note:2  -> UNKNOWN
+    graph:My notes:note:2         -> GRAPH_NOTE graph="My notes" arg=2        (a keyword NOT at the start is fine)
+  A chart called "Series A" or "Notes …" is a plausible user name. spec D-SP8 and the enum's javadoc both say "a chart
+  named `note` or `series`" is the only loss; the implementation loses every name with that PREFIX, and says the
+  target "is not of the form" — which it is.
+  FIX: test the keyword as a keyword — `part.startsWith("note:")` / `startsWith("series:")` (the bare forms always
+  carry a colon and an argument; `graph:note` alone is already refused). With that, "graph:Series A" falls through
+  to the named path (chart "Series A"), and a chart literally named "note" even becomes reachable as `graph:note`
+  (no part). Add "graph:Series A", "graph:Notes on spread:note:2" to SpotlightTargetTest's lit cases, and correct
+  the spec sentence to whatever the rule ends up being.
+
+F2 — P2, REQUIRED: `graph:<name>:note:<n>` is REFUSED the first time that chart is selected, with a
+     self-contradictory reason; the same call a moment later succeeds.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java — reveal (GRAPH_* selects the chart:
+  `graphTabs.selectGraph`), bounds (GRAPH_NOTE → `g.chartPanel().noteBounds(n)`), and `alsoOn()`.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ChartPanel.java:268-277 — noteBounds() returns null
+  while `vx0` is NaN, i.e. until the chart has PAINTED once; the numbering itself comes from the paint-time column map.
+  REPRODUCED (real frame, FlatLaf, the series demo log; Spread drawn with one note at record 15, then Orders drawn
+  and therefore selected):
+    spotlight {target: "graph:Spread:note:1"}
+      -> ok=false, error: "'graph:Spread:note:1' is not on graph 'Spread'. It is on [Spread] — name the chart:
+         graph:Spread:note:1"
+    (the selected tab IS now Spread — the reveal happened); retry the identical call after the EDT drains
+      -> ok=true
+    Control, same rig: graph:Spread:series:quotePublisher.spread lights FIRST time (a legend entry is a component,
+    measurable before paint), which is why the author's frame test — named SERIES only — did not see this.
+  Two defects in one: (a) the reveal selects the chart but measures before the chart has laid out its notes, so a
+  well-formed, present target is refused — the tutor's first attempt at exactly the D-SP8 use case fails; (b) the
+  refusal contradicts itself: alsoOn() lists the NAMED chart among "It is on […]" (it only excludes the selected
+  chart when t.graph() == null), so the message says the note is not on Spread and is on Spread in one breath.
+  FIX (a): after selecting a named chart in reveal(), make the chart panel lay out and paint before measuring
+  (validate + paintImmediately on the chart, or have ChartPanel compute the column map on demand instead of only in
+  paint — the latter also fixes the same first-show race for the BARE `graph:note:<n>` when the Graph side tab was
+  not showing). FIX (b): alsoOn() must exclude t.graph() as well as the selected chart. Add the first-time named-note
+  case to NamedGraphAndMenuSpotlightFrameTest (draw two charts with notes; light a note on the one NOT selected,
+  ONCE, and assert ok), and assert the refusal for a note that exists nowhere never names the chart it was asked for.
+
+F3 — P2, REQUIRED: lighting a menu item while ANOTHER menu's item is lit clears EVERYTHING and leaves the new menu
+     open with nothing lit — while the verb's echo says it is lit.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java — openMenuForSpotlight(): the
+  PopupMenuListener's popupMenuWillBecomeInvisible checks `spotlight.lit().anyMatch(target starts with "menu:")`
+  and `!m.getPopupMenu().isShowing()` — i.e. "is ANY menu target lit, and is THIS popup closed" — then calls
+  spotlight.clearSpotlight() (not clearSpotlightHere()).
+  REPRODUCED (real frame, FlatLaf), two ways:
+    (i) replace: spotlight {target: "menu:File:Close log"} -> ok; then spotlight {target: "menu:AI:Posture"}
+        -> ok=true, echo lit=[menu:AI:Posture]. Immediately after: context.spotlight = NOTHING LIT; the AI menu is
+        showing (orphaned); the File menu is closed.
+    (ii) add: File item lit + status added (both fine, menu stays) -> spotlight {target: "menu:AI:Posture", add: true}
+        -> ok=true, echo lit=[status(2), menu:AI:Posture(3)], wentOut=[menu:File:Close log] (correct so far).
+        Immediately after: context.spotlight = NOTHING LIT — the status spotlight is gone too — AI menu showing.
+  Sequence: opening the AI menu closes the File popup (one selected path); File's listener fires; its test is not
+  "does a lit target name MY menu" but "is any menu target lit" — the fresh AI target satisfies it — so it clears
+  the whole set, including non-menu spotlights, and closes no menu. The tutor's own verification (context /
+  screenshot) would then show an open AI menu with nothing lit, contradicting the echo it just received.
+  FIX: the listener must put out only spotlights whose target names THAT menu (`menu:<m.getText()>` /
+  `menu:<m.getText()>:…`, case-insensitively — SpotlightTarget.parse + menuName() give it), and nothing else. Add
+  both sequences above to NamedGraphAndMenuSpotlightFrameTest and assert: after the second call, context lists
+  exactly the echo's targets and only the AI menu is showing. (The spec's D-SP9 (4) sentence "a replacing set that
+  lights the same menu keeps it open" is true; "a different menu" is the untested case.)
+
+F4 — P3, follow-up: a menu already open BY HAND (never lit before) is refused with a false reason.
+  MainFrame.openMenuForSpotlight(): the lightweight request (the two FlatLaf client properties + the popup flag)
+  runs only inside `if (!m.getPopupMenu().isShowing())`. A menu the person opened is, under FlatLaf on macOS, a
+  HEAVYWEIGHT window (it paints a drop shadow); the reveal leaves it as it is, inWindowPopupPart() finds it outside
+  the frame, and whyNotVisible says: "the Records menu opened as a separate window here — it does not fit inside
+  the analyser window, so it cannot be lit. Enlarge the window and try again."
+  REPRODUCED (real frame, FlatLaf, macOS): open the never-lit Records menu via MenuSelectionManager (as a click
+  would), then spotlight {target: "menu:Records"} -> that refusal. The window is 1300x850; enlarging it changes
+  nothing. (The File menu did NOT reproduce this later in the same frame — because an earlier spotlight had already
+  left its client properties on it; see F6.)
+  FIX: when the popup is showing but its window ancestor is not this frame, close it, set the properties, reopen
+  (one selected-path call), then measure. Or, at minimum, make the reason true: "the menu is open as a separate
+  window — close it and ask again".
+
+F5 — P4, follow-up: alsoOn() over-promises for notes.
+  MainFrame.alsoOn(): `g.chartPanel().noteCount() >= t.number()`. (a) `graph:note:0` parses (numeric = non-negative)
+  but noteBounds(0) is null by definition (notes are 1-based), so the refusal for note 0 names EVERY chart —
+  reproduced: "'graph:note:0' is not on the selected graph ('Orders'). It is on [Graph 1, Spread] — name the chart:
+  graph:Graph 1:note:0" (Graph 1 has no notes at all). (b) noteBounds() numbers only the notes inside the chart's
+  visible window (ChartNotes.byColumn skips f<0||f>1), while noteCount() counts all: a chart with three notes and
+  one in view is offered for note 3 and then refuses it. FIX: parse `note:<n>` as n >= 1; count notes the way the
+  chart numbers them (or say "may be on" and let the named call decide).
+
+F6 — P4, follow-up (the author's own #2, confirmed): the two FlatLaf client properties stay on a popup after its
+  spotlight goes — reproduced: after the probe, File's and AI's popups both report Popup.dropShadowPainted=false.
+  From then on those menus open shadowless and lightweight by hand, unlike the ones never lit. Cosmetic; restore in
+  the same PopupMenuListener when the popup closes.
+
+F7 — P4, follow-up: an item's text must match to the character, including the ellipsis. The user guide teaches
+  `menu:File:New project from template…` (U+2026); a client that types three dots gets "no item '…' in the File
+  menu — its items are […]", which does teach the right spelling. Consider matching a trailing "..." to "…" — the
+  one difference a typist cannot see.
+
+================================================================================
+WHAT I VERIFIED (ran it, on this Mac, at ef10e663)
+================================================================================
+  git config user.email — the personal address.
+  mvn clean test: 1646 run, 0 failures, 0 errors, 29 skipped — the report's numbers exactly.
+  The brief's display command (Spotlight*, AsyncOpen*, NamedGraphAndMenu, PersonAtTheScreen): 173 run, 0 failures,
+    0 errors, 0 SKIPPED — this Mac gave the test frame focus, so PersonAtTheScreenFrameTest's Escape case RAN here
+    (3/3), which the author's machine could not.
+  mvn package; tools/verify-m64-spotlight.py on that jar: 94/94, exit 0. (Its rewritten duplicate-label check
+    reflects main's dedupe correctly; I read the new checks and they test what they say.)
+  mkdocs build --strict: pass. The exact CLAUDE.md rule-1 sweep: prints nothing.
+  SEEN-RED, both repeated and restored: (a) colon rule off → SpotlightTargetTest fails on graph:legend:x AND
+    graph:a:b:series:x (UNKNOWN expected, NOT_VISIBLE), plus one NPE in the new M64.10 test; (b) the two FlatLaf
+    client properties removed → NamedGraphAndMenuSpotlightFrameTest refuses "…separate window" on macOS/FlatLaf.
+    I did not run the third (Aqua) claim; the test's own LAF install makes it moot.
+  MY OWN PROBES, a throwaway real-frame test (FlatLaf, deleted before this commit; the tree is clean):
+    · F1, F2, F3, F4, F5 reproduced as written above.
+    · Brief item 5 — ESCAPE over a lit menu: with the frame focused, ONE posted Escape put the spotlight out AND
+      closed the menu (lit=0, popup not showing). The design holds; it now has a witness, though only my run.
+    · Brief item 6 — a `targets` set of [tab:topology, menu:File:Close log]: both lit, the menu stayed open, and
+      {clear: true} closed it. `add: true` of a non-menu target with a menu item lit: both lit, menu open. Only the
+      SECOND-MENU case fails (F3).
+    · Brief item 4 — press-through on a JCheckBoxMenuItem: lit menu:File:Follow (tail), posted a press at the lit
+      bounds' centre → Follow ticked, menu closed, nothing lit. doClick works on the closed popup's checkbox item.
+    · Brief item 7 — the screenshot's popup painting skips tooltips by construction (holdsAMenu walks for a
+      JPopupMenu; a JToolTip is not one). READ, not exercised.
+    · Brief item 8 — the user guide's new first row ("live orders first went above 1"): TRUE of the demo series log,
+      record 15 with value 2 — I had checked that on the jar for the point-at-the-fault skill; the verify script
+      replays it.
+    · Brief item 2 — alsoOn for a NOTE on a chart that is not showing: works (names Spread) — noteCount() is a fact
+      about the chart, not a measurement. The gap the brief feared is not there; F5 is the smaller one that is.
+
+WHAT I ONLY READ
+  The screenshot verb's POPUP-layer painting (translation via convertPoint(popup.getParent(), …)) — the author's
+  frame test samples inside/outside and I ran it; I did not read the resulting image. spotlightPressed() matches
+  the press against Lit.bounds(), i.e. the TARGET rectangle, not the padded cut-out — a press on the ring's 6-px
+  padding dismisses without choosing; harmless. The CHANGELOG and tracker entries: present and accurate to what was
+  built; the tracker's M64.11 ☑ will need to say what F2/F3 changed.
+
+ONLY A PERSON AT THE SCREEN
+  A lit menu item chosen with a real mouse (my press was a posted event on the overlay); what a shadowless File menu
+  looks like beside a shadowed one (F6); CI's xvfb path for the Escape case (I ran it with real focus, CI ran the
+  PersonAtTheScreen version at 9e3b6b7c — this branch's NamedGraphAndMenu test has no Escape case yet: add one
+  with F3's, it costs nothing now that the pattern exists).
+
+HANDOFF
+  No findings fixed; no rebase, amend, force-push or merge. This file is the only change on the branch.
+  Author: answer F2 and F3 with fixes and the four regression cases named above; F1 and F4 may ride along or
+  follow; re-run the display command, the jar script and mkdocs; then it is READY WITH FOLLOW-UPS and the owner
+  merges (local rebase, fast-forward).
