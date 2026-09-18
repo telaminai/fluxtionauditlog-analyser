@@ -151,7 +151,10 @@ class Transcript:
         self.lines.append("")
 
     def shot(self, name, caption):
-        cd.capture(self.ep, name)
+        if not cd.capture(self.ep, name) and name in cd._failed_actions:
+            # the screenshot VERB failed: the scenario is broken, not the machine's permissions — stop here rather
+            # than write a page that pretends it worked (review 2026-09-18 F3)
+            sys.exit(f"screenshot failed during capture of {name}: the verb answered ok:false")
         self.lines.append("")
         self.lines.append(f"![{caption}](assets/{name})")
         self.lines.append("")
@@ -318,9 +321,11 @@ def main():
 
     PAGE.write_text("\n".join(t.lines).rstrip() + "\n")
     print(f"wrote {PAGE.relative_to(REPO)} ({len(t.lines)} lines); shots: {len(cd._captured)}")
+    if cd._failed_actions:
+        sys.exit(f"screenshot verb failed for {cd._failed_actions} — a scenario is broken (not a permission matter)")
     if cd._failed:
         # TWO signals, not one (tracker M46.11; release-process §4.0): the scenarios all completed — every verb
-        # answered and every cited claim was found, or we would have exited above — so the pre-release
+        # answered (a failed screenshot VERB exits above) and every cited claim was found — so the pre-release
         # checklist's "all five scenarios must complete" line is MET. What did not happen is the native image
         # capture, which needs macOS Screen Recording for the terminal. That is a warning on a machine without
         # the grant, and a failure only when the caller asked for the images (--require-images).

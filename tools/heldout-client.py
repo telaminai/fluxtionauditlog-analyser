@@ -13,6 +13,8 @@ never printed) and needs a running analyser with the REST transport on and a log
     java -jar target/fluxtion-auditlog-analyser-*.jar --rest src/main/resources/demo/demo-quote-series.yaml
     # open the demo graph too (File ▸ Open GraphML, or the open verb), then:
     python3 tools/heldout-client.py [model] [1,4]        # default model claude-sonnet-5; optional sentence subset
+Each conversation starts from a fresh fixture (close all, reopen the demo log + graph); the instructions are read
+from /manifest, which serves the bridge's text verbatim.
 
 Result: heldout-results.md in the current directory — read it, do not commit it (it is generated text).
 First run 2026-09-17 (1.14.1, claude-sonnet-5): with the instructions, 5 of 6 sentences produced a spotlight on
@@ -39,20 +41,11 @@ def get(path):
         return json.loads(r.read().decode())
 
 
-def guidance_text():
-    """SpotlightVocabulary.GUIDANCE, as McpBridge.INSTRUCTIONS carries it (the constant read from source)."""
-    src = (REPO / "src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/SpotlightVocabulary.java").read_text()
-    i = src.index("GUIDANCE"); j = src.index(";", src.index("=", i))
-    parts = re.findall(r'"((?:[^"\\]|\\.)*)"', src[src.index("=", i) + 1:j])
-    return "".join(parts).encode().decode("unicode_escape")
-
-
 manifest = get("/manifest")
-INSTRUCTIONS = ("Drives a running Fluxtion Audit Log Analyser over its localhost action socket. "
-                "Query verbs (analyser_aggregate, analyser_read) read the loaded audit log; the render verbs "
-                "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "
-                "The analyser must be running with the REST transport enabled (Settings > Assistant). "
-                + guidance_text().replace("`spotlight`", "analyser_spotlight"))
+# EXACTLY what an MCP client is handed: the bridge's instructions, served verbatim by /manifest (review 2026-09-18
+# F2 — an earlier version re-derived them from the Java source and truncated at the first ';' inside a quoted example)
+INSTRUCTIONS = manifest["instructions"]
+assert "up to " in INSTRUCTIONS and "REPLACES" in INSTRUCTIONS, "the manifest's instructions are not the full guidance"
 NO_GUIDANCE = INSTRUCTIONS.split("POINT BEFORE")[0]
 
 
@@ -80,6 +73,23 @@ def llm(system, messages):
                                           "content-type": "application/json"}, method="POST")
     with urllib.request.urlopen(req, timeout=180) as r:
         return json.loads(r.read().decode())
+
+
+LOG = REPO / "src/main/resources/demo/demo-quote-series.yaml"
+GRAPHML = REPO / "src/test/resources/topology/demo-quote-processor.graphml"
+
+
+def fresh_fixture():
+    """Every conversation starts from the same screen: nothing carried over from the last one but the log."""
+    act("spotlight", {"clear": True})
+    act("open", {"close": "all"})
+    act("open", {"log": str(LOG), "graphml": str(GRAPHML)})
+    for _ in range(100):
+        ctx = act("context", {})["context"]
+        if (ctx.get("log") or {}).get("records"):
+            return
+        time.sleep(0.1)
+    sys.exit("the demo log did not load")
 
 
 def lit():
@@ -118,8 +128,9 @@ def run(user_text, system, extra_user=None, max_turns=24):
     return calls, final_text, lit()
 
 
-SENTENCES = [
-    "Show me where the spread first crossed 0.004 — point at it.",
+SENTENCES = [                      # the user guide's "Ask it to show you" rows, as published
+    "Show me where live orders first went above 1 — point at it.",
+    "Where do I start a project from a template?",
     "Which node never logged? Highlight it on the graph.",
     "Walk me through this cycle and highlight each step.",
     "Highlight everything involved in that breach.",
@@ -135,11 +146,12 @@ for variant, system in (("B — instructions incl. the spotlight guidance (what 
     for i, s in enumerate(SENTENCES, 1):
         if ONLY and str(i) not in ONLY:
             continue
-        if i == 5:   # "the note on the chart you mean" needs a chart with a note first
+        fresh_fixture()
+        if s.startswith("Point at the note"):   # "the note on the chart you mean" needs a chart with a note first
             act("graph", {"newTab": True, "name": "spread", "series": ["quotePublisher.spread"],
                           "notes": [{"recordIndex": 40, "text": "first widening"}]})
-        if i != 6:
-            act("spotlight", {"clear": True})
+        if s.startswith("Clear the highlights"):   # something must be lit for a clear to mean anything
+            act("spotlight", {"target": "status", "caption": "lit for the clear sentence"})
         calls, text, lit_after = run(s, system)
         pointed = any(c[0] == "spotlight" and c[2] for c in calls)
         out.append(f"\n### {i}. \"{s}\"\n- tools: " + " → ".join(f"{c[0]}{'' if c[2] else ' ✗'}" for c in calls)
@@ -152,6 +164,7 @@ for variant, system in (("B — instructions incl. the spotlight guidance (what 
 if not ONLY or "tour" in ONLY:
     skill = (REPO / "docs/skills/common/guided-start/SKILL.md").read_text()
     out.append("\n## Guided-start tour (variant B + the skill text as an attached document)\n")
+    fresh_fixture()
     calls, text, lit_after = run("Give me the guided start.", INSTRUCTIONS,
                                  extra_user="Here is a skill to follow when I ask for the guided start:\n\n" + skill)
     out.append("- tools: " + " → ".join(f"{c[0]}{'' if c[2] else ' ✗'}" for c in calls)

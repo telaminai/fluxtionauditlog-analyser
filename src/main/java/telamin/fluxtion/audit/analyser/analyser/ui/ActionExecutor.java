@@ -397,18 +397,31 @@ public final class ActionExecutor implements RenderExecutor {
                             resolved.path(), new telamin.fluxtion.audit.analyser.analyser.graph.ExternalCsvLoader.Spec(
                                     label, spec.time(), spec.timeFormat(), spec.zone(), spec.value(),
                                     spec.offsetMillis()));
-                    if (externalLoaded.containsKey(label)) {
+                    Map<String, Object> e = new LinkedHashMap<>();
+                    String note = label + ": " + r.rowsLoaded() + " rows";
+                    int earlier = -1;
+                    for (int i = 0; i < externalSpecs.size(); i++) if (label.equals(externalSpecs.get(i).label())) earlier = i;
+                    if (earlier >= 0) {
                         // ledger review F2: external is replace-by-label, and one call carrying the same label twice
-                        // drew TWO identical legend rows — which the spotlight then rightly refused to point at.
-                        // The later entry applies, and the echo says so.
-                        externalSpecs.removeIf(earlier -> label.equals(earlier.label()));
-                        externalEcho.removeIf(prev -> label.equals(prev.get("label")));
+                        // drew TWO identical legend rows. The later entry applies — IN THE EARLIER ENTRY'S PLACE
+                        // (main review 2026-09-18 F1: remove-and-append reordered the specs while the loaded map
+                        // kept its slot, so with x, y, x the legend's swatches named the other line's colour).
+                        externalSpecs.set(earlier, spec);
+                        externalLoaded.put(label, r.series());                   // a re-put keeps the map's slot
+                        for (int i = 0; i < externalEcho.size(); i++) if (label.equals(externalEcho.get(i).get("label"))) externalEcho.set(i, e);
+                        boolean noted = false;
+                        for (int i = 0; i < externalNotes.size(); i++) {
+                            if (externalNotes.get(i).startsWith(label + ": ")) { externalNotes.set(i, note); noted = true; }
+                        }
+                        if (!noted) externalNotes.add(note);
                         externalWarnings.add("external label '" + label + "' given twice in one call — a label names ONE "
                                 + "series, so the later entry replaced the earlier");
+                    } else {
+                        externalSpecs.add(spec);
+                        externalLoaded.put(label, r.series());
+                        externalEcho.add(e);
+                        externalNotes.add(note);
                     }
-                    externalSpecs.add(spec);
-                    externalLoaded.put(label, r.series());
-                    Map<String, Object> e = new LinkedHashMap<>();
                     e.put("label", label);
                     e.put("rows", r.rowsLoaded());
                     if (r.rowsSkipped() > 0) e.put("skipped", r.rowsSkipped());
@@ -416,8 +429,6 @@ public final class ActionExecutor implements RenderExecutor {
                     if (r.fromMillis() != null) { e.put("from", r.fromMillis()); e.put("to", r.toMillis()); }
                     if (spec.offsetMillis() != 0) e.put("offsetMillis", spec.offsetMillis());
                     if (!r.diagnostics().isEmpty()) e.put("diagnostics", r.diagnostics());
-                    externalEcho.add(e);
-                    externalNotes.add(label + ": " + r.rowsLoaded() + " rows");
                 } catch (Exception ex) {
                     externalWarnings.add("external '" + label + "' failed to load: " + ex.getMessage());
                 }

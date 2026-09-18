@@ -23,7 +23,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   cycle lost step 1 when it lit step 2.
 
 ### Fixed
-- **`graph` given the same `external` label twice in one call now draws one series, not two.** `external` is
+- **`graph` given the same `external` label twice in one call now draws one series, not two — and keeps it in its
+  first slot,** so with `x, y, x` the legend's swatches still name their own lines (the first cut of the fix
+  appended the replacement, and the legend and plot disagreed on the colours).
+- **The REST `/manifest` now carries `instructions`** — the same text the MCP bridge hands every client — so a
+  REST client reads the one guidance rather than a copy. `external` is
   replace-by-label, but one call carrying a label twice drew two identical legend rows — which a spotlight then
   rightly refused to point at. The later entry applies and the echo's `warnings` says so.
 

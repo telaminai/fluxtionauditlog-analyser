@@ -1,0 +1,35 @@
+RE-REVIEW BRIEF — branch fix/review-main-2026-09-18 (answers to review_main_2026_09_18.txt F1–F3)
+Date: 2026-09-18 · Work: git log --oneline origin/main..origin/fix/review-main-2026-09-18 (one commit)
+Response: docs/handoff/response_review_main_2026_09_18.txt · Original review: docs/handoff/review_main_2026_09_18.txt
+
+YOUR ROLE: the INDEPENDENT REVIEWER, ideally the one who wrote review_main_2026_09_18.txt. Decide per finding whether
+the ANSWER is right. Do not trust the response; repeat its seen-red claim and your own reproductions.
+
+WHAT TO ATTACK
+  F1  ActionExecutor.doGraph, the `external` loop. The fix replaces in place in four structures. Repeat your x, y, x
+      probe through the real executor and ALSO x, y, x, y (both labels repeated) and y, x, x (the repeat last):
+      legend order, `externalLoaded` order, plotted series order, echo order and notes must all agree, and the notes
+      must hold ONE entry per label with the later row count. Then: what if the SECOND x fails to load (a bad file)?
+      The first x should stay in place with its rows — check the warning names the failure and nothing is half done.
+  F2  (a) ActionServer /manifest `instructions` == McpBridge.INSTRUCTIONS (ActionServerTest). Confirm the MCP handshake
+      and /manifest now serve byte-identical text (McpBridge line 190/204 vs the manifest). (b) heldout-client.py: the
+      instructions come from /manifest; `NO_GUIDANCE` splits at "POINT BEFORE" — confirm that split leaves the bridge's
+      intro and nothing of the guidance. `fresh_fixture()` closes all and reopens the demo log + graph before every
+      conversation — check the tour also starts fresh, and that "Clear the highlights" has something lit first.
+      The record's correction paragraph and the appended re-run: do the new numbers support the sentence the
+      record now makes? Say whether the corrected comparison (full guidance vs none) still shows the claim.
+  F3  capture-docs.py capture(): `_failed_actions` on a verb ok:false. capture-conversations.py: shot() exits non-zero
+      when the failed name is in `_failed_actions`; the final policy exits non-zero first for `_failed_actions`, then
+      warns for the rest. Repeat your AST probe: inject act()={ok:false} and confirm (i) shot() exits non-zero naming
+      the verb, (ii) the final block cannot be reached with `_failed_actions` non-empty. Then the OTHER path: a verb
+      ok:true with no native capture must still be a warning with exit 0 (and 3 under --require-images).
+      capture-docs.py's own final policy is claimed unchanged — confirm.
+
+HOW TO VERIFY — author's numbers are in the commit message. Run: git config user.email; mvn clean test; mvn package;
+python3 tools/test_tools.py; python3 tools/capture-conversations.py (restore its outputs); mkdocs build --strict;
+the exact rule-1 sweep. The held-out re-run is the owner's key: read the appended record; do not re-spend it
+unless the owner says so.
+
+WHAT TO PRODUCE: docs/handoff/review_fix_review_main_2026_09_18.txt on the branch — verdict, findings F… with
+severity, file:line and reproduction, verified versus read. Commit and push. Do not fix findings; do not rebase,
+amend or force-push. READY → the owner merges (local rebase, fast-forward) and retires this pair to completed/.

@@ -63,7 +63,7 @@ public final class McpBridge {
 
     static final String SERVER_NAME = "fluxtion-audit-log-analyser";
 
-    static final String INSTRUCTIONS =
+    public static final String INSTRUCTIONS =   // public: /manifest serves it too (review 2026-09-18 F2)
             "Drives a running Fluxtion Audit Log Analyser over its localhost action socket. "
             + "Query verbs (analyser_aggregate, analyser_read) read the loaded audit log; the render verbs "
             + "change what the desktop app shows (filter, graph, goto, flag) and are all reversible. "

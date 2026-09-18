@@ -212,6 +212,9 @@ public final class ActionServer {
             m.put("schemas", telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all());
             m.put("maxActionsPerReply", maxActionsPerReply);
             m.put("rateLimitPerSec", ratePerSec);
+            // the one text every MCP client is handed before it picks a tool — served here too, so a REST client (and
+            // tools/heldout-client.py) gets exactly the same words, not a copy (main review 2026-09-18 F2)
+            m.put("instructions", telamin.fluxtion.audit.analyser.analyser.mcp.McpBridge.INSTRUCTIONS);
             send(ex, 200, Json.write(m));
         } catch (RuntimeException e) {   // never abort the exchange bodiless (parity with handleAction)
             send(ex, 500, err("server error: " + e.getMessage()));

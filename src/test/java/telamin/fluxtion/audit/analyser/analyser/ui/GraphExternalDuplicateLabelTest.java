@@ -67,6 +67,35 @@ class GraphExternalDuplicateLabelTest {
         assertEquals(3, ext.get(0).get("rows"), "and it is the later file's rows");
     }
 
+    /** Main review 2026-09-18 F1: x, y, x must keep x in its FIRST slot, or the legend's colours name the other line. */
+    @Test
+    void anInterleavedDuplicate_keepsItsFirstSlot_soTheLegendOrderIsThePlotOrder(@TempDir Path tmp) throws Exception {
+        Path x1 = tmp.resolve("x1.csv"), y = tmp.resolve("y.csv"), x2 = tmp.resolve("x2.csv");
+        Files.writeString(x1, "time,value\n1750000000000,1\n1750000001000,2\n", StandardCharsets.UTF_8);
+        Files.writeString(y, "time,value\n1750000000000,10\n1750000001000,20\n", StandardCharsets.UTF_8);
+        Files.writeString(x2, "time,value\n1750000000000,5\n1750000001000,6\n1750000002000,7\n", StandardCharsets.UTF_8);
+        GraphTabs tabs = new GraphTabs();
+        ActionExecutor ex = executor(tabs, tmp);
+        var r = ex.render("graph", Map.of("newTab", true, "name", "xyx",
+                "series", List.of("bidMakerOrder.price"),
+                "external", List.of(external(x1, "x"), external(y, "y"), external(x2, "x"))));
+        assertTrue(r.ok(), r::toString);
+        GraphPanel g = tabs.graphNamed("xyx");
+        assertEquals(List.of("x", "y"), g.externalSpecs().stream().map(s -> s.label()).toList(), "specs (the legend's order): x keeps its first slot");
+        assertEquals(x2.toString(), g.externalSpecs().get(0).path(), "and x is the LATER file");
+        assertEquals(List.of("x: 3 rows", "y: 2 rows"), g.externalNotes(), "one note per label, the replaced one gone");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> echo = (List<Map<String, Object>>) ((Map<String, Object>) r.toMap().get("applied")).get("external");
+        assertEquals(List.of("x", "y"), echo.stream().map(m -> m.get("label")).toList(), "the echo in the same order");
+        assertEquals(3, echo.get(0).get("rows"));
+        // the PLOT: after extraction lands, the external series follow the audit series in the legend's order
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (g.chart().plottedSeries().size() < 3 && System.currentTimeMillis() < deadline) Thread.sleep(50);
+        List<String> plotted = g.chart().plottedSeries().stream().map(s -> s.label()).toList();
+        assertEquals(3, plotted.size(), "audit + two externals plotted: " + plotted);
+        assertEquals(List.of("x", "y"), plotted.subList(1, 3), "plotted in the legend's order, so each swatch names its own line");
+    }
+
     @Test
     void twoDifferentLabels_areStillTwoSeries(@TempDir Path tmp) throws Exception {
         Path a = tmp.resolve("a.csv");

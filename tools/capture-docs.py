@@ -382,6 +382,7 @@ def capture(ep, name):
     if not res.get("ok"):
         print(f"  ! {name}: {res.get('error')}")
         _failed.append(name)                # a verb failure produced no image either — count it
+        _failed_actions.append(name)        # …and it is the VERB that failed, not the shutter (review 2026-09-18 F3)
         return False
     _captured.append(scratch_name)
     painted = EXPORT_DIR / scratch_name
@@ -418,6 +419,7 @@ _captured = []      # scratch names — numbers the painted exports within a run
 _menu_items = {}    # menu name -> (windowBounds, menuItems) from the last menu_capture, for annotate()
 _attempted = []     # every asset this run tried to produce, window and menu shots alike
 _failed = []        # the subset it could not — a failed verb call counts, not only a failed shutter
+_failed_actions = []  # the subset where the screenshot VERB answered ok:false — never a permission matter
 
 
 def capture_mcp_setup():

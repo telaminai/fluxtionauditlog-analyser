@@ -60,6 +60,11 @@ class ActionServerTest {
         assertTrue(r.body().contains("maxActionsPerReply"));
         assertTrue(r.body().contains("rateLimitPerSec"));
         assertTrue(r.body().contains("X-Analyser-Token"));
+        // review 2026-09-18 F2: the REST manifest serves the SAME instructions the MCP bridge hands its clients
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> m = (java.util.Map<String, Object>) telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(r.body());
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.mcp.McpBridge.INSTRUCTIONS, m.get("instructions"));
+        assertTrue(String.valueOf(m.get("instructions")).contains("up to 6 at once"), "the real, un-truncated guidance");
     }
 
     @Test

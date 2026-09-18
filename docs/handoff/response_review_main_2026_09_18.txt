@@ -1,0 +1,53 @@
+AUTHOR'S RESPONSE — review of merged main, 2026-09-18 (review_main_2026_09_18.txt, F1–F3)
+Date: 2026-09-18 · Author: Claude (the session that made all three defects) · Branch: fix/review-main-2026-09-18
+All three findings are right, and all three are mine. All three are FIXED on this branch, with the regression each
+review asked for. Nothing else changed.
+
+F1 (P2) — deduplicating an interleaved external label swapped the legend's colours.                          FIXED.
+  Remove-and-append reordered `externalSpecs` (the legend's order) while `LinkedHashMap.put` kept `externalLoaded`'s
+  slot (the plot's order), so with x, y, x the swatches named the other line. Now the later entry replaces the
+  earlier IN PLACE in all four structures — the spec list, the loaded map (a re-put keeps its slot), the echo list
+  and the notes (the replaced entry's note is replaced, not appended) — so legend, plot, echo and notes agree.
+  Last-successful-entry-wins stays the contract, as the review allowed.
+  Held by GraphExternalDuplicateLabelTest.anInterleavedDuplicate_keepsItsFirstSlot_soTheLegendOrderIsThePlotOrder:
+  x (2 rows), y, x (3 rows, a different file) → specs [x, y] with x = the later file; notes ["x: 3 rows", "y: 2 rows"];
+  echo [x, y]; and the PLOTTED series after extraction lands are [audit, x, y] — the legend's order.
+  SEEN RED: with the old remove-and-append put back the test fails on the notes' order ([y: 2 rows, x: 3 rows]) —
+  and it failed the same way on my first cut of THIS fix, which replaced the note by remove-then-append; the
+  assertion is doing its job.
+
+F2 (P2) — the held-out harness truncated the guidance it claimed to test.                                    FIXED.
+  `guidance_text()` cut the Java constant at the first `;` — inside the quoted "1 feeds 2; 2 never logged" example —
+  and unicode-unescaped UTF-8 bytes. Variant B was handed roughly the first third of the guidance. Two changes:
+  (a) the REST /manifest now carries `instructions`: `McpBridge.INSTRUCTIONS` verbatim, the one text every MCP
+      client is handed (ActionServer.handleManifest; McpBridge.INSTRUCTIONS made public). ActionServerTest asserts
+      the served value EQUALS the bridge constant and contains "up to 6 at once". So a REST client reads the same
+      words as an MCP client, and so does the harness.
+  (b) tools/heldout-client.py reads `manifest["instructions"]` (and asserts it carries "up to " and "REPLACES");
+      the source-scraping function is gone. The review's scope limits too: SENTENCES are the user guide's rows as
+      published (liveOrders above 1; the new menu question); every conversation starts from a FRESH fixture (close
+      all, reopen the demo log + graph, wait for the load); the clear sentence lights something first so a clear
+      means something.
+  The record (docs/handoff/completed/heldout_m64_2026-09-17.md) carries a correction at the top: the B column was
+  "partial guidance", not "exactly what an MCP client is handed". The RE-RUN under the corrected harness is appended
+  to that record (numbers in the commit message and below).
+
+F3 (P2) — the capture script could turn a failing screenshot verb into a successful exit.                   FIXED.
+  The shared `capture()` (capture-docs.py) recorded a verb `ok:false` and an unavailable native capture in the same
+  `_failed` list, and the new warning-only policy treated both as "no permission". Now `capture()` also records the
+  verb failure in `_failed_actions`; `Transcript.shot()` in capture-conversations aborts non-zero the moment a
+  screenshot VERB fails ("a scenario is broken, not a permission matter"); the final policy exits non-zero if any
+  `_failed_actions` remain, and only then treats the rest as the permission case (warning; `--require-images` → 3).
+  capture-docs.py's own policy is unchanged (it was already non-zero for every failure). The tools' unit tests pass.
+  NOT unit-tested end to end (the scripts are driven against a live jar); the two paths are separated by construction
+  and the injected-failure probe the review used would now hit `sys.exit` in `shot()`.
+
+WHAT I RAN (final tree, this branch)
+  See the commit message for the numbers: mvn clean test; mvn package; tools/capture-conversations.py under this
+  policy (warning + exit 0 on this machine, which has no Screen Recording grant; outputs restored); the held-out
+  re-run with the corrected harness against a fresh analyser; tools/test_tools.py; mkdocs --strict; the rule-1 sweep.
+
+NOT DONE
+  A reviewer's independent repeat of the three; the review-main reviewer asked for a nonzero exit test of the
+  action-failure path — the probe they wrote (AST-extracting capture()) is the shape; I did not turn it into a
+  committed test because the scripts are not on the unit-test path.
