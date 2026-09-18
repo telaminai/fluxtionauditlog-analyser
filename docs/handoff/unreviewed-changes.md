@@ -18,7 +18,7 @@ _Reviewed entries are retired to [`completed/unreviewed-changes-2026-09.md`](com
 
 ## 2026-09-17 — the ledger-review follow-ups, committed to main directly (one product change among test/tool changes)
 
-- ☐ **`9e1d0c7`** `fix: ledger-review follow-ups — one external series per label; the manifest guard reads argument lists; capture script gives two signals`
+- ☑ **reviewed 2026-09-18 — NOT READY:** external legend/plot order, held-out instructions and capture failure signals need fixes (F1-F3, [review](review_main_2026_09_18.txt)). **`9e1d0c7`** `fix: ledger-review follow-ups — one external series per label; the manifest guard reads argument lists; capture script gives two signals`
   **Why it is here:** answers to `completed/review_ledger_2026-09-17.txt` F1/F2 and tracker M46.11/M65.6, made by the
   reviewing session on main without a brief → report → review cycle.
   **What & why:** F2 — `graph` given the same `external` label twice in one call drew two identical legend rows; the
@@ -38,7 +38,7 @@ _Reviewed entries are retired to [`completed/unreviewed-changes-2026-09.md`](com
 
 ## 2026-09-18 — M64.10/.11 post-verdict fixes, made after READY WITH FOLLOW-UPS and merged with the branch
 
-- ☐ **`a4c38bf`** + **`66f2a32`** `fix(spotlight): review F1, F5, F8 …` and its test alignment
+- ☑ **reviewed 2026-09-18 — READY WITH FOLLOW-UPS:** F1/F5/F8 accepted on merged main; existing menu follow-ups remain M64.13 ([review](review_main_2026_09_18.txt)). **`a4c38bf`** + **`66f2a32`** `fix(spotlight): review F1, F5, F8 …` and its test alignment
   **Why it is here:** the branch was reviewed READY WITH FOLLOW-UPS at `c635882` with F1 required before release; the
   author then closed F1, F5 and F8 on the branch and merged (`completed/review_m64_10_11.txt`). Those three fixes
   reached main after the last independent look.

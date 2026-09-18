@@ -1,0 +1,131 @@
+INDEPENDENT REVIEW — merged main and the two pending ledger entries
+Date: 2026-09-18 · Reviewer: Codex · Reviewed HEAD: 0b33faf38983662d54b5be715bd1af82d214f17b
+Scope: changes after the independent M64 verdict at c635882, plus the two unchecked entries in
+unreviewed-changes.md (9e1d0c7, associated 9e3b6b7/deb227f, a4c38bf/66f2a32), and c884672's CI fix.
+Read onboarding/rules, ledger, original reports/reviews/responses, relevant specs and source at these commits.
+
+VERDICTS
+  M64.10/.11 post-verdict fixes ........ READY WITH FOLLOW-UPS. Old F1, F5, F8 closed; old F2/F3 remain closed.
+  CI report-name fix c884672 .......... READY.
+  Ledger follow-ups 9e1d0c7/deb227f ... NOT READY: new F1-F3 below; manifests and person-at-screen tests accepted.
+  Merged main for the next release ... NOT READY pending answers to F1-F3. Green gates do not cover these cases.
+No implementation fixes made. Ledger entries are marked reviewed, which does not mean all their changes passed.
+
+F1 — P2, required: deduplicating an interleaved external label swaps the legend's colour meanings.
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java:404-410
+  Related: ui/GraphPanel.java:222 (legend order) and :1059 (plot order).
+  Reproduction through the real ActionExecutor/GraphTabs with a loaded sample log and readable exchange CSV:
+    CSV a.csv: time,value / 1750000000000,1 / 1750000001000,2
+    E(label)={path:a.csv,label:<label>,time:"time",timeFormat:"epochMillis",zone:"UTC",value:"value"}
+    graph {newTab:true,name:"order",series:["bidMakerOrder.price"],external:[E("x"),E("y"),E("x")]}.
+  After asynchronous extraction lands:
+    externalSpecs / legend order = [y, x]
+    externalLoaded map order    = [x, y]
+    actual ChartPanel series    = [bidMakerOrder.price, x, y]
+    externalNotes               = [x: 2 rows, y: 2 rows, x: 2 rows]
+  A temporary regression requiring the legend/spec order to equal the plotted external order FAILS. The legend
+  assigns palette slots by externalSpecs; the chart receives externalLoaded.values(). Thus y's swatch labels x's
+  line and x's swatch labels y's line. The supplied unit cases only cover adjacent x,x and distinct x,y.
+  Cause: remove-and-append reorders the list, but LinkedHashMap.put on an existing key retains its earlier slot.
+  Fix: dedupe through one ordered structure and derive specs, loaded points, echo and notes from it, or explicitly
+  keep their ordering identical when replacing. Include x,y,x with different values/files in the regression;
+  also remove the stale notes for the replaced entry. Do not merely assert there is one row per label.
+  Last-successful-entry-wins remains an acceptable contract consistent with replace-by-label; refusal is not
+  required. applied.warnings is the existing warning channel and the MCP bridge forwards it in the JSON result.
+  The echo for the probe correctly reports one x, one y and the replacement warning; its correctness does not
+  compensate for the mismatched chart legend.
+
+F2 — P2, required for acceptance evidence: the held-out harness does not send the MCP guidance it claims to test.
+  tools/heldout-client.py:45-47 (guidance_text), :51-55 (instructions construction).
+  Independently executed ONLY the actual guidance_text function, extracted with Python AST, with REPO/re supplied;
+  no endpoint, credentials or LLM call. Also read the actual compiled SpotlightVocabulary.GUIDANCE with Java.
+  Observed harness output ends at "up to  at once, ". It omits the count, numbering example, replacement rule,
+  Light AFTER rule, and evidence/provenance guidance; its Unicode punctuation is corrupted.
+  The compiled guidance is 908 characters and includes "up to 6 at once", "REPLACES" and "Light AFTER".
+  Cause: source.index(';') finds the semicolon INSIDE the quoted "1 feeds 2; 2 never logged" example, not the Java
+  statement terminator. The regex drops that incomplete literal and everything following it; it also cannot
+  evaluate MAX_LIT, and UTF-8 bytes decoded with unicode_escape damage literal Unicode.
+  Fix: obtain instructions from the running MCP server's actual handshake/discovery response, or a shared runtime
+  export. Add equality coverage between harness input and the real bridge instructions. Correct/qualify the
+  existing held-out record's "exactly what an MCP client is handed" claim and repeat the comparison after fixing.
+  This does not prove the reported model actions never happened; it means they cannot establish the stated
+  full-guidance acceptance comparison.
+  Related scope limits read in the same harness: SENTENCES still uses the old spread threshold and has no new
+  menu question; each conversation is fresh but the analyser's filters/selection/charts persist across questions
+  and variants (only spotlights are cleared). A clear-highlights scenario begins after the prior iteration has
+  already cleared them. Refresh/isolate these fixtures before treating a new run as a controlled comparison of
+  today's documentation. These are follow-ups to the evidence design, not claims that I ran a paid model test.
+
+F3 — P2, required: the capture script can turn a failing screenshot verb into a successful release-check exit.
+  tools/capture-conversations.py:321-331; tools/capture-docs.py:381-386; Transcript.shot at :153-156.
+  The new policy assumes every cd._failed entry is a missing native capture. In fact capture() adds the same
+  entry when the screenshot ACTION returns ok:false, before any native capture is attempted.
+  Reproduction, no product code modified: extracted and executed the actual capture() and the actual final main
+  failure-policy block via Python AST; supplied act()={ok:false,error:"INJECTED screenshot endpoint failure"}.
+    capture() returns false and records example.png in _failed.
+    Default capture-conversations policy exits 0, warning "no native capture available" and claiming every
+    scenario completed. --require-images exits 3 with the same incorrect explanation.
+  Transcript.shot ignores the capture return value, so the default successful exit is reachable in a full run
+  even though the action failed. This regresses the old script's nonzero result for all capture failures.
+  Fix: distinguish screenshot/API failures from unavailable native capture. Action failures must always abort
+  nonzero; only the native-permission/capture case may be warning-only unless --require-images. Test both paths,
+  and ensure the diagnostic names the actual cause. The requested two-signal policy itself is reasonable.
+
+POST-VERDICT M64 CHANGES — independently accepted
+  Old F1: keyword-plus-colon parsing fixes Series A / Notes on spread without weakening the colon restriction.
+  graph:note parses GRAPH, graph="note"; graph:note:2 remains the bare selected-chart note. The asymmetry and
+  inaccessible parts of charts named exactly note/series are now explicit in D-SP8. Acceptable declared grammar.
+  Repeated mutation: startsWith("note:") -> startsWith("note"): SpotlightTargetTest 82 cases, 2 failures and
+  1 error; original bytes restored. Cases include the added prefix names and both zero-note refusals.
+  Old F5: oneBased runs on named and bare note forms. Zero now fails preflight before a reveal; other numeric
+  validation remains in sub(). alsoOn says "may be on" for notes and keeps the exact chart exclusion added for
+  F2. The real-frame pinned-window test passes, names Spread and excludes Pinned. This is an honest candidate
+  hint, not a promise that the target is currently visible there. Series hints remain "is on".
+  Old F8: D-SP8 and the report now distinguish a selected-chart refusal from a named request that reveals before
+  refusing. The documented behaviour agrees with the earlier independent reproduction. No rollback promised.
+  c635882..66f2a32 changes the parser, alsoOn, two tests, spec, report AND tracker (seven files); the ledger's
+  predicted list omitted tracker, but that extra change only records dispositions. No unrelated product change.
+  The intermediate a4c38bf display failure was corrected by 66f2a32; final gates are green. Intermediate commit
+  bisectability is not claimed. Old menu F4/F6/F7 remain tracked by M64.13, along with a permanent menu Escape test.
+
+OTHER LEDGER ITEMS / CI
+  Manifest guard: accepted as closing the two reported holes. Declared parameters now must occur in brace groups;
+  the expanded graph list names all top-level parameters and the following prose explains complex ones. It is
+  long, but usable as a compact argument list followed by details. This remains a lexical inventory, not a full
+  schema-language validator. Repeated mutations deleting graph.to and goto.reveal from their argument lists:
+  InProcessManifestNamesEveryVerbTest 5 cases, exactly 1 failure for each missing parameter. Restored both.
+  PersonAtTheScreenFrameTest: read and ran all 3 display cases. The focused-combo Escape case tests at most two
+  presses, not exactly one; menu listener and restored-log attribution cases pass. These are genuine synthetic
+  UI checks, not physical user observations. The file chooser remains outside their coverage.
+  M65.6 command-line-opened log: independently launched the built jar with the demo log as a command-line
+  argument; context reports the loaded log; graph with quotePublisher.spread succeeds and resolves that key.
+  No reproduction of the reported empty-chart path; no fix claimed.
+  CI c884672: the inserted dot anchors each glob to the full class name rather than its suffix. Exercised the
+  exact new filename pattern for all seven listed frame suites against local XML: each finds ONE file with
+  tests>0 and skipped=0, including SpotlightFrameTest and NamedGraphAndMenuSpotlightFrameTest separately.
+  Queried GitHub: CI for reviewed 0b33faf is SUCCESS:
+    https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35390088137
+  That confirms the fixed workflow passed remotely, not that its tests cover F1-F3 above.
+
+VERIFIED BY RUNNING
+  Pulled main by fast-forward to 0b33faf. Repo pull.rebase rejected unstaged IDE files even with --ff-only;
+  used git -c pull.rebase=false pull --ff-only instead, preserving them without stashing or rewriting history.
+  mvn clean test: 1654 tests, 0 failures, 0 errors, 31 display skips.
+  mvn test with Spotlight*, AsyncOpen*, NamedGraphAndMenuSpotlightFrameTest, PersonAtTheScreenFrameTest,
+    PairingDuringLoadFrameTest, WestColumnStartsCollapsedFrameTest and MenuScreenshotFrameTest, both headless
+    properties false: 190 tests, 0 failures, 0 errors, 0 skipped.
+  Three mutations above, restored byte-for-byte; independent interleaved-dedupe regression failed as recorded.
+  Removed temporary probe source and ran mvn clean package: 1654/0/0/31, successful jar build. The clean removed
+  the temporary compiled test too. Restored generated dependency-reduced-pom.xml.
+  Built-jar spotlight verifier: 94/94. Conversation harness: normal run succeeds with native captures; generated
+  transcript/images restored afterward. Negative failure-policy probe is separate and recorded under F3.
+  tools/test_tools.py: pass. mkdocs build --strict: pass. Personal git email verified. Exact CLAUDE.md rule-1 sweep
+  on final staged review/ledger: no output. Implementation, skills and existing IDE changes preserved.
+
+READ ONLY / LIMITS
+  Reviewed heldout-client.py statically plus the offline instruction-extraction probe; did not load credentials,
+  send data to an LLM service or repeat the paid held-out run. The historical observation record is not my test.
+  Source traces establish the legend/plot palette mismatch; the new regression inspected the actual extracted
+  chart series, not a screenshot. No physical mouse or native-shadow aesthetic checks repeated in this turn.
+  No implementation fixes, release, rebase, amend or force-push. This review and ledger dispositions are the only
+  authored changes. Required next actions: answer F1-F3; existing menu follow-ups remain non-blocking.
