@@ -273,7 +273,8 @@ class NamedGraphAndMenuSpotlightFrameTest {
                 Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "graph:Pinned:note:1"));
                 assertEquals(false, r.get("ok"), () -> "a note outside the pinned window is not on the plot: " + r);
                 String why = String.valueOf(r.get("error"));
-                String hint = why.contains("It is on") ? why.substring(why.indexOf("It is on")) : "";
+                // review F5: a note's hint says "may be on" (a chart numbers only the notes in its window)
+                String hint = why.contains(" on [") ? why.substring(why.indexOf(" on [")) : "";
                 assertFalse(hint.contains("Pinned"), "the hint may not name the chart the call was about: " + why);
                 assertTrue(hint.contains("Spread"), "but it does name the chart that shows the note: " + why);
             });
