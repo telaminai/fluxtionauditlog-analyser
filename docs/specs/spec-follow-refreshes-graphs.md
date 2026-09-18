@@ -1,12 +1,12 @@
 # Spec — follow refreshes open graphs
 
 **Status:** PROPOSED 2026-09-17 · **REVISED twice the same day after review.** Pass 1
-([review](../handoff/review_spec_m65_2026-09-17.md), CONDITIONAL): diagnosis and fix accepted; C1/C2 and six findings
+([review](../handoff/completed/review_spec_m65_2026-09-17.md), CONDITIONAL): diagnosis and fix accepted; C1/C2 and six findings
 folded in, plus C3 the author raised from the reviewer's *"did not check"* list. Pass 2
-([review](../handoff/review_spec_m65_pass2_2026-09-17.md), CONDITIONAL): every new claim verified; C4 (the slider echo
+([review](../handoff/completed/review_spec_m65_pass2_2026-09-17.md), CONDITIONAL): every new claim verified; C4 (the slider echo
 already resets an unpinned view on every growing tick, so D-F7's hold was defeated before extraction ran) and C5 (one
 tail rule, not two) plus four follow-ups, all folded in below. Pass 3
-([review](../handoff/review_spec_m65_pass3_2026-09-17.md), **READY WITH FOLLOW-UPS — no further spec review**):
+([review](../handoff/completed/review_spec_m65_pass3_2026-09-17.md), **READY WITH FOLLOW-UPS — no further spec review**):
 four wording follow-ups folded in below (F1 the capture order and the view's surface, F2 the empty-before case, F3
 programmatic ranges under D-F8, F4 where the seam lives). **IMPLEMENTED 2026-09-17** on
 `feat/m65-follow-refreshes-graphs`, reviewed twice more against the code — impl pass 4

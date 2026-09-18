@@ -392,9 +392,9 @@ for the display test and skill edit.
 ## M65 · Follow refreshes open graphs — ◧ SHIPPED in 1.14.0 (archived); .5/.6 open
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
-[review_spec_m65_2026-09-17.md](../handoff/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
+[review_spec_m65_2026-09-17.md](../handoff/completed/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
 C1/C2 required; folded in, plus C3 from its "did not check" list); pass 2
-[review_spec_m65_pass2_2026-09-17.md](../handoff/review_spec_m65_pass2_2026-09-17.md) (CONDITIONAL — every new code
+[review_spec_m65_pass2_2026-09-17.md](../handoff/completed/review_spec_m65_pass2_2026-09-17.md) (CONDITIONAL — every new code
 claim verified; C4 the slider echo already re-windows an unpinned chart on each growing tick, so D-F7's hold needs a
 `lastFrom`/`lastTo` guard in `onFilterChanged`; C5 D-F7's "width unchanged" slide contradicts acceptance 1's "window
 extended" — one extend/slide/hold rule; F1 `reason` merges DEFINITION-wins across debounce and `dirty`). Owner question 2026-09-17: *"what is the lowest
@@ -413,7 +413,7 @@ re-reads and re-frames the whole file per tick (D-F5); one extraction in flight,
 view moves only to reveal a point that would otherwise be hidden — hold if already visible, else extend if it covered the whole range, else slide if pressed to the live edge, else hold; a definition change
 still resets, and coalesced requests merge DEFINITION-wins (D-F7); the slider echo is inert for an unchanged window
 via `lastFrom`/`lastTo` in `onFilterChanged`, so the hook is the only mover of an unpinned view on a data tick
-(D-F8). Pass 3 [review_spec_m65_pass3_2026-09-17.md](../handoff/review_spec_m65_pass3_2026-09-17.md):
+(D-F8). Pass 3 [review_spec_m65_pass3_2026-09-17.md](../handoff/completed/review_spec_m65_pass3_2026-09-17.md):
 READY WITH FOLLOW-UPS — F1 (required, implementer applies) the read view reads `size` + arrays under the index lock and
 `file` *after* it, and serves `record(row)` itself; F2 empty-before lands as reset; F3 D-F8 also silences identical
 programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argument shape. **Known stale under follow, out of scope here: reports and coverage.** About two days.
@@ -1031,7 +1031,7 @@ client — `tools/heldout-client.py`, local only, the owner's key — and the cl
 with and without the guidance paragraph, and the tour lit every beat before it spoke
 ([`heldout_m64_2026-09-17.md`](../handoff/completed/heldout_m64_2026-09-17.md); two docs follow-ups → M64.12). **Still a
 person's:** *File ▸ Close log* during a slow FIRST load as a physical click (its listener is held by
-`AsyncOpenInterleavingFrameTest`), and *AI ▸ Place mode-selector record…* (a file chooser). **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`.mjs` in the playground repo; until it runs, a generated starter teaches the
+`AsyncOpenInterleavingFrameTest`), and *AI ▸ Place mode-selector record…* (a file chooser). **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`. **Review of main 2026-09-18** (Codex; F1 a duplicated external label reordered the legend against the plot, F2 the held-out harness truncated the guidance it claimed to send, F3 a failed screenshot verb could exit as a permission warning): all fixed on `fix/review-main-2026-09-18`, re-reviewed READY WITH FOLLOW-UPS, merged by fast-forward the same day; the held-out harness now runs a fresh analyser per conversation with the baseline asserted (`--check-fixture`, no key) and `/manifest` serves the bridge instructions verbatim (`docs/handoff/completed/review_main_2026_09_18.txt`, `review_fix_review_main_2026_09_18.txt`).mjs` in the playground repo; until it runs, a generated starter teaches the
 `coverage` target this analyser refuses). Still open after that, not gating: the valid `add` + `detail:node`
 end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
 M64.10, M46.11.
