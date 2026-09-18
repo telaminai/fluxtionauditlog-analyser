@@ -1,0 +1,134 @@
+INDEPENDENT RE-REVIEW — fix/review-main-2026-09-18
+Date: 2026-09-18 · Reviewer: Codex · Reviewed HEAD: 770546fab33a80c852f09218175c659e20459698
+Brief: brief_review_fix_review_main_2026_09_18.txt
+Response: response_review_main_2026_09_18.txt · Original: review_main_2026_09_18.txt
+
+VERDICT: NOT READY.
+The external legend/plot ordering defect is fixed for every requested sequence, and the capture failure policy is
+fixed. The REST and MCP instructions really are identical. However, the promised fresh comparison fixture still
+carries charts AND their notes from earlier conversations (F4, required). The appended re-run is useful observed
+behaviour, but does not establish the claimed isolated comparison. Two smaller follow-ups are F5 and F6.
+No implementation fixes made; no LLM key loaded or spent. Owner merges only after acceptance.
+
+ORIGINAL FINDINGS — answers judged
+
+F1 — CLOSED WITH FOLLOW-UP F5. The colour mismatch is fixed. Independently exercised the real ActionExecutor,
+  GraphTabs and asynchronously populated ChartPanel with different files/values/row counts:
+    input                 spec/map/plot/echo label order       later row counts       notes
+    x(2), y(2), x(3)       x, y                               3, 2                   x: 3 rows / y: 2 rows
+    x(2), y(2), x(3), y(4) x, y                               3, 4                   x: 3 rows / y: 4 rows
+    y(2), x(2), x(3)       y, x                               2, 3                   y: 2 rows / x: 3 rows
+    x(2), y(2), bad x      x, y                               2, 2                   x: 2 rows / y: 2 rows
+  The last case used an existing CSV with header wrong,columns so it reaches the loader failure path. The first x
+  spec and its actual plotted rows survive; applied.warnings names "external 'x' failed to load" and the missing
+  time column. There is no false replacement warning and no partial mutation. Specs determine legend order;
+  independently read externalLoaded's order and inspected actual plotted series and row counts after extraction.
+  The ordinary last-successful-entry-wins contract is consistent and acceptable.
+  SEEN RED: repeated the response's documented first-cut note-order mistake: replace the matched note by
+  remove-then-append. GraphExternalDuplicateLabelTest: 3 tests, 1 failure, expected [x: 3 rows, y: 2 rows], actual
+  [y: 2 rows, x: 3 rows]. Restored exact source bytes. This was the note-only mutation, not a claim to have restored
+  every line of the pre-fix implementation. A separate label-prefix case exposes F5 below.
+
+F2 — NOT CLOSED in full. Instruction delivery CLOSED; fixture/comparison claim NOT CLOSED (F4/F6).
+  Independently compared the BUILT JAR over all three actual wire entrances, plus its compiled public constant:
+    GET /manifest.instructions
+    MCP initialize.result.instructions (legacy handshake)
+    MCP server/discover.result.instructions
+    McpBridge.INSTRUCTIONS printed by Java
+  All four are byte-identical after UTF-8 encoding: 1257 characters, 1267 bytes. They include "up to 6 at once",
+  "REPLACES" and "Light AFTER", with intact Unicode. ActionServerTest also passes its equality assertion.
+  The harness reads manifest["instructions"] directly. NO_GUIDANCE removes everything from POINT BEFORE onward;
+  the remaining 342 characters are exactly the bridge intro, ending "(Settings > Assistant). ", no spotlight
+  guidance left. The seven hardcoded questions now match the seven published guide rows.
+  Read that fresh_fixture is called before every sentence in both variants AND before the tour; it is called in
+  the right places, but does not reset the state it claims (live reproduction F4).
+  The clear sentence now explicitly lights status first. Repeated that preparation/clear over REST: context showed
+  the light before, none after. This is a meaningful clear fixture, not an LLM run or proof of its reported answer.
+
+F3 — CLOSED. Repeated both paths using the actual functions/policy extracted with AST; no copied reimplementation:
+  - Inject screenshot act()={ok:false,error:"injected API failure"}. capture() records _failed_actions; shot()
+    raises SystemExit naming screenshot and ok:false before appending an image reference. In both default and
+    --require-images modes the exit is nonzero and no permission warning is emitted.
+  - Independently invoke the actual final two policy blocks with that nonempty _failed_actions list: the FIRST
+    guard exits nonzero naming the failed verb, so the warning/success branch cannot be reached. Normally shot()
+    already aborts before main reaches PAGE.write_text or these guards.
+  - Inject screenshot ok:true and windowBounds, but make native_capture produce no file; retain an existing asset.
+    _failed_actions stays empty, the asset is preserved, shot() completes, default final exit is 0 with the native
+    capture warning, --require-images exits 3. Thus the failure categories are now distinct.
+  Read the full capture-docs.py diff: only the new list and append changed; its own final failure policy is unchanged.
+  Normal live conversation capture also passed on this machine, including all five native images, exit 0.
+
+NEW FINDINGS
+
+F4 — P2, required: fresh_fixture does not remove charts or notes created by prior conversations.
+  tools/heldout-client.py:82-90 (called at :149 and :167).
+  Reproduced on the built jar under an isolated home, invoking the ACTUAL fresh_fixture function extracted by AST
+  and bound to real REST calls; no call to llm(), no key access:
+    fresh_fixture()
+    graph {newTab:true,name:"carry-over",series:["quotePublisher.spread"],
+           notes:[{recordIndex:15,text:"left by previous conversation"}]}
+    filter {text:"nothing-matches-review"}; goto {recordIndex:15}; spotlight {target:"status"}
+    fresh_fixture()
+    context -> filter={}, selection=[], no spotlight, BUT graphs=["Graph 1","carry-over"]
+    spotlight {target:"graph:carry-over:note:1"} -> ok:true, note is still there and lights.
+  The first independent probe expecting no carry-over FAILED; a second run explicitly confirmed that the old note
+  is measurable and can be lit. This is not only a stale graph-name list.
+  Cause: open {close:"all"} closes the audit log and topology, retaining chart/profile state. MainFrame.closeLog
+  unbinds the charts; opening the log restores savedGraphs. That is existing application behaviour, not a defect
+  to fix in the product for this harness. The comparison reuses one process across questions and across B then A,
+  so a prior answer's charts and notes can influence a later supposedly fresh answer and the tour.
+  FIX: give every case/variant (and tour) an isolated app/configuration or genuinely restore a defined baseline,
+  including chart specs and notes. Assert the baseline through observable state before calling the model, and
+  fail if any setup action fails. Retain this no-LLM regression. Qualify the current record as using incomplete
+  reset; repeat any claimed isolated comparison only after fixture isolation is proven, with owner authorisation
+  for the key. This re-review did not spend it.
+
+F5 — P3, follow-up: replacing x overwrites the internal note for distinct label "x: y".
+  src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java:413-414.
+  Reproduction: same valid CSV inputs as F1, external labels [x(2 rows), "x: y"(2 rows), x(3 rows)].
+    expected externalNotes = ["x: 3 rows", "x: y: 2 rows"]
+    actual externalNotes   = ["x: 3 rows", "x: 3 rows"]
+  Independently reproduced with a temporary regression: 1 failing assertion. startsWith(label + ": ") treats the
+  note's rendered text as its identity, so both notes match x. The label accepts colons; no validation forbids it.
+  FIX: use the already-found exact-label slot (earlier), or key note data by exact label before rendering it.
+  Include prefix-related labels in the regression. Specs, map, plotted values and echo remain correctly keyed;
+  source search found no current production caller of externalNotes(), so this is an internal consistency
+  follow-up, not another demonstrated wrong-colour defect or a release blocker by itself.
+
+F6 — P3, follow-up: the appended re-run's summary is stronger than the evidence it includes.
+  docs/handoff/completed/heldout_m64_2026-09-17.md:68 and :76-81.
+  READ, not re-run: the table reports four successful pointing requests (1-4) plus a successful CLEAR (7). That is
+  five successful requested actions, not five things lit. Its own quoted breach run (5) ends [HARNESS: turn cap
+  reached], so "the other two ... the client asked, which is right" is not established for both; that case should
+  be recorded as incomplete/turn-limited. The quoted A menu answer says it lacks template knowledge, whereas the
+  table says it described the menu. Preserve the observed distinction without substituting a better answer.
+  The record supports the narrower observation that, in the reported run, B pointed at the menu where A did not,
+  both variants grouped the walk into one call, B lit the other named targets, and clearing worked. It does NOT
+  establish a controlled fresh-state comparison (F4), universal completion, or that M64.12's guidance clause
+  caused the grouped walk: the no-guidance variant grouped it too, and this is a single unreplicated comparison.
+  FIX: separate pointing/clearing/clarification/turn-cap outcomes, align the table with the cited excerpts, qualify
+  the reset limitation, and describe the clause's result as consistent with its intent rather than established
+  causation. The original correction of the SOURCE-SCRAPING error is appropriate and should remain.
+
+GATES I RAN
+  Fetched and switched to the fix branch; local and remote HEAD both 770546fa, one commit above main. Personal
+  git email verified. Existing .idea/encodings.xml and .idea/vcs.xml modifications preserved throughout.
+  mvn clean test: 1655 tests, 0 failures, 0 errors, 31 display skips.
+  Required external sequence probes: all four pass; additional prefix-label note probe fails as F5 records.
+  Note-order mutation: 3 tests, 1 expected failure; exact original bytes restored.
+  mvn clean package (includes requested package gate): 1655/0/0/31, success. Clean also removed temporary compiled
+  probe classes. Restored dependency-reduced-pom.xml; no implementation diff remains.
+  tools/test_tools.py: pass. tools/capture-conversations.py against that jar: seven transcript sections and five
+  native PNG captures completed, exit 0; all generated transcript/image bytes restored after the run.
+  mkdocs build --strict: pass. Exact CLAUDE.md rule-1 sweep on staged review: no output.
+  No full display suite was requested or repeated in this turn; the real-jar REST/MCP and fixture probes ran the
+  actual app on the display. No screenshot/fixture artifacts committed.
+
+READ / LIMITS / HANDOFF
+  Read original review, brief, response, commit, shared bridge/server constant paths, capture policies, harness
+  control flow and the corrected historical record. Paid-client results are the author's recorded observations;
+  they were NOT independently re-executed. No credential file opened, no owner key spent, no external LLM call.
+  F1 and F3's original required reproductions are closed. F2's instruction transport is closed, but the fresh
+  fixture claim needs an answer to F4. F5/F6 remain explicitly non-blocking follow-ups with the limits above.
+  Only this review file is authored. No findings fixed; no rebase, amend, force-push or merge. Owner accepts/merges
+  after the remaining required answer; this branch is NOT READY at the reviewed commit.
