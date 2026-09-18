@@ -1,3 +1,7 @@
+CURRENT INDEPENDENT VERDICT (Codex, 2026-09-18, HEAD 545e99c): READY WITH FOLLOW-UPS.
+F2/F3 fixes verified; F1 remains before release; F4-F7 and new documentation finding F8 remain open.
+The original review is preserved below; the independent re-review and evidence follow it.
+
 INDEPENDENT REVIEW — branch feat/m64-10-11-named-graph-and-menu-targets (M64.10, M64.11, M64.12)
 Date: 2026-09-18 · Reviewer: Claude (a different session from the author's) · Reviewed HEAD: ef10e663 (one commit
 above main deb227f8) · Brief: brief_review_m64_10_11.txt · Report: report_m64_10_11.txt
@@ -164,3 +168,119 @@ HANDOFF
   Author: answer F2 and F3 with fixes and the four regression cases named above; F1 and F4 may ride along or
   follow; re-run the display command, the jar script and mkdocs; then it is READY WITH FOLLOW-UPS and the owner
   merges (local rebase, fast-forward).
+
+================================================================================
+INDEPENDENT RE-REVIEW — Codex, 2026-09-18
+================================================================================
+Reviewed HEAD: 545e99c0e252476bd6093ca0f058e3b7538257fb.
+Read the brief, original report/review, response, ef10e663 and 545e99c source changes, and D-SP8/D-SP9/M64.12.
+The original review above is preserved as history. This section is the current independent disposition of the
+fixes and the branch. The reviewing session that wrote the original review also made the fixes; I made none.
+
+VERDICT: READY WITH FOLLOW-UPS.
+F2 and F3 are CLOSED, with all three stated mutations independently seen red. The previous review's required
+merge bar is met. F1 remains required BEFORE RELEASE; F4-F7 remain follow-ups, plus the documentation correction
+F8 below. This is not a claim that every chart name works, or that hand-opened heavyweight menus can be lit.
+Owner acceptance and local rebase/fast-forward remain the merge steps; no merge or rebase performed here.
+
+PER FINDING
+
+F1 — OPEN, P3, required before release. Independently reproduced on the current parser:
+  graph:Series A and graph:Notes on spread:note:2 are UNKNOWN; graph:My notes:note:2 parses as intended.
+  graph:note:2:series:x is refused as a non-number. SpotlightTarget.java:123-124 still treats every note/series
+  PREFIX as a bare keyword. The D-SP8 statement that only exact keyword names and colon-containing names are
+  lost remains false. Correct keyword-boundary parsing and its tests before release. Refusing a colon without an
+  escape syntax is an acceptable declared grammar restriction; the extra prefix restriction is not declared.
+
+F2 — CLOSED. MainFrame.java:1854-1867 selects the requested chart, validates layout and synchronously paints
+  before bounds are read for all three graph families. MainFrame.java:2020-2021 excludes the chart being asked
+  about from the hint. Ran the added frame regression: first-call named note succeeds; nonexistent note refuses
+  without a hint; the pinned-window refusal suggests Spread and does not suggest Pinned.
+  Independently repeated BOTH mutations, separately, against the branch's four NamedGraphAndMenu tests:
+    - Remove chart.paintImmediately: 4 run, 1 failure, 0 errors/skips; FIRST call for Spread:note:1 refused.
+    - Restore old hint exclusion: 4 run, 1 failure, 0 errors/skips; pinned refusal says It is on [Spread, Pinned].
+  Restored exact original bytes after each. An additional independent real-frame probe first lit tab:topology,
+  then added graph:Spread:note:1 while that overlay was still up: first call succeeded with both targets lit.
+  The paint fix therefore also works when an overlay already exists and the Graph side tab must be revealed.
+
+F3 — CLOSED. MainFrame.java:2052-2069 now parses each standing target and removes only MENU/MENU_ITEM entries
+  whose menuName equals the closing menu. lit() returns a copy, so removal during that loop is safe. The delayed
+  callback checks whether its popup has reopened before acting. Ran both replace and add cases: after queued
+  listeners drain, the new AI target stays; the status target survives add; departed File target is in wentOut.
+  Independently restored the ORIGINAL any-menu/clear-all listener body: 4 run, 1 failure, 0 errors/skips;
+  expected [menu:AI:Posture], got []. Restored exact original bytes. The response correctly distinguishes this
+  faithful mutation from the weaker remove-one/clear-all mutation which could not exercise the replace defect.
+
+F4 — OPEN, P3. Reproduced on macOS with FlatLaf: open never-lit Records through MenuSelectionManager, then ask
+  for menu:Records. It refuses claiming the popup does not fit and recommending a larger window, despite the
+  1300x850 frame. The showing-popup branch still bypasses the lightweight request. Existing suggested fix stands.
+
+F5 — OPEN, P4. Reproduced graph:note:0: refusal offers [Graph 1, Orders], even though neither has a note to light.
+  Read noteBounds' 1-based, visible-column numbering against noteCount's total count; the mismatch remains.
+  The current pinned-window regression is a useful witness for F2's hint exclusion, not a fix for this mismatch.
+
+F6 — OPEN, P4. Independently inspected the File popup after clearing: Popup.dropShadowPainted remains false.
+  The source also never restores Popup.forceHeavyWeight or the prior lightweight setting. Cosmetic follow-up;
+  restore prior values when the spotlight-owned popup closes if the intended trade is only WHILE it is lit.
+
+F7 — OPEN, P4. Reproduced menu:File:New project from template... refusal. The returned item inventory supplies
+  the actual Unicode-ellipsis spelling. This is discoverable and non-blocking; optional suffix normalisation.
+
+F8 — P3, documentation follow-up: D-SP8 overstates refusal preserving the selected chart.
+  docs/specs/spec-spotlight.md:268; docs/handoff/report_m64_10_11.txt, M64.10 paragraph.
+  Implementation reference: src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java:1857.
+  REPRODUCTION, current real frame: create Spread with note 1 and Orders; select Orders; request
+  spotlight {target:"graph:Spread:note:999"}. Reply is ok:false, "... is not on graph 'Spread'", but selected chart
+  is now Spread. No retry is needed to observe the selection change. The phrase "a refused call selects nothing"
+  is not a general guarantee. The report's test covered a bare selected-chart refusal, which cannot prove that.
+  FIX: narrow the spec/report to that tested case and state that a well-formed named request may select the named
+  chart before discovering its part is unavailable, consistent with D-SP6's reveal-before-measure rule. If the
+  owner instead wants every refusal to preserve selection, that requires transactional reveal/restore and tests.
+  Recommendation here is the documentation correction, not a blocker for F2/F3 or a new rollback policy.
+
+WHAT I VERIFIED, INDEPENDENTLY RAN
+  - git config user.email is the personal address. Fetched origin; review branch was already up to date at
+    545e99c. main remains deb227f8. Owner's pre-existing .idea/encodings.xml and .idea/vcs.xml changes preserved.
+  - mvn clean test: 1648 run, 0 failures, 0 errors, 31 display skips. Clean removes stale inlined constants.
+  - Brief's exact display selection:
+      mvn test -Dtest='Spotlight*Test,AsyncOpen*Test,NamedGraphAndMenuSpotlightFrameTest,PersonAtTheScreenFrameTest'
+        -Djava.awt.headless=false -DargLine=-Djava.awt.headless=false
+    Result: 175 run, 0 failures, 0 errors, 0 skipped, on macOS with a real display. PersonAtTheScreen's focused
+    combo Escape case ran. NamedGraphAndMenu installs FlatLaf and restores the previous LAF, as the report says.
+  - All three response mutations above, then all source bytes restored. Ran mvn clean package afterward:
+    1648 run, 0 failures, 0 errors, 31 skips, package successful. This second clean also removed the compiled
+    temporary probe so its test count cannot contaminate the branch's results. Restored dependency-reduced-pom.xml.
+  - tools/verify-m64-spotlight.py on that restored-source jar: 94/94 checks passed, exit 0. The demo claim holds:
+    riskMonitor.liveOrders has one crossing above 1, record 15, value 2, over 160 points. This verifies the example's
+    data/action path, not a fresh client's interpretation of the new prose.
+  - mkdocs build --strict passed. Repeated the exact CLAUDE.md rule-1 sweep with its stated exemptions on the
+    final review artifact: no output. Only this review file is committed.
+  - Independent temporary real-frame probe, removed afterward: parser cases/F4-F7 and F8 above; a mixed
+    [tab:topology, menu:File:Close log] set lights both, with the File popup open; clear closes it.
+  - Press-through on the real File Follow checkbox AND a real top-level Theme radio item: posted a mouse press
+    at each lit target's bounds; each selected/toggled, popup closed and no spotlight remained. Theme switching
+    exercises the actual menu listener, not a mock radio button. These were synthetic events, not human clicks.
+  - With frame focus verified, ONE posted Escape over a lit File item closed the popup and cleared the overlay.
+    This is a new independent witness for the brief's menu-specific Escape question, not an xvfb run or permanent
+    regression test. Recommend retaining this case in the display suite as a follow-up.
+  - Inspected the temporary screenshot of the mixed menu/tab set: the menu is composited, Close log and Topology
+    are separately cut out/numbered, remaining content is dimmed. No screenshot or generated transcript committed.
+
+WHAT I READ / LIMITS
+  - Read CI configuration: NamedGraphAndMenu is in both ui-frame's test list and its fail-if-skipped guard. That
+    class installs FlatLightLaf when needed, so CI's default Metal does not determine its popup behaviour. CI is
+    not triggered by this branch; I did not run Linux/xvfb and do not claim its result.
+  - Read screenshot popup filtering: holdsAMenu recursively requires JPopupMenu. Tooltips (JToolTip) are excluded;
+    the broad "every popup" wording in the brief is not what the code does. Did not create a live tooltip probe.
+  - Read vocabulary/parser equivalence, shared guidance addition, user-guide examples, CHANGELOG and tracker.
+    Changes describe the intended feature; follow-ups above qualify its limits. Tracker still says awaiting review;
+    author should update its review disposition on acceptance. No spec, tracker, skill or implementation edited.
+  - Did not repeat the original colon-rule/FlatLaf-property mutations; repeated all three current fix mutations
+    instead. Did not rerun hosted compilation, full capture-docs or the held-out context-free client experiment.
+  - Still human-only: a physical mouse choosing a lit item and visual comparison of shadowless versus ordinary
+    menus. The temporary screenshot confirms compositing, not the appearance of native shadows side by side.
+
+HANDOFF
+  F2 and F3 accepted at 545e99c. READY WITH FOLLOW-UPS for owner acceptance/merge; F1 before release, F4-F8 retained
+  explicitly. Original review preserved above. No fixes, rebase, amend, merge or force-push. Only this review file
+  changed by this review; all temporary mutations/probe source and generated-pom noise removed.
