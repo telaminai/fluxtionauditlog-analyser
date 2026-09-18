@@ -261,11 +261,16 @@ have rotted teaches the opposite of rule 1. The playground re-vendor is the owne
 
 **D-SP8 — a graph target may name its chart.** `graph[:<name>]`, `graph[:<name>]:note:<n>`,
 `graph[:<name>]:series:<label>`. The bare forms keep meaning the SELECTED chart. A named form selects that chart
-first — a reveal, like a tab — then measures. A chart named `note` or `series`, or one whose name contains `:`, is
-unreachable by name (the parser refuses the colon and says so); nothing else is lost. When the selected chart lacks
+first — a reveal, like a tab — then measures. The bare forms are the keyword WITH its colon (`note:2`, `series:x`), so
+a chart whose name merely starts with the word ("Series A", "Notes on spread") is a chart (review F1); a chart named
+exactly `note` or `series` is reachable as its plot (`graph:note`) but not its parts; a name containing `:` is
+unreachable, since `:` is the part separator (the parser says so). Notes are numbered from 1 (`graph:note:0` is
+refused), and because a chart numbers only the notes in its window, the hint for a note says "may be on" (review F5). When the selected chart lacks
 the target, the refusal names the selected chart AND the charts that have it, in the form to send next
 (`… is not on the selected graph ('Orders'). It is on [Spread] — name the chart: graph:Spread:series:…`). An
-unknown name is refused naming the open charts; a refused call selects nothing. `SpotlightTarget.graph()` carries
+unknown name is refused naming the open charts. A refusal on the SELECTED chart selects nothing; a well-formed NAMED
+request may select the named chart before finding its part unavailable — the reveal-before-measure rule of D-SP6
+(review F8). `SpotlightTarget.graph()` carries
 the name; `MainFrame.graphFor / alsoOn / noSuchGraph` do the rest. Held by `SpotlightTargetTest` (parse) and
 `NamedGraphAndMenuSpotlightFrameTest` (a real frame, two charts).
 

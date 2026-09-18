@@ -56,6 +56,7 @@ class SpotlightTargetTest {
             "topology", "topology:node:priceListener", "topology:verdict",
             "graph", "graph:note:2", "graph:series:quotePublisher.spread",
             "graph:Spread", "graph:Spread:note:2", "graph:Spread:series:quotePublisher.spread",
+            "graph:Series A", "graph:Notes on spread:note:2", "graph:Series A:series:x", "graph:note",
             "project", "project:log", "project:graph", "project:processors", "project:roots",
             "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow",
             "menu:File", "menu:File:Open log…", "status"})
@@ -96,7 +97,8 @@ class SpotlightTargetTest {
     @ValueSource(strings = {"topolgy", "tab:topolgy", "tab", "tab:", "records:row", "records:row:abc", "records:row:-1",
             "records:col:3", "topology:node:", "graph:note:two", "graph:legend:x", "project:reports", "toolbar:next",
             "status:line", "coverage", "coverage:panel", "topology:verdict:line", "topology:verdicts", "",
-            "graph:", "graph:a:b:series:x", "graph:Spread:note:", "graph:Spread:series:", "menu", "menu:", "menu::Open log…"})
+            "graph:", "graph:a:b:series:x", "graph:Spread:note:", "graph:Spread:series:", "graph:note:0", "graph:Spread:note:0",
+            "menu", "menu:", "menu::Open log…"})
     void aMisspeltOrMalformedTargetIsUNKNOWN_namesTheVocabulary_andNeverTouchesTheSurface(String name) {
         FakeSurface surface = new FakeSurface();
 
@@ -156,6 +158,14 @@ class SpotlightTargetTest {
         assertEquals("Spread", plot.graph(), "the chart's plot itself");
         assertTrue(SpotlightTarget.parse("graph:a:b:series:x").error().contains("cannot contain ':'"),
                 "a chart name with a colon is unreachable, and the refusal says why");
+        // review F1: a NAME that starts with a keyword is a name; only "note:"/"series:" (with the colon) are the bare forms
+        assertEquals("Series A", SpotlightTarget.parse("graph:Series A").target().graph());
+        assertEquals("Notes on spread", SpotlightTarget.parse("graph:Notes on spread:note:2").target().graph());
+        assertEquals("Series A", SpotlightTarget.parse("graph:Series A:series:x").target().graph());
+        assertEquals("note", SpotlightTarget.parse("graph:note").target().graph(), "a chart named 'note': its plot is reachable");
+        assertNull(SpotlightTarget.parse("graph:note:2").target().graph(), "…but graph:note:2 is the bare form, by design");
+        // review F5: notes are numbered from 1
+        assertTrue(SpotlightTarget.parse("graph:note:0").error().contains("numbered from 1"));
     }
 
     @Test

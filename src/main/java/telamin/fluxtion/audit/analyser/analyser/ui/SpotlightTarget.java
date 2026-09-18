@@ -47,8 +47,9 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         /**
          * A graph target names its chart or means the SELECTED one (M64.10): {@code graph:note:2} is the note on
          * whichever chart tab is showing; {@code graph:Spread:note:2} is note 2 on the chart named "Spread", and
-         * lighting it selects that chart first. A chart literally named {@code note} or {@code series} is
-         * unreachable by name — the two words are the part keywords.
+         * lighting it selects that chart first. A chart literally named {@code note} or {@code series} is reachable
+         * as its plot ({@code graph:note}) but not its parts — {@code graph:note:2} is the bare form; and a name
+         * containing {@code :} is unreachable, since {@code :} is the part separator.
          */
         GRAPH("graph[:<name>]", false),
         GRAPH_NOTE("graph[:<name>]:note:<n>", true),
@@ -120,8 +121,11 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
             case "graph" -> {
                 if (rest == null) yield ok(Family.GRAPH, null, name);
                 String part = rest.toLowerCase(Locale.ROOT);
-                if (part.startsWith("note")) yield sub(rest, "note", Family.GRAPH_NOTE, name, true);
-                if (part.startsWith("series")) yield sub(rest, "series", Family.GRAPH_SERIES, name, false);
+                // the bare forms carry the keyword AND a colon: "note:2", "series:x". A chart whose NAME merely
+                // starts with the word ("Series A", "Notes on spread") is a chart (review F1); a chart named
+                // exactly "note" or "series" is reachable as graph:note / graph:series (its plot), not its parts.
+                if (part.startsWith("note:")) yield oneBased(sub(rest, "note", Family.GRAPH_NOTE, name, true));
+                if (part.startsWith("series:")) yield sub(rest, "series", Family.GRAPH_SERIES, name, false);
                 // M64.10: graph:<name>[:note:<n> | :series:<label>] — the chart is NAMED, not "the selected one"
                 int note = part.indexOf(":note:"), series = part.indexOf(":series:");
                 int cut = note < 0 ? series : series < 0 ? note : Math.min(note, series);
@@ -134,7 +138,7 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
                 if (cut < 0) yield withGraph(ok(Family.GRAPH, null, name), chart);
                 String partAfter = rest.substring(cut + 1);
                 Parsed inner = partAfter.toLowerCase(Locale.ROOT).startsWith("note")
-                        ? sub(partAfter, "note", Family.GRAPH_NOTE, name, true)
+                        ? oneBased(sub(partAfter, "note", Family.GRAPH_NOTE, name, true))
                         : sub(partAfter, "series", Family.GRAPH_SERIES, name, false);
                 yield inner.ok() ? withGraph(inner, chart) : inner;
             }
@@ -185,6 +189,14 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
 
     private static Parsed ok(Family family, String argument, String name) {
         return new Parsed(new SpotlightTarget(family, argument, name), null);
+    }
+
+    /** Chart notes are numbered from 1 (review F5): {@code graph:note:0} names nothing, and must say so. */
+    private static Parsed oneBased(Parsed parsed) {
+        if (parsed.ok() && parsed.target().number() == 0) {
+            return unknown("'" + parsed.target().name() + "' — chart notes are numbered from 1; the form is " + Family.GRAPH_NOTE.form());
+        }
+        return parsed;
     }
 
     private static Parsed withGraph(Parsed parsed, String chart) {

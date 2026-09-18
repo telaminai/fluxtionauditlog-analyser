@@ -12,8 +12,9 @@ M64.10 — a graph target may NAME its chart.
   or ":series:" after the name; a name that contains ':' is refused with the reason (so "graph:legend:x" stays
   UNKNOWN, as SpotlightTargetTest always held). MainFrame.graphFor(t) picks the chart; alsoOn(t) makes the refusal
   useful: "'graph:series:x' is not on the selected graph ('Orders'). It is on [Spread] — name the chart:
-  graph:Spread:series:x". An unknown name: "no graph named 'Nope' — the open graphs are [...]". A refused call
-  selects nothing (verified: the selected tab is unchanged after the refusal).
+  graph:Spread:series:x". An unknown name: "no graph named 'Nope' — the open graphs are [...]". A refusal on the
+  SELECTED chart selects nothing (verified); a well-formed NAMED request may select the named chart before finding
+  its part unavailable — D-SP6's reveal-before-measure rule (review F8).
 M64.11 — a menu item is a target.
   menu:<Menu> (the open popup), menu:<Menu>:<item> (one item by its text, case-insensitive; a submenu's items are
   out of reach; dialogs stay D-SP1's deferred form). The reveal OPENS the menu with the same MenuSelectionManager

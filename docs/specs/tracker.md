@@ -358,7 +358,7 @@ resolution, dumb overlay that clears on any view-changing verb (D-SP3); transien
 only while showing (D-SP4); one line per beat in the skill, no other verb changes (D-SP5). About a day plus half
 for the display test and skill edit.
 
-- [M64.11] ☑ **BUILT 2026-09-17 on `feat/m64-10-11-named-graph-and-menu-targets` (spec D-SP9; `NamedGraphAndMenuSpotlightFrameTest`; verify script) — awaiting review.** Was: **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
+- [M64.11] ☑ **BUILT 2026-09-17 on `feat/m64-10-11-named-graph-and-menu-targets`; reviewed 2026-09-18 NOT READY (F2/F3, fixed at `545e99c`) then READY WITH FOLLOW-UPS (`c635882`); F1/F5/F8 closed on the branch before merge; F4/F6/F7 → M64.13.** Was: **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
   step "File ▸ New project from template…" could not be spotlit, because no target reaches a menu). An assistant
   asked *"where is that setting?"* can today only open the menu (`screenshot {scope: "menu:File"}`) and describe
   the item; it should be able to LIGHT it. **Groundwork done the same day:** with a menu open the screenshot verb
@@ -378,7 +378,11 @@ for the display test and skill edit.
   should say "to keep what is lit and add to it, send `add: true`" (one sentence in `VerbSchemas`); (b) the user guide's first
   "Ask it to show you" sentence names a threshold the demo log never crosses (`spread` sits near 0.02) — use one it does
   (`riskMonitor.liveOrders` above 1 at record 15, the point-at-the-fault example) so a fresh client is not made to say "no crossing".
-- [M64.10] ☑ **BUILT 2026-09-17 on the same branch (spec D-SP8): `graph:<name>:note|series:…` selects and lights; the selected-chart refusal names where the target is — awaiting review.** Was: **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
+- [M64.13] ☐ **Menu-target follow-ups from the M64.11 review** (F4 a menu already open by hand is heavyweight and refused
+  with a false reason — close, request lightweight, reopen; F6 the two FlatLaf client properties stay on a lit popup —
+  restore them when it closes; F7 match a typed `...` to the item's `…`; and keep a display case for Escape over a lit
+  menu, which the reviewer witnessed with real focus). Non-blocking; `docs/handoff/review_m64_10_11.txt`.
+- [M64.10] ☑ **BUILT 2026-09-17 on the same branch (spec D-SP8); reviewed with M64.11 — READY WITH FOLLOW-UPS; F1 (a name starting with `note`/`series`), F5 (notes from 1, "may be on") and F8 (a named request may select before refusing) closed on the branch.** Was: **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
   several named graphs open, `graph`, `graph:note:<n>` and `graph:series:<label>` mean "on whichever chart tab is
   showing", and re-issuing `graph {name: <existing>}` updates that graph WITHOUT re-selecting its tab — so an agent
   that drew chart B and then refreshed chart A gets "'graph:note:1' is not on the selected graph". Either the

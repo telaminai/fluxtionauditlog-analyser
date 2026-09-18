@@ -2027,8 +2027,10 @@ public final class MainFrame extends JFrame {
             if (has) have.add(name);
         }
         if (have.isEmpty()) return "";
-        String part = t.family() == SpotlightTarget.Family.GRAPH_NOTE ? ":note:" + t.argument() : ":series:" + t.argument();
-        return ". It is on " + have + " — name the chart: graph:" + have.get(0) + part;
+        boolean note = t.family() == SpotlightTarget.Family.GRAPH_NOTE;
+        String part = note ? ":note:" + t.argument() : ":series:" + t.argument();
+        // a note is numbered as the chart shows it (only notes in its window count), so a count is "may be", not "is"
+        return (note ? ". It may be on " : ". It is on ") + have + " — name the chart: graph:" + have.get(0) + part;
     }
 
     // ---- M64.11: menu targets — the reveal opens the menu; it goes out when the menu closes ------------------
