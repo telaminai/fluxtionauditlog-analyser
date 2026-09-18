@@ -342,7 +342,7 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.9 SHIPPED in 1.14.0 (archived); .10/.11/.12 ON MAIN 2026-09-18 (`66f2a32`, unreleased); .13 open
+## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.12 SHIPPED (.10–.12 in 1.15.0, 2026-09-18; archived); .13 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
 the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
 shot showed NO spotlight (the display test measured `696 → 696` outside the cut-out). The verb now composites a live
@@ -358,38 +358,12 @@ resolution, dumb overlay that clears on any view-changing verb (D-SP3); transien
 only while showing (D-SP4); one line per beat in the skill, no other verb changes (D-SP5). About a day plus half
 for the display test and skill edit.
 
-- [M64.11] ☑ **ON MAIN 2026-09-18 (`66f2a32`, fast-forward from `feat/m64-10-11-named-graph-and-menu-targets`; report, brief and review in `docs/handoff/completed/`). BUILT 2026-09-17; reviewed 2026-09-18 NOT READY (F2/F3, fixed at `545e99c`) then READY WITH FOLLOW-UPS (`c635882`); F1/F5/F8 closed on the branch before merge; F4/F6/F7 → M64.13.** Was: **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
-  step "File ▸ New project from template…" could not be spotlit, because no target reaches a menu). An assistant
-  asked *"where is that setting?"* can today only open the menu (`screenshot {scope: "menu:File"}`) and describe
-  the item; it should be able to LIGHT it. **Groundwork done the same day:** with a menu open the screenshot verb
-  now reports `menuItems: [{text, enabled, bounds}]` relative to the window (`MainFrame.menuItemBounds`, held by
-  `MenuScreenshotFrameTest`) — that is the measurement `Surface.bounds` would return. **What is left, and why it is
-  not a one-liner:** (1) lightweight Swing popups live in the layered pane's POPUP layer, UNDER the glass pane, so
-  the overlay can dim around an item — but a popup that does not fit the frame becomes a HEAVYWEIGHT window, above
-  everything, and would be neither dimmed nor cut out: decide whether to refuse then, or force lightweight;
-  (2) the overlay swallows every press, so lighting an item makes the menu unclickable until dismissed — for a
-  menu the dismissing click should probably pass THROUGH to the item; (3) a menu closes when focus moves, and
-  `reveal` must open it and keep it open; (4) `VIEW_CHANGING_VERBS` and Escape both already close a menu — make
-  sure one Escape does not need pressing twice. A DIALOG (the template picker, Settings) is a separate window and
-  stays out of reach: that is D-SP1's deferred separate-window form, not this item. Until then the docs mark menus
-  and dialogs with `tools/AnnotateShot.java`, drawn unlike the spotlight on purpose.
-- [M64.12] ☑ **ON MAIN 2026-09-18 with M64.11** — (a) the guidance says a call replaces unless `add: true`; (b) the guide's first sentence now names `liveOrders` above 1. Was: **Two things the held-out run showed** (2026-09-17, [record](../handoff/completed/heldout_m64_2026-09-17.md)):
-  (a) a client narrating step by step sends one `spotlight {target}` per step and each REPLACES the last — the schema description
-  should say "to keep what is lit and add to it, send `add: true`" (one sentence in `VerbSchemas`); (b) the user guide's first
-  "Ask it to show you" sentence names a threshold the demo log never crosses (`spread` sits near 0.02) — use one it does
-  (`riskMonitor.liveOrders` above 1 at record 15, the point-at-the-fault example) so a fresh client is not made to say "no crossing".
 - [M64.13] ☐ **Menu-target follow-ups from the M64.11 review** (F4 a menu already open by hand is heavyweight and refused
   with a false reason — close, request lightweight, reopen; F6 the two FlatLaf client properties stay on a lit popup —
   restore them when it closes; F7 match a typed `...` to the item's `…`; and keep a display case for Escape over a lit
   menu, which the reviewer witnessed with real focus). Non-blocking; `docs/handoff/completed/review_m64_10_11.txt`.
-- [M64.10] ☑ **ON MAIN 2026-09-18 with M64.11. BUILT 2026-09-17 (spec D-SP8); reviewed with M64.11 — READY WITH FOLLOW-UPS; F1 (a name starting with `note`/`series`), F5 (notes from 1, "may be on") and F8 (a named request may select before refusing) closed on the branch.** Was: **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
-  several named graphs open, `graph`, `graph:note:<n>` and `graph:series:<label>` mean "on whichever chart tab is
-  showing", and re-issuing `graph {name: <existing>}` updates that graph WITHOUT re-selecting its tab — so an agent
-  that drew chart B and then refreshed chart A gets "'graph:note:1' is not on the selected graph". Either the
-  refusal should name the selected graph and the ones that DO have the target, or the vocabulary should let a
-  target name its graph (`graph:<name>:note:<n>`). Decide with M64.9; it is the same vocabulary edit.
 
-## M65 · Follow refreshes open graphs — ◧ SHIPPED in 1.14.0 (archived); .5/.6 open
+## M65 · Follow refreshes open graphs — ◧ SHIPPED in 1.14.0 (archived); .5 open (.6 checked, archived)
 
 Spec: **[spec-follow-refreshes-graphs.md](spec-follow-refreshes-graphs.md)**; review
 [review_spec_m65_2026-09-17.md](../handoff/completed/review_spec_m65_2026-09-17.md) (CONDITIONAL — diagnosis and fix accepted,
@@ -420,9 +394,6 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
 
 - [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
   machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
-- [M65.6] ☑ **CHECKED 2026-09-17, not reproduced** on the 1.14.1 jar (command-line log + `--rest`: `context` showed the log and `graph` drew; the earlier answer came while a load was still in flight — if it recurs, capture `context.inFlight`). Was: **Check on `main`**: `graph` answered *no log loaded* right after a command-line open while `context`
-  showed the log loaded; `open {log}` over the verb cleared it (impl review §5, observed not attributed — M65 did
-  not touch that path).
 
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,
@@ -1031,7 +1002,7 @@ client — `tools/heldout-client.py`, local only, the owner's key — and the cl
 with and without the guidance paragraph, and the tour lit every beat before it spoke
 ([`heldout_m64_2026-09-17.md`](../handoff/completed/heldout_m64_2026-09-17.md); two docs follow-ups → M64.12). **Still a
 person's:** *File ▸ Close log* during a slow FIRST load as a physical click (its listener is held by
-`AsyncOpenInterleavingFrameTest`), and *AI ▸ Place mode-selector record…* (a file chooser). **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`. **Review of main 2026-09-18** (Codex; F1 a duplicated external label reordered the legend against the plot, F2 the held-out harness truncated the guidance it claimed to send, F3 a failed screenshot verb could exit as a permission warning): all fixed on `fix/review-main-2026-09-18`, re-reviewed READY WITH FOLLOW-UPS, merged by fast-forward the same day; the held-out harness now runs a fresh analyser per conversation with the baseline asserted (`--check-fixture`, no key) and `/manifest` serves the bridge instructions verbatim (`docs/handoff/completed/review_main_2026_09_18.txt`, `review_fix_review_main_2026_09_18.txt`).mjs` in the playground repo; until it runs, a generated starter teaches the
+`AsyncOpenInterleavingFrameTest`), and *AI ▸ Place mode-selector record…* (a file chooser). **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`. **1.15.0 released 2026-09-18** (`c2b127e`; the release workflow on `0bca53b`): M64.10/.11/.12, the ledger-review follow-ups and the review-of-main fixes — the §4.0 scripts ran on the release jar (17/17, 18/18, 94/94; capture scenarios complete; fixture check). **Review of main 2026-09-18** (Codex; F1 a duplicated external label reordered the legend against the plot, F2 the held-out harness truncated the guidance it claimed to send, F3 a failed screenshot verb could exit as a permission warning): all fixed on `fix/review-main-2026-09-18`, re-reviewed READY WITH FOLLOW-UPS, merged by fast-forward the same day; the held-out harness now runs a fresh analyser per conversation with the baseline asserted (`--check-fixture`, no key) and `/manifest` serves the bridge instructions verbatim (`docs/handoff/completed/review_main_2026_09_18.txt`, `review_fix_review_main_2026_09_18.txt`).mjs` in the playground repo; until it runs, a generated starter teaches the
 `coverage` target this analyser refuses). Still open after that, not gating: the valid `add` + `detail:node`
 end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
 M64.10, M46.11.
@@ -1119,12 +1090,6 @@ correct graph. **Every item below is a communication failure, not a correctness 
   opId, as `pendingRolledSets` does, so the session processor is untouched). Sharing a home between runs is
   still the harness's to fix (H1). **A5:** an unbound step cursor said "no records" with ten open; it now
   says no record is SELECTED and how to select one, and the echo carries `recordsOpen`.
-- [M46.11] ☑ **DONE 2026-09-17 (`9e1d0c7c`)** — exit 0 + a stderr WARNING when only the native capture is unavailable; `--require-images` makes that exit 3; release-process §4.0 updated. Was: **`tools/capture-conversations.py`: two signals, not one** (re-review R3). When the five scenarios
-  pass and only the native image capture is unavailable (no Screen Recording grant; a headless box) it exits 1,
-  which reads as "scenarios failed" — so the pre-release checklist cannot use it there. Give it an explicit
-  scenarios-only mode or a distinct exit status; do NOT make a required capture failure exit 0. (The other half of
-  R3 is DONE: `context.showing` was a `Map.of`, whose order changes per run, so the generated page flipped
-  `"total"`/`"visible"` on every capture — now ordered.)
 - [M46.10] ☑ **`open {analysis}` failed on every call since 1.13.0 — FIXED 2026-09-17; SHIPS IN 1.14.0, not patched
   (owner, tracker ▸ Decisions)** _(found doing the
   above; same report)_. The recall runs off the EDT on purpose; the ignored-parameters decision it then
@@ -1272,6 +1237,7 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 
 ## Decisions (resolved)
 
+- **1.15.0 shipped 2026-09-18** with M64.10/.11/.12 and the two review rounds' fixes; no patch releases between _(owner)_.
 - **1.14.0 shipped 2026-09-17 with the whole M46-closure block, M65 and M64.8/.9; no 1.13.3** _(owner)_.
 - **This block ships as 1.14.0, together — NO 1.13.3, NO cherry-pick** _(owner, 2026-09-17, after the re-review)_.
   The `open {analysis}` regression released in 1.13.0–1.13.2 (M46.10) is therefore **fixed in 1.14.0, not patched**:

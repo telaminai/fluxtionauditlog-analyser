@@ -3452,3 +3452,45 @@ _Items 1–3 and 6 of the 2026-09-17 refresh; the numbers are as they stood ther
 6. ☑ **Pre-release gate ADDED 2026-09-17** — `docs/admin/release-process.md` §4.0 (owner decision). Was: (from M46.10): `tools/capture-conversations.py` and `tools/verify-m46-agent-api.py`
    join the release checklist. 1.13.0–1.13.2 shipped a broken `open {analysis}` through four review passes because
    neither was run.
+
+## Tidy 2026-09-18 — ticked items archived per rule 7 (moved verbatim from the live tracker; shipped in 1.15.0)
+
+### M64 · Spotlight — .10/.11/.12
+- [M64.11] ☑ **ON MAIN 2026-09-18 (`66f2a32`, fast-forward from `feat/m64-10-11-named-graph-and-menu-targets`; report, brief and review in `docs/handoff/completed/`). BUILT 2026-09-17; reviewed 2026-09-18 NOT READY (F2/F3, fixed at `545e99c`) then READY WITH FOLLOW-UPS (`c635882`); F1/F5/F8 closed on the branch before merge; F4/F6/F7 → M64.13.** Was: **A spotlight target for MENU ITEMS — `menu:<Menu>:<item>`** (owner, 2026-09-17, from the tutorial: the
+  step "File ▸ New project from template…" could not be spotlit, because no target reaches a menu). An assistant
+  asked *"where is that setting?"* can today only open the menu (`screenshot {scope: "menu:File"}`) and describe
+  the item; it should be able to LIGHT it. **Groundwork done the same day:** with a menu open the screenshot verb
+  now reports `menuItems: [{text, enabled, bounds}]` relative to the window (`MainFrame.menuItemBounds`, held by
+  `MenuScreenshotFrameTest`) — that is the measurement `Surface.bounds` would return. **What is left, and why it is
+  not a one-liner:** (1) lightweight Swing popups live in the layered pane's POPUP layer, UNDER the glass pane, so
+  the overlay can dim around an item — but a popup that does not fit the frame becomes a HEAVYWEIGHT window, above
+  everything, and would be neither dimmed nor cut out: decide whether to refuse then, or force lightweight;
+  (2) the overlay swallows every press, so lighting an item makes the menu unclickable until dismissed — for a
+  menu the dismissing click should probably pass THROUGH to the item; (3) a menu closes when focus moves, and
+  `reveal` must open it and keep it open; (4) `VIEW_CHANGING_VERBS` and Escape both already close a menu — make
+  sure one Escape does not need pressing twice. A DIALOG (the template picker, Settings) is a separate window and
+  stays out of reach: that is D-SP1's deferred separate-window form, not this item. Until then the docs mark menus
+  and dialogs with `tools/AnnotateShot.java`, drawn unlike the spotlight on purpose.
+- [M64.12] ☑ **ON MAIN 2026-09-18 with M64.11** — (a) the guidance says a call replaces unless `add: true`; (b) the guide's first sentence now names `liveOrders` above 1. Was: **Two things the held-out run showed** (2026-09-17, [record](../../handoff/completed/heldout_m64_2026-09-17.md)):
+  (a) a client narrating step by step sends one `spotlight {target}` per step and each REPLACES the last — the schema description
+  should say "to keep what is lit and add to it, send `add: true`" (one sentence in `VerbSchemas`); (b) the user guide's first
+  "Ask it to show you" sentence names a threshold the demo log never crosses (`spread` sits near 0.02) — use one it does
+  (`riskMonitor.liveOrders` above 1 at record 15, the point-at-the-fault example) so a fresh client is not made to say "no crossing".
+- [M64.10] ☑ **ON MAIN 2026-09-18 with M64.11. BUILT 2026-09-17 (spec D-SP8); reviewed with M64.11 — READY WITH FOLLOW-UPS; F1 (a name starting with `note`/`series`), F5 (notes from 1, "may be on") and F8 (a named request may select before refusing) closed on the branch.** Was: **A graph target addresses the SELECTED chart only** (found answering re-review R4, 2026-09-17). With
+  several named graphs open, `graph`, `graph:note:<n>` and `graph:series:<label>` mean "on whichever chart tab is
+  showing", and re-issuing `graph {name: <existing>}` updates that graph WITHOUT re-selecting its tab — so an agent
+  that drew chart B and then refreshed chart A gets "'graph:note:1' is not on the selected graph". Either the
+  refusal should name the selected graph and the ones that DO have the target, or the vocabulary should let a
+  target name its graph (`graph:<name>:note:<n>`). Decide with M64.9; it is the same vocabulary edit.
+
+### M65 · .6 and M46 · .11
+- [M65.6] ☑ **CHECKED 2026-09-17, not reproduced** on the 1.14.1 jar (command-line log + `--rest`: `context` showed the log and `graph` drew; the earlier answer came while a load was still in flight — if it recurs, capture `context.inFlight`). Was: **Check on `main`**: `graph` answered *no log loaded* right after a command-line open while `context`
+  showed the log loaded; `open {log}` over the verb cleared it (impl review §5, observed not attributed — M65 did
+  not touch that path).
+- [M46.11] ☑ **DONE 2026-09-17 (`9e1d0c7c`)** — exit 0 + a stderr WARNING when only the native capture is unavailable; `--require-images` makes that exit 3; release-process §4.0 updated. Was: **`tools/capture-conversations.py`: two signals, not one** (re-review R3). When the five scenarios
+  pass and only the native image capture is unavailable (no Screen Recording grant; a headless box) it exits 1,
+  which reads as "scenarios failed" — so the pre-release checklist cannot use it there. Give it an explicit
+  scenarios-only mode or a distinct exit status; do NOT make a required capture failure exit 0. (The other half of
+  R3 is DONE: `context.showing` was a `Map.of`, whose order changes per run, so the generated page flipped
+  `"total"`/`"visible"` on every capture — now ordered.)
+
