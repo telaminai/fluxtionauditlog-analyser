@@ -295,6 +295,19 @@ of reach — a dialog is D-SP1's deferred separate-window form. Held by `NamedGr
 (lit inside the window, painted into the shot, chosen by a press, out when the menu closes, refusals) and
 `tools/verify-m64-spotlight.py` on the built jar.
 
+**After review (2026-09-18) — two things the tests had not reached, both fixed on the branch.** (F2) A note's place
+on a chart is a PAINT-time fact: the column map that numbers the notes is built in `paint`. So a named chart selected
+by the reveal and measured in the same call had no notes yet — `graph:Spread:note:1` was refused the FIRST time, with
+a self-contradictory reason ("is not on graph 'Spread'. It is on [Spread]"), and the identical call a moment later lit
+it. The reveal now lays the chart out and paints it (`paintImmediately`) before `bounds()` runs, for every graph
+family (the plot rectangle is a paint-time fact too); and the "It is on […]" hint never names the chart the call was
+about, named or selected. (F3) A menu's `PopupMenuListener` put out spotlights when the popup closed by asking "is ANY
+menu target lit?" — so opening a SECOND menu, which closes the first, cleared everything, the second menu's fresh
+spotlight and non-menu ones included, and left that menu open with nothing lit while the echo said lit. A menu's
+listener now puts out only the spotlights that name THAT menu. Both are held by `NamedGraphAndMenuSpotlightFrameTest`
+(first-time named note; a note the hint may not offer the asked chart for; the second menu by replace and by add) and
+each was seen red with its fix reverted.
+
 **M64.12 (from the held-out run).** The guidance every client is handed now says a call replaces what is lit unless
 it adds; the user guide's first "Ask it to show you" sentence names a threshold the demo log crosses, and a second
 sentence shows the menu target.

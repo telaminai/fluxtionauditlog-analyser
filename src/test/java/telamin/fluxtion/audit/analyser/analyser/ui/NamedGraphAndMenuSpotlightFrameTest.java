@@ -219,4 +219,133 @@ class NamedGraphAndMenuSpotlightFrameTest {
             restoreLaf(previous);
         }
     }
+
+    /**
+     * Review F2. A note's place on a chart is a PAINT-time fact (the column map is built in paint), so a named chart
+     * selected by the reveal and measured in the same call had no notes yet: `graph:Spread:note:1` was refused the
+     * FIRST time — "is not on graph 'Spread'. It is on [Spread] — name the chart: graph:Spread:note:1" — and the
+     * identical call a moment later lit it. The named-SERIES case never showed it (a legend entry is a component).
+     */
+    @Test
+    void aNoteOnANamedChart_lightsTheFIRSTTime_andARefusalNeverNamesTheChartItWasAskedFor(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        javax.swing.LookAndFeel previous = flatLafLikeTheApp();
+        try (Frame f = new Frame(tmp)) {
+            show(f, Files.createDirectories(tmp.resolve("exchange")));
+            onEdt(() -> render(f.ex, "open", Map.of("log", Path.of(SERIES_LOG).toAbsolutePath().toString())));
+            awaitLoaded(f);
+            onEdt(() -> {
+                assertEquals(true, render(f.ex, "graph", Map.of("newTab", true, "name", "Spread",
+                        "series", List.of("quotePublisher.spread"),
+                        "notes", List.of(Map.of("recordIndex", 15, "text", "the crossing")))).get("ok"));
+                assertEquals(true, render(f.ex, "graph", Map.of("newTab", true, "name", "Orders",
+                        "series", List.of("riskMonitor.liveOrders"))).get("ok"));
+            });
+            Thread.sleep(600);                                                   // let both extractions land
+            GraphTabs tabs = (GraphTabs) field(f.frame, "graphTabs");
+            onEdt(() -> assertEquals("Orders", tabs.selectedGraphName(), "control: Spread is NOT the chart showing"));
+
+            // the first call for a note on the chart that is not showing: it must light, not refuse
+            onEdt(() -> {
+                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "graph:Spread:note:1", "caption", "the crossing"));
+                assertEquals(true, r.get("ok"), () -> "FIRST call, chart not yet painted: " + r);
+                assertEquals("Spread", tabs.selectedGraphName());
+                assertEquals(List.of("graph:Spread:note:1"), lit(f).stream().map(m -> m.get("target")).toList());
+            });
+            onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
+
+            // and a note that exists NOWHERE, asked of a named chart: refused, and the hint cannot name that chart
+            onEdt(() -> {
+                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "graph:Spread:note:7"));
+                assertEquals(false, r.get("ok"));
+                String why = String.valueOf(r.get("error"));
+                assertTrue(why.contains("is not on graph 'Spread'"), why);
+                assertFalse(why.contains("It is on"), "no other chart has a note 7, so no hint — and never 'It is on [Spread]': " + why);
+            });
+
+            // a chart PINNED to a window that excludes its note: the note exists (noteCount says 1) but is not numbered
+            // on the plot — refused, and the hint must not offer the very chart it was asked for
+            onEdt(() -> assertEquals(true, render(f.ex, "graph", Map.of("newTab", true, "name", "Pinned",
+                    "series", List.of("quotePublisher.spread"), "from", 1767258100000L, "to", 1767259092000L,
+                    "notes", List.of(Map.of("recordIndex", 15, "text", "outside the window")))).get("ok")));
+            Thread.sleep(400);
+            onEdt(() -> {
+                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "graph:Pinned:note:1"));
+                assertEquals(false, r.get("ok"), () -> "a note outside the pinned window is not on the plot: " + r);
+                String why = String.valueOf(r.get("error"));
+                String hint = why.contains("It is on") ? why.substring(why.indexOf("It is on")) : "";
+                assertFalse(hint.contains("Pinned"), "the hint may not name the chart the call was about: " + why);
+                assertTrue(hint.contains("Spread"), "but it does name the chart that shows the note: " + why);
+            });
+        } finally {
+            restoreLaf(previous);
+        }
+    }
+
+    /**
+     * Review F3. Opening a second menu closes the first; the first menu's close listener used to ask "is ANY menu
+     * target lit?" — the second menu's fresh spotlight answered yes — and cleared EVERYTHING, non-menu spotlights
+     * included, leaving the second menu open with nothing lit while the echo said lit. A menu's listener may put out
+     * only ITS OWN spotlights.
+     */
+    @Test
+    void lightingASecondMenu_keepsWhatTheEchoSaid_byReplaceAndByAdd(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        javax.swing.LookAndFeel previous = flatLafLikeTheApp();
+        try (Frame f = new Frame(tmp)) {
+            show(f, Files.createDirectories(tmp.resolve("exchange")));
+            JMenu file = (JMenu) f.frame.getJMenuBar().getComponent(0);
+            JMenu ai = null;
+            for (int i = 0; i < f.frame.getJMenuBar().getMenuCount(); i++) {
+                if ("AI".equals(f.frame.getJMenuBar().getMenu(i).getText())) ai = f.frame.getJMenuBar().getMenu(i);
+            }
+            assertNotNull(ai);
+            JMenu aiMenu = ai;
+
+            // REPLACE: File item lit, then a call for an AI item
+            onEdt(() -> assertEquals(true, attempt(f, "spotlight", Map.of("target", "menu:File:Close log")).get("ok")));
+            pump();
+            onEdt(() -> {
+                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:AI:Posture"));
+                assertEquals(true, r.get("ok"), r::toString);
+            });
+            pump();
+            Thread.sleep(200);
+            pump();
+            onEdt(() -> {
+                assertEquals(List.of("menu:AI:Posture"), lit(f).stream().map(m -> m.get("target")).toList(),
+                        "what the echo said is what is lit, after the File menu's close listener has run");
+                assertTrue(aiMenu.getPopupMenu().isShowing(), "the AI menu is open");
+                assertFalse(file.getPopupMenu().isShowing(), "the File menu closed when the AI menu opened");
+            });
+            onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
+            pump();
+            onEdt(() -> assertFalse(aiMenu.getPopupMenu().isShowing(), "clear closed the menu the spotlight opened"));
+
+            // ADD: File item + status lit, then ADD an AI item — the File item goes out (its menu closed) and says so;
+            // status and the AI item stay
+            onEdt(() -> {
+                assertEquals(true, attempt(f, "spotlight", Map.of("target", "menu:File:Close log")).get("ok"));
+                assertEquals(true, attempt(f, "spotlight", Map.of("target", "status", "add", true)).get("ok"));
+            });
+            pump();
+            onEdt(() -> {
+                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:AI:Posture", "add", true));
+                assertEquals(true, r.get("ok"), r::toString);
+                assertEquals(List.of("menu:File:Close log"), find(r, "wentOut"), "the File item went out when its menu closed, and the echo says so");
+            });
+            pump();
+            Thread.sleep(200);
+            pump();
+            onEdt(() -> {
+                assertEquals(List.of("status", "menu:AI:Posture"), lit(f).stream().map(m -> m.get("target")).toList(),
+                        "the non-menu spotlight survived the File menu closing; the AI item is lit");
+                assertTrue(aiMenu.getPopupMenu().isShowing());
+            });
+            onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
+            pump();
+        } finally {
+            restoreLaf(previous);
+        }
+    }
 }

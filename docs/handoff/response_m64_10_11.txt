@@ -1,0 +1,37 @@
+AUTHOR'S RESPONSE — review_m64_10_11.txt (F2 and F3, the two required findings)
+Date: 2026-09-18 · Fixed by: the reviewing session, at the owner's direction ("fix F2 and F3 on the branch and push").
+Branch: feat/m64-10-11-named-graph-and-menu-targets. F1, F4–F7 are NOT addressed here; they stay follow-ups.
+
+F2 — a note on a NAMED chart was refused the first time, with a contradictory reason.                        FIXED.
+  (a) MainFrame reveal, GRAPH families: after selecting the side tab and the named chart, validate the tab pane and
+      `paintImmediately` the chart panel, so the paint-time facts a note needs (the column map) — and the plot
+      rectangle — exist before bounds() measures. Done for all three graph families, not only notes.
+  (b) MainFrame.alsoOn(): the hint excludes the chart the call was ABOUT — the named one when there is a name, the
+      selected one otherwise. It used to exclude only the selected chart, so a named call could be told "It is on
+      [the chart you named]".
+  Held by NamedGraphAndMenuSpotlightFrameTest.aNoteOnANamedChart_lightsTheFIRSTTime_andARefusalNeverNamesTheChartItWasAskedFor:
+  two charts, a note on the one NOT selected, lit on the FIRST call; a note that exists nowhere → refused with no
+  hint; a chart PINNED to a window that excludes its note (noteCount 1, nothing numbered on the plot) → refused, and
+  the hint names Spread, never Pinned. SEEN RED: with paintImmediately removed, the first-call assertion fails
+  ("FIRST call, chart not yet painted: {ok=false…}"); with the exclusion mutated to never match the named chart,
+  the pinned case fails ("the hint may not name the chart the call was about"). Both restored.
+  NOTE for the record: the pinned-window case is exactly review F5's count-versus-numbering mismatch; it is used
+  here as the witness for (b), and F5 itself (the hint offering a chart whose note is out of view) is still open.
+
+F3 — lighting a second menu cleared everything and left the new menu open with nothing lit.                  FIXED.
+  MainFrame.openMenuForSpotlight(), the PopupMenuListener: when THIS popup closes, put out only the spotlights whose
+  target names THIS menu (SpotlightTarget.parse → family MENU/MENU_ITEM → menuName() equalsIgnoreCase m.getText()),
+  via SpotlightOverlay.remove. Nothing else is touched; no menu is closed by it.
+  Held by NamedGraphAndMenuSpotlightFrameTest.lightingASecondMenu_keepsWhatTheEchoSaid_byReplaceAndByAdd: REPLACE
+  (File item lit → AI item: after the File listener has run, context lists exactly [menu:AI:Posture], AI open, File
+  closed; clear closes AI) and ADD (File item + status → add AI item: echo says wentOut=[menu:File:Close log], and
+  afterwards context lists [status, menu:AI:Posture]). SEEN RED: with the ORIGINAL listener body put back, the
+  replace case fails ("what the echo said is what is lit … expected [menu:AI:Posture]"). Restored.
+  (A first mutation that kept the "is it my menu" filter and only changed remove→clearAll did NOT fail the test —
+  because by the time the listener runs, the first menu's spotlight is already gone in the replace flow. The
+  faithful mutation is the one recorded above.)
+
+spec-spotlight.md gains an "After review (2026-09-18)" paragraph under M64.10/M64.11 stating both. No CHANGELOG line:
+the feature is unreleased and its own entry describes the behaviour as it now is.
+Gates on the branch after the fix: see the commit message. F1 (keyword-prefix chart names), F4 (a hand-opened,
+never-lit menu's false refusal), F5, F6, F7 remain for the author or a follow-up.

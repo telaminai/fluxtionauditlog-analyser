@@ -1855,6 +1855,17 @@ public final class MainFrame extends JFrame {
                     selectSideTab("graph");
                     // M64.10: a target that NAMES its chart selects that chart first — a reveal, like a tab
                     if (t.graph() != null && graphTabs.graphNamed(t.graph()) != null) graphTabs.selectGraph(t.graph());
+                    // Review F2: a chart shown for the first time has not PAINTED, and a note's place on it exists only
+                    // once it has (the column map is built in paint). Measuring before that refused a note that was
+                    // there, and a retry lit it. Lay the chart out and paint it now, so bounds() sees the truth.
+                    GraphPanel g = graphFor(t);
+                    if (g != null) {                       // the plot rectangle and the notes' columns are both paint-time facts
+                        if (sideTabs != null) sideTabs.validate();
+                        ChartPanel chart = g.chartPanel();
+                        if (chart.isShowing() && chart.getWidth() > 0 && chart.getHeight() > 0) {
+                            chart.paintImmediately(0, 0, chart.getWidth(), chart.getHeight());
+                        }
+                    }
                 }
                 case MENU, MENU_ITEM -> openMenuForSpotlight(t.menuName());   // M64.11: the reveal IS opening the menu
                 case TOPOLOGY, TOPOLOGY_VERDICT -> selectSideTab("topology");
@@ -2004,7 +2015,10 @@ public final class MainFrame extends JFrame {
         java.util.List<String> have = new java.util.ArrayList<>();
         for (String name : graphTabs.graphNames()) {
             GraphPanel g = graphTabs.graphNamed(name);
-            if (g == null || (t.graph() == null && name.equals(graphTabs.selectedGraphName()))) continue;
+            // never the chart the call was about: the selected one for a bare target, the NAMED one otherwise (review F2:
+            // the refusal used to say "not on graph 'Spread'. It is on [Spread]")
+            String about = t.graph() != null ? t.graph() : graphTabs.selectedGraphName();
+            if (g == null || name.equals(about)) continue;
             boolean has = switch (t.family()) {
                 case GRAPH_SERIES -> g.seriesLegendMatches(t.argument()) == 1;
                 case GRAPH_NOTE -> g.chartPanel().noteCount() >= t.number();   // a fact, not a measurement of a chart that is not showing
@@ -2036,12 +2050,20 @@ public final class MainFrame extends JFrame {
                 @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) { }
                 @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) { }
                 @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
-                    // a lit menu that closes (Escape, a click elsewhere, the item chosen) takes its spotlights with it:
-                    // pointing at where a menu used to be is the failure this feature is careful about
+                    // a lit menu that closes (Escape, a click elsewhere, the item chosen) takes ITS spotlights with it:
+                    // pointing at where a menu used to be is the failure this feature is careful about. Only its own
+                    // (review F3): opening a second menu closes the first, and this used to clear EVERYTHING — the
+                    // second menu's fresh spotlight and any non-menu one — leaving that menu open with nothing lit
+                    // while the echo said lit.
                     SwingUtilities.invokeLater(() -> {
-                        if (spotlight.lit().stream().anyMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5))
-                                && !m.getPopupMenu().isShowing()) {
-                            spotlight.clearSpotlight();
+                        if (m.getPopupMenu().isShowing()) return;
+                        for (SpotlightOverlay.Lit l : spotlight.lit()) {
+                            SpotlightTarget.Parsed p = SpotlightTarget.parse(l.target());
+                            if (p.ok() && (p.target().family() == SpotlightTarget.Family.MENU
+                                    || p.target().family() == SpotlightTarget.Family.MENU_ITEM)
+                                    && p.target().menuName().equalsIgnoreCase(m.getText())) {
+                                spotlight.remove(l.target());
+                            }
                         }
                     });
                 }
