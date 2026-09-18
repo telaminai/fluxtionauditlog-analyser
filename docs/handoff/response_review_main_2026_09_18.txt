@@ -42,6 +42,34 @@ F3 (P2) — the capture script could turn a failing screenshot verb into a succe
   NOT unit-tested end to end (the scripts are driven against a live jar); the two paths are separated by construction
   and the injected-failure probe the review used would now hit `sys.exit` in `shot()`.
 
+SECOND ROUND — answers to review_fix_review_main_2026_09_18.txt (F4–F6)
+
+F4 (P2) — fresh_fixture() kept charts and notes from earlier conversations.                                  FIXED.
+  The finding is right and the cause is the app's own behaviour: `open {close: "all"}` keeps chart state and the
+  reopen restores it, so one process cannot be reset. The harness now gives EVERY conversation (and the tour) its own
+  analyser process under a fresh isolated home, waits for its endpoint, opens the demo log + graph, and ASSERTS the
+  baseline from `context` before any model call: nothing lit, no filter, no selection, no chart but the default
+  empty one, the graph open — any setup failure or carry-over exits non-zero before the key is spent.
+  The no-LLM regression the review asked for is `python3 tools/heldout-client.py --check-fixture`: it dirties one
+  process (a chart with a note, a filter, a selection, a spotlight), starts the next fixture, and proves the old
+  chart's note is no longer lightable. It is retained in the script and needs no key. Running it also showed the
+  harness had been reading a refused verb (HTTP 400) as an HTTPError rather than the refusal JSON; `act()` now
+  returns the refusal, so a model sees the vocabulary text it is meant to learn from.
+  The record's pass-3 section is re-titled and qualified as observed behaviour under an incomplete reset; the
+  isolated re-run (pass 4) is appended with one-word outcomes.
+
+F5 (P3) — replacing x overwrote the note for the distinct label "x: y".                                       FIXED.
+  Notes are now keyed by the exact label in an ordered map and rendered after the loop; regression
+  GraphExternalDuplicateLabelTest.aPrefixRelatedLabel_keepsItsOwnNote_whenTheOtherIsReplaced (x, "x: y", x →
+  ["x: 3 rows", "x: y: 2 rows"]).
+
+F6 (P3) — the appended summary overstated its evidence.                                                       FIXED.
+  The pass-3 section now reports one-word outcomes per conversation (POINTED / ASKED / TURN-CAPPED / CLEARED),
+  aligns the table with the quoted excerpts (sentence 5 was turn-capped, not "asked"; A's menu answer said it lacked
+  template knowledge), states the reset limitation, and describes the grouped walk as consistent with the guidance
+  clause rather than caused by it. The harness itself now prints those outcome words, so a future table cannot
+  drift from the run.
+
 WHAT I RAN (final tree, this branch)
   See the commit message for the numbers: mvn clean test; mvn package; tools/capture-conversations.py under this
   policy (warning + exit 0 on this machine, which has no Screen Recording grant; outputs restored); the held-out

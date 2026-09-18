@@ -2,6 +2,15 @@ RE-REVIEW BRIEF — branch fix/review-main-2026-09-18 (answers to review_main_20
 Date: 2026-09-18 · Work: git log --oneline origin/main..origin/fix/review-main-2026-09-18 (one commit)
 Response: docs/handoff/response_review_main_2026_09_18.txt · Original review: docs/handoff/review_main_2026_09_18.txt
 
+SECOND ROUND (2026-09-18, after review_fix_review_main_2026_09_18.txt): F4–F6 are answered on the same branch
+(commit 2 of 2). Attack F4 first: `python3 tools/heldout-client.py --check-fixture` needs no key and must exit 0
+with "fixture isolation holds"; read fresh_fixture()'s baseline assertions and say whether they are the right
+invariants (they check spotlight, filter, selection, charts other than the default, the graph open — not the table
+scroll, the selected side tab, or flags). F5: the prefix-label regression; try "x: y", "x", "x: y" too. F6: the
+record's pass-3 and pass-4 sections — is every sentence in them supported by the quoted outcomes, and is the
+menu sentence's pass-to-pass difference stated without a preferred reading? The paid pass-4 run is recorded; do
+not re-spend the key.
+
 YOUR ROLE: the INDEPENDENT REVIEWER, ideally the one who wrote review_main_2026_09_18.txt. Decide per finding whether
 the ANSWER is right. Do not trust the response; repeat its seen-red claim and your own reproductions.
 

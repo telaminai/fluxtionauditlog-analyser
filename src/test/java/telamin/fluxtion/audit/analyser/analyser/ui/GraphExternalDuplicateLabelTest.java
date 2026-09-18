@@ -96,6 +96,24 @@ class GraphExternalDuplicateLabelTest {
         assertEquals(List.of("x", "y"), plotted.subList(1, 3), "plotted in the legend's order, so each swatch names its own line");
     }
 
+    /** Re-review 2026-09-18 F5: a label that merely starts with another ("x: y") keeps its own note when "x" is replaced. */
+    @Test
+    void aPrefixRelatedLabel_keepsItsOwnNote_whenTheOtherIsReplaced(@TempDir Path tmp) throws Exception {
+        Path x1 = tmp.resolve("x1.csv"), xy = tmp.resolve("xy.csv"), x2 = tmp.resolve("x2.csv");
+        Files.writeString(x1, "time,value\n1750000000000,1\n1750000001000,2\n", StandardCharsets.UTF_8);
+        Files.writeString(xy, "time,value\n1750000000000,10\n1750000001000,20\n", StandardCharsets.UTF_8);
+        Files.writeString(x2, "time,value\n1750000000000,5\n1750000001000,6\n1750000002000,7\n", StandardCharsets.UTF_8);
+        GraphTabs tabs = new GraphTabs();
+        ActionExecutor ex = executor(tabs, tmp);
+        var r = ex.render("graph", Map.of("newTab", true, "name", "prefix",
+                "series", List.of("bidMakerOrder.price"),
+                "external", List.of(external(x1, "x"), external(xy, "x: y"), external(x2, "x"))));
+        assertTrue(r.ok(), r::toString);
+        GraphPanel g = tabs.graphNamed("prefix");
+        assertEquals(List.of("x", "x: y"), g.externalSpecs().stream().map(s -> s.label()).toList());
+        assertEquals(List.of("x: 3 rows", "x: y: 2 rows"), g.externalNotes(), "each label its own note, in first-seen order");
+    }
+
     @Test
     void twoDifferentLabels_areStillTwoSeries(@TempDir Path tmp) throws Exception {
         Path a = tmp.resolve("a.csv");

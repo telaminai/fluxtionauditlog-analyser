@@ -371,6 +371,7 @@ public final class ActionExecutor implements RenderExecutor {
             externalLoaded = new java.util.LinkedHashMap<>();
             externalNotes = new ArrayList<>();
             externalEcho = new ArrayList<>();
+            java.util.Map<String, String> noteByLabel = new java.util.LinkedHashMap<>();   // one note per exact label, in first-seen order
             var cfg = exportConfig == null ? null : exportConfig.get();
             for (Object o : asList(p.get("external"))) {
                 if (!(o instanceof Map<?, ?> m)) continue;
@@ -409,18 +410,15 @@ public final class ActionExecutor implements RenderExecutor {
                         externalSpecs.set(earlier, spec);
                         externalLoaded.put(label, r.series());                   // a re-put keeps the map's slot
                         for (int i = 0; i < externalEcho.size(); i++) if (label.equals(externalEcho.get(i).get("label"))) externalEcho.set(i, e);
-                        boolean noted = false;
-                        for (int i = 0; i < externalNotes.size(); i++) {
-                            if (externalNotes.get(i).startsWith(label + ": ")) { externalNotes.set(i, note); noted = true; }
-                        }
-                        if (!noted) externalNotes.add(note);
+                        noteByLabel.put(label, note);                             // keyed by the EXACT label (re-review F5:
+                                                                                // "x: y" is not a note about "x")
                         externalWarnings.add("external label '" + label + "' given twice in one call — a label names ONE "
                                 + "series, so the later entry replaced the earlier");
                     } else {
                         externalSpecs.add(spec);
                         externalLoaded.put(label, r.series());
                         externalEcho.add(e);
-                        externalNotes.add(note);
+                        noteByLabel.put(label, note);
                     }
                     e.put("label", label);
                     e.put("rows", r.rowsLoaded());
@@ -433,6 +431,7 @@ public final class ActionExecutor implements RenderExecutor {
                     externalWarnings.add("external '" + label + "' failed to load: " + ex.getMessage());
                 }
             }
+            externalNotes.addAll(noteByLabel.values());
         }
 
         String name = asText(p.get("name"));
