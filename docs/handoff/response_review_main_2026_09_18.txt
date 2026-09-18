@@ -67,8 +67,11 @@ F6 (P3) — the appended summary overstated its evidence.                       
   The pass-3 section now reports one-word outcomes per conversation (POINTED / ASKED / TURN-CAPPED / CLEARED),
   aligns the table with the quoted excerpts (sentence 5 was turn-capped, not "asked"; A's menu answer said it lacked
   template knowledge), states the reset limitation, and describes the grouped walk as consistent with the guidance
-  clause rather than caused by it. The harness itself now prints those outcome words, so a future table cannot
-  drift from the run.
+  clause rather than caused by it. The harness prints one outcome word per conversation — a classification of the
+  FINAL lit set, not a check that the lit thing is the referent asked for; a person still compares targets and text.
+  Second re-review: the pass-4 paragraph is narrowed to per-sentence observations of final lit sets, with A's walk
+  stated as one node lit and no grouping claim, and the "no antecedent" generalisation withdrawn (only the note
+  sentence is unpointed in every pass).
 
 WHAT I RAN (final tree, this branch)
   See the commit message for the numbers: mvn clean test; mvn package; tools/capture-conversations.py under this
