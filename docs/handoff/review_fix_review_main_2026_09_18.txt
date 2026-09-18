@@ -132,3 +132,101 @@ READ / LIMITS / HANDOFF
   fixture claim needs an answer to F4. F5/F6 remain explicitly non-blocking follow-ups with the limits above.
   Only this review file is authored. No findings fixed; no rebase, amend, force-push or merge. Owner accepts/merges
   after the remaining required answer; this branch is NOT READY at the reviewed commit.
+
+================================================================================
+SECOND ROUND — independent re-review of 511ed5fd55d270ec47fde94a68d30138d988e5d0
+Date: 2026-09-18 · Reviewer: Codex · Branch: fix/review-main-2026-09-18
+This section supersedes the first-round verdict above; the earlier evidence is preserved.
+
+VERDICT: READY WITH FOLLOW-UPS. F4 and F5 CLOSED; F6 NOT CLOSED in full, still P3/non-blocking.
+The required conversation-isolation defect is fixed, and exact-label note replacement works. The remaining
+follow-up concerns the interpretation of the recorded paid runs, not an observed failure of isolation or the
+application. Owner acceptance and merge remain owner actions; this review does not merge the branch.
+
+ANSWERS JUDGED
+
+F4 — CLOSED. tools/heldout-client.py:60-85, :119-164, :259-285.
+  VERIFIED first, in the requested order:
+    mvn -q package -DskipTests -> exit 0
+    python3 tools/heldout-client.py --check-fixture -> exit 0
+    "fixture isolation holds: a new process, the baseline asserted from context, and the previous conversation's
+     chart is gone (no graph named 'carry-over' — the open graphs are [Graph 1])"
+  The check-only branch exits at :169 BEFORE the credential read at :171. No credential file was opened and no
+  model was called in this review.
+  Independently invoked the actual setup functions, AST-extracted only from the portion before CHECK_ONLY,
+  against the packaged app. Starting context: graphs=[Graph 1], selection=[], filter={}, flags=[], no spotlight.
+  Dirtied Graph 1 with a series/note, added carry-over with a note, flagged record 15, applied a text filter, invoked
+  goto, and lit status. Confirmed both chart names, the flag, filter and light in context. Selection was empty
+  under the no-match filter, so this is NOT a claim that goto left a selected hidden row.
+  SEEN RED: substituted the previous close-all reset for launch_analyser, leaving fresh_fixture's real open and
+  assertions intact. It exited nonzero: "charts carried over: ['Graph 1', 'carry-over']". Restored the actual
+  launcher in the probe; the next fixture used a DIFFERENT PID and home, and the old home was removed. Context
+  had only Graph 1 and no flags. Both graph:carry-over:note:1 and graph:Graph 1:note:1 were refused. Thus isolation
+  also covers flags and notes on the default chart, beyond the retained script's named-chart witness.
+  READ: each sentence in B and A, and the tour, calls fresh_fixture before run; note/clear preconditions use must.
+  act now returns refused-action JSON; observed that path on the missing-note refusals instead of HTTPError.
+
+  Baseline judgement: the chosen checks are appropriate guards for these conversations: loaded records, topology
+  present, no filter/selection/light and no additional charts. A new JVM AND fresh configuration home are what
+  establish isolation. Table scroll and the selected side tab need not be fixed for these API-driven requests:
+  target reveal selects/scrolls its surface. Flags ARE relevant reasoning context; independently verified absent
+  after the reset, but not asserted by fresh_fixture. Likewise :138-140 only allows chart NAMES equal to Graph 1;
+  it does not prove that chart exists or has no series/notes, nor does the graph-presence check compare its path.
+  So the prose "default empty one ... asserted from context" is stronger than the assertion itself. These are
+  limits of the guard, not demonstrated carry-over with the fresh-process implementation. Adding a flags check
+  and checking default-chart contents would strengthen the regression; neither omission reopens the fixed F4.
+
+F5 — CLOSED. src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java:374, :413-434.
+  VERIFIED through real ActionExecutor/GraphTabs with temporary independent tests, then removed their source:
+    x(2), "x: y"(2), x(3)       -> ["x: 3 rows", "x: y: 2 rows"]
+    "x: y"(2), x(2), "x: y"(3) -> ["x: y: 3 rows", "x: 2 rows"]
+  Also repeated x,y,x; x,y,x,y; y,x,x; and a failing second x file. Spec/map/actual plotted series/echo ordering,
+  row counts, notes and failure warnings still agree, as in first-round F1. Two independent test methods passed.
+  SEEN RED: temporarily restored only ActionExecutor.java from HEAD^, retaining the new committed prefix test.
+  GraphExternalDuplicateLabelTest#aPrefixRelatedLabel_keepsItsOwnNote_whenTheOtherIsReplaced failed (1 test,
+  1 failure): expected [x: 3 rows, x: y: 2 rows], actual [x: 3 rows, x: 3 rows]. Restored exact source bytes; the
+  final package gate ran all tests successfully. LinkedHashMap keys now use exact label identity and preserve
+  first-successful-label order. No implementation change remains from the probe.
+
+F6 — NOT CLOSED in full, P3 follow-up. docs/handoff/completed/heldout_m64_2026-09-17.md:110-119;
+  related classifier: tools/heldout-client.py:233-243.
+  READ against the recorded outcomes, not re-executed with the owner's key:
+  - Pass 3 now correctly distinguishes four pointing outcomes from clearing, marks the breach TURN-CAPPED,
+    describes A's menu answer as lacking template knowledge, records the incomplete reset, and withdraws the
+    causal claim about M64.12. These changes answer the earlier specific criticisms.
+  - Pass 4's table supports four B conversations ending with lights (1,3,4,5), versus three A (1,3,4), with clearing
+    separately successful. The menu sentence at :112-114 reports B lit it in pass 3 but neither variant did in
+    pass 4, quotes B's words, and gives neither direction preferred evidential weight. That correction is fair.
+  - Remaining contradiction: :117 says "the sentences with no antecedent are not" pointed across both passes.
+    Sentence 5 is explicitly a no-antecedent request in pass 3; in pass 4 B found a breach and lit it (:103, :114).
+    The stable generalisation does not follow. Only the note request remains unpointed in both recorded passes.
+  - Remaining overstatement: :115 says the walk again landed as one call with numbered targets in BOTH variants.
+    Pass 4 A's table cell (:102) lists ONLY quotePublisher. A final lit set cannot establish the number or grouping
+    of prior calls, and that single light is not evidence that it highlighted each step. Retain the literal final
+    sets and qualify grouping/completeness unless the tool-call trace is supplied. The same limit applies to
+    independently establishing the tour's claimed before-speaking timing from this condensed record.
+  - The new outcome words are convenient classifications, not semantic validation. Independently AST-invoked
+    outcome([], ['1:status'], False, 'Which node never logged? Highlight it on the graph.') -> POINTED. It never
+    checks the requested referent or uses calls; ASKED also explicitly includes answers without a question.
+    Thus printing these words does not guarantee the table's definition "lit the thing asked" (:64), or the
+    response's claim that a future table cannot drift. Human comparison of targets/text is still required.
+  Follow-up: narrow the last paragraph to the actual per-sentence observations, and distinguish final lights from
+  verified grouping/correctness. No further paid run is needed to correct these statements. One isolated A/B pair
+  now has a sound fixture; pass 3 remains an uncontrolled historical observation, not a second isolated replicate.
+
+VERIFICATION / HANDOFF
+  Read the second-round brief, response and full commit before judging its answers. F1 is now CLOSED including
+  its F5 follow-up; F2's instruction-delivery result stands and its required fixture defect is CLOSED, with the
+  evidential-summary follow-up F6 retained. F3 remains CLOSED: repeated the AST capture probes for verb failure
+  and unavailable native capture, default and strict modes; all four outcomes matched the first-round review.
+  mvn clean test: 1656 tests, 0 failures, 0 errors, 31 display skips. Initial sandbox attempt could not bind local
+  sockets (29 errors); reran with socket access and passed. This was an environment failure, not a product finding.
+  mvn package AFTER restoring the seen-red mutation: 1656/0/0/31, success. Initial requested skip-tests package
+  also passed. Clean removed the temporary independent compiled tests; dependency-reduced-pom.xml restored.
+  python3 tools/test_tools.py: all passed. mkdocs build --strict: passed.
+  python3 tools/capture-conversations.py: exit 0, 454-line transcript and five successful native PNG captures;
+  all generated transcript/image bytes restored. No full display suite or paid-client run repeated.
+  Personal git email verified; exact CLAUDE.md rule-1 sweep: no output. git diff --check: clean.
+  Existing .idea/encodings.xml and .idea/vcs.xml changes preserved. Only this review file is committed.
+  No findings fixed, skills changed, rebase, amend, force-push or merge. Main untouched. READY WITH FOLLOW-UPS
+  means the owner may accept and merge with the remaining non-blocking F6 explicitly visible.
