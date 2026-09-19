@@ -434,6 +434,30 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
 - [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
   machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
 
+## M67 · The extension tour — extend a running application with a jar you already built — ☐ SPEC'D 2026-09-19 (owner-directed)
+
+Spec: **[spec-extension-tour.md](spec-extension-tour.md)**. Owner, 2026-09-19: *"as soon as developers realise they can
+extend an application with jars they have built before, use LLM generated spring XML and validate with audit logs …
+it is like FP but for whole application construction. Now we have spotlight working we can literally step a developer
+through an interactive demo. We would need a basic catalogue of 'vendor' jars that is like the playground libs."*
+The claim: the compiler is the boundary, the audit log is the proof, the LLM's working set is XML + intent +
+diagnostics + log and never the vendor's source. The tour performs that claim on the developer's own screen, six
+beats in the guided-start form (point, one sentence, the screenshot that proves it), driven by their own assistant.
+Decisions: a public, versioned jar catalogue on the playground-libs pattern, read by the LLM and the pom, **no
+analyser surface** in the first four slices (D-X1); the tour runs in a downloaded template project because two beats
+need a build (D-X2); no new verb, one new skill `extend-with-a-jar` in the spring tier (D-X4); evidence is a verify
+script + a held-out record + a generated docs page, never a screencast (D-X5). The declaration beat lights the bean
+only once M66 lands; the refusal beat lights the bean from the diagnostic only once the compiler's B0 check names it
+(Spring-branch review G7) — until then both beats say so. Four owner questions: where the catalogue lives (D-X7), the
+tour's project (D-X8), the first three jars (D-X9), whether to wait for M66 (D-X10).
+
+- [M67.1] ☐ **The catalogue** — repository, `catalogue.json`, three jars in placeholder packages with their source (cross-repo).
+- [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
+- [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
+- [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).
+- [M67.5] ☐ **Beat 3 lights the declaration** — after M66.
+- [M67.6] ☐ **Beat 4 lights the bean from the diagnostic** — after the compiler's refusal carries it.
+
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,
 reviewed and merged — full record in **[completed/tracker.md](completed/tracker.md)**.
@@ -1024,6 +1048,8 @@ Every item of the 2026-09-17 sequence below is shipped and archived, so the list
 retired — .1–.12 shipped, .13 is in item 6. Pre-release scripts last run on the 1.15.0 commit's jar (17/17, 18/18, 94/94);
 the capture scenarios complete (images regenerate only on a machine with the Screen Recording grant); rule 1's two checks
 unchanged. **On main since 1.15.0, unreleased and unreviewed:** the Spring-authoring guide pages (`6f8568e8`) — item 1.
+**Newly spec'd (item 3):** M67 the extension tour — the interactive demo of extending an application with a jar you already
+built, on the developer's own screen; needs a public vendor-jar catalogue like the playground libs (four owner calls first).
 **Active on branches (item 2):** M66 design render (was M49) — spec revision 2 on `spec/design-render`, implementation on
 `feat/m66-design-render`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
 or the pages say it is coming. **Elsewhere, not this repo's:** the Spring-authoring local workflow (compiler `feat/spring-authoring-a1`, playground
@@ -1070,27 +1096,32 @@ M64.10, M46.11.
    {file|bean|line|fqn}`, `open.design` / `open.diagnostics`, `source:design[:bean:<id>|:line:<n>]` spotlight targets,
    bean ↔ node ↔ record navigation, "show in design" from any `SPRING_*` diagnostic; nothing edits, validates or
    generates. The M49 number collision is settled by the renumbering (head note).
-3. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
+3. ☐ **M67 The extension tour** (owner, 2026-09-19; `spec-extension-tour.md`) — extend a running application with a jar
+   already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats driven by
+   the developer's own assistant. First: the owner's four calls (catalogue home, tour project, first three jars, wait for
+   M66 or not); then M67.1 the catalogue and M67.2 the template (cross-repo), M67.3 the skill + verify script, M67.4 the
+   held-out record. Beats 3 and 4 upgrade with M66 and the compiler's bean-naming refusal.
+4. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
-4. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
+5. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
    written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`.
-5. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-6. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
+6. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
+7. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
    before its native audit and conditional VAL-12 evidence), **M19.3/.4** (tutorial, publish-gated on
    the playground Download), and **M19.8** (bench in CI).
-7. **The small schedulable remnants**, any time: **M64.13** (menu follow-ups from the M64.11 review), **M65.5** (the D-F5
+8. **The small schedulable remnants**, any time: **M64.13** (menu follow-ups from the M64.11 review), **M65.5** (the D-F5
    extraction measurement), the person-at-the-screen leftovers (*File ▸ Close log* as a physical click during a slow first
    load; *AI ▸ Place mode-selector record…*), **M48.17** (the canvas-thesis brief — owner call), the golden-fixture taxonomy
    tranche (N1 and the clamp fixtures are DONE), **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
    rule-1 upstream ask.
-8. **Cross-repo** _(this line predates the 2026-09-17 refresh and was NOT re-verified in it — check
+9. **Cross-repo** _(this line predates the 2026-09-17 refresh and was NOT re-verified in it — check
    [upstream-asks.md](../proposals/upstream-asks.md) for which of these have since been filed)_ **— the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
    UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, **UP-MNG-03** (the server supplying the environment) has its analyser-side
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
-9. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
-10. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism
+10. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
+11. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism
    spine (compiler), **M52.6** (mongoose), **M57.4** (generator-http shading), **M51** (starter template), the
    **M19** tutorial (publish-gated on the playground Download), and the **Spring-authoring local workflow** (compiler +
    playground branches, NOT READY 2026-09-19 — its G1 re-pin decides which compiler release the analyser's guide pages may
