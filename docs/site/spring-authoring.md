@@ -200,8 +200,47 @@ challenge the explanation. See [the shared research canvas](the-loop.md#the-shar
 
 A missing node log is not proof that its method did not execute. Nodes must write
 audit output at the active level to appear in the log. Use the analyser's stated
-coverage and pairing limits, generated dispatch and tests together. A successful
+coverage and pairing limits, outputs and tests together. If behaviour differs from the expectation, inspect
+the authored node first; consult generated dispatch only if those checks leave the failure unexplained. A successful
 build or a plausible chart alone cannot establish all the intended behaviour.
+
+## View design and producer findings
+
+!!! info "Available on main; included in the next analyser release"
+    Design mode and producer findings are merged and independently reviewed. Until the next release,
+    use a build from main; analyser 1.15.0 does not include these surfaces.
+
+Open the XML with **File ▸ Open design…**, or `analyser_open {"design":"src/main/resources/design.xml"}`.
+Authorise its directory in source roots; include the project's `target` directory to read producer results.
+The Source tab's Design mode shows declarations and a bean index, and follows file changes independently
+of the audit log. `analyser_source {"bean":"gate"}` re-reads and selects a declaration.
+[Source navigation](user-guide/source-navigation.md#spring-design-and-file-glances) lists the selectors and
+spotlight targets.
+
+Use **File ▸ Open producer diagnostics…**, or `analyser_open {"diagnostics":"target/fluxtion-validation.json"}`.
+**Reports ▸ Producer findings** retains every finding, including those without a navigable location.
+Validation, reconciliation and compiler result wrappers are detected by shape and version. A new intake
+replaces the previous result; a refused or unreadable file clears it. `open {discover:"diagnostics"}` only
+lists candidates under the active project's target directory. Intake works without a log.
+
+A finding's **Show** action follows its reported location under authorised roots. Fallbacks select the
+binding declaration before its referenced bean; approximate matches and ambiguity are stated. A missing
+bean cannot become a silent navigation failure. Java member findings open Java. Accurate producer locations
+remain dependent on the producer supplying `sourceRef`; the analyser does not invent them.
+
+The design view and findings separate three facts:
+
+- **XML input-current / input-stale / unknown:** the result hash or run receipt compared with the rendered XML.
+- **Java/authoring-record input checks and build outcome:** read at diagnostic intake, timestamped, with
+  receipt outputs preferred when available. Reopen diagnostics after editing Java or running the build.
+  Hashing is bounded to authorised roots and 10,000 Java files; unavailable comparisons stay unknown.
+- **Loaded run relationship: unverified:** a matching bean name permits navigation, never a claim that
+  the working copy produced the loaded log. A sidecar retained when the latest build did not run the compiler
+  says that it predates that attempt, even if the XML is unchanged.
+
+Producer findings are session state, separate from saved investigation reports. Switching projects clears
+the design and findings. Opening a log outside the current project also clears them. Nothing here edits,
+validates, generates, or runs the project.
 
 ## Change the design without losing the implementation
 

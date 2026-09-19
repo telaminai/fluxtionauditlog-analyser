@@ -37,10 +37,8 @@ class McpToolsTest {
                 .map(v -> "analyser_" + v).collect(Collectors.toSet());
         Set<String> actual = tools.stream().map(t -> (String) t.get("name")).collect(Collectors.toSet());
         assertEquals(expected, actual, "no more, no fewer — the adapter must not fork the schema set");
-        assertEquals(15, tools.size(), "fifteen verbs ship today: 5 query, 5 render, 4 control, and `spotlight` "
-                + "(M64) — reversible, and it writes nothing that outlives the session: not read-only, not "
-                + "destructive. M48.7's `handoff` was a sixteenth for a day and was folded into `open` "
-                + "(posture / record / close: \"handoff\") before it shipped — see CloseVerbTest");
+        assertEquals(16, tools.size(), "M66 adds the read-only source glance; design and diagnostic intake extend open");
+        assertEquals(true, annotations("source").get("readOnlyHint"));
     }
 
     @Test

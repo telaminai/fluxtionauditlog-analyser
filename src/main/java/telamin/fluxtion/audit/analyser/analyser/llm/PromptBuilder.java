@@ -242,7 +242,7 @@ public final class PromptBuilder {
                 + "          window and cuts out what you are talking about, each with a one-line callout. Targets: "
                 + SpotlightVocabulary.TEXT + "\n"
                 + SpotlightVocabulary.GUIDANCE + "\n"
-                + "  open   {log | logs[], graphml?, processor?, format?, provenance?} -> open an audit log and/or a\n"
+                + "  open   {log | logs[], graphml?, processor?, format?, provenance?, design?, diagnostics?} -> open an audit log and/or a\n"
                 + "          processor graph; {discover: \"graphml\"} lists candidate graphs and opens nothing;\n"
                 + "          {project} applies a project (a session boundary: log and graph close); {analysis, bind?}\n"
                 + "          recalls a saved analysis; {close: log|graph|all|project|handoff} closes.\n"

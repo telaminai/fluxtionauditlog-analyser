@@ -38,6 +38,10 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
@@ -57,6 +61,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShow
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
 import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
+import telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
@@ -73,9 +78,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  *
  * <pre>
  * generation time           : Not available
- * api version               : unknown api version
- * analyser version          : unknown analyser version
- * target generator version  : unknown generator version
+ * api version               : 1.0.16
+ * analyser version          : 1.0.71
+ * target generator version  : 1.0.71
  * </pre>
  *
  * Event classes supported:
@@ -83,6 +88,10 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  * <ul>
  *   <li>com.telamin.fluxtion.runtime.audit.EventLogControlEvent
  *   <li>com.telamin.fluxtion.runtime.time.ClockStrategy.ClockStrategyEvent
+ *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared
+ *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
@@ -122,6 +131,8 @@ public class SessionProcessor
   public final transient OperationGate operationGate = new OperationGate();
   public final transient ActiveProject activeProject =
       new telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject(operationGate);;
+  public final transient DesignSession designSession =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(operationGate);;
   public final transient EffectOutcomes effectOutcomes =
       new telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes(operationGate);;
   public final transient OpenGraph openGraph =
@@ -184,6 +195,10 @@ public class SessionProcessor
           SessionProcessor::new,
           new ProcessorDescriptor.Input[] {
             new ProcessorDescriptor.Input(
+                "Cleared",
+                "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared",
+                false),
+            new ProcessorDescriptor.Input(
                 "CloseRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested",
                 false),
@@ -240,6 +255,18 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded",
                 false),
             new ProcessorDescriptor.Input(
+                "ReadCompleted",
+                "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted",
+                false),
+            new ProcessorDescriptor.Input(
+                "ReadRequested",
+                "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "ResultReadCompleted",
+                "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted",
+                false),
+            new ProcessorDescriptor.Input(
                 "SettingsRestored",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored",
                 false),
@@ -249,11 +276,16 @@ public class SessionProcessor
                 false)
           },
           new ProcessorDescriptor.Sink[] {},
-          new ProcessorDescriptor.Service[] {},
+          new ProcessorDescriptor.Service[] {
+            new ProcessorDescriptor.Service(
+                "adapter",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionDriver$Adapter",
+                ProcessorDescriptor.Service.Direction.REQUIRED)
+          },
           new DescriptorSupport.Meta(
               null,
-              null,
-              "4b7ca0452d877fc69140c8b479f7c8ac86217ae4dc33c4d6607b670af71547f7",
+              "1.0.71",
+              "36ba2471b4033d27d7b3027e83dabea2edb43d87f5b5d5a5df5b540c8308ca6a",
               null));
 
   @Override
@@ -411,6 +443,18 @@ public class SessionProcessor
     } else if (event instanceof ClockStrategyEvent) {
       ClockStrategyEvent typedEvent = (ClockStrategyEvent) event;
       handleEvent(typedEvent);
+    } else if (event instanceof Cleared) {
+      Cleared typedEvent = (Cleared) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ReadCompleted) {
+      ReadCompleted typedEvent = (ReadCompleted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ReadRequested) {
+      ReadRequested typedEvent = (ReadRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof ResultReadCompleted) {
+      ResultReadCompleted typedEvent = (ResultReadCompleted) event;
+      handleEvent(typedEvent);
     } else if (event instanceof CloseRequested) {
       CloseRequested typedEvent = (CloseRequested) event;
       handleEvent(typedEvent);
@@ -471,6 +515,26 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ClockStrategyEvent event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(Cleared event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ReadCompleted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ReadRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ResultReadCompleted event) {
     processEvent(event);
   }
 
@@ -567,6 +631,38 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(clock, "clock", "setClockStrategy", typedEvent);
     clock.setClockStrategy(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(Cleared typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(designSession, "designSession", "cleared", typedEvent);
+    designSession.cleared(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ReadCompleted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(designSession, "designSession", "read", typedEvent);
+    designSession.read(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ReadRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(designSession, "designSession", "requested", typedEvent);
+    designSession.requested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ResultReadCompleted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(designSession, "designSession", "result", typedEvent);
+    designSession.result(typedEvent);
     afterEvent();
   }
 
@@ -835,6 +931,8 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onProfileApplied(typedEvent);
     auditInvocation(activeProject, "activeProject", "onProfileApplied", typedEvent);
     isDirty_activeProject = activeProject.onProfileApplied(typedEvent);
+    auditInvocation(designSession, "designSession", "project", typedEvent);
+    designSession.project(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
     effectOutcomes.onProfileApplied(typedEvent);
     if (guardCheck_auditInstallation()) {
@@ -883,6 +981,8 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onSettingsRestored(typedEvent);
     auditInvocation(activeProject, "activeProject", "onSettingsRestored", typedEvent);
     isDirty_activeProject = activeProject.onSettingsRestored(typedEvent);
+    auditInvocation(designSession, "designSession", "restored", typedEvent);
+    designSession.restored(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
     effectOutcomes.onSettingsRestored(typedEvent);
     if (guardCheck_auditInstallation()) {
@@ -958,6 +1058,26 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(clock, "clock", "setClockStrategy", typedEvent);
       clock.setClockStrategy(typedEvent);
+    } else if (event instanceof Cleared) {
+      Cleared typedEvent = (Cleared) event;
+      auditEvent(typedEvent);
+      auditInvocation(designSession, "designSession", "cleared", typedEvent);
+      designSession.cleared(typedEvent);
+    } else if (event instanceof ReadCompleted) {
+      ReadCompleted typedEvent = (ReadCompleted) event;
+      auditEvent(typedEvent);
+      auditInvocation(designSession, "designSession", "read", typedEvent);
+      designSession.read(typedEvent);
+    } else if (event instanceof ReadRequested) {
+      ReadRequested typedEvent = (ReadRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(designSession, "designSession", "requested", typedEvent);
+      designSession.requested(typedEvent);
+    } else if (event instanceof ResultReadCompleted) {
+      ResultReadCompleted typedEvent = (ResultReadCompleted) event;
+      auditEvent(typedEvent);
+      auditInvocation(designSession, "designSession", "result", typedEvent);
+      designSession.result(typedEvent);
     } else if (event instanceof CloseRequested) {
       CloseRequested typedEvent = (CloseRequested) event;
       auditEvent(typedEvent);
@@ -1055,6 +1175,8 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onProfileApplied(typedEvent);
       auditInvocation(activeProject, "activeProject", "onProfileApplied", typedEvent);
       isDirty_activeProject = activeProject.onProfileApplied(typedEvent);
+      auditInvocation(designSession, "designSession", "project", typedEvent);
+      designSession.project(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
       effectOutcomes.onProfileApplied(typedEvent);
     } else if (event instanceof ProfileLoaded) {
@@ -1073,6 +1195,8 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onSettingsRestored(typedEvent);
       auditInvocation(activeProject, "activeProject", "onSettingsRestored", typedEvent);
       isDirty_activeProject = activeProject.onSettingsRestored(typedEvent);
+      auditInvocation(designSession, "designSession", "restored", typedEvent);
+      designSession.restored(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
       effectOutcomes.onSettingsRestored(typedEvent);
     } else if (event instanceof StatusShown) {
@@ -1126,6 +1250,7 @@ public class SessionProcessor
     auditor.nodeRegistered(activeProject, "activeProject");
     auditor.nodeRegistered(auditInstallation, "auditInstallation");
     auditor.nodeRegistered(coverageClaim, "coverageClaim");
+    auditor.nodeRegistered(designSession, "designSession");
     auditor.nodeRegistered(effectOutcomes, "effectOutcomes");
     auditor.nodeRegistered(effectQueue, "effectQueue");
     auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
@@ -1227,6 +1352,10 @@ public class SessionProcessor
     return isDirty_auditInstallation | isDirty_openGraph | isDirty_openLog | isDirty_pairing;
   }
 
+  private boolean guardCheck_designSession() {
+    return isDirty_operationGate;
+  }
+
   private boolean guardCheck_effectOutcomes() {
     return isDirty_operationGate;
   }
@@ -1283,6 +1412,8 @@ public class SessionProcessor
         return (T) auditInstallation;
       case "coverageClaim":
         return (T) coverageClaim;
+      case "designSession":
+        return (T) designSession;
       case "effectOutcomes":
         return (T) effectOutcomes;
       case "effectQueue":
@@ -1340,6 +1471,9 @@ public class SessionProcessor
     }
     if (node == coverageClaim) {
       return "coverageClaim";
+    }
+    if (node == designSession) {
+      return "designSession";
     }
     if (node == effectOutcomes) {
       return "effectOutcomes";

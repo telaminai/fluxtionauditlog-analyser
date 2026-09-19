@@ -52,6 +52,7 @@ class SpotlightTargetTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "tab:summary", "tab:source", "tab:graph", "tab:topology", "tab:reports", "tab:assistant",
+            "source:design", "source:design:bean:x", "source:design:bean:com.acme::x", "source:design:line:3",
             "records", "records:row:12", "detail", "detail:node:priceListener",
             "topology", "topology:node:priceListener", "topology:verdict",
             "graph", "graph:note:2", "graph:series:quotePublisher.spread",

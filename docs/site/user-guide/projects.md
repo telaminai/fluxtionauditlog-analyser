@@ -4,6 +4,11 @@ If you support more than one Fluxtion application, you keep swapping the same fi
 Maven repos, event processors, saved graphs and hidden columns. A **project profile** holds those in a
 file beside the project, so moving between them is one click instead of a re-import.
 
+Source roots also authorise XML design and producer JSON reads beneath them. For Spring design rendering,
+include the design directory and a root containing `target/` for diagnostic results and receipts. A file
+inside the project but outside the configured roots is refused. Project-relative design paths are resolved
+without rewriting the profile. See [Source navigation](source-navigation.md#spring-design-and-file-glances).
+
 ## The two tiers
 
 | Tier | What's in it | Where it lives |

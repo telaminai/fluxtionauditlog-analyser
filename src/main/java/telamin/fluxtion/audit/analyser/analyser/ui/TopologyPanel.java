@@ -41,6 +41,8 @@ import java.util.function.Consumer;
  * the simple thing first keeps this slice about whether the rendering is any good.
  */
 public final class TopologyPanel extends JPanel {
+    private java.util.function.Consumer<String> declarationOpener;
+    public void setDeclarationOpener(java.util.function.Consumer<String> opener) { declarationOpener = opener; }
 
     private final TopologyCanvas canvas = new TopologyCanvas();
     private final JLabel status = new JLabel(" ");
@@ -1435,6 +1437,10 @@ public final class TopologyPanel extends JPanel {
      */
     private void showNodeMenu(String instanceId, java.awt.Point at) {
         JPopupMenu menu = new JPopupMenu();
+        JMenuItem declaration = new JMenuItem("Show declaration (matched by name)");
+        declaration.setEnabled(declarationOpener != null);
+        declaration.addActionListener(e -> declarationOpener.accept(instanceId));
+        menu.add(declaration);
 
         JMenuItem source = new JMenuItem("Open source");
         source.setEnabled(sourceOpener != null);

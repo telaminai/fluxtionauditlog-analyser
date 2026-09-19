@@ -36,7 +36,7 @@ public class IgnoredParameters implements EventLogSource {
      * whose side effects would invalidate the others.
      */
     private static final List<String> PRECEDENCE =
-            List.of("project", "analysis", "close", "discover", "logs", "log", "graphml", "processor");
+            List.of("project", "analysis", "close", "discover", "logs", "log", "graphml", "processor", "design", "diagnostics");
 
     /**
      * Parameters that MODIFY another rather than competing with it. {@code bind} supplies an

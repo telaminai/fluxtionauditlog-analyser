@@ -39,7 +39,7 @@ public final class SpotlightVocabulary {
                     + "the person would otherwise have to hunt for it, not for every sentence.";
 
     public static final String TEXT =
-            "tab:<summary|source|graph|topology|reports|assistant> · records · records:row:<recordIndex> · "
+            "tab:<summary|source|graph|topology|reports|assistant> · source:design · source:design:bean:<id> · source:design:line:<n> · records · records:row:<recordIndex> · "
                     + "detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · "
                     + "graph[:<name>] · graph[:<name>]:note:<n> · graph[:<name>]:series:<label> · project · "
                     + "project:<log|graph|processors|roots> · toolbar:<open|flag|explain|follow> · menu:<Menu> · "

@@ -141,6 +141,7 @@ to investigate a disagreement and re-run a proposed change against the same case
 | Records and detail | The actual limit-change and reading cycles, selected so you can inspect their fields. |
 | Charts | Temperature and effective limit over the scenario, if those numeric audit fields exist. |
 | Topology and step-through | The recorded node order and the graph's stated relationship to the log. |
+| [Design and producer findings](spring-authoring.md#view-design-and-producer-findings) (next analyser release) | The XML declaration and any producer diagnostic, with XML-input freshness and the unverified relationship to the run stated separately. |
 | Source navigation | The generated dispatch and Java methods responsible for the transition. |
 | Flags or spotlights | The LLM points at the decisive cycles or values while explaining them. |
 | Investigation report | Expected versus observed outputs, supporting references and any unresolved evidence gaps. |

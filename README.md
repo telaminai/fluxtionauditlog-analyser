@@ -33,6 +33,10 @@ to the exact source, and hand to an LLM for a plain-English, code-grounded expla
 - **Log → source navigation** — click a node line (or Ctrl/⌘-click in the source) to open the exact
   node class/method, resolved through the EventProcessor's field declarations. Selecting a record scrolls
   the processor to its dispatch method.
+- **Spring design and findings (on main, next release)** — browse read-only XML and its bean index, follow
+  edits without a log, and open validation/reconciliation/compiler findings. Bean-to-node links remain
+  navigation by name; XML freshness does not prove a relationship to the loaded run. See
+  [design navigation](docs/site/user-guide/source-navigation.md#spring-design-and-file-glances).
 - **LLM assistant** — assembles the selected record(s), the node-type map, and the relevant source, and
   asks Claude/OpenAI to explain what happened and why. No API key? It produces a ready-to-paste prompt.
   The prompt is also **seeded with the log's file path, shape and per-record byte offsets**, so an agentic
@@ -125,7 +129,8 @@ Settings live in `~/.fluxtion-analyser/config` (cleartext — a local single-use
 **File → Settings**:
 
 - **Source roots** — Java source dirs (e.g. `.../src/main/java`); a project folder is auto-expanded to its
-  `src/main/java` (incl. sub-modules).
+  `src/main/java` (incl. sub-modules). In the next release, configured roots also authorise design XML and
+  producer JSON reads. Add the containing directories explicitly; opening a project grants no extra access.
 - **Maven repos** — local Maven repositories (default `~/.m2/repository`) searched for `*-sources.jar`
   when a class isn't under any source root; multiple repos supported, plus a "don't search" opt-out.
 - **Event processor** — the list of candidate FQNs (add / edit / remove; double-click to edit) with one
@@ -149,6 +154,7 @@ All date/times are shown in **UTC**. Graphs, columns, flags-view, window bounds 
 | `filter` | `FilterState` — the one observable filter shared by all views. |
 | `summary` / `graph` / `diff` | Aggregation, series extraction, and record diffing (all pure/testable). |
 | `source` | `EventProcessorModel`, `SourceService`, `SourceNavigation`, `MavenSourceResolver` — instanceId → field → FQN → file (source roots, then `*-sources.jar` fallback). |
+| `design` / `session` | Inert XML indexing, producer diagnostics and input freshness; the Fluxtion session graph owns design state and rejects stale read completions. |
 | `llm` | `PromptBuilder`, `LlmClient` (Anthropic/OpenAI over `java.net.http`), mini `Json` codec. |
 | `io` | `S3Source` — `aws s3 cp` to a temp file. |
 | `config` | `AppConfig` + `ConfigStore`. |

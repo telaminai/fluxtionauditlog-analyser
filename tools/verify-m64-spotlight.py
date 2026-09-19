@@ -85,7 +85,7 @@ def main():
             r = a.act("spotlight", target="status", caption="line one\nline two")
             check("a two-line caption is refused - the sentence belongs in the chat", r.get("ok") is False, r)
 
-            print("with a log, a graph and a chart open - every family")
+            print("with a log, a graph and a chart open - every M64 family (M66 design families: tools/check-design-render.py)")
             a.act("open", log=log, graphml=graph)
             a.settled_context()
             check("opening put the spotlight out (a view-changing verb)", "spotlight" not in a.context(), a.context().get("spotlight"))

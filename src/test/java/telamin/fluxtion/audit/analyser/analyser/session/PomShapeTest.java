@@ -75,7 +75,7 @@ class PomShapeTest {
         // state: the pom must name a released runtime CI can resolve before the feature ships.
         String fluxtionVersion = property(project, "fluxtion.version");
         assertFalse(fluxtionVersion.endsWith("-SNAPSHOT"), "a release cannot depend on a snapshot: " + fluxtionVersion);
-        assertEquals("1.0.15", fluxtionVersion);
+        assertEquals("1.0.16", fluxtionVersion);
     }
 
     @Test

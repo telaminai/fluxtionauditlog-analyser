@@ -124,6 +124,16 @@ public final class SpotlightOverlay extends JComponent {
         return was;
     }
 
+    /** Preserve the original spotlight number when an edited design qualifies its testimony. */
+    public void markDesignEdited(String targetName) {
+        for (int i = 0; i < lit.size(); i++) {
+            Lit l = lit.get(i);
+            if (l.target().equals(targetName) && (l.caption() == null || !l.caption().contains("(design edited since this caption)")))
+                lit.set(i, new Lit(l.n(), l.target(), l.bounds(), (l.caption() == null ? "" : l.caption() + " ") + "(design edited since this caption)"));
+        }
+        repaint();
+    }
+
     /**
      * Measure every lit target again — the frame was resized, or the layout a reveal queued has now run.
      * One that can no longer be measured goes OUT (pointing at where something used to be is the failure

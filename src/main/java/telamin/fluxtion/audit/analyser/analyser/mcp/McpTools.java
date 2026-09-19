@@ -26,8 +26,8 @@ public final class McpTools {
     /** Tool-name prefix — namespaces our verbs when a client aggregates several MCP servers. */
     public static final String PREFIX = "analyser_";
 
-    /** Verbs that never mutate the app; package-visible so M42's loopback probe can pin that contract. */
-    static final Set<String> READ_ONLY = Set.of("aggregate", "read", "context", "coverage", "series");
+    /** Read-only data operations; source additionally changes the transient navigation view. */
+    static final Set<String> READ_ONLY = Set.of("aggregate", "read", "context", "coverage", "series", "source");
 
     /** One MCP tool descriptor per verb, in {@code VerbSchemas} order. */
     @SuppressWarnings("unchecked")

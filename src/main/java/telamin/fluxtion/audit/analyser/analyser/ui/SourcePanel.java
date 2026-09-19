@@ -5,6 +5,8 @@ import telamin.fluxtion.audit.analyser.analyser.source.EventProcessorModel;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceNavigation;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceNavigation.Ref;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceService;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace;
+import telamin.fluxtion.audit.analyser.analyser.design.DesignDocument;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -64,7 +66,13 @@ import java.util.Optional;
 public final class SourcePanel extends JPanel {
 
     /** Which of the two panes are on screen. */
-    public enum Mode { PROCESSOR, NODE, SPLIT }
+    public enum Mode { PROCESSOR, NODE, SPLIT, DESIGN }
+
+    private final DesignSourcePanel designPane = new DesignSourcePanel();
+    private final java.util.Map<Mode, JToggleButton> modeButtons = new java.util.EnumMap<>(Mode.class);
+    private DesignWorkspace.View fileView;
+    private String historyDestination;
+    private java.util.function.Consumer<java.util.Map<String, Object>> fileNavigator = p -> { };
 
     private final JComboBox<String> processorCombo = new JComboBox<>();
     private final JavaHighlighter highlighter = new JavaHighlighter();
@@ -81,7 +89,8 @@ public final class SourcePanel extends JPanel {
     private boolean syncing;
     private boolean wrap;
 
-    private final Deque<String> backStack = new ArrayDeque<>();
+    private record History(String fqn, DesignWorkspace.View file) { }
+    private final Deque<History> backStack = new ArrayDeque<>();
     private final JButton backButton = new JButton("◀ Back");
     private LogRecord dispatchRecord;   // the record whose dispatch method we scroll to on the EP
 
@@ -131,13 +140,18 @@ public final class SourcePanel extends JPanel {
         JToggleButton processor = new JToggleButton("Processor");
         JToggleButton node = new JToggleButton("Node");
         JToggleButton both = new JToggleButton("Split", true);
+        JToggleButton design = new JToggleButton("Design");
+        design.setToolTipText("The working XML design; relationship to a loaded run is unverified");
+        design.addActionListener(e -> setMode(Mode.DESIGN));
+        modeButtons.put(Mode.PROCESSOR, processor); modeButtons.put(Mode.NODE, node);
+        modeButtons.put(Mode.SPLIT, both); modeButtons.put(Mode.DESIGN, design);
         processor.setToolTipText("Only the generated EventProcessor — the dispatch and its guards");
         node.setToolTipText("Only the node class you navigated to");
         both.setToolTipText("Both: the call site above, the method it calls below");
         processor.addActionListener(e -> setMode(Mode.PROCESSOR));
         node.addActionListener(e -> setMode(Mode.NODE));
         both.addActionListener(e -> setMode(Mode.SPLIT));
-        for (JToggleButton b : List.of(processor, node, both)) {
+        for (JToggleButton b : List.of(processor, node, both, design)) {
             b.setFocusable(false);
             buttons.add(b);
             group.add(b);
@@ -148,6 +162,7 @@ public final class SourcePanel extends JPanel {
     public void setMode(Mode newMode) {
         if (newMode == null || mode == newMode) return;
         mode = newMode;
+        if (modeButtons.containsKey(mode)) modeButtons.get(mode).setSelected(true);
         applyMode();
     }
 
@@ -158,6 +173,7 @@ public final class SourcePanel extends JPanel {
         switch (mode) {
             case PROCESSOR -> host.add(processorPane, BorderLayout.CENTER);
             case NODE -> host.add(nodePane, BorderLayout.CENTER);
+            case DESIGN -> host.add(designPane, BorderLayout.CENTER);
             case SPLIT -> {
                 split.setTopComponent(processorPane);
                 split.setBottomComponent(nodePane);
@@ -175,6 +191,7 @@ public final class SourcePanel extends JPanel {
      * mode changing under the user.
      */
     private void revealPaneFor(Pane pane) {
+        if (mode == Mode.DESIGN) setMode(pane == nodePane ? Mode.NODE : Mode.PROCESSOR);
         if (mode == Mode.SPLIT) return;
         if ((mode == Mode.PROCESSOR && pane == nodePane) || (mode == Mode.NODE && pane == processorPane)) {
             setMode(Mode.SPLIT);
@@ -299,6 +316,7 @@ public final class SourcePanel extends JPanel {
     public void refresh() {
         processorPane.applyTheme();
         nodePane.applyTheme();
+        designPane.refresh();
     }
 
     /** Toggle source line-wrap in both panes: swap the view behaviour, sync the scrollbars, re-render. */
@@ -306,6 +324,7 @@ public final class SourcePanel extends JPanel {
         this.wrap = on;
         processorPane.setWrap(on);
         nodePane.setWrap(on);
+        designPane.setWrap(on);
     }
 
     /**
@@ -319,6 +338,7 @@ public final class SourcePanel extends JPanel {
     public void showDispatchFor(LogRecord record) {
         if (service == null || record == null) return;
         this.dispatchRecord = record;
+        if (mode == Mode.DESIGN) return;
         String fqn = service.selectedFqn();
         if (fqn == null) return;
         if (record.callback() != null) {
@@ -381,13 +401,17 @@ public final class SourcePanel extends JPanel {
     /** Navigate to a source file (recording history when the file changes) and scroll to a method. */
     private void navigate(String fqn, String method) {
         if (service == null || fqn == null) return;
+        boolean leavingFile = fileView != null;
+        if (fileView != null) {
+            backStack.push(new History(null, fileView)); fileView = null; backButton.setEnabled(true);
+        }
         Pane pane = paneFor(fqn);
         boolean newName = !Objects.equals(fqn, pane.fqn);
         // a miss is retried on every navigation — the roots may have changed since it was rendered — but
         // only a NEW name is history worth going back to
         if (newName || pane.source.isEmpty()) {
-            if (newName && pane.fqn != null) {
-                backStack.push(pane.fqn);
+            if (newName && pane.fqn != null && !leavingFile) {
+                backStack.push(new History(pane.fqn, null));
                 backButton.setEnabled(true);
             }
             pane.render(fqn);
@@ -406,7 +430,15 @@ public final class SourcePanel extends JPanel {
     /** Navigate back to the previously shown source file (Alt+Left / Cmd|Ctrl+[). */
     private void back() {
         if (backStack.isEmpty()) return;
-        String prev = backStack.pop();
+        History previous = backStack.pop();
+        if (previous.file() != null) {
+            historyDestination = previous.file().file();
+            fileNavigator.accept(java.util.Map.of("file", previous.file().file(), "line", previous.file().line()));
+            backButton.setEnabled(!backStack.isEmpty());
+            return;
+        }
+        fileView = null;
+        String prev = previous.fqn();
         Pane pane = paneFor(prev);
         pane.render(prev);
         revealPaneFor(pane);
@@ -426,6 +458,51 @@ public final class SourcePanel extends JPanel {
         am.put("nav-back", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent e) { back(); }
         });
+    }
+
+    public void setDesignNavigation(java.util.function.Consumer<java.util.Map<String, Object>> navigate,
+                                    java.util.function.Consumer<String> node, java.util.function.Consumer<String> records) {
+        fileNavigator = navigate;
+        designPane.callbacks(navigate, node, records);
+    }
+
+    public void showFile(DesignWorkspace.View view, String note, boolean history) {
+        boolean fromHistory = Objects.equals(historyDestination, view.file());
+        historyDestination = null;
+        if (history && !fromHistory) {
+            if (fileView != null && !fileView.file().equals(view.file())) backStack.push(new History(null, fileView));
+            else if (fileView == null) {
+                String fqn = mode == Mode.PROCESSOR ? processorPane.fqn : nodePane.fqn;
+                if (fqn != null) backStack.push(new History(fqn, null));
+            }
+        }
+        fileView = view;
+        if (view.mode().equals("DESIGN")) {
+            designPane.render(view, note); setMode(Mode.DESIGN);
+        } else {
+            nodePane.fqn = view.file(); nodePane.source = view.text();
+            nodePane.model = EventProcessorModel.parse(view.file(), view.text());
+            nodePane.label.setText(view.file());
+            highlighter.render(nodePane.text.getStyledDocument(), view.text());
+            setMode(Mode.NODE);
+            nodePane.scrollToOffset(DesignDocument.offset(view.text(), view.line(), 1));
+        }
+        backButton.setEnabled(!backStack.isEmpty());
+    }
+    public boolean followsDesign() { return designPane.following(); }
+    public DesignWorkspace.View fileView() { return fileView; }
+    public void navigationFailed() { historyDestination = null; }
+    public void designNote(String note) { designPane.note(note); }
+    public void clearDesign() {
+        designPane.clear();
+        historyDestination = null;
+        if (fileView != null) { fileView = null; nodePane.renderPlain("Source closed with the design session."); }
+        backStack.clear(); backButton.setEnabled(false);
+    }
+    public JComponent designComponent() { return designPane; }
+    public Optional<Rectangle> designBounds(String file, Integer line) {
+        if (mode != Mode.DESIGN || !Objects.equals(designPane.file(), file)) return Optional.empty();
+        return line == null ? Optional.of(designPane.getVisibleRect()) : designPane.lineBounds(line);
     }
 
     /**

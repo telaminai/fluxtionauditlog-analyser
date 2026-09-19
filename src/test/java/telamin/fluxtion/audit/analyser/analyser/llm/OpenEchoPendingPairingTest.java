@@ -68,6 +68,15 @@ class OpenEchoPendingPairingTest {
         assertEquals(2, g.get("loggedNodes"), "no log opened in this call — whatever is loaded is what the graph was judged against");
     }
 
+    @Test
+    void designAndSourceReadsReachTheAdapterWithoutALogAndOffTheEdt() {
+        Frame frame = new Frame(false);
+        ActionExecutor ex = executor(frame);
+        assertTrue(ex.render("source", Map.of("bean", "gate")).ok());
+        assertTrue(ex.render("open", Map.of("design", "design.xml", "diagnostics", "result.json")).ok());
+        assertEquals(List.of("source", "design", "diagnostics"), frame.designCalls);
+    }
+
     // ---- helpers ----------------------------------------------------------------------------------
 
     private static ActionExecutor executor(AppControl app) {
@@ -85,6 +94,15 @@ class OpenEchoPendingPairingTest {
         private final boolean asynchronousLoad;
         Frame(boolean asynchronousLoad) { this.asynchronousLoad = asynchronousLoad; }
 
+        final java.util.ArrayList<String> designCalls = new java.util.ArrayList<>();
+        private ActionResult designRead(String kind) {
+            assertFalse(javax.swing.SwingUtilities.isEventDispatchThread(), "file reads belong off the UI thread");
+            designCalls.add(kind);
+            return ActionResult.ok(kind, kind, Map.of("relationship", "unverified"));
+        }
+        @Override public ActionResult source(Map<String,Object> params) { return designRead("source"); }
+        @Override public ActionResult openDesign(String path) { return designRead("design"); }
+        @Override public ActionResult openDiagnostics(String path) { return designRead("diagnostics"); }
         @Override public ActionResult openLog(String path) { return openLog(path, null, null); }
         @Override public ActionResult openLog(String path, String format, String provenance) {
             Map<String, Object> echo = new LinkedHashMap<>();

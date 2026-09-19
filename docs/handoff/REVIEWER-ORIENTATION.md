@@ -53,7 +53,7 @@ Two facts that surprise people:
 | **provenance** | Which SYSTEM a log came from, declared by whoever opened it |
 | **the profile** | `.analyser/project.fluxtion-settings` — portable context: source roots, processors, runbook pointers, environments |
 | **runbook / skill** | A pointer to a markdown file in the repo. Never executed, never served as contents |
-| **verb** | One of the 14 actions on the socket (`read`, `coverage`, `topology`, `open`, `context`, …) |
+| **verb** | One of the 16 actions on the socket (`read`, `coverage`, `topology`, `open`, `source`, `spotlight`, …) |
 | **the socket** | localhost REST + MCP, how an agent drives the app |
 | **PARTIAL ordering** | A source that cannot supply a dispatch order; position is arrival, and ordinal badges are suppressed |
 
@@ -105,26 +105,24 @@ Things this project expects of a review, learned from ones that went wrong:
 - **Swing is not unit-tested** (rule 4, headless CI). UI claims rest on model tests, source-text checks
   and someone actually clicking. If a UI behaviour matters, say so rather than assuming coverage.
 
-## 6. What is live right now — 2026-09-17
+## 6. Current review map — 2026-09-19
 
-**Released:** 1.13.1 (2026-09-16). **On main, unreleased — the 1.13.2 candidate, every entry independently
-reviewed:** M44.3 (opening a log is a decision of the session processor; the driver is asynchronous at that
-boundary; supersede by opId; `context.inFlight`) with M44.3a (a graph is judged on a real arrival only) and the
-three lifecycle fixes its review required; the framed session-audit export; the note-rule zoom fix; two clamp
-golden fixtures and the N1 parser guard; the reworded canonical skills (index re-pinned); the JBang install note.
+The [live tracker](../specs/tracker.md) owns current status and delivery order; the changelog distinguishes
+released work from **Unreleased**. The latest release is 1.15.0 (2026-09-18).
 
-**Already reviewed — do not re-review unless you disagree:** the 1.13.1 cycle (four passes, `completed/
-review_analyser_1.13.1_*.md`) and the finish-first round (three passes, `completed/review_analyser_finish_first_*.md`).
-Their ledger entries are in `completed/unreviewed-changes-2026-09.md`. The live ledger
-(`unreviewed-changes.md`) is empty: nothing on `main` awaits review.
+**M66 design render is independently accepted and merged on main, unreleased.** Start with the
+[spec](../specs/spec-design-render.md) and [implementation handoff](handoff_m66_design_render.md). The tracker
+records the independent implementation review of `b7c82f5`, its reproduced tests and packaged-app checks,
+and the upstream source-location contract intake. Exact producer-delivery integration remains a stated
+boundary; matching a bean name never establishes the loaded log's relationship to the design.
 
-**Open decisions, not work:** M44.3b — what close/reset means for a PENDING open (tracker); M64 — the spotlight
-callout (`spec-spotlight.md`, PROPOSED). **Cross-repo:** the compiler's `feature/entry-point-rendering` is
-reviewed READY on the analyser side and awaits its merge and the 1.0.69 cut; FLX-1009's classifier follow-up is
-filed with it.
+**Separate work remains open:** the Spring-authoring guide pages still need their diagram/claims review.
+The [fresh-session trial](report_spring_authoring_acceptance_2026_09_19.md) predates M66 and records DX-02–DX-05
+on existing surfaces; those findings are preserved in the tracker and were not fixed by the M66 merge.
+M67 remains queued behind the Spring-authoring release, with its M66 merge prerequisite met.
 
-The historical state of 2026-09-03 (M48 authoring modes, M49 runtime measurements, four review rounds) is in
-the tracker and `completed/`; it is not live.
+Use the [direct-to-main review ledger](unreviewed-changes.md) alongside the tracker; an empty ledger does
+not close review tasks or correctness findings recorded in the tracker.
 
 ## 7. Two habits of the previous sessions to be sceptical of
 

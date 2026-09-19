@@ -21,7 +21,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
   *not verified* list (four Mermaid diagrams unwitnessed at any width; the conversations are illustrative, not captured)
   remains a review brief. **G10 version wording is now fixed in `5142e47`:** both pages name the compiler release
   that carries the tool; no guessed release version remains. The analyser-side complement is **M66** (design
-  render — Spring XML on the canvas), in progress; these pages should link it once it merges.
+  render — Spring XML on the canvas), now merged on main and unreleased; both guides link its design view.
 - ☐ **Independent review of the two pages** — version correction is implemented; diagrams and overall claims
   still need the owner-chosen review. The next analyser release carries the reviewed pages.
 
@@ -43,7 +43,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ☐ **DX-05 — graph names and spotlight addressability.** Colon-named charts are created but cannot be lit by
   name. Observer reproduced. Resolve compatibility for saved names explicitly before changing the grammar.
 
-This trial does not test the unmerged M66/M67 features. It supports prioritizing existing-surface correctness
+This trial predates the M66 merge and does not test M66 or M67. It supports prioritizing existing-surface correctness
 before adding new rendering primitives for this workflow. Browser preview and artifact publication remain
 unverified; the fresh-client trial itself is complete, with failures preserved rather than called a clean pass.
 
@@ -57,16 +57,17 @@ authoring-toolchain programme, shipped in 1.14.0 and held on the built jar by `t
 Left ticked on purpose, because they are the trail of something still open: UC-LANDED and the UC5 idiom-audit lines
 (context for idioms 2a/2b), N1 inside the golden-fixture item, M50's per-item SHIPPED lines (cross-repo, reconciled against
 the release tags), and the M19.1 sub-gates. **Landed on main since 1.15.0 and NOT reviewed:** the Spring-authoring guide
-pages (`6f8568e8`) — see the section above and *Suggested delivery order* item 1. **Active, on branches, not yet on
-main (owner, 2026-09-19):** **M66 · Design render — the Spring XML on the canvas** (**was M49** — renumbered 2026-09-19 because
+pages (`6f8568e8`) — see the section above and *Suggested delivery order* item 1. **Merged on main, unreleased
+(owner-authorised, 2026-09-19):** **M66 · Design render — the Spring XML on the canvas** (**was M49** — renumbered 2026-09-19 because
 `completed/tracker.md` already holds *M49 · Runtime performance*, measured 2026-09-03; the same fix as the M46→M50 duplicate),
-the analyser-side complement of the Spring-authoring work: spec `spec-design-render.md` revision 2 at `e624ca9c` on
-`spec/design-render` (independent review `review_spec_design_render_71e50ee5.md`, NOT READY R1–R4, all accepted; awaiting
-re-review), implementation in progress on `feat/m66-design-render` — tracker checkpoint `232c846a` carries the M49→M66 correction
-and the implementation decisions; independently re-reviewed at that checkpoint (`docs/handoff/review_spec_design_render_232c846a.md`
-on the branch, `aa41d06e`: READY FOR IMPLEMENTATION, R1–R4 addressed; G2 the verb inventory and G3 the widened root policy to fold
-in, G4 the runtime/builder bump is the owner's call, G5 rebase onto main before the next checkpoint). Its tracker section arrives with that branch; *Suggested delivery order* item 2 holds its
-place here.
+the analyser-side complement of the Spring-authoring work. Spec revision 2 was independently reviewed in
+[`review_spec_design_render_232c846a.md`](../handoff/review_spec_design_render_232c846a.md) (`aa41d06`), after
+tracker checkpoint `232c846a`. G1–G7 are incorporated in the implementation on `feat/m66-design-render`;
+see the M66 section below
+and [implementation handoff](../handoff/handoff_m66_design_render.md). The independent reviewer accepted
+implementation `b7c82f5` on 2026-09-19. The owner then authorised the merge. The squash merge includes review
+intake `9fd7b28` and preserves main's newer Spring-authoring evidence and DX-02–DX-05 findings. M66 stays in
+the live tracker until released; the feature branch preserves the original review history.
 
 **Tidied 2026-09-17, after 1.14.0/1.14.1 (rule 7).** Twenty ☑ items and one ⊘ moved verbatim to
 [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-17*: M64.1–.9 (M64.10/.11 stay), M65.0–.4 with its
@@ -455,7 +456,7 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
 - [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
   machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
 
-## M67 · The extension tour — extend a running application with a jar you already built — ☐ SPEC'D 2026-09-19 (owner-directed); **QUEUED behind the Spring-authoring release and M66** (owner, same day: "we will finish spring authoring and xml rendering for a solid base to build from")
+## M67 · The extension tour — extend a running application with a jar you already built — ☐ SPEC'D 2026-09-19 (owner-directed); **QUEUED behind the Spring-authoring release; M66 merge gate met** (owner: "we will finish spring authoring and xml rendering for a solid base to build from")
 
 Spec: **[spec-extension-tour.md](spec-extension-tour.md)**. Owner, 2026-09-19: *"as soon as developers realise they can
 extend an application with jars they have built before, use LLM generated spring XML and validate with audit logs …
@@ -468,8 +469,8 @@ Decisions: a public, versioned jar catalogue on the playground-libs pattern, rea
 analyser surface** in the first four slices (D-X1); the tour runs in a downloaded template project because two beats
 need a build (D-X2); no new verb, one new skill `extend-with-a-jar` in the spring tier (D-X4); evidence is a verify
 script + a held-out record + a generated docs page, never a screencast (D-X5). The declaration beat lights the bean
-only once M66 lands; the refusal beat lights the bean from the diagnostic only once the compiler's B0 check names it
-(Spring-branch review G7) — until then both beats say so. **Owner decisions, 2026-09-19:** a new `fluxtion-vendor-jars`
+using M66, now on main; the refusal beat lights the bean from the diagnostic only once the compiler's B0 check names it
+(Spring-branch review G7). **Owner decisions, 2026-09-19:** a new `fluxtion-vendor-jars`
 repository (D-X7); a dedicated *Extend an application* template entry (D-X8); limit check + notifier sink + feed
 adapter, one of them a jar the owner built before (D-X9); **the tour waits for M66** and publishes with the declaration
 lit (D-X10). Proposed, undecided: D-X11 the wizard — `spotlight {wait: true}` with Next · Stop (no Back — owner) that returns the
@@ -1074,9 +1075,9 @@ the capture scenarios complete (images regenerate only on a machine with the Scr
 unchanged. **On main since 1.15.0, unreleased and unreviewed:** the Spring-authoring guide pages (`6f8568e8`) — item 1.
 **Newly spec'd (item 3):** M67 the extension tour — the interactive demo of extending an application with a jar you already
 built, on the developer's own screen; a public vendor-jar catalogue like the playground libs; the owner's four calls are made
-and the tour is queued behind the Spring-authoring release and M66 (owner).
-**Active on branches (item 2):** M66 design render (was M49) — spec revision 2 on `spec/design-render`, implementation on
-`feat/m66-design-render`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
+and the tour remains queued behind the Spring-authoring release (M66's merge gate is met).
+**Merged on main, unreleased (item 2):** M66 design render (was M49) — independently accepted at `b7c82f5`,
+with review intake `9fd7b28`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
 or the pages say it is coming. **Elsewhere, not this repo's:** the Spring-authoring local workflow (compiler `feat/spring-authoring-a1`, playground
 `feat/spring-authoring-runbook`) is NOT READY after two independent reviews on 2026-09-19 — the version it pins (1.0.70)
 shipped without its module, a legacy XML invents handlers, and the run receipt's `compilerRan` cannot be true on a clean
@@ -1113,19 +1114,21 @@ M64.10, M46.11.
 
 1. ☐ **Review what landed unreviewed, then release** — the Spring-authoring guide pages (`docs/site/spring-authoring.md`,
    `spring-authoring-conversations.md`; author report `docs/handoff/report_spring_authoring_docs_2026_09_19.txt`): the four
-   diagrams at desktop and phone width, expected-vs-observed labelling, and the **1.0.70** wording (the carrying compiler
-   release is ≥ 1.0.72 — say "forthcoming"). Small; the pages are already in the nav and the CHANGELOG line is written.
-2. ◧ **M66 Design render — the Spring XML on the canvas** (was M49; owner, 2026-09-19; complements the Spring-authoring work). Spec
+   diagrams at desktop and phone width and expected-vs-observed labelling. Version wording was corrected in
+   `5142e47`; M66 design-view links and its unreleased availability are now included. The pages are in the nav
+   and the CHANGELOG line is written. DX-02–DX-05 from the separate observed trial remain open above.
+2. ☑ **M66 Design render — merged on main, unreleased** (was M49; owner, 2026-09-19; complements the Spring-authoring work). Spec
    `spec-design-render.md` revision 2 (`e624ca9c`, `spec/design-render`) after an independent review (R1–R4 accepted) —
-   re-reviewed at checkpoint `232c846a` (READY FOR IMPLEMENTATION); implementation on `feat/m66-design-render`. Read-only `DESIGN` mode on the Source tab, `source
+   re-reviewed at checkpoint `232c846a` (READY FOR IMPLEMENTATION); implementation `b7c82f5` independently
+   accepted, then squash-merged with `9fd7b28` review intake on the owner's instruction. Read-only `DESIGN` mode on the Source tab, `source
    {file|bean|line|fqn}`, `open.design` / `open.diagnostics`, `source:design[:bean:<id>|:line:<n>]` spotlight targets,
    bean ↔ node ↔ record navigation, "show in design" from any `SPRING_*` diagnostic; nothing edits, validates or
    generates. The M49 number collision is settled by the renumbering (head note).
 3. ☐ **M67 The extension tour** (owner, 2026-09-19; `spec-extension-tour.md`) — extend a running application with a jar
    already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats driven by
    the developer's own assistant. The owner's four calls are made (new `fluxtion-vendor-jars` repo; an *Extend an
-   application* template; limit check + notifier sink + feed adapter; waits for M66). **Not started until the
-   Spring-authoring release is out and M66 has merged** — the owner wants that base solid first; nothing in M67 is
+   application* template; limit check + notifier sink + feed adapter; M66 merge gate now met). **Not started until the
+   Spring-authoring release is out** — the owner wants that base solid first; nothing in M67 is
    picked up before then, cross-repo slices included. Then M67.1/.2 (cross-repo), M67.3/.4, publication with M67.5;
    beat 4 upgrades when the compiler's refusal names the bean. D-X11 (the wait-for-the-person spotlight) is proposed,
    undecided.
@@ -1249,6 +1252,94 @@ strongest available argument that prose is the wrong instrument for this class.
 **Open question, not yet answered:** whether a template plus a short pointer beats the full published
 doc set, or whether it is additive. That is what round 17 measures.
 
+
+## M66 · Design render — the Spring XML on the canvas — ☑ MERGED ON MAIN, UNRELEASED 2026-09-19 (spec **[spec-design-render.md](spec-design-render.md)** revision 2)
+
+Numbering correction: the incoming spec reused M49, already assigned to Runtime performance in
+`completed/tracker.md`. Design rendering is M66; the old review filenames remain historical references.
+
+Revision 2 (`e624ca9c`) was author-checked against R1–R4, then independently reviewed in
+[`review_spec_design_render_232c846a.md`](../handoff/review_spec_design_render_232c846a.md) (`aa41d06`).
+The four original specification findings are addressed. Implementation is owner-authorised, based on current main plus the revised spec. Decisions:
+the existing Fluxtion session graph owns completed design/result reads, refresh failures and session clears;
+filesystem parsing and Swing are adapters. Read requests advance a generation token so late explicit reads
+or Follow results cannot cross a session switch. File/hash work runs off the UI thread. The normal build remains keyless, using committed generated source. Builder 1.0.71 and public runtime
+1.0.16 are the selected released versions. `source {line}` is supported as D-1's parameter description
+promises; failed attempts stay labelled failed even when their XML input matches.
+Validation follows the owner's instruction: app behaviour, replay tests and emitted audit records first;
+if behaviour differs, inspect authored node implementations next. Inspect generated dispatch only if that
+evidence leaves the failure unexplained. Generation still runs the normal build and public-content checks.
+
+- [x] Re-review revision 2; isolate implementation branch and preserve the primary checkout.
+- [x] Inert XML index, authorised file access, typed session events and replay tests.
+- [x] Source/Reports rendering, navigation, producer intake and relationship states.
+- [x] Follow, revision-aware spotlights, project lifecycle and API parity.
+- [x] Full suite, packaged-app UI verification, docs/changelog and implementation handoff.
+
+Verification: Java 21 `mvn -q -o test` — **1,688 tests, 0 failures, 0 errors, 31 display skips**, re-derived
+from 216 Surefire XML reports; keyless packaging and `mkdocs build --strict` pass. The committed
+`tools/check-design-render.py` exercises the packaged app, its REST echoes and screenshots with an isolated
+home: no-log Follow, session/glance pinning, stale captions, deleted/duplicate/line anchors, malformed XML,
+three wrappers, root refusal, stale inputs, project and outside-project-log clears. Source ownership and audit
+order are covered by `DesignSessionAuditTest` plus replay tests. See the handoff for commands and limits.
+
+**Independent implementation review intake (2026-09-19, supplied by the owner):** the reviewer accepted
+`b7c82f5` after reproducing the offline suite in a detached worktree — **1,688 / 0 / 0 / 31 across 216
+Surefire reports** — and packaging the app, running `tools/check-design-render.py` successfully and inspecting
+its screenshots. The D-4 table and D-5 states were checked against the code: offending binding first,
+approximate config fallback, duplicate-bean ambiguity independent of declaration order, Java `SOURCE_MEMBER`
+and node-name navigation, unresolved findings retained; loaded-log relationship always `unverified`, XML
+freshness separate from build/source freshness, and `compilerRan=false` marking a pre-existing sidecar.
+No blocking findings remain. Two non-blocking notes: `serviceRegistrations` already replaces the spec's
+former `serviceBindings`; the spotlight callout overlapping XML text in the capture remains cosmetic polish.
+This records the reviewer's evidence, not another local app-probe run.
+
+**Merge (owner-authorised, 2026-09-19):** squash-integrated `feat/m66-design-render` at `9fd7b28` onto main
+`864eb36`, preserving its observed-trial report, evidence and DX findings. Production source, tests and build
+configuration match the independently accepted feature branch; conflict resolution is documentation-only.
+The spec, guides, README, onboarding, reviewer orientation and Unreleased changelog describe the landed feature.
+Merge verification: Java 21 `mvn -q -o clean verify` passed; **1,688 tests / 0 failures / 0 errors / 31 skips**
+from **216 Surefire XML reports**. `mkdocs build --strict` passed. The source/test/build diff against the
+accepted branch is empty, so its independently reproduced packaged-app evidence still applies.
+M66 remains here until release; no version tag or release was created. Exact producer-location delivery and
+the separate guide-page review remain open as stated above and below.
+
+Re-review G1–G7 intake: cite the independent review separately from the author check; name all sixteen-verb
+publication surfaces; make the Java/XML/JSON root grant explicit (project-relative is not a grant); use
+`serviceRegistrations`; compare receipt outputs before inputs. Canonical teaching skills are unchanged,
+so there is no playground re-vendor in M66. The runtime/builder upgrade is separately owner-requested
+(1.0.71 builder, latest released public runtime 1.0.16); it is not required by XML rendering. The full
+conformance suite and demo-log UI checks run under that pairing. Current-main documentation through
+`940eeba` was integrated by a three-way content merge, retaining M66 plus the newer tracker tidy/M67
+sections; published branch history and the independent review commit are preserved without a force push.
+
+Implementation bounds: record counts are explicitly scoped previews (`recordsScanned`, `recordsExact`);
+Java/record/receipt checks are timestamped at explicit diagnostics intake, while XML checks use the rendered
+revision. Receipt outputs are preferred to inputs, with effective source-root options honoured. File reads
+are UTF-8, 2 MiB maximum; source hashing refuses more than 10,000 files. A malformed first design is text-only;
+a later parse failure retains the last good indexed revision. These limits are in the spec and user guide.
+
+Revision 2 adds: a **location-resolution table** per diagnostic element kind (offending location before
+referenced bean; `SOURCE_MEMBER` is a Java location; `NODE` maps by node-name = bean-id; every row has an
+*unavailable* outcome), a **relationship state** on every design-side echo (`unverified` is the only state a
+loaded log can reach until M48.12's identity carrier exists; `input-current`/`input-stale` come from the authoring
+run receipt and speak only to the XML input), explicit **`open.diagnostics`** intake with wrapper detection and
+clear-on-refuse, exclusive selector families for `source`, Follow eligibility independent of a log, anchor
+behaviour on document revision change (never rebind), and public references in place of the private one.
+
+The fourth artefact. The canvas shows log, generated processor and node source; it does not show the design
+the LLM authored. M66 adds a read-only `DESIGN` mode to the Source tab, one verb `source {file|bean|line|fqn}`
+(a glance, like `goto`; bounded by the same source-root rule), `open.design` for the session's design file,
+spotlight targets `source:design[:bean:<id>|:line:<n>]`, bean ↔ node ↔ record navigation (bean id == node id
+under Spring authoring), and "show in design" from any `SPRING_*` diagnostic. No editing, validating or
+generating from the analyser — the runbook owns the write side. **Q3 resolved at the contract level:** upstream
+authoring-contract commit `29ea9ab` assigns the location requirement to A1: `sourceRef` on every `SPRING_*`
+diagnostic raised from a parsed document and on `SOURCE_MEMBER`, with diagnostic goldens carrying locations;
+`xpathHint` stays separate and unavailable locations are never invented. It also names M66's run-receipt
+consumption. The commit's documentation diff was checked locally. This does not establish producer delivery:
+acceptance 5's exact-location integration remains gated on actual producer output; the tested explicit-location
+fixtures and fallback rows remain the evidence here. The log↔build identity carrier stays outside A1 as a
+separate public-API change. Open: Q1 split view for cross-artefact spotlights; Q2 `xpath` anchors.
 
 ## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ .1–.4/.11 SHIPPED 2026-09-03, .7 SHIPPED in 1.14.0 (all archived); the rest open
 

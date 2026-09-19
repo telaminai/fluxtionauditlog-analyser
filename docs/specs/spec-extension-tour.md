@@ -1,11 +1,12 @@
 # Spec — the extension tour: extend a running application with a jar you already built, and watch it prove itself
 
 **Status:** PROPOSED 2026-09-19 (owner-directed); **D-X7–D-X10 decided by the owner the same day** (below) — the tour
-**waits for M66** and publishes with the declaration lit. **Milestone:** M67. **Tracker:** [tracker.md](tracker.md) ▸ M67.
+publishes with the declaration lit. M66 is now merged on main, unreleased; the tour remains queued behind
+the Spring-authoring release. **Milestone:** M67. **Tracker:** [tracker.md](tracker.md) ▸ M67.
 **Builds on:** [`spec-guided-start.md`](spec-guided-start.md) (the tour form: point, then speak; the held-out
 harness), [`spec-spotlight.md`](spec-spotlight.md) (M64, the vocabulary), [`spec-template-from-analyser.md`](spec-template-from-analyser.md)
-(a live, versioned catalogue read by the analyser — the pattern this spec copies for jars), `spec-design-render.md`
-(M66 — the beat that lights the declaration; on `feat/m66-design-render` until it merges, so not linked here), [`spec-component-catalogue.md`](spec-component-catalogue.md) (M48.13 — a
+(a live, versioned catalogue read by the analyser — the pattern this spec copies for jars),
+[M66 design render](spec-design-render.md) (the beat that lights the declaration), [`spec-component-catalogue.md`](spec-component-catalogue.md) (M48.13 — a
 jar's self-description, an **optimisation, not a requirement** of this tour), the public Spring-authoring documents
 (`contract.md`, `skill.md`, the project `RUNBOOK.md`) and the compiler diagnostics contract.
 
