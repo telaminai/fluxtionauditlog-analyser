@@ -448,14 +448,17 @@ analyser surface** in the first four slices (D-X1); the tour runs in a downloade
 need a build (D-X2); no new verb, one new skill `extend-with-a-jar` in the spring tier (D-X4); evidence is a verify
 script + a held-out record + a generated docs page, never a screencast (D-X5). The declaration beat lights the bean
 only once M66 lands; the refusal beat lights the bean from the diagnostic only once the compiler's B0 check names it
-(Spring-branch review G7) — until then both beats say so. Four owner questions: where the catalogue lives (D-X7), the
-tour's project (D-X8), the first three jars (D-X9), whether to wait for M66 (D-X10).
+(Spring-branch review G7) — until then both beats say so. **Owner decisions, 2026-09-19:** a new `fluxtion-vendor-jars`
+repository (D-X7); a dedicated *Extend an application* template entry (D-X8); limit check + notifier sink + feed
+adapter, one of them a jar the owner built before (D-X9); **the tour waits for M66** and publishes with the declaration
+lit (D-X10). Proposed, undecided: D-X11 the wizard — `spotlight {wait: true}` with Back · Next · Stop that returns the
+call the LLM is waiting on; would be M64.14, the tour its first user.
 
 - [M67.1] ☐ **The catalogue** — repository, `catalogue.json`, three jars in placeholder packages with their source (cross-repo).
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
 - [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).
-- [M67.5] ☐ **Beat 3 lights the declaration** — after M66.
+- [M67.5] ☐ **Beat 3 lights the declaration** — after M66; **the tour publishes with this slice (D-X10)**.
 - [M67.6] ☐ **Beat 4 lights the bean from the diagnostic** — after the compiler's refusal carries it.
 
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
@@ -1049,7 +1052,8 @@ retired — .1–.12 shipped, .13 is in item 6. Pre-release scripts last run on 
 the capture scenarios complete (images regenerate only on a machine with the Screen Recording grant); rule 1's two checks
 unchanged. **On main since 1.15.0, unreleased and unreviewed:** the Spring-authoring guide pages (`6f8568e8`) — item 1.
 **Newly spec'd (item 3):** M67 the extension tour — the interactive demo of extending an application with a jar you already
-built, on the developer's own screen; needs a public vendor-jar catalogue like the playground libs (four owner calls first).
+built, on the developer's own screen; a public vendor-jar catalogue like the playground libs; the owner's four calls are made
+and the tour waits for M66.
 **Active on branches (item 2):** M66 design render (was M49) — spec revision 2 on `spec/design-render`, implementation on
 `feat/m66-design-render`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
 or the pages say it is coming. **Elsewhere, not this repo's:** the Spring-authoring local workflow (compiler `feat/spring-authoring-a1`, playground
@@ -1098,9 +1102,11 @@ M64.10, M46.11.
    generates. The M49 number collision is settled by the renumbering (head note).
 3. ☐ **M67 The extension tour** (owner, 2026-09-19; `spec-extension-tour.md`) — extend a running application with a jar
    already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats driven by
-   the developer's own assistant. First: the owner's four calls (catalogue home, tour project, first three jars, wait for
-   M66 or not); then M67.1 the catalogue and M67.2 the template (cross-repo), M67.3 the skill + verify script, M67.4 the
-   held-out record. Beats 3 and 4 upgrade with M66 and the compiler's bean-naming refusal.
+   the developer's own assistant. The owner's four calls are made (new `fluxtion-vendor-jars` repo; an *Extend an
+   application* template; limit check + notifier sink + feed adapter; **waits for M66**). Order: M67.1 the catalogue and
+   M67.2 the template (cross-repo, can start now), M67.3 the skill + verify script and M67.4 the held-out record
+   (rehearsed against the M66 branch), publication with M67.5 once M66 merges; beat 4 upgrades when the compiler's
+   refusal names the bean. D-X11 (the wait-for-the-person spotlight) is proposed, undecided.
 4. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
 5. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4

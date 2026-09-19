@@ -1,6 +1,7 @@
 # Spec — the extension tour: extend a running application with a jar you already built, and watch it prove itself
 
-**Status:** PROPOSED 2026-09-19 (owner-directed). **Milestone:** M67. **Tracker:** [tracker.md](tracker.md) ▸ M67.
+**Status:** PROPOSED 2026-09-19 (owner-directed); **D-X7–D-X10 decided by the owner the same day** (below) — the tour
+**waits for M66** and publishes with the declaration lit. **Milestone:** M67. **Tracker:** [tracker.md](tracker.md) ▸ M67.
 **Builds on:** [`spec-guided-start.md`](spec-guided-start.md) (the tour form: point, then speak; the held-out
 harness), [`spec-spotlight.md`](spec-spotlight.md) (M64, the vocabulary), [`spec-template-from-analyser.md`](spec-template-from-analyser.md)
 (a live, versioned catalogue read by the analyser — the pattern this spec copies for jars), `spec-design-render.md`
@@ -160,16 +161,35 @@ M64's vocabulary; nothing new is needed for beats 1, 2, 5, 6.
   extended — D-X8).
 - **M67.3** the `extend-with-a-jar` skill, the index move, the verify script (analyser).
 - **M67.4** the held-out record and the generated docs page (analyser, owner's key, local).
-- **M67.5** beat 3 lights the declaration (after M66).
+- **M67.5** beat 3 lights the declaration (after M66) — **the tour publishes with this slice, not before (D-X10)**.
 - **M67.6** beat 4 lights the bean from the diagnostic's element (after the compiler's B0 refusal names it).
 
-## Open for the owner
+## Decided by the owner, 2026-09-19
 
-- **D-X7** where the catalogue lives: a new `fluxtion-vendor-jars` repository beside `fluxtion-playground-libs`
-  (recommended — same fetch pattern, same public raw URL), or a directory in the playground libs repository.
-- **D-X8** the tour's project: a new onboarding template entry ("Extend an application", which can pre-declare the
-  catalogue repository and ship the first run's log) or the existing Spring AOT template plus a first run.
-- **D-X9** the three first jars, and whether one of them should be a jar the owner actually built before, in a
-  placeholder package, so the story "you already have jars like this" is literally true on stage.
-- **D-X10** whether the tour waits for M66 (beat 3 lit) before it is published, or ships with the honest beat 3 and
-  is upgraded.
+- **D-X7 · Where the catalogue lives:** a new `fluxtion-vendor-jars` repository beside `fluxtion-playground-libs`
+  — same fetch pattern, same public raw URL.
+- **D-X8 · The tour's project:** a dedicated *"Extend an application"* onboarding template entry, which pre-declares
+  the catalogue's repository and ships its first run's log. _(Recorded from "I agree with 1–3"; the alternative — the
+  Spring AOT template plus a first run — stays available if this reading was wrong.)_
+- **D-X9 · The first three jars:** a limit check (the tour's extension), a notifier sink, a feed adapter — and one
+  of them a jar the owner actually built before, in a placeholder package, so "you already have jars like this" is
+  literally true on stage.
+- **D-X10 · Timing:** the tour **waits for M66**. Beat 3 lights the declaration on first publication; the honest
+  "here is the file" form is for rehearsal only. M67.3/.4 may be built and rehearsed against the branch before M66
+  merges, but the skill is not pinned and the page is not published until beat 3 is lit.
+
+## Proposed, not yet decided
+
+- **D-X11 · The wizard: a spotlight that waits for the person.** Owner's idea, 2026-09-19: *"make spotlight
+  interactive, like a wizard, next/previous buttons that could drive the LLM."* MCP lets the LLM call the analyser
+  and never the reverse, so the buttons cannot push a turn into the LLM; what they can do is **return the call the
+  LLM is already waiting on**. Proposal: `spotlight` gains `wait: true` (a parameter — M64's fifteenth-verb rule
+  holds). With it the callout carries **Back · Next · Stop** and the verb blocks until one is pressed, bounded (60 s)
+  so client tool timeouts never bite; the echo carries `{advance: "next" | "back" | "stop" | "dismissed" | "timeout",
+  beat: <n>}` — `beat` echoing what the call was made with, so an LLM cannot drift. The skill's loop is then on the
+  LLM's side only: light, say one sentence, wait, branch; Back re-lights the previous beat from the script the LLM
+  holds. Escape and any click still dismiss, and now report it. The analyser learns nothing about tours; D-SP3's
+  dumb overlay stays dumb; the person chooses, the analyser does not.
+  **The unknown is behavioural, not mechanical:** whether a context-free client obeys "the wait is the only way
+  forward" instead of narrating three beats at once. Mechanism: about a day on `SpotlightOverlay` and one schema
+  line; the answer: one held-out run. If adopted it is M64.14, and the extension tour is its first user.
