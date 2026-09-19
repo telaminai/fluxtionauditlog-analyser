@@ -42,8 +42,8 @@ class ProjectVerbTest {
     @Test
     void projectIsNotItsOwnVerb_theSurfaceDoesNotGrow() {
         assertFalse(VerbSchemas.all().containsKey("project"));
-        assertEquals(15, VerbSchemas.all().size(), "M35.8 extends 'open' like close and discover did "
-                + "(15: M64's `spotlight` is the one concept no existing verb named; M48.7's canvas write went "
+        assertEquals(16, VerbSchemas.all().size(), "M35.8 extends 'open' like close and discover did "
+                + "(16: M66 source is a file glance; M64 spotlight points; M48.7's canvas write went "
                 + "onto 'open' the same way this did — see CloseVerbTest)");
     }
 

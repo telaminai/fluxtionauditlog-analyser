@@ -33,6 +33,8 @@ import java.util.function.BiConsumer;
  * Navigation is delegated to an opener supplied by the frame: {@code (instanceId, method)}.
  */
 public final class DetailPanel extends JPanel {
+    private java.util.function.Consumer<String> declarationOpener;
+    public void setDeclarationOpener(java.util.function.Consumer<String> opener) { declarationOpener = opener; }
 
     private static final String HINT = "  (select a record in the table above to see its nodeLogs)";
 
@@ -358,6 +360,13 @@ public final class DetailPanel extends JPanel {
         }
 
         if (!methodByInstance.isEmpty()) {
+            if (declarationOpener != null) {
+                javax.swing.JMenu declarations = new javax.swing.JMenu("Show declaration (matched by name)");
+                for (String id : methodByInstance.keySet()) {
+                    JMenuItem item = new JMenuItem(id); item.addActionListener(a -> declarationOpener.accept(id)); declarations.add(item);
+                }
+                menu.add(declarations);
+            }
             if (menu.getComponentCount() > 0) menu.addSeparator();
             JMenuItem header = new JMenuItem("Open node source…");
             header.setEnabled(false);

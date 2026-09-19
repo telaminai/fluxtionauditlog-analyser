@@ -154,7 +154,7 @@ machine, not a command you need to reconstruct.
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
 `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open`,
-`analyser_source_root` and `analyser_spotlight` — with full parameter schemas, so
+`analyser_source_root`, `analyser_source` and `analyser_spotlight` — with full parameter schemas, so
 there's nothing to paste into a prompt.
 
 `spotlight` lets an AI client **point** ([Ask it to show you](#ask-it-to-show-you) has the pictures and
@@ -164,7 +164,8 @@ them; `{add: true}` keeps what is already lit, and `{clear: true, target}` puts 
 their numbers — the chat that named them has already been read). A set is **all or nothing**: one target that
 does not exist, or two that cannot be on screen together, refuses the whole call with the reason.
 
-The targets are a small fixed vocabulary, named as you would say them — `tab:topology`,
+The targets are a small fixed vocabulary, named as you would say them — `source:design`,
+`source:design:bean:<id>`, `source:design:line:<n>` (the session design), `tab:topology`,
 `records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `topology:verdict` (the line where the
 analyser states how the graph fits the log), `graph`,
 `graph:note:2`, `graph:series:<label>` (the selected chart) or `graph:<name>:note:2`, `graph:<name>:series:<label>`
@@ -176,6 +177,12 @@ revealed the way `goto` reveals one — its node centred); one that does not exi
 reason**, never lit on nothing. `screenshot` and `context` leave a spotlight lit: they are how the client
 checks it lit what it meant — `context.spotlight.lit` lists what is lit, and a screenshot shows it exactly as
 you see it.
+
+`source` is a read-only file glance: `{file}`, `{file,line}`, `{line}`, `{bean}`, `{file,bean}`, `{fqn}` or
+`{fqn,method}`. It re-reads the local XML/Java file under authorised roots. `open {design}` declares the
+session design; `open {diagnostics}` explicitly replaces its producer findings and clears them on refusal.
+Both work without a log. See [Source navigation](source-navigation.md#spring-design-and-file-glances).
+The source-root grant now covers Java, XML designs and producer JSON; project membership alone is not a grant.
 
 `open` also writes to the **shared canvas** — state you and the AI client both see and either of you can
 set — because `open` is the verb that already means *put this in force*. Two things live there. **Posture**: whether this session is *research/support* or
@@ -362,7 +369,7 @@ $ claude
        analyser_filter · analyser_graph · analyser_goto
        analyser_flag · analyser_report · analyser_coverage
        analyser_context · analyser_topology · analyser_screenshot
-       analyser_open · analyser_source_root · analyser_spotlight
+       analyser_open · analyser_source_root · analyser_source · analyser_spotlight
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.

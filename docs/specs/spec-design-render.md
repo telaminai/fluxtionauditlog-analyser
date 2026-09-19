@@ -1,9 +1,10 @@
 # Design render — the Spring XML on the canvas (Design Spec)
 
-**Status:** PROPOSED, **revision 2** (2026-09-19) — revised after the independent review
+**Status:** APPROVED FOR IMPLEMENTATION, **revision 2** (2026-09-19) — revised after the independent review
 [`review_spec_design_render_71e50ee5.md`](../handoff/review_spec_design_render_71e50ee5.md) (NOT READY, R1–R4;
-all accepted). Revision 2 re-reviewed and implementation authorised 2026-09-19; current progress is in the
-tracker. **Milestone:** M66. **Tracker:** [tracker.md](tracker.md).
+all accepted). Revision 2 author-checked, then independently re-reviewed in
+[`review_spec_design_render_232c846a.md`](../handoff/review_spec_design_render_232c846a.md). Implementation
+authorised 2026-09-19; current progress is in the tracker. **Milestone:** M66. **Tracker:** [tracker.md](tracker.md).
 **Builds on:** [`spec-shared-evidence-canvas.md`](spec-shared-evidence-canvas.md) (the thesis this serves),
 [`spec-authoring-modes.md`](spec-authoring-modes.md), the `open` / `source_root` / `spotlight` verbs, the
 public Spring-authoring documents ([`contract.md`](https://fluxtion-playground.dev/spring-authoring/contract.md),
@@ -78,10 +79,26 @@ analyser_source {
 - An unknown bean id echoes the ids present; a bean id present twice is **ambiguous**: the echo lists both
   lines and nothing is selected or spotlit.
 
+### Publication and root policy (re-review G2/G3)
+
+`source` is the sixteenth verb, distinct from `topology`'s existing `source` boolean. It lands in
+`VerbSchemas`, `ActionDispatcher`, `ActionExecutor`, `AppControl`, MCP `tools/list` with `readOnlyHint`,
+the built-in assistant manifest, the assistant user guide and source-navigation guide. The manifest's
+verb/parameter inventory test and spotlight vocabulary equality test must pass. The three design families
+are exercised by `tools/check-design-render.py`; `tools/verify-m64-spotlight.py` retains its M64 scope.
+No canonical guided-start or point-at-the-fault skill is changed in M66, so no playground skill re-vendor
+is owed by this implementation.
+
+The **configured source roots** authorise Java, XML and producer JSON reads beneath them. This widens the
+previous Java-only description of the grant. The project root supplies a relative-path base, not an implicit
+grant: XML or JSON inside a project but outside every authorised root is refused. Include a containing root
+for `target/` to read findings and receipts. `open.design`/`open.diagnostics` and `source.file` resolve
+project-relative paths without rewriting a project profile, following M38's path-anchor rule.
+
 ## D-2 · Rendering
 
 - Source tab gains a **`DESIGN`** mode beside `PROCESSOR` / `NODE` / `SPLIT`: `XmlHighlighter`, a bean index
-  (`<bean id>` plus `FluxtionSpringConfig`'s `nodeBeans` / `eventHandlers` / `serviceBindings` entries), the
+  (`<bean id>` plus `FluxtionSpringConfig`'s `nodeBeans` / `eventHandlers` / `serviceRegistrations` entries), the
   existing back stack.
 - The design view has its **own Follow eligibility** (review): it refreshes on a change to the design file
   whether or not a log is open or followable (`MainFrame.setFollowing` today requires a followable log store;
@@ -111,11 +128,11 @@ diagnostic and says why navigation is not offered:
 | `element.kind` (codes) | Offending location | Fallback | Unavailable → UI says |
 |---|---|---|---|
 | any, with `sourceRef` | `sourceRef` resolved through the **report's `sourceRoot`** mapped to an authorised local root; XML → `DESIGN` at line; `.java` → `NODE` at line | — | *"location outside authorised roots"* |
-| `SPRING_SERVICE_BINDING` (`SPRING_UNKNOWN_BINDING_NODE`, `…_INCOMPLETE`, `…_DUPLICATE_…`) | the **binding declaration** (the `serviceBindings` entry) — even when the target bean exists, and even when `beanName` names a bean that does *not* exist | the `FluxtionSpringConfig` block, labelled *approximate*; several matching bindings → *ambiguous*, both listed, none selected | *"binding not found in this design"* |
+| `SPRING_SERVICE_BINDING` (`SPRING_UNKNOWN_BINDING_NODE`, `…_INCOMPLETE`, `…_DUPLICATE_…`) | the **binding declaration** (the `serviceRegistrations` entry) — even when the target bean exists, and even when `beanName` names a bean that does *not* exist | the `FluxtionSpringConfig` block, labelled *approximate*; several matching bindings → *ambiguous*, both listed, none selected | *"binding not found in this design"* |
 | `SPRING_BEAN` (`…_DUPLICATE_BEAN_ID`, `…_DANGLING_BEAN_REF`, `…_ROLE_CONFLICT`, `…_SERVICE_DECLARED_AS_BEAN`, `…_WIRED_AS_DEPENDENCY`, `SPRING_HANDLER_MISMATCH`, `SPRING_BEAN_NOT_SELECTED`) | `<bean id="beanName">`; for a dangling ref, the **referencing** `<ref>`/`ref=` site first, the missing target is by definition absent | the config list entry naming it | *"bean not declared in this design"* |
 | `SPRING_CONFIG` (`…_LEGACY_CONFIG_FALLBACK`, `…_LOG_LEVEL_CONFLICT`, `…_STRICT_SERVICE_BINDINGS_EMPTY`) | the `FluxtionSpringConfig` bean(s) | document start | — |
 | `SPRING_DOCUMENT` (`…_XML_NOT_WELL_FORMED`) | `sourceRef` line/column when present | document start with the parse message | — |
-| `SPRING_TYPE` / `EVENT` / `SERVICE` (`…_TYPE_COLLISION`, `…_UNKNOWN_HANDLER_EVENT`, `…_UNKNOWN_SERVICE_TYPE`, `…_UNUSED_SERVICE_TYPE`) | the `eventTypes` / `serviceTypes` list entry naming the FQCN | the config block, *approximate* | *"type not listed in this design"* |
+| `SPRING_TYPE` / `EVENT` / `SERVICE` (`SPRING_EVENT_SERVICE_TYPE_COLLISION`, `…_UNKNOWN_HANDLER_EVENT`, `…_UNKNOWN_SERVICE_TYPE`, `…_UNUSED_SERVICE_TYPE`) | the `eventTypes` / `serviceTypes` list entry naming the FQCN | the config block, *approximate* | *"type not listed in this design"* |
 | `NODE` (compiler codes such as **`FLX-1009`**, `FLX-1001`, `FLX-1008`) | under Spring authoring `nodeName` **is** the bean id → `<bean id="nodeName">`; the `element.nodeClass` also offers `source {fqn}` | — | *"no bean with this node name — not a Spring-authored node?"* |
 | `SOURCE_MEMBER` (`SPRING_RECONCILE_CONFLICT`, `…_WRONG_CONSTRUCT`) | this is a **Java** location: `sourceRef` if present, else `source {fqn: className}` — `member` may be a method, a field (`field:`) or an interface use (`implements:`), so it selects the class and scrolls by name when it can, else opens the class | the `xmlDeclaration` text is shown in the finding, and the bean whose declaration it quotes is offered as a *secondary* design anchor | *"class not under an authorised root"* |
 
@@ -142,7 +159,7 @@ header and each "show in design" action carry one of:
 | `relationship` | Meaning | Established by |
 |---|---|---|
 | `unverified` | working copy; matched by name; relationship to this run **unknown** | the default — and, in M66, the **only state a loaded log can reach**: there is no run/model identity carrier linking an arbitrary log to the build that produced it (tracker M48.12, still open). M66 ships with this stated, not hidden |
-| `input-current` | this XML **is the input** the named result file describes | the authoring **run receipt** (`target/fluxtion-run.json`): the stage's `inputs.xmlHash` equals the document revision on screen — **and only that**: an unchanged XML after a Java edit is still `input-current` for the XML and says nothing about the build; the receipt's `sourceHash`/`recordHash` and `build.compilerRan`/`outcome` are surfaced beside it so the human sees *which* inputs match |
+| `input-current` | this XML **is the input** the named result file describes | the authoring **run receipt** (`target/fluxtion-run.json`): the stage's `outputs.xmlHash` when outputs exist, otherwise `inputs.xmlHash` equals the document revision on screen — **and only that**: an unchanged XML after a Java edit is still `input-current` for the XML and says nothing about the build; the receipt's `sourceHash`/`recordHash` and `build.compilerRan`/`outcome` are surfaced beside it so the human sees *which* inputs match |
 | `input-stale` | the result file describes an earlier revision of this XML | receipt `xmlHash` ≠ document revision, or the result's own `inputHash` ≠ |
 | `unknown` | no receipt, no hashable result | a compiler sidecar alone; a project without the authoring record |
 
@@ -152,10 +169,25 @@ a receipt saying `build.compilerRan: false` shows *"sidecar predates the last at
 bean's edit only with the *"(design edited since this caption)"* mark (D-3). **The combined case the review
 names — unchanged XML, edited Java, an old log, a failed latest build — reads:** design `input-current` for
 the XML with `sourceHash` mismatch shown; validation result `input-current`; build receipt `outcome: failed`;
-sidecar *predates the last attempt*; log relationship `unverified`. Each stated; none inferred.
+sidecar *predates the last attempt*; log relationship `unverified`. Each stated; none inferred. Producer hashes use `sha256:<hex>`; document revisions use the same SHA-256
+hex over the original UTF-8 bytes, with the prefix normalised for comparison.
 
 A design hash in the runtime descriptor (`DescriptorSupport.Meta`) would let a *log* be tied to an XML revision
 later; that is a public-API contract change owned elsewhere and is **not** an M66 requirement.
+
+### Implementation bounds (2026-09-19)
+
+File reads and parsing run outside the UI thread; requested/completed facts pass through the existing
+Fluxtion session graph. New requests or project changes supersede late reads. Follow is independent of logs.
+Files are UTF-8, at most 2 MiB. A malformed first open renders inert text without an index; Follow retains a
+last good parsed revision when one exists.
+
+`source {bean}` reports a bounded record preview: `recordsScanned` and `recordsExact` qualify `records`.
+“Show records” searches off the UI thread and opens the first matching record. Java/authoring-record hashes
+and the receipt are read at explicit diagnostic intake; their timestamp is visible and the UI asks the user
+to reopen diagnostics after source/build changes. XML comparison follows the rendered revision. Receipt
+`outputs` supersede `inputs` when present; effective stage `options.sourceRoot` controls the source scan.
+A scan exceeding 10,000 files is unavailable, never truncated into a matching hash.
 
 ## D-6 · What is deliberately out
 
@@ -166,7 +198,7 @@ separate enrichment. The run/model identity carrier (M48.12) is a separate miles
 ## Acceptance
 
 1. `source {file}` renders a design under an authorised root, echo names file, mode and `relationship`; a file
-   outside every root is refused with the root list; `tools/list` shows the verb read-only.
+   outside every root is refused with the root list; `tools/list` shows the verb read-only; manifest verb/parameter inventory and spotlight vocabulary equality tests pass.
 2. `source {bean}` scrolls to the declaration with `nodeId`, `records` (labelled `unverified`), `source`;
    unknown id echoes the ids present; a duplicated id is ambiguous (both lines echoed, nothing selected).
    Mixed selectors are refused with the accepted shapes.

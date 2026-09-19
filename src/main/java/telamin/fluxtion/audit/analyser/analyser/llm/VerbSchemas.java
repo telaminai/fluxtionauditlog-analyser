@@ -235,6 +235,8 @@ public final class VerbSchemas {
                         + "selector's record (posture / record below; read them back in context.handoff).",
                 props(
                         p("log", string(), "path to an audit log, or an s3:// URI"),
+                        p("design", string(), "Session XML design under an authorised source root; read-only. Relationship to a loaded run is unverified."),
+                        p("diagnostics", string(), "Explicit producer-result intake under authorised roots: validation, reconciliation or compiler sidecar. Replaces the previous result; refusal clears it. Works without a log."),
                         p("logs", arr(string()), "an explicit ROLLED SET (M30): the member files, any "
                                 + "order — content decides the load order (each file's first timed "
                                 + "logTime); the echo reports the order and the time-order report"),
@@ -243,7 +245,7 @@ public final class VerbSchemas {
                                 + "against; needed before source navigation works"),
                         p("format", string(), "force a specific installed reader (M31 plugins) — e.g. "
                                 + "\"yaml\"; omit to let readers claim the file by content"),
-                        p("discover", enumStr("graphml"), "list the .graphml files under the "
+                        p("discover", enumStr("graphml", "diagnostics"), "diagnostics lists candidate producer results under the authorised project's target/ without loading one. graphml lists the .graphml files under the "
                                 + "configured source roots, RANKED against the open log (M35.4) — "
                                 + "each with its node count and how many of the log's nodes it "
                                 + "declares. Opens NOTHING: pick one and pass it as 'graphml'. "
@@ -306,8 +308,17 @@ public final class VerbSchemas {
                                 + "a parameter with no value and no default refuses the run and names itself")),
                 List.of()));
 
-        s.put("source_root", schema("Inspect or change the configured Java source roots. Reaches the "
-                        + "FILESYSTEM: a root grants source reading of every .java file beneath it.",
+        s.put("source", schema("Read-only source glance; rereads XML or Java under authorised source roots. "
+                        + "Exclusive selectors: {file}, {file,line}, {line}, {bean}, {file,bean}, {fqn}, {fqn,method}. "
+                        + "A glance never replaces open.design. Bean matches aid navigation, not evidence; relationship to the loaded run remains unverified.",
+                props(p("file", string(), "Project-relative or absolute path under an authorised source root"),
+                        p("bean", string(), "Bean id in the session design, or the specified XML file; duplicates are refused"),
+                        p("line", integer(), "One-based line in file or session design"),
+                        p("fqn", string(), "Java class under authorised source roots"),
+                        p("method", string(), "Method name, only with fqn")), List.of()));
+
+        s.put("source_root", schema("Inspect or change the configured source roots. Reaches the "
+                        + "FILESYSTEM: a root grants Java, XML design and producer-result reading beneath it.",
                 props(
                         p("add", arr(string()), "roots to add"),
                         p("remove", arr(string()), "roots to remove")),

@@ -42,3 +42,13 @@ Not verified / reviewer focus:
 - Review the central story: the LLM drives project work with its own tools and renders investigation
   results through the analyser; the human can inspect and challenge the evidence on the same canvas.
   Deterministic dispatch must not be read as proof of business correctness or uncontrolled I/O.
+
+Review response correction, 19 September 2026:
+The availability note now targets pending 1.0.72. Releases 1.0.70 and 1.0.71
+do not contain the local starter module. The compiler feature is under review;
+this documentation does not claim that its artifact has been published.
+
+Review G10 correction: both the guide and conversations now refer to the compiler
+release that includes the starter tool; exact coordinates belong to configuration
+and the downloaded project. No speculative version remains in those guide pages.
+The earlier numbered availability statements above are historical handoff notes.

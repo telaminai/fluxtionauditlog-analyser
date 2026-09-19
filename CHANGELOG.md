@@ -7,11 +7,24 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Spring design on the canvas (M66)** — open a session XML design, browse its bean index in Source ▸
+  Design, and use `source` for a fresh, read-only file/bean/line/class glance. Design Follow works without a
+  log; bean spotlights follow identity across edits and qualify old captions. File ▸ Open producer diagnostics
+  shows validation, reconciliation and compiler findings with explicit location and input-freshness limits.
+  Bean/node/record links are navigation by name; their relationship to a loaded run stays unverified.
 - **Spring authoring guide** — working with an LLM as a design partner, the local XML/source workflow,
   and the analyser as the shared canvas for evidence, charts and investigation reports. Flow diagrams
   and illustrative design/"what if?" conversations show how a question becomes a repeatable scenario.
-  The guide states the pending compiler/starter 1.0.70 availability separately from the analyser's
+  The guide states the pending compiler/starter availability separately from the analyser's
   shipped features.
+
+### Fixed
+
+- Keep both Spring authoring guides tied to the compiler release that includes the starter tool; the downloaded project holds the exact version pin.
+
+### Changed
+- Upgrade the analyser's Fluxtion runtime to released 1.0.16 and its regeneration builder to 1.0.71.
+  This is an owner-requested dependency update alongside M66; XML rendering itself needs no newer API.
 
 ## [1.15.0] - 2026-09-18
 

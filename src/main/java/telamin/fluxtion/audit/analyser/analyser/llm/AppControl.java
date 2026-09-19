@@ -9,12 +9,18 @@ import java.util.List;
  * <p>Kept separate from {@link RenderExecutor} because the two are different in kind, and the difference
  * is worth being able to see. Render verbs rearrange what is already loaded and are reversible from the
  * UI. These reach the filesystem: {@code open} points the app at any readable path, and a source root
- * grants {@code read}-style access to every {@code .java} file beneath it. Over the localhost REST
+ * grants reads of Java source, XML designs and producer JSON beneath it. Over the localhost REST
  * transport that is a meaningful capability, so it lives behind its own interface — an embedder that
  * wants the render verbs without the environment ones simply does not supply an implementation, and the
  * dispatcher reports the verb as unavailable rather than half-working.
  */
 public interface AppControl {
+
+    /** Design/source reads may block on I/O and are invoked off the UI thread by the executor. */
+    default ActionResult openDesign(String path) { return ActionResult.error("design view is not enabled here"); }
+    default ActionResult openDiagnostics(String path) { return ActionResult.error("producer findings are not enabled here"); }
+    default ActionResult discoverDiagnostics() { return ActionResult.error("diagnostic discovery is not enabled here"); }
+    default ActionResult source(java.util.Map<String, Object> selectors) { return ActionResult.error("source navigation is not enabled here"); }
 
     /** Open an audit log from a path (or {@code s3://…}); returns the echo or a structured error. */
     ActionResult openLog(String path);

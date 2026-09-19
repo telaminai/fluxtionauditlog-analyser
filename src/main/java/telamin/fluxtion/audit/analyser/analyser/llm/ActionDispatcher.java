@@ -92,7 +92,7 @@ public final class ActionDispatcher {
                         AggregateService.aggregate(snapshot.get(), params, rawText));
                 case "read" -> ActionResult.ok("read", "result",
                         ReadService.read(snapshot.get(), params, rawText, record));
-                case "filter", "graph", "goto", "flag", "topology", "open", "source_root", "screenshot",
+                case "filter", "graph", "goto", "flag", "topology", "open", "source", "source_root", "screenshot",
                      "report", "coverage", "series", "context", "spotlight" -> render != null
                         ? render.render(action, params)
                         : ActionResult.error("render verb '" + action + "' is not enabled here");

@@ -31,6 +31,9 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
     /** The eight families of D-SP2, split where a family has a whole-and-part form. */
     public enum Family {
         TAB("tab:<summary|source|graph|topology|reports|assistant>", true),
+        DESIGN("source:design", false),
+        DESIGN_BEAN("source:design:bean:<id>", true),
+        DESIGN_LINE("source:design:line:<n>", true),
         RECORDS("records", false),
         RECORDS_ROW("records:row:<recordIndex>", true),
         DETAIL("detail", false),
@@ -108,6 +111,14 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         String head = (first < 0 ? name : name.substring(0, first)).toLowerCase(Locale.ROOT);
         String rest = first < 0 ? null : name.substring(first + 1);
         return switch (head) {
+            case "source" -> {
+                if ("design".equalsIgnoreCase(rest)) yield ok(Family.DESIGN, null, name);
+                if (rest == null || !rest.toLowerCase(Locale.ROOT).startsWith("design:")) yield unknown("expected source:design[:bean:<id>|:line:<n>]");
+                String part = rest.substring(7);
+                yield part.toLowerCase(Locale.ROOT).startsWith("line:")
+                        ? oneBased(sub(part, "line", Family.DESIGN_LINE, name, true))
+                        : sub(part, "bean", Family.DESIGN_BEAN, name, false);
+            }
             case "tab" -> member(Family.TAB, rest, TABS, name);
             case "toolbar" -> member(Family.TOOLBAR, rest, TOOLBAR_BUTTONS, name);
             case "status" -> bare(Family.STATUS, rest, name);
@@ -469,5 +480,5 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
     }
 
     /** Verbs that change the view, and therefore end a spotlight (D-SP3): it would point at the wrong thing. */
-    public static final List<String> VIEW_CHANGING_VERBS = List.of("open", "filter", "goto", "graph", "topology");
+    public static final List<String> VIEW_CHANGING_VERBS = List.of("open", "source", "filter", "goto", "graph", "topology");
 }

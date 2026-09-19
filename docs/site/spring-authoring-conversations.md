@@ -12,7 +12,8 @@ behaviour. For recorded analyser tool calls and responses, see
 [Sample conversations](sample-conversations.md).
 
 The [capabilities and workflow guide](spring-authoring.md) explains the tools and
-the availability of the forthcoming 1.0.70 local authoring workflow.
+the availability of the local authoring workflow, which requires the next compiler
+release that includes the starter tool.
 
 ## 1. Design a system together
 

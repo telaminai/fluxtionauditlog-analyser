@@ -15,10 +15,11 @@ to see the collaboration, then use this page as the capabilities and workflow gu
 
 !!! info "Availability of the local authoring workflow"
     The local scripts and extended XML declarations below target the coordinated
-    **1.0.70 compiler/starter work**, which is implemented and awaiting independent
-    review and publication as of 19 September 2026. They are not an analyser release
-    feature. Use this workflow with a matching project download that includes
-    `RUNBOOK.md`, `fluxtion-authoring.json`, `setup.sh`, `validate.sh` and `generate.sh`.
+    **next compiler release that includes the local starter tool**. The workflow is
+    implemented and undergoing acceptance before publication. It is separate from
+    an analyser release. A matching project download names its required coordinate
+    in `fluxtion-authoring.json` and includes `RUNBOOK.md`, `setup.sh`, `validate.sh`
+    and `generate.sh`. Its setup command reports when the tool cannot be fetched.
     For the existing published demo, follow [Playground to analyser](tutorial-playground.md).
 
 ## One conversation, two workspaces
@@ -199,8 +200,43 @@ challenge the explanation. See [the shared research canvas](the-loop.md#the-shar
 
 A missing node log is not proof that its method did not execute. Nodes must write
 audit output at the active level to appear in the log. Use the analyser's stated
-coverage and pairing limits, generated dispatch and tests together. A successful
+coverage and pairing limits, outputs and tests together. If behaviour differs from the expectation, inspect
+the authored node first; consult generated dispatch only if those checks leave the failure unexplained. A successful
 build or a plausible chart alone cannot establish all the intended behaviour.
+
+## View design and producer findings
+
+Open the XML with **File ▸ Open design…**, or `analyser_open {"design":"src/main/resources/design.xml"}`.
+Authorise its directory in source roots; include the project's `target` directory to read producer results.
+The Source tab's Design mode shows declarations and a bean index, and follows file changes independently
+of the audit log. `analyser_source {"bean":"gate"}` re-reads and selects a declaration.
+[Source navigation](user-guide/source-navigation.md#spring-design-and-file-glances) lists the selectors and
+spotlight targets.
+
+Use **File ▸ Open producer diagnostics…**, or `analyser_open {"diagnostics":"target/fluxtion-validation.json"}`.
+**Reports ▸ Producer findings** retains every finding, including those without a navigable location.
+Validation, reconciliation and compiler result wrappers are detected by shape and version. A new intake
+replaces the previous result; a refused or unreadable file clears it. `open {discover:"diagnostics"}` only
+lists candidates under the active project's target directory. Intake works without a log.
+
+A finding's **Show** action follows its reported location under authorised roots. Fallbacks select the
+binding declaration before its referenced bean; approximate matches and ambiguity are stated. A missing
+bean cannot become a silent navigation failure. Java member findings open Java. Accurate producer locations
+remain dependent on the producer supplying `sourceRef`; the analyser does not invent them.
+
+The design view and findings separate three facts:
+
+- **XML input-current / input-stale / unknown:** the result hash or run receipt compared with the rendered XML.
+- **Java/authoring-record input checks and build outcome:** read at diagnostic intake, timestamped, with
+  receipt outputs preferred when available. Reopen diagnostics after editing Java or running the build.
+  Hashing is bounded to authorised roots and 10,000 Java files; unavailable comparisons stay unknown.
+- **Loaded run relationship: unverified:** a matching bean name permits navigation, never a claim that
+  the working copy produced the loaded log. A sidecar retained when the latest build did not run the compiler
+  says that it predates that attempt, even if the XML is unchanged.
+
+Producer findings are session state, separate from saved investigation reports. Switching projects clears
+the design and findings. Opening a log outside the current project also clears them. Nothing here edits,
+validates, generates, or runs the project.
 
 ## Change the design without losing the implementation
 

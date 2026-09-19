@@ -11,11 +11,41 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ☑ **Design partner and evidence canvas guides** — `docs/site/spring-authoring.md` covers capabilities,
   local workflow, reconciliation and the analyser handoff; `spring-authoring-conversations.md` adds
   illustrative design and behaviour-question conversations with flow diagrams. Expected results are
-  explicitly distinguished from captured runs. The coordinated 1.0.70 authoring workflow remains
+  explicitly distinguished from captured runs. The coordinated local authoring workflow remains
   review/publication-gated; these pages add no analyser execution or generation capability.
+  Review correction G10: both guides now name the carrying compiler release, not a speculative version;
+  the exact tool coordinate belongs to the downloaded project and publication gate.
+  The documentation correction passed 1,656 tests (31 display skips), MkDocs strict and the rule-1 sweep.
   Evidence and remaining review: [author report](../handoff/report_spring_authoring_docs_2026_09_19.txt).
+  **Landed directly on main (`6f8568e8`, 2026-09-19) with an author report and no review pass** — the report's own
+  *not verified* list (four Mermaid diagrams unwitnessed at any width; the conversations are illustrative, not captured)
+  is the review brief. **One claim is already wrong:** both pages promise the local workflow with compiler **1.0.70**;
+  the second independent review of that work (compiler `feat/spring-authoring-a1` at `e6ca5a5`, finding G1) found that
+  1.0.70 AND 1.0.71 were both released on 2026-09-19 WITHOUT the starter module, so the carrying release is ≥ 1.0.72 —
+  the pages should say "a forthcoming compiler release" until it is cut. **The analyser-side complement is M66 (design
+  render — the Spring XML on the canvas; was M49 until the renumbering of 2026-09-19), in progress; these pages should link it once it merges.**
+- ☐ **Review the two pages and fix the version wording** — owner-chosen reviewer; then the next analyser release carries
+  them (▸ *Suggested delivery order*, item 1).
 
 ## Shipped — archived
+
+**Tidied 2026-09-19, after 1.15.0 (rule 7).** Five ☑ items moved verbatim to
+[`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-19*: M46.5/.6/.7/.10 (the analyser-side closure of the
+authoring-toolchain programme, shipped in 1.14.0 and held on the built jar by `tools/verify-m46-agent-api.py`) and M48.7
+(the canvas handoff, 1.14.0), and — reconciled the same day on the owner's word — M47.2/.3/.4, which had shipped as M19.5 on
+2026-08-30 while the M47 section still read as a proposal. The 2026-09-18 tidy had already archived M64.10–.12, M65.6 and M46.11 (▸ *Tidy 2026-09-18*).
+Left ticked on purpose, because they are the trail of something still open: UC-LANDED and the UC5 idiom-audit lines
+(context for idioms 2a/2b), N1 inside the golden-fixture item, M50's per-item SHIPPED lines (cross-repo, reconciled against
+the release tags), and the M19.1 sub-gates. **Landed on main since 1.15.0 and NOT reviewed:** the Spring-authoring guide
+pages (`6f8568e8`) — see the section above and *Suggested delivery order* item 1. **Active, on branches, not yet on
+main (owner, 2026-09-19):** **M66 · Design render — the Spring XML on the canvas** (**was M49** — renumbered 2026-09-19 because
+`completed/tracker.md` already holds *M49 · Runtime performance*, measured 2026-09-03; the same fix as the M46→M50 duplicate),
+the analyser-side complement of the Spring-authoring work. Spec revision 2 was independently reviewed in
+[`review_spec_design_render_232c846a.md`](../handoff/review_spec_design_render_232c846a.md) (`aa41d06`), after
+tracker checkpoint `232c846a`. G1–G7 are incorporated in the implementation on `feat/m66-design-render`;
+see the M66 section below
+and [implementation handoff](../handoff/handoff_m66_design_render.md). It is implemented and awaiting review,
+not merged or released.
 
 **Tidied 2026-09-17, after 1.14.0/1.14.1 (rule 7).** Twenty ☑ items and one ⊘ moved verbatim to
 [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-17*: M64.1–.9 (M64.10/.11 stay), M65.0–.4 with its
@@ -403,6 +433,33 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
 
 - [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
   machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
+
+## M67 · The extension tour — extend a running application with a jar you already built — ☐ SPEC'D 2026-09-19 (owner-directed); **QUEUED behind the Spring-authoring release and M66** (owner, same day: "we will finish spring authoring and xml rendering for a solid base to build from")
+
+Spec: **[spec-extension-tour.md](spec-extension-tour.md)**. Owner, 2026-09-19: *"as soon as developers realise they can
+extend an application with jars they have built before, use LLM generated spring XML and validate with audit logs …
+it is like FP but for whole application construction. Now we have spotlight working we can literally step a developer
+through an interactive demo. We would need a basic catalogue of 'vendor' jars that is like the playground libs."*
+The claim: the compiler is the boundary, the audit log is the proof, the LLM's working set is XML + intent +
+diagnostics + log and never the vendor's source. The tour performs that claim on the developer's own screen, six
+beats in the guided-start form (point, one sentence, the screenshot that proves it), driven by their own assistant.
+Decisions: a public, versioned jar catalogue on the playground-libs pattern, read by the LLM and the pom, **no
+analyser surface** in the first four slices (D-X1); the tour runs in a downloaded template project because two beats
+need a build (D-X2); no new verb, one new skill `extend-with-a-jar` in the spring tier (D-X4); evidence is a verify
+script + a held-out record + a generated docs page, never a screencast (D-X5). The declaration beat lights the bean
+only once M66 lands; the refusal beat lights the bean from the diagnostic only once the compiler's B0 check names it
+(Spring-branch review G7) — until then both beats say so. **Owner decisions, 2026-09-19:** a new `fluxtion-vendor-jars`
+repository (D-X7); a dedicated *Extend an application* template entry (D-X8); limit check + notifier sink + feed
+adapter, one of them a jar the owner built before (D-X9); **the tour waits for M66** and publishes with the declaration
+lit (D-X10). Proposed, undecided: D-X11 the wizard — `spotlight {wait: true}` with Next · Stop (no Back — owner) that returns the
+call the LLM is waiting on; would be M64.14, the tour its first user.
+
+- [M67.1] ☐ **The catalogue** — repository, `catalogue.json`, three jars in placeholder packages with their source (cross-repo).
+- [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
+- [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
+- [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).
+- [M67.5] ☐ **Beat 3 lights the declaration** — after M66; **the tour publishes with this slice (D-X10)**.
+- [M67.6] ☐ **Beat 4 lights the bean from the diagnostic** — after the compiler's refusal carries it.
 
 ## M13 · MCP transport — ◧ M13.1–13.4 SHIPPED (archived; M13.5 open)
 _M13.1–13.4 (endpoint file, bridge, tools/call forward, docs) shipped 2026-08-15,
@@ -987,7 +1044,24 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-09-17 — the previous refresh was 2026-08-28 and had gone three weeks and five releases stale (its
+_Refreshed 2026-09-19._ Shipped since the 2026-09-17 refresh: **1.15.0** (2026-09-18 — M64.10/.11/.12: a spotlight target
+may name its chart or reach a menu item, the guidance says a call replaces unless it adds; `/manifest` carries the bridge
+`instructions`; a duplicated external label is replaced in place; two review rounds of main, all archived ▸ *Tidy 2026-09-18*).
+Every item of the 2026-09-17 sequence below is shipped and archived, so the list is rebuilt: the previous item 1 (M64) is
+retired — .1–.12 shipped, .13 is in item 6. Pre-release scripts last run on the 1.15.0 commit's jar (17/17, 18/18, 94/94);
+the capture scenarios complete (images regenerate only on a machine with the Screen Recording grant); rule 1's two checks
+unchanged. **On main since 1.15.0, unreleased and unreviewed:** the Spring-authoring guide pages (`6f8568e8`) — item 1.
+**Newly spec'd (item 3):** M67 the extension tour — the interactive demo of extending an application with a jar you already
+built, on the developer's own screen; a public vendor-jar catalogue like the playground libs; the owner's four calls are made
+and the tour is queued behind the Spring-authoring release and M66 (owner).
+**Active on branches (item 2):** M66 design render (was M49) — spec revision 2 on `spec/design-render`, implementation on
+`feat/m66-design-render`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
+or the pages say it is coming. **Elsewhere, not this repo's:** the Spring-authoring local workflow (compiler `feat/spring-authoring-a1`, playground
+`feat/spring-authoring-runbook`) is NOT READY after two independent reviews on 2026-09-19 — the version it pins (1.0.70)
+shipped without its module, a legacy XML invents handlers, and the run receipt's `compilerRan` cannot be true on a clean
+build (`design/spring-authoring/review-2026-09-19-claude-pass2.md` in the compiler repo); item 9.
+
+_Previous refresh, 2026-09-17 — the previous refresh was 2026-08-28 and had gone three weeks and five releases stale (its
 item 1 was "Release 1.12.0"). Shipped since: **1.12.0**, **1.13.0–1.13.2** (M44.3 the asynchronous open as a
 session-processor decision, M52 the binary audit reader, M45 the GraphML vocabulary, M50's performance spine on
 runtime 1.0.15 / compiler 1.0.67), and now **1.14.0/1.14.1** (below). The owner's chosen sequence of 2026-09-17 —
@@ -1016,31 +1090,51 @@ person's:** *File ▸ Close log* during a slow FIRST load as a physical click (i
 end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
 M64.10, M46.11.
 
-1. ◧ **M64 Spotlight** — M64.1–.7 **ON MAIN** (`11a3497`, `dbd81b7`, `a491705`, `f242bd9`, `442582f`); M64.8/.9 done on main after the merge
-   (`docs/handoff/completed/report_m64_spotlight.txt`). An AI client can now POINT — in a tour, and equally when explaining a
-   result in normal use. The fifteenth verb (the only one added); the screenshot now composites the overlay (the spec assumed it already did).
-2. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
+1. ☐ **Review what landed unreviewed, then release** — the Spring-authoring guide pages (`docs/site/spring-authoring.md`,
+   `spring-authoring-conversations.md`; author report `docs/handoff/report_spring_authoring_docs_2026_09_19.txt`): the four
+   diagrams at desktop and phone width, expected-vs-observed labelling, and the **1.0.70** wording (the carrying compiler
+   release is ≥ 1.0.72 — say "forthcoming"). Small; the pages are already in the nav and the CHANGELOG line is written.
+2. ◧ **M66 Design render — the Spring XML on the canvas** (was M49; owner, 2026-09-19; complements the Spring-authoring work). Spec
+   `spec-design-render.md` revision 2 (`e624ca9c`, `spec/design-render`) after an independent review (R1–R4 accepted) —
+   re-reviewed at checkpoint `232c846a` (READY FOR IMPLEMENTATION); implementation on `feat/m66-design-render`. Read-only `DESIGN` mode on the Source tab, `source
+   {file|bean|line|fqn}`, `open.design` / `open.diagnostics`, `source:design[:bean:<id>|:line:<n>]` spotlight targets,
+   bean ↔ node ↔ record navigation, "show in design" from any `SPRING_*` diagnostic; nothing edits, validates or
+   generates. The M49 number collision is settled by the renumbering (head note).
+3. ☐ **M67 The extension tour** (owner, 2026-09-19; `spec-extension-tour.md`) — extend a running application with a jar
+   already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats driven by
+   the developer's own assistant. The owner's four calls are made (new `fluxtion-vendor-jars` repo; an *Extend an
+   application* template; limit check + notifier sink + feed adapter; waits for M66). **Not started until the
+   Spring-authoring release is out and M66 has merged** — the owner wants that base solid first; nothing in M67 is
+   picked up before then, cross-repo slices included. Then M67.1/.2 (cross-repo), M67.3/.4, publication with M67.5;
+   beat 4 upgrades when the compiler's refusal names the bean. D-X11 (the wait-for-the-person spotlight) is proposed,
+   undecided.
+4. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
-3. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
+5. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
    written in) — anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`.
-4. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-5. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
+6. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
+7. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim
    before its native audit and conditional VAL-12 evidence), **M19.3/.4** (tutorial, publish-gated on
    the playground Download), and **M19.8** (bench in CI).
-6. **The small schedulable remnants**, any time: the golden-fixture follow-ups (N1 + the clamp fixture), **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
+8. **The small schedulable remnants**, any time: **M64.13** (menu follow-ups from the M64.11 review), **M65.5** (the D-F5
+   extraction measurement), the person-at-the-screen leftovers (*File ▸ Close log* as a physical click during a slow first
+   load; *AI ▸ Place mode-selector record…*), **M48.17** (the canvas-thesis brief — owner call), the golden-fixture taxonomy
+   tranche (N1 and the clamp fixtures are DONE), **M40.2c**, **M20.5** (project artifact pointers — tier 1 of M38's
    model, share its path validation), **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five
    (`docs/handoff/completed/handoff_17_aug_2026_1.txt`), **M33.5** (gated), **M33.6** (owner said YES), the M36
    rule-1 upstream ask.
-7. **Cross-repo** _(this line predates the 2026-09-17 refresh and was NOT re-verified in it — check
+9. **Cross-repo** _(this line predates the 2026-09-17 refresh and was NOT re-verified in it — check
    [upstream-asks.md](../proposals/upstream-asks.md) for which of these have since been filed)_ **— the §H gate is MET; DRAFTED and READY TO FILE, still unfiled: UP-MNG-01…04, UP-PG-01…02,
    UP-RDR-01 in [upstream-asks.md](../proposals/upstream-asks.md) §5–§7**, **UP-MNG-03** (the server supplying the environment) has its analyser-side
    counterpart in M38.3: where both exist the declaration wins and `context.provenanceSource` says so.
-8. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
-9. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism
+10. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
+11. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism
    spine (compiler), **M52.6** (mongoose), **M57.4** (generator-http shading), **M51** (starter template), the
-   **M19** tutorial (publish-gated on the playground Download).
+   **M19** tutorial (publish-gated on the playground Download), and the **Spring-authoring local workflow** (compiler +
+   playground branches, NOT READY 2026-09-19 — its G1 re-pin decides which compiler release the analyser's guide pages may
+   name; **M46.1–.4/.8** are its upstream half).
 
-## M46 · Authoring-toolchain repair — ☐ SPEC'D 2026-09-01
+## M46 · Authoring-toolchain repair — ◧ SPEC'D 2026-09-01; the analyser-side closure (A1–A5 + the `open {analysis}` regression) SHIPPED in 1.14.0 and archived; U1–U8, X1–X4, H1–H2 open (upstream / docs / harness)
 
 Spec: [`spec-authoring-toolchain-repair.md`](spec-authoring-toolchain-repair.md). Evidence:
 `docs/experience/runs/round-07…10` — 23 fresh-context runs, two model tiers, predictions committed first.
@@ -1049,6 +1143,10 @@ Spec: [`spec-authoring-toolchain-repair.md`](spec-authoring-toolchain-repair.md)
 perfectly — **M5 and M6 were never violated by any agent in any run**, and 22 of 23 runs produced a
 correct graph. **Every item below is a communication failure, not a correctness failure.**
 
+- ➜ **M46.5/.6/.7/.10 — SHIPPED in 1.14.0, ARCHIVED 2026-09-19** to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-19*
+  (A1 first-open pairing verified fixed by M44.3; A2 both routes held; A3–A5 the echo's node counts, `openedBy`, the unbound
+  step cursor; the `open {analysis}` regression). `tools/verify-m46-agent-api.py` holds them on the built jar (17 checks) and
+  is on the pre-release checklist. M46.11 (the capture script's exit status) was archived 2026-09-18.
 - [M46.1a] ◑ **U1 REFINED by outside evidence — the message DOES reach the console; the `suggestedFix`
   does not** _(round 62, 2026-09-07)_ — four diagnostics hit while building a benchmark graph, all four
   correct, all four naming the offending fields, two of them naming the likely cause
@@ -1079,34 +1177,6 @@ correct graph. **Every item below is a communication failure, not a correctness 
   green — which let an agent ship plain Java and report all six requirements met. Upstream.
 - [M46.4] ☐ **U5–U8 · bootstrap deadlock, audit "setters" that dispatch, lifecycle records, `addEventAudit`
   naming.** Four agents hit the bootstrap; four hit the log pollution. Upstream + docs.
-- [M46.5] ☑ **A1 — VERIFIED FIXED 2026-09-17, by M44.3** _(on main; reviewed:
-  `docs/handoff/completed/report_m46_agent_api_closure.txt`)_. Reproduced against the built jar on a virgin instance
-  under an isolated home: `open {log, graphml}` echoes `pairing: pending` while the load is in flight, never
-  a verdict about the previous log; `context.graphPairing` and `coverage` each return the same answer twice.
-  This entry sat ☐ for sixteen days after the fix shipped because nothing re-ran the reproduction —
-  `tools/verify-m46-agent-api.py` is that reproduction, committed, so it cannot go stale again. Original:
-  the first pairing/coverage verdict after `open` was computed against pre-call state (all four Opus agents).
-- [M46.6] ☑ **A2 — route 1 VERIFIED FIXED, route 2 NOT REPRODUCED, both now held** _(2026-09-17, same
-  report)_. Route 1 (the project-offer modal on a load path): a socket open of a log INSIDE a project
-  directory returns, the socket keeps answering, and the offer arrives as `context.projectOffer` — the
-  case `verify-session-transitions.py` never covered. Route 2 (mixed `coverage`/`topology`): 24 interleaved
-  calls under a 15 s per-call timeout, none hangs. It was never explained, only not reproduced — most likely
-  closed by M44.3's thread confinement — so the script keeps asking.
-- [M46.7] ☑ **A3–A5 — FIXED 2026-09-17** _(same report)_. **A3:** the echo's `nodes` held the AUTHORED
-  count (10 for a graph the status bar calls 20); it is now `graphNodes` + `authoredNodes`, and no `nodes`
-  key is left to be read as either. **A4:** `openedBy` had two values, so a log RESTORED at startup was
-  attributed to "you" — the request now carries how it was launched (it rides beside the operation by
-  opId, as `pendingRolledSets` does, so the session processor is untouched). Sharing a home between runs is
-  still the harness's to fix (H1). **A5:** an unbound step cursor said "no records" with ten open; it now
-  says no record is SELECTED and how to select one, and the echo carries `recordsOpen`.
-- [M46.10] ☑ **`open {analysis}` failed on every call since 1.13.0 — FIXED 2026-09-17; SHIPS IN 1.14.0, not patched
-  (owner, tracker ▸ Decisions)** _(found doing the
-  above; same report)_. The recall runs off the EDT on purpose; the ignored-parameters decision it then
-  submits to the session processor did too, and the driver is confined to the EDT (M44.3 D-A1), so the
-  steps ran and the call then failed with a protocol violation. Released in 1.13.0–1.13.2 through four
-  review passes, because the only thing that recalls an analysis through the real frame is
-  `tools/capture-conversations.py`, and it had not been re-run since M44.3. **The lesson is a gate, not a
-  fix: that harness and `verify-m46-agent-api.py` belong in the pre-release checklist.**
 - [M46.8] ☐ **X1–X4 · doc gaps** — how to write the audit log to a file, the `addEventAudit` three-arg
   overload, and the fact that every skill describes a project that does not exist in a fresh template
   (reported by every agent in every round).
@@ -1119,7 +1189,16 @@ correct graph. **Every item below is a communication failure, not a correctness 
 error a diagnostic could have caught, and the one real design defect was caught by reading the generated
 source.
 
-## M47 — start from a template (proposed, owner's steer 2026-09-01)
+## M47 — start from a template — ◧ .2/.3/.4 SHIPPED (as M19.5, accepted 2026-08-30; archived 2026-09-19); .1 narrowed to a playground check; the round-17 question open
+
+**Reconciled 2026-09-19 (owner: "some of it already works, I have used it").** This section was written on 2026-09-01
+as a proposal and never reconciled with what M19.5 had already shipped on 2026-08-30 — *File ▸ New project from template…*
+(`MainFrame`, `TemplateProjectDialog`, `TemplateClient`; spec [`spec-template-from-analyser.md`](spec-template-from-analyser.md);
+review `docs/handoff/completed/review_m19_5_template_picker.txt`; user guide ▸ *Projects ▸ Start from a playground template*;
+spotlit as `menu:File:New project from template…` since 1.14.1). It lists the playground catalogue's onboarding subset
+with each entry's description, takes artifact/group/base-package, downloads the scaffold under the archive-boundary rules,
+and makes the generated project's profile the active project. That is .2, .3 and .4 — the templates are the playground's
+(14 in the versioned catalogue), not a directory in this repo.
 
 **The idea.** The analyser offers a set of Fluxtion project templates. A user picks one; that is what
 their AI client starts from, rather than an empty directory plus prose.
@@ -1136,34 +1215,64 @@ template removes all four **structurally** — there is no sentence to skim past
 and one session author all hit the bootstrap trap *after reading a warning about it*, which is the
 strongest available argument that prose is the wrong instrument for this class.
 
-- [ ] **M47.1** the template itself — `docs/experience/current/template/` exists and is green today
-      (`./run.sh` builds, generates, tests, runs; two nodes, propagation arrest visible in its own log)
-- [ ] **M47.2** template picker in the analyser; scaffold to a chosen directory
-- [ ] **M47.3** the scaffolded project registers as a project profile, so its log opens on first run
-- [ ] **M47.4** more than one template — the shape catalogue, not just a hello-world
+- ➜ **M47.2/.3/.4 — SHIPPED as M19.5, ARCHIVED 2026-09-19** to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-19*
+  (the picker over the live catalogue, scaffold to a chosen directory, the profile becomes the active project, more than one
+  template). What .2 proposed as "scaffold" shipped as a download from the playground's `/start/scaffold`, so the templates
+  have one source of truth and the analyser copies no names.
+- [M47.1] ☐ **Narrowed: do the catalogue's ONBOARDING templates remove the four round-16 blockers structurally?** The
+  proposal's `docs/experience/current/template/` is a local artefact the shipped path never uses; the question it stood for
+  survives — the bootstrap trap, `com.fluxtion` vs `com.telamin.fluxtion`, parents-are-fields (FLX-1001) and how to run a
+  Maven build must be ABSENT from what *New project from template…* downloads, not warned about. Check each onboarding
+  entry once; anything missing is a playground item (UP-PG), not ours.
 
 **Open question, not yet answered:** whether a template plus a short pointer beats the full published
 doc set, or whether it is additive. That is what round 17 measures.
 
 
-## M66 · Design render — the Spring XML on the canvas — ◧ IMPLEMENTING 2026-09-19 (spec **[spec-design-render.md](spec-design-render.md)** revision 2; `feat/m66-design-render`)
+## M66 · Design render — the Spring XML on the canvas — ◧ IMPLEMENTED, AWAITING REVIEW 2026-09-19 (spec **[spec-design-render.md](spec-design-render.md)** revision 2; `feat/m66-design-render`)
 
 Numbering correction: the incoming spec reused M49, already assigned to Runtime performance in
 `completed/tracker.md`. Design rendering is M66; the old review filenames remain historical references.
 
-Revision 2 (`e624ca9c`) was checked against review R1–R4 and the follow-up: the four specification findings
-are addressed. Implementation is owner-authorised, based on current main plus the revised spec. Decisions:
+Revision 2 (`e624ca9c`) was author-checked against R1–R4, then independently reviewed in
+[`review_spec_design_render_232c846a.md`](../handoff/review_spec_design_render_232c846a.md) (`aa41d06`).
+The four original specification findings are addressed. Implementation is owner-authorised, based on current main plus the revised spec. Decisions:
 the existing Fluxtion session graph owns completed design/result reads, refresh failures and session clears;
-filesystem parsing and Swing are adapters. A generation token rejects late Follow results after a session
-switch. The normal build remains keyless, using committed generated source. Builder 1.0.71 and public runtime
+filesystem parsing and Swing are adapters. Read requests advance a generation token so late explicit reads
+or Follow results cannot cross a session switch. File/hash work runs off the UI thread. The normal build remains keyless, using committed generated source. Builder 1.0.71 and public runtime
 1.0.16 are the selected released versions. `source {line}` is supported as D-1's parameter description
 promises; failed attempts stay labelled failed even when their XML input matches.
+Validation follows the owner's instruction: app behaviour, replay tests and emitted audit records first;
+if behaviour differs, inspect authored node implementations next. Inspect generated dispatch only if that
+evidence leaves the failure unexplained. Generation still runs the normal build and public-content checks.
 
 - [x] Re-review revision 2; isolate implementation branch and preserve the primary checkout.
-- [ ] Inert XML index, authorised file access, typed session events and replay tests.
-- [ ] Source/Reports rendering, navigation, producer intake and relationship states.
-- [ ] Follow, revision-aware spotlights, project lifecycle and API parity.
-- [ ] Full suite, packaged-app UI verification, docs/changelog and implementation handoff.
+- [x] Inert XML index, authorised file access, typed session events and replay tests.
+- [x] Source/Reports rendering, navigation, producer intake and relationship states.
+- [x] Follow, revision-aware spotlights, project lifecycle and API parity.
+- [x] Full suite, packaged-app UI verification, docs/changelog and implementation handoff.
+
+Verification: Java 21 `mvn -q -o test` — **1,688 tests, 0 failures, 0 errors, 31 display skips**, re-derived
+from 216 Surefire XML reports; keyless packaging and `mkdocs build --strict` pass. The committed
+`tools/check-design-render.py` exercises the packaged app, its REST echoes and screenshots with an isolated
+home: no-log Follow, session/glance pinning, stale captions, deleted/duplicate/line anchors, malformed XML,
+three wrappers, root refusal, stale inputs, project and outside-project-log clears. Source ownership and audit
+order are covered by `DesignSessionAuditTest` plus replay tests. See the handoff for commands and limits.
+
+Re-review G1–G7 intake: cite the independent review separately from the author check; name all sixteen-verb
+publication surfaces; make the Java/XML/JSON root grant explicit (project-relative is not a grant); use
+`serviceRegistrations`; compare receipt outputs before inputs. Canonical teaching skills are unchanged,
+so there is no playground re-vendor in M66. The runtime/builder upgrade is separately owner-requested
+(1.0.71 builder, latest released public runtime 1.0.16); it is not required by XML rendering. The full
+conformance suite and demo-log UI checks run under that pairing. Current-main documentation through
+`940eeba` was integrated by a three-way content merge, retaining M66 plus the newer tracker tidy/M67
+sections; published branch history and the independent review commit are preserved without a force push.
+
+Implementation bounds: record counts are explicitly scoped previews (`recordsScanned`, `recordsExact`);
+Java/record/receipt checks are timestamped at explicit diagnostics intake, while XML checks use the rendered
+revision. Receipt outputs are preferred to inputs, with effective source-root options honoured. File reads
+are UTF-8, 2 MiB maximum; source hashing refuses more than 10,000 files. A malformed first design is text-only;
+a later parse failure retains the last good indexed revision. These limits are in the spec and user guide.
 
 Revision 2 adds: a **location-resolution table** per diagnostic element kind (offending location before
 referenced bean; `SOURCE_MEMBER` is a Java location; `NODE` maps by node-name = bean-id; every row has an
@@ -1182,7 +1291,7 @@ generating from the analyser — the runbook owns the write side. Upstream ask: 
 producer knows the originating document and position, with an explicit unavailable case otherwise. Open: Q1 split view for cross-artefact
 spotlights; Q2 `xpath` anchors; Q3 where the compiler change rides.
 
-## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ PART SHIPPED 2026-09-03
+## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ .1–.4/.11 SHIPPED 2026-09-03, .7 SHIPPED in 1.14.0 (all archived); the rest open
 
 **Canonical architecture:** [`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET
 ARCHITECTURE* — eight stages, each marked MEASURED / IMPLEMENTED / PROPOSED / HYPOTHESIS, with the
@@ -1216,27 +1325,17 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
 | 3 | writes a Java builder and the nodes | yes | **unmeasured** — `CLAUDE.md` + golden path is the baseline |
 
 - ➜ **M48.1–.4 and M48.11 (resolver, memoisable selection, mode selector, shared scorer, full chain) — SHIPPED, ARCHIVED 2026-09-15** to [`completed/tracker.md`](completed/tracker.md) per rule 7 (moved verbatim).
+- ➜ **M48.7 (the canvas handoff — `open {posture | record}`, `context.handoff`, the Project-panel row) — SHIPPED in 1.14.0, ARCHIVED 2026-09-19** ▸ *Tidy 2026-09-19*; `tools/verify-m48-handoff.py` holds it (18 checks).
+- [M48.17] ☐ **The shared-evidence-canvas THESIS has had no independent read.** `spec-shared-evidence-canvas.md` says
+  *PROPOSED FOR INDEPENDENT REVIEW, 2026-09-04* and its brief (`docs/handoff/brief_review_shared_evidence_canvas.txt`) has sat
+  live since that day. M48.7 applied the canvas's write rules and WAS reviewed; the thesis itself was not, and no tracker
+  line owned it until now. Owner call: run the brief, or fold the thesis into `spec-authoring-modes.md` and retire it.
 - [M48.5] ☐ **the mode-1 selection asset** — small; how to read a `Fluxtion-Description`, that absence of
       a promise rules a candidate out, how an answer becomes a profile line
 - [M48.6] ☐ **`generate-sources` rebind** — measured: in modes 0/1 nothing the author writes is a
       generator input, so a plain `mvn compile` works and the whole ordering workaround
       (`generated.dependents`, the `default-compile` exclusion, the second compiler execution) can go.
       **The analyser ships the template, so this is ours.**
-- [M48.7] ☑ **`analyser_context` handoff section — ON MAIN 2026-09-17 (`c0e4836`, review fixes `99fe89a`; reviewed)** (`docs/handoff/completed/report_m48_7_canvas_handoff.txt`). The selector's record
-      and the session's POSTURE are shared canvas state: one `CanvasHandoff.State`, written by an AI client
-      (`open {posture | record}`, and `open {close: "handoff"}` to take it back) or a person (*AI ▸ Posture*, *AI ▸ Place mode-selector record…*) through the
-      same rules, read back in `context.handoff` and on a Project-panel row. Posture is SET by either party;
-      the derived default says it is a guess and a set one names who set it (R7 revised, R10). **The analyser
-      never runs the selector** — whoever ran it places its record. The canvas spec's write rules are applied
-      (typed, attributed, bounded, fail-closed whole, reversible, cleared at a project boundary) and **nothing
-      is persisted** — R9's profile write stays a separate, reviewable slice. **It was a verb of its own
-      (`handoff`) for one day and was FOLDED INTO `open` before it shipped** (second reader A6; owner decision,
-      2026-09-17 — tracker ▸ Decisions): `open` already means *put this in force* and already has the close idiom.
-      A canvas write goes ALONE — combined with any other `open` parameter it is refused whole. After review:
-      a non-string `branch` is refused (it used to be stringified into a valid-looking record), and the
-      built-in assistant's hand-written manifest — which had never been told about this, about `open`, or about
-      seven parameters of verbs it did list — is now held to an inventory of every published verb AND
-      parameter. `tools/verify-m48-handoff.py` holds it on the built jar (18 checks, incl. fresh start).
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
 - [M48.12] ☐ **audit-log header fingerprint carrier** — narrowed twice. The contract is

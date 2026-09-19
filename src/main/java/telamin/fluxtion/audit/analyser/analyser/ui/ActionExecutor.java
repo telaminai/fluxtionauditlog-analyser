@@ -129,10 +129,13 @@ public final class ActionExecutor implements RenderExecutor {
             case "open" -> {
                 if (isCanvasWrite(params)) return onEdt(() -> doOpenCanvas(params));   // M48.7: needs no log, opens no file
                 if (params.get("analysis") != null) return doOpenAnalysis(params);   // M38.4: off the EDT, see method
-                return onEdt(() -> doOpen(params));
+                return doOpen(params);
             }
             case "source_root" -> {
                 return onEdt(() -> doSourceRoot(params));
+            }
+            case "source" -> {
+                return app == null ? ActionResult.error("source navigation is not enabled here") : app.source(params);
             }
             case "spotlight" -> {
                 // M64: needs no log — a tab, the toolbar, the status line and the Project panel are all
@@ -872,8 +875,8 @@ public final class ActionExecutor implements RenderExecutor {
             // (M35.5) — the log and graph close with it — so "open a project and a log" in one call
             // has no coherent reading: whatever the log arrived into would be swept away by the switch.
             // Sequence the calls instead; the ignored params are NAMED (M26.4, review R2).
-            ActionResult r = app.openProject(str(params.get("project")));
-            var decision = openDecision(params);
+            ActionResult r = onEdt(() -> app.openProject(str(params.get("project"))));
+            var decision = onEdt(() -> openDecision(params));
             if (r.ok() && decision != null && decision.anythingIgnored()) {
                 Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("opened")));
                 echo.put("ignored", decision.ignored());
@@ -884,18 +887,19 @@ public final class ActionExecutor implements RenderExecutor {
         }
         if (params.get("log") != null && params.get("format") != null) {
             // §E + M35.9: the declaration travels WITH the open — one call, nothing set beforehand
-            return app.openLog(str(params.get("log")), str(params.get("format")), str(params.get("provenance")));
+            return onEdt(() -> app.openLog(str(params.get("log")), str(params.get("format")), str(params.get("provenance"))));
         }
         if (params.get("discover") != null) {
-            return app.discoverGraphs();   // lists, never opens — M35.4
+            if ("diagnostics".equals(str(params.get("discover")))) return onEdt(() -> app.discoverDiagnostics());
+            return onEdt(() -> app.discoverGraphs());   // lists, never opens — M35.4
         }
         if (params.get("close") != null) {
             // the counterpart of open, on the same verb: closing is a lifecycle act, not a new concept
-            ActionResult r = app.close(str(params.get("close")));
+            ActionResult r = onEdt(() -> app.close(str(params.get("close"))));
             // review R2 / M26.4: "open and close at once" is incoherent and the useful reading is the
             // close — but a param that was silently dropped reads to the caller as one that was
             // honoured, so name them. Every verb in this surface owes the caller that.
-            var decision = openDecision(params);
+            var decision = onEdt(() -> openDecision(params));
             if (r.ok() && decision != null && decision.anythingIgnored()) {
                 Map<String, Object> echo = new LinkedHashMap<>(asMap(r.toMap().get("applied")));
                 echo.put("ignored", decision.ignored());
@@ -907,21 +911,23 @@ public final class ActionExecutor implements RenderExecutor {
         if (params.get("logs") instanceof List<?> list && !list.isEmpty()) {
             List<String> paths = new ArrayList<>();
             for (Object o : list) if (o != null) paths.add(o.toString());
-            return app.openLogs(paths, str(params.get("provenance")));   // M30: an explicit set — content orders it
+            return onEdt(() -> app.openLogs(paths, str(params.get("provenance"))));   // M30: an explicit set — content orders it
         }
         String log = str(params.get("log"));
         String graphml = str(params.get("graphml"));
         String processor = str(params.get("processor"));
-        if (log == null && graphml == null && processor == null) {
+        String design = str(params.get("design"));
+        String diagnostics = str(params.get("diagnostics"));
+        if (log == null && graphml == null && processor == null && design == null && diagnostics == null) {
             return ActionResult.error(
-                    "'open' needs 'log', 'graphml', 'processor', 'project', 'analysis', 'posture', 'record', "
+                    "'open' needs 'design', 'diagnostics', 'log', 'graphml', 'processor', 'project', 'analysis', 'posture', 'record', "
                             + "'close' or 'discover'");
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         boolean logLoading = false;
         if (log != null) {
             // §E + M35.9: provenance rides the same call as the path
-            ActionResult r = app.openLog(log, null, str(params.get("provenance")));
+            ActionResult r = onEdt(() -> app.openLog(log, null, str(params.get("provenance"))));
             if (!r.ok()) return r;
             echo.put("log", log);
             // the frame loads a log in the background and says so; anything judged later in THIS call
@@ -931,7 +937,7 @@ public final class ActionExecutor implements RenderExecutor {
             if (logLoading) echo.put("logLoading", true);
         }
         if (graphml != null) {
-            ActionResult r = app.openGraphml(graphml);
+            ActionResult r = onEdt(() -> app.openGraphml(graphml));
             if (!r.ok()) return r;
             // carry the inner echo up rather than replacing it with the path we already knew:
             // openGraphml answers "does this graph fit the open log?" (M35.3) and that verdict is
@@ -953,9 +959,19 @@ public final class ActionExecutor implements RenderExecutor {
             }
         }
         if (processor != null) {
-            ActionResult r = app.selectProcessor(processor);
+            ActionResult r = onEdt(() -> app.selectProcessor(processor));
             if (!r.ok()) return r;
             echo.put("processor", processor);
+        }
+        if (design != null) {
+            ActionResult r = app.openDesign(design);
+            if (!r.ok()) return r;
+            echo.put("design", r.payload());
+        }
+        if (diagnostics != null) {
+            ActionResult r = app.openDiagnostics(diagnostics);
+            if (!r.ok()) return r;
+            echo.put("diagnostics", r.payload());
         }
         return ActionResult.ok("open", "opened", echo);
     }
@@ -1255,7 +1271,7 @@ public final class ActionExecutor implements RenderExecutor {
     }
 
     /** Run {@code body} on the EDT and return its result (render verbs mutate Swing state). */
-    private <T> T onEdt(Callable<T> body) {
+    <T> T onEdt(Callable<T> body) {
         if (SwingUtilities.isEventDispatchThread()) return call(body);
         @SuppressWarnings("unchecked") final T[] out = (T[]) new Object[1];
         final RuntimeException[] err = new RuntimeException[1];

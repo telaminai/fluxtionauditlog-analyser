@@ -46,7 +46,8 @@ class CloseVerbTest {
         //                            open {close: "handoff"} — this rule, applied to the verb that broke it.
         assertFalse(VerbSchemas.all().containsKey("handoff"),
                 "M48.7's canvas write lives on 'open' (posture / record / close: \"handoff\"), not on a verb of its own");
-        assertEquals(15, VerbSchemas.all().size(),
+        // M66 adds source: a rereadable file glance, distinct from open's session declaration.
+        assertEquals(16, VerbSchemas.all().size(),
                 "a new verb is a compatibility decision — if this number moved, say which concept no existing verb named");
     }
 

@@ -96,6 +96,8 @@ public final class ReportsPanel extends JPanel {
     private final DefaultListModel<String> names = new DefaultListModel<>();
     private final JList<String> list = new JList<>(names);
     private final JPanel detail = new JPanel();
+    private final javax.swing.JTabbedPane categories = new javax.swing.JTabbedPane();
+    private final ProducerFindingsPanel producerFindings = new ProducerFindingsPanel();
 
     public ReportsPanel(Supplier<List<ReportSpec>> reports,
                         Function<ReportSpec, ReportResolver.Resolution> resolve,
@@ -139,7 +141,19 @@ public final class ReportsPanel extends JPanel {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
                 new JScrollPane(list), detailScroll);
         split.setDividerLocation(180);
-        add(split, BorderLayout.CENTER);
+        categories.addTab("Investigation reports", split);
+        categories.addTab("Producer findings", producerFindings);
+        add(categories, BorderLayout.CENTER);
+    }
+
+    public void producerResult(telamin.fluxtion.audit.analyser.analyser.design.ProducerResult result,
+                               telamin.fluxtion.audit.analyser.analyser.design.DesignDocument design,
+                               String designPath,
+                               telamin.fluxtion.audit.analyser.analyser.design.DesignFiles files,
+                               String error, Consumer<telamin.fluxtion.audit.analyser.analyser.design.DiagnosticLocation> show,
+                               boolean select) {
+        producerFindings.render(result, design, designPath, files, error, show);
+        if (select) categories.setSelectedComponent(producerFindings);
     }
 
     /** Rebuild the list from the store, keeping the selection where it survives. */
@@ -163,6 +177,7 @@ public final class ReportsPanel extends JPanel {
 
     /** Select one report by name (the verb reveals what it just built, like the graph verb does). */
     public void select(String name) {
+        categories.setSelectedIndex(0);
         if (names.contains(name)) list.setSelectedValue(name, true);
     }
 

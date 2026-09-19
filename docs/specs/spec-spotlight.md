@@ -1,7 +1,10 @@
 # Spec — spotlight: the tutor points at the thing on screen
 
-**Status:** ON MAIN 2026-09-17 (M64.1–.7; reviewed in two rounds and a two-reader re-review — record in
-`docs/handoff/completed/`, SHA map beside it). M64.8/.9/.10 are open and GATE the 1.14.0 release. Originally: implemented on branch `fix/m46-agent-api-closure`
+**Status:** SHIPPED — M64.1–.9 in analyser 1.14.0 (2026-09-17), M64.10/.11/.12 in 1.15.0 (2026-09-18: a target may name its
+chart — `graph:<name>:…` — or reach a menu item — `menu:<Menu>:<item>`; the guidance says a call REPLACES unless `add: true`).
+M64.13 (menu follow-ups from the M64.11 review) is the only open slice. History: ON MAIN 2026-09-17 (M64.1–.7; reviewed in two
+rounds and a two-reader re-review — record in `docs/handoff/completed/`, SHA map beside it); M64.8/.9/.10 then gated the 1.14.0
+release and shipped in it. Originally: implemented on branch `fix/m46-agent-api-closure`
 (`docs/handoff/completed/report_m64_spotlight.txt`); **extended the same day by D-SP6 and D-SP7** (owner direction: several
 spotlights and callouts at once; the guidance in the GENERAL assistant guidance, not one skill —
 `docs/handoff/completed/report_m64_6_multi_spotlight.txt`) — see *As built* at the end, which records **one assumption of this

@@ -115,7 +115,7 @@ why they are collected here.
 | **Discovery offers, and never selects** (M35.4, D-AI5) | Found a graph, a skill, a frontmatter description? Offer it. A person declares it. Applies to facts as well as files. | `spec-ai-menu.md` |
 | **The panel STATES; the menu ACTS** (D-AI1) | Mutation has one home, so a reader never wonders whether a button will change their project. | `spec-ai-menu.md` |
 | **Nothing on the AI menu runs anything** (D-AI4) | Recorded at the surface where "just add a Run item" will be tempting. Enforced by a source-text test. | `spec-ai-menu.md` |
-| **The verb surface is pinned** | `assertEquals(14, VerbSchemas.all().size())`. Adding a verb is a decision, not a convenience. | tracker ▸ Decisions |
+| **The verb surface is pinned** | `VerbSchemasTest` pins the verb set (16 including M66 `source`). Adding a verb is a decision, not a convenience. | tracker ▸ Decisions |
 | **Server verbs never appear on the action socket** | The analyser acquires no server-mutating code at all. Agents drive Mongoose directly. | `spec-agent-brokered-dev-loop.md` §B |
 | **Agent fixes arrive as evidence-linked PRs, never direct edits** | | tracker ▸ Decisions |
 | **The refusals are load-bearing** (D-T4) | Every place the analyser declines to assert something is now part of the market position. Loosening one is a position change, not a tweak. | `spec-trust-structure.md` |

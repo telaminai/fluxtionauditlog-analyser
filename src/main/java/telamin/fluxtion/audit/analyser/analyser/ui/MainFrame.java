@@ -65,6 +65,11 @@ public final class MainFrame extends JFrame {
     private final EventFilterPanel eventFilterPanel = new EventFilterPanel();
     private final SummaryPanel summaryPanel = new SummaryPanel();
     private final SourcePanel sourcePanel = new SourcePanel();
+    private telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace designWorkspace;
+    private Timer designFollowTimer;
+    private boolean designReadPending;
+    private final java.util.List<String> designWentOut = new java.util.ArrayList<>();
+    private final java.util.Map<String, String> designSpotlightRevisions = new java.util.HashMap<>();
     private final SourceService sourceService = new SourceService();
     private final LlmPanel llmPanel = new LlmPanel();
     private final GraphTabs graphTabs = new GraphTabs();
@@ -163,6 +168,13 @@ public final class MainFrame extends JFrame {
         restoreBounds();
         wireSelection();
         sourcePanel.bind(sourceService);
+        sourcePanel.setDesignNavigation(p -> actionControl.source(p), id -> {
+            clearSpotlightHere();
+            if (topologyPanel.hasNode(id)) { topologyPanel.selectNode(id); selectSideTab("topology"); }
+            status.setText((topologyPanel.hasNode(id) ? "Node '" + id + "' matched by name" : "No node '" + id + "' in the open topology") + "; relationship to this run unverified");
+        }, this::showDesignRecords);
+        detailPanel.setDeclarationOpener(id -> actionControl.source(Map.of("bean", id)));
+        topologyPanel.setDeclarationOpener(id -> actionControl.source(Map.of("bean", id)));
         sourcePanel.setLookupHint(this::sourceLookupHint);
         graphTabs.setTimeClickHandler(this::gotoNearestRecordByTime);
         graphTabs.setMarkerClickHandler(row -> tablePanel.selectModelRow(row));   // the marker IS the record
@@ -950,6 +962,161 @@ public final class MainFrame extends JFrame {
         return all;
     }
 
+    private telamin.fluxtion.audit.analyser.analyser.design.DesignFiles designFiles() {
+        Path profile = project == null ? null : project.activeFile();
+        Path root = profile == null || profile.getParent() == null ? null : profile.getParent().getParent();
+        return new telamin.fluxtion.audit.analyser.analyser.design.DesignFiles(effectiveSourceRoots(), root);
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace designs() {
+        if (designWorkspace == null) designWorkspace = new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace(
+                this::designFiles, () -> session().processor().designSession, fact -> session().submit(fact));
+        return designWorkspace;
+    }
+
+    private record DesignReadContext(telamin.fluxtion.audit.analyser.analyser.design.DesignFiles files,
+                                     telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot state) { }
+    private int designExplicitReads;
+
+    private <T> telamin.fluxtion.audit.analyser.analyser.llm.ActionResult readDesign(
+            String kind, telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Read<T> read,
+            java.util.function.Function<telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Prepared<T>,
+                    telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> finish) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            Background.run(() -> readDesign(kind, read, finish), result -> {
+                if (!result.ok()) status.setText(result.error());
+            }, error -> status.setText("Design read failed: " + error.getMessage()));
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(kind, "loading", Map.of("pending", true));
+        }
+        var captured = actionExecutor.onEdt(() -> {
+            session().submit(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind));
+            designExplicitReads++;
+            var state = session().processor().designSession;
+            return new DesignReadContext(designFiles(), new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot(state.path(), state.document(), state.generation()));
+        });
+        var prepared = telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.prepare(captured.files(), captured.state(), read);
+        return actionExecutor.onEdt(() -> {
+            designExplicitReads--;
+            var current = session().processor().designSession;
+            var files = designFiles();
+            if (current.generation() != captured.state().generation()
+                    || !files.roots().equals(captured.files().roots()) || !java.util.Objects.equals(files.project(), captured.files().project()))
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Design read superseded by a newer session or root change; retry the request");
+            var before = current.document();
+            for (Object fact : prepared.facts()) session().submit(fact);
+            refreshDesignView(before);
+            return finish.apply(prepared);
+        });
+    }
+
+    private void showDesignRecords(String id) {
+        clearSpotlightHere();
+        var current = store;
+        Background.run(() -> {
+            for (int i = 0; current != null && i < current.size(); i++) {
+                if (current.record(i).nodeLogs().stream().anyMatch(n -> id.equals(n.instanceId()))) return i;
+            }
+            return -1;
+        }, row -> {
+            if (current != store) { status.setText("Log changed during record navigation; select the bean again"); return; }
+            if (row >= 0) actionExecutor.render("goto", Map.of("recordIndex", row));
+            status.setText((row < 0 ? "No records" : "First matching record") + " for '" + id + "' in the open log; matched by name, relationship unverified");
+        }, error -> status.setText("Record navigation unavailable: " + error.getMessage()));
+    }
+
+    private String designNote() {
+        var state = session().processor().designSession;
+        String note = "Working copy · matched by name · relationship to this run unverified";
+        if (state.result() != null) {
+            note += "\n" + state.result().description(state.document());
+        }
+        if (!state.error().isEmpty()) note += "\n" + state.error() + (state.document() == null ? " — no parsed revision available" : " — showing the last good revision");
+        return note;
+    }
+
+    private String designViewNote(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.View view) {
+        String note = view == null || java.util.Objects.equals(view.file(), session().processor().designSession.path()) ? designNote()
+                : "File glance · relationship unverified\nSession design: " + session().processor().designSession.path();
+        return view == null || view.problem().isEmpty() ? note : note + "\n" + view.problem() + " — text only; bean index unavailable";
+    }
+
+    private void projectDesignChanged() {
+        if (session == null) return;
+        var state = session.processor().designSession;
+        if (state.path() == null) {
+            sourcePanel.clearDesign();
+            for (var lit : spotlight.lit()) if (lit.target().startsWith("source:design")) spotlight.remove(lit.target());
+            designSpotlightRevisions.clear();
+        }
+        renderProducerFindings(false);
+    }
+
+    private void renderProducerFindings(boolean select) {
+        if (reportsPanel == null || session == null) return;
+        var state = session.processor().designSession;
+        reportsPanel.producerResult(state.result(), state.document(), state.path(), designFiles(), state.resultError(), location -> {
+            var r = actionControl.source(Map.of("file", location.file(), "line", location.line()));
+            if (!r.ok()) status.setText(r.error());
+        }, select);
+    }
+
+    private void startDesignFollow() {
+        if (designFollowTimer == null) designFollowTimer = new Timer(1000, e -> pollDesign());
+        designFollowTimer.start();
+    }
+
+    private void pollDesign() {
+        if (session == null || designReadPending || designExplicitReads > 0 || !sourcePanel.followsDesign()) return;
+        var state = session.processor().designSession;
+        if (state.path() == null) return;
+        long generation = state.generation(); String file = state.path(); var files = designFiles();
+        designReadPending = true;
+        new SwingWorker<telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted, Void>() {
+            @Override protected telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted doInBackground() {
+                return telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.read(files, file, false, generation);
+            }
+            @Override protected void done() {
+                designReadPending = false;
+                if (!isDisplayable()) return;
+                try {
+                    var before = state.document(); var fact = get();
+                    if (generation != state.generation()) return;
+                    designs().refreshed(fact);
+                    refreshDesignView(before);
+                } catch (Exception e) { status.setText("Design refresh failed: " + e.getMessage()); }
+            }
+        }.execute();
+    }
+
+    private void refreshDesignView(telamin.fluxtion.audit.analyser.analyser.design.DesignDocument before) {
+        var state = session().processor().designSession; var document = state.document();
+        boolean changed = document != null && (before == null || !before.revision().equals(document.revision()));
+        if (changed) {
+            for (var lit : spotlight.lit()) {
+                var p = SpotlightTarget.parse(lit.target()); if (!p.ok()) continue;
+                boolean out = p.target().family() == SpotlightTarget.Family.DESIGN_LINE;
+                if (p.target().family() == SpotlightTarget.Family.DESIGN_BEAN) {
+                    out = document.beans(p.target().argument()).size() != 1;
+                    if (!out) spotlight.markDesignEdited(lit.target());
+                }
+                if (out) { spotlight.remove(lit.target()); designWentOut.add(lit.target()); designSpotlightRevisions.remove(lit.target()); }
+            }
+            var viewed = sourcePanel.fileView();
+            if (viewed != null && viewed.file().equals(document.file())) {
+                int line = Math.min(viewed.line(), document.lines());
+                for (var lit : spotlight.lit()) {
+                    var p = SpotlightTarget.parse(lit.target());
+                    if (p.ok() && p.target().family() == SpotlightTarget.Family.DESIGN_BEAN && document.beans(p.target().argument()).size() == 1)
+                        line = document.beans(p.target().argument()).getFirst().line();
+                }
+                sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(document, line, null), designNote(), false);
+            }
+            renderProducerFindings(false);
+        }
+        sourcePanel.designNote(designViewNote(sourcePanel.fileView()));
+        SwingUtilities.invokeLater(this::relightSpotlight);
+    }
+
     /** The log actually open, as the fingerprint names it — one source for authoring and re-opening. */
     private String loadedLogName() {
         return logDisplayLocation == null ? "" : new File(logDisplayLocation).getName();
@@ -1571,6 +1738,12 @@ public final class MainFrame extends JFrame {
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
         });
         file.add(openGraphml);
+        JMenuItem openDesign = new JMenuItem("Open design…");
+        openDesign.addActionListener(e -> chooseDesignFile(false));
+        file.add(openDesign);
+        JMenuItem openDiagnostics = new JMenuItem("Open producer diagnostics…");
+        openDiagnostics.addActionListener(e -> chooseDesignFile(true));
+        file.add(openDiagnostics);
         JMenuItem findGraphml = new JMenuItem("Find GraphML in source roots\u2026");
         findGraphml.setToolTipText("List the .graphml files under your source roots, ranked by how "
                 + "well each fits the open log. Nothing is opened until you pick one.");
@@ -1850,6 +2023,18 @@ public final class MainFrame extends JFrame {
 
         @Override public void reveal(SpotlightTarget t) {
             switch (t.family()) {
+                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> {
+                    var state = session().processor().designSession;
+                    var before = state.document();
+                    if (state.path() != null) designs().refreshed(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.read(designFiles(), state.path(), false, state.generation()));
+                    refreshDesignView(before);
+                    var doc = state.document();
+                    Integer line = designTargetLine(t);
+                    if (doc != null && line != null) {
+                        sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(doc, line, t.family() == SpotlightTarget.Family.DESIGN_BEAN ? t.argument() : null), designNote(), false);
+                        selectSideTab("source");
+                    }
+                }
                 case TAB -> selectSideTab(t.argument());
                 case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> {
                     selectSideTab("graph");
@@ -1889,6 +2074,13 @@ public final class MainFrame extends JFrame {
 
         @Override public java.util.Optional<java.awt.Rectangle> bounds(SpotlightTarget t) {
             return switch (t.family()) {
+                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> {
+                    var doc = session().processor().designSession.document();
+                    Integer line = designTargetLine(t);
+                    yield doc == null || line == null ? java.util.Optional.empty()
+                            : sourcePanel.designBounds(doc.file(), t.family() == SpotlightTarget.Family.DESIGN ? null : line)
+                            .flatMap(r -> inOverlay(sourcePanel.designComponent(), r));
+                }
                 case TAB -> {
                     int i = sideTabs == null ? -1 : sideTabs.indexOfTab(sideTabTitle(t.argument()));
                     yield i < 0 ? java.util.Optional.empty() : inOverlay(sideTabs, sideTabs.getBoundsAt(i));
@@ -1954,6 +2146,7 @@ public final class MainFrame extends JFrame {
 
         @Override public String whyNotVisible(SpotlightTarget t) {
             return switch (t.family()) {
+                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> "session design is unavailable, or the anchor is missing, ambiguous or outside the document";
                 case RECORDS_ROW -> store == null ? "no log is open, so there is no record " + t.argument()
                         : "record " + t.argument() + " is not in the table — it is out of range, or still filtered out";
                 case DETAIL_NODE -> "'" + t.argument() + "' has no block in the record detail — select a record in "
@@ -1995,6 +2188,15 @@ public final class MainFrame extends JFrame {
             };
         }
     };
+
+    private Integer designTargetLine(SpotlightTarget target) {
+        var doc = session().processor().designSession.document();
+        if (doc == null) return null;
+        if (target.family() == SpotlightTarget.Family.DESIGN) return 1;
+        if (target.family() == SpotlightTarget.Family.DESIGN_LINE) return target.number() <= doc.lines() ? target.number() : null;
+        var beans = doc.beans(target.argument());
+        return beans.size() == 1 ? beans.getFirst().line() : null;
+    }
 
     // ---- M64.10: a graph target's chart — the named one, else the selected one -------------------------------
 
@@ -2039,6 +2241,7 @@ public final class MainFrame extends JFrame {
     private void clearSpotlightHere() {
         boolean litMenu = spotlight.lit().stream().anyMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5));
         spotlight.clearSpotlight();
+        designSpotlightRevisions.clear();
         if (litMenu) javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath();
     }
 
@@ -2223,6 +2426,8 @@ public final class MainFrame extends JFrame {
         for (int i = 0; i < set.lit().size(); i++) {
             SpotlightTarget.Resolution r = set.lit().get(i);
             spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
+            if (r.target().name().startsWith("source:design") && session().processor().designSession.document() != null)
+                designSpotlightRevisions.put(r.target().name(), session().processor().designSession.document().revision());
         }
         SwingUtilities.invokeLater(this::relightSpotlight);     // once the layout the reveal queued has run
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
@@ -2244,6 +2449,12 @@ public final class MainFrame extends JFrame {
             one.put("n", l.n());
             one.put("target", l.target());
             if (l.caption() != null) one.put("caption", l.caption());
+            if (l.target().startsWith("source:design") && session().processor().designSession.document() != null) {
+                var doc = session().processor().designSession.document();
+                one.put("file", doc.file()); one.put("revision", doc.revision());
+                one.put("captionRevision", designSpotlightRevisions.getOrDefault(l.target(), doc.revision()));
+                one.put("relationship", "unverified");
+            }
             if (withBounds) {
                 java.awt.Rectangle c = SwingUtilities.convertRectangle(spotlight, spotlight.cutOutOf(l.target()), getContentPane());
                 one.put("bounds", Map.of("x", c.x, "y", c.y, "width", c.width, "height", c.height));
@@ -2895,6 +3106,16 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    private void chooseDesignFile(boolean diagnostics) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle(diagnostics ? "Open producer diagnostics" : "Open design");
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(diagnostics ? "JSON result" : "Spring XML design", diagnostics ? "json" : "xml"));
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        clearSpotlightHere();
+        var result = diagnostics ? actionControl.openDiagnostics(chooser.getSelectedFile().getPath()) : actionControl.openDesign(chooser.getSelectedFile().getPath());
+        if (!result.ok()) status.setText(result.error());
+    }
+
     private void chooseS3() {
         String prefill = S3Source.isS3(config.logFile) ? config.logFile : "s3://";
         String uri = JOptionPane.showInputDialog(this,
@@ -3329,6 +3550,18 @@ public final class MainFrame extends JFrame {
             if (driver.processor().operationGate.inFlightWhat() == null) setBusy(false);
             status.setText("Discarded " + location + " — a later open superseded it while it was loading");
             return;
+        }
+        Path designProject = designFiles().project();
+        if (designProject != null && driver.processor().designSession.path() != null) {
+            try {
+                if (S3Source.isS3(location) || !Path.of(location).toRealPath().startsWith(designProject.toRealPath())) {
+                    designs().clear("log outside current project");
+                    projectDesignChanged();
+                }
+            } catch (java.io.IOException | java.nio.file.InvalidPathException e) {
+                designs().clear("log location has no relationship to current project");
+                projectDesignChanged();
+            }
         }
         this.timeOrderReport = report == null
                 ? telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean() : report;
@@ -4281,6 +4514,7 @@ public final class MainFrame extends JFrame {
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
                 .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source));
         syncBusyWithGate();
+        projectDesignChanged();
         return sessionProblem == null;
     }
 
@@ -4620,6 +4854,74 @@ public final class MainFrame extends JFrame {
      * at a glance instead of scattered among two hundred UI methods.
      */
     private final class AppControlAdapter implements telamin.fluxtion.audit.analyser.analyser.llm.AppControl {
+
+        @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openDesign(String path) {
+            return readDesign("open", workspace -> workspace.open(path), prepared -> {
+                clearSpotlightHere();
+                if (!prepared.error().isEmpty()) {
+                    sourcePanel.designNote(designNote()); renderProducerFindings(false);
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(prepared.error() + "; roots: " + designFiles().roots());
+                }
+                var view = prepared.value();
+                sourcePanel.showFile(view, designViewNote(view), true); selectSideTab("source");
+                renderProducerFindings(false); startDesignFollow();
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "design", session().processor().designSession.echo());
+            });
+        }
+
+        @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult source(Map<String, Object> params) {
+            return readDesign("source", workspace -> workspace.source(params), prepared -> {
+                clearSpotlightHere();
+                if (!prepared.error().isEmpty()) {
+                    String reason = prepared.error() + "; roots: " + designFiles().roots() + "; accepted selectors: " + telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.SHAPES;
+                    sourcePanel.navigationFailed();
+                    status.setText(reason);
+                    return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(reason);
+                }
+                var view = prepared.value();
+                sourcePanel.showFile(view, designViewNote(view), true); selectSideTab("source");
+                Map<String, Object> echo = view.echo();
+                if (view.bean() != null) {
+                    echo.put("nodeId", view.bean()); echo.put("recordsRelationship", "unverified");
+                    String fqn = view.document().beans(view.bean()).getFirst().attr("class");
+                    if (fqn.isBlank()) fqn = sourceService.fqnForInstance(view.bean());
+                    boolean source = false;
+                    if (fqn != null) try { designFiles().fqn(fqn); source = true; } catch (java.io.IOException ignored) { }
+                    echo.put("source", source);
+                    if (fqn != null) echo.put("class", fqn);
+                    // A bounded preview, explicitly scoped rather than presented as a full-log total.
+                    int count = 0, scanned = store == null ? 0 : Math.min(store.size(), PAIRING_SAMPLE);
+                    for (int i = 0; i < scanned; i++) if (store.record(i).nodeLogs().stream().anyMatch(n -> view.bean().equals(n.instanceId()))) count++;
+                    echo.put("records", count); echo.put("recordsScanned", scanned);
+                    echo.put("recordsExact", store == null || scanned == store.size());
+                }
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("source", "source", echo);
+            });
+        }
+
+        @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openDiagnostics(String path) {
+            return readDesign("open", workspace -> workspace.diagnostics(path), prepared -> {
+                renderProducerFindings(true); selectSideTab("reports"); sourcePanel.designNote(designViewNote(sourcePanel.fileView()));
+                if (!prepared.error().isEmpty()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("producer result cleared: " + prepared.error() + "; roots: " + designFiles().roots());
+                var result = prepared.value();
+                Map<String, Object> echo = new java.util.LinkedHashMap<>(result.relationship(session().processor().designSession.document()));
+                echo.put("file", result.file());
+                echo.put("findings", result.findings().stream().map(f -> {
+                    Map<String, Object> finding = new java.util.LinkedHashMap<>();
+                    finding.put("code", f.code()); finding.put("severity", f.severity()); finding.put("message", f.message());
+                    finding.put("element", f.element()); finding.put("suggestedFix", f.fix());
+                    finding.put("location", telamin.fluxtion.audit.analyser.analyser.design.DiagnosticLocation.resolve(result, f, session().processor().designSession.document(), designFiles(), session().processor().designSession.path()).echo());
+                    finding.put("relatedLocation", telamin.fluxtion.audit.analyser.analyser.design.DiagnosticLocation.related(f, session().processor().designSession.document(), designFiles()).echo());
+                    return finding;
+                }).toList());
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "diagnostics", echo);
+            });
+        }
+
+        @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult discoverDiagnostics() {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "discovered", Map.of(
+                    "diagnostics", designFiles().discoverDiagnostics(), "loaded", false, "roots", designFiles().roots()));
+        }
 
         /** The graph echo while a log is still loading; the same words the executor uses for a same-call open. */
         private static final String PAIRING_PENDING =
@@ -5367,6 +5669,8 @@ public final class MainFrame extends JFrame {
             // derived) and the mode selector's record when someone has placed one. Above the fresh-start
             // return on purpose: posture has an answer with nothing open, and that is when it is asked.
             out.put("handoff", handoff.toContext(project.hasProject()));
+            if (session != null) out.put("design", session.processor().designSession.echo());
+            if (!designWentOut.isEmpty()) out.put("designSpotlights", Map.of("wentOut", java.util.List.copyOf(designWentOut)));
             // M38.3: the environments the project declares, so an agent can name one when it opens a log
             if (!config.environments.isEmpty()) {
                 List<Map<String, Object>> envs = new ArrayList<>();
@@ -5636,6 +5940,7 @@ public final class MainFrame extends JFrame {
         flushProject();   // a debounce window must not eat the last edit of a session
         try {
             step(() -> { if (followTimer != null) followTimer.stop(); });
+            step(() -> { if (designFollowTimer != null) designFollowTimer.stop(); });
             step(() -> { if (mcpIndicatorTimer != null) mcpIndicatorTimer.stop(); });
             step(() -> { if (actionServer != null) actionServer.stop(); });
             // stop() already removes it; this also clears a file stranded by an earlier crash of ours, so a
