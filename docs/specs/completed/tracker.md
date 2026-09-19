@@ -3542,3 +3542,12 @@ _Items 1–3 and 6 of the 2026-09-17 refresh; the numbers are as they stood ther
       built-in assistant's hand-written manifest — which had never been told about this, about `open`, or about
       seven parameters of verbs it did list — is now held to an inventory of every published verb AND
       parameter. `tools/verify-m48-handoff.py` holds it on the built jar (18 checks, incl. fresh start).
+
+### M47 · Start from a template — .2/.3/.4, reconciled 2026-09-19 (shipped as M19.5, accepted 2026-08-30)
+- [M47.2] ☑ **Template picker in the analyser; scaffold to a chosen directory** — *File ▸ New project from template…* lists the
+  playground catalogue's onboarding subset (`TemplateClient`, `TemplateProjectDialog`), takes artifact/group/base-package,
+  and downloads `/start/scaffold?template=…` under the reviewed archive boundary (M19.5; `review_m19_5_template_picker.txt`).
+- [M47.3] ☑ **The scaffolded project registers as a project profile, so its log opens on first run** — the download's
+  `.analyser/project.fluxtion-settings` becomes the active project (*Download and open*); the commands to run it are shown.
+- [M47.4] ☑ **More than one template** — the catalogue's onboarding entries (of 14), each with its description; names come
+  from the catalogue, never from the application. The proposal's local template directory was superseded by this.

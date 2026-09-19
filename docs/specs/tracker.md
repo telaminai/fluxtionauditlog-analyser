@@ -28,7 +28,8 @@ Legend for each item: **[id] status — title** · _acceptance_.
 **Tidied 2026-09-19, after 1.15.0 (rule 7).** Five ☑ items moved verbatim to
 [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-19*: M46.5/.6/.7/.10 (the analyser-side closure of the
 authoring-toolchain programme, shipped in 1.14.0 and held on the built jar by `tools/verify-m46-agent-api.py`) and M48.7
-(the canvas handoff, 1.14.0). The 2026-09-18 tidy had already archived M64.10–.12, M65.6 and M46.11 (▸ *Tidy 2026-09-18*).
+(the canvas handoff, 1.14.0), and — reconciled the same day on the owner's word — M47.2/.3/.4, which had shipped as M19.5 on
+2026-08-30 while the M47 section still read as a proposal. The 2026-09-18 tidy had already archived M64.10–.12, M65.6 and M46.11 (▸ *Tidy 2026-09-18*).
 Left ticked on purpose, because they are the trail of something still open: UC-LANDED and the UC5 idiom-audit lines
 (context for idioms 2a/2b), N1 inside the golden-fixture item, M50's per-item SHIPPED lines (cross-repo, reconciled against
 the release tags), and the M19.1 sub-gates. **Landed on main since 1.15.0 and NOT reviewed:** the Spring-authoring guide
@@ -1130,7 +1131,16 @@ correct graph. **Every item below is a communication failure, not a correctness 
 error a diagnostic could have caught, and the one real design defect was caught by reading the generated
 source.
 
-## M47 — start from a template (proposed, owner's steer 2026-09-01)
+## M47 — start from a template — ◧ .2/.3/.4 SHIPPED (as M19.5, accepted 2026-08-30; archived 2026-09-19); .1 narrowed to a playground check; the round-17 question open
+
+**Reconciled 2026-09-19 (owner: "some of it already works, I have used it").** This section was written on 2026-09-01
+as a proposal and never reconciled with what M19.5 had already shipped on 2026-08-30 — *File ▸ New project from template…*
+(`MainFrame`, `TemplateProjectDialog`, `TemplateClient`; spec [`spec-template-from-analyser.md`](spec-template-from-analyser.md);
+review `docs/handoff/completed/review_m19_5_template_picker.txt`; user guide ▸ *Projects ▸ Start from a playground template*;
+spotlit as `menu:File:New project from template…` since 1.14.1). It lists the playground catalogue's onboarding subset
+with each entry's description, takes artifact/group/base-package, downloads the scaffold under the archive-boundary rules,
+and makes the generated project's profile the active project. That is .2, .3 and .4 — the templates are the playground's
+(14 in the versioned catalogue), not a directory in this repo.
 
 **The idea.** The analyser offers a set of Fluxtion project templates. A user picks one; that is what
 their AI client starts from, rather than an empty directory plus prose.
@@ -1147,11 +1157,15 @@ template removes all four **structurally** — there is no sentence to skim past
 and one session author all hit the bootstrap trap *after reading a warning about it*, which is the
 strongest available argument that prose is the wrong instrument for this class.
 
-- [ ] **M47.1** the template itself — `docs/experience/current/template/` exists and is green today
-      (`./run.sh` builds, generates, tests, runs; two nodes, propagation arrest visible in its own log)
-- [ ] **M47.2** template picker in the analyser; scaffold to a chosen directory
-- [ ] **M47.3** the scaffolded project registers as a project profile, so its log opens on first run
-- [ ] **M47.4** more than one template — the shape catalogue, not just a hello-world
+- ➜ **M47.2/.3/.4 — SHIPPED as M19.5, ARCHIVED 2026-09-19** to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-19*
+  (the picker over the live catalogue, scaffold to a chosen directory, the profile becomes the active project, more than one
+  template). What .2 proposed as "scaffold" shipped as a download from the playground's `/start/scaffold`, so the templates
+  have one source of truth and the analyser copies no names.
+- [M47.1] ☐ **Narrowed: do the catalogue's ONBOARDING templates remove the four round-16 blockers structurally?** The
+  proposal's `docs/experience/current/template/` is a local artefact the shipped path never uses; the question it stood for
+  survives — the bootstrap trap, `com.fluxtion` vs `com.telamin.fluxtion`, parents-are-fields (FLX-1001) and how to run a
+  Maven build must be ABSENT from what *New project from template…* downloads, not warned about. Check each onboarding
+  entry once; anything missing is a playground item (UP-PG), not ours.
 
 **Open question, not yet answered:** whether a template plus a short pointer beats the full published
 doc set, or whether it is additive. That is what round 17 measures.
