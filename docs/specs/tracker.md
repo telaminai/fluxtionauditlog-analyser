@@ -1146,7 +1146,15 @@ strongest available argument that prose is the wrong instrument for this class.
 doc set, or whether it is additive. That is what round 17 measures.
 
 
-## M49 · Design render — the Spring XML on the canvas — ☐ SPEC'D 2026-09-19 (owner steer; spec **[spec-design-render.md](spec-design-render.md)**)
+## M49 · Design render — the Spring XML on the canvas — ☐ SPEC'D 2026-09-19, **revision 2 after review** (spec **[spec-design-render.md](spec-design-render.md)**; review [review_spec_design_render_71e50ee5.md](../handoff/review_spec_design_render_71e50ee5.md) NOT READY R1–R4, all accepted; awaiting re-review)
+
+Revision 2 adds: a **location-resolution table** per diagnostic element kind (offending location before
+referenced bean; `SOURCE_MEMBER` is a Java location; `NODE` maps by node-name = bean-id; every row has an
+*unavailable* outcome), a **relationship state** on every design-side echo (`unverified` is the only state a
+loaded log can reach until M48.12's identity carrier exists; `input-current`/`input-stale` come from the authoring
+run receipt and speak only to the XML input), explicit **`open.diagnostics`** intake with wrapper detection and
+clear-on-refuse, exclusive selector families for `source`, Follow eligibility independent of a log, anchor
+behaviour on document revision change (never rebind), and public references in place of the private one.
 
 The fourth artefact. The canvas shows log, generated processor and node source; it does not show the design
 the LLM authored. M49 adds a read-only `DESIGN` mode to the Source tab, one verb `source {file|bean|line|fqn}`

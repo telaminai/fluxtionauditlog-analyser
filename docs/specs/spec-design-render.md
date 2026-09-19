@@ -1,10 +1,14 @@
 # Design render — the Spring XML on the canvas (Design Spec)
 
-**Status:** PROPOSED 2026-09-19 (owner-directed). **Milestone:** M49. **Tracker:** [tracker.md](tracker.md).
+**Status:** PROPOSED, **revision 2** (2026-09-19) — revised after the independent review
+[`review_spec_design_render_71e50ee5.md`](../handoff/review_spec_design_render_71e50ee5.md) (NOT READY, R1–R4;
+all accepted). Awaiting re-review. **Milestone:** M49. **Tracker:** [tracker.md](tracker.md).
 **Builds on:** [`spec-shared-evidence-canvas.md`](spec-shared-evidence-canvas.md) (the thesis this serves),
-[`spec-authoring-modes.md`](spec-authoring-modes.md), the `open` / `source_root` / `spotlight` verbs, and
-the compiler's Spring-authoring runbook (fluxtion-compiler `design/spring-authoring/spec-2-…`, revision 4:
-`validate.sh` → `target/fluxtion-validation.json`; `regenerate` → `target/fluxtion-reconciliation.json`).
+[`spec-authoring-modes.md`](spec-authoring-modes.md), the `open` / `source_root` / `spotlight` verbs, the
+public Spring-authoring documents ([`contract.md`](https://fluxtion-playground.dev/spring-authoring/contract.md),
+[`skill.md`](https://fluxtion-playground.dev/spring-authoring/skill.md), the project `RUNBOOK.md` those documents
+introduce), and the compiler diagnostics contract (`diagnosticsVersion 1.0`; per-code pages under
+[telaminai.github.io/fluxtion/troubleshooting/errors](https://telaminai.github.io/fluxtion/troubleshooting/errors/FLX-1009)).
 
 Owner, 2026-09-19: *"the analyser is the canvas with context; the LLM connects to the analyser to render
 decisions/proof; the LLM authors with Spring XML; the user talks to the design-partner LLM and reviews the
@@ -13,121 +17,179 @@ the analyser what file to display."*
 
 ## The proposition
 
-The canvas already shows three of the four artefacts a design conversation is about: the **log** (what
-happened), the **generated processor** (what the compiler built), the **node source** (what the developer
-wrote). It does not show the fourth — the **design** the LLM authored, the Spring XML that the compiler turned
-into the other three. So when the design partner says *"I declared `riskStatusBook` as a push target of
-`gate` — here is why, and here is the record that proves the edge fired"*, the human can see the record, the
-node and the dispatch line, but not the declaration. The explanation points at three of its four subjects.
+The canvas shows three of the four artefacts a design conversation is about: the **log** (what happened), the
+**generated processor** (what the compiler built), the **node source** (what the developer wrote). It does not
+show the fourth — the **design** the LLM authored, the Spring XML the compiler turned into the other three. So
+when the design partner says *"I declared `riskStatusBook` as a push target of `gate` — here is why, and here is
+the record that proves the edge fired"*, the human can see the record, the node and the dispatch line, but not
+the declaration.
 
-M49 puts the design on the canvas as a first-class artefact, **read-only**, with the same three properties the
-other artefacts have: it is **navigable** (bean ↔ node ↔ record ↔ source), it is **spotlightable** (the LLM
-can light a bean declaration and say why, and the caption is marked as testimony), and it is **addressable
-from evidence** (a compiler refusal names a bean; the canvas shows the line). Nothing here executes,
-validates or edits the XML — the runbook's utilities own that, and B0/B3 own what the XML may change.
+M49 puts the design on the canvas as a first-class artefact, **read-only**, with the properties the other
+artefacts have: **navigable** (bean ↔ node ↔ record ↔ source), **spotlightable** (the LLM lights a declaration
+and says why; the caption is testimony), and **addressable from evidence** (a producer diagnostic names a
+location; the canvas shows it). And with one property the first revision left implicit and the review made
+explicit: the canvas **states the relationship** between the text on screen and the evidence beside it, and
+never lets a shared name pass for proof (D-5).
 
-## What exists, and what this adds
+Nothing here executes, validates or edits the XML. The runbook's utilities own the write side.
 
-| Today | M49 |
-|---|---|
-| `source_root` grants reading of `.java` files under configured roots | a root also grants reading of the project's **design files** (`*.xml`, later `*.yaml`) beneath it |
-| Source tab: `PROCESSOR` / `NODE` / `SPLIT` modes, Java highlighting, scroll-to-offset, back navigation | a **`DESIGN`** mode: XML highlighting, scroll-to-line, bean-id index, the same back stack |
-| `open {log, graphml, processor, …}` puts the session's artefacts in force | `open` gains **`design`**: the path of the design file (project-relative to a root, or absolute under a root); it rides posture/handoff like the others |
-| `spotlight` targets: `tab:source`, `records:row:n`, `topology:node:id`, … | new targets **`source:design`**, **`source:design:bean:<id>`**, **`source:design:line:<n>`** |
-| log → source navigation via the processor's field declarations | **bean ↔ node**: under Spring authoring the bean id *is* the node's instance id (`nodeBeans` → `addNode(bean, id)`), so `detail:node:<id>` and `topology:node:<id>` gain "show declaration", and a bean line gains "show node / show records" |
-| — | **evidence → design**: a `SPRING_*` diagnostic in `target/fluxtion-validation.json` / the compiler sidecar carries `element.beanName` (and, once required, `sourceRef`); the canvas resolves it to the bean's line |
+## D-1 · Verbs and parameters
 
-## D-1 · The verb: `source`
+### `open` gains `design` and `diagnostics`
 
-One new verb, read-only with respect to data, view-changing like `goto`:
+- `open {design: <path>}` — the **session's** design file. Project-relative to an authorised root, or absolute
+  under one; refused otherwise, with the root list in the echo. Rides posture/handoff like `log` and `graphml`.
+  Switching project (a new `open.log` or `open.design` outside the current project root) **clears** it.
+- `open {diagnostics: <path>}` — explicit intake of one **producer result** (review R3). Same root boundary.
+  Supported wrappers, detected by shape, never guessed: `ValidationResult` (`diagnosticReport.diagnostics[]`),
+  `ReconciliationReport` (`diagnosticReport.diagnostics[]`), compiler sidecar `DiagnosticReport`
+  (`diagnostics[]`). Unknown `schemaVersion`/`diagnosticsVersion`, unreadable file or unrecognised wrapper →
+  **refused**, and the previous result — if any — is **cleared, not retained** as if current. A new `open.diagnostics`
+  **replaces** the previous. `open {discover: "diagnostics"}` lists candidate result files under the project's
+  `target/` **without loading one** (the same rule as `discover: graphml`: auto-selecting is the convenience that
+  reintroduces the defect discovery exists to prevent). Works with **no log open**.
+
+### `source` — the glance
 
 ```
 analyser_source {
-  file?:   string   // a design file or any .java under a configured root; project-relative or absolute
-  bean?:   string   // a bean id in the OPEN design file → scroll to its declaration
-  line?:   integer  // 1-based line in `file` (or the open design file when `file` is absent)
-  fqn?:    string   // existing: a node class → NODE mode
-  method?: string   // existing: with fqn
+  file?:   string   // a design file or any .java under an authorised root; project-relative or absolute
+  bean?:   string   // a bean id → its declaration in the SESSION design (or in `file` when given and it is XML)
+  line?:   integer  // 1-based line in `file`, or in the session design when `file` is absent
+  fqn?:    string   // a node class → NODE mode
+  method?: string   // with fqn
 }
 ```
 
-Rules:
-
-- `file` must resolve **under a configured source root or to the `design` path the session opened** —
-  the same boundary `source_root` already draws; anything else is refused with the root list in the echo.
-  Read-only: the verb never writes, and the file is re-read on each call (the LLM is editing it between calls).
-- `bean` without `file` addresses the open design; with `file` it opens that file first. An unknown bean id
-  echoes the ids that exist (the same courtesy `open.discover` gives for graphml).
-- Echo: `{file, mode, line, bean?, nodeId?, hasRecords: n, hasSource: bool}` — the cross-links the LLM can
-  name in its next sentence ("the node has 41 records in this log; its class is …").
-- `open.design` is the *session* setting (what the canvas considers the design); `source` is the *view*
-  action. A `source {file}` on a different XML does not change the session's design.
-
-Why a verb and not more `open` parameters: `open` declares what the session is about and is expensive to
-call casually (it re-plans the canvas); `source` is a glance, called many times in a conversation, exactly as
-`goto` is for records. The existing `openFqn`/`openFqnAtMethod` behaviour becomes `source {fqn, method}` so
-the LLM has one way to point at any text.
+- Read-only with respect to data; changes the Source tab view like `goto` changes the records view. Re-reads
+  the file on every call (the LLM edits between calls).
+- **Selectors are exclusive families** (review): `{file}`, `{file, line}`, `{bean}`, `{file, bean}` (XML only),
+  `{fqn}`, `{fqn, method}`. Any other combination — `bean`+`line`, `file`+`fqn`, `method` alone — is **refused**
+  with the accepted shapes in the echo. No precedence games.
+- `source {file: B}` does **not** change the session design; `spotlight source:design:*` always resolves against
+  the **session** design (`open.design`), and the echo names the resolved file so the LLM cannot mistake the
+  glance for the session (review: "pin A"). The same bean id in both files is the test.
+- Echo: `{file, mode, line?, bean?, nodeId?, records?: n, source?: bool, relationship}` — `relationship` is
+  D-5's state, present on every design-side echo.
+- An unknown bean id echoes the ids present; a bean id present twice is **ambiguous**: the echo lists both
+  lines and nothing is selected or spotlit.
 
 ## D-2 · Rendering
 
-- The Source tab's `DESIGN` mode renders the XML with an `XmlHighlighter` beside the existing
-  `JavaHighlighter`; a bean-id gutter/index (`<bean id="…">`, plus `FluxtionSpringConfig`'s
-  `nodeBeans` / `eventHandlers` / `serviceBindings` lists) so "bean" is a first-class anchor.
-- **Follow** applies: when the design file changes on disk (the LLM ran `regenerate`, or edited the XML),
-  the render refreshes and the current spotlight is re-anchored by bean id, not by line number.
-- Nothing is evaluated. The XML is text with an index; no Spring context is created in the analyser.
+- Source tab gains a **`DESIGN`** mode beside `PROCESSOR` / `NODE` / `SPLIT`: `XmlHighlighter`, a bean index
+  (`<bean id>` plus `FluxtionSpringConfig`'s `nodeBeans` / `eventHandlers` / `serviceBindings` entries), the
+  existing back stack.
+- The design view has its **own Follow eligibility** (review): it refreshes on a change to the design file
+  whether or not a log is open or followable (`MainFrame.setFollowing` today requires a followable log store;
+  the design watcher does not). A malformed intermediate write (the LLM mid-edit) renders the last good
+  revision with a *"parse error at line n"* banner and does not clear anchors; the next good write replaces it.
+- Every render carries a **document revision** (sha256 of the bytes). Anchors (spotlights, the `line` echo)
+  are stamped with it — D-5 says what happens when it changes.
+- No Spring context, no bean instantiation, no classpath. Text and an index.
 
 ## D-3 · Spotlight vocabulary
 
-Add to `SpotlightVocabulary`: `source:design` (the whole design view), `source:design:bean:<id>`,
-`source:design:line:<n>`. Reveal selects the Source tab in `DESIGN` mode and scrolls; the callout is the
-LLM's caption and is shown as testimony, as today. A relation across artefacts — *"this declaration (1),
-this node (2), this record (3)"* — is the case this exists for and is within `MAX_LIT`, but it crosses tabs,
-so per the existing rule it is lit in sequence, not together. **Decision needed (Q1):** whether to allow a
-split view (design left, records/topology right) so a declaration and its evidence can be lit together.
+`source:design` · `source:design:bean:<id>` · `source:design:line:<n>`. Reveal selects the Source tab in `DESIGN`
+mode and scrolls; the callout is the LLM's caption, shown as testimony. Cross-tab relations (declaration, node,
+record) are lit **in sequence**, as the existing rule requires; a request whose targets cannot be visible
+together is refused whole, not partly honoured (review, Q1 stays optional). On a document revision change: a
+`bean` spotlight whose bean **still exists** is re-anchored to its new position and its echo/callout gains
+*"(design edited since this caption)"*; a `bean` spotlight whose bean **disappeared or became ambiguous** goes
+out and `wentOut` names it — it is **never rebound** to a nearby declaration; a `line` spotlight goes out on any
+revision change (a line number is not a stable identity).
 
-## D-4 · Evidence → design
+## D-4 · Evidence → design: the location-resolution table (review R1)
 
-`target/fluxtion-validation.json` and `target/fluxtion-reconciliation.json` (compiler Spec 2 §5.2) and the
-compiler sidecar all carry the shared diagnostic envelope. When a diagnostic's `element` is a
-`SPRING_BEAN` / `SPRING_SERVICE_BINDING` / `SOURCE_MEMBER`, the Reports/Assistant surfaces offer "show in
-design", which is `source {bean}` (or `{file, line}` when `sourceRef` is present). This is what turns *"the
-compiler refused FLX-1009 on riskStatusBook"* into a lit line in the XML with the fix text beside it.
+A producer diagnostic's `element` is a tagged union; "any `SPRING_*` names a bean" was false. Resolution goes
+**offending location first, referenced bean second**, and every row has an *unavailable* outcome that keeps the
+diagnostic and says why navigation is not offered:
 
-**Compiler-side requirement filed with this spec:** make `sourceRef` (file, line, column) **required** on
-every `SPRING_*` diagnostic in the A1b registry — it is optional today (`xpathHint`), which is why the
-canvas would have to fall back to bean-id search. The analyser tolerates its absence; it should not have to.
+| `element.kind` (codes) | Offending location | Fallback | Unavailable → UI says |
+|---|---|---|---|
+| any, with `sourceRef` | `sourceRef` resolved through the **report's `sourceRoot`** mapped to an authorised local root; XML → `DESIGN` at line; `.java` → `NODE` at line | — | *"location outside authorised roots"* |
+| `SPRING_SERVICE_BINDING` (`SPRING_UNKNOWN_BINDING_NODE`, `…_INCOMPLETE`, `…_DUPLICATE_…`) | the **binding declaration** (the `serviceBindings` entry) — even when the target bean exists, and even when `beanName` names a bean that does *not* exist | the `FluxtionSpringConfig` block, labelled *approximate*; several matching bindings → *ambiguous*, both listed, none selected | *"binding not found in this design"* |
+| `SPRING_BEAN` (`…_DUPLICATE_BEAN_ID`, `…_DANGLING_BEAN_REF`, `…_ROLE_CONFLICT`, `…_SERVICE_DECLARED_AS_BEAN`, `…_WIRED_AS_DEPENDENCY`, `SPRING_HANDLER_MISMATCH`, `SPRING_BEAN_NOT_SELECTED`) | `<bean id="beanName">`; for a dangling ref, the **referencing** `<ref>`/`ref=` site first, the missing target is by definition absent | the config list entry naming it | *"bean not declared in this design"* |
+| `SPRING_CONFIG` (`…_LEGACY_CONFIG_FALLBACK`, `…_LOG_LEVEL_CONFLICT`, `…_STRICT_SERVICE_BINDINGS_EMPTY`) | the `FluxtionSpringConfig` bean(s) | document start | — |
+| `SPRING_DOCUMENT` (`…_XML_NOT_WELL_FORMED`) | `sourceRef` line/column when present | document start with the parse message | — |
+| `SPRING_TYPE` / `EVENT` / `SERVICE` (`…_TYPE_COLLISION`, `…_UNKNOWN_HANDLER_EVENT`, `…_UNKNOWN_SERVICE_TYPE`, `…_UNUSED_SERVICE_TYPE`) | the `eventTypes` / `serviceTypes` list entry naming the FQCN | the config block, *approximate* | *"type not listed in this design"* |
+| `NODE` (compiler codes such as **`FLX-1009`**, `FLX-1001`, `FLX-1008`) | under Spring authoring `nodeName` **is** the bean id → `<bean id="nodeName">`; the `element.nodeClass` also offers `source {fqn}` | — | *"no bean with this node name — not a Spring-authored node?"* |
+| `SOURCE_MEMBER` (`SPRING_RECONCILE_CONFLICT`, `…_WRONG_CONSTRUCT`) | this is a **Java** location: `sourceRef` if present, else `source {fqn: className}` — `member` may be a method, a field (`field:`) or an interface use (`implements:`), so it selects the class and scrolls by name when it can, else opens the class | the `xmlDeclaration` text is shown in the finding, and the bean whose declaration it quotes is offered as a *secondary* design anchor | *"class not under an authorised root"* |
 
-## D-5 · What is deliberately out
+Rules: the finding is **always retained** whether or not navigation resolves; the UI action is *"show"* only
+when a location resolved, *"show (approximate)"* for fallbacks, and a greyed reason otherwise. The producing
+stages this table must cover: validation (`fluxtion-validation.json`), reconciliation
+(`fluxtion-reconciliation.json`), and the compiler sidecar — all three, not the sidecar alone.
 
-- No editing, no validate, no generate from the analyser. The runbook owns the write side; the canvas is
-  where the result is read. This keeps the analyser's read-only/root boundary exactly where it is.
-- No Spring evaluation, no bean instantiation, no classpath. Text and an index.
-- YAML designs (`compileFromReader`) follow the same shape later; the verb and targets are named
-  `design`, not `xml`, for that reason. Not in M49.
-- Design-time graph *without* a run (GraphML metadata default ON in the compiler) is a separate enrichment;
-  the canvas already draws the graph the run produced.
+**Upstream ask, narrowed (review R1.4):** the diagnostics registry should require an accurate `sourceRef`
+**where the producer knows the originating document and position** (the XML validator does, for every
+`SPRING_*` it raises from a parsed document; the reconciler does, for the Java member it refuses), and keep an
+explicit *unavailable* case otherwise — never an invented file or column. `xpathHint` stays a separate element
+property. Report-relative paths resolve through authorised local roots. Filed against the authoring
+contract's diagnostic registry; **acceptance 5 is gated on it** — until it lands, acceptance 5 is satisfied by
+the fallback rows only and says so.
+
+## D-5 · Relationship state — a name is not evidence (review R2)
+
+The design file is a **working copy**. The log was produced by *some* build of *some* revision of it; a result
+file describes *some* attempt. Bean-id equality lets the canvas **navigate** between them; it does not establish
+that the declaration on screen produced the records beside it. So every design-side echo, the design view's
+header and each "show in design" action carry one of:
+
+| `relationship` | Meaning | Established by |
+|---|---|---|
+| `unverified` | working copy; matched by name; relationship to this run **unknown** | the default — and, in M49, the **only state a loaded log can reach**: there is no run/model identity carrier linking an arbitrary log to the build that produced it (tracker M48.12, still open). M49 ships with this stated, not hidden |
+| `input-current` | this XML **is the input** the named result file describes | the authoring **run receipt** (`target/fluxtion-run.json`): the stage's `inputs.xmlHash` equals the document revision on screen — **and only that**: an unchanged XML after a Java edit is still `input-current` for the XML and says nothing about the build; the receipt's `sourceHash`/`recordHash` and `build.compilerRan`/`outcome` are surfaced beside it so the human sees *which* inputs match |
+| `input-stale` | the result file describes an earlier revision of this XML | receipt `xmlHash` ≠ document revision, or the result's own `inputHash` ≠ |
+| `unknown` | no receipt, no hashable result | a compiler sidecar alone; a project without the authoring record |
+
+Consequences: a `records: n` in the `source {bean}` echo is labelled `unverified` unless a future carrier
+upgrades it; a stale or failed-build result is never presented as current (`open.diagnostics` of a sidecar with
+a receipt saying `build.compilerRan: false` shows *"sidecar predates the last attempt"*); a caption survives a
+bean's edit only with the *"(design edited since this caption)"* mark (D-3). **The combined case the review
+names — unchanged XML, edited Java, an old log, a failed latest build — reads:** design `input-current` for
+the XML with `sourceHash` mismatch shown; validation result `input-current`; build receipt `outcome: failed`;
+sidecar *predates the last attempt*; log relationship `unverified`. Each stated; none inferred.
+
+A design hash in the runtime descriptor (`DescriptorSupport.Meta`) would let a *log* be tied to an XML revision
+later; that is a public-API contract change owned elsewhere and is **not** an M49 requirement.
+
+## D-6 · What is deliberately out
+
+No editing, validating or generating from the analyser. No Spring evaluation or classpath. YAML designs follow
+the same shape later (the verb and targets say `design`, not `xml`). Design-time graph without a run is a
+separate enrichment. The run/model identity carrier (M48.12) is a separate milestone; M49 states its absence.
 
 ## Acceptance
 
-1. `analyser_source {file: "src/main/fluxtion/designer/application-context.xml"}` on a project under a
-   configured root renders the XML in the Source tab; the echo names the file and mode; a file outside every
-   root is refused and the echo lists the roots. `tools/list` shows the verb with read-only annotations.
-2. `analyser_source {bean: "riskStatusBook"}` scrolls to the declaration; the echo carries `nodeId`,
-   `hasRecords` from the open log and `hasSource`; an unknown id echoes the ids present.
-3. `spotlight {target: "source:design:bean:riskStatusBook", caption: "…"}` lights the declaration; a
-   `screenshot` shows it lit; the caption is rendered as testimony.
-4. From a record of node `riskStatusBook` in the detail view, "show declaration" lands on the same line;
-   from the lit line, "show node" selects `topology:node:riskStatusBook`.
-5. A `SPRING_UNKNOWN_BINDING_NODE` finding loaded from `target/fluxtion-validation.json` offers "show in
-   design" and lands on the binding's bean line.
-6. Editing the design file on disk while it is shown re-renders within the Follow interval and keeps a
-   spotlight anchored to its bean.
-7. The verb never writes: a read-only filesystem containing the project passes 1–6.
+1. `source {file}` renders a design under an authorised root, echo names file, mode and `relationship`; a file
+   outside every root is refused with the root list; `tools/list` shows the verb read-only.
+2. `source {bean}` scrolls to the declaration with `nodeId`, `records` (labelled `unverified`), `source`;
+   unknown id echoes the ids present; a duplicated id is ambiguous (both lines echoed, nothing selected).
+   Mixed selectors are refused with the accepted shapes.
+3. `spotlight source:design:bean:x` lights the declaration; caption as testimony; `screenshot` shows it.
+   `open.design = A; source {file: B}; spotlight source:design:bean:x` lights **A**'s bean and echoes A.
+4. From a record of node `x`, "show declaration" lands on `<bean id="x">`; from that line, "show node"
+   selects `topology:node:x`; both echo `unverified`.
+5. **Location table** (gated as D-4 says): `open.diagnostics` of a `ValidationResult` with
+   `SPRING_UNKNOWN_BINDING_NODE` whose target does not exist → the **binding** line; an incomplete binding with
+   no node → the binding line; malformed XML → document start with the message; a `SOURCE_MEMBER` conflict →
+   the **Java** class under an authorised root; `FLX-1009` (`NODE`) → the bean with that node name; a report
+   whose `sourceRoot` differs from the project root → resolved through the authorised root or *"outside
+   authorised roots"*. Every unresolved case keeps the finding and shows the reason.
+6. Follow with a design and **no log**; with a log that cannot be followed; a malformed intermediate write
+   (last good revision + banner, anchors kept); a removed bean (spotlight goes out, `wentOut` names it, no
+   rebinding); a duplicated bean (ambiguous); lines inserted above a `line` spotlight (goes out).
+7. Intake: a design and a failed validation result with **no log open**; each of the three wrappers; replace
+   a result with a corrected one (old one gone); switch project (design and diagnostics cleared); an
+   unsupported schema / unreadable file refused **without** retaining the previous result.
+8. **Relationship**: edit an edge keeping the bean ids with an old log open → `unverified`, records still
+   navigable, caption marked edited; a sidecar surviving a failed build that never ran the compiler →
+   *predates the last attempt*; the combined case in D-5 reads as D-5 states.
+9. The verb never writes: a read-only filesystem holding the project passes 1–8.
 
 ## Open questions
 
-- **Q1** split view for cross-artefact spotlights (D-3).
-- **Q2** whether `source` should accept `xpath` for anchors that are not beans (an `eventHandlers` entry,
-  a `serviceBinding`) — cheap once the index exists; deferred until a conversation needs it.
-- **Q3** the `sourceRef`-required change is a compiler-side A1b edit; owner to confirm it rides Spec 2 A1.
+- **Q1** split view for cross-artefact spotlights — optional, not for M49.
+- **Q2** `xpath` anchors in `source` — deferred; D-4's table covers the shapes the registry emits today.
+- **Q3** the `sourceRef`-required change and the receipt fields M49 reads are owned by the authoring contract;
+  owner to confirm they ride its A1. M49 does not wait for the design-hash-in-`Meta` idea.
