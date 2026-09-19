@@ -41,8 +41,10 @@ main (owner, 2026-09-19):** **M66 · Design render — the Spring XML on the can
 `completed/tracker.md` already holds *M49 · Runtime performance*, measured 2026-09-03; the same fix as the M46→M50 duplicate),
 the analyser-side complement of the Spring-authoring work: spec `spec-design-render.md` revision 2 at `e624ca9c` on
 `spec/design-render` (independent review `review_spec_design_render_71e50ee5.md`, NOT READY R1–R4, all accepted; awaiting
-re-review), implementation in progress on `feat/m66-design-render`, whose tracker checkpoint carries the M49→M66 correction
-and the implementation decisions. Its tracker section arrives with that branch; *Suggested delivery order* item 2 holds its
+re-review), implementation in progress on `feat/m66-design-render` — tracker checkpoint `232c846a` carries the M49→M66 correction
+and the implementation decisions; independently re-reviewed at that checkpoint (`docs/handoff/review_spec_design_render_232c846a.md`
+on the branch, `aa41d06e`: READY FOR IMPLEMENTATION, R1–R4 addressed; G2 the verb inventory and G3 the widened root policy to fold
+in, G4 the runtime/builder bump is the owner's call, G5 rebase onto main before the next checkpoint). Its tracker section arrives with that branch; *Suggested delivery order* item 2 holds its
 place here.
 
 **Tidied 2026-09-17, after 1.14.0/1.14.1 (rule 7).** Twenty ☑ items and one ⊘ moved verbatim to
@@ -1064,7 +1066,7 @@ M64.10, M46.11.
    release is ≥ 1.0.72 — say "forthcoming"). Small; the pages are already in the nav and the CHANGELOG line is written.
 2. ◧ **M66 Design render — the Spring XML on the canvas** (was M49; owner, 2026-09-19; complements the Spring-authoring work). Spec
    `spec-design-render.md` revision 2 (`e624ca9c`, `spec/design-render`) after an independent review (R1–R4 accepted) —
-   needs the re-review; implementation on `feat/m66-design-render`. Read-only `DESIGN` mode on the Source tab, `source
+   re-reviewed at checkpoint `232c846a` (READY FOR IMPLEMENTATION); implementation on `feat/m66-design-render`. Read-only `DESIGN` mode on the Source tab, `source
    {file|bean|line|fqn}`, `open.design` / `open.diagnostics`, `source:design[:bean:<id>|:line:<n>]` spotlight targets,
    bean ↔ node ↔ record navigation, "show in design" from any `SPRING_*` diagnostic; nothing edits, validates or
    generates. The M49 number collision is settled by the renumbering (head note).
