@@ -435,7 +435,7 @@ programmatic ranges (say so); F4 the seam is `core.Background.run`'s three-argum
 - [M65.5] ☐ **D-F5 measurement**: extraction wall time per follow tick on the demo log and a ~100k-record log, CI
   machine class; trigger for M65.4 is >~50 ms per extraction or D-F6's `dirty` set in steady state (impl review F5).
 
-## M67 · The extension tour — extend a running application with a jar you already built — ☐ SPEC'D 2026-09-19 (owner-directed)
+## M67 · The extension tour — extend a running application with a jar you already built — ☐ SPEC'D 2026-09-19 (owner-directed); **QUEUED behind the Spring-authoring release and M66** (owner, same day: "we will finish spring authoring and xml rendering for a solid base to build from")
 
 Spec: **[spec-extension-tour.md](spec-extension-tour.md)**. Owner, 2026-09-19: *"as soon as developers realise they can
 extend an application with jars they have built before, use LLM generated spring XML and validate with audit logs …
@@ -1054,7 +1054,7 @@ the capture scenarios complete (images regenerate only on a machine with the Scr
 unchanged. **On main since 1.15.0, unreleased and unreviewed:** the Spring-authoring guide pages (`6f8568e8`) — item 1.
 **Newly spec'd (item 3):** M67 the extension tour — the interactive demo of extending an application with a jar you already
 built, on the developer's own screen; a public vendor-jar catalogue like the playground libs; the owner's four calls are made
-and the tour waits for M66.
+and the tour is queued behind the Spring-authoring release and M66 (owner).
 **Active on branches (item 2):** M66 design render (was M49) — spec revision 2 on `spec/design-render`, implementation on
 `feat/m66-design-render`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
 or the pages say it is coming. **Elsewhere, not this repo's:** the Spring-authoring local workflow (compiler `feat/spring-authoring-a1`, playground
@@ -1104,10 +1104,11 @@ M64.10, M46.11.
 3. ☐ **M67 The extension tour** (owner, 2026-09-19; `spec-extension-tour.md`) — extend a running application with a jar
    already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats driven by
    the developer's own assistant. The owner's four calls are made (new `fluxtion-vendor-jars` repo; an *Extend an
-   application* template; limit check + notifier sink + feed adapter; **waits for M66**). Order: M67.1 the catalogue and
-   M67.2 the template (cross-repo, can start now), M67.3 the skill + verify script and M67.4 the held-out record
-   (rehearsed against the M66 branch), publication with M67.5 once M66 merges; beat 4 upgrades when the compiler's
-   refusal names the bean. D-X11 (the wait-for-the-person spotlight) is proposed, undecided.
+   application* template; limit check + notifier sink + feed adapter; waits for M66). **Not started until the
+   Spring-authoring release is out and M66 has merged** — the owner wants that base solid first; nothing in M67 is
+   picked up before then, cross-repo slices included. Then M67.1/.2 (cross-repo), M67.3/.4, publication with M67.5;
+   beat 4 upgrades when the compiler's refusal names the bean. D-X11 (the wait-for-the-person spotlight) is proposed,
+   undecided.
 4. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
 5. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
