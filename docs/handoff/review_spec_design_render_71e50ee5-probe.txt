@@ -1,0 +1,48 @@
+M49 review probe — 2026-09-19
+Analyser revision: 71e50ee5247ac165a23d5201b2e2e196af9a3346
+
+Purpose: inspect the companion contract's documented JSON example and diagnostic factory,
+then scan analyser production source. This is static evidence extracted by execution,
+not an execution of a validator or an unimplemented M49 verb.
+
+Inputs:
+  AUTHORING_SPEC_PATH: companion starter API / validate-generate specification,
+    containing section "### 2.1 ValidationResult".
+  DIAGNOSTIC_FACTORY_PATH: source defining the FLX-1009 diagnostic factory.
+  Run from the analyser checkout. Input paths are caller-supplied; no private repository
+  names or machine paths are required in this public review record.
+
+Reproduction:
+
+python3 - "$AUTHORING_SPEC_PATH" "$DIAGNOSTIC_FACTORY_PATH" <<'PY'
+from pathlib import Path
+import json, re, sys
+
+s = Path(sys.argv[1]).read_text().split('### 2.1 ValidationResult', 1)[1]
+v = json.loads(re.search(r'```json\n(.*?)\n```', s, re.S).group(1))
+d = v['diagnosticReport']['diagnostics'][0]
+print('contract_example.code=' + d['code'])
+print('contract_example.element.kind=' + d['element']['kind'])
+print('contract_example.has_sourceRef=' + str('sourceRef' in d))
+print('contract_example.has_xpathHint=' + str('xpathHint' in d['element']))
+s = Path(sys.argv[2]).read_text().split('.builder("FLX-1009"', 1)[1].split('return b.build();', 1)[0]
+print('FLX-1009.element_constructor=' + re.search(r'\.element\(DiagnosticElement\.(\w+)\(', s).group(1))
+terms = ['SPRING_', 'DiagnosticReport', 'sourceRef', 'fluxtion-validation', 'fluxtion-reconciliation']
+hits = []
+for path in Path('src/main/java').rglob('*.java'):
+    source = path.read_text()
+    if any(term in source for term in terms):
+        hits.append(str(path))
+print('analyser_production_diagnostic_contract_references=' + str(len(hits)))
+print('analyser_production_matches=' + str(hits))
+PY
+
+Observed output:
+
+contract_example.code=SPRING_UNKNOWN_BINDING_NODE
+contract_example.element.kind=SPRING_SERVICE_BINDING
+contract_example.has_sourceRef=False
+contract_example.has_xpathHint=True
+FLX-1009.element_constructor=node
+analyser_production_diagnostic_contract_references=0
+analyser_production_matches=[]
