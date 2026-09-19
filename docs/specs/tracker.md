@@ -451,7 +451,7 @@ only once M66 lands; the refusal beat lights the bean from the diagnostic only o
 (Spring-branch review G7) — until then both beats say so. **Owner decisions, 2026-09-19:** a new `fluxtion-vendor-jars`
 repository (D-X7); a dedicated *Extend an application* template entry (D-X8); limit check + notifier sink + feed
 adapter, one of them a jar the owner built before (D-X9); **the tour waits for M66** and publishes with the declaration
-lit (D-X10). Proposed, undecided: D-X11 the wizard — `spotlight {wait: true}` with Back · Next · Stop that returns the
+lit (D-X10). Proposed, undecided: D-X11 the wizard — `spotlight {wait: true}` with Next · Stop (no Back — owner) that returns the
 call the LLM is waiting on; would be M64.14, the tour its first user.
 
 - [M67.1] ☐ **The catalogue** — repository, `catalogue.json`, three jars in placeholder packages with their source (cross-repo).

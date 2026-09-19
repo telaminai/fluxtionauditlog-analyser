@@ -184,12 +184,12 @@ M64's vocabulary; nothing new is needed for beats 1, 2, 5, 6.
   interactive, like a wizard, next/previous buttons that could drive the LLM."* MCP lets the LLM call the analyser
   and never the reverse, so the buttons cannot push a turn into the LLM; what they can do is **return the call the
   LLM is already waiting on**. Proposal: `spotlight` gains `wait: true` (a parameter — M64's fifteenth-verb rule
-  holds). With it the callout carries **Back · Next · Stop** and the verb blocks until one is pressed, bounded (60 s)
-  so client tool timeouts never bite; the echo carries `{advance: "next" | "back" | "stop" | "dismissed" | "timeout",
-  beat: <n>}` — `beat` echoing what the call was made with, so an LLM cannot drift. The skill's loop is then on the
-  LLM's side only: light, say one sentence, wait, branch; Back re-lights the previous beat from the script the LLM
-  holds. Escape and any click still dismiss, and now report it. The analyser learns nothing about tours; D-SP3's
-  dumb overlay stays dumb; the person chooses, the analyser does not.
+  holds). With it the callout carries **Next · Stop** — **no Back** (owner, 2026-09-19): Back would rely on the LLM
+  re-lighting a previous beat from its own memory, the one control whose truth the screen could not prove — and the
+  verb blocks until one is pressed, bounded (60 s) so client tool timeouts never bite; the echo carries
+  `{advance: "next" | "stop" | "dismissed" | "timeout"}`. The skill's loop is then on the LLM's side only: light, say
+  one sentence, wait, go on or end. Escape and any click still dismiss, and now report it. The analyser learns
+  nothing about tours; D-SP3's dumb overlay stays dumb; the person chooses, the analyser does not.
   **The unknown is behavioural, not mechanical:** whether a context-free client obeys "the wait is the only way
   forward" instead of narrating three beats at once. Mechanism: about a day on `SpotlightOverlay` and one schema
   line; the answer: one held-out run. If adopted it is M64.14, and the extension tour is its first user.
