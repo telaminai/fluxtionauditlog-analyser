@@ -1,0 +1,133 @@
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789815572210
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.AcceptanceScenario$$Lambda/0x0000007001017480@2c8d66b2, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1789815572210
+---
+eventLogRecord: 
+    eventTime: 1789815572211
+    logTime: 1789815572211
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs: 
+        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}
+    endTime: 1789815572211
+---
+eventLogRecord: 
+    eventTime: 1789815572211
+    logTime: 1789815572211
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Start
+    thread: main
+    nodeLogs: 
+    endTime: 1789815572211
+---
+eventLogRecord: 
+    eventTime: 1789815572212
+    logTime: 1789815572212
+    groupingId: null
+    event: SinkRegistration
+    eventToString: DefaultEvent(filterId=2147483647, filterString=checked, eventTime=1789815572212)
+    thread: main
+    eventFilter: checked
+    nodeLogs: 
+        - checked: { thread: main, method: sinkRegistration}
+    endTime: 1789815572212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789815572249
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}, price: 10.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 10.0, paused: false}
+    endTime: 1789815572258
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789815572285
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=20.0, filterId=9}
+    thread: main
+    nodeLogs: 
+    endTime: 1789815572285
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789815572313
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: pause, value: java.lang.Object@4e04a765}
+    thread: main
+    eventFilter: pause
+    nodeLogs: 
+        - child: { thread: main, method: onSignalPause, action: pause, processedCount: 1, lastProcessedPrice: 10.0, paused: true}
+    endTime: 1789815572313
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789815572344
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}, price: 30.0}
+        - child: { thread: main, method: onChild, action: priceIgnoredWhilePaused, processedCount: 1, lastProcessedPrice: 10.0, paused: true}
+    endTime: 1789815572344
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789815572374
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void reset()
+    thread: main
+    nodeLogs: 
+        - child: { thread: main, method: reset, action: reset, processedCount: 0, lastProcessedPrice: 0.0, paused: false}
+    endTime: 1789815572374
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789815572402
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}, price: 40.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 40.0, paused: false}
+    endTime: 1789815572402
+---
+eventLogRecord: 
+    eventTime: 1789815572411
+    logTime: 1789815572411
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Stop
+    thread: main
+    nodeLogs: 
+    endTime: 1789815572411
+---
+eventLogRecord: 
+    eventTime: 1789815572411
+    logTime: 1789815572411
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: TearDown
+    thread: main
+    nodeLogs: 
+    endTime: 1789815572412

@@ -1,0 +1,1611 @@
+[
+  {
+    "verb": "open",
+    "params": {
+      "logs": [
+        "/tmp/spring-authoring-acceptance/run1/project/acceptance-evidence/run-a/audit.yaml",
+        "/tmp/spring-authoring-acceptance/run1/project/acceptance-evidence/run-b/audit.yaml"
+      ],
+      "graphml": "/tmp/spring-authoring-acceptance/run1/project/src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+      "processor": "com.example.myapp.generated.MyProcessor",
+      "provenance": "Isolated local acceptance; two fresh JVMs 98005 and 98006; exact six-input scenario; measured host CSVs accompany raw audit."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "open",
+      "applied": {
+        "files": [
+          "audit.yaml",
+          "audit.yaml"
+        ],
+        "order": "by content — each file's first timed logTime (names never order)",
+        "loading": true
+      }
+    }
+  },
+  {
+    "verb": "context",
+    "params": {},
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "context",
+      "context": {
+        "log": {
+          "openedFrom": "audit.yaml (+1 rolled)",
+          "records": 2,
+          "sizeBytes": -1,
+          "from": 1789815519585,
+          "to": 1789815519881,
+          "openedBy": "action socket"
+        },
+        "provenance": "Isolated local acceptance; two fresh JVMs 98005 and 98006; exact six-input scenario; measured host CSVs accompany raw audit.",
+        "provenanceSource": "declared by the opener",
+        "project": {
+          "active": false,
+          "note": "your own settings — no project is open"
+        },
+        "fluxtionKey": {
+          "canonicalFilePresent": false,
+          "canonicalFile": "~/.fluxtion/fluxtion.apiKeyFile",
+          "precedenceNote": "a -Dfluxtion.apiKey system property passed to the build overrides this file; FLUXTION_API_KEY is not read by the builder"
+        },
+        "graphPairing": {
+          "graph": null,
+          "graphSource": "NONE",
+          "auditLogging": "unknown"
+        },
+        "processors": [
+          {
+            "class": "com.acme.marketmaker.strategy.DemoMarketMakerStrategy",
+            "selected": true,
+            "source": "not found",
+            "from": "own settings"
+          }
+        ],
+        "handoff": {
+          "posture": {
+            "value": "research/support",
+            "source": "derived",
+            "note": "a starting guess from what is open (no project is open) — derivation lags intent; set it with open {posture} or AI ▸ Posture"
+          }
+        },
+        "exports": {
+          "enabled": true,
+          "dir": "/tmp/spring-authoring-acceptance/run1/exchange"
+        },
+        "dispatchOrder": "total — position in nodeLogs IS dispatch order (derived); safe to read as causality",
+        "source": {
+          "roots": [],
+          "eventProcessor": "com.acme.marketmaker.strategy.DemoMarketMakerStrategy",
+          "rootTiers": []
+        },
+        "filter": {},
+        "showing": {
+          "visible": 2,
+          "total": 2
+        },
+        "selection": [],
+        "flags": [],
+        "files": [
+          "audit.yaml",
+          "audit.yaml"
+        ],
+        "producer": [
+          "This log is missing its record separators: record 1 alone contains 12 records run together, so the count above is wrong and every record after the first is invisible. A text audit log is a sequence of documents separated by lines of '---' (Format specification §1). record.toString() does NOT write it — the sink must: append(\"---\\n\") before each record."
+        ],
+        "graphs": [
+          "Graph 1"
+        ]
+      }
+    }
+  },
+  {
+    "verb": "read",
+    "params": {
+      "recordIndex": 6,
+      "count": 12
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "read",
+      "result": {
+        "total": 2,
+        "anchor": 1,
+        "from": 0,
+        "to": 1,
+        "records": [
+          {
+            "recordIndex": 0,
+            "byteOffset": 0,
+            "file": "audit.yaml",
+            "logTime": 1789815519585,
+            "text": "eventLogRecord: \n    eventTime: -1\n    logTime: 1789815519390\n    groupingId: null\n    event: EventLogControlEvent\n    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.AcceptanceScenario$$Lambda/0x0000007001017480@2c8d66b2, sourceId=null, groupId=null}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519390\neventLogRecord: \n    eventTime: 1789815519391\n    logTime: 1789815519391\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Init\n    thread: main\n    nodeLogs: \n        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519391\neventLogRecord: \n    eventTime: 1789815519391\n    logTime: 1789815519391\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Start\n    thread: main\n    nodeLogs: \n    endTime: 1789815519391\neventLogRecord: \n    eventTime: 1789815519392\n    logTime: 1789815519392\n    groupingId: null\n    event: SinkRegistration\n    eventToString: DefaultEvent(filterId=2147483647, filterString=checked, eventTime=1789815519392)\n    thread: main\n    eventFilter: checked\n    nodeLogs: \n        - checked: { thread: main, method: sinkRegistration}\n    endTime: 1789815519392\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519428\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}, price: 10.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 10.0, paused: false}\n    endTime: 1789815519432\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519460\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=20.0, filterId=9}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519460\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519490\n    groupingId: null\n    event: Signal\n    eventToString: Signal: {filterString: pause, value: java.lang.Object@4e04a765}\n    thread: main\n    eventFilter: pause\n    nodeLogs: \n        - child: { thread: main, method: onSignalPause, action: pause, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519491\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519521\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}, price: 30.0}\n        - child: { thread: main, method: onChild, action: priceIgnoredWhilePaused, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519521\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519547\n    groupingId: null\n    event: ExportFunctionAuditEvent\n    eventToString: @Override\npublic void reset()\n    thread: main\n    nodeLogs: \n        - child: { thread: main, method: reset, action: reset, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519547\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519577\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}, price: 40.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 40.0, paused: false}\n    endTime: 1789815519577\neventLogRecord: \n    eventTime: 1789815519585\n    logTime: 1789815519585\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Stop\n    thread: main\n    nodeLogs: \n    endTime: 1789815519585\neventLogRecord: \n    eventTime: 1789815519585\n    logTime: 1789815519585\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: TearDown\n    thread: main\n    nodeLogs: \n    endTime: 1789815519585"
+          },
+          {
+            "recordIndex": 1,
+            "byteOffset": 0,
+            "file": "audit.yaml",
+            "logTime": 1789815519881,
+            "text": "eventLogRecord: \n    eventTime: -1\n    logTime: 1789815519686\n    groupingId: null\n    event: EventLogControlEvent\n    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.AcceptanceScenario$$Lambda/0x0000007801017480@2c8d66b2, sourceId=null, groupId=null}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519687\neventLogRecord: \n    eventTime: 1789815519687\n    logTime: 1789815519687\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Init\n    thread: main\n    nodeLogs: \n        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519687\neventLogRecord: \n    eventTime: 1789815519687\n    logTime: 1789815519687\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Start\n    thread: main\n    nodeLogs: \n    endTime: 1789815519687\neventLogRecord: \n    eventTime: 1789815519688\n    logTime: 1789815519688\n    groupingId: null\n    event: SinkRegistration\n    eventToString: DefaultEvent(filterId=2147483647, filterString=checked, eventTime=1789815519688)\n    thread: main\n    eventFilter: checked\n    nodeLogs: \n        - checked: { thread: main, method: sinkRegistration}\n    endTime: 1789815519688\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519720\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}, price: 10.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 10.0, paused: false}\n    endTime: 1789815519725\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519753\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=20.0, filterId=9}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519753\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519784\n    groupingId: null\n    event: Signal\n    eventToString: Signal: {filterString: pause, value: java.lang.Object@4e04a765}\n    thread: main\n    eventFilter: pause\n    nodeLogs: \n        - child: { thread: main, method: onSignalPause, action: pause, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519784\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519812\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}, price: 30.0}\n        - child: { thread: main, method: onChild, action: priceIgnoredWhilePaused, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519812\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519842\n    groupingId: null\n    event: ExportFunctionAuditEvent\n    eventToString: @Override\npublic void reset()\n    thread: main\n    nodeLogs: \n        - child: { thread: main, method: reset, action: reset, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519842\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519872\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}, price: 40.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 40.0, paused: false}\n    endTime: 1789815519873\neventLogRecord: \n    eventTime: 1789815519881\n    logTime: 1789815519881\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Stop\n    thread: main\n    nodeLogs: \n    endTime: 1789815519881\neventLogRecord: \n    eventTime: 1789815519881\n    logTime: 1789815519881\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: TearDown\n    thread: main\n    nodeLogs: \n    endTime: 1789815519881"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "verb": "read",
+    "params": {
+      "recordIndex": 18,
+      "count": 12
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "read",
+      "result": {
+        "total": 2,
+        "anchor": 1,
+        "from": 0,
+        "to": 1,
+        "records": [
+          {
+            "recordIndex": 0,
+            "byteOffset": 0,
+            "file": "audit.yaml",
+            "logTime": 1789815519585,
+            "text": "eventLogRecord: \n    eventTime: -1\n    logTime: 1789815519390\n    groupingId: null\n    event: EventLogControlEvent\n    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.AcceptanceScenario$$Lambda/0x0000007001017480@2c8d66b2, sourceId=null, groupId=null}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519390\neventLogRecord: \n    eventTime: 1789815519391\n    logTime: 1789815519391\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Init\n    thread: main\n    nodeLogs: \n        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519391\neventLogRecord: \n    eventTime: 1789815519391\n    logTime: 1789815519391\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Start\n    thread: main\n    nodeLogs: \n    endTime: 1789815519391\neventLogRecord: \n    eventTime: 1789815519392\n    logTime: 1789815519392\n    groupingId: null\n    event: SinkRegistration\n    eventToString: DefaultEvent(filterId=2147483647, filterString=checked, eventTime=1789815519392)\n    thread: main\n    eventFilter: checked\n    nodeLogs: \n        - checked: { thread: main, method: sinkRegistration}\n    endTime: 1789815519392\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519428\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}, price: 10.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 10.0, paused: false}\n    endTime: 1789815519432\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519460\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=20.0, filterId=9}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519460\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519490\n    groupingId: null\n    event: Signal\n    eventToString: Signal: {filterString: pause, value: java.lang.Object@4e04a765}\n    thread: main\n    eventFilter: pause\n    nodeLogs: \n        - child: { thread: main, method: onSignalPause, action: pause, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519491\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519521\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}, price: 30.0}\n        - child: { thread: main, method: onChild, action: priceIgnoredWhilePaused, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519521\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519547\n    groupingId: null\n    event: ExportFunctionAuditEvent\n    eventToString: @Override\npublic void reset()\n    thread: main\n    nodeLogs: \n        - child: { thread: main, method: reset, action: reset, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519547\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519577\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}, price: 40.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 40.0, paused: false}\n    endTime: 1789815519577\neventLogRecord: \n    eventTime: 1789815519585\n    logTime: 1789815519585\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Stop\n    thread: main\n    nodeLogs: \n    endTime: 1789815519585\neventLogRecord: \n    eventTime: 1789815519585\n    logTime: 1789815519585\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: TearDown\n    thread: main\n    nodeLogs: \n    endTime: 1789815519585"
+          },
+          {
+            "recordIndex": 1,
+            "byteOffset": 0,
+            "file": "audit.yaml",
+            "logTime": 1789815519881,
+            "text": "eventLogRecord: \n    eventTime: -1\n    logTime: 1789815519686\n    groupingId: null\n    event: EventLogControlEvent\n    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.AcceptanceScenario$$Lambda/0x0000007801017480@2c8d66b2, sourceId=null, groupId=null}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519687\neventLogRecord: \n    eventTime: 1789815519687\n    logTime: 1789815519687\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Init\n    thread: main\n    nodeLogs: \n        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519687\neventLogRecord: \n    eventTime: 1789815519687\n    logTime: 1789815519687\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Start\n    thread: main\n    nodeLogs: \n    endTime: 1789815519687\neventLogRecord: \n    eventTime: 1789815519688\n    logTime: 1789815519688\n    groupingId: null\n    event: SinkRegistration\n    eventToString: DefaultEvent(filterId=2147483647, filterString=checked, eventTime=1789815519688)\n    thread: main\n    eventFilter: checked\n    nodeLogs: \n        - checked: { thread: main, method: sinkRegistration}\n    endTime: 1789815519688\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519720\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}, price: 10.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 10.0, paused: false}\n    endTime: 1789815519725\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519753\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=20.0, filterId=9}\n    thread: main\n    nodeLogs: \n    endTime: 1789815519753\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519784\n    groupingId: null\n    event: Signal\n    eventToString: Signal: {filterString: pause, value: java.lang.Object@4e04a765}\n    thread: main\n    eventFilter: pause\n    nodeLogs: \n        - child: { thread: main, method: onSignalPause, action: pause, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519784\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519812\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}, price: 30.0}\n        - child: { thread: main, method: onChild, action: priceIgnoredWhilePaused, processedCount: 1, lastProcessedPrice: 10.0, paused: true}\n    endTime: 1789815519812\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519842\n    groupingId: null\n    event: ExportFunctionAuditEvent\n    eventToString: @Override\npublic void reset()\n    thread: main\n    nodeLogs: \n        - child: { thread: main, method: reset, action: reset, processedCount: 0, lastProcessedPrice: 0.0, paused: false}\n    endTime: 1789815519842\neventLogRecord: \n    eventTime: -1\n    logTime: 1789815519872\n    groupingId: null\n    event: PriceUpdate\n    eventToString: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}\n    thread: main\n    nodeLogs: \n        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}, price: 40.0}\n        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 40.0, paused: false}\n    endTime: 1789815519873\neventLogRecord: \n    eventTime: 1789815519881\n    logTime: 1789815519881\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: Stop\n    thread: main\n    nodeLogs: \n    endTime: 1789815519881\neventLogRecord: \n    eventTime: 1789815519881\n    logTime: 1789815519881\n    groupingId: null\n    event: LifecycleEvent\n    eventToString: TearDown\n    thread: main\n    nodeLogs: \n    endTime: 1789815519881"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "verb": "open",
+    "params": {
+      "logs": [
+        "/tmp/spring-authoring-acceptance/run1/exchange/run-c-audit.yaml",
+        "/tmp/spring-authoring-acceptance/run1/exchange/run-d-audit.yaml"
+      ],
+      "provenance": "Acceptance runs C and D, fresh JVMs; corrected producer writes --- separators; state/sink observations captured independently."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "open",
+      "applied": {
+        "files": [
+          "run-c-audit.yaml",
+          "run-d-audit.yaml"
+        ],
+        "order": "by content — each file's first timed logTime (names never order)",
+        "loading": true
+      }
+    }
+  },
+  {
+    "verb": "open",
+    "params": {
+      "graphml": "/tmp/spring-authoring-acceptance/run1/project/src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+      "processor": "com.example.myapp.generated.MyProcessor"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": false,
+      "error": "no source for 'com.example.myapp.generated.MyProcessor' under the configured roots"
+    }
+  },
+  {
+    "verb": "source_root",
+    "params": {
+      "add": [
+        "/tmp/spring-authoring-acceptance/run1/project/src/main/java"
+      ]
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "source_root",
+      "sourceRoots": {
+        "roots": [
+          "/tmp/spring-authoring-acceptance/run1/project/src/main/java"
+        ],
+        "added": [
+          "/tmp/spring-authoring-acceptance/run1/project/src/main/java"
+        ]
+      }
+    }
+  },
+  {
+    "verb": "context",
+    "params": {},
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "context",
+      "context": {
+        "log": {
+          "openedFrom": "run-d-audit.yaml (+1 rolled)",
+          "records": 24,
+          "sizeBytes": -1,
+          "from": 1789815571897,
+          "to": 1789815572411,
+          "openedBy": "action socket"
+        },
+        "provenance": "Acceptance runs C and D, fresh JVMs; corrected producer writes --- separators; state/sink observations captured independently.",
+        "provenanceSource": "declared by the opener",
+        "project": {
+          "active": false,
+          "note": "your own settings — no project is open"
+        },
+        "fluxtionKey": {
+          "canonicalFilePresent": false,
+          "canonicalFile": "~/.fluxtion/fluxtion.apiKeyFile",
+          "precedenceNote": "a -Dfluxtion.apiKey system property passed to the build overrides this file; FLUXTION_API_KEY is not read by the builder"
+        },
+        "graphPairing": {
+          "graph": "MyProcessor.graphml",
+          "graphSource": "OPENED",
+          "graphPath": "/tmp/spring-authoring-acceptance/run1/project/src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+          "applies": true,
+          "loggedNodes": 3,
+          "declaredByGraph": 2,
+          "verdict": "the graph declares 2 of the 3 node(s) this log writes",
+          "auditLogging": "enabled",
+          "auditLoggingNote": "Audit logging is installed on this processor (EventLogManager is on the graph), so a run can produce a log. Whether a given NODE appears in it is a separate question — a node logs only if it has an audit logger and calls it, which is why 'did not log' is never by itself 'did not run'."
+        },
+        "processors": [
+          {
+            "class": "com.acme.marketmaker.strategy.DemoMarketMakerStrategy",
+            "selected": true,
+            "source": "not found",
+            "from": "own settings"
+          }
+        ],
+        "handoff": {
+          "posture": {
+            "value": "research/support",
+            "source": "derived",
+            "note": "a starting guess from what is open (no project is open) — derivation lags intent; set it with open {posture} or AI ▸ Posture"
+          }
+        },
+        "exports": {
+          "enabled": true,
+          "dir": "/tmp/spring-authoring-acceptance/run1/exchange"
+        },
+        "dispatchOrder": "total — position in nodeLogs IS dispatch order (derived); safe to read as causality",
+        "source": {
+          "roots": [
+            "/tmp/spring-authoring-acceptance/run1/project/src/main/java"
+          ],
+          "eventProcessor": "com.acme.marketmaker.strategy.DemoMarketMakerStrategy",
+          "rootTiers": [
+            {
+              "path": "/tmp/spring-authoring-acceptance/run1/project/src/main/java",
+              "tier": "own settings",
+              "form": "absolute"
+            }
+          ]
+        },
+        "topology": {
+          "recordIndex": 0,
+          "rowIndex": -1,
+          "orderMeaningful": true,
+          "graphSource": "OPENED",
+          "atEntry": true,
+          "rowCount": 0,
+          "recordsOpen": 24,
+          "position": "no record selected — 24 open; goto {recordIndex} to step through one",
+          "currentNode": null,
+          "selected": [],
+          "scope": "node",
+          "routeBound": true,
+          "focus": false,
+          "context": "All (18)",
+          "contextDepth": 0,
+          "scaffolding": false,
+          "syncSource": true,
+          "visibleNodes": 4,
+          "totalNodes": 18,
+          "callout": true
+        },
+        "filter": {},
+        "showing": {
+          "visible": 24,
+          "total": 24
+        },
+        "selection": [],
+        "flags": [],
+        "files": [
+          "run-c-audit.yaml",
+          "run-d-audit.yaml"
+        ],
+        "graphs": [
+          "Graph 1"
+        ]
+      }
+    }
+  },
+  {
+    "verb": "open",
+    "params": {
+      "processor": "com.example.myapp.generated.MyProcessor"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "open",
+      "opened": {
+        "processor": "com.example.myapp.generated.MyProcessor"
+      }
+    }
+  },
+  {
+    "verb": "read",
+    "params": {
+      "recordIndex": 12,
+      "count": 24,
+      "fields": [
+        "child.*",
+        "rootNode.price",
+        "checked.*"
+      ]
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "read",
+      "result": {
+        "total": 24,
+        "anchor": 12,
+        "from": 1,
+        "to": 23,
+        "records": [
+          {
+            "recordIndex": 1,
+            "byteOffset": 350,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815571898,
+            "event": "LifecycleEvent",
+            "values": {
+              "child.action": "initialise",
+              "child.processedCount": "0",
+              "child.lastProcessedPrice": "0.0",
+              "child.paused": "false"
+            }
+          },
+          {
+            "recordIndex": 2,
+            "byteOffset": 655,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815571899,
+            "event": "LifecycleEvent",
+            "values": {}
+          },
+          {
+            "recordIndex": 3,
+            "byteOffset": 863,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815571899,
+            "event": "SinkRegistration",
+            "values": {
+              "checked.thread": "main",
+              "checked.method": "sinkRegistration"
+            },
+            "traceLikeOnly": [
+              "checked"
+            ]
+          },
+          {
+            "recordIndex": 4,
+            "byteOffset": 1234,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815571935,
+            "event": "PriceUpdate",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onChild",
+              "child.action": "priceProcessed",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "10.0",
+              "child.paused": "false",
+              "rootNode.price": "10.0"
+            }
+          },
+          {
+            "recordIndex": 5,
+            "byteOffset": 1742,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815571969,
+            "event": "PriceUpdate",
+            "values": {}
+          },
+          {
+            "recordIndex": 6,
+            "byteOffset": 1979,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815571999,
+            "event": "Signal",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onSignalPause",
+              "child.action": "pause",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "10.0",
+              "child.paused": "true"
+            }
+          },
+          {
+            "recordIndex": 7,
+            "byteOffset": 2379,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815572030,
+            "event": "PriceUpdate",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onChild",
+              "child.action": "priceIgnoredWhilePaused",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "10.0",
+              "child.paused": "true",
+              "rootNode.price": "30.0"
+            }
+          },
+          {
+            "recordIndex": 8,
+            "byteOffset": 2895,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815572060,
+            "event": "ExportFunctionAuditEvent",
+            "values": {
+              "child.thread": "main",
+              "child.method": "reset",
+              "child.action": "reset",
+              "child.processedCount": "0",
+              "child.lastProcessedPrice": "0.0",
+              "child.paused": "false"
+            }
+          },
+          {
+            "recordIndex": 9,
+            "byteOffset": 3248,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815572090,
+            "event": "PriceUpdate",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onChild",
+              "child.action": "priceProcessed",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "40.0",
+              "child.paused": "false",
+              "rootNode.price": "40.0"
+            }
+          },
+          {
+            "recordIndex": 10,
+            "byteOffset": 3756,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815572097,
+            "event": "LifecycleEvent",
+            "values": {}
+          },
+          {
+            "recordIndex": 11,
+            "byteOffset": 3963,
+            "file": "run-c-audit.yaml",
+            "logTime": 1789815572098,
+            "event": "LifecycleEvent",
+            "values": {}
+          },
+          {
+            "recordIndex": 12,
+            "byteOffset": 4,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572210,
+            "event": "EventLogControlEvent",
+            "values": {}
+          },
+          {
+            "recordIndex": 13,
+            "byteOffset": 350,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572211,
+            "event": "LifecycleEvent",
+            "values": {
+              "child.action": "initialise",
+              "child.processedCount": "0",
+              "child.lastProcessedPrice": "0.0",
+              "child.paused": "false"
+            }
+          },
+          {
+            "recordIndex": 14,
+            "byteOffset": 655,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572211,
+            "event": "LifecycleEvent",
+            "values": {}
+          },
+          {
+            "recordIndex": 15,
+            "byteOffset": 863,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572212,
+            "event": "SinkRegistration",
+            "values": {
+              "checked.thread": "main",
+              "checked.method": "sinkRegistration"
+            },
+            "traceLikeOnly": [
+              "checked"
+            ]
+          },
+          {
+            "recordIndex": 16,
+            "byteOffset": 1234,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572249,
+            "event": "PriceUpdate",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onChild",
+              "child.action": "priceProcessed",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "10.0",
+              "child.paused": "false",
+              "rootNode.price": "10.0"
+            }
+          },
+          {
+            "recordIndex": 17,
+            "byteOffset": 1742,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572285,
+            "event": "PriceUpdate",
+            "values": {}
+          },
+          {
+            "recordIndex": 18,
+            "byteOffset": 1979,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572313,
+            "event": "Signal",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onSignalPause",
+              "child.action": "pause",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "10.0",
+              "child.paused": "true"
+            }
+          },
+          {
+            "recordIndex": 19,
+            "byteOffset": 2379,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572344,
+            "event": "PriceUpdate",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onChild",
+              "child.action": "priceIgnoredWhilePaused",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "10.0",
+              "child.paused": "true",
+              "rootNode.price": "30.0"
+            }
+          },
+          {
+            "recordIndex": 20,
+            "byteOffset": 2895,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572374,
+            "event": "ExportFunctionAuditEvent",
+            "values": {
+              "child.thread": "main",
+              "child.method": "reset",
+              "child.action": "reset",
+              "child.processedCount": "0",
+              "child.lastProcessedPrice": "0.0",
+              "child.paused": "false"
+            }
+          },
+          {
+            "recordIndex": 21,
+            "byteOffset": 3248,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572402,
+            "event": "PriceUpdate",
+            "values": {
+              "child.thread": "main",
+              "child.method": "onChild",
+              "child.action": "priceProcessed",
+              "child.processedCount": "1",
+              "child.lastProcessedPrice": "40.0",
+              "child.paused": "false",
+              "rootNode.price": "40.0"
+            }
+          },
+          {
+            "recordIndex": 22,
+            "byteOffset": 3756,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572411,
+            "event": "LifecycleEvent",
+            "values": {}
+          },
+          {
+            "recordIndex": 23,
+            "byteOffset": 3963,
+            "file": "run-d-audit.yaml",
+            "logTime": 1789815572411,
+            "event": "LifecycleEvent",
+            "values": {}
+          }
+        ]
+      }
+    }
+  },
+  {
+    "verb": "coverage",
+    "params": {},
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "coverage",
+      "coverage": {
+        "scope": "whole log",
+        "warning": "instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect",
+        "covered": 2,
+        "loggedButNotInTopology": [
+          "checked"
+        ],
+        "excludedNote": "excluded 2 declared item(s) that can never write audit output: 1 event class(es), 1 exported service(s). They appear in the graph because the processor handles them, not because they run — counting them as 'never logged' would report a category error as a low score.",
+        "recordsScanned": 24,
+        "excludedFromDenominator": {
+          "Commands": "an exported service interface — an entry point, not a node that logs",
+          "PriceUpdate": "an event class — data entering the graph, not code that runs"
+        },
+        "note": "a node appears here if it never wrote audit output. That is 'never logged', not proven 'never ran' — a node with no auditLog call, or one whose dirty contract stops it early, is silent by design. Build with addEventAudit(LogLevel.TRACE) to make absence conclusive.",
+        "uncovered": 0,
+        "neverLogged": [],
+        "declared": 2,
+        "ratio": 1
+      }
+    }
+  },
+  {
+    "verb": "series",
+    "params": {
+      "expr": "child.processedCount"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "series",
+      "result": {
+        "expr": "child.processedCount",
+        "resolve": "STRICT",
+        "points": 12,
+        "stats": {
+          "min": 0,
+          "minAt": 1789815571898,
+          "max": 1,
+          "maxAt": 1789815571935,
+          "mean": 0.6666666666666666,
+          "first": 0,
+          "firstAt": 1789815571898,
+          "last": 1,
+          "lastAt": 1789815572402
+        }
+      }
+    }
+  },
+  {
+    "verb": "graph",
+    "params": {
+      "name": "Two fresh runs: price processing",
+      "series": [
+        "child.processedCount",
+        "child.lastProcessedPrice"
+      ],
+      "rightAxis": [
+        "child.lastProcessedPrice"
+      ],
+      "style": "step",
+      "newTab": true,
+      "explanation": "Two fresh JVMs: processed count resets to 0, then price 40 is processed as count 1.\nChild audit values are sparse; no value at filter 9 is not itself proof of no state change.\nExternal sink totals are host callback measurements, timestamped just after each input.",
+      "rationale": "Compare the exact scenario twice using raw audit and independent sink callback counts.",
+      "external": [
+        {
+          "path": "/tmp/spring-authoring-acceptance/run1/exchange/run-c-state.csv",
+          "label": "Run C measured sink total",
+          "time": "time",
+          "timeFormat": "epochMillis",
+          "zone": "UTC",
+          "value": "sinkTotal"
+        },
+        {
+          "path": "/tmp/spring-authoring-acceptance/run1/exchange/run-d-state.csv",
+          "label": "Run D measured sink total",
+          "time": "time",
+          "timeFormat": "epochMillis",
+          "zone": "UTC",
+          "value": "sinkTotal"
+        }
+      ],
+      "notes": [
+        {
+          "recordIndex": 5,
+          "text": "Filter 9: no child audit values. Host measurement remains count=1, price=10, sinks=1."
+        },
+        {
+          "recordIndex": 7,
+          "text": "Paused price 30 reaches Child; logged count=1 and last price=10."
+        },
+        {
+          "recordIndex": 8,
+          "text": "Reset logs count=0, price=0, paused=false. Host sink total remains 1."
+        },
+        {
+          "recordIndex": 9,
+          "text": "Price 40 after reset publishes Checked(40,1)."
+        },
+        {
+          "recordIndex": 13,
+          "text": "Fresh JVM D starts at count=0, last price=0; the scenario repeats."
+        }
+      ]
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "graph",
+      "applied": {
+        "refreshed": "scheduled",
+        "external": [
+          {
+            "label": "Run C measured sink total",
+            "rows": 7,
+            "from": 1789815571899,
+            "to": 1789815572091
+          },
+          {
+            "label": "Run D measured sink total",
+            "rows": 7,
+            "from": 1789815572212,
+            "to": 1789815572403
+          }
+        ],
+        "name": "Two fresh runs: price processing",
+        "resolved": [
+          "child.processedCount",
+          "child.lastProcessedPrice"
+        ],
+        "unresolved": []
+      }
+    }
+  },
+  {
+    "verb": "flag",
+    "params": {
+      "recordIndexes": [
+        5,
+        17
+      ],
+      "note": "Wrong filter 9: raw record contains no node values. Independent host measurements in run-c/state.csv and run-d/state.csv show count=1, lastProcessedPrice=10, sinkTotal=1 after this input. Missing audit values alone cannot prove non-execution.",
+      "fix": "No behavior fix required for these measured runs; generated PriceUpdate filter switch contains only case 7."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "flag",
+      "applied": {
+        "flagged": 2,
+        "recordIndexes": [
+          5,
+          17
+        ],
+        "note": "Wrong filter 9: raw record contains no node values. Independent host measurements in run-c/state.csv and run-d/state.csv show count=1, lastProcessedPrice=10, sinkTotal=1 after this input. Missing audit values alone cannot prove non-execution.",
+        "fix": "No behavior fix required for these measured runs; generated PriceUpdate filter switch contains only case 7."
+      }
+    }
+  },
+  {
+    "verb": "flag",
+    "params": {
+      "recordIndexes": [
+        7,
+        19
+      ],
+      "note": "Eligible price 30 reaches rootNode and Child while paused. Child logs priceIgnoredWhilePaused, count=1, lastProcessedPrice=10, paused=true. Host sinkTotal stays 1."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "flag",
+      "applied": {
+        "flagged": 2,
+        "recordIndexes": [
+          7,
+          19
+        ],
+        "note": "Eligible price 30 reaches rootNode and Child while paused. Child logs priceIgnoredWhilePaused, count=1, lastProcessedPrice=10, paused=true. Host sinkTotal stays 1."
+      }
+    }
+  },
+  {
+    "verb": "flag",
+    "params": {
+      "recordIndexes": [
+        8,
+        20
+      ],
+      "note": "Exported reset calls Child.reset: audit shows count=0, lastProcessedPrice=0, paused=false. Independent host callback count remains 1, so reset publishes no Checked in these runs. Audit alone does not count sink publications."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "flag",
+      "applied": {
+        "flagged": 2,
+        "recordIndexes": [
+          8,
+          20
+        ],
+        "note": "Exported reset calls Child.reset: audit shows count=0, lastProcessedPrice=0, paused=false. Independent host callback count remains 1, so reset publishes no Checked in these runs. Audit alone does not count sink publications."
+      }
+    }
+  },
+  {
+    "verb": "flag",
+    "params": {
+      "recordIndexes": [
+        9,
+        21
+      ],
+      "note": "Price 40 after reset is processed with count=1, lastProcessedPrice=40, paused=false. Host captures Checked(40,1), the second and final callback; first was Checked(10,1)."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "flag",
+      "applied": {
+        "flagged": 2,
+        "recordIndexes": [
+          9,
+          21
+        ],
+        "note": "Price 40 after reset is processed with count=1, lastProcessedPrice=40, paused=false. Host captures Checked(40,1), the second and final callback; first was Checked(10,1)."
+      }
+    }
+  },
+  {
+    "verb": "spotlight",
+    "params": {
+      "target": "graph:Two fresh runs: price processing",
+      "caption": "Both fresh runs show the reset and restart; host sink totals rise only for prices 10 and 40."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": false,
+      "error": "'graph:Two fresh runs: price processing' is not graph, graph[:<name>]:note:<n> or graph[:<name>]:series:<label> (a chart's name cannot contain ':'). The vocabulary is: tab:<summary|source|graph|topology|reports|assistant> · records · records:row:<recordIndex> · detail · detail:node:<instanceId> · topology · topology:node:<instanceId> · topology:verdict · graph[:<name>] · graph[:<name>]:note:<n> · graph[:<name>]:series:<label> · project · project:<log|graph|processors|roots> · toolbar:<open|flag|explain|follow> · menu:<Menu> · menu:<Menu>:<item> · status"
+    }
+  },
+  {
+    "verb": "screenshot",
+    "params": {
+      "path": "acceptance-chart.png"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "screenshot",
+      "wrote": {
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/acceptance-chart.png",
+        "width": 1500,
+        "height": 948,
+        "windowBounds": {
+          "width": 1500,
+          "height": 1000,
+          "x": 80,
+          "y": 80
+        }
+      }
+    }
+  },
+  {
+    "verb": "graph",
+    "params": {
+      "name": "Two fresh runs: price processing",
+      "rename": "Two fresh runs"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "graph",
+      "applied": {
+        "renamed": "Two fresh runs: price processing → Two fresh runs"
+      }
+    }
+  },
+  {
+    "verb": "spotlight",
+    "params": {
+      "target": "graph:Two fresh runs",
+      "caption": "Both fresh runs reset to zero and process price 40 with count 1; host sink totals measure two outputs."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "spotlight",
+      "spotlight": {
+        "lit": [
+          {
+            "n": 1,
+            "target": "graph:Two fresh runs",
+            "caption": "Both fresh runs reset to zero and process price 40 with count 1; host sink totals measure two outputs.",
+            "bounds": {
+              "width": 392,
+              "height": 515,
+              "x": 1046,
+              "y": 332
+            }
+          }
+        ],
+        "note": "lit in the window; bounds are in the coordinates of a default `screenshot` — take one to check each is where you meant. They go out on any click, Escape, {clear: true}, or a verb that changes the view."
+      }
+    }
+  },
+  {
+    "verb": "screenshot",
+    "params": {
+      "path": "acceptance-chart-spotlight.png"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "screenshot",
+      "wrote": {
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/acceptance-chart-spotlight.png",
+        "width": 1500,
+        "height": 948,
+        "windowBounds": {
+          "width": 1500,
+          "height": 1000,
+          "x": 80,
+          "y": 80
+        }
+      }
+    }
+  },
+  {
+    "verb": "graph",
+    "params": {
+      "name": "Measured count and sink outputs",
+      "series": [
+        "child.processedCount"
+      ],
+      "style": "step",
+      "newTab": true,
+      "explanation": "Count and cumulative checked callbacks.\nTwo fresh JVMs run the same inputs.\nHost CSV timestamps follow each input.",
+      "external": [
+        {
+          "path": "/tmp/spring-authoring-acceptance/run1/exchange/run-c-state.csv",
+          "label": "Run C sink total",
+          "time": "time",
+          "timeFormat": "epochMillis",
+          "zone": "UTC",
+          "value": "sinkTotal"
+        },
+        {
+          "path": "/tmp/spring-authoring-acceptance/run1/exchange/run-d-state.csv",
+          "label": "Run D sink total",
+          "time": "time",
+          "timeFormat": "epochMillis",
+          "zone": "UTC",
+          "value": "sinkTotal"
+        }
+      ],
+      "notes": [
+        {
+          "recordIndex": 5,
+          "text": "Filter 9: host count stays 1."
+        },
+        {
+          "recordIndex": 7,
+          "text": "Paused: count stays 1."
+        },
+        {
+          "recordIndex": 8,
+          "text": "Reset: count 0, no output."
+        },
+        {
+          "recordIndex": 9,
+          "text": "Price 40: count 1, output 2."
+        },
+        {
+          "recordIndex": 13,
+          "text": "Fresh JVM D starts at 0."
+        }
+      ],
+      "rationale": "Separate measured state from output count; no claim based only on missing audit values."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "graph",
+      "applied": {
+        "refreshed": "scheduled",
+        "external": [
+          {
+            "label": "Run C sink total",
+            "rows": 7,
+            "from": 1789815571899,
+            "to": 1789815572091
+          },
+          {
+            "label": "Run D sink total",
+            "rows": 7,
+            "from": 1789815572212,
+            "to": 1789815572403
+          }
+        ],
+        "name": "Measured count and sink outputs",
+        "resolved": [
+          "child.processedCount"
+        ],
+        "unresolved": []
+      }
+    }
+  },
+  {
+    "verb": "spotlight",
+    "params": {
+      "target": "graph:Measured count and sink outputs",
+      "caption": "Count restarts at zero; callback totals rise only at prices 10 and 40 in each run."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "spotlight",
+      "spotlight": {
+        "lit": [
+          {
+            "n": 1,
+            "target": "graph:Measured count and sink outputs",
+            "caption": "Count restarts at zero; callback totals rise only at prices 10 and 40 in each run.",
+            "bounds": {
+              "width": 432,
+              "height": 515,
+              "x": 1046,
+              "y": 332
+            }
+          }
+        ],
+        "note": "lit in the window; bounds are in the coordinates of a default `screenshot` — take one to check each is where you meant. They go out on any click, Escape, {clear: true}, or a verb that changes the view."
+      }
+    }
+  },
+  {
+    "verb": "screenshot",
+    "params": {
+      "path": "measured-count-chart.png"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "screenshot",
+      "wrote": {
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/measured-count-chart.png",
+        "width": 1500,
+        "height": 948,
+        "windowBounds": {
+          "width": 1500,
+          "height": 1000,
+          "x": 80,
+          "y": 80
+        }
+      }
+    }
+  },
+  {
+    "verb": "report",
+    "params": {
+      "name": "Price processing acceptance",
+      "title": "Price processing acceptance — two fresh JVM runs",
+      "notes": "Runs C and D use the same generated processor in fresh Java processes (98353 and 98354). The scenario is PriceUpdate(DEMO,10,7), PriceUpdate(DEMO,20,9), pause, PriceUpdate(DEMO,30,7), exported reset(), PriceUpdate(DEMO,40,7).",
+      "sections": [
+        {
+          "kind": "narrative",
+          "text": "Measurement sources: project/acceptance-evidence/run-c and run-d contain audit.yaml, state.csv and checked.csv; sibling run-c.stdout.txt and run-d.stdout.txt record PIDs and assertion results. Copies used by this analyser live under /tmp/spring-authoring-acceptance/run1/exchange as run-c-* and run-d-*. State CSVs measure live Child getters and cumulative checked callbacks after each input. Both hosts assert all seven checkpoints and exact outputs Checked(10,1), Checked(40,1)."
+        },
+        {
+          "kind": "chart",
+          "graph": "Measured count and sink outputs"
+        },
+        {
+          "kind": "table",
+          "call": {
+            "verb": "read",
+            "recordIndex": 0,
+            "before": 0,
+            "after": 23,
+            "fields": "child.processedCount,child.lastProcessedPrice,child.paused,child.action"
+          },
+          "columns": [
+            {
+              "key": "recordIndex",
+              "heading": "Record"
+            },
+            {
+              "key": "event",
+              "heading": "Event"
+            },
+            {
+              "key": "child.processedCount",
+              "heading": "Count"
+            },
+            {
+              "key": "child.lastProcessedPrice",
+              "heading": "Last price"
+            },
+            {
+              "key": "child.paused",
+              "heading": "Paused"
+            },
+            {
+              "key": "child.action",
+              "heading": "Child action"
+            }
+          ]
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 5
+        },
+        {
+          "kind": "record",
+          "recordIndex": 5
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 7
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 8
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 9
+        },
+        {
+          "kind": "narrative",
+          "text": "Independent repeat: records 17, 19, 20 and 21 correspond to the same four findings in fresh JVM D. State rows match run C after excluding timestamps. These are two measured runs, not evidence of all possible event sequences or byte-identical raw audit output."
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 17
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 19
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 20
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 21
+        },
+        {
+          "kind": "narrative",
+          "text": "Limits: the wrong-filter record has no Child state values; audit silence alone does not prove no execution or no mutation. The host getters provide the no-increment observation. Audit does not count every sink publish; checked.csv and host callback totals provide the no-output-on-reset observation. The descriptor reports checked as java.lang.Object, not a typed Checked contract. Coverage warns that logged node checked is absent from the generated GraphML, although this graph was generated with this processor; no full-topology or universal coverage claim is made. The initially malformed unseparated run-a/run-b logs are preserved but excluded from this report."
+        }
+      ],
+      "path": "price-processing-acceptance.pdf"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "report",
+      "applied": {
+        "name": "Price processing acceptance",
+        "title": "Price processing acceptance — two fresh JVM runs",
+        "created": true,
+        "sections": 14,
+        "writtenAgainst": "Acceptance runs C and D, fresh JVMs; corrected producer writes --- separators; state/sink observations captured independently. · 24 record(s) · 10:59:31.897→10:59:32.411",
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/price-processing-acceptance.pdf"
+      }
+    }
+  },
+  {
+    "verb": "report",
+    "params": {
+      "name": "Price processing acceptance",
+      "csv": 2,
+      "path": "audited-state-table.csv"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "report",
+      "wrote": {
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/audited-state-table.csv",
+        "rows": 24,
+        "columns": 6
+      }
+    }
+  },
+  {
+    "verb": "topology",
+    "params": {
+      "select": "child",
+      "scope": "neighbours",
+      "recordIndex": 8,
+      "source": true,
+      "fit": true
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "topology",
+      "topology": {
+        "recordIndex": 0,
+        "rowIndex": -1,
+        "orderMeaningful": true,
+        "graphSource": "OPENED",
+        "atEntry": true,
+        "rowCount": 0,
+        "recordsOpen": 24,
+        "position": "no record selected — 24 open; goto {recordIndex} to step through one",
+        "currentNode": null,
+        "selected": [
+          "child"
+        ],
+        "scope": "neighbours",
+        "routeBound": true,
+        "focus": false,
+        "context": "All (18)",
+        "contextDepth": 0,
+        "scaffolding": false,
+        "syncSource": true,
+        "visibleNodes": 4,
+        "totalNodes": 18,
+        "callout": true
+      }
+    }
+  },
+  {
+    "verb": "spotlight",
+    "params": {
+      "target": "topology:node:child",
+      "caption": "Reset is an exported call into Child; record 8 logs zero count, zero last price and paused=false."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "spotlight",
+      "spotlight": {
+        "lit": [
+          {
+            "n": 1,
+            "target": "topology:node:child",
+            "caption": "Reset is an exported call into Child; record 8 logs zero count, zero last price and paused=false.",
+            "bounds": {
+              "width": 108,
+              "height": 42,
+              "x": 1059,
+              "y": 624
+            }
+          }
+        ],
+        "note": "lit in the window; bounds are in the coordinates of a default `screenshot` — take one to check each is where you meant. They go out on any click, Escape, {clear: true}, or a verb that changes the view."
+      }
+    }
+  },
+  {
+    "verb": "screenshot",
+    "params": {
+      "path": "reset-topology.png"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "screenshot",
+      "wrote": {
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/reset-topology.png",
+        "width": 1500,
+        "height": 948,
+        "windowBounds": {
+          "width": 1500,
+          "height": 1000,
+          "x": 80,
+          "y": 80
+        }
+      }
+    }
+  },
+  {
+    "verb": "goto",
+    "params": {
+      "recordIndex": 8,
+      "reveal": true
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "goto",
+      "applied": {
+        "recordIndex": 8,
+        "byteOffset": 2895,
+        "file": "run-c-audit.yaml"
+      }
+    }
+  },
+  {
+    "verb": "topology",
+    "params": {
+      "select": "child",
+      "scope": "neighbours",
+      "source": true,
+      "fit": true
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "topology",
+      "topology": {
+        "recordIndex": 8,
+        "rowIndex": -1,
+        "orderMeaningful": true,
+        "graphSource": "OPENED",
+        "atEntry": true,
+        "rowCount": 1,
+        "recordsOpen": 24,
+        "position": "entry · 1 invocation(s)",
+        "currentNode": null,
+        "selected": [
+          "child"
+        ],
+        "scope": "neighbours",
+        "routeBound": true,
+        "focus": false,
+        "context": "All (18)",
+        "contextDepth": 0,
+        "scaffolding": false,
+        "syncSource": true,
+        "visibleNodes": 4,
+        "totalNodes": 18,
+        "callout": true,
+        "finding": {
+          "note": "Exported reset calls Child.reset: audit shows count=0, lastProcessedPrice=0, paused=false. Independent host callback count remains 1, so reset publishes no Checked in these runs. Audit alone does not count sink publications."
+        }
+      }
+    }
+  },
+  {
+    "verb": "spotlight",
+    "params": {
+      "target": "topology:node:child",
+      "caption": "Selected reset record 8: Child logs count=0, lastProcessedPrice=0 and paused=false."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "spotlight",
+      "spotlight": {
+        "lit": [
+          {
+            "n": 1,
+            "target": "topology:node:child",
+            "caption": "Selected reset record 8: Child logs count=0, lastProcessedPrice=0 and paused=false.",
+            "bounds": {
+              "width": 108,
+              "height": 42,
+              "x": 1059,
+              "y": 624
+            }
+          }
+        ],
+        "note": "lit in the window; bounds are in the coordinates of a default `screenshot` — take one to check each is where you meant. They go out on any click, Escape, {clear: true}, or a verb that changes the view."
+      }
+    }
+  },
+  {
+    "verb": "screenshot",
+    "params": {
+      "path": "reset-record-8.png"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "screenshot",
+      "wrote": {
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/reset-record-8.png",
+        "width": 1500,
+        "height": 948,
+        "windowBounds": {
+          "width": 1500,
+          "height": 1000,
+          "x": 80,
+          "y": 80
+        }
+      }
+    }
+  },
+  {
+    "verb": "spotlight",
+    "params": {
+      "target": "tab:reports",
+      "caption": "Evidence-linked acceptance report includes both runs and measurement limits."
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "spotlight",
+      "spotlight": {
+        "lit": [
+          {
+            "n": 1,
+            "target": "tab:reports",
+            "caption": "Evidence-linked acceptance report includes both runs and measurement limits.",
+            "bounds": {
+              "width": 82,
+              "height": 44,
+              "x": 1258,
+              "y": 169
+            }
+          }
+        ],
+        "note": "lit in the window; bounds are in the coordinates of a default `screenshot` — take one to check each is where you meant. They go out on any click, Escape, {clear: true}, or a verb that changes the view."
+      }
+    }
+  },
+  {
+    "verb": "screenshot",
+    "params": {
+      "path": "acceptance-report-view.png"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "screenshot",
+      "wrote": {
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/acceptance-report-view.png",
+        "width": 1500,
+        "height": 948,
+        "windowBounds": {
+          "width": 1500,
+          "height": 1000,
+          "x": 80,
+          "y": 80
+        }
+      }
+    }
+  },
+  {
+    "verb": "report",
+    "params": {
+      "name": "Price processing acceptance",
+      "title": "Price processing acceptance — two fresh JVM runs",
+      "notes": "Runs C and D use the same generated processor in fresh Java processes (98353 and 98354). The scenario is PriceUpdate(DEMO,10,7), PriceUpdate(DEMO,20,9), pause, PriceUpdate(DEMO,30,7), exported reset(), PriceUpdate(DEMO,40,7).",
+      "sections": [
+        {
+          "kind": "narrative",
+          "text": "Measurement sources: project/acceptance-evidence/run-c and run-d contain audit.yaml, state.csv and checked.csv; sibling run-c.stdout.txt and run-d.stdout.txt record PIDs and assertion results. Copies used by this analyser live under /tmp/spring-authoring-acceptance/run1/exchange as run-c-* and run-d-*. State CSVs measure live Child getters and cumulative checked callbacks after each input. Both hosts assert all seven checkpoints and exact outputs Checked(10,1), Checked(40,1)."
+        },
+        {
+          "kind": "chart",
+          "graph": "Measured count and sink outputs"
+        },
+        {
+          "kind": "table",
+          "call": {
+            "verb": "read",
+            "recordIndex": 0,
+            "before": 0,
+            "after": 23,
+            "fields": "child.processedCount,child.lastProcessedPrice,child.paused,child.action"
+          },
+          "columns": [
+            {
+              "key": "recordIndex",
+              "heading": "Record"
+            },
+            {
+              "key": "event",
+              "heading": "Event"
+            },
+            {
+              "key": "child.processedCount",
+              "heading": "Count"
+            },
+            {
+              "key": "child.lastProcessedPrice",
+              "heading": "Last price"
+            },
+            {
+              "key": "child.paused",
+              "heading": "Paused"
+            },
+            {
+              "key": "child.action",
+              "heading": "Child action"
+            }
+          ]
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 5
+        },
+        {
+          "kind": "record",
+          "recordIndex": 5
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 7
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 8
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 9
+        },
+        {
+          "kind": "narrative",
+          "text": "Independent repeat: records 17, 19, 20 and 21 correspond to the same four findings in fresh JVM D. State rows match run C after excluding timestamps. These are two measured runs, not evidence of all possible event sequences or byte-identical raw audit output."
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 17
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 19
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 20
+        },
+        {
+          "kind": "finding",
+          "recordIndex": 21
+        },
+        {
+          "kind": "narrative",
+          "text": "Limits: the wrong-filter record has no Child state values; audit silence alone does not prove no execution or no mutation. Host getters provide the no-increment observation. Audit does not count every sink publish; checked.csv and host callback totals provide the no-output-on-reset observation. The descriptor reports checked as java.lang.Object, not a typed Checked contract. Analyser coverage reports checked absent from the topology, but the generated GraphML explicitly contains node id=checked (line 133) and its edges. This is an unresolved analyser interpretation inconsistency, not evidence that this processor used a different graph. No full-topology or universal coverage claim is made. Initially unseparated run-a/run-b logs are preserved but excluded from this report."
+        }
+      ],
+      "path": "price-processing-acceptance-final.pdf"
+    },
+    "exit_code": 0,
+    "response": {
+      "ok": true,
+      "action": "report",
+      "applied": {
+        "name": "Price processing acceptance",
+        "title": "Price processing acceptance — two fresh JVM runs",
+        "replaced": true,
+        "sections": 14,
+        "writtenAgainst": "Acceptance runs C and D, fresh JVMs; corrected producer writes --- separators; state/sink observations captured independently. · 24 record(s) · 10:59:31.897→10:59:32.411",
+        "path": "/tmp/spring-authoring-acceptance/run1/exchange/price-processing-acceptance-final.pdf"
+      }
+    }
+  }
+]

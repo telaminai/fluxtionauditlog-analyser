@@ -1,0 +1,251 @@
+[
+  {
+    "verb": "open",
+    "params": {
+      "close": "graph"
+    },
+    "response": {
+      "ok": true,
+      "action": "open",
+      "applied": {
+        "closed": "graph",
+        "logWasOpen": true,
+        "graphWasOpen": true,
+        "kept": "named graphs, focuses, source roots and reports are profile state and survive; anything that can no longer resolve says so rather than vanishing"
+      }
+    }
+  },
+  {
+    "verb": "open",
+    "params": {
+      "logs": [
+        "/tmp/spring-authoring-acceptance/run1/exchange/run-c-audit.yaml",
+        "/tmp/spring-authoring-acceptance/run1/exchange/run-d-audit.yaml"
+      ],
+      "graphml": "/tmp/spring-authoring-acceptance/run1/project/src/main/resources/com/example/myapp/generated/MyProcessor.graphml"
+    },
+    "response": {
+      "ok": true,
+      "action": "open",
+      "applied": {
+        "files": [
+          "run-c-audit.yaml",
+          "run-d-audit.yaml"
+        ],
+        "order": "by content \u2014 each file's first timed logTime (names never order)",
+        "loading": true
+      }
+    }
+  },
+  {
+    "verb": "context",
+    "params": {},
+    "response": {
+      "ok": true,
+      "action": "context",
+      "context": {
+        "log": {
+          "openedFrom": "run-d-audit.yaml (+1 rolled)",
+          "records": 24,
+          "sizeBytes": -1,
+          "from": 1789815571897,
+          "to": 1789815572411,
+          "openedBy": "action socket"
+        },
+        "project": {
+          "active": false,
+          "note": "your own settings \u2014 no project is open"
+        },
+        "fluxtionKey": {
+          "canonicalFilePresent": false,
+          "canonicalFile": "~/.fluxtion/fluxtion.apiKeyFile",
+          "precedenceNote": "a -Dfluxtion.apiKey system property passed to the build overrides this file; FLUXTION_API_KEY is not read by the builder"
+        },
+        "graphPairing": {
+          "graph": null,
+          "graphSource": "NONE",
+          "auditLogging": "unknown"
+        },
+        "processors": [
+          {
+            "class": "com.acme.marketmaker.strategy.DemoMarketMakerStrategy",
+            "selected": true,
+            "source": "not found",
+            "from": "own settings"
+          }
+        ],
+        "handoff": {
+          "posture": {
+            "value": "research/support",
+            "source": "derived",
+            "note": "a starting guess from what is open (no project is open) \u2014 derivation lags intent; set it with open {posture} or AI \u25b8 Posture"
+          }
+        },
+        "exports": {
+          "enabled": false
+        },
+        "dispatchOrder": "total \u2014 position in nodeLogs IS dispatch order (derived); safe to read as causality",
+        "source": {
+          "roots": [],
+          "eventProcessor": "com.acme.marketmaker.strategy.DemoMarketMakerStrategy",
+          "rootTiers": []
+        },
+        "filter": {},
+        "showing": {
+          "visible": 24,
+          "total": 24
+        },
+        "selection": [],
+        "flags": [],
+        "files": [
+          "run-c-audit.yaml",
+          "run-d-audit.yaml"
+        ],
+        "graphs": [
+          "Graph 1",
+          "Observer: sample"
+        ]
+      }
+    }
+  },
+  {
+    "verb": "open",
+    "params": {
+      "graphml": "/tmp/spring-authoring-acceptance/run1/project/src/main/resources/com/example/myapp/generated/MyProcessor.graphml"
+    },
+    "response": {
+      "ok": true,
+      "action": "open",
+      "opened": {
+        "graphml": {
+          "path": "/tmp/spring-authoring-acceptance/run1/project/src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+          "graphNodes": 18,
+          "authoredNodes": 4,
+          "appliesToOpenLog": true,
+          "loggedNodes": 3,
+          "declaredByGraph": 2,
+          "verdict": "the graph declares 2 of the 3 node(s) this log writes"
+        }
+      }
+    }
+  },
+  {
+    "verb": "topology",
+    "params": {
+      "recordIndex": 8,
+      "select": "child",
+      "scope": "neighbours"
+    },
+    "response": {
+      "ok": true,
+      "action": "topology",
+      "topology": {
+        "recordIndex": 0,
+        "rowIndex": -1,
+        "orderMeaningful": true,
+        "graphSource": "OPENED",
+        "atEntry": true,
+        "rowCount": 0,
+        "recordsOpen": 24,
+        "position": "no record selected \u2014 24 open; goto {recordIndex} to step through one",
+        "currentNode": null,
+        "selected": [
+          "child"
+        ],
+        "scope": "neighbours",
+        "routeBound": true,
+        "focus": false,
+        "context": "All (18)",
+        "contextDepth": 0,
+        "scaffolding": false,
+        "syncSource": true,
+        "visibleNodes": 4,
+        "totalNodes": 18,
+        "callout": true
+      }
+    }
+  },
+  {
+    "verb": "goto",
+    "params": {
+      "recordIndex": 8
+    },
+    "response": {
+      "ok": true,
+      "action": "goto",
+      "applied": {
+        "recordIndex": 8,
+        "byteOffset": 2895,
+        "file": "run-c-audit.yaml"
+      }
+    }
+  },
+  {
+    "verb": "topology",
+    "params": {
+      "recordIndex": 8,
+      "select": "child",
+      "scope": "neighbours"
+    },
+    "response": {
+      "ok": true,
+      "action": "topology",
+      "topology": {
+        "recordIndex": 8,
+        "rowIndex": -1,
+        "orderMeaningful": true,
+        "graphSource": "OPENED",
+        "atEntry": true,
+        "rowCount": 1,
+        "recordsOpen": 24,
+        "position": "entry \u00b7 1 invocation(s)",
+        "currentNode": null,
+        "selected": [
+          "child"
+        ],
+        "scope": "neighbours",
+        "routeBound": true,
+        "focus": false,
+        "context": "All (18)",
+        "contextDepth": 0,
+        "scaffolding": false,
+        "syncSource": true,
+        "visibleNodes": 4,
+        "totalNodes": 18,
+        "callout": true
+      }
+    }
+  },
+  {
+    "verb": "graph",
+    "params": {
+      "name": "Observer: sample",
+      "series": [
+        "child.processedCount"
+      ]
+    },
+    "response": {
+      "ok": true,
+      "action": "graph",
+      "applied": {
+        "refreshed": false,
+        "name": "Observer: sample",
+        "resolved": [
+          "child.processedCount"
+        ],
+        "unresolved": []
+      }
+    }
+  },
+  {
+    "verb": "spotlight",
+    "params": {
+      "target": "graph:Observer: sample",
+      "caption": "Observer reproduction"
+    },
+    "response": {
+      "ok": false,
+      "error": "'graph:Observer: sample' is not graph, graph[:<name>]:note:<n> or graph[:<name>]:series:<label> (a chart's name cannot contain ':'). The vocabulary is: tab:<summary|source|graph|topology|reports|assistant> \u00b7 records \u00b7 records:row:<recordIndex> \u00b7 detail \u00b7 detail:node:<instanceId> \u00b7 topology \u00b7 topology:node:<instanceId> \u00b7 topology:verdict \u00b7 graph[:<name>] \u00b7 graph[:<name>]:note:<n> \u00b7 graph[:<name>]:series:<label> \u00b7 project \u00b7 project:<log|graph|processors|roots> \u00b7 toolbar:<open|flag|explain|follow> \u00b7 menu:<Menu> \u00b7 menu:<Menu>:<item> \u00b7 status"
+    }
+  }
+]

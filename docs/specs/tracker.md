@@ -19,13 +19,33 @@ Legend for each item: **[id] status — title** · _acceptance_.
   Evidence and remaining review: [author report](../handoff/report_spring_authoring_docs_2026_09_19.txt).
   **Landed directly on main (`6f8568e8`, 2026-09-19) with an author report and no review pass** — the report's own
   *not verified* list (four Mermaid diagrams unwitnessed at any width; the conversations are illustrative, not captured)
-  is the review brief. **One claim is already wrong:** both pages promise the local workflow with compiler **1.0.70**;
-  the second independent review of that work (compiler `feat/spring-authoring-a1` at `e6ca5a5`, finding G1) found that
-  1.0.70 AND 1.0.71 were both released on 2026-09-19 WITHOUT the starter module, so the carrying release is ≥ 1.0.72 —
-  the pages should say "a forthcoming compiler release" until it is cut. **The analyser-side complement is M66 (design
-  render — the Spring XML on the canvas; was M49 until the renumbering of 2026-09-19), in progress; these pages should link it once it merges.**
-- ☐ **Review the two pages and fix the version wording** — owner-chosen reviewer; then the next analyser release carries
-  them (▸ *Suggested delivery order*, item 1).
+  remains a review brief. **G10 version wording is now fixed in `5142e47`:** both pages name the compiler release
+  that carries the tool; no guessed release version remains. The analyser-side complement is **M66** (design
+  render — Spring XML on the canvas), in progress; these pages should link it once it merges.
+- ☐ **Independent review of the two pages** — version correction is implemented; diagrams and overall claims
+  still need the owner-chosen review. The next analyser release carries the reviewed pages.
+
+## Spring authoring observed acceptance — 2026-09-19
+
+- ☑ **Fresh-session trial performed and independently assessed.** Predictions were frozen first; no inherited
+  conversation or observer coaching. The session produced two real matching runs and a chart/report with existing
+  analyser features. **Not a clean authoring pass:** it repaired a utility-generated `privatefinal` declaration.
+  That upstream fix now has red/green regression and real-download confirmation, pending independent review.
+  [Results, prediction scores, evidence and exact reproductions](../handoff/report_spring_authoring_acceptance_2026_09_19.md).
+- ☐ **DX-02 — compare graph membership against the complete graph.** A declared framework sink was reported
+  absent because authored coverage IDs were used as membership. Reproduced independently. Keep the correct
+  coverage denominator; use all graph IDs for pairing/mismatch; retain real mismatch warnings across UI, actions
+  and reports. First correctness priority arising from this trial, separate from M66/M67.
+- ☐ **DX-03 — rolled-log + graph open must honour or refuse the full request.** Current early return silently
+  drops graph/processor; observer reproduced it. Acceptance includes load completion and honest pairing/echo.
+- ☐ **DX-04 — first topology record selection.** With loaded records and an unbound cursor, the manifest's
+  `recordIndex` parameter does nothing. Observer reproduced; selecting via goto works. Bind or refuse clearly.
+- ☐ **DX-05 — graph names and spotlight addressability.** Colon-named charts are created but cannot be lit by
+  name. Observer reproduced. Resolve compatibility for saved names explicitly before changing the grammar.
+
+This trial does not test the unmerged M66/M67 features. It supports prioritizing existing-surface correctness
+before adding new rendering primitives for this workflow. Browser preview and artifact publication remain
+unverified; the fresh-client trial itself is complete, with failures preserved rather than called a clean pass.
 
 ## Shipped — archived
 

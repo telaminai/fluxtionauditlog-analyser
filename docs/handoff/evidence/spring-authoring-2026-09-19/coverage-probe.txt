@@ -1,0 +1,8 @@
+graph contains checked=true
+checked class=com.telamin.fluxtion.runtime.output.SinkPublisher
+authored contains checked=false
+coverage={recordsScanned=12, excludedNote=excluded 2 declared item(s) that can never write audit output: 1 event class(es), 1 exported service(s). They appear in the graph because the processor handles them, not because they run — counting them as 'never logged' would report a category error as a low score., loggedButNotInTopology=[checked], covered=2, warning=instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect, scope=whole log, ratio=1.0, declared=2, neverLogged=[], uncovered=0, note=a node appears here if it never wrote audit output. That is 'never logged', not proven 'never ran' — a node with no auditLog call, or one whose dirty contract stops it early, is silent by design. Build with addEventAudit(LogLevel.TRACE) to make absence conclusive., excludedFromDenominator={Commands=an exported service interface — an entry point, not a node that logs, PriceUpdate=an event class — data entering the graph, not code that runs}}
+current pairing=GraphPairing[logged=3, matched=2, applies=true, reason=the graph declares 2 of the 3 node(s) this log writes]
+whole graph pairing=GraphPairing[logged=3, matched=3, applies=true, reason=the graph declares 3 of the 3 node(s) this log writes]
+Exception in thread "main" java.lang.AssertionError: A declared sink was reported absent from its graph
+	at SpringCoverageProbe.main(SpringCoverageProbe.java:22)

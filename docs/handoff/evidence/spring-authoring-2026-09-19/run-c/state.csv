@@ -1,0 +1,8 @@
+time,step,processedCount,lastProcessedPrice,paused,sinkTotal
+1789815571899,initial,0,0.0,false,0
+1789815571940,price10_filter7,1,10.0,false,1
+1789815571969,price20_filter9,1,10.0,false,1
+1789815572000,pause,1,10.0,true,1
+1789815572030,price30_paused,1,10.0,true,1
+1789815572060,exported_reset,0,0.0,false,1
+1789815572091,price40_after_reset,1,40.0,false,2

@@ -1,0 +1,41 @@
+You are a fresh developer session carrying out the task below. You have no prior implementation/review context. Work independently; do not ask the observer for implementation hints.
+
+Project: /tmp/spring-authoring-acceptance/run1/project
+Shipped documentation: RUNBOOK.md, README.md, and authoring-docs/{playground-CLAUDE.md,skill.md,contract.md,example.md,fluxtion-golden-path.md} inside that project.
+
+The project is already provisioned for an installed local provider. Use this environment wrapper for ALL shell commands (including source reads/edits, Maven, Java and git):
+python3 /tmp/spring-authoring-acceptance/run1/driver.py shell '<your shell command>'
+It runs in the project with Java 21, isolated Java user.home, a missing dummy key, the cached dependency repository and JVM network egress denied. No paid calls or owner credentials are needed or authorized. Provisioning uses local test artifact coordinates because publication is pending. Do not change provisioning, disable protections, install dependencies or access external services. The wrapper command has a 300-second per-command timeout; use smaller commands as needed.
+
+A dedicated analyser window is initially empty. Discover its own instructions and verb schemas via:
+python3 /tmp/spring-authoring-acceptance/run1/driver.py manifest
+Drive ONLY this analyser using:
+python3 /tmp/spring-authoring-acceptance/run1/driver.py action VERB '{"parameter":"value"}'
+The transport faithfully returns analyser replies and records them. Exports go to /tmp/spring-authoring-acceptance/run1/exchange. Do not use a preconnected analyser MCP server (it might be a person's different session). You may inspect your exported screenshots using view_image. This wrapper is evaluation transport, not additional product documentation. Ordinary tool sandbox escalation may be needed for the localhost transport; do not treat a sandbox restriction as an application refusal.
+
+Read/write only this project and your exchange directory, apart from using this wrapper and reading installed dependency APIs/classes if needed. Do not inspect any observer directory, predictions, other experiment directory, implementation repo, review or previous transcript. Use the shipped docs and existing source as a developer would. Do not spawn further agents. Record progress at each major step with:
+python3 /tmp/spring-authoring-acceptance/run1/driver.py progress 'what happened, evidence, next step'
+
+You have up to 40 minutes. A blockage is a valid finding: record what failed and its evidence; do not invent success or fabricate logs. Before your final answer, save a concise evidence-linked developer account to ACCEPTANCE-RESULT.md in the project, and use progress to say finished or blocked. Include failed attempts and recoveries. Your final response should answer the user questions with evidence paths and explain any limits.
+
+USER TASK:
+Extend the supplied price-processing design. Only PriceUpdate events with filter
+ID 7 are eligible. An eligible price should reach Child and, when not paused,
+increment its processed count, set lastProcessedPrice, and publish one Checked
+result containing that price and count through the named checked sink. A pause
+signal pauses processing without changing the count or lastProcessedPrice. The
+exported reset command sets count and lastProcessedPrice to zero and unpauses,
+without publishing a Checked result. Initial count/lastProcessedPrice are zero and
+initial state is unpaused. Preserve unrelated declarations and implemented code.
+
+Start by reading the runbook and validating the supplied project. Repair any
+validation issue, make the design and implementation changes, generate, inspect
+the generated processor, and run the scenario below twice from a fresh process.
+Use the analyser to show what happened, including a chart and an evidence-linked
+report. Answer: does the wrong filter increment the count; does a price received
+while paused increment it; does reset itself publish; and what changes after reset?
+Distinguish measured results from conclusions that the available evidence cannot
+support. Keep a command/action transcript and finish with sources for each answer.
+
+Scenario: PriceUpdate(DEMO,10,7); PriceUpdate(DEMO,20,9); pause signal;
+PriceUpdate(DEMO,30,7); exported reset(); PriceUpdate(DEMO,40,7).
