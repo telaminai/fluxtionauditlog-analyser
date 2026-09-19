@@ -1137,6 +1137,17 @@ strongest available argument that prose is the wrong instrument for this class.
 doc set, or whether it is additive. That is what round 17 measures.
 
 
+## M49 · Design render — the Spring XML on the canvas — ☐ SPEC'D 2026-09-19 (owner steer; spec **[spec-design-render.md](spec-design-render.md)**)
+
+The fourth artefact. The canvas shows log, generated processor and node source; it does not show the design
+the LLM authored. M49 adds a read-only `DESIGN` mode to the Source tab, one verb `source {file|bean|line|fqn}`
+(a glance, like `goto`; bounded by the same source-root rule), `open.design` for the session's design file,
+spotlight targets `source:design[:bean:<id>|:line:<n>]`, bean ↔ node ↔ record navigation (bean id == node id
+under Spring authoring), and "show in design" from any `SPRING_*` diagnostic. No editing, validating or
+generating from the analyser — the runbook owns the write side. Files with this spec: a compiler-side ask
+that `sourceRef` become required on `SPRING_*` diagnostics (A1b). Open: Q1 split view for cross-artefact
+spotlights; Q2 `xpath` anchors; Q3 where the compiler change rides.
+
 ## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ PART SHIPPED 2026-09-03
 
 **Canonical architecture:** [`spec-authoring-modes.md`](spec-authoring-modes.md) ▸ *THE TARGET
