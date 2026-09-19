@@ -21,8 +21,8 @@ Legend for each item: **[id] status — title** · _acceptance_.
   is the review brief. **One claim is already wrong:** both pages promise the local workflow with compiler **1.0.70**;
   the second independent review of that work (compiler `feat/spring-authoring-a1` at `e6ca5a5`, finding G1) found that
   1.0.70 AND 1.0.71 were both released on 2026-09-19 WITHOUT the starter module, so the carrying release is ≥ 1.0.72 —
-  the pages should say "a forthcoming compiler release" until it is cut. **The analyser-side complement is M49 (design
-  render — the Spring XML on the canvas, `spec/design-render`), in progress; these pages should link it once it merges.**
+  the pages should say "a forthcoming compiler release" until it is cut. **The analyser-side complement is M66 (design
+  render — the Spring XML on the canvas; was M49 until the renumbering of 2026-09-19), in progress; these pages should link it once it merges.**
 - ☐ **Review the two pages and fix the version wording** — owner-chosen reviewer; then the next analyser release carries
   them (▸ *Suggested delivery order*, item 1).
 
@@ -37,14 +37,13 @@ Left ticked on purpose, because they are the trail of something still open: UC-L
 (context for idioms 2a/2b), N1 inside the golden-fixture item, M50's per-item SHIPPED lines (cross-repo, reconciled against
 the release tags), and the M19.1 sub-gates. **Landed on main since 1.15.0 and NOT reviewed:** the Spring-authoring guide
 pages (`6f8568e8`) — see the section above and *Suggested delivery order* item 1. **Active, on branches, not yet on
-main (owner, 2026-09-19):** **M49 · Design render — the Spring XML on the canvas**, the analyser-side complement of the
-Spring-authoring work: spec `spec-design-render.md` revision 2 at `e624ca9c` on `spec/design-render` (independent review
-`review_spec_design_render_71e50ee5.md`, NOT READY R1–R4, all accepted; awaiting re-review), implementation in progress on
-`feat/m49-design-render` (unpushed). Its tracker section arrives with that branch; *Suggested delivery order* item 2 holds
-its place here. **Number collision, owner's call before it merges:** `completed/tracker.md` already holds an *M49 · Runtime
-performance* (measured 2026-09-03). The last duplicate (two M46s) was resolved by renumbering the newer one to M50; either
-renumber the archived benchmark's heading (it is referenced only from M48.15 and the M48/M49 report) or accept two M49s
-and say so in both places.
+main (owner, 2026-09-19):** **M66 · Design render — the Spring XML on the canvas** (**was M49** — renumbered 2026-09-19 because
+`completed/tracker.md` already holds *M49 · Runtime performance*, measured 2026-09-03; the same fix as the M46→M50 duplicate),
+the analyser-side complement of the Spring-authoring work: spec `spec-design-render.md` revision 2 at `e624ca9c` on
+`spec/design-render` (independent review `review_spec_design_render_71e50ee5.md`, NOT READY R1–R4, all accepted; awaiting
+re-review), implementation in progress on `feat/m66-design-render`, whose tracker checkpoint carries the M49→M66 correction
+and the implementation decisions. Its tracker section arrives with that branch; *Suggested delivery order* item 2 holds its
+place here.
 
 **Tidied 2026-09-17, after 1.14.0/1.14.1 (rule 7).** Twenty ☑ items and one ⊘ moved verbatim to
 [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-17*: M64.1–.9 (M64.10/.11 stay), M65.0–.4 with its
@@ -1023,8 +1022,8 @@ Every item of the 2026-09-17 sequence below is shipped and archived, so the list
 retired — .1–.12 shipped, .13 is in item 6. Pre-release scripts last run on the 1.15.0 commit's jar (17/17, 18/18, 94/94);
 the capture scenarios complete (images regenerate only on a machine with the Screen Recording grant); rule 1's two checks
 unchanged. **On main since 1.15.0, unreleased and unreviewed:** the Spring-authoring guide pages (`6f8568e8`) — item 1.
-**Active on branches (item 2):** M49 design render — spec revision 2 on `spec/design-render`, implementation on
-`feat/m49-design-render`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
+**Active on branches (item 2):** M66 design render (was M49) — spec revision 2 on `spec/design-render`, implementation on
+`feat/m66-design-render`; it is the analyser's half of the Spring-authoring story, so it and the guide pages ship together
 or the pages say it is coming. **Elsewhere, not this repo's:** the Spring-authoring local workflow (compiler `feat/spring-authoring-a1`, playground
 `feat/spring-authoring-runbook`) is NOT READY after two independent reviews on 2026-09-19 — the version it pins (1.0.70)
 shipped without its module, a legacy XML invents handlers, and the run receipt's `compilerRan` cannot be true on a clean
@@ -1063,12 +1062,12 @@ M64.10, M46.11.
    `spring-authoring-conversations.md`; author report `docs/handoff/report_spring_authoring_docs_2026_09_19.txt`): the four
    diagrams at desktop and phone width, expected-vs-observed labelling, and the **1.0.70** wording (the carrying compiler
    release is ≥ 1.0.72 — say "forthcoming"). Small; the pages are already in the nav and the CHANGELOG line is written.
-2. ◧ **M49 Design render — the Spring XML on the canvas** (owner, 2026-09-19; complements the Spring-authoring work). Spec
+2. ◧ **M66 Design render — the Spring XML on the canvas** (was M49; owner, 2026-09-19; complements the Spring-authoring work). Spec
    `spec-design-render.md` revision 2 (`e624ca9c`, `spec/design-render`) after an independent review (R1–R4 accepted) —
-   needs the re-review; implementation on `feat/m49-design-render`. Read-only `DESIGN` mode on the Source tab, `source
+   needs the re-review; implementation on `feat/m66-design-render`. Read-only `DESIGN` mode on the Source tab, `source
    {file|bean|line|fqn}`, `open.design` / `open.diagnostics`, `source:design[:bean:<id>|:line:<n>]` spotlight targets,
    bean ↔ node ↔ record navigation, "show in design" from any `SPRING_*` diagnostic; nothing edits, validates or
-   generates. Settle the M49 number collision (head note) before the merge.
+   generates. The M49 number collision is settled by the renumbering (head note).
 3. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The
    next model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
 4. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4
