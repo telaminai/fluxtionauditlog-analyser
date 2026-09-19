@@ -15,9 +15,10 @@ to see the collaboration, then use this page as the capabilities and workflow gu
 
 !!! info "Availability of the local authoring workflow"
     The local scripts and extended XML declarations below target the coordinated
-    **1.0.70 compiler/starter work**, which is implemented and awaiting independent
-    review and publication as of 19 September 2026. They are not an analyser release
-    feature. Use this workflow with a matching project download that includes
+    **1.0.72 compiler/starter work**, which is implemented and undergoing review
+    before publication as of 19 September 2026. Published versions 1.0.70 and 1.0.71
+    do not include the local starter tool. The workflow is separate from an analyser
+    release. Use this workflow with a matching project download that includes
     `RUNBOOK.md`, `fluxtion-authoring.json`, `setup.sh`, `validate.sh` and `generate.sh`.
     For the existing published demo, follow [Playground to analyser](tutorial-playground.md).
 

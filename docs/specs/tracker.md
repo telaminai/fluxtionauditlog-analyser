@@ -11,8 +11,10 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ☑ **Design partner and evidence canvas guides** — `docs/site/spring-authoring.md` covers capabilities,
   local workflow, reconciliation and the analyser handoff; `spring-authoring-conversations.md` adds
   illustrative design and behaviour-question conversations with flow diagrams. Expected results are
-  explicitly distinguished from captured runs. The coordinated 1.0.70 authoring workflow remains
+  explicitly distinguished from captured runs. The coordinated 1.0.72 authoring workflow remains
   review/publication-gated; these pages add no analyser execution or generation capability.
+  Review correction: published 1.0.70/1.0.71 omit the local starter; the guide now names pending 1.0.72.
+  The documentation correction passed 1,656 tests (31 display skips), MkDocs strict and the rule-1 sweep.
   Evidence and remaining review: [author report](../handoff/report_spring_authoring_docs_2026_09_19.txt).
   **Landed directly on main (`6f8568e8`, 2026-09-19) with an author report and no review pass** — the report's own
   *not verified* list (four Mermaid diagrams unwitnessed at any width; the conversations are illustrative, not captured)
