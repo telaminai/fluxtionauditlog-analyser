@@ -2,7 +2,8 @@
 
 **Status:** PROPOSED, **revision 2** (2026-09-19) — revised after the independent review
 [`review_spec_design_render_71e50ee5.md`](../handoff/review_spec_design_render_71e50ee5.md) (NOT READY, R1–R4;
-all accepted). Awaiting re-review. **Milestone:** M49. **Tracker:** [tracker.md](tracker.md).
+all accepted). Revision 2 re-reviewed and implementation authorised 2026-09-19; current progress is in the
+tracker. **Milestone:** M66. **Tracker:** [tracker.md](tracker.md).
 **Builds on:** [`spec-shared-evidence-canvas.md`](spec-shared-evidence-canvas.md) (the thesis this serves),
 [`spec-authoring-modes.md`](spec-authoring-modes.md), the `open` / `source_root` / `spotlight` verbs, the
 public Spring-authoring documents ([`contract.md`](https://fluxtion-playground.dev/spring-authoring/contract.md),
@@ -15,6 +16,9 @@ decisions/proof; the LLM authors with Spring XML; the user talks to the design-p
 evidence in the canvas. We already hold source-root pointers, so this is render, and a verb/parameter to tell
 the analyser what file to display."*
 
+Milestone correction: the original spec and review called this M49. M49 is already Runtime performance
+in the archived tracker; this work is M66. Historical review filenames and commit subjects are unchanged.
+
 ## The proposition
 
 The canvas shows three of the four artefacts a design conversation is about: the **log** (what happened), the
@@ -24,7 +28,7 @@ when the design partner says *"I declared `riskStatusBook` as a push target of `
 the record that proves the edge fired"*, the human can see the record, the node and the dispatch line, but not
 the declaration.
 
-M49 puts the design on the canvas as a first-class artefact, **read-only**, with the properties the other
+M66 puts the design on the canvas as a first-class artefact, **read-only**, with the properties the other
 artefacts have: **navigable** (bean ↔ node ↔ record ↔ source), **spotlightable** (the LLM lights a declaration
 and says why; the caption is testimony), and **addressable from evidence** (a producer diagnostic names a
 location; the canvas shows it). And with one property the first revision left implicit and the review made
@@ -64,7 +68,7 @@ analyser_source {
 - Read-only with respect to data; changes the Source tab view like `goto` changes the records view. Re-reads
   the file on every call (the LLM edits between calls).
 - **Selectors are exclusive families** (review): `{file}`, `{file, line}`, `{bean}`, `{file, bean}` (XML only),
-  `{fqn}`, `{fqn, method}`. Any other combination — `bean`+`line`, `file`+`fqn`, `method` alone — is **refused**
+  `{line}` (session design), `{fqn}`, `{fqn, method}`. Any other combination — `bean`+`line`, `file`+`fqn`, `method` alone — is **refused**
   with the accepted shapes in the echo. No precedence games.
 - `source {file: B}` does **not** change the session design; `spotlight source:design:*` always resolves against
   the **session** design (`open.design`), and the echo names the resolved file so the LLM cannot mistake the
@@ -137,7 +141,7 @@ header and each "show in design" action carry one of:
 
 | `relationship` | Meaning | Established by |
 |---|---|---|
-| `unverified` | working copy; matched by name; relationship to this run **unknown** | the default — and, in M49, the **only state a loaded log can reach**: there is no run/model identity carrier linking an arbitrary log to the build that produced it (tracker M48.12, still open). M49 ships with this stated, not hidden |
+| `unverified` | working copy; matched by name; relationship to this run **unknown** | the default — and, in M66, the **only state a loaded log can reach**: there is no run/model identity carrier linking an arbitrary log to the build that produced it (tracker M48.12, still open). M66 ships with this stated, not hidden |
 | `input-current` | this XML **is the input** the named result file describes | the authoring **run receipt** (`target/fluxtion-run.json`): the stage's `inputs.xmlHash` equals the document revision on screen — **and only that**: an unchanged XML after a Java edit is still `input-current` for the XML and says nothing about the build; the receipt's `sourceHash`/`recordHash` and `build.compilerRan`/`outcome` are surfaced beside it so the human sees *which* inputs match |
 | `input-stale` | the result file describes an earlier revision of this XML | receipt `xmlHash` ≠ document revision, or the result's own `inputHash` ≠ |
 | `unknown` | no receipt, no hashable result | a compiler sidecar alone; a project without the authoring record |
@@ -151,13 +155,13 @@ the XML with `sourceHash` mismatch shown; validation result `input-current`; bui
 sidecar *predates the last attempt*; log relationship `unverified`. Each stated; none inferred.
 
 A design hash in the runtime descriptor (`DescriptorSupport.Meta`) would let a *log* be tied to an XML revision
-later; that is a public-API contract change owned elsewhere and is **not** an M49 requirement.
+later; that is a public-API contract change owned elsewhere and is **not** an M66 requirement.
 
 ## D-6 · What is deliberately out
 
 No editing, validating or generating from the analyser. No Spring evaluation or classpath. YAML designs follow
 the same shape later (the verb and targets say `design`, not `xml`). Design-time graph without a run is a
-separate enrichment. The run/model identity carrier (M48.12) is a separate milestone; M49 states its absence.
+separate enrichment. The run/model identity carrier (M48.12) is a separate milestone; M66 states its absence.
 
 ## Acceptance
 
@@ -189,7 +193,7 @@ separate enrichment. The run/model identity carrier (M48.12) is a separate miles
 
 ## Open questions
 
-- **Q1** split view for cross-artefact spotlights — optional, not for M49.
+- **Q1** split view for cross-artefact spotlights — optional, not for M66.
 - **Q2** `xpath` anchors in `source` — deferred; D-4's table covers the shapes the registry emits today.
-- **Q3** the `sourceRef`-required change and the receipt fields M49 reads are owned by the authoring contract;
-  owner to confirm they ride its A1. M49 does not wait for the design-hash-in-`Meta` idea.
+- **Q3** the `sourceRef`-required change and the receipt fields M66 reads are owned by the authoring contract;
+  owner to confirm they ride its A1. M66 does not wait for the design-hash-in-`Meta` idea.

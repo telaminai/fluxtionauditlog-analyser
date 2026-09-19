@@ -1146,7 +1146,24 @@ strongest available argument that prose is the wrong instrument for this class.
 doc set, or whether it is additive. That is what round 17 measures.
 
 
-## M49 · Design render — the Spring XML on the canvas — ☐ SPEC'D 2026-09-19, **revision 2 after review** (spec **[spec-design-render.md](spec-design-render.md)**; review [review_spec_design_render_71e50ee5.md](../handoff/review_spec_design_render_71e50ee5.md) NOT READY R1–R4, all accepted; awaiting re-review)
+## M66 · Design render — the Spring XML on the canvas — ◧ IMPLEMENTING 2026-09-19 (spec **[spec-design-render.md](spec-design-render.md)** revision 2; `feat/m66-design-render`)
+
+Numbering correction: the incoming spec reused M49, already assigned to Runtime performance in
+`completed/tracker.md`. Design rendering is M66; the old review filenames remain historical references.
+
+Revision 2 (`e624ca9c`) was checked against review R1–R4 and the follow-up: the four specification findings
+are addressed. Implementation is owner-authorised, based on current main plus the revised spec. Decisions:
+the existing Fluxtion session graph owns completed design/result reads, refresh failures and session clears;
+filesystem parsing and Swing are adapters. A generation token rejects late Follow results after a session
+switch. The normal build remains keyless, using committed generated source. Builder 1.0.71 and public runtime
+1.0.16 are the selected released versions. `source {line}` is supported as D-1's parameter description
+promises; failed attempts stay labelled failed even when their XML input matches.
+
+- [x] Re-review revision 2; isolate implementation branch and preserve the primary checkout.
+- [ ] Inert XML index, authorised file access, typed session events and replay tests.
+- [ ] Source/Reports rendering, navigation, producer intake and relationship states.
+- [ ] Follow, revision-aware spotlights, project lifecycle and API parity.
+- [ ] Full suite, packaged-app UI verification, docs/changelog and implementation handoff.
 
 Revision 2 adds: a **location-resolution table** per diagnostic element kind (offending location before
 referenced bean; `SOURCE_MEMBER` is a Java location; `NODE` maps by node-name = bean-id; every row has an
@@ -1157,12 +1174,12 @@ clear-on-refuse, exclusive selector families for `source`, Follow eligibility in
 behaviour on document revision change (never rebind), and public references in place of the private one.
 
 The fourth artefact. The canvas shows log, generated processor and node source; it does not show the design
-the LLM authored. M49 adds a read-only `DESIGN` mode to the Source tab, one verb `source {file|bean|line|fqn}`
+the LLM authored. M66 adds a read-only `DESIGN` mode to the Source tab, one verb `source {file|bean|line|fqn}`
 (a glance, like `goto`; bounded by the same source-root rule), `open.design` for the session's design file,
 spotlight targets `source:design[:bean:<id>|:line:<n>]`, bean ↔ node ↔ record navigation (bean id == node id
 under Spring authoring), and "show in design" from any `SPRING_*` diagnostic. No editing, validating or
-generating from the analyser — the runbook owns the write side. Files with this spec: a compiler-side ask
-that `sourceRef` become required on `SPRING_*` diagnostics (A1b). Open: Q1 split view for cross-artefact
+generating from the analyser — the runbook owns the write side. Upstream ask: accurate `sourceRef` where the
+producer knows the originating document and position, with an explicit unavailable case otherwise. Open: Q1 split view for cross-artefact
 spotlights; Q2 `xpath` anchors; Q3 where the compiler change rides.
 
 ## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ PART SHIPPED 2026-09-03
