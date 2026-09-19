@@ -1,6 +1,7 @@
 # Template From The Analyser — `File ▸ New project from template…` (Design Spec)
 
-_Status: **IMPLEMENTED — awaiting independent review, 2026-08-30.** Owner: greg.higgins. Analyser
+_Status: **REVIEWED AND ACCEPTED 2026-08-30** (M19.5, archived in [completed/tracker.md](completed/tracker.md)); the
+*File ▸ New project from template…* entry point is pictured and spotlit in the 1.14.1 docs. Owner: greg.higgins. Analyser
 implementation: `9d38cc4`; playground: `994e82a` live. Companion to
 [tracker.md](tracker.md) (**M19.5**), [spec-onboarding-example.md](spec-onboarding-example.md) (whose
 step 1 this changes) and [spec-agent-brokered-dev-loop.md](spec-agent-brokered-dev-loop.md) §C2 (which

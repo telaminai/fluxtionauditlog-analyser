@@ -1,6 +1,8 @@
 # Spec — follow refreshes open graphs
 
-**Status:** PROPOSED 2026-09-17 · **REVISED twice the same day after review.** Pass 1
+**Status:** SHIPPED in analyser 1.14.0 (2026-09-17) — M65.0–.4 as specified below, after five review passes (three of the
+spec, two of the implementation; the implementation review, its response and the pass-5 check are in `docs/handoff/completed/`).
+Open: M65.5, the D-F5 extraction measurement. History: PROPOSED 2026-09-17 · **REVISED twice the same day after review.** Pass 1
 ([review](../handoff/completed/review_spec_m65_2026-09-17.md), CONDITIONAL): diagnosis and fix accepted; C1/C2 and six findings
 folded in, plus C3 the author raised from the reviewer's *"did not check"* list. Pass 2
 ([review](../handoff/completed/review_spec_m65_pass2_2026-09-17.md), CONDITIONAL): every new claim verified; C4 (the slider echo

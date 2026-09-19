@@ -3494,3 +3494,51 @@ _Items 1–3 and 6 of the 2026-09-17 refresh; the numbers are as they stood ther
   R3 is DONE: `context.showing` was a `Map.of`, whose order changes per run, so the generated page flipped
   `"total"`/`"visible"` on every capture — now ordered.)
 
+## Tidy 2026-09-19 — ticked items archived per rule 7 (moved verbatim from the live tracker; shipped in 1.14.0, reviewed with the M46-closure block)
+
+### M46 · Authoring-toolchain repair — the analyser-side closure (.5/.6/.7/.10)
+- [M46.5] ☑ **A1 — VERIFIED FIXED 2026-09-17, by M44.3** _(on main; reviewed:
+  `docs/handoff/completed/report_m46_agent_api_closure.txt`)_. Reproduced against the built jar on a virgin instance
+  under an isolated home: `open {log, graphml}` echoes `pairing: pending` while the load is in flight, never
+  a verdict about the previous log; `context.graphPairing` and `coverage` each return the same answer twice.
+  This entry sat ☐ for sixteen days after the fix shipped because nothing re-ran the reproduction —
+  `tools/verify-m46-agent-api.py` is that reproduction, committed, so it cannot go stale again. Original:
+  the first pairing/coverage verdict after `open` was computed against pre-call state (all four Opus agents).
+- [M46.6] ☑ **A2 — route 1 VERIFIED FIXED, route 2 NOT REPRODUCED, both now held** _(2026-09-17, same
+  report)_. Route 1 (the project-offer modal on a load path): a socket open of a log INSIDE a project
+  directory returns, the socket keeps answering, and the offer arrives as `context.projectOffer` — the
+  case `verify-session-transitions.py` never covered. Route 2 (mixed `coverage`/`topology`): 24 interleaved
+  calls under a 15 s per-call timeout, none hangs. It was never explained, only not reproduced — most likely
+  closed by M44.3's thread confinement — so the script keeps asking.
+- [M46.7] ☑ **A3–A5 — FIXED 2026-09-17** _(same report)_. **A3:** the echo's `nodes` held the AUTHORED
+  count (10 for a graph the status bar calls 20); it is now `graphNodes` + `authoredNodes`, and no `nodes`
+  key is left to be read as either. **A4:** `openedBy` had two values, so a log RESTORED at startup was
+  attributed to "you" — the request now carries how it was launched (it rides beside the operation by
+  opId, as `pendingRolledSets` does, so the session processor is untouched). Sharing a home between runs is
+  still the harness's to fix (H1). **A5:** an unbound step cursor said "no records" with ten open; it now
+  says no record is SELECTED and how to select one, and the echo carries `recordsOpen`.
+- [M46.10] ☑ **`open {analysis}` failed on every call since 1.13.0 — FIXED 2026-09-17; SHIPS IN 1.14.0, not patched
+  (owner, tracker ▸ Decisions)** _(found doing the
+  above; same report)_. The recall runs off the EDT on purpose; the ignored-parameters decision it then
+  submits to the session processor did too, and the driver is confined to the EDT (M44.3 D-A1), so the
+  steps ran and the call then failed with a protocol violation. Released in 1.13.0–1.13.2 through four
+  review passes, because the only thing that recalls an analysis through the real frame is
+  `tools/capture-conversations.py`, and it had not been re-run since M44.3. **The lesson is a gate, not a
+  fix: that harness and `verify-m46-agent-api.py` belong in the pre-release checklist.**
+
+### M48 · Authoring modes — .7 the canvas handoff
+- [M48.7] ☑ **`analyser_context` handoff section — ON MAIN 2026-09-17 (`c0e4836`, review fixes `99fe89a`; reviewed)** (`docs/handoff/completed/report_m48_7_canvas_handoff.txt`). The selector's record
+      and the session's POSTURE are shared canvas state: one `CanvasHandoff.State`, written by an AI client
+      (`open {posture | record}`, and `open {close: "handoff"}` to take it back) or a person (*AI ▸ Posture*, *AI ▸ Place mode-selector record…*) through the
+      same rules, read back in `context.handoff` and on a Project-panel row. Posture is SET by either party;
+      the derived default says it is a guess and a set one names who set it (R7 revised, R10). **The analyser
+      never runs the selector** — whoever ran it places its record. The canvas spec's write rules are applied
+      (typed, attributed, bounded, fail-closed whole, reversible, cleared at a project boundary) and **nothing
+      is persisted** — R9's profile write stays a separate, reviewable slice. **It was a verb of its own
+      (`handoff`) for one day and was FOLDED INTO `open` before it shipped** (second reader A6; owner decision,
+      2026-09-17 — tracker ▸ Decisions): `open` already means *put this in force* and already has the close idiom.
+      A canvas write goes ALONE — combined with any other `open` parameter it is refused whole. After review:
+      a non-string `branch` is refused (it used to be stringified into a valid-looking record), and the
+      built-in assistant's hand-written manifest — which had never been told about this, about `open`, or about
+      seven parameters of verbs it did list — is now held to an inventory of every published verb AND
+      parameter. `tools/verify-m48-handoff.py` holds it on the built jar (18 checks, incl. fresh start).
