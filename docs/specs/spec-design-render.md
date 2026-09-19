@@ -141,13 +141,15 @@ when a location resolved, *"show (approximate)"* for fallbacks, and a greyed rea
 stages this table must cover: validation (`fluxtion-validation.json`), reconciliation
 (`fluxtion-reconciliation.json`), and the compiler sidecar — all three, not the sidecar alone.
 
-**Upstream ask, narrowed (review R1.4):** the diagnostics registry should require an accurate `sourceRef`
+**Upstream requirement, accepted in A1 (review R1.4; contract commit `29ea9ab`):** the diagnostics registry
+requires an accurate `sourceRef`
 **where the producer knows the originating document and position** (the XML validator does, for every
-`SPRING_*` it raises from a parsed document; the reconciler does, for the Java member it refuses), and keep an
+`SPRING_*` it raises from a parsed document; the reconciler does, for the Java member it refuses), and keeps an
 explicit *unavailable* case otherwise — never an invented file or column. `xpathHint` stays a separate element
-property. Report-relative paths resolve through authorised local roots. Filed against the authoring
-contract's diagnostic registry; **acceptance 5 is gated on it** — until it lands, acceptance 5 is satisfied by
-the fallback rows only and says so.
+property. Report-relative paths resolve through authorised local roots. The authoring contract assigns this
+to A1, including diagnostic goldens carrying `sourceRef`. **Acceptance 5's exact-location integration remains
+gated on producer delivery**, not just this contract change. M66 verifies explicit-location fixtures and the
+fallback rows; no released producer satisfying the new requirement has been exercised.
 
 ## D-5 · Relationship state — a name is not evidence (review R2)
 
@@ -227,5 +229,7 @@ separate enrichment. The run/model identity carrier (M48.12) is a separate miles
 
 - **Q1** split view for cross-artefact spotlights — optional, not for M66.
 - **Q2** `xpath` anchors in `source` — deferred; D-4's table covers the shapes the registry emits today.
-- **Q3** the `sourceRef`-required change and the receipt fields M66 reads are owned by the authoring contract;
-  owner to confirm they ride its A1. M66 does not wait for the design-hash-in-`Meta` idea.
+- **Q3 — resolved (2026-09-19):** authoring-contract commit `29ea9ab` assigns the `sourceRef` requirement and
+  diagnostic goldens to A1 and names M66 as a consumer of the existing run-receipt fields. Producer-delivery
+  verification remains the D-4 gate. The log↔build identity carrier is a separate public-API change outside
+  A1; M66 does not wait for the design-hash-in-`Meta` idea.

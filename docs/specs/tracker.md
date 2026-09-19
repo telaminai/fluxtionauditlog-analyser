@@ -44,8 +44,8 @@ the analyser-side complement of the Spring-authoring work. Spec revision 2 was i
 [`review_spec_design_render_232c846a.md`](../handoff/review_spec_design_render_232c846a.md) (`aa41d06`), after
 tracker checkpoint `232c846a`. G1–G7 are incorporated in the implementation on `feat/m66-design-render`;
 see the M66 section below
-and [implementation handoff](../handoff/handoff_m66_design_render.md). It is implemented and awaiting review,
-not merged or released.
+and [implementation handoff](../handoff/handoff_m66_design_render.md). The independent reviewer accepted
+implementation `b7c82f5` on 2026-09-19. Ready for the owner's merge decision; not merged or released.
 
 **Tidied 2026-09-17, after 1.14.0/1.14.1 (rule 7).** Twenty ☑ items and one ⊘ moved verbatim to
 [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-17*: M64.1–.9 (M64.10/.11 stay), M65.0–.4 with its
@@ -1096,7 +1096,8 @@ M64.10, M46.11.
    release is ≥ 1.0.72 — say "forthcoming"). Small; the pages are already in the nav and the CHANGELOG line is written.
 2. ◧ **M66 Design render — the Spring XML on the canvas** (was M49; owner, 2026-09-19; complements the Spring-authoring work). Spec
    `spec-design-render.md` revision 2 (`e624ca9c`, `spec/design-render`) after an independent review (R1–R4 accepted) —
-   re-reviewed at checkpoint `232c846a` (READY FOR IMPLEMENTATION); implementation on `feat/m66-design-render`. Read-only `DESIGN` mode on the Source tab, `source
+   re-reviewed at checkpoint `232c846a` (READY FOR IMPLEMENTATION); implementation `b7c82f5` independently
+   accepted, awaiting the owner's merge decision on `feat/m66-design-render`. Read-only `DESIGN` mode on the Source tab, `source
    {file|bean|line|fqn}`, `open.design` / `open.diagnostics`, `source:design[:bean:<id>|:line:<n>]` spotlight targets,
    bean ↔ node ↔ record navigation, "show in design" from any `SPRING_*` diagnostic; nothing edits, validates or
    generates. The M49 number collision is settled by the renumbering (head note).
@@ -1229,7 +1230,7 @@ strongest available argument that prose is the wrong instrument for this class.
 doc set, or whether it is additive. That is what round 17 measures.
 
 
-## M66 · Design render — the Spring XML on the canvas — ◧ IMPLEMENTED, AWAITING REVIEW 2026-09-19 (spec **[spec-design-render.md](spec-design-render.md)** revision 2; `feat/m66-design-render`)
+## M66 · Design render — the Spring XML on the canvas — ◧ INDEPENDENTLY ACCEPTED, AWAITING MERGE 2026-09-19 (spec **[spec-design-render.md](spec-design-render.md)** revision 2; `feat/m66-design-render`)
 
 Numbering correction: the incoming spec reused M49, already assigned to Runtime performance in
 `completed/tracker.md`. Design rendering is M66; the old review filenames remain historical references.
@@ -1259,6 +1260,18 @@ home: no-log Follow, session/glance pinning, stale captions, deleted/duplicate/l
 three wrappers, root refusal, stale inputs, project and outside-project-log clears. Source ownership and audit
 order are covered by `DesignSessionAuditTest` plus replay tests. See the handoff for commands and limits.
 
+**Independent implementation review intake (2026-09-19, supplied by the owner):** the reviewer accepted
+`b7c82f5` after reproducing the offline suite in a detached worktree — **1,688 / 0 / 0 / 31 across 216
+Surefire reports** — and packaging the app, running `tools/check-design-render.py` successfully and inspecting
+its screenshots. The D-4 table and D-5 states were checked against the code: offending binding first,
+approximate config fallback, duplicate-bean ambiguity independent of declaration order, Java `SOURCE_MEMBER`
+and node-name navigation, unresolved findings retained; loaded-log relationship always `unverified`, XML
+freshness separate from build/source freshness, and `compilerRan=false` marking a pre-existing sidecar.
+No blocking findings remain. Two non-blocking notes: `serviceRegistrations` already replaces the spec's
+former `serviceBindings`; the spotlight callout overlapping XML text in the capture remains cosmetic polish.
+This records the reviewer's evidence, not another local app-probe run. Awaiting the owner's merge decision;
+no merge or release was performed.
+
 Re-review G1–G7 intake: cite the independent review separately from the author check; name all sixteen-verb
 publication surfaces; make the Java/XML/JSON root grant explicit (project-relative is not a grant); use
 `serviceRegistrations`; compare receipt outputs before inputs. Canonical teaching skills are unchanged,
@@ -1287,9 +1300,14 @@ the LLM authored. M66 adds a read-only `DESIGN` mode to the Source tab, one verb
 (a glance, like `goto`; bounded by the same source-root rule), `open.design` for the session's design file,
 spotlight targets `source:design[:bean:<id>|:line:<n>]`, bean ↔ node ↔ record navigation (bean id == node id
 under Spring authoring), and "show in design" from any `SPRING_*` diagnostic. No editing, validating or
-generating from the analyser — the runbook owns the write side. Upstream ask: accurate `sourceRef` where the
-producer knows the originating document and position, with an explicit unavailable case otherwise. Open: Q1 split view for cross-artefact
-spotlights; Q2 `xpath` anchors; Q3 where the compiler change rides.
+generating from the analyser — the runbook owns the write side. **Q3 resolved at the contract level:** upstream
+authoring-contract commit `29ea9ab` assigns the location requirement to A1: `sourceRef` on every `SPRING_*`
+diagnostic raised from a parsed document and on `SOURCE_MEMBER`, with diagnostic goldens carrying locations;
+`xpathHint` stays separate and unavailable locations are never invented. It also names M66's run-receipt
+consumption. The commit's documentation diff was checked locally. This does not establish producer delivery:
+acceptance 5's exact-location integration remains gated on actual producer output; the tested explicit-location
+fixtures and fallback rows remain the evidence here. The log↔build identity carrier stays outside A1 as a
+separate public-API change. Open: Q1 split view for cross-artefact spotlights; Q2 `xpath` anchors.
 
 ## M48 · Authoring modes — the catalogue resolver, the mode selector, the scorer — ◧ .1–.4/.11 SHIPPED 2026-09-03, .7 SHIPPED in 1.14.0 (all archived); the rest open
 
