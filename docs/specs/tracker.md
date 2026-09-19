@@ -30,7 +30,8 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ☑ **Fresh-session trial performed and independently assessed.** Predictions were frozen first; no inherited
   conversation or observer coaching. The session produced two real matching runs and a chart/report with existing
   analyser features. **Not a clean authoring pass:** it repaired a utility-generated `privatefinal` declaration.
-  That upstream fix now has red/green regression and real-download confirmation, pending independent review.
+  That upstream fix and playground G9 are now accepted by both pass-4 reviewers (`dbcfacc4`, `7a051224`):
+  both upstream branches are READY WITH FOLLOW-UPS. The G review also confirms DX-02–05 and their proposed order.
   [Results, prediction scores, evidence and exact reproductions](../handoff/report_spring_authoring_acceptance_2026_09_19.md).
 - ☐ **DX-02 — compare graph membership against the complete graph.** A declared framework sink was reported
   absent because authored coverage IDs were used as membership. Reproduced independently. Keep the correct
@@ -45,7 +46,9 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 This trial predates the M66 merge and does not test M66 or M67. It supports prioritizing existing-surface correctness
 before adding new rendering primitives for this workflow. Browser preview and artifact publication remain
-unverified; the fresh-client trial itself is complete, with failures preserved rather than called a clean pass.
+unverified. The local-fixture fresh-client trial is complete, with failures preserved rather than called a clean
+pass. **G14 remains a release gate:** after artifact publication, repeat a fresh session from a real download
+through `setup.sh`, without a pre-provisioned tool/classpath. Upstream review acceptance does not close that gate.
 
 ## Shipped — archived
 
