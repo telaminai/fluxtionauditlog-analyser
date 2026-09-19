@@ -91,6 +91,8 @@ nav:
   - Home: index.md
   - Working with AI:
       - The build-with-AI loop: the-loop.md
+      - Spring authoring with an LLM: spring-authoring.md
+      - Design and "what if?" conversations: spring-authoring-conversations.md
       - Connecting an LLM to the analyser: connect-an-llm.md
       - Sample conversations: sample-conversations.md
       - Answering questions about a running system: support.md

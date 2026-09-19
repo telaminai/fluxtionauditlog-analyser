@@ -1,0 +1,44 @@
+Spring authoring documentation — author report, 2026-09-19
+
+User request: explain Spring authoring in the analyser docs, with the LLM as design partner and
+the analyser as the shared rendering canvas for human/LLM evidence, charts and reports. Include
+flow diagrams and conversations about both design and behaviour under specific circumstances.
+
+Delivered:
+- docs/site/spring-authoring.md: collaboration model, capability table, deterministic scenario
+  boundary, project scripts and reports, reconciliation ownership, and bringing results to the analyser.
+- docs/site/spring-authoring-conversations.md: temperature-monitoring design dialogue, expected
+  boundary cases, a limit-change scenario and follow-up reset/design-change questions. Three diagrams
+  here plus the overview's diagram show the design, tool responsibilities and feedback loop.
+- MkDocs navigation, home page and build-with-AI page link the new guides; changelog/tracker updated.
+
+Both pages state the implementation/release boundary: the 1.0.70 local authoring workflow is awaiting
+independent review/publication. No analyser generator, server control, new verb, runbook execution,
+application code or pinned skill was added or changed. Original IDE-file changes were left alone.
+
+Read/checked against source:
+- Analyser onboarding, project/portable-context docs, existing tutorial and report surfaces.
+- The coordinated authoring implementation and canonical contract/skill: offline XML validation,
+  source reconciliation, backend resolution, run receipt, scripts and supported declarations.
+- Framework reference and implemented declaration/dispatch checks. Repeatability is bounded by
+  processor revision, initial state, input order and controlled time/external-service responses.
+
+Verified:
+- mkdocs build --strict: passed; internal navigation/links build cleanly.
+- mvn -q test: passed, 1656 tests, zero failures/errors, 31 display-dependent skips.
+  First sandboxed attempt could not bind localhost sockets; rerun with the required environment
+  permission passed. No production changes were made to get the tests through.
+- git diff --check and the exact CLAUDE.md rule-1 tracked-file sweep: clean before commit.
+
+Not verified / reviewer focus:
+- The conversations are illustrative design dialogue, not transcripts of an executed temperature
+  application. Their tables are labelled expected outcomes; no fabricated tool responses are supplied.
+  The existing generated sample-conversations page is linked and left unchanged.
+- No paid generation, temperature-scenario runtime capture or held-out LLM run was performed for this
+  documentation change. The earlier implementation handoff owns its own verification evidence.
+- Browser discovery found no connected browser, so Mermaid layout was not visually witnessed.
+  The strict site build does not prove Mermaid rendering. Review the four diagrams at desktop and
+  narrow widths, and verify that expected/observed and published/forthcoming remain easy to distinguish.
+- Review the central story: the LLM drives project work with its own tools and renders investigation
+  results through the analyser; the human can inspect and challenge the evidence on the same canvas.
+  Deterministic dispatch must not be read as proof of business correctness or uncontrolled I/O.

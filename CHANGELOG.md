@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **Spring authoring guide** — working with an LLM as a design partner, the local XML/source workflow,
+  and the analyser as the shared canvas for evidence, charts and investigation reports. Flow diagrams
+  and illustrative design/"what if?" conversations show how a question becomes a repeatable scenario.
+  The guide states the pending compiler/starter 1.0.70 availability separately from the analyser's
+  shipped features.
+
 ## [1.15.0] - 2026-09-18
 
 ### Added

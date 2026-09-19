@@ -6,6 +6,15 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Spring authoring documentation — 2026-09-19
+
+- ☑ **Design partner and evidence canvas guides** — `docs/site/spring-authoring.md` covers capabilities,
+  local workflow, reconciliation and the analyser handoff; `spring-authoring-conversations.md` adds
+  illustrative design and behaviour-question conversations with flow diagrams. Expected results are
+  explicitly distinguished from captured runs. The coordinated 1.0.70 authoring workflow remains
+  review/publication-gated; these pages add no analyser execution or generation capability.
+  Evidence and remaining review: [author report](../handoff/report_spring_authoring_docs_2026_09_19.txt).
+
 ## Shipped — archived
 
 **Tidied 2026-09-17, after 1.14.0/1.14.1 (rule 7).** Twenty ☑ items and one ⊘ moved verbatim to

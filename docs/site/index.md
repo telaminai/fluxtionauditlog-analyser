@@ -34,6 +34,10 @@ See [Install & run](install.md) for details.
 
 ## What it does
 
+**Building a system with an LLM?** [Spring authoring](spring-authoring.md) takes you from a design
+conversation to a Java project, then brings the run back into the analyser. The LLM renders evidence,
+charts and reports on a canvas you can both inspect and question.
+
 **One source of truth, a whole toolchain.** The analyser takes the **Fluxtion event-audit log** — a
 deterministic, replayable record of every propagation cycle — and feeds it through one connected
 toolchain to **explain, drill down, observe, graph, monitor, interrogate and fix**, in a fraction of the

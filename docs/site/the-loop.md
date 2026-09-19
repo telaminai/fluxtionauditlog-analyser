@@ -34,7 +34,12 @@ to hold the full topology in its head or worry whether the code is "deterministi
 owns dispatch order and change propagation. Compile errors are directive (`use @AssignToField`,
 `add @FluxtionIgnore`), so the model self-corrects in a tight compile/run loop instead of guessing.
 
-See [Fluxtion — Build with AI](https://fluxtion-playground.dev/build-with-ai).
+For a concrete path, see [Spring authoring with an LLM design partner](spring-authoring.md):
+agree the design by conversation, turn it into an editable project, then have the LLM render the run's
+evidence, charts and reports in the analyser for both of you to inspect. The project holds the implementation;
+the analyser is the shared canvas for examining it.
+
+See also [Fluxtion — Build with AI](https://fluxtion-playground.dev/build-with-ai).
 
 ## ② Guarantee — the compiler
 
