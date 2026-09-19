@@ -47,3 +47,8 @@ Review response correction, 19 September 2026:
 The availability note now targets pending 1.0.72. Releases 1.0.70 and 1.0.71
 do not contain the local starter module. The compiler feature is under review;
 this documentation does not claim that its artifact has been published.
+
+Review G10 correction: both the guide and conversations now refer to the compiler
+release that includes the starter tool; exact coordinates belong to configuration
+and the downloaded project. No speculative version remains in those guide pages.
+The earlier numbered availability statements above are historical handoff notes.

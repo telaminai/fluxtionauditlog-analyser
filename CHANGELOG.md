@@ -10,12 +10,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Spring authoring guide** — working with an LLM as a design partner, the local XML/source workflow,
   and the analyser as the shared canvas for evidence, charts and investigation reports. Flow diagrams
   and illustrative design/"what if?" conversations show how a question becomes a repeatable scenario.
-  The guide states the pending compiler/starter 1.0.72 availability separately from the analyser's
+  The guide states the pending compiler/starter availability separately from the analyser's
   shipped features.
 
 ### Fixed
 
-- Correct the Spring authoring availability note: the local tool targets the pending 1.0.72 release, not the already published 1.0.70/1.0.71 artifacts.
+- Keep both Spring authoring guides tied to the compiler release that includes the starter tool; the downloaded project holds the exact version pin.
 
 ## [1.15.0] - 2026-09-18
 
