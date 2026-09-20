@@ -1,6 +1,8 @@
 package telamin.fluxtion.audit.analyser.analyser.llm;
 
 import telamin.fluxtion.audit.analyser.analyser.source.SourceService;
+import telamin.fluxtion.audit.analyser.analyser.config.GraphSpec;
+import java.util.Set;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -42,6 +44,20 @@ public record SessionFacts(LogFileInfo file, String eventProcessorFqn, List<Path
             types.forEach((id, fqn) -> source.resolver().find(fqn).ifPresent(p -> files.put(id, p)));
         }
         return new SessionFacts(file, eventProcessorFqn, List.copyOf(roots), types, files);
+    }
+
+    /** Saved definitions exist without input; an open tab does not prove valid series bindings. */
+    public static List<Map<String, Object>> savedGraphs(List<GraphSpec> definitions,
+                                                       Set<String> openNames, boolean hasLog) {
+        return definitions.stream().map(g -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", g.name());
+            m.put("open", openNames.contains(g.name()));
+            m.put("input", hasLog ? "loaded; bindings require validation" : "waiting for input");
+            m.put("series", g.series());
+            m.put("expressions", g.exprs().stream().map(GraphSpec.ExprSpec::expr).toList());
+            return m;
+        }).toList();
     }
 
     // ---- JSON rendering (the `context` verb) -------------------------------------------------------

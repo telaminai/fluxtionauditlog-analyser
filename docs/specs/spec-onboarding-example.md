@@ -36,6 +36,13 @@ the browser **and has a Download button** — the two best demos in the stack st
 
 ## The experience (target: <10 minutes)
 
+**Journey implementation intake, 2026-09-20:** the runnable example is a teaching surface alongside
+runbooks. Hosted downloads must model their real feed/host/sink route, not place a hardcoded-event and
+sleep-based acceptance harness on the ordinary authoring path. Regression-only harnesses belong outside
+that path and must be labelled. Record which file a fresh client imitates in the
+[journey acceptance](spec-project-starter-journey.md#acceptance). Clean downloads for held-out evaluation
+must exclude earlier task solutions/retrospectives; the staged desk/EOD project is not a fresh test.
+
 **Prerequisites, corrected 2026-08-29 (review F4).** This section was headed *"nothing pre-installed but
 a JDK"*, and C3 identified that as understated without repairing it. Repaired here, because a promise the
 reader discovers is false at step 6 costs more than one they were told:

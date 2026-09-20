@@ -49,8 +49,8 @@ class ProjectModelTest {
     @Test
     void everyEmptyStateIsASentence_neverABlankSection() {
         ProjectModel m = ProjectModel.from(empty());
-        assertEquals(List.of(ProjectModel.PROJECT, ProjectModel.LOG, ProjectModel.GRAPH, ProjectModel.PROCESSORS, ProjectModel.ROOTS, ProjectModel.REPORTS, ProjectModel.ANALYSES),
-                m.sections().stream().map(ProjectModel.Section::title).toList(), "seven sections, always, in this order");
+        assertEquals(List.of(ProjectModel.PROJECT, ProjectModel.LOG, ProjectModel.GRAPH, ProjectModel.PROCESSORS, ProjectModel.ROOTS, ProjectModel.SAVED_GRAPHS, ProjectModel.REPORTS, ProjectModel.ANALYSES),
+                m.sections().stream().map(ProjectModel.Section::title).toList(), "eight sections, always, in this order");
         for (ProjectModel.Section s : m.sections()) {
             if (s.title().equals(ProjectModel.REPORTS)) {
                 // two states, both sentences: the exchange directory (off, here) and the saved reports (none)
@@ -65,7 +65,19 @@ class ProjectModelTest {
         }
         assertEquals("using your own settings (~/.fluxtion-analyser)", m.section(ProjectModel.PROJECT).rows().get(0).secondary());
         // a null payload — context threw, or nothing has ever been bound — is the same five sentences
-        assertEquals(7, ProjectModel.from(null).sections().size());
+        assertEquals(8, ProjectModel.from(null).sections().size());
+    }
+
+    @Test
+    void savedChartsRemainVisibleWithoutInputAndHaveNoMutationAction() {
+        var ctx = empty();
+        ctx.put("savedGraphs", List.of(Map.of("name", "Positions", "open", false,
+                "input", "waiting for input")));
+        var row = ProjectModel.from(ctx).section(ProjectModel.SAVED_GRAPHS).rows().getFirst();
+        assertEquals("Positions", row.primary());
+        assertEquals("waiting for input", row.secondary());
+        assertEquals("saved", row.provenance());
+        assertEquals(ProjectModel.Target.NONE, row.target());
     }
 
     @Test

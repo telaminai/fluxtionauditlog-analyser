@@ -223,3 +223,6 @@ These used to be one action, which is why setups piled up. See
 If the active project's file is gone — repository renamed, checkout deleted — the analyser starts
 normally, says so in the status bar, and forgets the pointer. It never fails to open because of a
 project, and your machine settings are untouched.
+
+Saved chart definitions remain visible in the Project panel and `context.savedGraphs` after reopening
+a profile without a log. They are waiting for input, not proof of restored data or valid series bindings.

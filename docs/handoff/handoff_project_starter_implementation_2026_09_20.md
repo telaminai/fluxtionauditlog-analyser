@@ -40,3 +40,34 @@ permission. The sandboxed full Java run could not bind test sockets; permitted r
 are clean. Staged whitespace checking flags original logs/generated source in immutable evidence
 snapshots; retain those bytes and their manifests. Authored changes outside evidence pass whitespace checks.
 No implementation slice is marked complete yet.
+
+
+## Checkpoint — first implementation slice and feedback intake
+
+Specs/evidence base `3ed21ea` was pushed to analyser main. Isolated implementation worktrees now exist at
+`/private/tmp/fluxtion-journey-{analyser,web,compiler}`, each on `feat/project-starter-journey`.
+Playground starts at reviewed `affdd85` (already includes fetched main); compiler starts at `fdd24d61`
+and has normally merged develop `29ea9aba` (documentation changes). Original checkouts are preserved.
+
+Analyser saved definitions now appear through `context.savedGraphs` and the reveal-only Project panel,
+separately from live tabs. Gate: **1,691 tests, zero failures/errors, 31 display skips**; MkDocs strict,
+exact rule-1 sweep and authored diff whitespace check pass. The unchanged panel structural gate passes.
+This is not yet the landing/restore implementation; no display interaction is claimed at this checkpoint.
+
+The first permitted gate exposed an initial-commit blind spot: the tracked-only whitespace test had not
+seen previously untracked immutable source snapshots. Its new explicit exemptions name the five captured
+generator outputs with pinned manifests; their original bytes remain untouched. This is a test-fixture
+classification correction, not a rewrite of evidence. The final suite includes those newly tracked files.
+
+Cold-start participant proposal is preserved verbatim with review/probes. The scorer is not an acceptance
+oracle: invalid chronology and self-baselining still pass, and static annotation detection still has a
+comment false positive. The spec adopts attribution/imitation/isolation inputs with these qualifications.
+Chart feedback 41–43 is separately preserved and source-checked; the actual axis/window contamination
+and colon-target refusal were reproduced in a headless probe. The ninth feedback-review addendum records
+UI removal and pin-echo qualifications. No chart correction is claimed by this checkpoint.
+
+Playground initial support/API/profile/runbook slice passes 496 tests (four existing local-artifact cases
+skipped), production build, and a subsequent focused 20-test run including absent-override preservation.
+Type check still reports its four pre-existing SplitPane errors. Runtime runbook verification, shared
+processor metadata consumption, pinned-reference/comment resource, browser witness and held-out journey
+remain pending; this branch is not a release candidate yet.

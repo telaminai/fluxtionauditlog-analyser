@@ -1,10 +1,8 @@
 # The Project panel — what is in force
 
-Seven things shape every answer the analyser gives you: which **project** is active, which **audit
-log** is open, which **graph** is paired with it, which **event processors** are configured, and which
-**source roots** the code is read from. Until now they were told in five places — the window title,
-a status line the next message overwrote, the Topology header, and two dialogs. The **Project** panel,
-on the left rail under *Event types*, states all five at once.
+The **Project** panel, on the left rail under *Event types*, states the active project, audit log,
+paired topology, configured processors and source roots, plus saved charts, reports and analyses.
+It shows what is available even before a log is opened.
 
 ![The Project panel beside the start page](../assets/project-panel.png)
 
@@ -17,6 +15,7 @@ on the left rail under *Event types*, states all five at once.
 | **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log. Above it, if the processor was built without audit logging: *⚠ audit logging NOT installed — this processor writes no audit log at all*, which outranks the pairing because pairing a log that will never exist is a question about nothing | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root — *Open* opens it in the Source tab; when it was not found there is no *Open*, and **Add source** opens Settings ▸ Source roots | *project* / *own settings* / *discovered under a root* |
 | **Source roots** | each root with its **stored form** — *project-relative*, *workspace-relative*, *~*, *absolute*; under a project, *absolute* and *~* are a warning that the profile will not resolve on a colleague's machine — and the workspace anchor if declared | *project* / *own settings* / *demo (transient)* |
+| **Saved charts** | named chart definitions, including those waiting for input; an open chart still needs its data bindings checked | *saved* / *open* |
 | **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *File ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
 | **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
 
@@ -63,3 +62,7 @@ resolved, and what is left to author. Both rows belong to the session: a project
 The panel and *Event types* share the left column in a vertical split; drag the bar between them.
 The whole column is draggable too — the edge between it and the records table — and both toggles on the
 rail hide their panel. Every one of these choices persists.
+
+Saved charts come from `context.savedGraphs` (`name`, `open`, `input`). This is separate from
+`context.graphs`, which lists live tabs. Neither saving a definition nor opening a tab proves that its
+series exist in the current log. These are session facts, not a new report evidence section.

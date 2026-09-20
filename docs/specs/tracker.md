@@ -37,6 +37,24 @@ Legend for each item: **[id] status — title** · _acceptance_.
   compiler from their reviewed Spring-authoring heads with upstream integration checked explicitly.
   Track acceptance and exact heads in [implementation handoff](../handoff/handoff_project_starter_implementation_2026_09_20.md).
   Public release gates remain distinct from local development verification.
+- ☐ **Participant follow-up — imitation and held-out isolation** — template examples teach by copying;
+  check the generated harness matches its declared host/feed shape and record the file imitated. Treat
+  the exposed EOD exercise as regression only; fresh acceptance uses a clean download and an access manifest
+  excluding prior solutions/retrospectives. Dependency identity 30/33 and audit scaffolding 6 stay open
+  producer behaviour work; comment-contract hashing does not close either. Journey/onboarding specs now
+  name these constraints; they were added after the final review and are not independently accepted evidence.
+- ☐ **Chart feedback 41–43 intake** — [ninth addendum](../handoff/review_staged_spring_feedback_2026_09_19.md)
+  preserves the updated participant file. 41: pin/filter scope must explain an empty restored plot;
+  42: independently reproduced windowing contaminating the left axis with right-axis values, plus MCP
+  series removal/replace semantics (UI removal already exists); 43: colon-name targeting incompatibility
+  reproduced in the parser. Pin-clear null/schema mismatch is included. No product fix claimed; exact
+  staged UI interaction remains unverified. Restore acceptance inherits 41; wider chart fixes stay separate.
+- ◧ **Cold-start measurement proposal preserved/reviewed** — [instrument intake](../handoff/evidence/coldstart-proposal-2026-09-20/REVIEW.md)
+  keeps all four operator/subject files verbatim and records independent scorer probes. Adopt pre-action
+  attribution, imitation and pristine-baseline recording, but treat static hits as leads and journal fields
+  as testimony. Before acceptance: validate journal/baseline, enforce task isolation, choose an unexposed
+  held-out task and report matched or explicitly unmatched comparisons. No trial completed; hardened scorer
+  and manual rubric remain acceptance-harness work, never analyser execution logic.
 
 - ◧ **Starter journey design review F1–F16 (2026-09-20)** — [review](../handoff/review_project_starter_journey_2026_09_20.md)
   is CONDITIONAL; [author response](../handoff/response_project_starter_journey_2026_09_20.md) records corrections
@@ -68,6 +86,10 @@ Legend for each item: **[id] status — title** · _acceptance_.
   journey. F/G/H/J are independently closed; final review READY with K1/K2 wording now corrected. Preserve generated-body
   ownership/hash compatibility and the analyser's pointers-only boundary. No guide verb or new runtime
   default is approved. Compiler/starter and playground own emitted guidance; agent/harness owns execution.
+- ☑ **Saved-chart declarations before input — implementation slice** — `context.savedGraphs` and the
+  reveal-only Project panel render persisted definitions separately from live tabs. 1,691 tests pass
+  (31 display skips), strict docs and rule-1 sweep pass. Landing/restore and display witness remain open;
+  this completes only the saved-definition fact surface, not acceptance 5–7 as a whole.
 - ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
   capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
   user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key

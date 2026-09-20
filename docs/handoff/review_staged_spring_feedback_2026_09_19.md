@@ -592,3 +592,60 @@ Two-log comparison remains worthwhile but is not one text-format fix away: align
 missing/extra events, initial state and normalization all need a contract (see the fourth addendum).
 Keep optional presentation features below these correctness and journey checks. No new MCP route,
 compiler fix, product guarantee or release approval follows from the participant's enthusiasm.
+
+
+## Ninth addendum — chart feedback 41–43 (2026-09-20)
+
+The complete participant document is preserved in
+[evidence round 6](evidence/spring-authoring-feedback-2026-09-20-round6/ANALYSER-FEEDBACK.md), with a byte
+manifest. Source inspection used analyser base `3ed21ea`; current journey edits do not change these paths.
+These findings do not require application execution inside the analyser.
+
+### Disposition and qualifications
+
+- **41 — accept as high-priority evidence-scope visibility work, linked to restore.** `GraphPanel.bind`
+  clears a pin, but `GraphTabs.doRestore` reapplies the saved definition's pin (line 313). Thus the
+  participant's observation is consistent with saved-definition restoration, not proof that bind itself
+  retains an old window. `ActionExecutor` already returns `applied.pinned` (lines 488–493); the missing
+  information is disjointness/current extraction scope, not complete absence of the bounds. The tab's pin
+  indicator also exists. `refreshed: scheduled` means asynchronous work was requested, not that data is
+  visible. Preserve those distinctions while adding a visible reason for zero in-window points and
+  separate dimension/text/window restrictions. Do not silently discard a deliberate pin. A written-against
+  identity is useful provenance but does not replace comparing the actual window with available input.
+  The exact two-chart/20-of-76 interaction remains participant-observed, not independently UI-replayed here.
+- **42 — split three concerns.** `graph` is described globally as create/append, and `panel.addKeys`
+  confirms additive series; the per-parameter description needs the same clarity. MCP has no raw-series
+  removal operation. The human Series list DOES have removal (`GraphPanel.removeSelectedSeries`, line 503),
+  so this is a surface-parity gap rather than wholly write-only chart state. Keep existing additive calls
+  compatible when designing explicit replacement/removal. The axis defect is independently reproduced:
+  `ChartPanel.resetView` partitions by axis; `setViewWindow` (line 360) scans every series into the left
+  range, ignoring the assignment and leaving the right range unchanged. With small values 10–20 and large
+  values 1,000,000–1,250,000, the left range changes from 9.5–20.5 to -62,489.5–1,312,499.5 after windowing.
+  This confirms cross-axis contamination; it does not independently reproduce identical tick labels on
+  both axes in the participant's screenshot. Regressions should cover pin/filter windows, refresh and
+  restoration, including an empty side and guides/markers.
+- **43 — accept target/creation compatibility defect.** `GraphTabs.addGraph` accepts the name; the
+  `SpotlightTarget` parser refuses a colon within the chart portion (lines 144–147). The supplied target
+  was independently passed to that parser and refused. Choose an unambiguous target representation with
+  a compatibility rule for existing saved names; rejecting only new names leaves those projects broken.
+  The current-tab `graph:note:<n>` form is a workaround after explicitly selecting the intended chart.
+- **Pin clear — accept schema/documentation mismatch.** `containsKey` and nullable conversion in the
+  executor let explicit null clear the bounds, while `VerbSchemas` declares integers. Make the eventual
+  contract express clear/follow without relying on a caller bypassing schema validation; test through MCP.
+
+The participant's successful mutually-invisible record-target refusal is a positive regression case.
+Preserve it while extending visibility checks to other surfaces. No fix is claimed by this intake.
+
+### Evidence and next acceptance
+
+`JourneyChartProbe.java` and its output beside the snapshot are the independent headless probe, run
+against compiled classes. They exercise the actual chart axis/window code and spotlight parser, not the
+staged application. No screenshot was produced or inspected in this intake.
+
+For 41, use two logs with disjoint times and a persisted pin, then independently add a dimension filter
+that removes otherwise visible points. Human and MCP must identify each active restriction, distinguish
+no records/no key/no points in window from failed extraction, and provide explicit clear/restore choices.
+Include overlapping runs and an intentionally empty view so a warning does not become an automatic reset.
+Keep 42's correctness fix above optional lifecycle additions; retain 43's compatibility check in the
+spotlight workstream. The ongoing starter journey inherits the restoration regression, not every chart
+feature request as a prerequisite.

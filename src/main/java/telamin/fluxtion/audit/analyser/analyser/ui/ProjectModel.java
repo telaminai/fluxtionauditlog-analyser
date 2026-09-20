@@ -49,6 +49,7 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
+            "savedGraphs.name", "savedGraphs.open", "savedGraphs.input",
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
             "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
@@ -63,7 +64,7 @@ public record ProjectModel(List<Section> sections) {
             "handoff.record.selectionCandidates", "handoff.record.setBy");
 
     public static final String PROJECT = "Project", LOG = "Audit log", GRAPH = "Graph",
-            PROCESSORS = "Event processors", ROOTS = "Source roots", REPORTS = "Reports", ANALYSES = "Analyses";
+            PROCESSORS = "Event processors", ROOTS = "Source roots", SAVED_GRAPHS = "Saved charts", REPORTS = "Reports", ANALYSES = "Analyses";
 
     @SuppressWarnings("unchecked")
     public static ProjectModel from(Map<String, Object> ctx) {
@@ -309,6 +310,15 @@ public record ProjectModel(List<Section> sections) {
                     null, null, Tone.MUTED, Target.SETTINGS_SOURCE));
         }
         out.add(new Section(ROOTS, rows));
+
+        rows = new ArrayList<>();
+        for (Object o : list(ctx.get("savedGraphs"))) {
+            Map<String, Object> saved = map(o);
+            rows.add(new Row(str(saved.get("name")), str(saved.get("input")), null,
+                    Boolean.TRUE.equals(saved.get("open")) ? "open" : "saved", Tone.NORMAL, Target.NONE));
+        }
+        if (rows.isEmpty()) rows.add(new Row("No saved charts", "Save a chart definition to keep its series and expressions", null, null, Tone.MUTED, Target.NONE));
+        out.add(new Section(SAVED_GRAPHS, rows));
 
         // ---- reports (M37.6): where files leave, and what the project has saved -----------------------
         rows = new ArrayList<>();

@@ -220,6 +220,13 @@ and the command that compares them, naming build/dependency identity and validat
 fixtures instead of creating a second generator or a mandatory new public corpus. Examples demonstrate
 tested behaviour, not universal proof. The project runbook/harness executes; the analyser presents evidence.
 
+**Participant follow-up, implementation intake:** the nearest shipped example is also an instruction.
+Each template's runnable harness must demonstrate its intended host/feed/sink shape; a hosted template
+must not teach application orchestration through a neighbouring hardcoded-event/sleep harness. Keep
+special-purpose regression fixtures clearly labelled and outside the ordinary project entry path.
+Record which existing source/example the client copied, not only which prose it opened. Do not forbid
+an embedded main for a template whose intended shape is an embedded application.
+
 ## Headless creation: present capability and proposed improvement
 
 Source inspected on 2026-09-20: the existing scaffold endpoint supports either
@@ -358,6 +365,12 @@ a declared dependency, host-event contract, scenario and vendor-specific runbook
 artifact resolves; keyless local fixtures support development. Fix feedback 29's dependency-shadowing
 defect before recommending the authoring route. The template id/coordinate belong to producer delivery,
 not an analyser allowlist.
+Dependency identity (feedback 30/33) remains a compiler/starter prerequisite for any claim about verified
+vendor binaries: record effective classpath artifact bytes and order, bind build/run receipts, and compare
+against a trusted expected manifest. Comment-contract hashes do not cover application dependencies.
+Until that gate exists, the vendor journey must state its identity limitation and cannot call a component
+certified or verified merely because its filename/coordinate resolves. Missing audit scaffolding (6) is
+separately tracked as behaviour work, not closed by generated comments.
 
 ## Acceptance
 
@@ -384,6 +397,9 @@ not an analyser allowlist.
    A→B before relaunch, failed/moved project activation, no-project sessions, legacy remembered global paths,
    changed/missing evidence and explicit command-line logs. Assert no automatic restore before acceptance
    and no cross-project candidate selection. No application script runs during restoration.
+   Include a saved chart pinned to a disjoint prior-run window and a separate active dimension/text filter:
+   expose both restrictions to the person and client, distinguish no visible points from no source data,
+   and offer explicit clearing without silently rewriting an intentional saved window (feedback 41).
 7. Without a loaded log, assert saved-chart facts in context, the read-only Project-panel row and the
    landing separately from open tabs. Exercise open/restore from the landing and retain
    `ProjectPanelIsRevealOnlyTest` unchanged as the panel boundary gate. Check all three `syncRecordsCard`
@@ -446,3 +462,23 @@ not an analyser allowlist.
     unique prerequisite or hazard is lost (retain or reroute such content). Archive removed material and
     measurements. Stop and hand off after a clean held-out run or report non-convergence; do not add/delete
     indefinitely. This applies the onboarding recurrence rule without making non-use proof of irrelevance.
+    Record source/example imitation and whether it followed the template's intended runtime shape.
+    The now-discussed EOD scenario is a regression task, not held out. Select a different unexposed task
+    before the participant starts; preserve an access manifest proving the client cannot read prior
+    transcripts, retrospectives, solutions, oracles or mutant-killing answers (including staged desk files).
+    Start from a clean generated download, not the staged project. Keep the assessor's independent
+    expectations outside the participant's accessible workspace; record any isolation breach as contamination.
+
+
+### Cold-start instrument intake (2026-09-20)
+
+The [preserved proposal and intake review](../handoff/evidence/coldstart-proposal-2026-09-20/REVIEW.md)
+provide pre-action attribution, example-imitation records and pristine-download baseline provenance for
+acceptance 4/12. A journal is testimony; transcript/tool observations and operator-owned snapshots check
+its chronology. Static fingerprints are review leads, never automatic defect or pass counts. Record search,
+prior knowledge and operator intervention separately and adjudicate whether routing actually failed.
+The reconstructed v1 session is historical context, not a matched quantitative control. Choose one fresh
+session per complete journey and keep the operator prompts, injected-error answers and prior solutions
+outside the subject's enforced access boundary. Validate the scorer inputs and report unknown/missing
+observations before using its output for acceptance. This intake does not claim a trial has run or authorize
+paid key use; the existing recurrence and held-out thresholds still govern adoption.

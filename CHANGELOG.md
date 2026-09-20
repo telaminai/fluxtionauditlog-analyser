@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Saved chart definitions before a log is opened** — the Project panel and `context.savedGraphs`
+  list saved charts separately from live graph tabs, with an explicit waiting-for-input state.
+  An open tab does not claim that its series are bound to valid data.
 - **Local Spring rehearsal launcher** — `tools/start-spring-demo.sh` provisions the existing acceptance
   sample, its project MCP configuration and an isolated analyser, plus playground/docs previews.
   `tools/stop-spring-demo.sh` stops its services while retaining project edits and evidence.

@@ -33,6 +33,12 @@ class TrailingWhitespaceTest {
      */
     private static final List<String> EVIDENCE = List.of(
             "src/test/resources/formula-golden/",
+            // Captured generator outputs, whose manifests pin the original bytes. Do not reformat.
+            "docs/handoff/evidence/spring-authoring-feedback-2026-09-19-round2/pom.xml",
+            "docs/handoff/evidence/spring-authoring-feedback-2026-09-19-round2/src/main/java/com/example/myapp/node/Child.java",
+            "docs/handoff/evidence/spring-authoring-feedback-2026-09-19-round2/src/main/java/com/example/myapp/node/RootNode.java",
+            "docs/handoff/evidence/spring-authoring-feedback-2026-09-19/src/main/java/com/example/myapp/node/Child.java",
+            "docs/handoff/evidence/spring-authoring-feedback-2026-09-19/src/main/java/com/example/myapp/node/RootNode.java",
             "/generated/",
             ".diff");
 

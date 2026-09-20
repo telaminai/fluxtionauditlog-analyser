@@ -5659,6 +5659,9 @@ public final class MainFrame extends JFrame {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
+            out.put("savedGraphs", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.savedGraphs(
+                    config.savedGraphs, graphTabs.specs().stream().map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                            .collect(java.util.stream.Collectors.toSet()), store != null));
             // M64 D-SP4: the live spotlight, and ONLY while one is lit — so the tutor's own loop (context →
             // screenshot) can confirm what it pointed at. Above the fresh-start return: a tab, the toolbar
             // and the status line can be lit with nothing open. Nothing else anywhere holds a spotlight.

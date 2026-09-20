@@ -1,0 +1,22 @@
+{
+  "source": "participant coldstart proposal, 2026-09-20",
+  "status": "verbatim proposal; see REVIEW.md before use",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "ef9e1da2df3463f3cfbf65c74114e5a8ac59b146cb81da5321cc400eb740aff2"
+    },
+    {
+      "path": "PROMPTS.md",
+      "sha256": "34e35926e47b8a9e53945cad8d63733f97c831e12a819ca1f69f5a30edd43680"
+    },
+    {
+      "path": "JOURNAL.md",
+      "sha256": "cec7446bcd8e7343fa21dfda96f06f4158921805d7fdfacd0921230db02da39e"
+    },
+    {
+      "path": "score_journal.py",
+      "sha256": "93cd211b8bd49f9064b6536bc851bb89261c38b734ad7e1da094c6a4eceefc65"
+    }
+  ]
+}

@@ -545,3 +545,10 @@ API key, run anything, or read files outside the log and sources you configured.
 deliberately not an assistant capability. The channel is loopback-only and the endpoint file is
 owner-readable. (The [FAQ's security answer](../faq.md#is-the-assistants-action-socket-safe-to-enable)
 is the canonical statement of this boundary.)
+
+### Saved charts before opening a log
+
+`context.savedGraphs` lists the configured chart definitions with their names, series, expressions,
+open-tab state and input status. Without a log they say `waiting for input`; with one they still say
+that bindings require validation. `context.graphs` remains the list of live chart tabs. People see the
+same distinction in the Project panel's **Saved charts** section.
