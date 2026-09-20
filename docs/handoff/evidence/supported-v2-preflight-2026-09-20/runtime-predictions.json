@@ -1,0 +1,38 @@
+{
+  "frozenBeforeRuntime": "2026-09-20T20:15:03.750442+00:00",
+  "predictions": [
+    "run-server.sh starts and publishes registry",
+    "export contains the five CSV prices and volumes in input order",
+    "stop-server.sh exits zero and removes the registry",
+    "plain java -jar fails as README says; runbooks contradict it"
+  ],
+  "expectedRows": [
+    {
+      "symbol": "AAPL",
+      "price": 195.3,
+      "volume": 1200
+    },
+    {
+      "symbol": "MSFT",
+      "price": 410.1,
+      "volume": 800
+    },
+    {
+      "symbol": "GOOG",
+      "price": 155.75,
+      "volume": 1500
+    },
+    {
+      "symbol": "AMZN",
+      "price": 178.22,
+      "volume": 640
+    },
+    {
+      "symbol": "NVDA",
+      "price": 905.6,
+      "volume": 2100
+    }
+  ],
+  "sinkOutputExpected": false,
+  "sinkReason": "No sink publication in the shipped node code; configured sink alone is not evidence of output."
+}

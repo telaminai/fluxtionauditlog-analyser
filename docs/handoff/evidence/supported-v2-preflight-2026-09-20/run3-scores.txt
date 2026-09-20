@@ -1,0 +1,70 @@
+COLD-START SCORESHEET · <analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run3/project/JOURNAL.md
+project: <analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run3/project
+baseline: NONE - template files are scored as the subject's; results inflated
+
+entries 13 · elapsed 0:53:00 · first CHECK at E3
+kinds   CHECK=2  DECIDE=2  ERROR=1  READ=2  RUN=3  WRITE=3
+
+ROUTING — the headline number
+  readme       1   routed
+  contract     2   routed
+  error        1   routed
+  example      2
+  search       1   unrouted
+  prior        6   unrouted
+  --> routed 4/11 = 36%   operator interventions: 0
+
+IMITATION — which existing files were copied (the v1 failure channel)
+    1x  .scratch/getting-started-pom.xml (dependency block shape)
+    1x  .scratch/TutorialPart2.java (branch-from-shared-builder + multi-sink pattern), .scratch/GroupByReduceSample.java (plain groupBy(key, aggregateFactory) signature), .scratch/FilterSample.java (filter signature)
+
+TRAP FINGERPRINTS over the finished project
+  [HIT ] T-MAIN           hand-rolled harness feeding events instead of the shipped feed
+           src/main/java/com/example/ordermonitor/OrderMonitorApp.java  (variable-fed)
+  [ ok ] T-SLEEP          Thread.sleep pacing in a harness
+  [ ok ] T-EVENTLOG       node with a handler that never writes to the audit log
+  [ ok ] T-RETURN-TRUE    signal handler returns true (propagates to dependents)
+  [ ok ] T-TRANSIENT      node field: final collection without transient/@FluxtionIgnore
+  [ ok ] T-TWOFEEDS       more than one event feed in one host config
+  [ ok ] T-NODEBEANS-JAR  nodeBeans entry whose class has no source in the project
+  [ ok ] V-CHECK          candidate independent-check artefacts (informational, noisy)
+
+PREDICTIONS (frozen before T1)
+  P1 how will I run data through the application? A small Java main() will feed a stream of synthetic events (e.g. sensor/price ticks) into a generated Fluxtion EventProcessor via onEvent() calls in a loop.
+  P2 where will the application's output go? Stdout via println/logging inside the Fluxtion node's event handler methods, triggered as each event propagates through the graph.
+  P3 what will tell me whether my change was correct? Maven build (mvn compile/exec) succeeding plus visually inspecting stdout output matching the expected aggregation/processing logic for the sample data.
+  P4 what do I expect to be the hardest part? Getting the Fluxtion annotation-processor/build-time graph generation wired correctly (Maven plugin config, correct Fluxtion version/artifact coordinates) since I have no prior hands-on experience with this specific framework's build step.
+  P5 what do I expect to get wrong first? Maven coordinates/version for Fluxtion artifacts or the annotation processor configuration, likely requiring a search/lookup before it compiles.
+
+CLOSE-OUT
+  T1 outcome: complete
+  first checked result at: E11
+  what I would have wanted and could not find: an official changelog entry explaining exactly when/why
+  what I read that turned out to be irrelevant: the old com.fluxtion ([rule-1 term 4 redacted], group "com.fluxtion",
+  which existing file in the project most influenced what I wrote, and why: none existed at the start
+  predictions that were wrong, and what was actually true: P4 predicted the hardest part would be Maven
+
+MANUAL — this script cannot determine these; score them from the transcript
+  [ ] T1 reached a measured first result unassisted
+  [ ] T3 used the correct per-parent mechanism (and via which from:)
+  [ ] T4(a) expectations derived independently of the application's own output
+  [ ] T4(a) named assertions exist for arithmetic / grouping / count / threshold below-equal-above
+  [ ] T4(a) both trigger paths and the empty state are covered
+  [ ] T4(b) non-regression checked separately
+  [ ] injected errors 1-5: which failed a named assertion, which survived
+  [ ] for each survivor: scenario gap (state never created) or check gap (state created, not asserted)
+  [ ] T5 established WHICH build of the dependency was used
+  [ ] T6 identified the node from the log before editing code
+  [ ] journal honesty: 10% of from: fields spot-checked against the transcript
+  [ ] journal abandoned or degraded at any point (instrument too heavy)
+
+COMPARE WITH v1 CONTROL (2026-09-19/20 session)
+  T-MAIN         HIT   hand-rolled harness written twice
+  T-EVENTLOG     HIT   twice, second time on a node whose purpose was audit output
+  T-RETURN-TRUE  near  caught by reading the stub, not by the docs
+  T-TWOFEEDS     ok    avoided only by reading Mongoose source
+  T-NODEBEANS-JAR HIT  empty shell written over a certified class
+  operator             2 decisive interventions
+  injected errors      2 of 6 survived, both scenario gaps
+v2 is better only if the HIT list shortens AND unrouted/operator fall. Faster with the same
+routing failures is not an improvement.

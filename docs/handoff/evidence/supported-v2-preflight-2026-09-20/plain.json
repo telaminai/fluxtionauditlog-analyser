@@ -1,0 +1,10 @@
+{
+  "command": [
+    "java",
+    "-jar",
+    "target/preview-preflight-1.0.0-SNAPSHOT.jar"
+  ],
+  "exit": 1,
+  "seconds": 0.31,
+  "stage": "plain"
+}

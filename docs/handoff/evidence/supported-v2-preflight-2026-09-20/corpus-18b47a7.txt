@@ -1,0 +1,14 @@
+PASS: run 1: 2 entries
+PASS: run 2: 0 entries
+PASS: run 3: 13 entries
+PASS: run 4: 21 entries
+PASS: run 4: first source remains operator, not a later contract
+PASS: run 5: 17 entries
+PASS: run 6: 16 entries
+PASS: run 3: manually confirmed literal harness detected
+PASS: run 6: manually confirmed literal harness detected
+PASS: run 5: preceding-line ignore annotations excluded
+PASS: run 6: seven unmarked collections retained
+MANUAL: run 5 FluxtionMain reads a CSV file. A T-MAIN candidate does not prove literal events.
+LIMIT: timing, actual source use, target identity and task completion require transcript review.
+Exit: 0

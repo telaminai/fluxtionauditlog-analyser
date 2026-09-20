@@ -1,5 +1,8 @@
 # Cold-start v2 preview rehearsal — operator report
 
+Subsequent operator-only work: [one supported bundle and preserved-corpus re-score](report_supported_v2_preflight_2026_09_20.md).
+The original trial scores below remain the record of the original instrument; the later report records corrections separately.
+
 **Verdict: the T1 matrix is complete; v2 acceptance is NOT ESTABLISHED. The T1–T6 battery is incomplete.**
 This does not change the implementation's independent review verdict. Publication, public acquisition
 and held-out workflow acceptance remain open. No product or scorer changes were made during the trial.

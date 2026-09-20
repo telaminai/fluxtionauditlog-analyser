@@ -1,0 +1,254 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/java-home -Djava.io.tmpdir=<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/tmp
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: booting server loading config from reader
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: successfully loaded config from reader
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: booting fluxtion server
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.AgronaCountersService <init>
+INFO: AgronaCountersService initialised: bufferKb=256, maxCounters=2048
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.counters.MongooseCountersService, serviceName=com.telamin.mongoose.service.counters.MongooseCountersService, instance=com.telamin.mongoose.internal.AgronaCountersService@24959ca4)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.counters.MongooseLatencyService, serviceName=com.telamin.mongoose.service.counters.MongooseLatencyService, instance=com.telamin.mongoose.internal.HdrLatencyService@7d9f158f)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.audit.MongooseAuditCaptureService, serviceName=com.telamin.mongoose.service.audit.MongooseAuditCaptureService, instance=com.telamin.mongoose.internal.ChronicleAuditCaptureService@2eea88a1)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.audit.MongooseAuditIntrospectionService, serviceName=com.telamin.mongoose.service.audit.MongooseAuditIntrospectionService, instance=com.telamin.mongoose.internal.DirAuditIntrospectionService@16612a51)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.health.MongooseHealthService, serviceName=com.telamin.mongoose.service.health.MongooseHealthService, instance=com.telamin.mongoose.internal.DefaultMongooseHealth@17d919b6)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.introspection.MongooseIntrospectionService, serviceName=com.telamin.mongoose.service.introspection.MongooseIntrospectionService, instance=com.telamin.mongoose.internal.DefaultMongooseIntrospection@2e570ded)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.servercontrol.MongooseServerController, serviceName=com.telamin.mongoose.service.servercontrol.MongooseServerController, instance=com.telamin.mongoose.MongooseServer@456d6c1e)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.pool.ObjectPoolsRegistry, serviceName=com.telamin.mongoose.pool.ObjectPoolsRegistry, instance=com.telamin.mongoose.service.pool.impl.GlobalObjectPool@15a04efb)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerWorkerService
+INFO: registerWorkerService:ServiceAgent[agentGroup=feeds-agent, idleStrategy=null, exportedService=Service(serviceClass=interface com.telamin.fluxtion.runtime.input.NamedFeed, serviceName=input, instance=com.telamin.mongoose.connector.file.FileEventSource@302c971f), delegate=com.telamin.mongoose.connector.file.FileEventSource@302c971f] agentGroup:feeds-agent idleStrategy:SleepingMillisIdleStrategy{alias=sleep-ms, sleepPeriodMs=1}
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.dutycycle.ComposingServiceAgent registerServer
+INFO: registerServer toCallStartupCompleteList size:1
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.fluxtion.runtime.output.MessageSink, serviceName=output, instance=com.telamin.mongoose.connector.file.FileMessageSink@65987993)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.admin.AdminCommandRegistry, serviceName=adminCommandRegistry, instance=com.telamin.mongoose.service.admin.impl.AdminCommandProcessor@4007f65e)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer adminClient
+INFO: adminCommandRegistry registered:adminCommandRegistry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=class com.telamin.mongoose.service.servercontrol.MongooseServerAdmin, serviceName=serverAdmin, instance=com.telamin.mongoose.service.servercontrol.MongooseServerAdmin@1a245833)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin server
+INFO: Server command registry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin latencyService
+INFO: Latency service available for admin toggle: com.telamin.mongoose.internal.HdrLatencyService@7d9f158f
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin admin
+INFO: Admin command registry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditCaptureService
+INFO: Audit capture service available for admin commands: com.telamin.mongoose.internal.ChronicleAuditCaptureService@2eea88a1
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditIntrospectionService
+INFO: Audit introspection service available for admin commands: com.telamin.mongoose.internal.DirAuditIntrospectionService@16612a51
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=class com.telamin.mongoose.plugin.svc.adminweb.WebAdminService, serviceName=adminWebService, instance=com.telamin.mongoose.plugin.svc.adminweb.WebAdminService@673fdbce)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager init
+INFO: init
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin init
+INFO: Fluxtion Server admin init
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.admin.impl.AdminCommandProcessor init
+INFO: init
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditIntrospectionService
+INFO: Audit introspection service available for admin commands: com.telamin.mongoose.internal.DirAuditIntrospectionService@16612a51
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditCaptureService
+INFO: Audit capture service available for admin commands: com.telamin.mongoose.internal.ChronicleAuditCaptureService@2eea88a1
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin latencyService
+INFO: Latency service available for admin toggle: com.telamin.mongoose.internal.HdrLatencyService@7d9f158f
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin server
+INFO: Server command registry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditIntrospectionService
+INFO: Audit introspection service available for admin commands: com.telamin.mongoose.internal.DirAuditIntrospectionService@16612a51
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditCaptureService
+INFO: Audit capture service available for admin commands: com.telamin.mongoose.internal.ChronicleAuditCaptureService@2eea88a1
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin latencyService
+INFO: Latency service available for admin toggle: com.telamin.mongoose.internal.HdrLatencyService@7d9f158f
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin server
+INFO: Server command registry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditIntrospectionService
+INFO: Audit introspection service available for admin commands: com.telamin.mongoose.internal.DirAuditIntrospectionService@16612a51
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditCaptureService
+INFO: Audit capture service available for admin commands: com.telamin.mongoose.internal.ChronicleAuditCaptureService@2eea88a1
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin latencyService
+INFO: Latency service available for admin toggle: com.telamin.mongoose.internal.HdrLatencyService@7d9f158f
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin server
+INFO: Server command registry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditIntrospectionService
+INFO: Audit introspection service available for admin commands: com.telamin.mongoose.internal.DirAuditIntrospectionService@16612a51
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin auditCaptureService
+INFO: Audit capture service available for admin commands: com.telamin.mongoose.internal.ChronicleAuditCaptureService@2eea88a1
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin latencyService
+INFO: Latency service available for admin toggle: com.telamin.mongoose.internal.HdrLatencyService@7d9f158f
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer adminClient
+INFO: adminCommandRegistry registered:adminCommandRegistry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin server
+INFO: Server command registry
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start
+[main] INFO io.javalin.Javalin - Starting Javalin ...
+[main] INFO org.eclipse.jetty.server.Server - jetty-11.0.23; built: 2024-08-14T01:40:17.906Z; git: 6fcf5ccaebd7ca13a0cb96c96adca699a24080a0; jvm 21.0.11+10-LTS
+[main] INFO org.eclipse.jetty.server.session.DefaultSessionIdManager - Session workerName=node0
+[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@7668d560{/,null,AVAILABLE}
+[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@560cbf1a{HTTP/1.1, (http/1.1)}{127.0.0.1:8181}
+[main] INFO org.eclipse.jetty.server.Server - Started Server@733c423e{STARTING}[11.0.23,sto=0] @559ms
+[main] INFO io.javalin.Javalin -
+       __                  ___           _____
+      / /___ __   ______ _/ (_)___      / ___/
+ __  / / __ `/ | / / __ `/ / / __ \    / __ \
+/ /_/ / /_/ /| |/ / /_/ / / / / / /   / /_/ /
+\____/\__,_/ |___/\__,_/_/_/_/ /_/    \____/
+
+       https://javalin.io/documentation
+
+[main] INFO io.javalin.Javalin - Javalin started in 78ms \o/
+[main] INFO io.javalin.Javalin - Static file handler added: StaticFileConfig(hostedPath=/, directory=/web, location=CLASSPATH, precompress=false, aliasCheck=null, headers={Cache-Control=max-age=0}, skipFileFunction=Function1<jakarta.servlet.http.HttpServletRequest, java.lang.Boolean>, mimeTypes={}). File system location: 'jar:file:<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/working/preview-preflight/target/preview-preflight-1.0.0-SNAPSHOT.jar!/web'
+[main] INFO io.javalin.Javalin - Listening on http://127.0.0.1:8181/
+[main] INFO io.javalin.Javalin - You are running Javalin 6.3.0 (released August 22, 2024. Your Javalin version is 759 days old. Consider checking for a newer version.).
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.servercontrol.MongooseServerAdmin start
+INFO: Fluxtion Server admin started
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start flowManager
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.service.admin.impl.AdminCommandProcessor start
+INFO: start
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start agent hosted services
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager lambda$start$3
+INFO: starting composing service agent feeds-agent
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: waiting for agent hosted services to start
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.dutycycle.ComposingServiceAgent onStart
+INFO: onStart toStartList size:1
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.fluxtion.runtime.input.NamedFeed, serviceName=input, instance=com.telamin.mongoose.connector.file.FileEventSource@302c971f)
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.connector.file.FileEventSource start
+INFO: start FileEventSource input file:data/input.txt
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.connector.file.FileEventSource start
+INFO: tail:true once:false, commitRead:false latestRead:false readStrategy:EARLIEST
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.connector.file.FileEventSource onStart
+INFO: agent onStart FileEventSource input file:data/input.txt
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start event processor agent workers
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager lambda$start$5
+INFO: starting composing event processor agent processor-agent
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: waiting for event processor agents to start
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent onStart
+INFO: onStart processor-agent
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789935304757
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.acme.preview.builder.MarketProcessorSupplier$$Lambda/0x000000f8012ab540@204c8f22, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789935304757
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer lambda$static$0
+INFO: eventLogRecord:
+    eventTime: -1
+    logTime: 1789935304757
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.telamin.mongoose.MongooseServer$$Lambda/0x000000f801003b10@15440e7, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789935304757
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer lambda$static$0
+INFO: eventLogRecord:
+    eventTime: -1
+    logTime: 1789935304758
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789935304758
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer lambda$static$0
+INFO: eventLogRecord:
+    eventTime: 1789935304758
+    logTime: 1789935304758
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789935304758
+Sept 20, 2026 9:15:04 PM com.telamin.mongoose.MongooseServer lambda$static$0
+INFO: eventLogRecord:
+    eventTime: -1
+    logTime: 1789935304758
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.telamin.mongoose.MongooseServer$$Lambda/0x000000f801003b10@15440e7, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789935304758
+[processor-agent] INFO net.openhft.chronicle.core.Jvm - Chronicle core loaded from file:<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/working/preview-preflight/target/preview-preflight-1.0.0-SNAPSHOT.jar
+[processor-agent] INFO net.openhft.chronicle.bytes.internal.ChunkedMappedFile - Took 2 ms to add mapping for ./audit/marketProcessor/metadata.cq4t
+[processor-agent] INFO net.openhft.chronicle.threads.DiskSpaceMonitor - Took 2.243 ms to pollDiskSpace for <analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/working/preview-preflight/./audit/marketProcessor
+[processor-agent] INFO net.openhft.chronicle.core.internal.announcer.InternalAnnouncer - Running under OpenJDK Runtime Environment 21.0.11+10-LTS with 8 processors reported.
+[processor-agent] INFO net.openhft.chronicle.core.internal.announcer.InternalAnnouncer - Leave your e-mail to get information about the latest releases and patches at https://chronicle.software/release-notes/
+[processor-agent] INFO net.openhft.chronicle.core.internal.announcer.InternalAnnouncer - Process id: 94823 :: Chronicle Queue (5.27ea0)
+[processor-agent] INFO net.openhft.chronicle.core.internal.announcer.InternalAnnouncer - Analytics: Chronicle Queue reports usage statistics. Learn more or turn off: https://github.com/OpenHFT/Chronicle-Queue/blob/ea/DISCLAIMER.adoc
+Client id file not present: <analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/java-home/.chronicle.analytics.client.id java.nio.file.NoSuchFileException: <analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/java-home/.chronicle.analytics.client.id
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.internal.ChronicleAuditCaptureService start
+INFO: audit-capture STARTED for processor 'marketProcessor' at <analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/working/preview-preflight/./audit/marketProcessor
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.service.extension.AbstractEventSourceService registerSubscriber
+INFO: registerSubscriber for broadcast receive com.acme.preview.generated.MarketProcessor@2776eac2
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.service.extension.AbstractEventSourceService subscribe
+INFO: adding subscription for service 'input' to 'com.acme.preview.generated.MarketProcessor@2776eac2'
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent registerSubscriber
+INFO: registerSubscriber:com.acme.preview.generated.MarketProcessor@2776eac2 processor-agent
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent subscribe
+INFO: subscribe subscriptionKey:EventSubscriptionKey[eventSourceKey=EventSourceKey[sourceName=input], callBackType=com.telamin.mongoose.service.CallBackType$OnEventCallBack@1be2019a] subscriber:com.acme.preview.generated.MarketProcessor@2776eac2
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent subscribe
+INFO: added new subscribe subscriptionKey:EventSubscriptionKey[eventSourceKey=EventSourceKey[sourceName=input], callBackType=com.telamin.mongoose.service.CallBackType$OnEventCallBack@1be2019a] subscriber:com.acme.preview.generated.MarketProcessor@2776eac2
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.dutycycle.EventQueueToEventProcessorAgent registerProcessor
+INFO: registerProcessor: com.acme.preview.generated.MarketProcessor@2776eac2
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.dutycycle.EventQueueToEventProcessorAgent registerProcessor
+INFO: listener count:1
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.dutycycle.EventQueueToEventProcessorAgent onStart
+INFO: start
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: calling startup complete on services
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: calling startup complete on agent hosted services
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.dutycycle.ComposingServiceAgent startComplete
+INFO: startComplete toCallStartupCompleteList size:1
+Mongoose server started from config/server-config.yml
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.connector.file.FileEventSource startComplete
+INFO: startComplete FileEventSource input file:data/input.txt
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.connector.file.FileEventSource connectReader
+INFO: Found previous offset, trying to skip to file offset 0
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.connector.file.FileEventSource connectReader
+INFO: Skipped to offset 0
+Sept 20, 2026 9:15:05 PM com.telamin.mongoose.connector.file.FileEventSource connectReader
+INFO: Opened data/input.txt for reading
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+[main/disk~space~checker] WARN net.openhft.chronicle.threads.DiskSpaceMonitor - your disk /System/Volumes/Data (/dev/disk3s5) is 97.9% full, warning: the JVM may crash if it undertakes an operation with a memory-mapped file and the disk is out of space.
+stopping Mongoose server...

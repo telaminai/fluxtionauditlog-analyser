@@ -1,0 +1,20 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/java-home -Djava.io.tmpdir=<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/tmp
+Sept 20, 2026 9:15:36 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: booting server loading config from reader
+Sept 20, 2026 9:15:36 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: successfully loaded config from reader
+Sept 20, 2026 9:15:36 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: booting fluxtion server
+Exception in thread "main" java.lang.IllegalAccessError: class org.agrona.UnsafeApi (in unnamed module @0x49438269) cannot access class jdk.internal.misc.Unsafe (in module java.base) because module java.base does not export jdk.internal.misc to unnamed module @0x49438269
+	at org.agrona.UnsafeApi.getUnsafe(UnsafeApi.java)
+	at org.agrona.UnsafeApi.<clinit>(UnsafeApi.java)
+	at org.agrona.BufferUtil.<clinit>(BufferUtil.java:43)
+	at org.agrona.concurrent.UnsafeBuffer.wrap(UnsafeBuffer.java:222)
+	at org.agrona.concurrent.UnsafeBuffer.<init>(UnsafeBuffer.java:117)
+	at com.telamin.mongoose.internal.AgronaCountersService.<init>(AgronaCountersService.java:67)
+	at com.telamin.mongoose.MongooseServer.<init>(MongooseServer.java:177)
+	at com.telamin.mongoose.internal.ServerConfigurator.bootFromConfig(ServerConfigurator.java:43)
+	at com.telamin.mongoose.MongooseServer.bootServer(MongooseServer.java:350)
+	at com.telamin.mongoose.MongooseServer.bootServer(MongooseServer.java:277)
+	at com.telamin.mongoose.MongooseServer.bootServer(MongooseServer.java:292)
+	at com.acme.preview.MongooseMain.main(MongooseMain.java:21)

@@ -1,0 +1,162 @@
+[
+  {
+    "run": 1,
+    "project": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run1/project",
+    "journal": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run1/project/JOURNAL.md",
+    "oldEntries": 2,
+    "newEntries": 2,
+    "oldRouting": [
+      1,
+      1
+    ],
+    "newRouting": [
+      1,
+      1
+    ],
+    "oldFingerprints": {},
+    "newFingerprints": {}
+  },
+  {
+    "run": 2,
+    "project": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run2/project",
+    "journal": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run2/project/JOURNAL.md",
+    "oldEntries": 0,
+    "newEntries": 0,
+    "oldRouting": [
+      0,
+      0
+    ],
+    "newRouting": [
+      0,
+      0
+    ],
+    "oldFingerprints": {},
+    "newFingerprints": {}
+  },
+  {
+    "run": 3,
+    "project": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run3/project",
+    "journal": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run3/project/JOURNAL.md",
+    "oldEntries": 13,
+    "newEntries": 13,
+    "oldRouting": [
+      4,
+      7
+    ],
+    "newRouting": [
+      4,
+      7
+    ],
+    "oldFingerprints": {},
+    "newFingerprints": {
+      "T-MAIN": [
+        "src/main/java/com/example/ordermonitor/OrderMonitorApp.java  (variable-fed)"
+      ]
+    }
+  },
+  {
+    "run": 4,
+    "project": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run4/project",
+    "journal": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run4/project/JOURNAL.md",
+    "oldEntries": 14,
+    "newEntries": 21,
+    "oldRouting": [
+      10,
+      3
+    ],
+    "newRouting": [
+      15,
+      5
+    ],
+    "oldFingerprints": {},
+    "newFingerprints": {}
+  },
+  {
+    "run": 5,
+    "project": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run5/project/riskflow",
+    "journal": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run5/project/JOURNAL.md",
+    "oldEntries": 17,
+    "newEntries": 17,
+    "oldRouting": [
+      11,
+      5
+    ],
+    "newRouting": [
+      11,
+      5
+    ],
+    "oldFingerprints": {
+      "T-MAIN": [
+        "spike/Spike.java"
+      ],
+      "T-TRANSIENT": [
+        "src/main/java/com/example/riskflow/node/RiskAlerter.java:breached",
+        "src/main/java/com/example/riskflow/node/PositionBook.java:positionBySymbol",
+        "src/main/java/com/example/riskflow/node/MarketData.java:midBySymbol",
+        "src/main/java/com/example/riskflow/node/ExposureCalculator.java:exposureBySymbol"
+      ]
+    },
+    "newFingerprints": {
+      "T-MAIN": [
+        "spike/Spike.java",
+        "src/main/java/com/example/riskflow/FluxtionMain.java  (variable-fed)"
+      ]
+    }
+  },
+  {
+    "run": 6,
+    "project": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run6/project",
+    "journal": "<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/subjects/run6/project/JOURNAL.md",
+    "oldEntries": 16,
+    "newEntries": 16,
+    "oldRouting": [
+      5,
+      11
+    ],
+    "newRouting": [
+      5,
+      11
+    ],
+    "oldFingerprints": {
+      "T-EVENTLOG": [
+        "src/main/java/com/example/riskwatch/node/RiskMonitor.java",
+        "src/main/java/com/example/riskwatch/node/LimitStore.java",
+        "src/main/java/com/example/riskwatch/node/PositionBook.java",
+        "src/main/java/com/example/riskwatch/node/ConsoleReporter.java",
+        "src/main/java/com/example/riskwatch/node/MarkToMarket.java",
+        "src/main/java/com/example/riskwatch/node/PriceBook.java"
+      ],
+      "T-TRANSIENT": [
+        "src/main/java/com/example/riskwatch/node/RiskMonitor.java:breached",
+        "src/main/java/com/example/riskwatch/node/RiskMonitor.java:alerts",
+        "src/main/java/com/example/riskwatch/node/LimitStore.java:limits",
+        "src/main/java/com/example/riskwatch/node/PositionBook.java:quantity",
+        "src/main/java/com/example/riskwatch/node/PositionBook.java:averageCost",
+        "src/main/java/com/example/riskwatch/node/MarkToMarket.java:risk",
+        "src/main/java/com/example/riskwatch/node/PriceBook.java:lastPrice"
+      ]
+    },
+    "newFingerprints": {
+      "T-MAIN": [
+        "src/main/java/com/example/riskwatch/RiskWatchMain.java  (variable-fed)"
+      ],
+      "T-EVENTLOG": [
+        "src/main/java/com/example/riskwatch/node/RiskMonitor.java",
+        "src/main/java/com/example/riskwatch/node/LimitStore.java",
+        "src/main/java/com/example/riskwatch/node/PositionBook.java",
+        "src/main/java/com/example/riskwatch/node/ConsoleReporter.java",
+        "src/main/java/com/example/riskwatch/node/MarkToMarket.java",
+        "src/main/java/com/example/riskwatch/node/PriceBook.java"
+      ],
+      "T-TRANSIENT": [
+        "src/main/java/com/example/riskwatch/node/RiskMonitor.java:breached",
+        "src/main/java/com/example/riskwatch/node/RiskMonitor.java:alerts",
+        "src/main/java/com/example/riskwatch/node/LimitStore.java:limits",
+        "src/main/java/com/example/riskwatch/node/PositionBook.java:quantity",
+        "src/main/java/com/example/riskwatch/node/PositionBook.java:averageCost",
+        "src/main/java/com/example/riskwatch/node/MarkToMarket.java:risk",
+        "src/main/java/com/example/riskwatch/node/PriceBook.java:lastPrice"
+      ]
+    }
+  }
+]

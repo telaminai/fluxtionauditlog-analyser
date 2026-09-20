@@ -1,0 +1,26 @@
+{
+ "entries": 21,
+ "kinds": {
+  "READ": 4,
+  "DECIDE": 7,
+  "CHECK": 3,
+  "ERROR": 3,
+  "WRITE": 2,
+  "RUN": 2
+ },
+ "from": {
+  "operator": 1,
+  "contract": 6,
+  "error": 5,
+  "search": 2,
+  "stub": 4,
+  "prior": 2,
+  "MISSING": 1
+ },
+ "routed": 15,
+ "unrouted": 5,
+ "examples": {},
+ "firstCheck": "E5",
+ "elapsed": "0:37:00",
+ "fingerprints": {}
+}

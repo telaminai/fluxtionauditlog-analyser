@@ -111,8 +111,17 @@ Legend for each item: **[id] status — title** · _acceptance_.
   Direct OS probes deny source/staged-answer contents; pristine ZIP and transcripts are retained.
   CS-1–CS-5 record client/instrument, parser, fingerprint and target-migration findings. Scorer unchanged;
   raw output and manual corrections are separate. Durable unedited local archive is git-ignored.
-  **Next:** validate the measurement harness and client compatibility, then rerun on recorded supported
-  prerequisites. This rehearsal cannot close publication or public empty-directory acquisition acceptance.
+  **Follow-up operator preflight:** the unchanged preview Audit analyser bundle builds with an empty
+  Maven cache and no key, processes five input rows with matching audit values, exports and stops cleanly.
+  [Report and corpus re-score](../handoff/report_supported_v2_preflight_2026_09_20.md).
+  **PPF-1 OPEN (playground):** new build/hosting runbooks prescribe plain `java -jar`, reproduced to fail;
+  README's `run-server.sh` works. Fix launcher selection and execute the emitted instructions before an
+  unassisted hosted trial. All six preserved trials re-scored with `main@18b47a7` (now pushed); 11 corpus
+  witness checks pass and five go red against the old scorer. T-MAIN's new file-backed-driver candidate
+  still needs manual classification. Raw originals and baseline are retained; no new sessions ran.
+  **Next:** correct PPF-1, validate the measurement harness/client pairing, and provision the generation
+  prerequisites for authoring tasks. Ordinary bundle build/run success is not regeneration acceptance.
+  Neither preflight nor rehearsal closes publication or public empty-directory acquisition acceptance.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation

@@ -1,0 +1,62 @@
+{
+  "fiveRowsMatch": true,
+  "expected": [
+    {
+      "symbol": "AAPL",
+      "price": 195.3,
+      "volume": 1200
+    },
+    {
+      "symbol": "MSFT",
+      "price": 410.1,
+      "volume": 800
+    },
+    {
+      "symbol": "GOOG",
+      "price": 155.75,
+      "volume": 1500
+    },
+    {
+      "symbol": "AMZN",
+      "price": 178.22,
+      "volume": 640
+    },
+    {
+      "symbol": "NVDA",
+      "price": 905.6,
+      "volume": 2100
+    }
+  ],
+  "observed": [
+    {
+      "symbol": "AAPL",
+      "price": 195.3,
+      "volume": 1200
+    },
+    {
+      "symbol": "MSFT",
+      "price": 410.1,
+      "volume": 800
+    },
+    {
+      "symbol": "GOOG",
+      "price": 155.75,
+      "volume": 1500
+    },
+    {
+      "symbol": "AMZN",
+      "price": 178.22,
+      "volume": 640
+    },
+    {
+      "symbol": "NVDA",
+      "price": 905.6,
+      "volume": 2100
+    }
+  ],
+  "downloadedFilesChanged": [],
+  "pristineFiles": 43,
+  "registryRemoved": true,
+  "logSha256": "a3dfa6ca85faf9bf06b4f6084511942cb2c4f17af96961673bd4f05786757ef9",
+  "sinkBytes": 0
+}

@@ -1,0 +1,8 @@
+{
+  "command": [
+    "./run-server.sh"
+  ],
+  "exit": 143,
+  "seconds": 23.95,
+  "stage": "run"
+}

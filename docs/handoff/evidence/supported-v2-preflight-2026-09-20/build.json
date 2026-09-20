@@ -1,0 +1,10 @@
+{
+  "command": [
+    "./mvnw",
+    "-B",
+    "package"
+  ],
+  "exit": 0,
+  "seconds": 36.53,
+  "stage": "build"
+}

@@ -1,0 +1,17 @@
+{
+ "entries": 2,
+ "kinds": {
+  "READ": 1,
+  "RUN": 1
+ },
+ "from": {
+  "readme": 1,
+  "prior": 1
+ },
+ "routed": 1,
+ "unrouted": 1,
+ "examples": {},
+ "firstCheck": null,
+ "elapsed": "0:00:30",
+ "fingerprints": {}
+}

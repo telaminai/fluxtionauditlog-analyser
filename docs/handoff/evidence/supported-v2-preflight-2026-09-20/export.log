@@ -1,0 +1,3 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/java-home -Djava.io.tmpdir=<analyser-checkout>/.local-evidence/coldstart-v2-2026-09-20/preflight-supported/tmp
+exported logs/audit-preview-preflight.yaml (audit file id: marketProcessor)
+open it with the Fluxtion Audit Log Analyser — see README.md
