@@ -87,3 +87,22 @@ witness. The existing global startup restore is still present and the new projec
 implemented yet. This branch remains in progress. Profile format is pinned in the spec before further
 producer/consumer changes. The next acceptance is isolated UI and per-project restore, including feedback
 41's disjoint saved pin and independently active filters.
+
+
+## Checkpoint — recovery storage and decision foundation
+
+Landing/declaration consumption pushed as `d5fcc98`. Compiler tracker/upstream integration pushed as
+`e54372f2`; compiler source remains unchanged. New recovery storage captures ordered file identities in
+user-local per-canonical-profile files, writes atomically, and verifies SHA-256. A same-size rewrite with
+the original mtime restored is detected; missing inputs and unknown capture identity stay explicit.
+The session graph now owns the offer/accept/verification plan, rejects late completions from another
+project, and refuses an incomplete rolled set as a unit. Snapshot identity concerns file bytes at capture,
+not proof of build/execution identity. The model records that limitation.
+
+The graph was regenerated through the installed local provider with the pinned released builder 1.0.71,
+Java 21, isolated user.home and explicit local selection. Provider dependency jars came from the existing
+local rehearsal classpath; no owner key or HTTP generation was used. Generated attribution stripping is
+unchanged, and both emitted source copies pass the publication guard. Full regression: **1,700 tests,
+zero failures/errors, 31 display skips**. Seven focused store/model/publication tests passed first.
+This foundation is not wired to the UI/MCP or lifecycle yet; implicit startup restoration remains until
+the complete adapter/offer migration. Next work must not mistake a verified plan for completed opens.

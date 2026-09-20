@@ -96,6 +96,14 @@ Legend for each item: **[id] status — title** · _acceptance_.
   project facts and explicit evidence-open actions while no log is loaded; the Project panel stays
   reveal-only. 1,695 tests pass (31 display skips), strict docs pass. Display witness and unified restore
   offer are still pending; existing global startup restoration has not yet been replaced.
+- ◧ **Restore foundation (not yet a user action)** — user-local snapshots preserve ordered inputs and
+  SHA-256 identities per canonical profile, with a distinct no-project bucket. The generated session graph
+  now owns an explicit-offer/accept/check plan; stale project completions are ignored, and one unavailable
+  rolled-log member refuses the whole log set while independent design inputs can remain available.
+  Seven focused tests and the full 1,700-test suite pass (31 display skips). Generated processor refreshed
+  with the installed local provider, Java 21 and pinned released builder; no owner key or remote generation.
+  UI/MCP wiring, exit flushing, startup migration and display acceptance still pending. No restore capability
+  or release gate is claimed closed by this foundation.
 - ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
   capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
   user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key

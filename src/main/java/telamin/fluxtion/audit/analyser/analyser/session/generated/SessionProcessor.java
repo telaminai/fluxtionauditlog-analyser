@@ -72,6 +72,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OperationGate;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
 import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
+import telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery;
+import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated;
+import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Checked;
+import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished;
+import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.OfferLoaded;
+import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requested;
 
 /**
  *
@@ -80,7 +86,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  * generation time           : Not available
  * api version               : 1.0.16
  * analyser version          : 1.0.71
- * target generator version  : 1.0.71
+ * target generator version  : 1.0.72-SNAPSHOT
  * </pre>
  *
  * Event classes supported:
@@ -108,6 +114,11 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Checked
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.OfferLoaded
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requested
  * </ul>
  *
  * @author Greg Higgins
@@ -146,6 +157,8 @@ public class SessionProcessor
   public final transient CoverageClaim coverageClaim =
       new telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim(
           pairing, auditInstallation, openGraph, openLog);;
+  public final transient SessionRecovery sessionRecovery =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(operationGate);;
   private final transient SubscriptionManagerNode subscriptionManager =
       new SubscriptionManagerNode();
   private final transient MutableDataFlowContext context =
@@ -195,6 +208,14 @@ public class SessionProcessor
           SessionProcessor::new,
           new ProcessorDescriptor.Input[] {
             new ProcessorDescriptor.Input(
+                "Activated",
+                "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated",
+                false),
+            new ProcessorDescriptor.Input(
+                "Checked",
+                "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Checked",
+                false),
+            new ProcessorDescriptor.Input(
                 "Cleared",
                 "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared",
                 false),
@@ -205,6 +226,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "EffectFailed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed",
+                false),
+            new ProcessorDescriptor.Input(
+                "Finished",
+                "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished",
                 false),
             new ProcessorDescriptor.Input(
                 "GraphClosed",
@@ -229,6 +254,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "LogOpened",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened",
+                false),
+            new ProcessorDescriptor.Input(
+                "OfferLoaded",
+                "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.OfferLoaded",
                 false),
             new ProcessorDescriptor.Input(
                 "OpenLogRequested",
@@ -263,6 +292,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested",
                 false),
             new ProcessorDescriptor.Input(
+                "Requested",
+                "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requested",
+                false),
+            new ProcessorDescriptor.Input(
                 "ResultReadCompleted",
                 "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted",
                 false),
@@ -285,7 +318,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "36ba2471b4033d27d7b3027e83dabea2edb43d87f5b5d5a5df5b540c8308ca6a",
+              "1b1c106d305742eb340e6c4f916a070324ebcae3b995b10cad5afe790652c55a",
               null));
 
   @Override
@@ -503,6 +536,21 @@ public class SessionProcessor
     } else if (event instanceof StatusShown) {
       StatusShown typedEvent = (StatusShown) event;
       handleEvent(typedEvent);
+    } else if (event instanceof Activated) {
+      Activated typedEvent = (Activated) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof Checked) {
+      Checked typedEvent = (Checked) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof Finished) {
+      Finished typedEvent = (Finished) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof OfferLoaded) {
+      OfferLoaded typedEvent = (OfferLoaded) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof Requested) {
+      Requested typedEvent = (Requested) event;
+      handleEvent(typedEvent);
     } else {
       unKnownEventHandler(event);
     }
@@ -615,6 +663,31 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(StatusShown event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(Activated event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(Checked event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(Finished event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(OfferLoaded event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(Requested event) {
     processEvent(event);
   }
 
@@ -1021,6 +1094,46 @@ public class SessionProcessor
     }
     afterEvent();
   }
+
+  public void handleEvent(Activated typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(sessionRecovery, "sessionRecovery", "activate", typedEvent);
+    sessionRecovery.activate(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(Checked typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(sessionRecovery, "sessionRecovery", "checked", typedEvent);
+    sessionRecovery.checked(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(Finished typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(sessionRecovery, "sessionRecovery", "finished", typedEvent);
+    sessionRecovery.finished(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(OfferLoaded typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(sessionRecovery, "sessionRecovery", "offer", typedEvent);
+    sessionRecovery.offer(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(Requested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(sessionRecovery, "sessionRecovery", "request", typedEvent);
+    sessionRecovery.request(typedEvent);
+    afterEvent();
+  }
   //EVENT DISPATCH - END
 
   //EXPORTED SERVICE FUNCTIONS - START
@@ -1206,6 +1319,31 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onStatusShown(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onStatusShown", typedEvent);
       effectOutcomes.onStatusShown(typedEvent);
+    } else if (event instanceof Activated) {
+      Activated typedEvent = (Activated) event;
+      auditEvent(typedEvent);
+      auditInvocation(sessionRecovery, "sessionRecovery", "activate", typedEvent);
+      sessionRecovery.activate(typedEvent);
+    } else if (event instanceof Checked) {
+      Checked typedEvent = (Checked) event;
+      auditEvent(typedEvent);
+      auditInvocation(sessionRecovery, "sessionRecovery", "checked", typedEvent);
+      sessionRecovery.checked(typedEvent);
+    } else if (event instanceof Finished) {
+      Finished typedEvent = (Finished) event;
+      auditEvent(typedEvent);
+      auditInvocation(sessionRecovery, "sessionRecovery", "finished", typedEvent);
+      sessionRecovery.finished(typedEvent);
+    } else if (event instanceof OfferLoaded) {
+      OfferLoaded typedEvent = (OfferLoaded) event;
+      auditEvent(typedEvent);
+      auditInvocation(sessionRecovery, "sessionRecovery", "offer", typedEvent);
+      sessionRecovery.offer(typedEvent);
+    } else if (event instanceof Requested) {
+      Requested typedEvent = (Requested) event;
+      auditEvent(typedEvent);
+      auditInvocation(sessionRecovery, "sessionRecovery", "request", typedEvent);
+      sessionRecovery.request(typedEvent);
     }
   }
 
@@ -1261,6 +1399,7 @@ public class SessionProcessor
     auditor.nodeRegistered(operationGate, "operationGate");
     auditor.nodeRegistered(pairing, "pairing");
     auditor.nodeRegistered(sessionBoundary, "sessionBoundary");
+    auditor.nodeRegistered(sessionRecovery, "sessionRecovery");
   }
 
   private void beforeServiceCall(String functionDescription) {
@@ -1384,6 +1523,10 @@ public class SessionProcessor
     return isDirty_activeProject | isDirty_openGraph | isDirty_openLog | isDirty_operationGate;
   }
 
+  private boolean guardCheck_sessionRecovery() {
+    return isDirty_operationGate;
+  }
+
   /**
    * M50/W4 — nodes resolved by a generated switch, not by a populated map: registering them would
    * publish every node into the auditor's HashMaps and stop the graph being dissolved.
@@ -1434,6 +1577,8 @@ public class SessionProcessor
         return (T) pairing;
       case "sessionBoundary":
         return (T) sessionBoundary;
+      case "sessionRecovery":
+        return (T) sessionRecovery;
       default:
         throw new NoSuchFieldException(id);
     }
@@ -1504,6 +1649,9 @@ public class SessionProcessor
     }
     if (node == sessionBoundary) {
       return "sessionBoundary";
+    }
+    if (node == sessionRecovery) {
+      return "sessionRecovery";
     }
     return null;
   }
