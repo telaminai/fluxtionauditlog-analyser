@@ -1,0 +1,220 @@
+{
+	"catalogue": 1,
+	"templates": [
+		{
+			"name": "Fluxtion embedded",
+			"description": "The graph inline in your app — flow.onEvent(...), no server. Interpreted + keyless; the fastest way to feel the model in the Playground.",
+			"file": "fluxtion-embedded.starter.json",
+			"type": "fluxtion",
+			"mode": "interpreted",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "run",
+			"regenerationKeyNeed": "run"
+		},
+		{
+			"name": "Fluxtion connector",
+			"description": "DataFlowConnector host — in-memory/file feed → graph → sink. Keyless, runs in the Playground.",
+			"file": "fluxtion-connector.starter.json",
+			"type": "fluxtion",
+			"mode": "interpreted",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "run",
+			"regenerationKeyNeed": "run"
+		},
+		{
+			"name": "Fluxtion DAG multi IO",
+			"description": "An AOT multi-IO DAG: 2 feeds into a root node, a Risk node joining two parents, and 2 sinks (alerts console + audit file) via per-trigger outputs. Runs in the Playground; a download needs a key once at build.",
+			"file": "fluxtion-dag-multi-io.starter.json",
+			"type": "fluxtion",
+			"mode": "aot",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "build",
+			"regenerationKeyNeed": "build"
+		},
+		{
+			"name": "Fluxtion AOT (native-ready)",
+			"description": "Build-time generated dispatcher (no runtime compiler). The GraalVM native-image target — mvn -Pnative package.",
+			"file": "fluxtion-aot.starter.json",
+			"type": "fluxtion",
+			"mode": "aot",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "build",
+			"regenerationKeyNeed": "build"
+		},
+		{
+			"name": "Fluxtion auditors",
+			"description": "The Auditors section in action: event audit (log records to stdout), a user-metric MetricAuditor (totals on teardown), and record & replay (captures to replay/). Runs keyless in the Playground.",
+			"file": "fluxtion-audit.starter.json",
+			"type": "fluxtion",
+			"mode": "interpreted",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "run",
+			"regenerationKeyNeed": "run"
+		},
+		{
+			"name": "Fluxtion service export",
+			"description": "A typed command surface (@ExportService): an OrderProcessorCommands interface the node implements, called via flow.getExportedService() — embedding without an event envelope. Runs keyless in the Playground.",
+			"file": "fluxtion-service-export.starter.json",
+			"type": "fluxtion",
+			"mode": "interpreted",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "run",
+			"regenerationKeyNeed": "run"
+		},
+		{
+			"name": "Fluxtion DataFlow DSL",
+			"description": "A DataFlow DSL pipeline: subscribe → map (extract the metric) → slidingAggregate (a rolling-average window) → map (your own classifier) → console — all method references, no imperative @OnEventHandler node. Runs keyless in the Playground.",
+			"file": "fluxtion-dsl.starter.json",
+			"type": "fluxtion",
+			"mode": "interpreted",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "run",
+			"regenerationKeyNeed": "run"
+		},
+		{
+			"name": "Fluxtion Spring XML",
+			"description": "A multi-node Fluxtion DAG wired in Spring XML (application-context.xml): price/order/news events fan into volatility + sentiment calcs, joined by a RiskEngine and an OrderGate. Open it in the IntelliJ Fluxtion visualiser. AOT; runs in the Playground.",
+			"file": "fluxtion-spring.starter.json",
+			"type": "fluxtion",
+			"mode": "aot",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "build",
+			"regenerationKeyNeed": "build"
+		},
+		{
+			"name": "Mongoose server",
+			"description": "A runnable Mongoose server: file feed → processor → file sink, with the admin web console.",
+			"file": "mongoose-server.starter.json",
+			"type": "mongoose",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "none",
+			"regenerationKeyNeed": "none"
+		},
+		{
+			"name": "Mongoose + Fluxtion",
+			"description": "A Fluxtion AOT graph hosted inside a Mongoose server (the same artefact, two runtimes).",
+			"file": "mongoose-hosted-fluxtion.starter.json",
+			"type": "hosted",
+			"mode": "aot",
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "build",
+			"regenerationKeyNeed": "build"
+		},
+		{
+			"name": "Fluxtion Spring in Mongoose",
+			"description": "The full stack: a Spring-XML-defined Fluxtion graph (open it in the IntelliJ visualiser), AOT-generated at build, hosted in a Mongoose server with performance monitoring (perfMon auditor + audit capture autostart) and the web admin console with source navigation.",
+			"file": "fluxtion-spring-mongoose.starter.json",
+			"type": "hosted",
+			"mode": "aot",
+			"tags": [
+				"onboarding",
+				"spring",
+				"perf-monitor",
+				"web-admin"
+			],
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "build",
+			"regenerationKeyNeed": "build"
+		},
+		{
+			"name": "Mongoose dynamic feeds",
+			"description": "Add event feeds to a RUNNING server: svc-loader-feed + the web admin Loader tab. Ships loader/dynamic-feed.yml — load it one-shot (feedLoader.compile) or persist it to replay at every boot (feedLoader.persistAndCompile).",
+			"file": "mongoose-dynamic-feed.starter.json",
+			"type": "mongoose",
+			"tags": [
+				"dynamic",
+				"loader",
+				"web-admin"
+			],
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "none",
+			"regenerationKeyNeed": "none"
+		},
+		{
+			"name": "Mongoose dynamic Spring processor",
+			"description": "Recompile a processor without a server restart: svc-loader-spring loads loader/loaded-graph.xml at boot; edit the XML and reload from the admin console (springLoader.reloadCompileProcessor). graphmlRoots wired so the console renders the loaded graph.",
+			"file": "mongoose-dynamic-spring.starter.json",
+			"type": "mongoose",
+			"tags": [
+				"dynamic",
+				"spring",
+				"loader",
+				"web-admin"
+			],
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"keyNeed": "run",
+			"regenerationKeyNeed": "run"
+		},
+		{
+			"name": "Audit analyser bundle",
+			"description": "The M19 onboarding bundle: a Spring-defined Fluxtion graph hosted in Mongoose, with the generated processor committed so it builds and runs with NO API key — plus an analyser project profile, agent skills and CLAUDE.md, and one-command export/stop. The starting point for the analyser tutorial.",
+			"file": "analyser-bundle.starter.json",
+			"type": "mongoose",
+			"mode": "aot",
+			"keyNeed": "none",
+			"tags": [
+				"onboarding",
+				"web-admin",
+				"analyser"
+			],
+			"agentBootstrap": [
+				"CLAUDE.md",
+				"AGENTS.md",
+				"PROJECT.md"
+			],
+			"regenerationKeyNeed": "build"
+		}
+	]
+}

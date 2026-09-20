@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TemplateCatalogueTest {
 
     @Test
-    void taggedOnboardingSubsetComesFromCatalogue() {
+    void recommendationDoesNotHideOtherTemplates() {
         var catalogue = TemplateCatalogue.parse("""
                 {"catalogue":1,"templates":[
                   {"name":"Other","description":"Not for this picker","file":"other.starter.json","type":"fluxtion"},
@@ -23,14 +23,16 @@ class TemplateCatalogueTest {
                 ]}
                 """, "1.2.3");
 
-        var selection = catalogue.onboarding();
-        assertEquals(List.of("Audit bundle"), selection.entries().stream().map(TemplateCatalogue.Entry::name).toList());
-        assertEquals("", selection.note());
-        assertEquals("none", selection.entries().getFirst().keyNeed());
+        var selection = catalogue.forPicker();
+        assertEquals(List.of("Other", "Audit bundle"), selection.entries().stream().map(TemplateCatalogue.Entry::name).toList());
+        assertTrue(selection.note().contains("All templates"));
+        assertTrue(selection.entries().getLast().recommended());
+        assertTrue(selection.entries().getLast().displayName().contains("Recommended"));
+        assertEquals("none", selection.entries().getLast().keyNeed());
     }
 
     @Test
-    void missingTagsUseDeclaredMongooseFallbackAndSaySo() {
+    void missingTagsStillShowEveryTypeWithoutRecommendations() {
         var catalogue = TemplateCatalogue.parse("""
                 {"catalogue":1,"templates":[
                   {"name":"DSL","description":"dsl","file":"dsl.starter.json","type":"fluxtion"},
@@ -39,9 +41,9 @@ class TemplateCatalogueTest {
                 ]}
                 """, "dev");
 
-        var selection = catalogue.onboarding();
-        assertEquals(List.of("Server", "Hosted"), selection.entries().stream().map(TemplateCatalogue.Entry::name).toList());
-        assertTrue(selection.note().contains("not tagged"));
+        var selection = catalogue.forPicker();
+        assertEquals(List.of("DSL", "Server", "Hosted"), selection.entries().stream().map(TemplateCatalogue.Entry::name).toList());
+        assertTrue(selection.note().contains("not declared"));
     }
 
     @Test
@@ -108,6 +110,29 @@ class TemplateCatalogueTest {
                 () -> new TemplateClient.Download(entry, "../bad", "com.example", "com.example.app"));
         assertThrows(IllegalArgumentException.class,
                 () -> new TemplateClient.Download(entry, "good", "bad-group-", "com.example.app"));
+    }
+
+    @Test void absentEmptyAndDeclaredBootstrapAndKeyRequirementsStayDistinct() {
+        var catalogue = TemplateCatalogue.parse("""
+                {"catalogue":1,"templates":[
+                  {"name":"Unknown","description":"unknown","file":"u.starter.json","mode":"aot","tags":["onboarding"]},
+                  {"name":"None","description":"none","file":"n.starter.json","agentBootstrap":[],"keyNeed":"none","regenerationKeyNeed":"build"},
+                  {"name":"Declared","description":"declared","file":"d.starter.json","agentBootstrap":["PROJECT.md","runbooks/author.md"],"keyNeed":"future","regenerationKeyNeed":"run"}
+                ]}
+                """, "dev");
+        assertTrue(catalogue.templates().get(0).disclosure().contains("Build key: not declared"));
+        assertTrue(catalogue.templates().get(0).disclosure().contains("Agent entry files: not declared"));
+        assertTrue(catalogue.templates().get(1).disclosure().contains("Agent entry files: explicitly none"));
+        assertTrue(catalogue.templates().get(1).disclosure().contains("Regeneration key: required at build"));
+        assertTrue(catalogue.templates().get(2).disclosure().contains("PROJECT.md, runbooks/author.md"));
+        assertTrue(catalogue.templates().get(2).disclosure().contains("unrecognised catalogue value 'future'"));
+    }
+
+    @Test void malformedBootstrapIsRefusedRatherThanClaimedAbsent() {
+        for (String value : List.of("null", "true", "[1]", "[\"../outside.md\"]", "[\"/absolute.md\"]")) {
+            String json = "{\"catalogue\":1,\"templates\":[{\"name\":\"X\",\"description\":\"X\",\"file\":\"x.starter.json\",\"agentBootstrap\":" + value + "}]}";
+            assertThrows(IllegalArgumentException.class, () -> TemplateCatalogue.parse(json, "dev"));
+        }
     }
 
     private static TemplateClient.Reply json(String body) {

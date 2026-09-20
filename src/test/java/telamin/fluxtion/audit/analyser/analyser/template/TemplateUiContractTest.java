@@ -45,7 +45,9 @@ class TemplateUiContractTest {
         assertFalse(combined.contains(".exec("));
         assertTrue(dialog.contains("Copy commands"));
         assertTrue(dialog.contains("commands are not executed"));
-        assertTrue(dialog.contains("entry.keyNeed()"));
+        // The catalogue entry now owns the complete disclosure; its behavioural tests pin keyNeed
+        // independently of mode and tags, including absent metadata.
+        assertTrue(dialog.contains("chosen.disclosure()"));
         assertFalse(dialog.contains("entry.mode()"), "the picker must not infer key need from AOT mode");
     }
 

@@ -568,3 +568,8 @@ are asynchronous: wait for `state: "finished"` or `"unavailable"` and read `mess
 A successful request echo is not an assertion that every saved input opened. Recovery does not execute
 application logic. The human sees the same offer on the start page and the same status in the Project
 panel. [Identity and partial-restoration rules](projects.md#restore-an-earlier-session).
+
+The start page's **Author a new project** action and File ▸ New project from template share one catalogue
+and download flow. All entries remain visible; recommendation tags do not establish key requirements or
+agent readiness. Check the declared entry files against the downloaded project. A walkthrough is an
+optional runbook exercise, not a separate analyser execution mode.

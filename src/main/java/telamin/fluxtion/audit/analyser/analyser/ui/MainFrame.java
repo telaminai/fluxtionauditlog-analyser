@@ -4402,9 +4402,9 @@ public final class MainFrame extends JFrame {
     }
 
     private void openInstalledTemplate(TemplateArchive.Installed installed, boolean referenceGuide) {
-        // Only ONE of the catalogue's onboarding templates ships agent instructions; the rest arrive with
-        // no CLAUDE.md, no AGENTS.md and no skills. Honoured here rather than in the dialog because until
-        // the archive is unpacked we cannot know which kind this is — and it is never an overwrite: a
+        // Legacy/profile-less downloads may arrive without agent instructions. Honour the explicit
+        // checkbox after extraction, when actual files can be inspected; never infer bootstrap from
+        // the template recommendation. This is never an overwrite: a
         // template that ships its own file keeps it, and the status line says so rather than staying mute.
         String guideNote = "";
         if (referenceGuide) {

@@ -14,11 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The template-download half of D-AX1d.
  *
- * <p>The playground's own audit of all fourteen catalogue templates found that exactly ONE ships agent
- * instructions; the other thirteen arrive with no {@code CLAUDE.md}, no {@code AGENTS.md} and no skills.
- * Two of them are tagged for onboarding and are offered side by side in our picker, so a person can choose
- * the bare one without knowing it is bare. This is the analyser narrowing that gap with the thing it
- * already has; their catalogue field discloses it, which is the complementary half.
+ * <p>Legacy/profile-less downloads may lack bootstrap files. The explicit guide checkbox remains a
+ * pointers-only fallback; default-on producer support now supplies project-specific bootstrap, which
+ * this fallback must never overwrite. Catalogue disclosure is tested independently.
  *
  * <p>Swing is not unit-tested (rule 4). What is tested is the outcome the dialog's checkbox drives.
  */

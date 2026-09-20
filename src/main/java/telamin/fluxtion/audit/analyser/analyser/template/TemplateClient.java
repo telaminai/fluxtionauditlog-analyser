@@ -123,7 +123,7 @@ public final class TemplateClient {
         requireStatus(reply, "template catalogue");
         try {
             return TemplateCatalogue.parse(new String(reply.body(), StandardCharsets.UTF_8), analyserVersion)
-                    .onboarding();
+                    .forPicker();
         } catch (IllegalArgumentException e) {
             throw new Failure(e.getMessage(), e);
         }

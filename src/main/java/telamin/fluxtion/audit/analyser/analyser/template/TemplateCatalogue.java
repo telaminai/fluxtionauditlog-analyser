@@ -16,7 +16,7 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
     }
 
     public record Entry(String name, String description, String file, String type, String mode,
-                        String keyNeed, List<String> tags) {
+                        String keyNeed, String regenerationKeyNeed, List<String> agentBootstrap, List<String> tags) {
         public Entry {
             name = required(name, "name");
             description = required(description, "description");
@@ -24,10 +24,46 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
             type = text(type);
             mode = text(mode);
             keyNeed = text(keyNeed);
+            regenerationKeyNeed = text(regenerationKeyNeed);
+            // Null means absent; an empty list is an explicit declaration of no bootstrap files.
+            agentBootstrap = agentBootstrap == null ? null : List.copyOf(agentBootstrap);
+            if (agentBootstrap != null) for (String path : agentBootstrap) {
+                if (path == null || path.isBlank() || path.startsWith("/") || path.contains("\\")
+                        || path.contains(":") || java.util.Arrays.asList(path.split("/")).contains(".."))
+                    throw new IllegalArgumentException("unsafe agent bootstrap path: " + path);
+            }
             tags = List.copyOf(tags == null ? List.of() : tags);
             if (file.contains("/") || file.contains("\\") || !file.endsWith(".starter.json")) {
                 throw new IllegalArgumentException("unsafe template catalogue file: " + file);
             }
+        }
+
+        public Entry(String name, String description, String file, String type, String mode,
+                     String keyNeed, List<String> tags) {
+            this(name, description, file, type, mode, keyNeed, "", null, tags);
+        }
+
+        public boolean recommended() { return tagged("onboarding"); }
+        public String displayName() { return name + (recommended() ? " — Recommended starting point" : ""); }
+
+        /** Catalogue testimony, independent of template type, mode, and recommendation. */
+        public String disclosure() {
+            String bootstrap = agentBootstrap == null ? "not declared"
+                    : agentBootstrap.isEmpty() ? "explicitly none" : String.join(", ", agentBootstrap);
+            return description + "\n\n" + keyDisclosure("Build key", keyNeed)
+                    + "\n" + keyDisclosure("Regeneration key", regenerationKeyNeed)
+                    + "\nAgent entry files: " + bootstrap
+                    + "\n\nDeclarations describe the default download; verify the files in the generated project."
+                    + (recommended() ? " A recommendation alone does not promise a walkthrough or keyless generation." : "");
+        }
+        private static String keyDisclosure(String label, String value) {
+            return label + ": " + switch (value.toLowerCase(java.util.Locale.ROOT)) {
+                case "" -> "not declared";
+                case "none" -> "none required (catalogue declaration)";
+                case "build" -> "required at build (catalogue declaration)";
+                case "run" -> "required at runtime (catalogue declaration)";
+                default -> "unrecognised catalogue value '" + value + "'";
+            };
         }
 
         public boolean tagged(String tag) {
@@ -39,7 +75,7 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
         }
     }
 
-    /** What the picker should show, including the explicit fallback note required by D-1. */
+    /** What the picker should show, including whether recommendations were declared. */
     public record Selection(List<Entry> entries, String note) {
         public Selection {
             entries = List.copyOf(entries == null ? List.of() : entries);
@@ -84,25 +120,28 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
             }
             entries.add(new Entry(asString(map, "name"), asString(map, "description"),
                     asString(map, "file"), optionalString(map, "type"), optionalString(map, "mode"),
-                    optionalString(map, "keyNeed"), tags));
+                    optionalString(map, "keyNeed"), optionalString(map, "regenerationKeyNeed"), bootstrapPaths(map), tags));
         }
         return new TemplateCatalogue(version, entries);
     }
 
-    /**
-     * Prefer the catalogue-owned onboarding tag. Before UP-PG-03 lands, use the specified Mongoose
-     * fallback; if even that is empty, show everything with a note instead of an empty dialog.
-     */
-    public Selection onboarding() {
-        List<Entry> tagged = templates.stream().filter(e -> e.tagged("onboarding")).toList();
-        if (!tagged.isEmpty()) return new Selection(tagged, "");
-        List<Entry> mongoose = templates.stream().filter(Entry::mongooseHosted).toList();
-        if (!mongoose.isEmpty()) {
-            return new Selection(mongoose,
-                    "The catalogue has not tagged its onboarding set yet; showing Mongoose templates.");
+    /** All entries remain reachable; the catalogue owns recommendation labels, not visibility. */
+    public Selection forPicker() {
+        return new Selection(templates, templates.stream().anyMatch(Entry::recommended)
+                ? "All templates — Recommended starting points are marked."
+                : "All templates — the catalogue has not declared recommended starting points.");
+    }
+
+    private static List<String> bootstrapPaths(Map<?,?> map) {
+        if (!map.containsKey("agentBootstrap")) return null;
+        if (!(map.get("agentBootstrap") instanceof List<?> values))
+            throw new IllegalArgumentException("template agentBootstrap must be an array");
+        List<String> paths = new ArrayList<>();
+        for (Object value : values) {
+            if (!(value instanceof String path)) throw new IllegalArgumentException("agentBootstrap entries must be paths");
+            paths.add(path.strip());
         }
-        return new Selection(templates,
-                "The catalogue has not tagged an onboarding set; showing every template.");
+        return paths;
     }
 
     private static IllegalArgumentException unsupported(Object value, String analyserVersion) {

@@ -79,7 +79,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
   Repsy is authoritative; resource digest checks content parity, artifact digest checks immutable releases.
   Slices 1–4 can start; comment publication verification requires a released starter containing the resource.
   Shared metadata, recipe version floors and other named implementation prerequisites remain open.
-  No implementation or publication is claimed.
+  That review accepted the design only; branch implementation is recorded in the slices below. No publication is claimed.
 - ◧ **Additional starter-journey review scope — learning routes** — participant feedback now informs
   the journey spec's “Learning at the point of use” and acceptance 10–12: routed bootstrap/task references,
   decision-point stub comments, actionable diagnostics, version compatibility and a measured held-out
@@ -88,15 +88,15 @@ Legend for each item: **[id] status — title** · _acceptance_.
   default is approved. Compiler/starter and playground own emitted guidance; agent/harness owns execution.
 - ☑ **Saved-chart declarations before input — implementation slice** — `context.savedGraphs` and the
   reveal-only Project panel render persisted definitions separately from live tabs. 1,691 tests pass
-  (31 display skips), strict docs and rule-1 sweep pass. Landing/restore and display witness remain open;
-  this completes only the saved-definition fact surface, not acceptance 5–7 as a whole.
+  (31 display skips), strict docs and rule-1 sweep pass at this slice. Landing/restore and its display witness
+  subsequently landed through `7eceff5`; complete downloaded-project acceptance remains open.
 - ◧ **Project landing and processor declarations — implementation slice** — version-1 additive profile
   family is pinned in the journey spec and consumed/exported with event processors. Runtime/unspecified
   entries forbid invented FQCNs; invalid profiles refuse before state replacement. StartPanel now shows
   project facts and explicit evidence-open actions while no log is loaded; the Project panel stays
-  reveal-only. 1,695 tests pass (31 display skips), strict docs pass. Display witness and unified restore
-  offer are still pending; existing global startup restoration has not yet been replaced.
-- ◧ **Restore foundation (not yet a user action)** — user-local snapshots preserve ordered inputs and
+  reveal-only. 1,695 tests pass (31 display skips), strict docs pass at this slice. The following recovery
+  adapter supplies the display witness and replaces global startup restoration; independent review remains open.
+- ☑ **Restore storage and decision foundation** — user-local snapshots preserve ordered inputs and
   SHA-256 identities per canonical profile, with a distinct no-project bucket. The generated session graph
   now owns an explicit-offer/accept/check plan; stale project completions are ignored, and one unavailable
   rolled-log member refuses the whole log set while independent design inputs can remain available.
@@ -116,28 +116,33 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
   capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
   user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key
-  disclosures. Ship picker expansion after default-on downloads carry profiles. Vendor entry coordinates
+  disclosures. Recovery through `7eceff5` is implemented; catalogue changes are being gated. Ship picker
+  expansion after default-on downloads carry profiles. Vendor entry coordinates
   with M67; the optional authoring section shares StartPanel and the existing picker controller.
-- ☐ **Default-on analyser support in generated projects (owner, 2026-09-20)** —
+- ◧ **Default-on analyser support in generated projects (owner, 2026-09-20)** —
   [starter journey spec](spec-project-starter-journey.md): website option, headless configuration parity,
   portable profile and project-specific bootstrap/runbooks, explicitly switchable off. Mongoose includes
   applicable deploy/start/stop/feed/audit guidance; ordinary project instructions survive opting out.
   Keep this separate from the special `analyserBundle` mode and from runtime/audit choices. Playground
-  owns generation; analyser only reads the profile and renders evidence. Schema migration and delivery
-  across the template set remain to be implemented and verified.
-- ☐ **Author-new-project page proposal** — explain the shared catalogue and continue through the existing
-  download/open flow, with website configuration for richer choices. No duplicate generator/configurator.
-  Page design and a simpler plain-JSON headless request are proposals, not shipped capabilities.
+  owns generation; analyser only reads the profile and renders evidence. Implemented on playground
+  `feat/project-starter-journey` at `0e7bd58`: schema migration, website flag, headless override, unique-path
+  generation and all-catalogue bootstrap/profile checks. Runtime runbook validation, browser witness,
+  independent review and deployment remain open; do not mark this released.
+- ◧ **Author-new-project entry** — the journey branch adds a StartPanel authoring entry using the same
+  catalogue/download controller as the File menu, with whole-catalogue explanations. No duplicate
+  generator/configurator. A richer separate page and a plain-JSON headless request remain proposals;
+  the existing documented headless template/token route is the implementation contract.
 - ☑ **Diagnose owner close/reopen context report (2026-09-20)** — reproduced on a copied sample with the
   staged jar, real Swing and action socket. Project/roots/runbooks/report survive; log/topology/design/results
   close; five saved chart definitions return after explicit log open. Screenshots confirm the generic demo
   welcome obscures the surviving project state. The launcher performs extra evidence-open calls that ordinary
   reopening does not. No persistent-definition loss reproduced; menu clicks/quit-relaunch untested. The live
   project was unchanged. Focused checks: 46 tests pass. [Evidence](../handoff/evidence/spring-authoring-feedback-2026-09-20-reopen/README.md).
-- ☐ **Project-aware landing and explicit resume** — show saved project context and unavailable/closed inputs
-  instead of leading with the generic demo page. Implement the freshness-checked restore offer (feedback 28)
-  and test human/MCP parity. The download profile/runbooks must make first open and later re-entry understandable
-  without the local launcher's hidden steps. [Journey spec](spec-project-starter-journey.md).
+- ◧ **Project-aware landing and explicit resume** — implemented on the journey branch through `7eceff5`:
+  saved declarations, explicit Restore/Dismiss, actual completion and content checks. Five real-frame
+  cases and inspected UI/context captures cover the adapter; 37 display tests and clean package with
+  1,707 tests pass. Independent review, OS-process restart and complete downloaded-project acceptance
+  remain open. [Journey spec](spec-project-starter-journey.md); [evidence](../handoff/evidence/project-session-recovery-2026-09-20/README.md).
 - ☐ **Journey starts before a project exists (owner clarification, 2026-09-20)** — provide one catalogue
   reached from the website, a local LLM or the analyser's existing template picker. The LLM can download
   a project without the analyser; it follows project runbooks to set up/build/run, then connects the
@@ -151,12 +156,14 @@ Legend for each item: **[id] status — title** · _acceptance_.
   return a 22-entry ZIP with README, but no dedicated RUNBOOK/authoring-docs/bootstrap files. Download
   availability does not establish delivery of the branch's authoring workflow or publication readiness.
   No app execution moves into the analyser; no template/API implementation is claimed by this intake.
-- ☐ **Show the full template catalogue (owner accepted, 2026-09-20)** —
+- ◧ **Show the full template catalogue (owner accepted, 2026-09-20)** —
   [template-picker spec D-1](spec-template-from-analyser.md#c--decisions) now replaces the onboarding-only
   rule: list every catalogue entry and mark onboarding-tagged entries as **Recommended starting points**.
-  No tags means all entries without recommendations, not a Mongoose-only fallback. Implementation and
-  UI verification remain open; test mixed tags, no tags and downloading an untagged choice. A guided
-  walkthrough is a runbook procedure using a project, not a separate runtime or a guarantee from the tag.
+  No tags means all entries without recommendations, not a Mongoose-only fallback. Implemented on the
+  journey branch: full list, declared build/regeneration requirements and absent/empty/populated bootstrap
+  disclosure. Mixed/no-tag parser tests and a real Swing picker over all 14 producer-branch entries pass.
+  Untagged end-to-end download acceptance, independent review and producer-first deployment remain open.
+  A guided walkthrough is a runbook procedure, not a separate runtime or a guarantee from the tag.
 - ☑ **Preserve the owner's staged-session feedback** — [original report and evidence packet](../handoff/evidence/spring-authoring-feedback-2026-09-19/README.md)
   retain ten participant issues, three inspected screenshots, final application/XML/graph/audit files,
   producer results and the launcher's baseline context with SHA-256 manifest. Original report unchanged;
@@ -193,8 +200,9 @@ Legend for each item: **[id] status — title** · _acceptance_.
   parameter, and rename is missing. Add explicit operations through existing topology scope with collision,
   persistence and dependent-reference semantics. Do not recommend editing an active profile: close can flush
   dirty memory over it. Empty focus must not ambiguously mean deletion.
-- ☐ **Feedback 38/39 and recurring 6** — include design/diagnostics in the project-scoped restore contract
-  and report omissions (38, participant restart evidence); compare spotlight echo and painted bounds after
+- ◧ **Feedback 38/39 and recurring 6** — design/diagnostics recovery and explicit omissions (38) are
+  implemented through `7eceff5`, with real-frame close/reopen and new-frame relaunch witnesses; actual OS-process
+  restart remains unverified. Still open: compare spotlight echo and painted bounds after
   settled layout (39), retaining tests for earlier mispaint. Compiler/starter owner: repeat EndOfDayReporter
   audit-scaffolding case and define new-owned-node policy; absence of values is not absence of execution.
 - ☐ **Feature request 40 (intake alias P1) — saved focus captions** — assess explicit ordered commentary associated with a focus,
@@ -989,8 +997,8 @@ analyser (reverse funnel)._
 - [M19.23] ◧ **UP-PG-02 producer LANDED; analyser disclosure OPEN** _(corrected 2026-09-20)_ —
   plan: [`plan_playground_agent_bootstrap.txt`](../handoff/completed/plan_playground_agent_bootstrap.txt).
   `agentBootstrap` exists on playground `origin/main` and in the live catalogue inspected on September 20.
-  The analyser's `TemplateCatalogue.Entry` does not yet consume it. Parse/render present, explicitly empty
-  and absent declarations as part of the journey/picker revision; recommendations do not imply readiness.
+  The journey branch now consumes/renders present, explicitly empty and absent declarations separately;
+  recommendations do not imply readiness. This analyser change is not yet reviewed or released.
   **Evidence the ask did not have:** all fourteen templates were generated — `analyser-bundle` ships
   `CLAUDE.md` + `AGENTS.md`, the other **thirteen ship neither**. So the field carries real information.
   **The gap that matters more than the field:** the `onboarding` subset the picker lists is TWO
@@ -998,8 +1006,9 @@ analyser (reverse funnel)._
   inside the analyser gets a project with no CLAUDE.md, no AGENTS.md and no skills — chosen from a list
   whose purpose is onboarding. The field DISCLOSES that; it does not fix it. **2026-09-20 owner decision:**
   spec-template-from-analyser D-1 now requires all entries, with `onboarding` a recommendation rather
-  than an exclusion rule or a guarantee of agent readiness; that picker change is not implemented yet.
-  The bootstrap-content gap remains. Producer field delivery is complete; re-run generated ZIP/metadata
+  than an exclusion rule or a guarantee of agent readiness; that picker change is implemented on the
+  journey branch and awaits its gate/review. Default-on producer support is implemented at playground
+  `0e7bd58` but not deployed. Producer field delivery is complete; re-run generated ZIP/metadata
   consistency checks when default-on support extends bootstrap output to the other project types.
 - [M19.22] ◐ **The generated processor's header claims CONFIDENTIALITY — filed as
   [fluxtion#24](https://github.com/telaminai/fluxtion/issues/24)** _(found 2026-08-30 against the live
@@ -1523,9 +1532,10 @@ with each entry's description, takes artifact/group/base-package, downloads the 
 and makes the generated project's profile the active project. That is .2, .3 and .4 — the templates are the playground's
 (14 in the versioned catalogue), not a directory in this repo.
 
-**Owner revision 2026-09-20, pending implementation:** D-1 now requires the full catalogue, with
-onboarding entries marked **Recommended starting points**. The subset above describes shipped behaviour,
-not the revised requirement; see the open full-catalogue item under Spring authoring observed acceptance.
+**Owner revision 2026-09-20, implemented on the journey branch:** D-1 requires the full catalogue, with
+onboarding entries marked **Recommended starting points** and declared prerequisites shown. The subset
+above describes released behaviour. Branch display verification uses all 14 producer entries; review,
+untagged end-to-end download acceptance and producer-first deployment remain open. See the live full-catalogue item above.
 
 **The idea.** The analyser offers a set of Fluxtion project templates. A user picks one; that is what
 their AI client starts from, rather than an empty directory plus prose.

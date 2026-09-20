@@ -111,6 +111,9 @@ public final class StartPanel extends JPanel {
         returnRow = returnToRecords();
         col.add(returnRow);
         col.add(hero());
+        col.add(Box.createVerticalStrut(16));
+        col.add(row(card("Author a new project", "Choose a catalogue template, read its requirements and download its project runbooks.",
+                false, actions::newProject)));
 
         col.add(Box.createVerticalStrut(20));
         col.add(heading("Three questions a log alone will not answer"));

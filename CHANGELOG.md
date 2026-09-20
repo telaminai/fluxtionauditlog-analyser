@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Whole starter catalogue** — File ▸ New project from template and the start page's authoring action
+  show every entry, marking recommended starting points and disclosing declared build/regeneration key
+  needs and agent entry files. Missing and explicitly empty declarations remain distinct.
 - **Explicit session recovery** — project reopen and app relaunch offer the previous local session.
   Accept or dismiss on the start page or with `open {restore}`. Recovery verifies file bytes, restores
   unchanged log sets, topology, design and diagnostics, and reports missing inputs and withheld views.

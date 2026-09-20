@@ -11,7 +11,7 @@ _Raised by the owner, 2026-08-30, in these words: **"I thought we would be able 
 from the swing app to make it seamless to get started."** That expectation is reasonable and the
 product did not meet it. This spec records the implemented boundary and its acceptance evidence._
 
-**Owner revision, 2026-09-20 — accepted, implementation pending:** show the full catalogue and mark
+**Owner revision, 2026-09-20 — accepted, implemented on the journey branch; release gated:** show the full catalogue and mark
 entries tagged `onboarding` as **Recommended starting points**. D-1 below supersedes the shipped
 onboarding-only selection rule. The August acceptance evidence covers the old picker, not this revision.
 
@@ -81,7 +81,7 @@ alternative inputs, and silently preferring one is how a caller learns the wrong
 ### B2 · Analyser: `File ▸ New project from template…`
 
 The download/open flow shipped in `9d38cc4`; step 2 is revised by the owner's 2026-09-20 decision
-and remains to be implemented.
+and is implemented on `feat/project-starter-journey`, pending review and producer-first deployment.
 
 1. `GET /starter-templates/index.json`; refuse a `catalogue` integer this build does not know, with a
    message naming the analyser version — the same refusal shape as `x-analyser-min-version`.

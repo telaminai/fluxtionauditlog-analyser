@@ -40,8 +40,8 @@ final class TemplateProjectDialog {
 
     /**
      * @param referenceGuide whether to offer a {@code CLAUDE.md} of canonical authoring links once the
-     *     archive is open. Only one of the catalogue's onboarding templates ships agent instructions of
-     *     its own; the rest arrive bare, and this is the one thing the analyser already has for that.
+     *     archive is open. Legacy or explicitly unsupported downloads can lack their own agent entry;
+     *     this optional fallback supplies pointers only and never overwrites a shipped guide.
      */
     record Choice(TemplateClient.Download download, Path destination, boolean referenceGuide) { }
 
@@ -108,7 +108,7 @@ final class TemplateProjectDialog {
             @Override public Component getListCellRendererComponent(JList<?> component, Object value, int index,
                                                                      boolean selected, boolean focus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(component, value, index, selected, focus);
-                if (value instanceof TemplateCatalogue.Entry entry) label.setText(entry.name());
+                if (value instanceof TemplateCatalogue.Entry entry) label.setText(entry.displayName());
                 return label;
             }
         });
@@ -120,10 +120,10 @@ final class TemplateProjectDialog {
             }
         }
         list.setSelectedIndex(initial);
-        JTextArea description = textArea(description(selection.entries().get(initial)), 5, 52);
+        JTextArea description = textArea(selection.entries().get(initial).disclosure(), 10, 52);
         list.addListSelectionListener(e -> {
             TemplateCatalogue.Entry chosen = list.getSelectedValue();
-            if (chosen != null) description.setText(description(chosen));
+            if (chosen != null) description.setText(chosen.disclosure());
         });
 
         JPanel panel = new JPanel(new BorderLayout(0, 8));
@@ -263,14 +263,6 @@ final class TemplateProjectDialog {
         area.setWrapStyleWord(true);
         area.setEditable(false);
         return area;
-    }
-
-    private static String description(TemplateCatalogue.Entry entry) {
-        // keyNeed is a catalogue fact. In particular, never derive this from mode: AOT can build keylessly.
-        if ("none".equalsIgnoreCase(entry.keyNeed())) {
-            return "Build key: none required\n\n" + entry.description();
-        }
-        return entry.description();
     }
 
     private static Path pathOrNull(String text) {

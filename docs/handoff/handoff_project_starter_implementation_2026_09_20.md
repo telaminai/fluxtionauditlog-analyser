@@ -147,7 +147,7 @@ Feedback 41–43 remains open outside this slice: recovery reports disjoint pins
 log switching still needs the chart-level scope disclosure; series replacement/removal, axis fitting,
 colon-name addressing and the nullable pin schema are not claimed fixed.
 
-Remaining full delivery: catalogue metadata/picker, producer comment resource/parity and diagnostics,
+Remaining at this recovery checkpoint: catalogue metadata/picker, producer comment resource/parity and diagnostics,
 capability runbook validation, hardened coldstart scoring and an uncontaminated held-out journey.
 Publication remains its separate existing release gate. This is an implementation checkpoint, not a
 claim that the entire reviewed journey or its independent review is complete.
@@ -157,3 +157,26 @@ skips** (the five recovery cases join the previous skipped frame tests). The sep
 gate ran all its cases with zero skips. MkDocs strict passed. Exact tracked-file rule-1 sweep passed;
 staged whitespace is clean after normalising trailing whitespace in the captured JUnit log, with its
 original digest recorded. The temporary mutation is absent from the staged source.
+
+## Checkpoint — full catalogue and declared prerequisites
+
+The analyser journey branch now lists every catalogue entry, labels recommendations without filtering,
+and renders build/regeneration requirements plus absent/empty/populated agent entry declarations.
+Missing key metadata stays “not declared”; neither AOT mode nor recommendation supplies an inferred
+requirement. Malformed bootstrap declarations refuse instead of disappearing. The generic welcome
+adds an Author a new project action using the existing File-menu controller. Download/archive policy
+and legacy discovery remain unchanged; the optional fallback guide still supplies pointers only.
+
+[Display evidence](evidence/project-template-catalogue-2026-09-20/README.md) retains the exact 14-entry
+producer catalogue and inspected screenshot. One real-modal test passes with no skips; it selects every
+entry and verifies its disclosure, then closes without starting a download. CI includes the test in its
+display job. Parser tests cover mixed/no tags and absent/empty/declared metadata. Live tracker rows have
+been reconciled with the completed recovery slices; historical checkpoint results remain dated evidence.
+
+Full `mvn -q -o test`: 1,710 tests, zero failures/errors, 37 display skips. Strict MkDocs, the
+tracked rule-1 sweep and whitespace checks pass. The first full run found one old structural test
+looking for `entry.keyNeed()` in the dialog; it now checks the catalogue-owned disclosure call, with
+behavioural tests proving declared key requirements stay independent of mode/tags. The execution
+prohibitions in that structural test remain intact. Untagged end-to-end download/open,
+independent review and producer-first deployment remain open. This is branch implementation, not a
+claim that the public website or released analyser has changed.

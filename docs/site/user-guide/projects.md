@@ -37,17 +37,25 @@ With **no project open**, the analyser behaves exactly as it always has. Project
 ## Start from a playground template
 
 Choose **File ▸ New project from template…** to start inside the analyser instead of visiting the
-playground first. The analyser reads the playground's live, versioned catalogue and lists the entries
-the catalogue marks for onboarding; template names are not copied into the application. A key requirement
-is shown only when the catalogue declares `keyNeed` explicitly—the analyser never guesses it from AOT mode.
+playground first, or choose **Author a new project** on the start page. The analyser lists the whole
+versioned catalogue. Entries tagged for onboarding are marked **Recommended starting points**, without
+hiding the others. A recommendation is advice, not a promise of a walkthrough or keyless generation.
+
+Read the selected template's build/regeneration key requirements and agent entry files before downloading.
+These are catalogue declarations, never guesses from AOT mode or project type. Missing means **not declared**;
+an empty bootstrap list means **explicitly none**. Unknown future key values are labelled unrecognised.
+The declarations describe the default download; verify its actual files before following its runbook.
 
 1. Select a template and read its catalogue description.
 2. Confirm or change its artifact, group and base-package defaults.
 3. Choose a new or empty project directory.
-4. Select **Download and open**. The generated project's profile becomes the active project.
+4. Select **Download and open**. If the download contains a profile, it becomes the active project.
+   Legacy or support-disabled downloads instead offer discovery with no choices preselected. They are not
+   silently opted back into support. Creating the optional pointers-only reference guide requires its own
+   unchecked-by-default checkbox; an existing project guide is never overwritten.
 
-![The live playground catalogue presented inside the Swing analyser, with the template description
-shown before anything is downloaded](../assets/template-picker.png)
+The [earlier picker capture](../assets/template-picker.png) records the previously released recommendation-only
+list; the whole-catalogue revision is unreleased. Its deployment follows support-enabled playground downloads.
 
 The archive boundary is deliberately strict: only the configured playground HTTPS origin is contacted;
 absolute and parent-traversing ZIP entries are refused; entry count and expanded sizes are capped; a
