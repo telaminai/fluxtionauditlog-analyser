@@ -22,6 +22,11 @@ public record FileReadIdentity(String path, String sha256, String problem) {
             try { digest = MessageDigest.getInstance("SHA-256"); }
             catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
         }
+        /**
+         * Prefer bulk reads: read(byte[], off, len) updates SHA once per block, whereas read() updates
+         * it once per byte. The native framer uses bulk reads; new callers must preserve that shape
+         * to retain the measured indexing performance.
+         */
         public InputStream open() throws IOException {
             if (opened) throw new IllegalStateException("identity stream already opened");
             opened = true;

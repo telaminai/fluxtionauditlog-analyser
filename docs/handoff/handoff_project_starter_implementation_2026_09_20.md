@@ -234,3 +234,18 @@ before/after checks, and restore retains a post-index whole-set check. Clean pac
 40 headless skips; display: 41/0/0/0. Three recovery mutations failed their intended assertions, then
 restored source passed. The comment witness is refreshed against the current assertion. Re-review is
 pending; this checkpoint does not replace the independent verdict or close any full-journey gate.
+
+
+## Independent re-review accepted — 2026-09-20
+
+[Re-review](rereview_project_starter_implementation_2026_09_20_claude.md), authored on the review branch
+as `1d19f33`, closes JI-1–JI-6 at analyser `9ff95e7`. The analyser is READY WITH FOLLOW-UPS; unchanged
+playground/compiler verdicts stand. The reviewer independently reran 1,718 headless tests (40 skips),
+41 display tests (no skips), mutation guards, heap/mapped SHA comparisons and the large-log timing,
+and accepted the JI-2 reproduction correction. The requested bulk-read performance comment is added.
+This supersedes the previous checkpoint's pending re-review status; it does not close the full journey.
+
+Release remains NOT READY. Outstanding gates include publication and public parity, an actual process
+restart, acquisition through the deployed dialog, browser preview and the isolated fresh-client journey.
+Keep these distinct from completed defect review and from any unfinished spec scope in the tracker.
+The opaque-plugin before/after hashing cost remains an accepted limitation.

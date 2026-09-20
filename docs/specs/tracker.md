@@ -86,20 +86,20 @@ Legend for each item: **[id] status — title** · _acceptance_.
   journey. F/G/H/J are independently closed; final review READY with K1/K2 wording now corrected. Preserve generated-body
   ownership/hash compatibility and the analyser's pointers-only boundary. No guide verb or new runtime
   default is approved. Compiler/starter and playground own emitted guidance; agent/harness owns execution.
-- ◧ **Journey implementation review response — 2026-09-20** — independent
-  [review](../handoff/review_project_starter_implementation_2026_09_20_claude.md) received: analyser NOT
-  READY (JI-2/JI-4 merge blockers); playground/compiler READY WITH FOLLOW-UPS. JI-1 owner decision:
-  retain full verification, optimise the reader; no size cutoff. [Author response](../handoff/response_project_starter_implementation_2026_09_20.md)
-  records JI-1–JI-6 corrections, matched red/green regressions, 1,718 headless tests (40 display skips),
-  41 display tests with no skips, and the 449 MiB timing. Native indexing hashes its read; plugin and
-  explicit restore verification costs remain stated. Independent re-review is still required.
-  Publication, actual process restart, deployed acquisition and fresh-client gates remain open.
-- ◧ **Independent journey implementation review requested — 2026-09-20** —
-  [review brief](../handoff/brief_review_project_starter_implementation_2026_09_20.md) pins the analyser
-  and playground implementation ranges, coordinates the authorised starter review, and requests an
-  independent findings/author-handoff report on a separate review branch. Covers saved facts/recovery,
-  catalogue/acquisition, producer routing, comments/publication and evidence integrity. The independent review below the brief has now been received; its analyser verdict is NOT READY. The brief calls out the comment-mutation helper's stale failure-label check;
-  the reviewer must distinguish a genuine test red from a helper error. Full-journey gates remain open.
+- ☑ **Journey implementation review and re-review — 2026-09-20** —
+  [brief](../handoff/brief_review_project_starter_implementation_2026_09_20.md),
+  [initial review](../handoff/review_project_starter_implementation_2026_09_20_claude.md),
+  [author response](../handoff/response_project_starter_implementation_2026_09_20.md), and
+  [independent re-review](../handoff/rereview_project_starter_implementation_2026_09_20_claude.md).
+  **JI-1–JI-6 CLOSED. Analyser READY WITH FOLLOW-UPS at `9ff95e7`; full journey/release NOT READY.**
+  Playground/compiler verdicts remain READY WITH FOLLOW-UPS at their unchanged reviewed heads.
+  Reviewer reproduced 1,718 headless tests (40 display skips), 41 display tests with no skips, both
+  mutation families, independent heap/mapped SHA parity, and a finer-grained JI-4 mutation removing
+  only one completion call. The JI-2 reproduction correction is accepted explicitly in the re-review.
+  Owner's full-verification decision stands: no cutoff; native readers hash their indexed bytes.
+  Plugin before/after hashing is an accepted, documented limitation. The bulk-read performance comment
+  requested by the reviewer is added. Publication/public parity, actual process restart, deployed
+  acquisition, browser preview and fresh-client acceptance remain separate open gates.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation
@@ -114,12 +114,12 @@ Legend for each item: **[id] status — title** · _acceptance_.
   reveal-only Project panel render persisted definitions separately from live tabs. 1,691 tests pass
   (31 display skips), strict docs and rule-1 sweep pass at this slice. Landing/restore and its display witness
   subsequently landed through `7eceff5`; complete downloaded-project acceptance remains open.
-- ◧ **Project landing and processor declarations — implementation slice** — version-1 additive profile
+- ☑ **Project landing and processor declarations — reviewed implementation slice** — version-1 additive profile
   family is pinned in the journey spec and consumed/exported with event processors. Runtime/unspecified
   entries forbid invented FQCNs; invalid profiles refuse before state replacement. StartPanel now shows
   project facts and explicit evidence-open actions while no log is loaded; the Project panel stays
   reveal-only. 1,695 tests pass (31 display skips), strict docs pass at this slice. The following recovery
-  adapter supplies the display witness and replaces global startup restoration; independent review remains open.
+  adapter supplies the display witness and replaces global startup restoration; independent implementation review is complete.
 - ☑ **Restore storage and decision foundation** — user-local snapshots preserve ordered inputs and
   SHA-256 identities per canonical profile, with a distinct no-project bucket. The generated session graph
   now owns an explicit-offer/accept/check plan; stale project completions are ignored, and one unavailable
@@ -128,15 +128,16 @@ Legend for each item: **[id] status — title** · _acceptance_.
   with the installed local provider, Java 21 and pinned released builder; no owner key or remote generation.
   UI/MCP wiring, exit flushing and startup migration are now implemented in the following slice; the
   foundation's earlier gate alone did not claim those capabilities.
-- ◧ **Explicit recovery adapter and startup migration** — one StartPanel offer/Restore/Dismiss and
+- ☑ **Explicit recovery adapter and startup migration — reviewed implementation slice** — one StartPanel offer/Restore/Dismiss and
   `open {restore: last|dismiss}`, with Project-panel status from the graph. Actual reader completions
   drive the outcome; unchanged design/results can reopen when the complete log set is refused.
   Saved filters/selection/focus require observed loaded-byte identity, with visible pin/filter caveats.
   Both implicit startup paths are removed. Five real-frame cases plus the existing lifecycle display
   gate pass: 37 tests, no skips. [Evidence](../handoff/evidence/project-session-recovery-2026-09-20/README.md)
   includes inspected screenshots and a seen-red stale-view mutation. Final headless/package checks are
-  recorded in the implementation handoff. OS-process restart, large-log hashing cost and independent
-  review remain explicitly unverified; full catalogue/producer delivery and held-out acceptance remain open.
+  recorded in the implementation handoff. The independent re-review closes all six findings and expands
+  the display gate to 41 passing cases. Native large-log hashing is measured and verified; opaque plugins
+  retain their stated cost. OS-process restart, deployed acquisition and held-out acceptance remain open.
 - ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
   capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
   user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key

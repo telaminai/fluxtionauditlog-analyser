@@ -5,6 +5,14 @@
 Review preserved unchanged on the implementation branch. These are author dispositions, not an
 independent READY verdict. The full journey and public release remain incomplete.
 
+## Independent closure received
+
+The [re-review](rereview_project_starter_implementation_2026_09_20_claude.md), review-branch commit
+`1d19f33`, closes JI-1–JI-6 at implementation `9ff95e7`. Analyser: READY WITH FOLLOW-UPS. Full journey
+and release: NOT READY. The dispositions below retain the author's original claims; the linked report
+is the independent closure. The reviewer's suggested bulk-read comment is now in `FileReadIdentity.open()`;
+it changes no behaviour. Plugin hashing cost and the outstanding release/experiment gates remain open.
+
 ## Dispositions
 
 | Finding | Author disposition | Correction and evidence |
