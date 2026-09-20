@@ -1,0 +1,21 @@
+{
+  "cohort": 1,
+  "task": 2,
+  "requestedModel": "sonnet",
+  "startedUtc": "2026-09-20T21:55:41.771110+00:00",
+  "scope": "named-target preview battery",
+  "substantiveInterventions": [],
+  "buildCyclesObserved": 1,
+  "exit": 0,
+  "endedUtc": "2026-09-20T21:59:14.490870+00:00",
+  "clock": {
+    "utcNs": 1789941554491267000,
+    "awakeNs": 2994035743470583,
+    "continuousNs": 9439672090949083,
+    "elapsedSeconds": 212.724431333,
+    "awakeSeconds": 212.724423458,
+    "utcElapsedSeconds": 212.720163,
+    "suspendSeconds": 7.8750000227501e-06,
+    "utcDriftSeconds": -0.004268332999998847
+  }
+}

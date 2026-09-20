@@ -1,6 +1,7 @@
 # Preview battery R3 — operator checkpoint
 
-**In progress; no full-battery or release verdict.** The target is the corrected playground
+**Checkpointed after two tasks; further client sessions held following the owner's time concern.
+No full-battery or release verdict.** The target is the corrected playground
 `feat/project-starter-journey@3bdcfbd`, selected by name before the trial. This tests preview
 acquisition of the Audit analyser bundle, not unguided catalogue discovery or public acquisition.
 The [protocol](evidence/battery-r3-2026-09-20/PROTOCOL.md), exact task quotations, preface and
@@ -42,7 +43,7 @@ the spec's independent-session and different-task evidence.
 | Cohort / task | Result | Independently checked |
 |---|---|---|
 | 1 / T1, Sonnet | Normal completion, 191.149 s; no provider refusal or substantive intervention | Preview ZIP acquired; 43 originals byte-identical to the pristine download; five input rows match five audited business records; successful server stop in transcript |
-| 1 / T2 | Running | Fresh context, same project; generation credential provided outside the project |
+| 1 / T2, Sonnet | Normal completion, 212.724 s; no provider refusal or substantive intervention | New TradeEvent and accumulator in regenerated Java/GraphML; four input quantities independently sum to the four audited totals: 300, 450, 950, 1850 |
 | Remaining eligible tasks | Not run yet | No result claimed |
 | T5, all cohorts | Ineligible | Vendor catalogue entry has not shipped |
 
@@ -50,6 +51,19 @@ T1 initially guessed several download URLs that returned 404, then discovered th
 agent instructions and scaffold endpoint without an operator hint. This friction stays in the
 transcript. The file sink is empty; only the audit processing output is verified. No sink scenario
 is counted. The T1 clock had less than 1 ms UTC drift and no material suspend gap.
+
+T2 used the provisioned external generation credential and kept the selected dependency distribution.
+It spent about two minutes waiting on a foreground server command piped to `tail` before continuing.
+That time remains in the result. Its export also retained records from T1; the independent check
+matches the four new TradeEvent records, not a supposedly fresh whole log. The client stopped its
+server successfully. T2 UTC drift was under 5 ms with no material suspend gap.
+
+The two observed client durations sum to 403.873 seconds (6m 44s). Operator preparation, clock
+investigation, independent verification and documentation are additional elapsed work, not hidden
+inside that number. These results establish one cohort's acquisition and event-extension path;
+they do not establish the reporting task, a routing improvement, or general client reliability.
+No client is running at this checkpoint. T3/T4/T6 and cohorts 2–6 remain unperformed; do not call
+the six-cohort battery complete. Raw attribution scoring and full prediction scoring remain open.
 
 The first T2 launch was rejected by the operator command sandbox before the client started
 (`sandbox_apply: Operation not permitted`). Its empty transcript, stderr and metadata are retained

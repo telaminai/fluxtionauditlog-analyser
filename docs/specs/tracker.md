@@ -148,13 +148,16 @@ Legend for each item: **[id] status — title** · _acceptance_.
   and fixed afterwards in playground `3bdcfbd` with a seen-red assertion and 521 green tests; no replacement client run.
   Public acquisition, generation capability provisioning
   for beta, publication, held-out task correctness and full T1–T6 acceptance remain open.
-- ◧ **Preview battery R3 — running, 2026-09-20** — [checkpoint](../handoff/report_battery_r3_2026_09_20.md)
+- ◧ **Preview battery R3 — checkpointed, 2026-09-20** — [checkpoint](../handoff/report_battery_r3_2026_09_20.md)
   and [sealed protocol](../handoff/evidence/battery-r3-2026-09-20/PROTOCOL.md). Sleep-inclusive recorder,
   retained UTC/awake clocks, idle-sleep assertion and 60-second clock probe close the timing-instrument
   prerequisite. Missing source pointers remain unattributed in the denominator. R2 compatibility
   repeats do not count as different-task recurrence. First cohort T1 independently verified: five
-  matching business records, all 43 original files unchanged, no hint/refusal; T2 running. Remaining
-  eligible tasks and manual scoring open; T5 ineligible. **No battery acceptance or release claim.**
+  matching business records, all 43 original files unchanged, no hint/refusal. T2 independently verified:
+  changed graph regenerated, new event dispatch and four running totals match the input. Client time
+  191.149 + 212.724 s; operator work additional. Further sessions held following the owner's time concern;
+  no client running. T3/T4/T6, cohorts 2–6 and manual scoring open; T5 ineligible.
+  **No battery acceptance or release claim.**
   Follow-up: one shared playground launch decision for README/POM/runbook agreement; do not alter
   the frozen target during the matrix. Public starter artifact remains 404; public acquisition,
   browser preview and OS-process restart gates stay open.

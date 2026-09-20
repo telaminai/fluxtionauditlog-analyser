@@ -1,0 +1,21 @@
+{
+  "cohort": 1,
+  "task": 2,
+  "status": "VERIFIED",
+  "newEvent": "TradeEvent",
+  "expectedCumulativeQuantity": [
+    300,
+    450,
+    950,
+    1850
+  ],
+  "actualCumulativeQuantity": [
+    300,
+    450,
+    950,
+    1850
+  ],
+  "newNodeInGeneratedJavaAndGraph": true,
+  "auditIncludesPriorRun": true,
+  "scope": "Four new trade events only; prior-run records retained in capture; no whole-file repeatability claim"
+}
