@@ -1,0 +1,26 @@
+{
+  "status": "ENVIRONMENT_FAILURE_BEFORE_FIRST_TOOL",
+  "gatePassed": false,
+  "authorization": "Owner requested retry for release",
+  "terminalError": "OAuth session expired and could not be refreshed",
+  "firstErrorSeconds": 0.722747416,
+  "toolCalls": 0,
+  "buildCycles": 0,
+  "substantiveInterventions": [],
+  "clock": {
+    "utcNs": 1789947433887871000,
+    "awakeNs": 2999796651348166,
+    "continuousNs": 9445551367459625,
+    "elapsedSeconds": 1.277049875,
+    "awakeSeconds": 1.277044916,
+    "utcElapsedSeconds": 1.277063,
+    "suspendSeconds": 4.95899999997107e-06,
+    "utcDriftSeconds": 1.3125000000169251e-05
+  },
+  "privateEvidenceSha256": {
+    "T1-raw.jsonl": "b3a723af3166b2c0a37e4b39a4f41e6991e1728eab6b697515a8fd8f6cb66305",
+    "T1-events.jsonl": "0e0bbe17c1d2707a82055565149056fd5b9958a6f2bae86f436df7439292a242",
+    "input.txt": "aefec07da5a7fc79d7cad04b2bc0c576043daf4f868c99edf8aac7d37d0e42ce",
+    "predictions.md": "8b716aa52915d6858163eeb40ba7157d8d50038df852d97de7a70f033190a790"
+  }
+}

@@ -32,6 +32,8 @@ Legend for each item: **[id] status — title** · _acceptance_.
   64 tool batches: one task pointer, 63 missing. Preserve this environmental failure and the
   pre-failure discovery difficulty; neither a pass nor a completed product-failure verdict.
   Published compiler/playground remain available; broader provenance claims remain excluded.
+  Owner-authorised retry also failed: expired OAuth session at 0.723 seconds, before any tool call.
+  Owner explicitly chose to wait for restored login; no release gate waived. Both runs remain sealed.
 
 Release record: [report](../handoff/report_release_journey_2026_09_21.md).
 

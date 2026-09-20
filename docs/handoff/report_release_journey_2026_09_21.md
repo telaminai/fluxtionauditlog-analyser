@@ -112,3 +112,17 @@ improvement. No v1 numeric comparison is available.
 **Next boundary:** restore client authentication before any separately authorised future attempt.
 The current run stays sealed. A fresh public acquisition result or explicit owner disposition is
 needed to remove the held release gate; the screenshot and automated preflight do not replace it.
+
+## Owner-authorised retry
+
+The owner requested “retry analyser we want to release”. A new isolated empty project/cache and
+fresh Sonnet process reused the exact prompt and frozen predictions. The original run was untouched.
+The client failed at 0.723 seconds, before any tool call, with “OAuth session expired and could not
+be refreshed”. Zero builds, zero interventions, no acquisition result and no model tokens consumed.
+[Retry record](evidence/release-journey-2026-09-21/public-acquisition-retry1.json).
+The predictions are untested in this attempt; login failure is not a product verdict. No further
+retry is useful until credentials recover. Existing analyser main CI at `b9064dc3` is green.
+
+**Owner disposition:** wait for login restoration. Release remains held; no gate is waived.
+
+Owner subsequently confirmed login restored; a separately archived fresh attempt is authorised.
