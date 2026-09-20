@@ -143,11 +143,21 @@ Legend for each item: **[id] status — title** · _acceptance_.
   refusal from terminal runtime, observable timing from declared attribution, and longer compatibility
   from battery acceptance. Three longer positive clients passed (248/286/460 s monotonic), 54 rows independently checked;
   a fourth correctly declined the no-launcher fixture. No refusals/interventions. R2-3 has an
-  unexplained UTC/monotonic gap; R2-2 omitted two source pointers. No general reliability or routing
+  UTC/monotonic gap subsequently explained by host idle sleep in R3; R2-2 omitted two source pointers. No general reliability or routing
   improvement claim. PPF-2 (hosted POM naming an omitted launcher) was found in the negative trial
   and fixed afterwards in playground `3bdcfbd` with a seen-red assertion and 521 green tests; no replacement client run.
   Public acquisition, generation capability provisioning
   for beta, publication, held-out task correctness and full T1–T6 acceptance remain open.
+- ◧ **Preview battery R3 — running, 2026-09-20** — [checkpoint](../handoff/report_battery_r3_2026_09_20.md)
+  and [sealed protocol](../handoff/evidence/battery-r3-2026-09-20/PROTOCOL.md). Sleep-inclusive recorder,
+  retained UTC/awake clocks, idle-sleep assertion and 60-second clock probe close the timing-instrument
+  prerequisite. Missing source pointers remain unattributed in the denominator. R2 compatibility
+  repeats do not count as different-task recurrence. First cohort T1 independently verified: five
+  matching business records, all 43 original files unchanged, no hint/refusal; T2 running. Remaining
+  eligible tasks and manual scoring open; T5 ineligible. **No battery acceptance or release claim.**
+  Follow-up: one shared playground launch decision for README/POM/runbook agreement; do not alter
+  the frozen target during the matrix. Public starter artifact remains 404; public acquisition,
+  browser preview and OS-process restart gates stay open.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation

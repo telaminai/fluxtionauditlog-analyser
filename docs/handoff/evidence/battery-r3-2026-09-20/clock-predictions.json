@@ -1,0 +1,8 @@
+{
+  "frozenUtc": "2026-09-20T21:42:33.409806+00:00",
+  "samples": 13,
+  "durationSeconds": 60,
+  "maxAbsoluteUtcDriftSeconds": 0.1,
+  "maxSuspendSeconds": 0.1,
+  "maxReceiptLatencySeconds": 0.1
+}

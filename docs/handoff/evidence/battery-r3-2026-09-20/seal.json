@@ -1,0 +1,12 @@
+{
+  "frozenUtc": "2026-09-20T21:48:41.268565+00:00",
+  "playgroundRevision": "3bdcfbd",
+  "files": {
+    "PROTOCOL.md": "9b9b6515b208cb7339358ef18014e683089a036863c95f987b9007396d21f27b",
+    "PROMPTS-COLDSTART.md": "d311b244133ce9d023a261506924cc5fa0d2f951eb2f0d23215df91631218edc",
+    "preface.txt": "3ca0ab49e3f3052a52ec18cf7ea0db21b6271da637a9622d831d8cf935eba092",
+    "predictions.json": "f7f79f86fe67980ee1611c3305e5da414d322c0a6add4bebf0e89c77fa7680e4"
+  },
+  "runnerSha256": "979b34e56cd9cb7431b7da9789ddbd0d50f1ea47995066f7d9466e877be48bdc",
+  "clockSha256": "8065d6e29ca61d6cd1281f90b297b47694de68dbec0ffac88f9ab21e76b10f12"
+}

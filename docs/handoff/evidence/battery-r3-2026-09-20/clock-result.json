@@ -1,0 +1,16 @@
+{
+  "samples": 13,
+  "end": {
+    "utcNs": 1789940613479997000,
+    "awakeNs": 2993158307280166,
+    "continuousNs": 9438730994854708,
+    "elapsedSeconds": 60.067774583,
+    "awakeSeconds": 60.067773958,
+    "utcElapsedSeconds": 60.068035,
+    "suspendSeconds": 6.25000005527454e-07,
+    "utcDriftSeconds": 0.00026041699999979073
+  },
+  "maxAbsoluteUtcDriftSeconds": 0.0002574170000002596,
+  "maxSuspendSeconds": 5.0416000000552685e-05,
+  "maxReceiptLatencySeconds": 0.004748
+}

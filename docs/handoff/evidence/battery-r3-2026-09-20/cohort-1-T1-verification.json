@@ -1,0 +1,12 @@
+{
+  "cohort": 1,
+  "task": 1,
+  "status": "VERIFIED",
+  "originalFiles": 43,
+  "changedOriginalFiles": [],
+  "inputRecords": 5,
+  "matchedAuditRecords": 5,
+  "sinkBytes": 0,
+  "sinkScenario": "not asserted",
+  "baselineSha256": "2225822d860d4a0ee4ac2363c2a05ff6138bbe8bb1e044897958e73cb2442ffd"
+}

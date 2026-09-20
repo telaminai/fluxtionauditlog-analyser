@@ -1,0 +1,146 @@
+[
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-1/audit-F.yaml",
+    "records": 19,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938240158,
+    "last": 1789938240195
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-1/audit-A.yaml",
+    "records": 23,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938154516,
+    "last": 1789938154563
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-1/audit-C.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938200584,
+    "last": 1789938200645
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-1/audit-B.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938186277,
+    "last": 1789938186322
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-1/audit-E.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938226384,
+    "last": 1789938226419
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-1/audit-D.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938213516,
+    "last": 1789938213553
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-2/audit-F.yaml",
+    "records": 19,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938579643,
+    "last": 1789938579685
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-2/audit-A.yaml",
+    "records": 23,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938504270,
+    "last": 1789938504305
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-2/audit-C.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938543020,
+    "last": 1789938543059
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-2/audit-B.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938525895,
+    "last": 1789938525940
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-2/audit-E.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938567304,
+    "last": 1789938567338
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-2/audit-D.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938555369,
+    "last": 1789938555405
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-3/audit-F.yaml",
+    "records": 19,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789939561835,
+    "last": 1789939561874
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-3/audit-A.yaml",
+    "records": 23,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938816029,
+    "last": 1789938816142
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-3/audit-C.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938925602,
+    "last": 1789938925642
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-3/audit-B.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789938875367,
+    "last": 1789938875410
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-3/audit-E.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789939511531,
+    "last": 1789939511572
+  },
+  {
+    "file": "docs/handoff/evidence/battery-readiness-2026-09-20/client-3/audit-D.yaml",
+    "records": 21,
+    "backwardStarts": 0,
+    "endBeforeStart": 0,
+    "first": 1789939460555,
+    "last": 1789939460591
+  }
+]

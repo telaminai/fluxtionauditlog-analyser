@@ -1,0 +1,24 @@
+{
+  "frozenUtc": "2026-09-20T21:46:08.427944+00:00",
+  "cohorts": 6,
+  "normalT1Completions": 5,
+  "T2Verified": 4,
+  "T3Verified": 3,
+  "T4FullCorrectnessAndMutationCoverage": 2,
+  "T5": "SKIP",
+  "T6Verified": 3,
+  "providerRefusalCohorts": 1,
+  "substantiveInterventions": 0,
+  "routedFraction": 0.6,
+  "unattributedFraction": 0.2,
+  "recurringTraps": {
+    "T-MAIN": 0,
+    "T-EVENTLOG": 2,
+    "T-RETURN-TRUE": 2,
+    "T-TRANSIENT": 1,
+    "T-TWOFEEDS": 0,
+    "T-NODEBEANS-JAR": "not applicable; T5 skipped"
+  },
+  "longestTask": "T4: independent expected reports and two trigger paths",
+  "scope": "named-target preview, no public release claim"
+}
