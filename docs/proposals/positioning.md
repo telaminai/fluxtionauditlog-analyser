@@ -38,6 +38,48 @@ below depends on it. Same feed, different host, identical records is the sentenc
 
 ---
 
+## The method — what the claim is a claim *about*
+
+The claim above is a property of the system. This is the practice that produces it, and it needs its own
+name because it is what a buyer adopts:
+
+> **No stage passes until the evidence meets a prediction made before the run.**
+
+"Evidence-based development" is the obvious name and it is the wrong one. It borrows from evidence-based
+medicine and policy, where the phrase means *informed by* evidence — advisory, weighed against other
+considerations. Nothing here is advisory. **Cannot pass** is a refusal, and the refusal is the product: the
+toolchain already declines a build that contradicts a declaration, and that is the moment readers convert.
+Name the gate, not the sentiment.
+
+### Four properties, not one
+
+The sentence states only the first. Each of the others has a counter-example from the build session, which
+is how we know they are load-bearing rather than decorative.
+
+| Property | What it requires | What fails without it |
+|---|---|---|
+| **Ordered** | The prediction is written before the run. | A prediction written afterwards is a rationalisation of the output. |
+| **Independent** | The prediction is not derived from the implementation. | Same author and same context, and agreement measures self-consistency. The desk's 844 checked values mean something because the oracle was **in another language, written first**. |
+| **Sufficient** | The prediction can fail, *and* the run exercises it. | A check that cannot fail is not a gate. Both mutation rounds ended with survivors that were **scenario gaps, not check gaps** — prediction sound, check sound, the feed never created the state. |
+| **Grounded** | The evidence is a structural fact, not the author's account. | The tampered jar met its prediction exactly: every receipt hash byte-identical, build green, risk reported as zero. The prediction was about the wrong thing. |
+
+Order in the audit log **is** dispatch order — that is the grounded layer. Values a node writes about itself
+are testimony, and should be described as testimony. The distinction is in *Do not claim yet* below because
+today the product does not draw it for the reader.
+
+### Say it as a cost reduction, not a discovery
+
+Stage gates with objectives met under independence are not new. That is DO-178C, and IEC 62304, and every
+serious assurance regime, and the people worth recruiting as beta testers have lived it for twenty years.
+Presenting the thesis as an insight invites one of them to say so in public.
+
+**What is new is the price.** Getting prediction, independence, sufficiency and grounding previously took a
+qualified toolchain and a team of people, which is why it stayed inside aviation, medical devices and rail.
+Here it is a declaration, a generated dispatcher and a log that is a structural fact rather than an emission.
+The idea is theirs and they will agree with it instantly; the cost is the argument.
+
+---
+
 ## What you are selling
 
 Nobody buys a compiler, an analyser, a playground, a server and a set of runbooks. They buy **one loop**:
