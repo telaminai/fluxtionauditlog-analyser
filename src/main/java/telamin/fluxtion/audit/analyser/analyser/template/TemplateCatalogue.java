@@ -70,9 +70,6 @@ public record TemplateCatalogue(int version, List<Entry> templates) {
             return tags.stream().anyMatch(t -> t.equalsIgnoreCase(tag));
         }
 
-        public boolean mongooseHosted() {
-            return type.equalsIgnoreCase("mongoose") || type.equalsIgnoreCase("hosted");
-        }
     }
 
     /** What the picker should show, including whether recommendations were declared. */

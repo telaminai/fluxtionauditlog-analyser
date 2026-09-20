@@ -1,5 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.ui;
 
+import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents;
 import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
 import telamin.fluxtion.audit.analyser.analyser.config.ConfigStore;
 import telamin.fluxtion.audit.analyser.analyser.core.Background;
@@ -52,7 +53,7 @@ public final class MainFrame extends JFrame {
     private PendingRecovery pendingRecovery;
     private record PendingRecovery(long generation, long opId,
             telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
-            java.util.List<String> outcomes, java.util.function.Consumer<String> completion) { }
+            java.util.List<String> outcomes, java.util.function.Consumer<ResumeEvents.Outcome> completion) { }
 
     /** M19.12: separate from AppConfig so the Fluxtion build key cannot enter shared settings. */
     private final telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore fluxtionKeyStore =
@@ -2726,8 +2727,8 @@ public final class MainFrame extends JFrame {
                 showTab("Topology");
             }
             @Override public void newProject() { chooseTemplateProject(); }
-            @Override public void restoreSession() { if (recovery != null) recovery.restore(); }
-            @Override public void dismissSessionRestore() { if (recovery != null) recovery.dismiss(); }
+            @Override public void restoreSession(long generation) { if (recovery != null) recovery.restore(generation); }
+            @Override public void dismissSessionRestore(long generation) { if (recovery != null) recovery.dismiss(generation); }
         }, text -> status.setText(text));
         recordsCards.add(startPanel, "start");
         recordsCards.add(mainSplit, "table");
@@ -3379,6 +3380,7 @@ public final class MainFrame extends JFrame {
         boolean superseded = !driver.processor().operationGate.accepted();
         if (driver.processor().operationGate.inFlightWhat() == null) setBusy(false);
         if (superseded) {
+            supersedeRecoveryLog(opId);
             // review B3: the refusal applies to a failure too. The record keeps the stale result; the
             // person is not shown a superseded operation's failure as if it were the current one.
             return;
@@ -3412,18 +3414,26 @@ public final class MainFrame extends JFrame {
                                     : "no installed reader recognises " + path.getFileName()
                                             + " — installed: " + readerRegistry.describeReaders());
                         }
-                        var before = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString());
+                        // Native YAML stores hash the raw bytes in their index pass. An opaque plugin
+                        // owns its I/O, so retain independent full verification around that reader.
+                        boolean nativeRead = reader instanceof telamin.fluxtion.audit.analyser.analyser.spi.YamlAuditReader;
+                        var before = nativeRead ? null : telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString());
                         LogStore s = readerRegistry.open(reader, path, config.memoryThresholdMb);
                         var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                 .validate(s.index());
-                        var after = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString());
-                        return new Object[]{s, report, reader.formatId(),
-                                telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.matchingRead(List.of(before), List.of(after))};
+                        var identities = nativeRead ? readIdentities(s)
+                                : telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.matchingRead(List.of(before),
+                                    List.of(telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString())));
+                        if (nativeRead && request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
+                            identities = verifyRestoringRead(identities);
+                        return new Object[]{s, report, reader.formatId(), identities};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
                 out -> {
+                    @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[3];
+                    if (!acceptRecoveryRead(opId, (LogStore)out[0], readIdentity)) return;
                     onLoaded((LogStore) out[0], path.toString(),
                             (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId);
                     if (store == out[0]) {
@@ -3433,6 +3443,21 @@ public final class MainFrame extends JFrame {
                     }
                 },
                 err -> onLoadFailed(opId, path.toString(), request, err));
+    }
+
+    private static List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity> readIdentities(LogStore store) {
+        var identities = store.readIdentities();
+        if (identities.stream().anyMatch(i -> i.sha256() == null)) return List.of();
+        return identities.stream().map(i -> new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity(
+                "log", i.path(), i.sha256(), null)).toList();
+    }
+
+    /** Recovery additionally verifies the entire set AFTER indexing, before any member is published. */
+    private static List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity> verifyRestoringRead(
+            List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity> indexed) {
+        var current = indexed.stream().map(i -> telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity(
+                i.role(), i.path())).toList();
+        return telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.matchingRead(indexed, current);
     }
 
     /** Open a resolved rolled set as one logical log (M30). */
@@ -3446,19 +3471,23 @@ public final class MainFrame extends JFrame {
         Background.run(
                 () -> {
                     try {
-                        var before = files.stream().map(p -> telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", p.toString())).toList();
                         var s = telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore.open(
                                 files, config.memoryThresholdMb);
                         var report = set.report().merged(
                                 telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                         .validate(s.index()));
-                        var after = files.stream().map(p -> telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", p.toString())).toList();
-                        return new Object[]{s, report, telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.matchingRead(before, after)};
+                        var identities = readIdentities(s);
+                        if (request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
+                            identities = verifyRestoringRead(identities);
+                        return new Object[]{s, report, identities};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
-                out -> { onLoaded((LogStore) out[0],
+                out -> {
+                    @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
+                    if (!acceptRecoveryRead(opId, (LogStore)out[0], readIdentity)) return;
+                    onLoaded((LogStore) out[0],
                         files.get(files.size() - 1).getFileName() + " (+" + (files.size() - 1) + " rolled)",
                         (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId);
                     if (store == out[0]) {
@@ -3618,6 +3647,7 @@ public final class MainFrame extends JFrame {
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, request.provenance(),
                 logged, scanned, loaded.size(), level == null ? null : level.toString()));
         if (!driver.processor().operationGate.accepted()) {
+            supersedeRecoveryLog(opId);
             loaded.close();
             if (driver.processor().operationGate.inFlightWhat() == null) setBusy(false);
             status.setText("Discarded " + location + " — a later open superseded it while it was loading");
@@ -5017,7 +5047,7 @@ public final class MainFrame extends JFrame {
         @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult dismissSessionRestore() {
             if (recovery == null || !Boolean.TRUE.equals(session().processor().sessionRecovery.echo().get("available")))
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("No unaccepted session offer is available");
-            recovery.dismiss();
+            recovery.dismiss(session().processor().sessionRecovery.generation());
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "restoration", session().processor().sessionRecovery.echo());
         }
 
@@ -5025,7 +5055,7 @@ public final class MainFrame extends JFrame {
             if (recovery == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Session recovery is not available");
             if (!Boolean.TRUE.equals(session().processor().sessionRecovery.echo().get("available")))
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("No unaccepted session offer is available; inspect context.restoration");
-            recovery.restore();
+            recovery.restore(session().processor().sessionRecovery.generation());
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "restoration", session().processor().sessionRecovery.echo());
         }
 
@@ -6017,7 +6047,7 @@ public final class MainFrame extends JFrame {
             public SessionRecoveryController.Capture capture() { return captureSession(); }
             public void render() { refreshProjectPanel(); }
             public void apply(long generation, telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
-                              java.util.function.Consumer<String> completion) {
+                              java.util.function.Consumer<ResumeEvents.Outcome> completion) {
                 applyRecovery(generation, plan, completion);
             }
             public void failed(String message) { status.setText(message); }
@@ -6061,7 +6091,7 @@ public final class MainFrame extends JFrame {
 
     private void applyRecovery(long generation,
             telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
-            java.util.function.Consumer<String> completion) {
+            java.util.function.Consumer<ResumeEvents.Outcome> completion) {
         var outcomes = new java.util.ArrayList<>(plan.omitted());
         var logs = plan.available().stream().filter(i -> i.role().equals("log")).toList();
         if (logs.isEmpty()) {
@@ -6089,14 +6119,38 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /** Submit reader facts before publishing ANY member of a recovered log set. The graph decides. */
+    private boolean acceptRecoveryRead(long opId, LogStore loaded,
+            List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity> identities) {
+        var pending = pendingRecovery;
+        if (pending == null || pending.opId() != opId || !recoveryCurrent(pending.generation(), opId)) return true;
+        var checks = pending.plan().snapshot().inputs().stream().map(input ->
+                new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Check(input,
+                        (input.role().equals("log") ? identities.contains(input) : pending.plan().available().contains(input))
+                                ? "unchanged" : "input changed or could not be verified during restore")).toList();
+        session().submit(new ResumeEvents.Checked(pending.generation(), checks, null, opId));
+        var applied = session().processor().sessionRecovery.plan();
+        if (applied != null && applied.available().stream().anyMatch(i -> i.role().equals("log"))) return true;
+        loaded.close();
+        session().submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(
+                opId, "session recovery", "Log set withheld: a member changed or could not be verified during restore"));
+        setBusy(false);
+        completeRecoveryLog(opId, "Log set withheld: a member changed or could not be verified during restore");
+        return false;
+    }
+
+    private void supersedeRecoveryLog(long opId) {
+        PendingRecovery pending = pendingRecovery;
+        if (pending == null || pending.opId() != opId) return;
+        pendingRecovery = null;
+        pending.completion().accept(ResumeEvents.Outcome.superseded("Restore superseded by another open; saved view not applied"));
+    }
+
     private void completeRecoveryLog(long opId, String error) {
         PendingRecovery pending = pendingRecovery;
         if (pending == null) return;
+        if (pending.opId() != opId) return;
         pendingRecovery = null;
-        if (pending.opId() != opId) {
-            pending.completion().accept("Restore superseded by another log open; saved view not applied");
-            return;
-        }
         pending.outcomes().add(error == null ? "Log loaded" : error);
         finishRecoveryInputs(pending.generation(), opId, pending.plan(), pending.outcomes(), pending.completion(), error == null);
     }
@@ -6109,15 +6163,30 @@ public final class MainFrame extends JFrame {
     /** Read design/results off the EDT; only completed reads are called restored. */
     private void finishRecoveryInputs(long generation, long opId,
             telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
-            java.util.List<String> outcomes, java.util.function.Consumer<String> completion, boolean logLoaded) {
-        if (!recoveryCurrent(generation, opId)) { completion.accept("Restore superseded; saved view not applied"); return; }
+            java.util.List<String> outcomes, java.util.function.Consumer<ResumeEvents.Outcome> completion, boolean logLoaded) {
+        if (!recoveryCurrent(generation, opId)) { completion.accept(ResumeEvents.Outcome.superseded("Restore superseded; saved view not applied")); return; }
         long designGeneration = session().processor().designSession.generation();
         Background.run(() -> {
-            // Check again after the asynchronous log read. A changed file cannot receive saved anchors.
-            var recheck = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
-                    configStore.path().getParent().resolve("sessions")).check(plan.snapshot());
-            var unchanged = recheck.stream().filter(telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Check::unchanged)
-                    .map(telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Check::input).collect(java.util.stream.Collectors.toSet());
+            // Log facts came from the completed reader. Recheck independent files off-EDT, then let
+            // the graph narrow the plan under the SAME whole-log-set rule before applying anything.
+            var files = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
+                    configStore.path().getParent().resolve("sessions"));
+            var independent = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Snapshot(
+                    plan.snapshot().key(), plan.snapshot().capturedAt(),
+                    plan.snapshot().inputs().stream().filter(i -> !i.role().equals("log")).toList(), Map.of());
+            var independentChecks = files.check(independent);
+            var appliedPlan = actionExecutor.onEdt(() -> {
+                if (!recoveryCurrent(generation, opId)) return null;
+                var node = session().processor().sessionRecovery;
+                var facts = plan.snapshot().inputs().stream().map(input -> input.role().equals("log")
+                        ? node.checks().stream().filter(c -> c.input().equals(input)).findFirst().orElseThrow()
+                        : independentChecks.stream().filter(c -> c.input().equals(input)).findFirst().orElseThrow()).toList();
+                session().submit(new ResumeEvents.Checked(generation, facts, null, opId));
+                return node.plan();
+            });
+            if (appliedPlan == null) return ResumeEvents.Outcome.superseded("Restore superseded; saved view not applied");
+            outcomes.addAll(appliedPlan.omitted());
+            var unchanged = new java.util.HashSet<>(appliedPlan.available());
             var capturedLogs = plan.snapshot().inputs().stream().filter(i -> i.role().equals("log") && i.sha256() != null)
                     .map(i -> Map.of("path", i.path(), "sha256", i.sha256())).toList();
             boolean logIdentity = logLoaded && !capturedLogs.isEmpty()
@@ -6125,9 +6194,8 @@ public final class MainFrame extends JFrame {
                     && plan.available().stream().filter(i -> i.role().equals("log")).allMatch(unchanged::contains);
             var designEpoch = new long[]{designGeneration};
             for (String role : List.of("topology", "design", "diagnostics")) {
-                for (var input : plan.available()) {
+                for (var input : appliedPlan.available()) {
                     if (!input.role().equals(role)) continue;
-                    if (!unchanged.contains(input)) { outcomes.add(role + " withheld: input changed during restore"); continue; }
                     var result = actionExecutor.onEdt(() -> {
                         if (!recoveryCurrent(generation, opId) || session().processor().designSession.generation() != designEpoch[0])
                             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Restore superseded by a newer open");
@@ -6139,14 +6207,14 @@ public final class MainFrame extends JFrame {
                         var allowed = new RecoveryReadGuard(generation, opId, designEpoch);
                         result = role.equals("design") ? ((AppControlAdapter)actionControl).openDesign(input.path(), allowed)
                                 : ((AppControlAdapter)actionControl).openDiagnostics(input.path(), allowed);
-                        if (!result.ok()) return "Restore incomplete: " + result.error() + "; " + String.join("; ", outcomes);
+                        if (!result.ok()) return ResumeEvents.Outcome.done("Restore incomplete: " + result.error() + "; " + String.join("; ", outcomes));
                     }
                     outcomes.add(role + (result.ok() ? " opened" : " refused: " + result.error()));
-                    if (!result.ok() && result.error().contains("superseded")) return "Restore superseded; " + String.join("; ", outcomes);
+                    if (!result.ok() && result.error().contains("superseded")) return ResumeEvents.Outcome.superseded("Restore superseded; " + String.join("; ", outcomes));
                 }
             }
             return actionExecutor.onEdt(() -> {
-                if (!recoveryCurrent(generation, opId)) return "Restore superseded; " + String.join("; ", outcomes);
+                if (!recoveryCurrent(generation, opId)) return ResumeEvents.Outcome.superseded("Restore superseded; " + String.join("; ", outcomes));
                 boolean anchors = logIdentity && capturedLogs.equals(loadedLogIdentity.stream().map(i -> Map.of("path", i.path(), "sha256", i.sha256())).toList());
                 restoreRecoveryView(plan.snapshot().view(), outcomes, anchors,
                         plan.available().stream().filter(i -> i.role().equals("topology")).anyMatch(i -> unchanged.contains(i)
@@ -6155,9 +6223,9 @@ public final class MainFrame extends JFrame {
                                 && java.util.Objects.equals(i.path(), topologyPanel.graphPath())));
                 if (logLoaded && !anchors) outcomes.add("Saved view withheld: log identity differs from the captured view or changed during restore");
                 refreshProjectPanel();
-                return "Restore finished: " + String.join("; ", outcomes);
+                return ResumeEvents.Outcome.done("Restore finished: " + String.join("; ", outcomes));
             });
-        }, completion, error -> completion.accept("Restore incomplete: " + rootMessage(error) + "; " + String.join("; ", outcomes)));
+        }, completion, error -> completion.accept(ResumeEvents.Outcome.done("Restore incomplete: " + rootMessage(error) + "; " + String.join("; ", outcomes))));
     }
 
     @SuppressWarnings("unchecked")

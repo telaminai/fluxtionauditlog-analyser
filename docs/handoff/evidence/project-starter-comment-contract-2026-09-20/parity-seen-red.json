@@ -1,0 +1,28 @@
+{
+  "numFailedTests": 1,
+  "numPassedTests": 2,
+  "numPendingTests": 0,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "status": "passed",
+          "title": "fails for missing resources, changed wording or mutable public coordinates",
+          "failureMessages": []
+        },
+        {
+          "status": "passed",
+          "title": "emits canonical neutral wording while comment edits leave ownership hashes unchanged",
+          "failureMessages": []
+        },
+        {
+          "status": "failed",
+          "title": "compares actual browser and Java emission against the packaged resource",
+          "failureMessages": [
+            "AssertionError: browser handler: expected [ \u2026(10) ] to include 'Implement this event callback accordi\u2026'"
+          ]
+        }
+      ]
+    }
+  ]
+}

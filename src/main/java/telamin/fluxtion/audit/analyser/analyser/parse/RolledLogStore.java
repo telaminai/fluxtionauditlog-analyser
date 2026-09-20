@@ -63,6 +63,10 @@ public final class RolledLogStore implements LogStore {
         return new RolledLogStore(members, List.copyOf(orderedFiles), firstRow, merged);
     }
 
+    @Override public List<FileReadIdentity> readIdentities() {
+        return members.stream().flatMap(m -> m.readIdentities().stream()).toList();
+    }
+
     /** The member files, load (content) order. */
     public List<Path> files() {
         return paths;

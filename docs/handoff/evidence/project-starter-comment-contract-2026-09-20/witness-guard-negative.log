@@ -1,0 +1,3 @@
+The captured actual handler failure was checked against the old reference label.
+Expected refusal; exit 1
+AssertionError: AssertionError: browser handler: expected [ …(10) ] to include 'Implement this event callback accordi…'

@@ -1,8 +1,10 @@
 {
-  "parity-restored.log": "307b5dc86caf6c353e1f192d0afed98f4a28d9c3a2a388d9d15c46292f4c32ed",
-  "public-artifact-check.log": "398be439e12900092016abf2950b99b05f74c5fa0e2b9e9ec84435b914d5879a",
-  "README.md": "3ac7c09182a71ee86056b9dbb67896d44fc70dfe98ae6447cfdee11fc9cc084c",
+  "README.md": "90a269397eb2698b9d93902572b6151c535ad497e8bdbb3e7331d7a25513d521",
   "artifact-manifest.json": "691b53a9fe1c724a01a113a564f3bd1f34f9e2570cbc357018a64254b2e90cbf",
-  "parity-seen-red.log": "0ba963f4723c0c60f222b2f0103fe0a41624bc0403d28b6e070c2878ff50a499",
-  "mutate-browser.py": "eba3ff08892fc40f780982a935ba6374dfc523c115862edc4feeeb7bc2ae2956"
+  "mutate-browser.py": "2a8f0760243f22b06e6dd68654fac2f2738d27e5765264023a302213f983b96d",
+  "parity-restored.log": "307b5dc86caf6c353e1f192d0afed98f4a28d9c3a2a388d9d15c46292f4c32ed",
+  "parity-seen-red.json": "94be7112b70776252b70e85a46c6a82f53f202fe541bf7c57831658957e61d03",
+  "parity-seen-red.log": "d0ce38ebae4b715039ed16fd7507288475dc3e9f7931ee7580c4a7ea162ab400",
+  "public-artifact-check.log": "398be439e12900092016abf2950b99b05f74c5fa0e2b9e9ec84435b914d5879a",
+  "witness-guard-negative.log": "6724aef09e2e9deb6d0a8037db91e81676be24cf376e29b8c932fefc7d9b0db3"
 }

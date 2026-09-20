@@ -1,25 +1,28 @@
 
- RUN  v4.1.5 /private/tmp/fluxtion-journey-web/web
+ RUN  v4.1.5 <playground>/web
 
- ❯ src/lib/starter/comment-contract.test.ts (3 tests | 1 failed) 663ms
-     × compares actual browser and Java emission against the packaged resource 626ms
+ ❯ src/lib/starter/comment-contract.test.ts (3 tests | 1 failed) 528ms
+     ✓ fails for missing resources, changed wording or mutable public coordinates 4ms
+     ✓ emits canonical neutral wording while comment edits leave ownership hashes unchanged 34ms
+     × compares actual browser and Java emission against the packaged resource 489ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 2 passed (3)
-   Start at  13:46:11
-   Duration  1.39s (transform 201ms, setup 0ms, import 569ms, tests 663ms, environment 0ms)
+   Start at  15:46:59
+   Duration  1.18s (transform 103ms, setup 0ms, import 521ms, tests 528ms, environment 0ms)
 
+JSON report written to /private/var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/journey-comments-mutation/vitest.json
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
 
  FAIL  src/lib/starter/comment-contract.test.ts > canonical comment contract > compares actual browser and Java emission against the packaged resource
-AssertionError: browser reference: expected [ …(9) ] to include 'This reference\'s propagation mode is…'
- ❯ src/lib/starter/comment-contract.test.ts:73:59
-     71|    const javaChild = readFileSync(join(root, childFile.path), 'utf8');
-     72|    for (const key of ['reference', 'trigger', 'parentUpdate', 'lifecyc…
-     73|     expect(comments(childFile.content), `browser ${key}`).toContain(ex…
-       |                                                           ^
-     74|     expect(comments(javaChild), `Java ${key}`).toContain(expected(key)…
-     75|    }
+AssertionError: browser handler: expected [ …(10) ] to include 'Implement this event callback accordi…'
+ ❯ src/lib/starter/comment-contract.test.ts:71:75
+     69|    expect(result.status, result.stdout + result.stderr).toBe(0);
+     70|    const nodeFiles = files.filter(f => f.path.includes('/node/') && f.…
+     71|    expect(nodeFiles.flatMap(f => comments(f.content)), 'browser handle…
+       |                                                                           ^
+     72|    expect(nodeFiles.flatMap(f => comments(readFileSync(join(root, f.pa…
+     73|    const childFile = files.find(f => f.path.endsWith('/Child.java'))!;
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

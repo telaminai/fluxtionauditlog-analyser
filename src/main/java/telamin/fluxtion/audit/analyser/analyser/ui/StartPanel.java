@@ -74,8 +74,8 @@ public final class StartPanel extends JPanel {
         default void openProjectDiagnostics() { }
         default void openProjectTopology() { }
         default void newProject() { }
-        default void restoreSession() { }
-        default void dismissSessionRestore() { }
+        default void restoreSession(long generation) { }
+        default void dismissSessionRestore(long generation) { }
 
     }
 
@@ -187,11 +187,12 @@ public final class StartPanel extends JPanel {
         if (context != null && context.get("restoration") instanceof java.util.Map<?,?> restore) {
             recoveryOffer.add(wrapping(String.valueOf(restore.get("message"))), BorderLayout.CENTER);
             if (Boolean.TRUE.equals(restore.get("available"))) {
+                long generation = ((Number) restore.get("generation")).longValue();
                 JButton accept = new JButton("Restore last session");
-                accept.addActionListener(e -> actions.restoreSession());
+                accept.addActionListener(e -> actions.restoreSession(generation));
                 JPanel choices = new JPanel();
                 choices.add(accept);
-                addAction(choices, "Dismiss", actions::dismissSessionRestore);
+                addAction(choices, "Dismiss", () -> actions.dismissSessionRestore(generation));
                 recoveryOffer.add(choices, BorderLayout.EAST);
             }
             recoveryOffer.setVisible(!"idle".equals(restore.get("state")) && !"none".equals(restore.get("state")));

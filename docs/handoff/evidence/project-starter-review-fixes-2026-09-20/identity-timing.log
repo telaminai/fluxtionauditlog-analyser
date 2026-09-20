@@ -1,0 +1,5 @@
+round 1: parse 2422.6 ms, previous triple-pass 2752.4 ms, indexed SHA 2660.9 ms; 400001 records
+round 2: parse 1921.8 ms, previous triple-pass 2886.8 ms, indexed SHA 2745.6 ms; 400001 records
+round 3: parse 2758.4 ms, previous triple-pass 2900.3 ms, indexed SHA 2633.5 ms; 400001 records
+bytes=470820000 sha256=78308d63e5f51585d01264acd426bf882b82b806336fb435db67e5f2e0b04c88
+median added vs parse: 9.8%; improvement vs triple-pass: 7.8%

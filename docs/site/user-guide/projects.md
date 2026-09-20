@@ -250,8 +250,8 @@ accept. **Dismiss** leaves the project declarations available without opening ev
 states the same recovery status; its buttons remain navigation only.
 
 Restoration checks file contents and then opens the unchanged log (or complete rolled set), topology,
-design and producer diagnostics. Missing or changed parts are named individually. An incomplete rolled
-set is refused as a unit. Saved record filters, selection and topology navigation require matching input
+design and producer diagnostics. Missing or changed parts are named individually. An incomplete or changed rolled
+set is refused as a unit, including a member that changes during the restoring read. Saved record filters, selection and topology navigation require matching input
 identities; a replaced file cannot silently acquire the old cursor. Recovery reports the record filter's
 visible/total count and any saved chart window wholly outside the log. A pin is preserved deliberately:
 unpin that chart explicitly to follow the current data.
@@ -259,7 +259,9 @@ unpin that chart explicitly to follow the current data.
 `context.restoration` reports the offer, verification, pending opens and final outcome. Use
 `open {restore: "last"}` to accept or `open {restore: "dismiss"}` to decline, each alone. A pending response
 is not proof that the files loaded: wait for the final state and inspect the outcome. Neither action runs
-the project, its build scripts or its runbooks.
+the project, its build scripts or its runbooks. If a newer open supersedes recovery, its state returns
+to `offered`; wait for that open to finish before accepting again, or dismiss the offer. Buttons retain
+the generation of the offer they displayed, so a stale button cannot accept another project's offer.
 
 Candidates are keyed by canonical project-profile location, with a separate no-project bucket. They are
 not shared in profiles or exported ZIPs. A moved or missing project never inherits another project's
@@ -271,3 +273,8 @@ Record navigation is withheld when an input has no stable local read identity (i
 changed since loading or a temporary remote input). Topology navigation requires an unchanged explicit
 graph file; a reader-supplied graph has no separate file identity. Commentary and spotlight captions are
 not saved by session recovery. Reports retain their existing evidence and freshness rules.
+
+Built-in YAML and rolled files calculate the full SHA-256 from the indexing read; there is no size cutoff
+or metadata-only shortcut. Capture and accepted restoration still verify current file bytes. Plugin
+readers that own their I/O retain before/after full-file checks. Thus the indexed-reader optimisation
+removes two extra traversals on native opens, not all hashing costs or verification passes everywhere.

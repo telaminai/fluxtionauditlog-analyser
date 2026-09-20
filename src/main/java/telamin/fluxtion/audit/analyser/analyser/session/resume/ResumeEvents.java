@@ -7,7 +7,17 @@ public final class ResumeEvents {
     private ResumeEvents() { }
     public record Activated(String profile) { }
     public record OfferLoaded(long generation, String key, SessionResumeStore.Snapshot snapshot, String error) { }
-    public record Requested(boolean accept) { public Requested() { this(true); } }
-    public record Checked(long generation, List<SessionResumeStore.Check> checks, String error) { }
-    public record Finished(long generation, String outcome) { }
+    public record Requested(long generation, boolean accept) { }
+    public record Checked(long generation, List<SessionResumeStore.Check> checks, String error, long operationId) {
+        public Checked(long generation, List<SessionResumeStore.Check> checks, String error) {
+            this(generation, checks, error, Long.MIN_VALUE);
+        }
+    }
+    public record Outcome(String message, boolean superseded) {
+        public static Outcome done(String message) { return new Outcome(message, false); }
+        public static Outcome superseded(String message) { return new Outcome(message, true); }
+    }
+    public record Finished(long generation, Outcome outcome) {
+        public Finished(long generation, String message) { this(generation, Outcome.done(message)); }
+    }
 }

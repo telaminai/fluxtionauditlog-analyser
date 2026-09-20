@@ -12,10 +12,14 @@ Verified locally:
 - Jar check: 2,060 classes, Java 17 base floor, canonical resource bytes packaged unchanged, keyless validation.
 - Browser/Java direct wording parity: real browser source and fresh Java-emitted source are compared with
   the packaged resource for event/trigger, reference, parent-update, lifecycle, export and sink constructs.
-- Seen red: mutate only the browser renderer. Parity fails at browser reference while the same test suite's
-  ownership-hash equivalence check passes. Source restored in finally, then parity passes. The initial
-  runner also required Vitest to print the mutated value, which it elided; the corrected runner checks the
-  actual failing assertion and was repeated. Logs have terminal escapes/trailing whitespace normalised.
+- Seen red (refreshed after JI-5): mutate only the browser renderer. The structured Vitest report
+  identifies the packaged-resource test and the exact `AssertionError: browser handler:` first line
+  (ten emitted comments). The other two tests pass, including ownership-hash equivalence. Source is
+  restored in finally, then all three tests pass. `parity-seen-red.json` retains the test statuses and
+  first assertion lines from that actual run; `parity-seen-red.log` retains the terminal witness.
+  The old nine-comment/reference witness was stale. The helper now rejects it as an expected label
+  for today's handler failure (`witness-guard-negative.log`); code-frame substrings cannot satisfy it.
+  Four Python tests also reject a different failing assertion whose code frame quotes the expected one.
 - Playground full gate: 504/504 with the new local jar; production build passes. A final 23-test focused run
   also checks downloaded resource digests. Type check retains four existing SplitPane errors and six warnings.
 
@@ -33,7 +37,7 @@ FLUXTION_STARTER_TEST_JAR=<local-starter-jar> pnpm vitest run src/lib/starter/co
 FLUXTION_STARTER_TEST_JAR=<local-starter-jar> python3 <this-packet>/mutate-browser.py
 ```
 
-The mutation helper writes its log under /private/tmp and restores the exact original renderer bytes.
+The mutation helper writes structured and terminal logs under the system temporary directory and restores the exact original renderer bytes.
 The resource/provenance shipped in Spring projects does not make the live prose reference version-safe;
 full task-reference compatibility and selected diagnostic improvements remain open. No runtime default,
 application behaviour, existing class ancestry or developer body was changed to add this guidance.

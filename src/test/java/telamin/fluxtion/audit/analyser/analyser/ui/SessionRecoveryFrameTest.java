@@ -122,6 +122,73 @@ class SessionRecoveryFrameTest {
         } finally { stop(); }
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void supersededRecoveryCompletionLeavesTheOfferDecidable(boolean failure) throws Exception {
+        start();
+        var delayed = new AsyncOpenInterleavingFrameTest.DelayedReader(failure, "child");
+        var newer = new AsyncOpenInterleavingFrameTest.DelayedReader(false, "child", "newer.slow");
+        try {
+            edt(() -> { field(frame, "readerRegistry", telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry.class).register(delayed); return null; });
+            var files = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
+                    field(frame,"configStore",ConfigStore.class).path().getParent().resolve("sessions"));
+            files.save(files.capture(profile.toRealPath().toString(), List.of(
+                    new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("log",log.toString())), Map.of("format","test-slow")));
+            edt(() -> { frame.offerSessionRecovery(); return null; });
+            await(c -> "offered".equals(map(c.get("restoration")).get("state")));
+            act("open", Map.of("restore","last"));
+            delayed.awaitEntered();
+            // Use a different format so the later reader stays pending when the OLD callback arrives.
+            var next = new telamin.fluxtion.audit.analyser.analyser.spi.AuditLogReader() {
+                public String formatId() { return "newer-slow"; }
+                public String displayName() { return "newer"; }
+                public boolean canOpen(Path p) { return false; }
+                public TimeBase timeBase() { return TimeBase.wallClockMillisUtc(); }
+                public Capabilities capabilities() { return new Capabilities(false,false,true); }
+                public void read(Path p, java.util.function.Consumer<String> out) throws java.io.IOException { newer.read(p,out); }
+            };
+            edt(() -> { field(frame,"readerRegistry",telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry.class).register(next); return null; });
+            Path nextFile = Files.writeString(log.getParent().resolve("newer.slow"),"fixture");
+            act("open",Map.of("log", nextFile.toString(),"format","newer-slow"));
+            newer.awaitEntered();
+            delayed.release.countDown();
+            var offered = await(c -> "offered".equals(map(c.get("restoration")).get("state")));
+            assertTrue(map(offered.get("restoration")).get("message").toString().contains("superseded"));
+            act("open",Map.of("restore","dismiss"));
+            assertEquals("dismissed",map(context().get("restoration")).get("state"));
+            newer.release.countDown();
+            await(c -> c.containsKey("log"));
+            // Reoffer the same saved session, then acceptance works again.
+            edt(() -> { frame.offerSessionRecovery(); return null; });
+            await(c -> "offered".equals(map(c.get("restoration")).get("state")));
+            act("open",Map.of("restore","last"));
+            await(c -> "finished".equals(map(c.get("restoration")).get("state")));
+        } finally { delayed.release.countDown(); newer.release.countDown(); stop(); }
+    }
+
+    @Test void changedBytesDuringTheReaderAreWithheldBeforePublication() throws Exception {
+        start();
+        var delayed = new AsyncOpenInterleavingFrameTest.DelayedReader(false,"child");
+        try {
+            edt(() -> { field(frame,"readerRegistry",telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry.class).register(delayed); return null; });
+            var files = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
+                    field(frame,"configStore",ConfigStore.class).path().getParent().resolve("sessions"));
+            files.save(files.capture(profile.toRealPath().toString(),List.of(
+                    new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("log",log.toString()),
+                    new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("design",design.toString())),Map.of("format","test-slow")));
+            edt(() -> { frame.offerSessionRecovery(); return null; });
+            await(c -> "offered".equals(map(c.get("restoration")).get("state")));
+            act("open",Map.of("restore","last"));
+            delayed.awaitEntered();
+            Files.writeString(log, Files.readString(log) + "\n# changed during read\n");
+            delayed.release.countDown();
+            var result = await(c -> "finished".equals(map(c.get("restoration")).get("state")));
+            assertFalse(result.containsKey("log"), result.toString());
+            assertEquals(design.toRealPath().toString(),map(result.get("design")).get("file"));
+            assertTrue(map(result.get("restoration")).get("message").toString().contains("Log set withheld"));
+        } finally { delayed.release.countDown(); stop(); }
+    }
+
     private void start() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
         originalHome = System.getProperty("user.home");

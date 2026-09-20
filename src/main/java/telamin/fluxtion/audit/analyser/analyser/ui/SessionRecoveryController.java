@@ -18,7 +18,7 @@ final class SessionRecoveryController {
         SessionDriver driver();
         Capture capture();
         void render();
-        void apply(long generation, SessionRecovery.Plan plan, Consumer<String> completion);
+        void apply(long generation, SessionRecovery.Plan plan, Consumer<ResumeEvents.Outcome> completion);
         void failed(String message);
     }
     private final SessionResumeStore files;
@@ -53,15 +53,15 @@ final class SessionRecoveryController {
             later(() -> { if (!closing) { host.driver().submit(fact); host.render(); } });
         });
     }
-    void dismiss() {
-        host.driver().submit(new ResumeEvents.Requested(false)); host.render();
+    void dismiss(long generation) {
+        host.driver().submit(new ResumeEvents.Requested(generation, false)); host.render();
     }
-    void restore() {
+    void restore(long generation) {
         if (closing) return;
-        host.driver().submit(new ResumeEvents.Requested());
+        boolean offered = Boolean.TRUE.equals(state().echo().get("available"));
+        host.driver().submit(new ResumeEvents.Requested(generation, true));
         host.render();
-        if (!state().verifying()) return;
-        long generation = state().generation();
+        if (!offered || state().generation() != generation || !state().verifying()) return;
         var snapshot = state().candidate();
         io.execute(() -> {
             ResumeEvents.Checked result;

@@ -45,6 +45,9 @@ public class SessionRecovery implements EventLogSource {
         return true;
     }
     @OnEventHandler public boolean request(ResumeEvents.Requested e) {
+        if (e.generation() != generation) {
+            message = "That session offer was superseded; inspect the current offer"; return true;
+        }
         if (!"offered".equals(state) || candidate == null) {
             message = "No unaccepted session offer is available"; return true;
         }
@@ -61,8 +64,10 @@ public class SessionRecovery implements EventLogSource {
         return true;
     }
     @OnEventHandler public boolean checked(ResumeEvents.Checked e) {
-        if (e.generation() != generation || !"verifying".equals(state)) return stale();
-        if (gate.expectedOpId() != operationAtRequest || gate.inFlightWhat() != null) {
+        boolean applying = "restoring".equals(state) && e.operationId() != Long.MIN_VALUE;
+        if (e.generation() != generation || (!applying && !"verifying".equals(state))) return stale();
+        if (applying && e.operationId() != gate.expectedOpId()) return stale();
+        if (!applying && (gate.expectedOpId() != operationAtRequest || gate.inFlightWhat() != null)) {
             state = "offered"; message = "A newer open superseded this restore; request again when ready"; return true;
         }
         if (e.error() != null) { state = "unavailable"; message = e.error(); return true; }
@@ -70,23 +75,27 @@ public class SessionRecovery implements EventLogSource {
         if (!checks.stream().map(SessionResumeStore.Check::input).toList().equals(candidate.inputs())) {
             state = "unavailable"; message = "Recovery verification did not cover the offered inputs"; return true;
         }
-        boolean logsComplete = checks.stream().filter(c -> c.input().role().equals("log")).allMatch(SessionResumeStore.Check::unchanged);
+        // Rechecks can only narrow the accepted plan; a later read cannot resurrect a refused input.
+        var previouslyAvailable = applying ? plan.available() : candidate.inputs();
+        boolean logsComplete = checks.stream().filter(c -> c.input().role().equals("log"))
+                .allMatch(c -> c.unchanged() && previouslyAvailable.contains(c.input()));
         List<SessionResumeStore.Identity> available = new ArrayList<>();
         List<String> omitted = new ArrayList<>();
         for (var check : checks) {
-            if (check.unchanged() && (!check.input().role().equals("log") || logsComplete)) available.add(check.input());
+            if (check.unchanged() && previouslyAvailable.contains(check.input()) && (!check.input().role().equals("log") || logsComplete)) available.add(check.input());
             else omitted.add(check.input().role() + ": " + check.input().path() + " — "
                     + (check.unchanged() ? "another member of this log set changed or is unavailable" : check.status()));
         }
         plan = new Plan(candidate, available, omitted);
-        state = available.isEmpty() ? "unavailable" : "restoring";
+        state = available.isEmpty() && !applying ? "unavailable" : "restoring";
         message = available.isEmpty() ? "No unchanged inputs can be restored" : "Opening verified inputs; completion is pending";
         auditLog.info("recovery", state).info("omitted", omitted.size());
         return true;
     }
     @OnEventHandler public boolean finished(ResumeEvents.Finished e) {
         if (e.generation() != generation || !"restoring".equals(state)) return stale();
-        state = "finished"; message = e.outcome(); plan = null;
+        state = e.outcome().superseded() ? "offered" : "finished";
+        message = e.outcome().message(); plan = null;
         auditLog.info("recovery", state).info("outcome", message);
         return true;
     }
@@ -94,10 +103,11 @@ public class SessionRecovery implements EventLogSource {
     public long generation() { return generation; }
     public SessionResumeStore.Snapshot candidate() { return candidate; }
     public Plan plan() { return plan; }
+    public List<SessionResumeStore.Check> checks() { return checks; }
     public boolean verifying() { return "verifying".equals(state); }
     public Map<String,Object> echo() {
         Map<String,Object> out = new LinkedHashMap<>();
-        out.put("state", state); out.put("message", message);
+        out.put("state", state); out.put("message", message); out.put("generation", generation);
         out.put("available", "offered".equals(state));
         if (candidate != null) {
             out.put("capturedAt", candidate.capturedAt());

@@ -279,6 +279,10 @@ def main() -> int:
         test_same_simple_name_in_one_jar_gets_distinct_ids(tmp)
         test_bean_ids_survive_jar_name_collision()
         test_harness_derives_the_modes(tmp)
+    witness = subprocess.run([sys.executable, str(ROOT / "tools/test_comment_mutation_witness.py")],
+                             capture_output=True, text=True)
+    check("comment mutation witness rejects misleading failure labels", witness.returncode == 0,
+          witness.stdout + witness.stderr)
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILED:")

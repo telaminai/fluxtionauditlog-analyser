@@ -25,6 +25,7 @@ public final class MappedLogStore implements LogStore {
     private final FileChannel channel;
     private final LogIndex index;
     private final Path path;
+    private final FileReadIdentity readIdentity;
     private final Map<Integer, LogRecord> cache = new LinkedHashMap<>(CACHE, 0.75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<Integer, LogRecord> e) {
             return size() > CACHE;
@@ -33,7 +34,12 @@ public final class MappedLogStore implements LogStore {
 
     public MappedLogStore(Path path) throws IOException {
         this.path = path;
-        this.index = buildIndex(path);
+        this.index = new LogIndex();
+        var capture = FileReadIdentity.begin(path);
+        try (var in = capture.open()) {
+            ByteRecordFramer.frame(in, (offset, length, text) -> index.add(RecordParser.parse(text, offset, length)));
+        }
+        this.readIdentity = capture.finish();
         this.channel = FileChannel.open(path, StandardOpenOption.READ);
     }
 
@@ -42,11 +48,7 @@ public final class MappedLogStore implements LogStore {
         return path == null ? null : path.toString();
     }
 
-    private static LogIndex buildIndex(Path path) throws IOException {
-        LogIndex idx = new LogIndex();
-        ByteRecordFramer.frame(path, (offset, length, text) -> idx.add(RecordParser.parse(text, offset, length)));
-        return idx;
-    }
+    @Override public java.util.List<FileReadIdentity> readIdentities() { return java.util.List.of(readIdentity); }
 
     @Override public int size() { return index.size(); }
     @Override public LogIndex index() { return index; }

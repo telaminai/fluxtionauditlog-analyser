@@ -221,3 +221,16 @@ Do not mark acceptance 11 fully closed: selected diagnostic cases and public ver
 The resource pin does not by itself establish compatibility of every live documentation reference.
 Next implementation work remains diagnostics, vendor safeguards, resolved-runtime runbooks and isolated
 browser/fresh-client acceptance; none has silently become a release claim.
+
+
+## Implementation review response — 2026-09-20
+
+The independent [implementation review](review_project_starter_implementation_2026_09_20_claude.md)
+found two analyser merge blockers and four follow-ups; producer work was accepted within its stated
+scope. The [author response](response_project_starter_implementation_2026_09_20.md) records all six
+corrections and the precise evidence and limitations. Owner chose full verification with reader
+optimisation, not a size threshold. Native ordinary opens hash during indexing; opaque plugins retain
+before/after checks, and restore retains a post-index whole-set check. Clean package: 1,718/0/0 with
+40 headless skips; display: 41/0/0/0. Three recovery mutations failed their intended assertions, then
+restored source passed. The comment witness is refreshed against the current assertion. Re-review is
+pending; this checkpoint does not replace the independent verdict or close any full-journey gate.

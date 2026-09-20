@@ -18,6 +18,7 @@ public final class HeapLogStore implements LogStore {
 
     private volatile String file;        // grows in follow/tail mode (append-only); volatile: read off-EDT by readView()
     private final LogIndex index;
+    private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
 
     public HeapLogStore(String file) {
@@ -26,9 +27,20 @@ public final class HeapLogStore implements LogStore {
     }
 
     public static HeapLogStore fromFile(Path path) throws IOException {
-        HeapLogStore s = new HeapLogStore(Files.readString(path, StandardCharsets.UTF_8));
+        var capture = FileReadIdentity.begin(path);
+        // Files.readString rejects malformed UTF-8. Re-encoding its immutable text gives exactly
+        // the bytes read (including separators/CRLF/BOM), without another traversal of the file.
+        String text = Files.readString(path, StandardCharsets.UTF_8);
+        capture.accept(text.getBytes(StandardCharsets.UTF_8));
+        var identity = capture.finish();
+        HeapLogStore s = new HeapLogStore(text);
+        s.readIdentity = identity;
         s.source = path;
         return s;
+    }
+
+    @Override public java.util.List<FileReadIdentity> readIdentities() {
+        return readIdentity == null ? java.util.List.of() : java.util.List.of(readIdentity);
     }
 
     @Override
@@ -58,6 +70,7 @@ public final class HeapLogStore implements LogStore {
         // row still has a valid span (no reader can throw), and the unindexed tail is picked up the next time
         // the file GROWS — a same-length re-read returns 0 above. Before, the retry was immediate but readers
         // could throw meanwhile (impl review F2).
+        this.readIdentity = null; // follow changes the indexed view; no stale opening digest may describe it
         this.file = full;
         // require a terminator so a record still being written isn't indexed until complete; the
         // first `before` records are byte-identical (append-only) so we skip them and add the rest

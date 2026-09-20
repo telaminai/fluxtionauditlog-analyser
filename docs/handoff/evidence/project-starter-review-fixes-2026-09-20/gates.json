@@ -1,0 +1,14 @@
+{
+  "headless": {
+    "tests": 1718,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 40
+  },
+  "display": {
+    "tests": 41,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

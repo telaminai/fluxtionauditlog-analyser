@@ -11,6 +11,9 @@ import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
  */
 public interface LogStore extends AutoCloseable {
 
+    /** Identities of the raw local bytes consumed during opening, in log-set order; empty if unsupported. */
+    default java.util.List<FileReadIdentity> readIdentities() { return java.util.List.of(); }
+
     int size();
 
     LogIndex index();

@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- Session recovery returns to an actionable offer when a newer open supersedes it, and stale start-page
+  buttons cannot answer another project's offer. Recovery rechecks are decided by the session graph;
+  changed log sets are withheld before publication as one unit.
+- Built-in YAML and rolled-log opening compute full content identities from the indexing read rather
+  than making two extra file traversals. Full verification remains required at every file size.
+
 ### Added
 - **Whole starter catalogue** — File ▸ New project from template and the start page's authoring action
   show every entry, marking recommended starting points and disclosing declared build/regeneration key

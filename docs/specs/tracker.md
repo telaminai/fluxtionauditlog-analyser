@@ -86,12 +86,19 @@ Legend for each item: **[id] status — title** · _acceptance_.
   journey. F/G/H/J are independently closed; final review READY with K1/K2 wording now corrected. Preserve generated-body
   ownership/hash compatibility and the analyser's pointers-only boundary. No guide verb or new runtime
   default is approved. Compiler/starter and playground own emitted guidance; agent/harness owns execution.
+- ◧ **Journey implementation review response — 2026-09-20** — independent
+  [review](../handoff/review_project_starter_implementation_2026_09_20_claude.md) received: analyser NOT
+  READY (JI-2/JI-4 merge blockers); playground/compiler READY WITH FOLLOW-UPS. JI-1 owner decision:
+  retain full verification, optimise the reader; no size cutoff. [Author response](../handoff/response_project_starter_implementation_2026_09_20.md)
+  records JI-1–JI-6 corrections, matched red/green regressions, 1,718 headless tests (40 display skips),
+  41 display tests with no skips, and the 449 MiB timing. Native indexing hashes its read; plugin and
+  explicit restore verification costs remain stated. Independent re-review is still required.
+  Publication, actual process restart, deployed acquisition and fresh-client gates remain open.
 - ◧ **Independent journey implementation review requested — 2026-09-20** —
   [review brief](../handoff/brief_review_project_starter_implementation_2026_09_20.md) pins the analyser
   and playground implementation ranges, coordinates the authorised starter review, and requests an
   independent findings/author-handoff report on a separate review branch. Covers saved facts/recovery,
-  catalogue/acquisition, producer routing, comments/publication and evidence integrity. No implementation
-  verdict has been issued. The brief calls out the comment-mutation helper's stale failure-label check;
+  catalogue/acquisition, producer routing, comments/publication and evidence integrity. The independent review below the brief has now been received; its analyser verdict is NOT READY. The brief calls out the comment-mutation helper's stale failure-label check;
   the reviewer must distinguish a genuine test red from a helper error. Full-journey gates remain open.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node

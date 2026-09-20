@@ -303,6 +303,19 @@ as unassigned legacy locations for explicit selection. A command-line log remain
 it does not authorize restoring unrelated remembered topology. Failed project activation must not load
 another project's candidate. Accept/decline and partial failure have matching human/MCP state and echoes.
 
+**Owner decision after implementation review JI-1:** keep full content verification at every file size;
+optimise the reader rather than introducing a threshold or accepting metadata as identity. Native
+readers compute SHA-256 from the bytes consumed by indexing (the heap reader's losslessly decoded UTF-8
+buffer is equivalent). Opaque plugin readers keep independent checks until they expose an equivalent
+verified read. Capture/restore comparisons still check current bytes. Performance acceptance: on the
+reviewer's large warm-cache fixture, target median overhead below 15% relative to the same index scan;
+record raw timings and digests, and do not generalise them to other hardware or plugins.
+
+Implementation review JI-2–JI-4 acceptance: all apply-time verification facts return to the graph's
+whole-set rule before log publication; a recheck only narrows a plan. UI accept/dismiss carries the
+rendered offer generation. A superseded asynchronous success or failure completes its own recovery
+with a retryable outcome; it cannot finish a newer restore. No duplicate Swing recovery policy.
+
 Owner report 2026-09-20: closing/reopening the locally provisioned sample looks as though everything
 has gone and initialization is unclear. Read-only inspection of the staged profile found two
 runbooks, two source roots and five saved chart definitions; that proves those declarations are present

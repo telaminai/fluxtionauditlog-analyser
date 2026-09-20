@@ -1,0 +1,36 @@
+[
+  {
+    "finding": "JI-4",
+    "mutation": "            supersedeRecoveryLog(opId); -> ",
+    "failures": [
+      {
+        "test": "supersededRecoveryCompletionLeavesTheOfferDecidable(boolean)[1]",
+        "type": "org.opentest4j.AssertionFailedError"
+      },
+      {
+        "test": "supersededRecoveryCompletionLeavesTheOfferDecidable(boolean)[2]",
+        "type": "org.opentest4j.AssertionFailedError"
+      }
+    ]
+  },
+  {
+    "finding": "JI-2",
+    "mutation": "boolean applying = \"restoring\".equals(state) && e.operationId() != Long.MIN_VALUE; -> boolean applying = false;",
+    "failures": [
+      {
+        "test": "recheckWithdrawsTheWholeSetAndCannotResurrectAnOmittedMember",
+        "type": "org.opentest4j.AssertionFailedError"
+      }
+    ]
+  },
+  {
+    "finding": "JI-3",
+    "mutation": "if (e.generation() != generation) { -> if (false) {",
+    "failures": [
+      {
+        "test": "staleAcceptanceAndDismissalCannotAnswerANewerOffer",
+        "type": "org.opentest4j.AssertionFailedError"
+      }
+    ]
+  }
+]
