@@ -38,45 +38,109 @@ below depends on it. Same feed, different host, identical records is the sentenc
 
 ---
 
-## The method — what the claim is a claim *about*
+## The method — and where it stops being true
 
-The claim above is a property of the system. This is the practice that produces it, and it needs its own
-name because it is what a buyer adopts:
+The claim above is a property of the system. This is the practice that produces it, and it is what a buyer
+actually adopts:
 
 > **No stage passes until the evidence meets a prediction made before the run.**
 
-"Evidence-based development" is the obvious name and it is the wrong one. It borrows from evidence-based
-medicine and policy, where the phrase means *informed by* evidence — advisory, weighed against other
-considerations. Nothing here is advisory. **Cannot pass** is a refusal, and the refusal is the product: the
-toolchain already declines a build that contradicts a declaration, and that is the moment readers convert.
-Name the gate, not the sentiment.
+**Method, not headline.** Lead with this and the room answers *we have gates too*. Lead with the outcome —
+you can trust the software without trusting whoever wrote it — and the room asks *how*, at which point this
+is the answer rather than the claim. The outcome survives the pitch; the method survives the technical
+session afterwards. Order matters more here than wording.
 
-### Four properties, not one
+### The word to keep, and the word to drop
 
-The sentence states only the first. Each of the others has a counter-example from the build session, which
-is how we know they are load-bearing rather than decorative.
+**Keep "prediction".** Most quality vocabulary says *requirements* or *acceptance criteria*, and a
+requirement that is met tells you only that a requirement was met. A prediction that is falsified tells you
+something you did not know. That is why the vendor experiment scored **15 of 17** and why the two misses were
+the valuable part. Say plainly that falsification is a result rather than a failure, or "prediction" decays
+into a synonym for "requirement" and the edge is gone.
 
-| Property | What it requires | What fails without it |
-|---|---|---|
-| **Ordered** | The prediction is written before the run. | A prediction written afterwards is a rationalisation of the output. |
-| **Independent** | The prediction is not derived from the implementation. | Same author and same context, and agreement measures self-consistency. The desk's 844 checked values mean something because the oracle was **in another language, written first**. |
-| **Sufficient** | The prediction can fail, *and* the run exercises it. | A check that cannot fail is not a gate. Both mutation rounds ended with survivors that were **scenario gaps, not check gaps** — prediction sound, check sound, the feed never created the state. |
-| **Grounded** | The evidence is a structural fact, not the author's account. | The tampered jar met its prediction exactly: every receipt hash byte-identical, build green, risk reported as zero. The prediction was about the wrong thing. |
+The discipline needs a mechanism, though, not just a word: a prediction is only worth the paper if it was
+**sealed** before the run. Ours were, by hand. **Nothing in the product seals one today** — that is a gap,
+and it is the same gap as the missing run receipt, one level up.
 
-Order in the audit log **is** dispatch order — that is the grounded layer. Values a node writes about itself
-are testimony, and should be described as testimony. The distinction is in *Do not claim yet* below because
-today the product does not draw it for the reader.
+**Drop "evidence-based".** Two reasons. *Evidence-based software engineering* is already taken as an academic
+term — Kitchenham and others, mid-2000s, meaning empirical research informing practice — so the phrase is not
+free in this field. And *based* is advisory where *gated* is a refusal. **Evidence-gated development.**
 
-### Say it as a cost reduction, not a discovery
+### Three kinds of gate, not one
 
-Stage gates with objectives met under independence are not new. That is DO-178C, and IEC 62304, and every
-serious assurance regime, and the people worth recruiting as beta testers have lived it for twenty years.
-Presenting the thesis as an insight invites one of them to say so in public.
+The sentence reads as though every stage gates the same way. They do not, and compressing to two columns
+loses the one in the middle.
 
-**What is new is the price.** Getting prediction, independence, sufficiency and grounding previously took a
-qualified toolchain and a team of people, which is why it stayed inside aviation, medical devices and rail.
+| Kind | Who supplies the expectation | Where | What it establishes |
+|---|---|---|---|
+| **Proof** | nobody — the tool establishes the property | validation, reconciliation, the compiler, the build | the artefact is consistent with what the tool was shown |
+| **Provenance** | nobody — identity is recorded | dependency digests, run receipts | the artefact is the one you think it is |
+| **Comparison** | someone else, in advance | audit vs oracle, run vs rerun, host vs host | the behaviour is what was predicted |
+
+**The tampered jar passed every proof.** The compiler proved the declaration consistent with the code it was
+shown; it had no opinion about whether that was the code we thought we had. Proof is a property of an
+artefact, not of a system, until provenance pins which artefact — which is why digests are a launch gate
+below rather than a nicety.
+
+### "Cannot pass" means two different things
+
+**Structural — the artefact does not come into existence.** Validation refuses, reconciliation writes nothing
+on conflict, the compiler refuses what it cannot prove, the build fails. There is nothing to pass through.
+
+**Semantic — nothing can prove correctness, so the gate is mechanical rather than absolute.** Three legs, and
+the third is the one that is easy to drop:
+
+1. the named checks ran and every one passed;
+2. **mutation** — an injected fault makes a named assertion fail, so the check *could* have failed;
+3. **coverage** — the run actually reached the state the assertion is about.
+
+One and two without three is not a hypothetical. It is the failure we hit, twice: both mutation rounds ended
+with survivors that were **scenario gaps, not check gaps** — prediction sound, assertion sound, killable in
+principle, and the feed never created the condition. A check that could have failed but was never reached
+passes exactly like one that was.
+
+The honest caveat is about enforcement, not truth. Nothing physically stops someone skipping a stage. What
+they cannot do is skip it **and still produce the pack** — and for an assurance audience those are the same
+sentence, because that is how their gates already work.
+
+### The denominator is the part nobody can copy
+
+The objection is *everyone has gates*. The answer is not that ours are stricter.
+
+Tracing records what did happen and has no declared set to subtract from, so *which components never ran* is
+not a question it answers badly — it is one it **cannot pose**. Here the declared graph is the denominator,
+so absence is a fact. This is already a standing decision (`spec-trust-structure.md` **D-T7**, *derived
+orchestration, and a denominator*), and it is the single hardest thing in this position to copy.
+
+The companion decision is **D-T3**: order in the audit log is **evidence**, values a node writes about itself
+are **testimony**. Both layers are real; presenting them as one is the overclaim, and it is in *Do not claim
+yet* below because the product does not yet draw the line for the reader.
+
+### Sell the cost, not the idea
+
+Stage gates with objectives met under independence are not new. That is DO-178C, IEC 62304, EN 50128 — and
+the people worth recruiting as beta testers have practised it for twenty years. Presenting the thesis as an
+insight invites one of them to say so in public.
+
+**What is new is the price.** Prediction, independence, sufficiency and provenance previously took a
+qualified toolchain and a team, which is why the practice stayed inside aviation, medical devices and rail.
 Here it is a declaration, a generated dispatcher and a log that is a structural fact rather than an emission.
-The idea is theirs and they will agree with it instantly; the cost is the argument.
+The idea is theirs and they will agree with it on sight; the cost is the argument.
+
+### The counterexample, kept in view
+
+The rule is not universal yet, and the way to hold a principle honestly is to name where it fails.
+
+**A data mapper returning null is logged at fine level and dropped, while a throw is reported as an error.**
+A null-returning mapper therefore loses input invisibly at default log levels: every stage reports success
+and you pass straight through. It is specified — D-T8 requires a connector to *count what it dropped, so a
+denominator exists* — and open in the code.
+
+Note the word. *Denominator*, at the far end of the pipe from the tracing argument above. The same rule keeps
+arriving under different names: coverage refuses an inferred graph, reconciliation writes nothing on
+conflict, a report section renders or states why it could not, a connector may not conceal a gap (D-T8) or
+fabricate a value (D-T9). Independently converging on one sentence — *you do not pass this point with a
+silent hole* — is how you tell a principle from a preference.
 
 ---
 
@@ -179,9 +243,11 @@ client orders, hedging, credit, spreads, exchange connectivity — is the answer
 story is genuinely behind the engineering; do not pretend otherwise.
 
 **"Why not just add tracing?"**
-Tracing records what code chose to emit, after the fact, and changes the thing being measured. Here the
-order in the log *is* the dispatch order the compiler derived, so absence is evidence. "This node did not
-react to that price" is a checkable statement. No tracing product can make it.
+Tracing records what code chose to emit, after the fact, and changes the thing being measured. The deeper
+answer is the denominator: tracing has no declared set to subtract from, so *which nodes never ran* is not a
+question it answers badly — it is one it cannot pose. Here the order in the log **is** the dispatch order the
+compiler derived, against a known topology, so "this node did not react to that price" is a checkable
+statement rather than an absence of data. No tracing product can make it.
 
 **"Spring XML in 2026?"**
 It is not runtime wiring — it is compiled into a fixed dispatch table. It is also the artefact that makes
@@ -211,7 +277,10 @@ What matters for the headline, in the language of that schedule:
 
 - **Slice A (integrity)** is what makes the claim true under adversarial test. Dependency digests in the run
   receipt, and no generated shell over a class that exists only in a dependency. Without these, a sceptic
-  falsifies "certified component" in five minutes.
+  falsifies "certified component" in five minutes. **The D-T8 null-mapper drop belongs here too** if the
+  method section goes public: publishing *you do not pass this point with a silent hole* while a
+  null-returning mapper loses input invisibly at default log levels is a one-line rebuttal, and it is the
+  counterexample the method section already names.
 - **Slice B (truthful echoes)** is what makes the claim survive the tool that presents it. A headline about
   evidence is measured against the analyser's own output.
 - **Slice C (zero-intervention cold start)** is the claim behind every number quoted above, and it is a
