@@ -200,3 +200,24 @@ passes. Type check reports only the four existing SplitPane errors (and six warn
 loopback/fetch attempts were rerun with permissions and passed. This closes bundle entry routing and
 profile interoperability, not interactive public acquisition, runtime runbook validation, comment
 resource/parity, vendor prerequisites or the isolated fresh-client acceptance.
+
+## Checkpoint — neutral comments and artifact parity
+
+Java now packages and reads the canonical comment resource; playground `47b9952` vendors bytes from the
+built jar, annotates only freshly generated Spring nodes, and ships resource/provenance with Spring
+downloads. The comment text describes constructs without fixing the initial propagation/lifecycle choice.
+Existing developer prose/bodies and ownership hashing are unchanged. The public verifier uses the setup
+script's Repsy endpoint, checks resource bytes/digest, and additionally checks immutable released jar digests.
+It reuses the playground artifact fetch helper; no private source checkout is part of that verification.
+
+[Evidence and reproduction](evidence/project-starter-comment-contract-2026-09-20/README.md): clean Java
+84 + 47 tests; jar check; real browser/Java emitted-text parity; DATA→TRIGGER→DATA compilation and no-op;
+wording mutation red with ownership hashes unchanged, restored green; playground 504/504 and production
+build. Final focused gate 23 tests and type check only the four known SplitPane errors.
+
+Publication remains OPEN: the actual public artifact request returned HTTP 404, so the committed manifest
+says local-development. The new CI public parity step must fail until publication/public re-vendoring.
+Do not mark acceptance 11 fully closed: selected diagnostic cases and public verification are outstanding.
+The resource pin does not by itself establish compatibility of every live documentation reference.
+Next implementation work remains diagnostics, vendor safeguards, resolved-runtime runbooks and isolated
+browser/fresh-client acceptance; none has silently become a release claim.

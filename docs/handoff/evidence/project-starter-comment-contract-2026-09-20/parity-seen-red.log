@@ -1,0 +1,25 @@
+
+ RUN  v4.1.5 /private/tmp/fluxtion-journey-web/web
+
+ ❯ src/lib/starter/comment-contract.test.ts (3 tests | 1 failed) 663ms
+     × compares actual browser and Java emission against the packaged resource 626ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  13:46:11
+   Duration  1.39s (transform 201ms, setup 0ms, import 569ms, tests 663ms, environment 0ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/starter/comment-contract.test.ts > canonical comment contract > compares actual browser and Java emission against the packaged resource
+AssertionError: browser reference: expected [ …(9) ] to include 'This reference\'s propagation mode is…'
+ ❯ src/lib/starter/comment-contract.test.ts:73:59
+     71|    const javaChild = readFileSync(join(root, childFile.path), 'utf8');
+     72|    for (const key of ['reference', 'trigger', 'parentUpdate', 'lifecyc…
+     73|     expect(comments(childFile.content), `browser ${key}`).toContain(ex…
+       |                                                           ^
+     74|     expect(comments(javaChild), `Java ${key}`).toContain(expected(key)…
+     75|    }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

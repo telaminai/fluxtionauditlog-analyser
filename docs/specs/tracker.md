@@ -86,6 +86,16 @@ Legend for each item: **[id] status — title** · _acceptance_.
   journey. F/G/H/J are independently closed; final review READY with K1/K2 wording now corrected. Preserve generated-body
   ownership/hash compatibility and the analyser's pointers-only boundary. No guide verb or new runtime
   default is approved. Compiler/starter and playground own emitted guidance; agent/harness owns execution.
+- ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
+  resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
+  comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation
+  prove hashes alone cannot establish comment truth. DATA→TRIGGER→DATA preserves code/comment, compiles
+  and repeats without changes. Java gates 84 + 47; playground 504/504 and build pass (four known SplitPane
+  type errors remain). [Evidence](../handoff/evidence/project-starter-comment-contract-2026-09-20/README.md).
+  **Publication open:** authoritative Repsy request returned 404; provenance says local-development and
+  the public CI parity gate must remain failing until release/public re-vendoring. Selected diagnostics,
+  full reference-version checks and held-out routing acceptance remain open; comments do not close
+  vendor identity, audit scaffolding or imitation-channel defects.
 - ☑ **Saved-chart declarations before input — implementation slice** — `context.savedGraphs` and the
   reveal-only Project panel render persisted definitions separately from live tabs. 1,691 tests pass
   (31 display skips), strict docs and rule-1 sweep pass at this slice. Landing/restore and its display witness

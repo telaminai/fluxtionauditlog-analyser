@@ -1,0 +1,10 @@
+{
+  "coordinate": "com.telamin.fluxtion:fluxtion-starter-core:1.0.72:jar:all",
+  "version": "1.0.72",
+  "repository": "https://repo.repsy.io/mvn/fluxtion/fluxtion-public",
+  "resource": "META-INF/fluxtion/starter/comment-contract.json",
+  "source": "local-development",
+  "artifactVersion": "1.0.72-SNAPSHOT",
+  "artifactSha256": "dac90899288183fcb66c574bc086e4fd36e06aaa8c5e0075b8cb7c6a0887e846",
+  "resourceSha256": "b9823174229a76a6e2dab5a42f8ce62223a92e374c2be4f49747c181eb2450f3"
+}
