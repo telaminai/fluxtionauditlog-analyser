@@ -1,0 +1,11 @@
+DENIED /Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/pom.xml
+DENIED /private/tmp/fluxtion-journey-web/web/package.json
+DENIED /private/tmp/fluxtion-journey-compiler/pom.xml
+DENIED /private/tmp/fluxtion-spring-demo/project/desk/ITERATIONS.md
+Apache Maven 3.9.9 (8e8579a9e76f7d015ee5ec7bfcdc97d260186937)
+Maven home: /private/tmp/fluxtion-v2-client-smoke/tmp/wrapper/wrapper/dists/apache-maven-3.9.9/3477a4f1
+Java version: 21.0.11, vendor: Amazon.com Inc., runtime: /Users/greg/Library/Java/JavaVirtualMachines/corretto-21.0.11/Contents/Home
+Default locale: en_GB, platform encoding: UTF-8
+OS name: "mac os x", version: "26.5.1", arch: "aarch64", family: "mac"
+
+Client authenticated; project/toolchain/scratch probes pass

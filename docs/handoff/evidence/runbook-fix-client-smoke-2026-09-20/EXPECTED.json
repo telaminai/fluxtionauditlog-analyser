@@ -1,0 +1,37 @@
+{
+  "_source": "data/input.txt (5 rows, symbol,price,volume) mapped by com.acme.preview.mapper.CsvToPriceEvent to PriceEvent, handled by RootNode.onPriceEvent (com.acme.preview.node.RootNode), which is the only auditLog.info emitter in the graph (RiskCheck does not extend EventLogNode and logs nothing)",
+  "_auditFieldsPerEvent": ["receivedEvent", "price", "volume"],
+  "events": [
+    {
+      "symbol": "AAPL",
+      "price": 195.30,
+      "volume": 1200,
+      "receivedEvent": "PriceEvent{symbol=AAPL, price=195.3, volume=1200}"
+    },
+    {
+      "symbol": "MSFT",
+      "price": 410.10,
+      "volume": 800,
+      "receivedEvent": "PriceEvent{symbol=MSFT, price=410.1, volume=800}"
+    },
+    {
+      "symbol": "GOOG",
+      "price": 155.75,
+      "volume": 1500,
+      "receivedEvent": "PriceEvent{symbol=GOOG, price=155.75, volume=1500}"
+    },
+    {
+      "symbol": "AMZN",
+      "price": 178.22,
+      "volume": 640,
+      "receivedEvent": "PriceEvent{symbol=AMZN, price=178.22, volume=640}"
+    },
+    {
+      "symbol": "NVDA",
+      "price": 905.60,
+      "volume": 2100,
+      "receivedEvent": "PriceEvent{symbol=NVDA, price=905.6, volume=2100}"
+    }
+  ],
+  "eventCount": 5
+}

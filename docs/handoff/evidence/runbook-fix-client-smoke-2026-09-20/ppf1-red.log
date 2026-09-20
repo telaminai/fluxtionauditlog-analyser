@@ -1,0 +1,250 @@
+
+ RUN  v4.1.5 /private/tmp/fluxtion-journey-web/web
+
+ ❯ src/lib/starter/project-support.test.ts (27 tests | 7 failed) 151ms
+     × hosted runbooks use the shipped launcher for analyser-bundle.starter.json 26ms
+     × hosted runbooks use the shipped launcher for fluxtion-spring-mongoose.starter.json 3ms
+     × hosted runbooks use the shipped launcher for mongoose-dynamic-feed.starter.json 1ms
+     × hosted runbooks use the shipped launcher for mongoose-dynamic-spring.starter.json 1ms
+     × hosted runbooks use the shipped launcher for mongoose-hosted-fluxtion.starter.json 1ms
+     × hosted runbooks use the shipped launcher for mongoose-server.starter.json 0ms
+     × documents the required JVM access when the hosted launcher is disabled 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/starter/project-support.test.ts > project journey support > hosted runbooks use the shipped launcher for analyser-bundle.starter.json
+AssertionError: expected '# Build and verify\n\nFrom the projec…' to contain './run-server.sh'
+
+- Expected
++ Received
+
+- ./run-server.sh
++ # Build and verify
++
++ From the project root:
++
++ ```sh
++ ./mvnw package
++ java -jar target/audit-analyser-bundle-1.0.0-SNAPSHOT.jar
++ ```
++
++ Read README for the chosen compile mode and backend prerequisites. Successful compilation does not establish business correctness.
++
++ Write expected results from the scenario inputs before running. Compare actual audit values and sink outputs against an independent calculation. For a new report, test its arithmetic, grouping and boundaries separately from unchanged existing behaviour; producing a file is not a correctness check.
++
++ Review the generated source and the selected audit configuration. Absence of node log output is not proof a node did not execute. Capture must be configured before there can be evidence. Read and preserve outputs before cleaning build files.
++
+
+ ❯ src/lib/starter/project-support.test.ts:26:29
+     24|    expect(files.has('run-server.sh')).toBe(true);
+     25|    for (const path of ['runbooks/build.md', 'runbooks/hosting.md']) {
+     26|     expect(files.get(path)).toContain('./run-server.sh');
+       |                             ^
+     27|     expect(files.get(path)).not.toContain('java -jar target/');
+     28|    }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/lib/starter/project-support.test.ts > project journey support > hosted runbooks use the shipped launcher for fluxtion-spring-mongoose.starter.json
+AssertionError: expected '# Build and verify\n\nFrom the projec…' to contain './run-server.sh'
+
+- Expected
++ Received
+
+- ./run-server.sh
++ # Build and verify
++
++ From the project root:
++
++ ```sh
++ ./mvnw package
++ java -jar target/fluxtion-spring-mongoose-1.0.0-SNAPSHOT.jar
++ ```
++
++ Read README for the chosen compile mode and backend prerequisites. Successful compilation does not establish business correctness.
++
++ Write expected results from the scenario inputs before running. Compare actual audit values and sink outputs against an independent calculation. For a new report, test its arithmetic, grouping and boundaries separately from unchanged existing behaviour; producing a file is not a correctness check.
++
++ Review the generated source and the selected audit configuration. Absence of node log output is not proof a node did not execute. Capture must be configured before there can be evidence. Read and preserve outputs before cleaning build files.
++
+
+ ❯ src/lib/starter/project-support.test.ts:26:29
+     24|    expect(files.has('run-server.sh')).toBe(true);
+     25|    for (const path of ['runbooks/build.md', 'runbooks/hosting.md']) {
+     26|     expect(files.get(path)).toContain('./run-server.sh');
+       |                             ^
+     27|     expect(files.get(path)).not.toContain('java -jar target/');
+     28|    }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/lib/starter/project-support.test.ts > project journey support > hosted runbooks use the shipped launcher for mongoose-dynamic-feed.starter.json
+AssertionError: expected '# Build and verify\n\nFrom the projec…' to contain './run-server.sh'
+
+- Expected
++ Received
+
+- ./run-server.sh
++ # Build and verify
++
++ From the project root:
++
++ ```sh
++ ./mvnw package
++ java -jar target/mongoose-dynamic-feed-1.0.0-SNAPSHOT.jar
++ ```
++
++ Read README for the chosen compile mode and backend prerequisites. Successful compilation does not establish business correctness.
++
++ Write expected results from the scenario inputs before running. Compare actual audit values and sink outputs against an independent calculation. For a new report, test its arithmetic, grouping and boundaries separately from unchanged existing behaviour; producing a file is not a correctness check.
++
++ Review the generated source and the selected audit configuration. Absence of node log output is not proof a node did not execute. Capture must be configured before there can be evidence. Read and preserve outputs before cleaning build files.
++
+
+ ❯ src/lib/starter/project-support.test.ts:26:29
+     24|    expect(files.has('run-server.sh')).toBe(true);
+     25|    for (const path of ['runbooks/build.md', 'runbooks/hosting.md']) {
+     26|     expect(files.get(path)).toContain('./run-server.sh');
+       |                             ^
+     27|     expect(files.get(path)).not.toContain('java -jar target/');
+     28|    }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/lib/starter/project-support.test.ts > project journey support > hosted runbooks use the shipped launcher for mongoose-dynamic-spring.starter.json
+AssertionError: expected '# Build and verify\n\nFrom the projec…' to contain './run-server.sh'
+
+- Expected
++ Received
+
+- ./run-server.sh
++ # Build and verify
++
++ From the project root:
++
++ ```sh
++ ./mvnw package
++ java -jar target/mongoose-dynamic-spring-1.0.0-SNAPSHOT.jar
++ ```
++
++ Read README for the chosen compile mode and backend prerequisites. Successful compilation does not establish business correctness.
++
++ Write expected results from the scenario inputs before running. Compare actual audit values and sink outputs against an independent calculation. For a new report, test its arithmetic, grouping and boundaries separately from unchanged existing behaviour; producing a file is not a correctness check.
++
++ Review the generated source and the selected audit configuration. Absence of node log output is not proof a node did not execute. Capture must be configured before there can be evidence. Read and preserve outputs before cleaning build files.
++
+
+ ❯ src/lib/starter/project-support.test.ts:26:29
+     24|    expect(files.has('run-server.sh')).toBe(true);
+     25|    for (const path of ['runbooks/build.md', 'runbooks/hosting.md']) {
+     26|     expect(files.get(path)).toContain('./run-server.sh');
+       |                             ^
+     27|     expect(files.get(path)).not.toContain('java -jar target/');
+     28|    }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  src/lib/starter/project-support.test.ts > project journey support > hosted runbooks use the shipped launcher for mongoose-hosted-fluxtion.starter.json
+AssertionError: expected '# Build and verify\n\nFrom the projec…' to contain './run-server.sh'
+
+- Expected
++ Received
+
+- ./run-server.sh
++ # Build and verify
++
++ From the project root:
++
++ ```sh
++ ./mvnw package
++ java -jar target/mongoose-hosted-fluxtion-1.0.0-SNAPSHOT.jar
++ ```
++
++ Read README for the chosen compile mode and backend prerequisites. Successful compilation does not establish business correctness.
++
++ Write expected results from the scenario inputs before running. Compare actual audit values and sink outputs against an independent calculation. For a new report, test its arithmetic, grouping and boundaries separately from unchanged existing behaviour; producing a file is not a correctness check.
++
++ Review the generated source and the selected audit configuration. Absence of node log output is not proof a node did not execute. Capture must be configured before there can be evidence. Read and preserve outputs before cleaning build files.
++
+
+ ❯ src/lib/starter/project-support.test.ts:26:29
+     24|    expect(files.has('run-server.sh')).toBe(true);
+     25|    for (const path of ['runbooks/build.md', 'runbooks/hosting.md']) {
+     26|     expect(files.get(path)).toContain('./run-server.sh');
+       |                             ^
+     27|     expect(files.get(path)).not.toContain('java -jar target/');
+     28|    }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  src/lib/starter/project-support.test.ts > project journey support > hosted runbooks use the shipped launcher for mongoose-server.starter.json
+AssertionError: expected '# Build and verify\n\nFrom the projec…' to contain './run-server.sh'
+
+- Expected
++ Received
+
+- ./run-server.sh
++ # Build and verify
++
++ From the project root:
++
++ ```sh
++ ./mvnw package
++ java -jar target/mongoose-server-1.0.0-SNAPSHOT.jar
++ ```
++
++ Read README for the chosen compile mode and backend prerequisites. Successful compilation does not establish business correctness.
++
++ Write expected results from the scenario inputs before running. Compare actual audit values and sink outputs against an independent calculation. For a new report, test its arithmetic, grouping and boundaries separately from unchanged existing behaviour; producing a file is not a correctness check.
++
++ Review the generated source and the selected audit configuration. Absence of node log output is not proof a node did not execute. Capture must be configured before there can be evidence. Read and preserve outputs before cleaning build files.
++
+
+ ❯ src/lib/starter/project-support.test.ts:26:29
+     24|    expect(files.has('run-server.sh')).toBe(true);
+     25|    for (const path of ['runbooks/build.md', 'runbooks/hosting.md']) {
+     26|     expect(files.get(path)).toContain('./run-server.sh');
+       |                             ^
+     27|     expect(files.get(path)).not.toContain('java -jar target/');
+     28|    }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  src/lib/starter/project-support.test.ts > project journey support > documents the required JVM access when the hosted launcher is disabled
+AssertionError: expected '# Build and verify\n\nFrom the projec…' to contain '--add-opens java.base/jdk.internal.mi…'
+
+- Expected
++ Received
+
+- --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
++ # Build and verify
++
++ From the project root:
++
++ ```sh
++ ./mvnw package
++ java -jar target/mongoose-server-1.0.0-SNAPSHOT.jar
++ ```
++
++ Read README for the chosen compile mode and backend prerequisites. Successful compilation does not establish business correctness.
++
++ Write expected results from the scenario inputs before running. Compare actual audit values and sink outputs against an independent calculation. For a new report, test its arithmetic, grouping and boundaries separately from unchanged existing behaviour; producing a file is not a correctness check.
++
++ Review the generated source and the selected audit configuration. Absence of node log output is not proof a node did not execute. Capture must be configured before there can be evidence. Read and preserve outputs before cleaning build files.
++
+
+ ❯ src/lib/starter/project-support.test.ts:37:28
+     35|   for (const path of ['runbooks/build.md', 'runbooks/hosting.md']) {
+     36|    expect(files.get(path)).not.toContain('./run-server.sh');
+     37|    expect(files.get(path)).toContain('--add-opens java.base/jdk.intern…
+       |                            ^
+     38|    expect(files.get(path)).toContain('--add-opens java.base/java.nio=A…
+     39|    expect(files.get(path)).toContain('-DmongooseServer.config.file=con…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 20 passed (27)
+   Start at  21:24:44
+   Duration  934ms (transform 234ms, setup 0ms, import 664ms, tests 151ms, environment 0ms)

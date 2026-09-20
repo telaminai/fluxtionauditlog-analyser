@@ -1,0 +1,133 @@
+{
+  "playgroundRevision": "a4b4dde",
+  "zipSha256": "5a354b62c68e1ed6e45e15299bded5df7db21c596bfc56c334338774e020bd20",
+  "scope": "provisioned-project smoke, no public acquisition or generation",
+  "transcriptProjection": "smoke-events.jsonl contains visible text, tool calls/results and system/result records only; rawLine links to unedited local transcript. Thinking/signature blocks are omitted. Times are operator receive times. Rule-1 redactions and trailing-whitespace normalization apply to exports.",
+  "files": [
+    {
+      "file": "smoke-predictions.json",
+      "rawSha256": "63bc5b269077d93d8bef55c0b2b405025ab7253c09dec98104e8b46ffc5d2f83",
+      "publishedSha256": "63bc5b269077d93d8bef55c0b2b405025ab7253c09dec98104e8b46ffc5d2f83"
+    },
+    {
+      "file": "smoke-input.txt",
+      "rawSha256": "7a62688aa4cd9b8e74ff603b57670d3fe033f4f89127fb75226a5e1f32791df8",
+      "publishedSha256": "7a62688aa4cd9b8e74ff603b57670d3fe033f4f89127fb75226a5e1f32791df8"
+    },
+    {
+      "file": "smoke-probe.log",
+      "rawSha256": "41c23e716a5ce36e468b8fb1496f77afcb8e917f011b68dcc80ceec5bfbd373d",
+      "publishedSha256": "41c23e716a5ce36e468b8fb1496f77afcb8e917f011b68dcc80ceec5bfbd373d"
+    },
+    {
+      "file": "smoke-meta.json",
+      "rawSha256": "95d8be72f3a98eae4bfc8b14f56686771d64eca848b78654fb6dcf17bdd6cdac",
+      "publishedSha256": "95d8be72f3a98eae4bfc8b14f56686771d64eca848b78654fb6dcf17bdd6cdac"
+    },
+    {
+      "file": "smoke-events.jsonl",
+      "rawSha256": "437342d4ffe265eb31757e8c34bb66290bb00f03d89fd30d6a63cc31ca1b39c4",
+      "publishedSha256": "437342d4ffe265eb31757e8c34bb66290bb00f03d89fd30d6a63cc31ca1b39c4"
+    },
+    {
+      "file": "client-verification.json",
+      "rawSha256": "a68616e8080164ea7787641834a113136ddf5a6054d0234645eda775c398e3c1",
+      "publishedSha256": "a68616e8080164ea7787641834a113136ddf5a6054d0234645eda775c398e3c1"
+    },
+    {
+      "file": "operator-verification.json",
+      "rawSha256": "d1a6a8f5cd076f639fd0ed553cf0eeb6c864e0cd1891228f4c9f63617cede148",
+      "publishedSha256": "d1a6a8f5cd076f639fd0ed553cf0eeb6c864e0cd1891228f4c9f63617cede148"
+    },
+    {
+      "file": "EXPECTED.json",
+      "rawSha256": "997bcc1ca9d4bc861fa0705b0eb3b1445666b699b712b14970504171d268ceea",
+      "publishedSha256": "997bcc1ca9d4bc861fa0705b0eb3b1445666b699b712b14970504171d268ceea"
+    },
+    {
+      "file": "COMPARISON.md",
+      "rawSha256": "20c0894c3f17d4aadf832888827ce44c11916fa896c8feaec044e4c4b0ca9267",
+      "publishedSha256": "20c0894c3f17d4aadf832888827ce44c11916fa896c8feaec044e4c4b0ca9267"
+    },
+    {
+      "file": "SMOKE-RESULT.md",
+      "rawSha256": "2aabf543730f04677d348e883a8848b78d011c5f057fdb531f178d55156f0e6e",
+      "publishedSha256": "2aabf543730f04677d348e883a8848b78d011c5f057fdb531f178d55156f0e6e"
+    },
+    {
+      "file": "run-server-output.log",
+      "rawSha256": "220141ad256b908aedfa605ed1cb1e0d10e7bd3bed530104e053de3da8f03957",
+      "publishedSha256": "1f429c129ebcc24034db6be8421882b1b01bbe7cd07a890bbba915aa67c23dad"
+    },
+    {
+      "file": "export-audit-output.log",
+      "rawSha256": "0372e6ba4249181d0c071ccf0bf46e5258bcb06e1bc571cc232bea6dd4571dd4",
+      "publishedSha256": "0372e6ba4249181d0c071ccf0bf46e5258bcb06e1bc571cc232bea6dd4571dd4"
+    },
+    {
+      "file": "stop-server-output.log",
+      "rawSha256": "cebcfe37459eda052a55b52203faa8c5e5daa21deb1d371a46cbc613a55548cb",
+      "publishedSha256": "cebcfe37459eda052a55b52203faa8c5e5daa21deb1d371a46cbc613a55548cb"
+    },
+    {
+      "file": "audit.yaml",
+      "rawSha256": "6e912123b9475b26d658aa7e87aef054075100b20c0b61567efeed1691ee1a82",
+      "publishedSha256": "8190268c52752ed147cdc34975ddb5a34d1b3389165a9f6e797283b94259730d"
+    },
+    {
+      "file": "build.md",
+      "rawSha256": "b94d3773950c5949cc87ce34b28e433f644dd8d35ea881d117c1cdac308a907c",
+      "publishedSha256": "b94d3773950c5949cc87ce34b28e433f644dd8d35ea881d117c1cdac308a907c"
+    },
+    {
+      "file": "hosting.md",
+      "rawSha256": "65220ffb4d62e1825bb7739be697aa6dcba522c14977e8b4318b0595d41f8dde",
+      "publishedSha256": "65220ffb4d62e1825bb7739be697aa6dcba522c14977e8b4318b0595d41f8dde"
+    },
+    {
+      "file": "operator-build.json",
+      "rawSha256": "124c854ba29caa98c545e996c78c359ea85a096800e10c1350727f6ceffa7a1c",
+      "publishedSha256": "124c854ba29caa98c545e996c78c359ea85a096800e10c1350727f6ceffa7a1c"
+    },
+    {
+      "file": "operator-export.json",
+      "rawSha256": "bf0965056dc6e475e7e54dedc948a8c4b99c94716a91a761f15b1b8f9042a18e",
+      "publishedSha256": "bf0965056dc6e475e7e54dedc948a8c4b99c94716a91a761f15b1b8f9042a18e"
+    },
+    {
+      "file": "operator-stop.json",
+      "rawSha256": "39eb37e2b0d286cd21824e2af8a1df7b4b0a426790c14f80a0751bcb7937c727",
+      "publishedSha256": "39eb37e2b0d286cd21824e2af8a1df7b4b0a426790c14f80a0751bcb7937c727"
+    },
+    {
+      "file": "ppf1-red.log",
+      "rawSha256": "ddf193532147661ebf614dc6f89f31ae58db3eff4d5bba865ac73119543cd3d3",
+      "publishedSha256": "d2f08816ea20042e13f3ae052ca17073f4e559bd65c6588d76e35647c93d56eb"
+    },
+    {
+      "file": "ppf1-pom-red.log",
+      "rawSha256": "a6d1406c4494ffb10351571cab0ed60a0c6206925c778f1c190b38fa615d9f3e",
+      "publishedSha256": "6f571e33aa3b66b8abbe78f07f7efe5205b813a50449c86dd9daa0bc79544a25"
+    },
+    {
+      "file": "ppf1-final-red.log",
+      "rawSha256": "a4ba6b42b2c98aa73f91408105d5054e8ff8231aa39ac0d8331904a4f8ec15fc",
+      "publishedSha256": "3410aa9dc1bcc69a33f81ff07bedafc52cdac40b13769e57d5284b9bd68497e7"
+    },
+    {
+      "file": "ppf1-final-green.log",
+      "rawSha256": "ca70008987bbbf0ba096f298d23725e479f8ca252b3aefbdcf607dc2ebdc87d0",
+      "publishedSha256": "2dc6be7f1f43a1a8771cb52f80fd52367b2bedd5243dcde367eea42afc21166e"
+    },
+    {
+      "file": "ppf1-full-tests.log",
+      "rawSha256": "1f5e35eb2931a30ba973e90b4c864b3491df7f674dc8acfc7c4e1322307004c0",
+      "publishedSha256": "b0584d939eea12eeec45c69cd5add47eade95be843caeb068c387814f91894a6"
+    },
+    {
+      "file": "ppf1-check.log",
+      "rawSha256": "70f4781453d8c2aa4e82ffa6750179b5d89529a37acb6c123b7ff25694ff3332",
+      "publishedSha256": "70f4781453d8c2aa4e82ffa6750179b5d89529a37acb6c123b7ff25694ff3332"
+    }
+  ]
+}

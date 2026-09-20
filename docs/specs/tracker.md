@@ -114,13 +114,22 @@ Legend for each item: **[id] status — title** · _acceptance_.
   **Follow-up operator preflight:** the unchanged preview Audit analyser bundle builds with an empty
   Maven cache and no key, processes five input rows with matching audit values, exports and stops cleanly.
   [Report and corpus re-score](../handoff/report_supported_v2_preflight_2026_09_20.md).
-  **PPF-1 OPEN (playground):** new build/hosting runbooks prescribe plain `java -jar`, reproduced to fail;
-  README's `run-server.sh` works. Fix launcher selection and execute the emitted instructions before an
-  unassisted hosted trial. All six preserved trials re-scored with `main@18b47a7` (now pushed); 11 corpus
+  **PPF-1 CLOSED by author verification (playground `a4b4dde`):** runbooks select an emitted launcher;
+  no recognised launcher means a file inventory and no prescribed run command. Standalone POM comments
+  now name `run.sh`; script-disabled hosted README agrees. Final tests seen red with the old emitter;
+  520/520 tests and production build pass, known type-check errors unchanged. Corrected download's
+  commands were executed successfully before a fresh client received its own pristine copy.
+  All six preserved trials re-scored with `main@18b47a7` (now pushed); 11 corpus
   witness checks pass and five go red against the old scorer. T-MAIN's new file-backed-driver candidate
   still needs manual classification. Raw originals and baseline are retained; no new sessions ran.
-  **Next:** correct PPF-1, validate the measurement harness/client pairing, and provision the generation
-  prerequisites for authoring tasks. Ordinary bundle build/run success is not regeneration acceptance.
+  **One client smoke PASS with recorded friction:** fresh claude-sonnet-5 completed in 92.421 s, no
+  provider refusal/intervention, all five values match, clean stop, all 43 original files unchanged.
+  Tool-event times replace self-reported times in this scoped smoke; three source pointers observed.
+  Denied scratch/ps commands and a wrong registry lookup remain visible; the client's final “no failures”
+  wording was too broad. [Fix and smoke handoff](../handoff/report_runbook_fix_client_smoke_2026_09_20.md).
+  No battery ran. **Next:** freeze the revised instrument for that battery and provision the generation
+  prerequisites for authoring tasks. Scaffold-time capability refusal is a proposal, not implemented:
+  the website cannot infer a local key/provider. Ordinary build/run is not regeneration acceptance.
   Neither preflight nor rehearsal closes publication or public empty-directory acquisition acceptance.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node

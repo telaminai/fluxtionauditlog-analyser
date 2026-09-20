@@ -1,0 +1,3 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/private/tmp/fluxtion-v2-client-smoke/tmp/java-home -Djava.io.tmpdir=/private/tmp/fluxtion-v2-client-smoke/tmp
+exported logs/audit-preview-smoke.yaml (audit file id: marketProcessor)
+open it with the Fluxtion Audit Log Analyser — see README.md

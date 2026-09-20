@@ -1,0 +1,18 @@
+{
+  "frozenAt": "2026-09-20T20:35:05.899792+00:00",
+  "scope": "one provisioned-project client smoke; not T1 acquisition or full battery",
+  "client": "fresh Claude CLI session, sonnet alias, medium effort",
+  "predictions": {
+    "providerCompletesNormally": true,
+    "wallSecondsUnder": 300,
+    "substantiveInterventions": 0,
+    "build": true,
+    "fiveInputRowsMatchExport": true,
+    "cleanStop": true,
+    "originalFilesChanged": 0,
+    "threeSourcePointersBeforeSteps": true
+  },
+  "timing": "operator UTC/monotonic event receive times, not subject timestamps",
+  "pass": "all three steps evidenced by commands/results, declared dependency pins unchanged, no provider error; incomplete recording is reported separately",
+  "failureRule": "No product repairs or client retries in the measured smoke. Stop and record any failure."
+}

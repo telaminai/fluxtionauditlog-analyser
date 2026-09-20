@@ -1,0 +1,8 @@
+
+ RUN  v4.1.5 /private/tmp/fluxtion-journey-web/web
+
+
+ Test Files  1 passed (1)
+      Tests  36 passed (36)
+   Start at  21:38:27
+   Duration  836ms (transform 298ms, setup 0ms, import 568ms, tests 156ms, environment 0ms)

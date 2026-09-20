@@ -1,0 +1,127 @@
+$ svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+Loading svelte-check in workspace: /private/tmp/fluxtion-journey-web/web
+Getting Svelte diagnostics...
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/sidebar/GitHubPanel.svelte:126:3
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+	<div class="px-3 py-2 border-b border-stone-200 dark:border-stone-700">
+		<label class="block text-stone-500 dark:text-stone-400 mb-1">
+			Open from a downloaded-then-pushed playground project.
+		</label>
+		<input
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/ProjectTree.svelte:1525:2
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+	     collapsed — there's nothing to resize on a 28 px rail. -->
+	<div
+		class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-stone-300 dark:hover:bg-stone-700 {dragging
+			? 'bg-stone-400 dark:bg-stone-600'
+			: ''}"
+		role="separator"
+		aria-orientation="vertical"
+		aria-label="Resize project pane"
+		aria-valuenow={treeWidth}
+		aria-valuemin={TREE_WIDTH_MIN}
+		aria-valuemax={TREE_WIDTH_MAX}
+		tabindex="0"
+		onmousedown={startDrag}
+		onkeydown={onResizeKey}
+	></div>
+	{/if}
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/ProjectTree.svelte:1525:2
+Warn: Non-interactive element `<div>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions (svelte)
+	     collapsed — there's nothing to resize on a 28 px rail. -->
+	<div
+		class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-stone-300 dark:hover:bg-stone-700 {dragging
+			? 'bg-stone-400 dark:bg-stone-600'
+			: ''}"
+		role="separator"
+		aria-orientation="vertical"
+		aria-label="Resize project pane"
+		aria-valuenow={treeWidth}
+		aria-valuemin={TREE_WIDTH_MIN}
+		aria-valuemax={TREE_WIDTH_MAX}
+		tabindex="0"
+		onmousedown={startDrag}
+		onkeydown={onResizeKey}
+	></div>
+	{/if}
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/agent-dashboard/AgentDashboard.svelte:225:50
+Error: Type 'string' is not assignable to type 'Length | undefined'. (ts)
+	<div class="grow min-h-0 border-b border-stone-300 dark:border-stone-700">
+	<SplitPane type="rows" min="0%" max="100%" bind:pos={vSplitPos}>
+		{#snippet a()}
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/agent-dashboard/AgentDashboard.svelte:227:54
+Error: Type 'string' is not assignable to type 'Length | undefined'. (ts)
+		{#snippet a()}
+		<SplitPane type="columns" min="0%" max="100%" bind:pos={topHSplitPos}>
+			{#snippet a()}
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/agent-dashboard/AgentDashboard.svelte:379:54
+Error: Type 'string' is not assignable to type 'Length | undefined'. (ts)
+		{#snippet b()}
+		<SplitPane type="columns" min="0%" max="100%" bind:pos={bottomHSplitPos}>
+			{#snippet a()}
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/Output.svelte:1029:52
+Error: Type 'string' is not assignable to type 'Length | undefined'. (ts)
+-->
+<SplitPane type="columns" min="0%" max="100%" bind:pos={splitPos}>
+	{#snippet a()}
+
+/private/tmp/fluxtion-journey-web/web/src/lib/repl/FileTab.svelte:48:2
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+>
+	<button
+		onclick={() => {
+			if (isSelected) isEditing = true;
+		}}
+		onfocusin={() => (isEditing = true)}
+		onfocusout={() => {
+			isEditing = false;
+			if (path + '.java' !== file.path) {
+				const existingFile = $files.find((f) => f.path === path + '.java');
+				if (existingFile) {
+					alert(`A file with the name '${path}' already exists!`);
+					return;
+				}
+
+				files.update(($files) => {
+					const index = $files.findIndex((f) => f.path === file.path);
+					$files[index].path = path + '.java';
+					return $files;
+				});
+				$selectedFilePath = path + '.java';
+			}
+		}}
+		class="focus:text-orange-600 ring-0"
+		class:pointer-events-none={!isSelected || !canEdit}
+		class:cursor-text={isSelected}
+		contenteditable
+		bind:innerText={path}
+	></button>
+	{#if canEdit}
+
+/private/tmp/fluxtion-journey-web/web/src/routes/(marketing)/start/+page.svelte:560:6
+Warn: `xmlInput` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update (svelte)
+	let dragging = $state(false);
+	let xmlInput: HTMLInputElement;
+
+/private/tmp/fluxtion-journey-web/web/src/routes/(marketing)/start/+page.svelte:1056:6
+Warn: `jsonInput` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update (svelte)
+	let importOpen = $state(false);
+	let jsonInput: HTMLInputElement;
+	/** Download the current spec as a portable, git-committable .starter.json (export). */
+
+====================================
+svelte-check found 4 errors and 6 warnings in 6 files
+ ELIFECYCLE  Command failed with exit code 1.

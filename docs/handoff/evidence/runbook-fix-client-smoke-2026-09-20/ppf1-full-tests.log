@@ -1,0 +1,9 @@
+$ vitest run
+
+ RUN  v4.1.5 /private/tmp/fluxtion-journey-web/web
+
+
+ Test Files  36 passed (36)
+      Tests  520 passed (520)
+   Start at  21:32:12
+   Duration  7.17s (transform 2.63s, setup 0ms, import 10.84s, tests 13.77s, environment 16.53s)

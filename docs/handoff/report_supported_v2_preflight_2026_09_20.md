@@ -1,5 +1,8 @@
 # One supported v2 preview project — operator preflight
 
+Follow-up: [PPF-1 correction and one fresh-client smoke](report_runbook_fix_client_smoke_2026_09_20.md).
+The original observations below remain unchanged; the follow-up records the fix and its verification.
+
 **The unchanged Audit analyser bundle builds, processes its five input rows, exports matching audit
 values and stops cleanly without a key. The new runbooks contain a reproduced launch defect.**
 This is operator verification, not a fresh-client trial or Spring regeneration acceptance.
