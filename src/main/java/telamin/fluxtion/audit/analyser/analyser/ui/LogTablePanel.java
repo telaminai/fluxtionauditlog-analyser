@@ -212,6 +212,24 @@ public final class LogTablePanel extends JPanel {
         return true;
     }
 
+    /** Restore an entire selection or refuse it; a hidden member must not silently disappear. */
+    public boolean selectModelRows(java.util.List<Integer> modelRows) {
+        java.util.List<Integer> views = new java.util.ArrayList<>();
+        for (int row : modelRows) {
+            if (row < 0 || row >= table.getModel().getRowCount()) return false;
+            int view = table.convertRowIndexToView(row);
+            if (view < 0) return false;
+            views.add(view);
+        }
+        table.getSelectionModel().setValueIsAdjusting(true);
+        try {
+            table.clearSelection();
+            for (int view : views) table.addRowSelectionInterval(view, view);
+        } finally { table.getSelectionModel().setValueIsAdjusting(false); }
+        if (!views.isEmpty()) table.scrollRectToVisible(table.getCellRect(views.getFirst(), 0, true));
+        return true;
+    }
+
     public void setSelectionListener(Consumer<int[]> listener) {
         this.selectionListener = listener == null ? rows -> { } : listener;
     }

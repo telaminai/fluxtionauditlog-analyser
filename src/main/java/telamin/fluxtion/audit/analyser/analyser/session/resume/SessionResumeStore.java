@@ -47,7 +47,7 @@ public final class SessionResumeStore {
         }).toList();
     }
 
-    private static Identity identity(String role, String file) {
+    public static Identity identity(String role, String file) {
         try {
             Path path = Path.of(file).toRealPath();
             BasicFileAttributes before = Files.readAttributes(path, BasicFileAttributes.class);
@@ -65,6 +65,19 @@ public final class SessionResumeStore {
         } catch (IOException | RuntimeException e) {
             return new Identity(role, file, null, "unavailable: " + e.getMessage());
         }
+    }
+
+    /** A before/after read agrees only when both independent content hashes agree. */
+    public static List<Identity> matchingRead(List<Identity> before, List<Identity> after) {
+        if (before.size() != after.size()) return List.of();
+        List<Identity> out = new ArrayList<>();
+        for (int i = 0; i < before.size(); i++) {
+            Identity a = before.get(i), b = after.get(i);
+            if (!a.role().equals(b.role()) || !a.path().equals(b.path()) || a.sha256() == null
+                    || !a.sha256().equals(b.sha256())) return List.of();
+            out.add(b);
+        }
+        return List.copyOf(out);
     }
 
     public void save(Snapshot snapshot) throws IOException {

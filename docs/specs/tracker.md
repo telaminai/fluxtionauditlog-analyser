@@ -102,8 +102,17 @@ Legend for each item: **[id] status — title** · _acceptance_.
   rolled-log member refuses the whole log set while independent design inputs can remain available.
   Seven focused tests and the full 1,700-test suite pass (31 display skips). Generated processor refreshed
   with the installed local provider, Java 21 and pinned released builder; no owner key or remote generation.
-  UI/MCP wiring, exit flushing, startup migration and display acceptance still pending. No restore capability
-  or release gate is claimed closed by this foundation.
+  UI/MCP wiring, exit flushing and startup migration are now implemented in the following slice; the
+  foundation's earlier gate alone did not claim those capabilities.
+- ◧ **Explicit recovery adapter and startup migration** — one StartPanel offer/Restore/Dismiss and
+  `open {restore: last|dismiss}`, with Project-panel status from the graph. Actual reader completions
+  drive the outcome; unchanged design/results can reopen when the complete log set is refused.
+  Saved filters/selection/focus require observed loaded-byte identity, with visible pin/filter caveats.
+  Both implicit startup paths are removed. Five real-frame cases plus the existing lifecycle display
+  gate pass: 37 tests, no skips. [Evidence](../handoff/evidence/project-session-recovery-2026-09-20/README.md)
+  includes inspected screenshots and a seen-red stale-view mutation. Final headless/package checks are
+  recorded in the implementation handoff. OS-process restart, large-log hashing cost and independent
+  review remain explicitly unverified; full catalogue/producer delivery and held-out acceptance remain open.
 - ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
   capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
   user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key

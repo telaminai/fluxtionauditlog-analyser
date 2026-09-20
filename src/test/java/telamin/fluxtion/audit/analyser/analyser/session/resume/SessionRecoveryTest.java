@@ -37,6 +37,25 @@ class SessionRecoveryTest {
         driver.submit(new ResumeEvents.Finished(node.generation(),"design opened; log set refused"));
         assertEquals("finished",node.echo().get("state"));
     }
+    @Test void dismissalOpensNothingAndRepeatedAcceptanceCannotEraseAnInFlightPlan() {
+        var driver = new SessionDriver(e -> { throw new AssertionError(); }, new SessionAuditSink());
+        var node = driver.processor().sessionRecovery;
+        driver.submit(new ResumeEvents.Activated("A"));
+        var saved = snapshot("A");
+        driver.submit(new ResumeEvents.OfferLoaded(node.generation(),"A",saved,null));
+        driver.submit(new ResumeEvents.Requested(false));
+        assertEquals("dismissed", node.echo().get("state")); assertNull(node.plan());
+        driver.submit(new ResumeEvents.Finished(node.generation(), "unexpected"));
+        assertEquals("dismissed", node.echo().get("state"));
+        driver.submit(new ResumeEvents.Activated("A"));
+        driver.submit(new ResumeEvents.OfferLoaded(node.generation(),"A",saved,null));
+        driver.submit(new ResumeEvents.Requested());
+        driver.submit(new ResumeEvents.Checked(node.generation(),List.of(new SessionResumeStore.Check(saved.inputs().getFirst(),"unchanged")),null));
+        var plan = node.plan();
+        driver.submit(new ResumeEvents.Requested());
+        assertSame(plan, node.plan());
+    }
+
     private static SessionResumeStore.Snapshot snapshot(String key) {
         return new SessionResumeStore.Snapshot(key,"2026-09-20T00:00:00Z",List.of(new SessionResumeStore.Identity("log","/demo/run.yml","a".repeat(64),null)),Map.of());
     }

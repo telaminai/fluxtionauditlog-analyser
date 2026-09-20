@@ -7,6 +7,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Explicit session recovery** — project reopen and app relaunch offer the previous local session.
+  Accept or dismiss on the start page or with `open {restore}`. Recovery verifies file bytes, restores
+  unchanged log sets, topology, design and diagnostics, and reports missing inputs and withheld views.
+  Remembered global log and topology paths no longer open implicitly at launch.
 - **Project landing and processor intent** — a project opened without a log shows its own roots,
   runbooks, saved charts and declarations, with explicit evidence-open actions. Profiles can distinguish
   a declared generated type, runtime processing and an unspecified type without inventing an FQCN.

@@ -48,6 +48,12 @@ public final class MainFrame extends JFrame {
     private static final String STRATEGY_PKG = "com.acme.marketmaker.strategy";
 
     private final ConfigStore configStore = new ConfigStore();
+    private SessionRecoveryController recovery;
+    private PendingRecovery pendingRecovery;
+    private record PendingRecovery(long generation, long opId,
+            telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
+            java.util.List<String> outcomes, java.util.function.Consumer<String> completion) { }
+
     /** M19.12: separate from AppConfig so the Fluxtion build key cannot enter shared settings. */
     private final telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore fluxtionKeyStore =
             new telamin.fluxtion.audit.analyser.analyser.config.FluxtionKeyStore();
@@ -112,6 +118,8 @@ public final class MainFrame extends JFrame {
     private LogStore store;
     private LogTableModel tableModel;
     private String logDisplayLocation;   // what the user opened (path or s3:// URI)
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity> loadedLogIdentity = List.of();
+    private String loadedLogFormat;
     private String logLocalPath;         // the local file the store actually reads (temp file for S3)
     private FilterState filter;
     private Timer searchDebounce;
@@ -191,6 +199,7 @@ public final class MainFrame extends JFrame {
         actionControl = new AppControlAdapter();
         actionExecutor.bind(topologyPanel, actionControl);
         installSpotlight();                          // M64: the glass pane, and re-measuring on resize
+        initialiseRecovery();
         refreshProjectPanel();                       // M37: state the empty session too
         refreshMcpIndicator();                       // D-AI9: and say whether an AI client reaches us
         startMcpIndicatorWatch();
@@ -980,38 +989,66 @@ public final class MainFrame extends JFrame {
     }
 
     private record DesignReadContext(telamin.fluxtion.audit.analyser.analyser.design.DesignFiles files,
-                                     telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot state) { }
+                                     telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot state,
+                                     long recoveryGeneration, long operationId) { }
     private int designExplicitReads;
 
     private <T> telamin.fluxtion.audit.analyser.analyser.llm.ActionResult readDesign(
             String kind, telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Read<T> read,
             java.util.function.Function<telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Prepared<T>,
                     telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> finish) {
+        return readDesign(kind, read, finish, () -> true);
+    }
+
+    private <T> telamin.fluxtion.audit.analyser.analyser.llm.ActionResult readDesign(
+            String kind, telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Read<T> read,
+            java.util.function.Function<telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Prepared<T>,
+                    telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> finish,
+            java.util.function.BooleanSupplier allowed) {
         if (SwingUtilities.isEventDispatchThread()) {
-            Background.run(() -> readDesign(kind, read, finish), result -> {
+            Background.run(() -> readDesign(kind, read, finish, allowed), result -> {
                 if (!result.ok()) status.setText(result.error());
             }, error -> status.setText("Design read failed: " + error.getMessage()));
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(kind, "loading", Map.of("pending", true));
         }
         var captured = actionExecutor.onEdt(() -> {
+            if (!allowed.getAsBoolean()) return null;
             session().submit(new telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested(kind));
             designExplicitReads++;
             var state = session().processor().designSession;
-            return new DesignReadContext(designFiles(), new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot(state.path(), state.document(), state.generation()));
+            return new DesignReadContext(designFiles(), new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.Snapshot(state.path(), state.document(), state.generation()),
+                    session().processor().sessionRecovery.generation(), session().processor().operationGate.expectedOpId());
         });
+        if (captured == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Restore superseded by a newer open");
         var prepared = telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.prepare(captured.files(), captured.state(), read);
         return actionExecutor.onEdt(() -> {
             designExplicitReads--;
             var current = session().processor().designSession;
             var files = designFiles();
             if (current.generation() != captured.state().generation()
+                    || (allowed instanceof RecoveryReadGuard && (session().processor().sessionRecovery.generation() != captured.recoveryGeneration()
+                        || session().processor().operationGate.expectedOpId() != captured.operationId()))
                     || !files.roots().equals(captured.files().roots()) || !java.util.Objects.equals(files.project(), captured.files().project()))
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Design read superseded by a newer session or root change; retry the request");
             var before = current.document();
             for (Object fact : prepared.facts()) session().submit(fact);
             refreshDesignView(before);
-            return finish.apply(prepared);
+            var result = finish.apply(prepared);
+            if (allowed instanceof RecoveryReadGuard guard) guard.completed(current.generation());
+            return result;
         });
+    }
+
+    private final class RecoveryReadGuard implements java.util.function.BooleanSupplier {
+        private final long generation, operation;
+        private final long[] expectedDesign;
+        RecoveryReadGuard(long generation, long operation, long[] expectedDesign) {
+            this.generation = generation; this.operation = operation; this.expectedDesign = expectedDesign;
+        }
+        public boolean getAsBoolean() {
+            return recoveryCurrent(generation, operation) && session().processor().designSession.generation() == expectedDesign[0];
+        }
+        void completed(long current) { expectedDesign[0] = current; }
     }
 
     private void showDesignRecords(String id) {
@@ -2689,6 +2726,8 @@ public final class MainFrame extends JFrame {
                 showTab("Topology");
             }
             @Override public void newProject() { chooseTemplateProject(); }
+            @Override public void restoreSession() { if (recovery != null) recovery.restore(); }
+            @Override public void dismissSessionRestore() { if (recovery != null) recovery.dismiss(); }
         }, text -> status.setText(text));
         recordsCards.add(startPanel, "start");
         recordsCards.add(mainSplit, "table");
@@ -3334,7 +3373,7 @@ public final class MainFrame extends JFrame {
 
     /** A load did not land: tell the processor, then whoever asked. */
     private void onLoadFailed(long opId, String location, OpenRequest request, Throwable err) {
-        sessionInteractive = !request.fromActionSocket();          // review B1: this operation's audience
+        sessionInteractive = !request.suppressDialogs();          // review B1: this operation's audience
         var driver = session();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed(opId, location, rootMessage(err)));
         boolean superseded = !driver.processor().operationGate.accepted();
@@ -3344,8 +3383,9 @@ public final class MainFrame extends JFrame {
             // person is not shown a superseded operation's failure as if it were the current one.
             return;
         }
+        completeRecoveryLog(opId, "log load failed: " + rootMessage(err));
         status.setText("Failed to load " + location + ": " + rootMessage(err));
-        if (!request.fromActionSocket()) {
+        if (!request.suppressDialogs()) {
             JOptionPane.showMessageDialog(this, rootMessage(err), "Load failed", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -3372,16 +3412,26 @@ public final class MainFrame extends JFrame {
                                     : "no installed reader recognises " + path.getFileName()
                                             + " — installed: " + readerRegistry.describeReaders());
                         }
+                        var before = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString());
                         LogStore s = readerRegistry.open(reader, path, config.memoryThresholdMb);
                         var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                 .validate(s.index());
-                        return new Object[]{s, report};
+                        var after = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString());
+                        return new Object[]{s, report, reader.formatId(),
+                                telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.matchingRead(List.of(before), List.of(after))};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
-                out -> onLoaded((LogStore) out[0], path.toString(),
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId),
+                out -> {
+                    onLoaded((LogStore) out[0], path.toString(),
+                            (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId);
+                    if (store == out[0]) {
+                        loadedLogFormat = (String) out[2];
+                        @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[3];
+                        loadedLogIdentity = identity;
+                    }
+                },
                 err -> onLoadFailed(opId, path.toString(), request, err));
     }
 
@@ -3396,19 +3446,26 @@ public final class MainFrame extends JFrame {
         Background.run(
                 () -> {
                     try {
+                        var before = files.stream().map(p -> telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", p.toString())).toList();
                         var s = telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore.open(
                                 files, config.memoryThresholdMb);
                         var report = set.report().merged(
                                 telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                         .validate(s.index()));
-                        return new Object[]{s, report};
+                        var after = files.stream().map(p -> telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", p.toString())).toList();
+                        return new Object[]{s, report, telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.matchingRead(before, after)};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
-                out -> onLoaded((LogStore) out[0],
+                out -> { onLoaded((LogStore) out[0],
                         files.get(files.size() - 1).getFileName() + " (+" + (files.size() - 1) + " rolled)",
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId),
+                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId);
+                    if (store == out[0]) {
+                        @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
+                        loadedLogIdentity = identity;
+                    }
+                },
                 err -> onLoadFailed(opId, "rolled set", request, err));
     }
 
@@ -3441,6 +3498,8 @@ public final class MainFrame extends JFrame {
         tableModel = null;
         logDisplayLocation = null;
         logLocalPath = null;
+        loadedLogFormat = null;
+        loadedLogIdentity = List.of();
         logProvenance = null;          // §E: it described THAT log, not the next one
         loggedNodeSample = java.util.Set.of();   // the sample described THAT log too
         loggedSampleScanned = 0;
@@ -3546,7 +3605,7 @@ public final class MainFrame extends JFrame {
         // review B1: the effects this arrival raises run INSIDE the submit below, so its audience must be
         // in force before it — from this operation's own immutable request, not from whichever entrance
         // (a person re-opening a graph from Recent, say) ran while the load was in flight.
-        sessionInteractive = !request.fromActionSocket();
+        sessionInteractive = !request.suppressDialogs();
         int scanned = Math.min(loaded.size(), PAIRING_SAMPLE);
         java.util.Set<String> logged = new java.util.LinkedHashSet<>();
         java.util.List<String> levels = new java.util.ArrayList<>();
@@ -3581,6 +3640,8 @@ public final class MainFrame extends JFrame {
         if (store != null && store != loaded) store.close();   // release the previous file's channel
         this.store = loaded;
         this.logDisplayLocation = location;
+        loadedLogFormat = null;
+        loadedLogIdentity = List.of();
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
         logProvenance = request.provenance();                   // §E: what THIS request declared
         logProvenanceSource = logProvenance == null ? null : "declared by the opener";
@@ -3596,7 +3657,7 @@ public final class MainFrame extends JFrame {
         // M35.9: every load-time side effect reads the request, not a field. The field version failed
         // four times — the last when maybeOfferProject consumed the socket flag 59 lines before the
         // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
-        final boolean loadFromSocket = request.fromActionSocket();
+        final boolean loadFromSocket = request.suppressDialogs();
         currentRequest = request;      // review F1: a follow rotation reloads with the SAME audience
         // review R2-B2: the effects this arrival raises (a mismatched graph closed, a warning) are
         // rendered for THIS request's audience — a socket caller cannot dismiss a dialog. The flag
@@ -3725,6 +3786,7 @@ public final class MainFrame extends JFrame {
         }
         if (followButton != null) followButton.setEnabled(followable);
         updateLifecycleMenu();
+        completeRecoveryLog(opId, null);
     }
 
     /**
@@ -4520,6 +4582,7 @@ public final class MainFrame extends JFrame {
     private boolean requestProject(Path file,
                                    telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
                                    String source, boolean interactive) {
+        if (recovery != null) recovery.capture();
         sessionInteractive = interactive;
         sessionClosed.clear();
         sessionProblem = null;
@@ -4528,6 +4591,7 @@ public final class MainFrame extends JFrame {
                 .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source));
         syncBusyWithGate();
         projectDesignChanged();
+        if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), null);
         return sessionProblem == null;
     }
 
@@ -4869,6 +4933,9 @@ public final class MainFrame extends JFrame {
     private final class AppControlAdapter implements telamin.fluxtion.audit.analyser.analyser.llm.AppControl {
 
         @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openDesign(String path) {
+            return openDesign(path, () -> true);
+        }
+        private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openDesign(String path, java.util.function.BooleanSupplier allowed) {
             return readDesign("open", workspace -> workspace.open(path), prepared -> {
                 clearSpotlightHere();
                 if (!prepared.error().isEmpty()) {
@@ -4879,7 +4946,7 @@ public final class MainFrame extends JFrame {
                 sourcePanel.showFile(view, designViewNote(view), true); selectSideTab("source");
                 renderProducerFindings(false); startDesignFollow();
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "design", session().processor().designSession.echo());
-            });
+            }, allowed);
         }
 
         @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult source(Map<String, Object> params) {
@@ -4913,6 +4980,9 @@ public final class MainFrame extends JFrame {
         }
 
         @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openDiagnostics(String path) {
+            return openDiagnostics(path, () -> true);
+        }
+        private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openDiagnostics(String path, java.util.function.BooleanSupplier allowed) {
             return readDesign("open", workspace -> workspace.diagnostics(path), prepared -> {
                 renderProducerFindings(true); selectSideTab("reports"); sourcePanel.designNote(designViewNote(sourcePanel.fileView()));
                 if (!prepared.error().isEmpty()) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("producer result cleared: " + prepared.error() + "; roots: " + designFiles().roots());
@@ -4928,7 +4998,7 @@ public final class MainFrame extends JFrame {
                     return finding;
                 }).toList());
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "diagnostics", echo);
-            });
+            }, allowed);
         }
 
         @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult discoverDiagnostics() {
@@ -4943,6 +5013,21 @@ public final class MainFrame extends JFrame {
         /** context's own wording: it IS the place the echo points at, so it cannot point at itself. */
         private static final String PAIRING_PENDING_CONTEXT = "pending — a log is loading; the graph is judged "
                 + "against it when the load lands, and the verdict appears here";
+
+        @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult dismissSessionRestore() {
+            if (recovery == null || !Boolean.TRUE.equals(session().processor().sessionRecovery.echo().get("available")))
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("No unaccepted session offer is available");
+            recovery.dismiss();
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "restoration", session().processor().sessionRecovery.echo());
+        }
+
+        @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult restoreSession() {
+            if (recovery == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Session recovery is not available");
+            if (!Boolean.TRUE.equals(session().processor().sessionRecovery.echo().get("available")))
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("No unaccepted session offer is available; inspect context.restoration");
+            recovery.restore();
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "restoration", session().processor().sessionRecovery.echo());
+        }
 
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLog(String path) {
@@ -5686,7 +5771,10 @@ public final class MainFrame extends JFrame {
             // derived) and the mode selector's record when someone has placed one. Above the fresh-start
             // return on purpose: posture has an answer with nothing open, and that is when it is asked.
             out.put("handoff", handoff.toContext(project.hasProject()));
-            if (session != null) out.put("design", session.processor().designSession.echo());
+            if (session != null) {
+                out.put("design", session.processor().designSession.echo());
+                out.put("restoration", session.processor().sessionRecovery.echo());
+            }
             if (!designWentOut.isEmpty()) out.put("designSpotlights", Map.of("wentOut", java.util.List.copyOf(designWentOut)));
             // M38.3: the environments the project declares, so an agent can name one when it opens a log
             if (!config.environments.isEmpty()) {
@@ -5918,19 +6006,187 @@ public final class MainFrame extends JFrame {
         saveConfigQuietly();
     }
 
-    /**
-     * Reopen the topology that was showing at shutdown, if it is still there.
-     *
-     * <p>The log is already restored on start; the graph is half of the same working state, and having to
-     * find it again every launch is what stops people leaving it open. Silent when the file has moved —
-     * a dialog on startup about a file you may not have thought about in a week is noise, and the Topology
-     * tab says plainly that nothing is loaded.
-     */
-    public void reopenLastGraphml() {
-        String path = config.graphmlFile;
-        if (path == null || path.isBlank()) return;
-        java.nio.file.Path file = java.nio.file.Path.of(path);
-        if (java.nio.file.Files.isReadable(file)) topologyPanel.load(file);
+    /** Compatibility entrance: remembered topology is offered with its session, never opened implicitly. */
+    public void reopenLastGraphml() { offerSessionRecovery(); }
+
+    private void initialiseRecovery() {
+        var files = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
+                configStore.path().getParent().resolve("sessions"));
+        recovery = new SessionRecoveryController(files, new SessionRecoveryController.Host() {
+            public telamin.fluxtion.audit.analyser.analyser.session.SessionDriver driver() { return session(); }
+            public SessionRecoveryController.Capture capture() { return captureSession(); }
+            public void render() { refreshProjectPanel(); }
+            public void apply(long generation, telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
+                              java.util.function.Consumer<String> completion) {
+                applyRecovery(generation, plan, completion);
+            }
+            public void failed(String message) { status.setText(message); }
+        });
+    }
+
+    /** Startup and project reopen use exactly the same offer; CLI opens grant no restore permission. */
+    public void offerSessionRecovery() {
+        recovery.activate(project.activeFile(), projectLoadNote != null && !projectLoadNote.loaded()
+                ? projectLoadNote.message() : null);
+    }
+
+    private SessionRecoveryController.Capture captureSession() {
+        var inputs = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input>();
+        if (store instanceof telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore rolled) {
+            for (Path path : rolled.files()) inputs.add(new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("log", path.toString()));
+        } else if (store != null && logLocalPath != null) {
+            inputs.add(new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("log", logLocalPath));
+        }
+        if (topologyPanel.graphPath() != null) inputs.add(new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("topology", topologyPanel.graphPath()));
+        var design = session().processor().designSession;
+        if (design.path() != null) inputs.add(new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("design", design.path()));
+        if (design.result() != null) inputs.add(new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("diagnostics", design.result().file()));
+        Map<String,Object> view = new java.util.LinkedHashMap<>();
+        if (filter != null) {
+            Map<String,Object> savedFilter = new java.util.LinkedHashMap<>();
+            savedFilter.put("from", filter.fromMillis()); savedFilter.put("to", filter.toMillis());
+            savedFilter.put("dimensions", filter.dimensions() == null ? null : List.copyOf(filter.dimensions()));
+            savedFilter.put("text", filter.text()); savedFilter.put("groupMode", filter.groupMode().name());
+            view.put("filter", savedFilter);
+        }
+        view.put("selectedRecords", java.util.Arrays.stream(tablePanel.selectedModelRows()).boxed().toList());
+        view.put("topology", topologyPanel.recoveryView());
+        view.put("selectedGraph", graphTabs.selectedGraphName());
+        view.put("loadedLogHashes", loadedLogIdentity.stream().map(i -> Map.of("path", i.path(), "sha256", i.sha256())).toList());
+        view.put("loadedGraphHash", topologyPanel.loadedGraphSha256());
+        view.put("provenance", logProvenance);
+        view.put("format", loadedLogFormat);
+        return new SessionRecoveryController.Capture(project.activeFile(), inputs, view);
+    }
+
+    private void applyRecovery(long generation,
+            telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
+            java.util.function.Consumer<String> completion) {
+        var outcomes = new java.util.ArrayList<>(plan.omitted());
+        var logs = plan.available().stream().filter(i -> i.role().equals("log")).toList();
+        if (logs.isEmpty()) {
+            finishRecoveryInputs(generation, session().processor().operationGate.expectedOpId(), plan, outcomes, completion, false);
+            return;
+        }
+        try {
+            var request = OpenRequest.explicitRestore((String)plan.snapshot().view().get("provenance"));
+            if (logs.size() == 1) requestOpenLog(logs.getFirst().path(), (String)plan.snapshot().view().get("format"), request);
+            else {
+                var paths = logs.stream().map(i -> Path.of(i.path())).toList();
+                var set = telamin.fluxtion.audit.analyser.analyser.parse.RollSetResolver.resolve(paths);
+                if (!set.ordered().stream().map(s -> s.file().toAbsolutePath().normalize()).toList()
+                        .equals(paths.stream().map(p -> p.toAbsolutePath().normalize()).toList()))
+                    throw new IllegalStateException("rolled-set order no longer matches the captured order");
+                requestOpenRolledSet(set, request);
+            }
+            long opId = session().processor().operationGate.expectedOpId();
+            pendingRecovery = new PendingRecovery(generation, opId, plan, outcomes, completion);
+            if (session().processor().operationGate.inFlightWhat() == null)
+                completeRecoveryLog(opId, "log request did not start; see session diagnostics");
+        } catch (RuntimeException | java.io.IOException e) {
+            outcomes.add("Log not restored: " + e.getMessage());
+            finishRecoveryInputs(generation, session().processor().operationGate.expectedOpId(), plan, outcomes, completion, false);
+        }
+    }
+
+    private void completeRecoveryLog(long opId, String error) {
+        PendingRecovery pending = pendingRecovery;
+        if (pending == null) return;
+        pendingRecovery = null;
+        if (pending.opId() != opId) {
+            pending.completion().accept("Restore superseded by another log open; saved view not applied");
+            return;
+        }
+        pending.outcomes().add(error == null ? "Log loaded" : error);
+        finishRecoveryInputs(pending.generation(), opId, pending.plan(), pending.outcomes(), pending.completion(), error == null);
+    }
+
+    private boolean recoveryCurrent(long generation, long opId) {
+        return session().processor().sessionRecovery.generation() == generation
+                && session().processor().operationGate.expectedOpId() == opId;
+    }
+
+    /** Read design/results off the EDT; only completed reads are called restored. */
+    private void finishRecoveryInputs(long generation, long opId,
+            telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery.Plan plan,
+            java.util.List<String> outcomes, java.util.function.Consumer<String> completion, boolean logLoaded) {
+        if (!recoveryCurrent(generation, opId)) { completion.accept("Restore superseded; saved view not applied"); return; }
+        long designGeneration = session().processor().designSession.generation();
+        Background.run(() -> {
+            // Check again after the asynchronous log read. A changed file cannot receive saved anchors.
+            var recheck = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
+                    configStore.path().getParent().resolve("sessions")).check(plan.snapshot());
+            var unchanged = recheck.stream().filter(telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Check::unchanged)
+                    .map(telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Check::input).collect(java.util.stream.Collectors.toSet());
+            var capturedLogs = plan.snapshot().inputs().stream().filter(i -> i.role().equals("log") && i.sha256() != null)
+                    .map(i -> Map.of("path", i.path(), "sha256", i.sha256())).toList();
+            boolean logIdentity = logLoaded && !capturedLogs.isEmpty()
+                    && capturedLogs.equals(plan.snapshot().view().get("loadedLogHashes"))
+                    && plan.available().stream().filter(i -> i.role().equals("log")).allMatch(unchanged::contains);
+            var designEpoch = new long[]{designGeneration};
+            for (String role : List.of("topology", "design", "diagnostics")) {
+                for (var input : plan.available()) {
+                    if (!input.role().equals(role)) continue;
+                    if (!unchanged.contains(input)) { outcomes.add(role + " withheld: input changed during restore"); continue; }
+                    var result = actionExecutor.onEdt(() -> {
+                        if (!recoveryCurrent(generation, opId) || session().processor().designSession.generation() != designEpoch[0])
+                            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Restore superseded by a newer open");
+                        if (role.equals("topology")) return actionControl.openGraphml(input.path());
+                        return null;
+                    });
+                    if (result == null) {
+                        // The design reader checks its own generation at commit as well.
+                        var allowed = new RecoveryReadGuard(generation, opId, designEpoch);
+                        result = role.equals("design") ? ((AppControlAdapter)actionControl).openDesign(input.path(), allowed)
+                                : ((AppControlAdapter)actionControl).openDiagnostics(input.path(), allowed);
+                        if (!result.ok()) return "Restore incomplete: " + result.error() + "; " + String.join("; ", outcomes);
+                    }
+                    outcomes.add(role + (result.ok() ? " opened" : " refused: " + result.error()));
+                    if (!result.ok() && result.error().contains("superseded")) return "Restore superseded; " + String.join("; ", outcomes);
+                }
+            }
+            return actionExecutor.onEdt(() -> {
+                if (!recoveryCurrent(generation, opId)) return "Restore superseded; " + String.join("; ", outcomes);
+                boolean anchors = logIdentity && capturedLogs.equals(loadedLogIdentity.stream().map(i -> Map.of("path", i.path(), "sha256", i.sha256())).toList());
+                restoreRecoveryView(plan.snapshot().view(), outcomes, anchors,
+                        plan.available().stream().filter(i -> i.role().equals("topology")).anyMatch(i -> unchanged.contains(i)
+                                && java.util.Objects.equals(i.sha256(), plan.snapshot().view().get("loadedGraphHash"))
+                                && java.util.Objects.equals(i.sha256(), topologyPanel.loadedGraphSha256())
+                                && java.util.Objects.equals(i.path(), topologyPanel.graphPath())));
+                if (logLoaded && !anchors) outcomes.add("Saved view withheld: log identity differs from the captured view or changed during restore");
+                refreshProjectPanel();
+                return "Restore finished: " + String.join("; ", outcomes);
+            });
+        }, completion, error -> completion.accept("Restore incomplete: " + rootMessage(error) + "; " + String.join("; ", outcomes)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void restoreRecoveryView(Map<String,Object> view, java.util.List<String> outcomes, boolean logIdentity, boolean graphIdentity) {
+        try {
+            if (logIdentity && filter != null && view.get("filter") instanceof Map<?,?> f) {
+                var snapshot = new telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot(
+                        f.get("from") instanceof Number n ? n.longValue() : null,
+                        f.get("to") instanceof Number n ? n.longValue() : null,
+                        f.get("dimensions") instanceof List<?> d ? new java.util.HashSet<>((List<String>)d) : null,
+                        (String)f.get("text"), FilterState.GroupMode.valueOf((String)f.get("groupMode")));
+                snapshot.applyTo(filter);
+                outcomes.add("Record filter restored: " + snapshot.describe() + "; " + tablePanel.visibleRowCount() + " of " + store.size() + " records visible");
+            }
+            if (logIdentity && view.get("selectedRecords") instanceof List<?> rows) {
+                if (!tablePanel.selectModelRows(rows.stream().map(r -> ((Number)r).intValue()).toList()))
+                    outcomes.add("Saved record selection is outside the restored filter; none selected");
+            }
+            if (view.get("selectedGraph") instanceof String name) graphTabs.selectGraph(name);
+            for (var graph : store == null ? List.<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec>of() : graphTabs.specs()) {
+                if ((graph.from() != null && store.maxLogTime() != null && graph.from() > store.maxLogTime())
+                        || (graph.to() != null && store.minLogTime() != null && graph.to() < store.minLogTime()))
+                    outcomes.add("Chart '" + graph.name() + "' retains a pinned window outside this log; unpin explicitly to follow its data");
+            }
+            if (view.get("topology") instanceof Map<?,?> topology && !topology.isEmpty()) {
+                if (graphIdentity) outcomes.add(topologyPanel.restoreRecoveryView((Map<String,Object>)topology, logIdentity));
+                else outcomes.add("Topology cursor/focus withheld: no unchanged explicit topology identity");
+            }
+        } catch (RuntimeException e) { outcomes.add("Saved view could not be fully restored: " + e.getMessage()); }
     }
 
     private void restoreBounds() {
@@ -5954,6 +6210,15 @@ public final class MainFrame extends JFrame {
      * <p>So: one failing step must never cost the others, and nothing may cost the exit.
      */
     private void onExit() {
+        flushProject();
+        if (recovery != null) {
+            if (actionServer != null) actionServer.stop();
+            setEnabled(false);
+            recovery.closeThen(this::finishExit);
+        } else finishExit();
+    }
+
+    private void finishExit() {
         flushProject();   // a debounce window must not eat the last edit of a session
         try {
             step(() -> { if (followTimer != null) followTimer.stop(); });

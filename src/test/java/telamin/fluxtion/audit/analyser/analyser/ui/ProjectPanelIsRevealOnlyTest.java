@@ -63,8 +63,10 @@ class ProjectPanelIsRevealOnlyTest {
         String context = mainFrame;
         // M48.7: the handoff section is assembled by CanvasHandoff.toContext, the third place context is built
         String handoff = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/CanvasHandoff.java"));
+        // The generated session graph owns recovery state; the panel renders its context echo.
+        String recovery = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/SessionRecovery.java"));
         Set<String> put = new TreeSet<>();
-        Matcher m = Pattern.compile("put\\(\"([A-Za-z]+)\"").matcher(context + facts + handoff);
+        Matcher m = Pattern.compile("put\\(\"([A-Za-z]+)\"").matcher(context + facts + handoff + recovery);
         while (m.find()) put.add(m.group(1));
         // Map.of literals inside context() — `Map.of("path", r, "tier", ...)` — put keys without put(
         Matcher lit = Pattern.compile("Map\\.of\\(\"([A-Za-z]+)\", [^,]+, \"([A-Za-z]+)\"").matcher(context);

@@ -41,6 +41,7 @@ public record ProjectModel(List<Section> sections) {
     public record Section(String title, List<Row> rows) { }
 
     public static final Set<String> KEYS_READ = Set.of(
+            "restoration.state", "restoration.message", "restoration.available",
             "project.active", "project.name", "project.settings", "project.root",
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
@@ -83,6 +84,9 @@ public record ProjectModel(List<Section> sections) {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
                     Tone.MUTED, Target.NONE));
         }
+        Map<String,Object> restore = map(ctx.get("restoration"));
+        if (!restore.isEmpty()) rows.add(new Row("Session recovery: " + str(restore.get("state")),
+                str(restore.get("message")), null, null, Tone.NORMAL, Target.NONE));
         // M48.7: the shared canvas's handoff — what an AI client reads in context.handoff, as the person sees
         // it. A SET posture names who set it; a derived one says it is a guess, because the difference is the
         // whole of R10. The record row appears only when somebody placed one.

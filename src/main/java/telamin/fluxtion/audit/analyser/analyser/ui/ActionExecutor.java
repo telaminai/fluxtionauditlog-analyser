@@ -870,6 +870,11 @@ public final class ActionExecutor implements RenderExecutor {
 
     private ActionResult doOpen(Map<String, Object> params) {
         if (app == null) return ActionResult.error("'open' is not enabled here");
+        if (params.containsKey("restore")) {
+            if (params.size() != 1 || !("last".equals(params.get("restore")) || "dismiss".equals(params.get("restore"))))
+                return ActionResult.error("use open {restore: last|dismiss} alone to accept or decline the current session offer");
+            return "dismiss".equals(params.get("restore")) ? onEdt(app::dismissSessionRestore) : onEdt(app::restoreSession);
+        }
         if (params.get("project") != null) {
             // M35.8: the largest act on this verb goes first. A project switch is a session boundary
             // (M35.5) — the log and graph close with it — so "open a project and a log" in one call

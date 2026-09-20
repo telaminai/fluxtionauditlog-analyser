@@ -86,6 +86,10 @@ public interface AppControl {
      * between servers need this as much as a human does — under the M18 alternative it is a
      * per-minute operation, and without it a second log inherits the first log's topology.
      */
+    /** Accept the current project's explicit recovery offer; completion remains asynchronous. */
+    default ActionResult dismissSessionRestore() { return ActionResult.error("session restore is not enabled here"); }
+    default ActionResult restoreSession() { return ActionResult.error("session restore is not enabled here"); }
+
     default ActionResult close(String what) {
         return ActionResult.error("'close' is not enabled here");
     }

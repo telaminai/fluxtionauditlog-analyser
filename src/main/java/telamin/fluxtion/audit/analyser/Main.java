@@ -77,16 +77,11 @@ public class Main {
 
             MainFrame frame = new MainFrame();
             frame.setVisible(true);
-            String toOpen = fileArgs.length > 0 ? fileArgs[0] : frame.config().logFile;
-            if (toOpen != null && !toOpen.isBlank()) {
-                // M46 A4: say HOW this open came about. A remembered log reopened at startup was opened
-                // by nobody in this session, and `context` used to tell an agent "you" opened it.
-                frame.openFile(Path.of(toOpen), telamin.fluxtion.audit.analyser.analyser.ui.OpenRequest
-                        .atStartup(fileArgs.length == 0));
+            // A command-line path is explicit. Remembered global paths carry no project association.
+            if (fileArgs.length > 0 && !fileArgs[0].isBlank()) {
+                frame.openFile(Path.of(fileArgs[0]), telamin.fluxtion.audit.analyser.analyser.ui.OpenRequest.atStartup(false));
             }
-            // the topology is the other half of the working state; restoring only the log means finding
-            // the graph again on every launch
-            frame.reopenLastGraphml();
+            frame.offerSessionRecovery();
 
             // keep the splash visible briefly, then dismiss; on a first run (no config file yet)
             // open Settings so the user can configure source roots / LLM before anything else

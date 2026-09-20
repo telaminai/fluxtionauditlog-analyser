@@ -74,11 +74,15 @@ public final class StartPanel extends JPanel {
         default void openProjectDiagnostics() { }
         default void openProjectTopology() { }
         default void newProject() { }
+        default void restoreSession() { }
+        default void dismissSessionRestore() { }
 
     }
 
+    private final JPanel recoveryOffer = new JPanel(new BorderLayout(8, 8));
     private final JPanel contents = new JPanel(new CardLayout());
     private final Box projectLanding = Box.createVerticalBox();
+    private JScrollPane projectScroll;
     private java.util.Map<String, Object> lastProjectContext;
     private final Actions actions;
     private final Consumer<String> status;
@@ -163,27 +167,46 @@ public final class StartPanel extends JPanel {
         this.scroll = scroll;
         contents.add(scroll, "demo");
         projectLanding.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
-        JScrollPane projectScroll = new JScrollPane(Fluid.column(projectLanding),
+        projectScroll = new JScrollPane(Fluid.column(projectLanding),
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         projectScroll.setBorder(BorderFactory.createEmptyBorder());
         contents.add(projectScroll, "project");
         add(contents, BorderLayout.CENTER);
+        recoveryOffer.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
+        recoveryOffer.setVisible(false);
+        add(recoveryOffer, BorderLayout.NORTH);
         applyColours();
     }
 
     /** The same declared facts as the Project panel, with explicit actions on the landing only. */
     public void renderProject(java.util.Map<String, Object> context) {
+        recoveryOffer.removeAll();
+        if (context != null && context.get("restoration") instanceof java.util.Map<?,?> restore) {
+            recoveryOffer.add(wrapping(String.valueOf(restore.get("message"))), BorderLayout.CENTER);
+            if (Boolean.TRUE.equals(restore.get("available"))) {
+                JButton accept = new JButton("Restore last session");
+                accept.addActionListener(e -> actions.restoreSession());
+                JPanel choices = new JPanel();
+                choices.add(accept);
+                addAction(choices, "Dismiss", actions::dismissSessionRestore);
+                recoveryOffer.add(choices, BorderLayout.EAST);
+            }
+            recoveryOffer.setVisible(!"idle".equals(restore.get("state")) && !"none".equals(restore.get("state")));
+        } else recoveryOffer.setVisible(false);
+        recoveryOffer.revalidate(); recoveryOffer.repaint();
         boolean active = context != null && context.get("project") instanceof java.util.Map<?, ?> p
                 && Boolean.TRUE.equals(p.get("active"));
         ((CardLayout) contents.getLayout()).show(contents, active ? "project" : "demo");
         if (!active || java.util.Objects.equals(lastProjectContext, context)) return;
+        boolean resetScroll = lastProjectContext == null || !java.util.Objects.equals(lastProjectContext.get("project"), context.get("project"))
+                || (context.get("restoration") instanceof java.util.Map<?,?> r && "offered".equals(r.get("state"))
+                    && !java.util.Objects.equals(lastProjectContext.get("restoration"), r));
         lastProjectContext = new java.util.LinkedHashMap<>(context);
         projectLanding.removeAll();
         var model = ProjectModel.from(context);
         projectLanding.add(projectHeading("Your project"));
         projectLanding.add(wrapping("Project declarations are available. Open evidence explicitly to inspect a run."));
         for (var section : model.sections()) {
-            if (section.title().equals(ProjectModel.LOG) || section.title().equals(ProjectModel.GRAPH)) continue;
             projectLanding.add(Box.createVerticalStrut(12));
             projectLanding.add(projectHeading(section.title()));
             for (var r : section.rows()) {
@@ -201,7 +224,9 @@ public final class StartPanel extends JPanel {
         addAction(actionsRow, "New project…", actions::newProject);
         if (context.containsKey("log")) addAction(actionsRow, "Back to records", actions::backToRecords);
         projectLanding.add(Box.createVerticalStrut(16));
+        actionsRow.setAlignmentX(LEFT_ALIGNMENT);
         projectLanding.add(actionsRow);
+        if (resetScroll) SwingUtilities.invokeLater(() -> projectScroll.getViewport().setViewPosition(new Point(0, 0)));
         projectLanding.revalidate();
         projectLanding.repaint();
     }
@@ -209,6 +234,7 @@ public final class StartPanel extends JPanel {
     private static JLabel projectHeading(String text) {
         JLabel label = new JLabel(text);
         label.setFont(label.getFont().deriveFont(Font.BOLD));
+        label.setAlignmentX(LEFT_ALIGNMENT);
         return label;
     }
 

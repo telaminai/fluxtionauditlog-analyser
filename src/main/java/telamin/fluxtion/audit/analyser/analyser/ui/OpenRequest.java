@@ -39,7 +39,9 @@ public record OpenRequest(boolean fromActionSocket, String provenance, Launch la
         /** A log path given on the command line that started the app. */
         COMMAND_LINE,
         /** The previous session's log, reopened because the app remembers it. Nobody asked. */
-        RESTORED
+        RESTORED,
+        /** A person or agent explicitly accepted a session offer in this session. */
+        EXPLICIT_RESTORE
     }
 
     /** A person opened it — chooser, drag-drop, recent menu, S3 dialog. Dialogs are for them. */
@@ -65,12 +67,21 @@ public record OpenRequest(boolean fromActionSocket, String provenance, Launch la
      * chose, so a log nobody chose in this session must not be attributed to anybody in it.
      */
     public String openedBy() {
+        if (launch == Launch.EXPLICIT_RESTORE) return "explicit session restore";
         if (fromActionSocket) return "action socket";
         return switch (launch) {
             case RESTORED -> "the previous session — restored at startup, not opened in this one";
             case COMMAND_LINE -> "the command line that started this analyser";
             case NONE -> "you";
+            case EXPLICIT_RESTORE -> "explicit session restore";
         };
+    }
+
+    /** Restoration reports failures in its shared outcome; it never waits on a load dialog. */
+    public boolean suppressDialogs() { return fromActionSocket || launch == Launch.EXPLICIT_RESTORE; }
+
+    public static OpenRequest explicitRestore(String provenance) {
+        return new OpenRequest(false, provenance, Launch.EXPLICIT_RESTORE);
     }
 
     /** An agent asked over the action socket, declaring (or not) where the log came from. */

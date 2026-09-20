@@ -106,3 +106,54 @@ unchanged, and both emitted source copies pass the publication guard. Full regre
 zero failures/errors, 31 display skips**. Seven focused store/model/publication tests passed first.
 This foundation is not wired to the UI/MCP or lifecycle yet; implicit startup restoration remains until
 the complete adapter/offer migration. Next work must not mistake a verified plan for completed opens.
+
+## Checkpoint — explicit recovery adapter and startup migration
+
+The UI and MCP now accept or dismiss one per-project offer. Project close captures before clearing;
+shutdown drains queued capture writes before exit. Main opens only a command-line log, and the former
+remembered-GraphML entrance delegates to the same offer. Failed project activation cannot fall into the
+no-project bucket. Recovery never executes application processing, scripts or runbooks.
+
+Files are checked before opening; actual asynchronous reader completions produce the final outcome.
+One missing/changed rolled member refuses the complete set. Independent topology/design/diagnostics
+may still reopen, and their failures are named. Design reads are guarded against newer requests and
+project/log transitions. Saved record filters, multiple selection and topology contexts/cursor/zoom
+require the relevant identities; commentary and spotlight captions are not added to persistence.
+
+A gap found during author self-review is covered explicitly: hashing only at close could attach an old
+view to a newly edited file. Local log/rolled readers now observe SHA-256 before and after reading and
+retain matching identities. Recovery compares those observations with the saved snapshot and the new
+read before attaching positions. This adds two streaming file reads to a normal local log load; no large-log
+latency benchmark has been run. Growing or remote inputs without matching observations can reopen,
+but their saved record bindings are withheld. This is a file-content check, not build/execution certification.
+
+Verified: **37 display tests, zero failures/errors/skips**, including five real-frame recovery cases:
+close/reopen, changed-log partial restoration, same-home restart offer/dismiss, pre-close edit refusal
+for saved bindings, and a missing rolled member. Removing the loaded-view hash comparison makes the
+pre-close edit case fail at its withheld-view assertion; source restored, then the display gate rerun.
+The first mutation runner misclassified that genuine failure because it searched for text absent from
+JUnit's failure message; its corrected assertion checks the precise test line. Both outcomes are recorded.
+
+[Evidence packet](evidence/project-session-recovery-2026-09-20/README.md): actual frame captures and
+context before/after acceptance. Images were inspected and exposed an alignment/scroll defect in the
+landing, which was corrected and recaptured. The witness uses synthetic fixtures and an isolated home;
+no owner key, live project, or application execution. Restart constructs another real MainFrame with
+persisted state after draining capture, not an OS process launch. Main's CLI/implicit-open change is
+source-verified. The display CI job now includes this suite and rejects skips.
+
+The preceding full headless gate passed 1,705 tests (35 display skips); a protocol-isolation test and a
+rolled-set frame case were then added. Final clean headless/package and strict-doc counts follow below.
+Feedback 41–43 remains open outside this slice: recovery reports disjoint pins/filter counts, but ordinary
+log switching still needs the chart-level scope disclosure; series replacement/removal, axis fitting,
+colon-name addressing and the nullable pin schema are not claimed fixed.
+
+Remaining full delivery: catalogue metadata/picker, producer comment resource/parity and diagnostics,
+capability runbook validation, hardened coldstart scoring and an uncontaminated held-out journey.
+Publication remains its separate existing release gate. This is an implementation checkpoint, not a
+claim that the entire reviewed journey or its independent review is complete.
+
+Final checkpoint gates: `mvn -q -o clean package` — **1,707 tests, zero failures/errors, 36 display
+skips** (the five recovery cases join the previous skipped frame tests). The separate 37-test display
+gate ran all its cases with zero skips. MkDocs strict passed. Exact tracked-file rule-1 sweep passed;
+staged whitespace is clean after normalising trailing whitespace in the captured JUnit log, with its
+original digest recorded. The temporary mutation is absent from the staged source.

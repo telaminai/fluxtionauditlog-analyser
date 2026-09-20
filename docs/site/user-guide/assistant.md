@@ -559,3 +559,12 @@ class, a runtime processor with no fixed generated class, or a type not yet spec
 and project landing show these declarations independently of source discovery and loaded run evidence.
 Opening a project with no log now shows its own declarations and saved charts on the start page, with
 explicit buttons to open a log, topology, design or diagnostics. This does not run a build or application.
+
+### Explicit session restoration
+
+Read `context.restoration` before attempting recovery. `open {restore: "last"}` accepts the current
+project's offer; `open {restore: "dismiss"}` declines it. Send either alone. Verification and file opens
+are asynchronous: wait for `state: "finished"` or `"unavailable"` and read `message` and `checks`.
+A successful request echo is not an assertion that every saved input opened. Recovery does not execute
+application logic. The human sees the same offer on the start page and the same status in the Project
+panel. [Identity and partial-restoration rules](projects.md#restore-an-earlier-session).

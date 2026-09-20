@@ -45,12 +45,16 @@ public class SessionRecovery implements EventLogSource {
         return true;
     }
     @OnEventHandler public boolean request(ResumeEvents.Requested e) {
-        plan = null;
         if (!"offered".equals(state) || candidate == null) {
             message = "No unaccepted session offer is available"; return true;
         }
+        if (!e.accept()) {
+            state = "dismissed"; message = "Session offer dismissed; nothing opened";
+            auditLog.info("recovery", state); return true;
+        }
         // The operation gate's in-flight profile/log transition has priority over a new restore.
         if (gate.inFlightWhat() != null) { message = "Wait for the current open or project transition before restoring"; return true; }
+        plan = null;
         operationAtRequest = gate.expectedOpId();
         state = "verifying"; message = "Checking the offered files before restoring";
         auditLog.info("recovery", state).info("generation", generation);
@@ -81,7 +85,7 @@ public class SessionRecovery implements EventLogSource {
         return true;
     }
     @OnEventHandler public boolean finished(ResumeEvents.Finished e) {
-        if (e.generation() != generation) return stale();
+        if (e.generation() != generation || !"restoring".equals(state)) return stale();
         state = "finished"; message = e.outcome(); plan = null;
         auditLog.info("recovery", state).info("outcome", message);
         return true;

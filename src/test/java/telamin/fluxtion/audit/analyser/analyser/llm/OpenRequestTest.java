@@ -78,6 +78,21 @@ class OpenRequestTest {
         return ex;
     }
 
+    @Test void restoreRequestsStandAloneAndRefuseBeforeAnyOtherAction() {
+        var calls = new ArrayList<String>();
+        Legacy app = new Legacy() {
+            @Override public ActionResult restoreSession() { calls.add("accept"); return ActionResult.ok("open", "restoration", Map.of("state", "verifying")); }
+            @Override public ActionResult dismissSessionRestore() { calls.add("dismiss"); return ActionResult.ok("open", "restoration", Map.of("state", "dismissed")); }
+        };
+        var ex = executor(app);
+        assertFalse(ex.render("open", Map.of("restore", "last", "log", "another.yml")).ok());
+        assertFalse(ex.render("open", Map.of("restore", "other")).ok());
+        assertTrue(calls.isEmpty()); assertNull(app.lastPath);
+        assertTrue(ex.render("open", Map.of("restore", "last")).ok());
+        assertTrue(ex.render("open", Map.of("restore", "dismiss")).ok());
+        assertEquals(List.of("accept", "dismiss"), calls);
+    }
+
     /** Only the abstract surface plus the OLD provenance protocol — an implementor from before M35.9. */
     private static class Legacy implements AppControl {
         String lastPath, lastProvenance;

@@ -233,3 +233,33 @@ class, a runtime processor with no fixed generated class, or a type not yet spec
 and project landing show these declarations independently of source discovery and loaded run evidence.
 Opening a project with no log now shows its own declarations and saved charts on the start page, with
 explicit buttons to open a log, topology, design or diagnostics. This does not run a build or application.
+
+## Restore an earlier session
+
+Closing a project or quitting records a recovery candidate in your local analyser settings. Opening the
+project again or relaunching offers **Restore last session** on the start page. Nothing opens until you
+accept. **Dismiss** leaves the project declarations available without opening evidence. The Project panel
+states the same recovery status; its buttons remain navigation only.
+
+Restoration checks file contents and then opens the unchanged log (or complete rolled set), topology,
+design and producer diagnostics. Missing or changed parts are named individually. An incomplete rolled
+set is refused as a unit. Saved record filters, selection and topology navigation require matching input
+identities; a replaced file cannot silently acquire the old cursor. Recovery reports the record filter's
+visible/total count and any saved chart window wholly outside the log. A pin is preserved deliberately:
+unpin that chart explicitly to follow the current data.
+
+`context.restoration` reports the offer, verification, pending opens and final outcome. Use
+`open {restore: "last"}` to accept or `open {restore: "dismiss"}` to decline, each alone. A pending response
+is not proof that the files loaded: wait for the final state and inspect the outcome. Neither action runs
+the project, its build scripts or its runbooks.
+
+Candidates are keyed by canonical project-profile location, with a separate no-project bucket. They are
+not shared in profiles or exported ZIPs. A moved or missing project never inherits another project's
+session. Legacy global recent-log/topology paths remain explicit recent-menu choices, not automatic
+startup opens. A command-line log opens only that requested log.
+
+Identity here means observed file bytes, not proof of the application's build or execution identity.
+Record navigation is withheld when an input has no stable local read identity (including a growing log
+changed since loading or a temporary remote input). Topology navigation requires an unchanged explicit
+graph file; a reader-supplied graph has no separate file identity. Commentary and spotlight captions are
+not saved by session recovery. Reports retain their existing evidence and freshness rules.

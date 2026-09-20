@@ -757,13 +757,19 @@ public final class TopologyPanel extends JPanel {
         return true;
     }
 
+    private String loadedGraphSha256;
+    public String loadedGraphSha256() { return loadedGraphSha256; }
+
     public void load(Path file) {
+        var before = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("topology", file.toString());
         ProcessorTopology topology = GraphMlParser.parse(file);
         if (topology.isEmpty()) {
             setStatus("Could not read a topology from " + file.getFileName()
                            + " — is it a Fluxtion .graphml?");
             return;
         }
+        var after = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("topology", file.toString());
+        loadedGraphSha256 = before.sha256() != null && before.sha256().equals(after.sha256()) ? after.sha256() : null;
         loadedFrom = file;
         graphSource = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
         fullTopology = topology;
@@ -1256,6 +1262,60 @@ public final class TopologyPanel extends JPanel {
             syncing = false;
         }
         syncCursor();
+    }
+
+    /** Persist navigation only. Commentary, spotlights and findings are deliberately excluded. */
+    public java.util.Map<String,Object> recoveryView() {
+        if (fullTopology.nodeCount() == 0) return java.util.Map.of();
+        var out = new java.util.LinkedHashMap<String,Object>();
+        out.put("contexts", focusStack.contextsOldestFirst().stream()
+                .map(c -> java.util.Map.of("label", c.label(), "nodes", List.copyOf(c.ids()))).toList());
+        out.put("selected", List.copyOf(selection));
+        out.put("scope", scope.name());
+        out.put("routeBound", boundRoutesBox.isSelected());
+        out.put("scaffolding", scaffoldingBox.isSelected());
+        out.put("syncSource", syncButton.isSelected());
+        out.put("recordIndex", cursor.isEmpty() ? -1 : cursor.recordIndex());
+        out.put("rowIndex", cursor.rowIndex());
+        out.put("zoom", zoom()); out.put("panX", panX()); out.put("panY", panY());
+        out.put("orientation", orientationName());
+        return out;
+    }
+
+    /** Called only after matching log/topology bytes. Validate every node before changing the view. */
+    @SuppressWarnings("unchecked")
+    public String restoreRecoveryView(java.util.Map<String,Object> saved, boolean restoreCursor) {
+        var newStack = new FocusStack(fullTopology);
+        if (saved.get("contexts") instanceof List<?> contexts) {
+            for (Object item : contexts) {
+                var context = (java.util.Map<String,Object>)item;
+                var ids = new java.util.LinkedHashSet<>((List<String>)context.get("nodes"));
+                if (!newStack.world().containsAll(ids) || !newStack.push(ids, (String)context.get("label")))
+                    return "Topology focus refused: captured nodes do not fit the current topology";
+            }
+        }
+        var selected = new java.util.LinkedHashSet<>((List<String>)saved.get("selected"));
+        if (!newStack.world().containsAll(selected)) return "Topology selection refused: a captured node is unavailable";
+        var newScope = TopologyFocus.Scope.valueOf((String)saved.get("scope"));
+        int record = ((Number)saved.get("recordIndex")).intValue();
+        int row = ((Number)saved.get("rowIndex")).intValue();
+        if (restoreCursor && record >= 0) {
+            if (recordSource == null || record >= recordSource.size()) return "Topology cursor refused: record is outside the restored filter";
+            moveToRecord(record);
+            for (int i = 0; i <= row; i++) step(1);
+        }
+        focusStack = newStack;
+        selection.clear(); selection.addAll(selected);
+        scope = newScope;
+        boundRoutesBox.setSelected(Boolean.TRUE.equals(saved.get("routeBound")));
+        scaffoldingBox.setSelected(Boolean.TRUE.equals(saved.get("scaffolding")));
+        syncButton.setSelected(Boolean.TRUE.equals(saved.get("syncSource")));
+        if (saved.get("orientation") instanceof String orientation) setOrientation(LayeredLayout.Orientation.valueOf(orientation));
+        applyView(false); refreshCrumbs();
+        if (saved.get("zoom") instanceof Number z && saved.get("panX") instanceof Number x && saved.get("panY") instanceof Number y
+                && Double.isFinite(z.doubleValue()) && z.doubleValue() > 0 && Double.isFinite(x.doubleValue()) && Double.isFinite(y.doubleValue()))
+            canvas.setViewState(z.doubleValue(), x.doubleValue(), y.doubleValue());
+        return restoreCursor ? "Topology cursor/focus restored" : "Topology focus restored; cursor withheld without matching log identity";
     }
 
     /** A machine-readable snapshot of where the cursor is — the echo an assistant verb returns. */

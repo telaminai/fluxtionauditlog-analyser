@@ -73,3 +73,7 @@ class, a runtime processor with no fixed generated class, or a type not yet spec
 and project landing show these declarations independently of source discovery and loaded run evidence.
 Opening a project with no log now shows its own declarations and saved charts on the start page, with
 explicit buttons to open a log, topology, design or diagnostics. This does not run a build or application.
+
+The **Session recovery** row renders `context.restoration.state` and `message`, including partial refusals.
+Accept or dismiss the offer on the start page; the Project panel itself never restores files.
+See [session restoration](projects.md#restore-an-earlier-session) for identity limits.
