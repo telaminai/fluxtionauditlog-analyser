@@ -161,6 +161,7 @@ public final class SettingsShare {
         if (categories.contains(Category.EVENT_PROCESSORS)) {
             ConfigStore.writeList(p, "eventProcessorFqn", c.eventProcessorFqns);
             ConfigStore.put(p, "selectedEventProcessor", c.selectedEventProcessor);
+            ProcessorDeclaration.write(p, c.processorDeclarations);
         }
         if (categories.contains(Category.GRAPHS)) {
             ConfigStore.writeGraphs(p, c.savedGraphs);
@@ -299,11 +300,13 @@ public final class SettingsShare {
 
         List<String> eventProcessorFqns = null;
         String selectedEventProcessor = null;
-        if (p.getProperty("eventProcessorFqn.count") != null || p.getProperty("selectedEventProcessor") != null) {
+        List<ProcessorDeclaration> processorDeclarations = null;
+        if (p.getProperty("eventProcessorFqn.count") != null || p.getProperty("selectedEventProcessor") != null || p.stringPropertyNames().stream().anyMatch(k -> k.startsWith("processorDeclaration."))) {
             present.add(Category.EVENT_PROCESSORS);
             eventProcessorFqns = p.getProperty("eventProcessorFqn.count") != null
                     ? readList(p, "eventProcessorFqn") : List.of();
             selectedEventProcessor = p.getProperty("selectedEventProcessor");
+            processorDeclarations = ProcessorDeclaration.read(p);
             summary.put(Category.EVENT_PROCESSORS, listSummary(eventProcessorFqns, current.eventProcessorFqns)
                     + (selectedEventProcessor != null ? " · selects " + shortFqn(selectedEventProcessor) : ""));
         }
@@ -451,7 +454,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot,
+                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -475,6 +478,12 @@ public final class SettingsShare {
         if (selected.contains(Category.EVENT_PROCESSORS) && plan.present().contains(Category.EVENT_PROCESSORS)) {
             if (plan.eventProcessorFqns() != null) addAllMissing(target.eventProcessorFqns, plan.eventProcessorFqns());
             if (plan.selectedEventProcessor() != null) target.selectedEventProcessor = plan.selectedEventProcessor();
+            if (plan.processorDeclarations() != null) {
+                for (var declaration : plan.processorDeclarations()) {
+                    target.processorDeclarations.removeIf(d -> d.name().equals(declaration.name()));
+                    target.processorDeclarations.add(declaration);
+                }
+            }
         }
         if (selected.contains(Category.GRAPHS) && plan.graphs() != null) {
             mergeGraphsByName(target.savedGraphs, plan.graphs());
@@ -556,6 +565,7 @@ public final class SettingsShare {
             Boolean mavenRepoSearch,
             List<String> eventProcessorFqns,
             String selectedEventProcessor,
+            List<ProcessorDeclaration> processorDeclarations,
             List<GraphSpec> graphs,
             List<FocusSpec> focuses,
             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,

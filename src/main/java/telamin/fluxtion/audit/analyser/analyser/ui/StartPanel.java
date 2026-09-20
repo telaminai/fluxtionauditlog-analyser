@@ -70,8 +70,16 @@ public final class StartPanel extends JPanel {
 
         /** Back to the records table, for a page raised over an open log (Help ▸ Start page). */
         void backToRecords();
+        default void openProjectDesign() { }
+        default void openProjectDiagnostics() { }
+        default void openProjectTopology() { }
+        default void newProject() { }
+
     }
 
+    private final JPanel contents = new JPanel(new CardLayout());
+    private final Box projectLanding = Box.createVerticalBox();
+    private java.util.Map<String, Object> lastProjectContext;
     private final Actions actions;
     private final Consumer<String> status;
 
@@ -153,8 +161,61 @@ public final class StartPanel extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setOpaque(false);
         this.scroll = scroll;
-        add(scroll, BorderLayout.CENTER);
+        contents.add(scroll, "demo");
+        projectLanding.setBorder(BorderFactory.createEmptyBorder(22, 26, 22, 26));
+        JScrollPane projectScroll = new JScrollPane(Fluid.column(projectLanding),
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        projectScroll.setBorder(BorderFactory.createEmptyBorder());
+        contents.add(projectScroll, "project");
+        add(contents, BorderLayout.CENTER);
         applyColours();
+    }
+
+    /** The same declared facts as the Project panel, with explicit actions on the landing only. */
+    public void renderProject(java.util.Map<String, Object> context) {
+        boolean active = context != null && context.get("project") instanceof java.util.Map<?, ?> p
+                && Boolean.TRUE.equals(p.get("active"));
+        ((CardLayout) contents.getLayout()).show(contents, active ? "project" : "demo");
+        if (!active || java.util.Objects.equals(lastProjectContext, context)) return;
+        lastProjectContext = new java.util.LinkedHashMap<>(context);
+        projectLanding.removeAll();
+        var model = ProjectModel.from(context);
+        projectLanding.add(projectHeading("Your project"));
+        projectLanding.add(wrapping("Project declarations are available. Open evidence explicitly to inspect a run."));
+        for (var section : model.sections()) {
+            if (section.title().equals(ProjectModel.LOG) || section.title().equals(ProjectModel.GRAPH)) continue;
+            projectLanding.add(Box.createVerticalStrut(12));
+            projectLanding.add(projectHeading(section.title()));
+            for (var r : section.rows()) {
+                // Dynamic project contents must not accumulate listeners in the theme recolour list.
+                var text = wrapping(r.primary() + (r.secondary() == null ? "" : " — " + r.secondary()));
+                text.setFont(UIManager.getFont("Label.font"));
+                projectLanding.add(text);
+            }
+        }
+        JPanel actionsRow = new JPanel(new java.awt.GridLayout(0, 2, 8, 8));
+        addAction(actionsRow, "Open audit log…", actions::openOwnLog);
+        addAction(actionsRow, "Open topology…", actions::openProjectTopology);
+        addAction(actionsRow, "Open design…", actions::openProjectDesign);
+        addAction(actionsRow, "Open diagnostics…", actions::openProjectDiagnostics);
+        addAction(actionsRow, "New project…", actions::newProject);
+        if (context.containsKey("log")) addAction(actionsRow, "Back to records", actions::backToRecords);
+        projectLanding.add(Box.createVerticalStrut(16));
+        projectLanding.add(actionsRow);
+        projectLanding.revalidate();
+        projectLanding.repaint();
+    }
+
+    private static JLabel projectHeading(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(label.getFont().deriveFont(Font.BOLD));
+        return label;
+    }
+
+    private static void addAction(JPanel into, String label, Runnable action) {
+        JButton button = new JButton(label);
+        button.addActionListener(e -> action.run());
+        into.add(button);
     }
 
     /** Refresh after the management dialog closes; the stored value never enters this component. */

@@ -90,6 +90,12 @@ Legend for each item: **[id] status — title** · _acceptance_.
   reveal-only Project panel render persisted definitions separately from live tabs. 1,691 tests pass
   (31 display skips), strict docs and rule-1 sweep pass. Landing/restore and display witness remain open;
   this completes only the saved-definition fact surface, not acceptance 5–7 as a whole.
+- ◧ **Project landing and processor declarations — implementation slice** — version-1 additive profile
+  family is pinned in the journey spec and consumed/exported with event processors. Runtime/unspecified
+  entries forbid invented FQCNs; invalid profiles refuse before state replacement. StartPanel now shows
+  project facts and explicit evidence-open actions while no log is loaded; the Project panel stays
+  reveal-only. 1,695 tests pass (31 display skips), strict docs pass. Display witness and unified restore
+  offer are still pending; existing global startup restoration has not yet been replaced.
 - ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
   capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
   user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key

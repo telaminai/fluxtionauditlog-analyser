@@ -29,7 +29,7 @@ public final class KnownKeys {
 
     /** What {@code SettingsShare.export} can write — the profile and the share file. */
     public static final Set<String> PROFILE_FAMILIES = Set.of(
-            "share", "sourceRoot", "mavenRepo", "mavenRepoSearch", "eventProcessorFqn", "selectedEventProcessor",
+            "share", "sourceRoot", "mavenRepo", "mavenRepoSearch", "eventProcessorFqn", "selectedEventProcessor", "processorDeclaration",
             "graph", "focus", "report", "hiddenColumn", "assistant", "llmProvider", "llmModel", "llmBaseUrl",
             "runbook", "vocabulary", "environment", "analysis", "destination", "workspaceRoot");
 

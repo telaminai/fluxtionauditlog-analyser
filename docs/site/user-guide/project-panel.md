@@ -66,3 +66,10 @@ rail hide their panel. Every one of these choices persists.
 Saved charts come from `context.savedGraphs` (`name`, `open`, `input`). This is separate from
 `context.graphs`, which lists live tabs. Neither saving a definition nor opening a tab proves that its
 series exist in the current log. These are session facts, not a new report evidence section.
+
+
+The project may also declare processor intent through `context.processorDeclarations`: a named generated
+class, a runtime processor with no fixed generated class, or a type not yet specified. The Project panel
+and project landing show these declarations independently of source discovery and loaded run evidence.
+Opening a project with no log now shows its own declarations and saved charts on the start page, with
+explicit buttons to open a log, topology, design or diagnostics. This does not run a build or application.

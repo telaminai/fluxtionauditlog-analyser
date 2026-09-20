@@ -71,3 +71,19 @@ skipped), production build, and a subsequent focused 20-test run including absen
 Type check still reports its four pre-existing SplitPane errors. Runtime runbook verification, shared
 processor metadata consumption, pinned-reference/comment resource, browser witness and held-out journey
 remain pending; this branch is not a release candidate yet.
+
+
+## Checkpoint — project landing and declaration consumption
+
+Analyser first slice/evidence pushed as `7044e9f`; playground initial support pushed as `0e7bd58`.
+The analyser now consumes/exports version-1 `processorDeclaration` entries with the event-processor
+category, snapshots them across project boundaries and keeps own settings separate from active profiles.
+Malformed profile metadata refuses before replacing state. `context.processorDeclarations`, Project panel
+and StartPanel landing share those facts. The landing offers explicit open actions; it adds no executor.
+
+Gate: **1,695 tests, zero failures/errors, 31 display skips**, MkDocs strict and authored whitespace clean.
+Headless panel construction verifies display text and explicit callbacks; this is not a browser/desktop
+witness. The existing global startup restore is still present and the new project restore offer is not
+implemented yet. This branch remains in progress. Profile format is pinned in the spec before further
+producer/consumer changes. The next acceptance is isolated UI and per-project restore, including feedback
+41's disjoint saved pin and independently active filters.

@@ -150,6 +150,7 @@ public final class ProjectProfile {
                            boolean searchMavenRepos,
                            List<String> eventProcessorFqns,
                            String selectedEventProcessor,
+                           List<ProcessorDeclaration> processorDeclarations,
                            List<GraphSpec> savedGraphs,
                            List<FocusSpec> namedFocuses,
                            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
@@ -167,6 +168,7 @@ public final class ProjectProfile {
             sourceRoots = List.copyOf(sourceRoots);
             mavenRepos = List.copyOf(mavenRepos);
             eventProcessorFqns = List.copyOf(eventProcessorFqns);
+            processorDeclarations = List.copyOf(processorDeclarations);
             savedGraphs = List.copyOf(savedGraphs);
             namedFocuses = List.copyOf(namedFocuses);
             reports = List.copyOf(reports);
@@ -183,7 +185,7 @@ public final class ProjectProfile {
 
     public static Snapshot snapshot(AppConfig c) {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
-                c.selectedEventProcessor, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
+                c.selectedEventProcessor, c.processorDeclarations, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
                 c.hiddenColumnsSet, c.runbooks, c.vocabularyPath, c.environments, c.defaultEnvironment, c.analyses,
                 c.reportDestinations, c.workspaceRoot);
     }
@@ -196,6 +198,7 @@ public final class ProjectProfile {
         into.searchMavenRepos = s.searchMavenRepos();
         into.eventProcessorFqns.addAll(s.eventProcessorFqns());
         into.selectedEventProcessor = s.selectedEventProcessor();
+        into.processorDeclarations.addAll(s.processorDeclarations());
         into.savedGraphs.addAll(s.savedGraphs());
         into.namedFocuses.addAll(s.namedFocuses());
         into.reports.addAll(s.reports());
@@ -218,6 +221,7 @@ public final class ProjectProfile {
         c.sourceRoots.clear();
         c.mavenRepos.clear();
         c.eventProcessorFqns.clear();
+        c.processorDeclarations.clear();
         c.savedGraphs.clear();
         c.namedFocuses.clear();
         c.reports.clear();

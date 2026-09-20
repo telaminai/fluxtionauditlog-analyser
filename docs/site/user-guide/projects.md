@@ -226,3 +226,10 @@ project, and your machine settings are untouched.
 
 Saved chart definitions remain visible in the Project panel and `context.savedGraphs` after reopening
 a profile without a log. They are waiting for input, not proof of restored data or valid series bindings.
+
+
+The project may also declare processor intent through `context.processorDeclarations`: a named generated
+class, a runtime processor with no fixed generated class, or a type not yet specified. The Project panel
+and project landing show these declarations independently of source discovery and loaded run evidence.
+Opening a project with no log now shows its own declarations and saved charts on the start page, with
+explicit buttons to open a log, topology, design or diagnostics. This does not run a build or application.

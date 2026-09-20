@@ -46,6 +46,23 @@ public record SessionFacts(LogFileInfo file, String eventProcessorFqn, List<Path
         return new SessionFacts(file, eventProcessorFqn, List.copyOf(roots), types, files);
     }
 
+    /** Declared intent is not evidence of a generated class, loaded topology, or observed execution. */
+    public static List<Map<String, Object>> processorDeclarations(
+            List<telamin.fluxtion.audit.analyser.analyser.config.ProcessorDeclaration> declarations) {
+        return declarations.stream().map(d -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", d.name());
+            m.put("kind", d.kind().name().toLowerCase(java.util.Locale.ROOT));
+            if (!d.fqcn().isEmpty()) m.put("fqcn", d.fqcn());
+            m.put("status", switch (d.kind()) {
+                case DECLARED -> "declared generated type; source and evidence availability are separate";
+                case RUNTIME -> "runtime processor; no fixed generated type declared";
+                case UNSPECIFIED -> "processor type not yet specified";
+            });
+            return m;
+        }).toList();
+    }
+
     /** Saved definitions exist without input; an open tab does not prove valid series bindings. */
     public static List<Map<String, Object>> savedGraphs(List<GraphSpec> definitions,
                                                        Set<String> openNames, boolean hasLog) {

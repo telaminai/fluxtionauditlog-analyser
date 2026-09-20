@@ -19,6 +19,7 @@ public final class AppConfig {
     public String llmBaseUrl = "";
     public String apiKey = "";                    // cleartext (by decision)
     public final List<String> eventProcessorFqns = new ArrayList<>();
+    public final List<ProcessorDeclaration> processorDeclarations = new ArrayList<>();
     public String selectedEventProcessor = "com.acme.marketmaker.strategy.DemoMarketMakerStrategy";
     public int memoryThresholdMb = 500;
 

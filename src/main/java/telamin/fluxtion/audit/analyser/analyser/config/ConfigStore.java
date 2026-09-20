@@ -51,6 +51,11 @@ public final class ConfigStore {
         c.llmBaseUrl = p.getProperty("llmBaseUrl", c.llmBaseUrl);
         c.apiKey = p.getProperty("apiKey", c.apiKey);
         readList(p, "eventProcessorFqn", c.eventProcessorFqns);
+        try { c.processorDeclarations.addAll(ProcessorDeclaration.read(p)); }
+        catch (IllegalArgumentException invalid) {
+            // Corrupt own settings must not prevent launch; an opened profile refuses transactionally.
+            System.err.println("[analyser] processor declarations not loaded: " + invalid.getMessage());
+        }
         c.selectedEventProcessor = p.getProperty("selectedEventProcessor", c.selectedEventProcessor);
         c.memoryThresholdMb = parseInt(p.getProperty("memoryThresholdMb"), c.memoryThresholdMb);
         if (p.getProperty("mavenRepo.count") != null) {   // configured before → honour it (even if empty)
@@ -140,6 +145,7 @@ public final class ConfigStore {
         put(p, "apiKey", c.apiKey);
         writeList(p, "eventProcessorFqn", globalTier == null ? c.eventProcessorFqns : globalTier.eventProcessorFqns());
         put(p, "selectedEventProcessor", globalTier == null ? c.selectedEventProcessor : globalTier.selectedEventProcessor());
+        ProcessorDeclaration.write(p, globalTier == null ? c.processorDeclarations : globalTier.processorDeclarations());
         put(p, "memoryThresholdMb", Integer.toString(c.memoryThresholdMb));
         writeList(p, "mavenRepo", globalTier == null ? c.mavenRepos : globalTier.mavenRepos());
         put(p, "mavenRepoSearch", Boolean.toString(globalTier == null ? c.searchMavenRepos : globalTier.searchMavenRepos()));

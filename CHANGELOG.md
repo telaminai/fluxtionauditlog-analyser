@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Project landing and processor intent** — a project opened without a log shows its own roots,
+  runbooks, saved charts and declarations, with explicit evidence-open actions. Profiles can distinguish
+  a declared generated type, runtime processing and an unspecified type without inventing an FQCN.
 - **Saved chart definitions before a log is opened** — the Project panel and `context.savedGraphs`
   list saved charts separately from live graph tabs, with an explicit waiting-for-input state.
   An open tab does not claim that its series are bound to valid data.

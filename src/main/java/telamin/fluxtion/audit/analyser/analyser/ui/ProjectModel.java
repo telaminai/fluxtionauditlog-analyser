@@ -49,6 +49,7 @@ public record ProjectModel(List<Section> sections) {
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
+            "processorDeclarations.name", "processorDeclarations.kind", "processorDeclarations.status",
             "savedGraphs.name", "savedGraphs.open", "savedGraphs.input",
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
@@ -246,6 +247,11 @@ public record ProjectModel(List<Section> sections) {
 
         // ---- processors ------------------------------------------------------------------------------
         rows = new ArrayList<>();
+        for (Object o : list(ctx.get("processorDeclarations"))) {
+            Map<String, Object> declaration = map(o);
+            rows.add(new Row(str(declaration.get("name")), str(declaration.get("status")), null,
+                    "project declaration · " + str(declaration.get("kind")), Tone.NORMAL, Target.NONE));
+        }
         // "source not found" has TWO causes with OPPOSITE remedies, and reporting one message for both
         // sends half the people down a dead end. Found against the live v4 bundle (2026-08-30): it
         // declares a processor class and ships no generated source, while `src/main/java` IS configured —

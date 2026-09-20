@@ -552,3 +552,10 @@ is the canonical statement of this boundary.)
 open-tab state and input status. Without a log they say `waiting for input`; with one they still say
 that bindings require validation. `context.graphs` remains the list of live chart tabs. People see the
 same distinction in the Project panel's **Saved charts** section.
+
+
+The project may also declare processor intent through `context.processorDeclarations`: a named generated
+class, a runtime processor with no fixed generated class, or a type not yet specified. The Project panel
+and project landing show these declarations independently of source discovery and loaded run evidence.
+Opening a project with no log now shows its own declarations and saved charts on the start page, with
+explicit buttons to open a log, topology, design or diagnostics. This does not run a build or application.

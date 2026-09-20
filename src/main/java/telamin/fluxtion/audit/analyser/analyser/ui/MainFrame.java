@@ -550,7 +550,9 @@ public final class MainFrame extends JFrame {
     private void refreshProjectPanel() {
         if (projectPanel == null || actionControl == null) return;
         try {
-            projectPanel.render(ProjectModel.from(actionControl.context().payload()));
+            var context = actionControl.context().payload();
+            projectPanel.render(ProjectModel.from(context));
+            if (startPanel != null) startPanel.renderProject(context);
         } catch (RuntimeException e) {
             // the panel is a courtesy view of state that already exists; it must never take the app down
             projectPanel.render(ProjectModel.from(null));
@@ -912,7 +914,10 @@ public final class MainFrame extends JFrame {
      * One call site for the decision, so the two can never both be right.
      */
     private void syncRecordsCard() {
-        if (startPanel != null) recordsLayout.show(recordsCards, store == null ? "start" : "table");
+        if (startPanel != null) {
+            if (actionControl != null) startPanel.renderProject(actionControl.context().payload());
+            recordsLayout.show(recordsCards, store == null ? "start" : "table");
+        }
     }
 
     /**
@@ -2676,6 +2681,14 @@ public final class MainFrame extends JFrame {
             @Override public void openFluxtionKey() { openFluxtionKeyDialog(); }
             @Override public boolean fluxtionKeyPresent() { return fluxtionKeyStore.keyPresent(); }
             @Override public void backToRecords() { syncRecordsCard(); }
+            @Override public void openProjectDesign() { chooseDesignFile(false); }
+            @Override public void openProjectDiagnostics() { chooseDesignFile(true); }
+            @Override public void openProjectTopology() {
+                sessionInteractive = true;
+                topologyPanel.chooseFile();
+                showTab("Topology");
+            }
+            @Override public void newProject() { chooseTemplateProject(); }
         }, text -> status.setText(text));
         recordsCards.add(startPanel, "start");
         recordsCards.add(mainSplit, "table");
@@ -5659,6 +5672,7 @@ public final class MainFrame extends JFrame {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
+            out.put("processorDeclarations", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.processorDeclarations(config.processorDeclarations));
             out.put("savedGraphs", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.savedGraphs(
                     config.savedGraphs, graphTabs.specs().stream().map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
                             .collect(java.util.stream.Collectors.toSet()), store != null));

@@ -482,3 +482,17 @@ session per complete journey and keep the operator prompts, injected-error answe
 outside the subject's enforced access boundary. Validate the scorer inputs and report unknown/missing
 observations before using its output for acceptance. This intake does not claim a trial has run or authorize
 paid key use; the existing recurrence and held-out thresholds still govern adoption.
+
+
+### Processor declaration wire contract — implementation pin, version 1
+
+The profile uses `processorDeclaration.version=1`, `processorDeclaration.count=N`, then zero-based
+`processorDeclaration.i.name`, `.kind` and optional `.fqcn`. Kinds are `declared` (requires a qualified
+class name), `runtime` (no fixed generated type) and `unspecified` (not yet chosen). The latter two forbid
+an FQCN. Names are unique within the declaration list. A missing family is legacy/undeclared, not evidence
+that the project has no processor. Unknown versions, kinds and malformed declarations refuse profile
+import before replacing active project state. This metadata travels with the event-processor share category;
+import merges declarations by name and project activation replaces the category. Older readers preserve
+the unknown property family. New readers expose it as `context.processorDeclarations` and on the Project
+panel/landing; source availability and observed execution remain separate facts. No fabricated generated
+name is added for an interpreted/in-process processor.
