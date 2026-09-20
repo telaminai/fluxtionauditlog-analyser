@@ -10,9 +10,8 @@ say later.
 
 > ## Trust the evidence, not the author.
 
-**Fluxtion derives the order everything runs in, at compile time, and records what actually happened —
-including what did not. Correctness stops being a matter of faith and becomes a comparison you can run,
-whoever, or whatever, wrote the code.**
+**Fluxtion derives the order everything runs in, at compile time, and records what actually ran, including what did not. 
+Correctness stops being a matter of faith and becomes a comparison you can run, whoever, or whatever, wrote the code.**
 
 That last clause does the AI work without the page being about AI. **"Including what did not" is the
 load-bearing phrase**, and it is there to satisfy D-T7: derivation on its own invites *we already have
