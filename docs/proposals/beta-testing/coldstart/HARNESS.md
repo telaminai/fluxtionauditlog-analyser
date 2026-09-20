@@ -10,7 +10,7 @@ session; its trap outcomes are in the scoresheet as the control.
 
 | File | Who uses it | What it is |
 |---|---|---|
-| `README.md` | operator | this protocol |
+| `HARNESS.md` | operator | this protocol |
 | `PROMPTS-BETA.md` | operator | **the beta script** — acts 1–7, human tester with an LLM design partner |
 | `PROMPTS-COLDSTART.md` | operator | the slice-C battery — T1–T6, subject is a model. Not the beta script |
 | `JOURNAL.md` | **subject** | the journal format and its rules — copy into the run directory |
