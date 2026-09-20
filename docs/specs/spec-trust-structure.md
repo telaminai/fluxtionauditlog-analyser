@@ -188,6 +188,88 @@ or a competitor who moved — not the availability of a better answer.
 function and does it have a date? Record the answer against this decision. If it is *"eventually"*, the
 adoption curve is longer than the thesis implies, and that changes runway rather than direction.
 
+## D-T8 — a connector never conceals a gap: a discontinuity is DATA, not an absence of data
+
+D-T4 is the same rule one layer in. Where D-T4 governs what the analyser will assert about a record, this
+governs what a connector is allowed to leave out of one. It is the only decision here that binds code in
+other repositories, and it binds every event source: file, memory, Chronicle, Kafka, Aeron, multicast, the
+market-data feeds, and anything added later.
+
+**The rule.** Where a connector loses, skips, reorders, deduplicates, truncates or reconnects across its
+input, it publishes that fact through the same channel as the input itself. It does not resume a series as
+though nothing happened, and it does not report the fact only to a log file the audit record cannot see.
+
+**Why this is strategic rather than tidy.** Most connectors treat transparent reconnection as a feature:
+reconnect quietly, resume the subscription, hide the seam. Under D-T3 that feature is a defect, because it
+is the one place the record can become quietly wrong while every stage reports success. Every verification
+technique this product rests on is a comparison — an oracle against a run, a run against a rerun, one host
+against another — and a concealed gap breaks all of them identically and invisibly. A series that silently
+spans an outage is not missing data. It is a wrong answer wearing the appearance of a complete one, which
+is exactly the failure D-T4 exists to prevent at the other end of the pipe.
+
+What each connector owes:
+
+- **Name its discontinuities.** Per transport and short: connection loss, consumer lag, log rotation,
+  truncated file, retention expiry, sequence reset, dropped multicast. A connector with no possible
+  discontinuity states that, which is a claim rather than an exemption.
+- **Publish each one as an event**, through the normal path, so it lands in the record with everything
+  else. Where a domain API already declares suitable events, use them rather than inventing parallel ones.
+- **Carry what is known and admit what is not.** An outage event carries its window and, where the
+  transport can tell, the range missed. Where it cannot tell, it says so. A guessed zero is worse than an
+  acknowledged unknown, and is a D-T4 violation in miniature.
+- **Count what it dropped**, so a denominator exists. Live hazard: a data mapper returning null is logged
+  at fine level and dropped, while a throw is reported as an error, so a null-returning mapper loses input
+  invisibly at default log levels.
+- **Never repair by interpolation.** No synthesised value to bridge a gap, no stale value re-emitted to
+  keep a series continuous.
+
+**Not a requirement to stop on a gap.** Continuing is usually right. Continuing *silently* is the defect.
+This adds nothing to D-T5's list of things the record does not give the buyer; it protects the one thing it
+does, which is that what is there happened.
+
+**Consequence for review:** as with D-T4, a change that lets a connector paper over a discontinuity is a
+change to the product's position, not a convenience. Reviewed as one.
+
+## D-T9 — a connector never fabricates a value the source did not send
+
+D-T8's sibling, and the same posture at a finer grain. D-T8 governs what a connector may leave out of the
+record. This governs what it may put in. Together they say the one thing a connector is never allowed to do,
+which is improve the record.
+
+**The rule.** A field the source did not carry is left unset. It is not defaulted to a plausible value, not
+inferred from a neighbouring field, and not filled from a convenience constructor that happens to supply
+one. Where the transport cannot express a field at all, the connector documents that the field is not
+available from this source rather than quietly emitting a value for it.
+
+**Why it is the same decision as D-T4.** A fabricated number is indistinguishable downstream from a measured
+one. Nothing in the record marks it, no consumer can tell, and every comparison, oracle and report treats it
+as observed. That is overclaiming at the finest available grain, and it is worse than the analyser asserting
+too much, because the analyser's assertions are at least visible as assertions.
+
+**Measured instance, and it is why this is written down.** In the trading API the flat book's convenience
+constructors set bid and ask order count to one. Those constructors exist for tests and hand-built events,
+which is legitimate. A connector reaching for the same constructor publishes an order count of one for a
+channel that reports no order count at all, and every downstream chart, sum and check then treats an invented
+number as market data.
+
+What each connector owes:
+
+- **Know which fields its source carries**, per channel or message type, and record that where a reader will
+  find it. An unverified assumption about what the wire contains is the usual route into a violation.
+- **Leave the rest unset**, and prefer a representation that a consumer can distinguish from a real value.
+  A default that looks like data is worse than an absence.
+- **Never borrow a value from a shared API's convenience path.** The domain model's defaults are for the
+  people constructing events by hand, not for the thing claiming to report an external source.
+- **Say so in the template's nodes.** A field the source does not carry is not logged, so it cannot reach a
+  chart or a report as though it were evidence.
+
+**Not a prohibition on derived values.** A connector may compute a mid from a bid and an ask, as long as what
+it publishes is marked as derived and the inputs are real. The rule is against values with no origin, not
+against arithmetic.
+
+**Consequence for review:** as with D-T4 and D-T8, a change that lets a connector emit a value its source did
+not supply is a change to the product's position. Reviewed as one.
+
 ## The evidence this rests on
 
 Measured, and none of it produced to support this document.
@@ -291,6 +373,13 @@ Measured, and none of it produced to support this document.
 - [ ] The answer to *"how do we know this log wasn't edited?"* is written down and is "you don't, today" —
       not improvised in a meeting.
 - [ ] D-T6's forcing function is answered for the first serious prospect and recorded against this spec.
+- [ ] **No connector emits a field its source did not carry** (D-T9). Per connector and channel, the fields
+      the wire supplies are recorded, and a test asserts the unsupplied ones are absent rather than defaulted
+      in the live path, the capture and any mock alike.
+- [ ] **Every connector names its discontinuities and publishes each one as an event** (D-T8), with a
+      disposable-fixture test per named case asserting the event appears with its window, that no computed
+      series spans the gap, and that dropped counts match what was injected. A gap must survive a replay
+      round trip: one that disappears on replay makes replay dishonest, which is worse than the outage.
 
 ## Why this is a spec and not a slide
 

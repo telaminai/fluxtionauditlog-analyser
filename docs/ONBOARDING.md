@@ -121,6 +121,8 @@ why they are collected here.
 | **Server verbs never appear on the action socket** | The analyser acquires no server-mutating code at all. Agents drive Mongoose directly. | `spec-agent-brokered-dev-loop.md` §B |
 | **Agent fixes arrive as evidence-linked PRs, never direct edits** | | tracker ▸ Decisions |
 | **The refusals are load-bearing** (D-T4) | Every place the analyser declines to assert something is now part of the market position. Loosening one is a position change, not a tweak. | `spec-trust-structure.md` |
+| **A connector never conceals a gap** (D-T8) | A discontinuity is DATA. A feed that reconnects quietly and resumes a series makes the record lie by omission. Binds every event source, in every repo. | `spec-trust-structure.md` |
+| **A connector never fabricates a value** (D-T9) | A field the source did not send is left unset, never defaulted from a convenience constructor. A fabricated number is indistinguishable downstream from a measured one. | `spec-trust-structure.md` |
 
 ## The gates are each blind outside their own reach
 
