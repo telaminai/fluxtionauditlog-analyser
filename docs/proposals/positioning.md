@@ -169,6 +169,56 @@ The companion decision is **D-T3**: order in the audit log is **evidence**, valu
 are **testimony**. Both layers are real; presenting them as one is the overclaim, and it is in *Do not claim
 yet* below because the product does not yet draw the line for the reader.
 
+### The denominator has a name: a closed world
+
+The proper term is the **closed-world assumption**, and it is worth using, because it is established
+vocabulary (Reiter, 1977) that arrives with **negation as failure** already attached. In an open world,
+absence of evidence is not evidence of absence. In a closed world it is — and that is the entire difference
+between a tracer and this.
+
+A tracer is open-world by construction. An absent record means *I did not observe it*, which is equally
+consistent with did-not-happen, was-not-instrumented, was-sampled-out and buffer-dropped. It cannot tell
+those apart, ever, however good it gets. Here an absent record means **it did not happen**, which is a
+checkable statement.
+
+**We do not assume a closed world. We compile one.** That is the sentence to lead with, because it separates
+the claim from every architecture diagram, service catalogue and dependency manifest ever maintained by hand.
+All of those *assert* closure and none *establish* it — which is precisely why negation-as-failure has a bad
+name outside databases, and why nobody trusts a hand-drawn model to tell them what cannot happen. The
+compiler closes the world by construction and emits the certificate. That is not a gloss on the patent:
+claim 12, inferring a graph description where none was supplied, **is** the closure mechanism.
+
+### Where the world stops being closed
+
+Stating the boundary is not a caveat on the claim, it is what makes the claim survive contact with a sceptic.
+The assumption is unsound the moment the world is not really closed, so be first to say where that is.
+
+| Closed | Open |
+|---|---|
+| node-to-node dispatch: which nodes run, in what order, for each event type | **everything inside a node body** — it may call anything, open a socket, invoke a vendor method |
+| one processor's generated dispatcher | a direct call on a node reference, a JVM agent, anything routed around the dispatcher |
+| a single feed's ordering into that processor | ordering across two feeds into one processor, and anything spanning processors |
+
+**The tampered dependency lives in the open half**, and that is the honest reason it passes: a risk component
+rebuilt with its constant zeroed changes no node, no edge and no order. It is not a hole in the evidence — it
+is a region the closed-world assumption never covered. Say it before a reader finds it and the rest of the
+position gets stronger, not weaker.
+
+Closure is also always **relative to the derived graph**, which is the closure certificate. Substitute that
+and the world is closed around the wrong thing — the same provenance gap as the unpinned dependency, the
+unsealed prediction and the unsigned record, in a fourth place.
+
+### The consequence: the limits are a theorem, not modesty
+
+Everything this product may assert is inside the closure; everything in *Do not claim yet* below is outside
+it. That is far better footing than caution, because a stated boundary with a reason cannot be characterised
+as timidity — and it is what makes the claims inside it credible.
+
+It also hands the demo its sentence, falsifiable in five minutes, which no observability, tracing or APM
+product can answer at all:
+
+> **Show me the components that did not run, and prove the list is complete.**
+
 ### Sell the cost, not the idea
 
 Stage gates with objectives met under independence are not new. That is DO-178C, IEC 62304, EN 50128 — and
