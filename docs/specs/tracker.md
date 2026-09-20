@@ -6,6 +6,26 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Release execution — 2026-09-21
+
+- ◧ Owner requested the release choreography. Target analyser **1.16.0**; public starter publication
+  and playground deployment are coordinated prerequisites for the starter journey. The broader
+  dependency-integrity claims remain excluded; the cold-start battery remains retired.
+- ☑ Main integrated on an isolated release branch without conflict; original feature branch and IDE
+  edits preserved. A whitespace-only main document regression was corrected without changing wording.
+- ☑ Real process restart: `tools/verify-session-restart.py` drives three independent JVMs through
+  shipped startup/window-close paths. Relaunch offers without loading; explicit restore reloads log,
+  topology, design, diagnostics, selection and focus. A CLI log does not grant restore permission;
+  dismiss leaves that log intact. Initial probe assumed selection was an integer list; corrected to
+  compare the documented selection objects. No application fix was needed.
+- ☑ Existing M46 release probe updated for the owner's explicit-restore decision: a global remembered
+  log must stay unopened. M46, M48 and M64 built-jar gates pass; five conversation capture scenarios
+  complete, with unchanged transcript and restored generated images. Display set: 41 passing tests.
+- ☐ Public v2 artifact/download checks, acquisition-only fresh client and witnessed browser preview.
+  Browser connection is currently unavailable; this is not recorded as a pass.
+
+Release record: [report](../handoff/report_release_journey_2026_09_21.md).
+
 ## Spring authoring documentation — 2026-09-19
 
 - ☑ **Design partner and evidence canvas guides** — `docs/site/spring-authoring.md` covers capabilities,

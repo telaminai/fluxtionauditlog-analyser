@@ -55,6 +55,8 @@ jobs:
         run: mvn -B package -DskipTests
       - name: Run registry/export/analyser/MCP loop
         run: xvfb-run -a tools/bench/loop-bench.py --stub --launch
+      - name: Verify session recovery across JVM restarts
+        run: xvfb-run -a python3 tools/verify-session-restart.py
 
   ui-frame:
     # R2-F6 (1.13.1 review): PairingDuringLoadFrameTest constructs a real MainFrame and is SKIPPED under the
@@ -87,4 +89,3 @@ jobs:
             grep -q 'skipped="0"' "$f" || { echo "$c skipped — no display reached the JVM"; exit 1; }
             grep -q 'tests="0"' "$f" && { echo "$c: no tests ran"; exit 1; } || true
           done
-

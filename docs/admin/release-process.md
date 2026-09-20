@@ -104,6 +104,8 @@ over the action socket with a hard per-call timeout, and exits non-zero on any f
 - [ ] `python3 tools/verify-m46-agent-api.py` — first verdict after open, no REST hang, honest echoes, `open {analysis}`
 - [ ] `python3 tools/verify-m48-handoff.py` — the shared canvas through `open {posture | record}`
 - [ ] `python3 tools/verify-m64-spotlight.py` — every spotlight target, sets, refusals that touch nothing
+- [ ] `python3 tools/verify-session-restart.py` — separate JVMs, normal quit, explicit recovery and
+      command-line input isolation. The launch shim only translates stdin EOF into window close.
 - [ ] `python3 tools/capture-conversations.py` — all five scenarios must complete. It rewrites
       `docs/site/sample-conversations.md` and five `conv-*.png`: **read** the diff and the images (CLAUDE.md
       rule 1) and commit them only if the content changed; restore them otherwise. Two signals: exit 0 means every
@@ -112,9 +114,11 @@ over the action socket with a hard per-call timeout, and exits non-zero on any f
       committing docs (`--require-images` makes that a failure, exit 3, for a machine that should have the grant).
 - [ ] CLAUDE.md rule 1's two checks: `git config user.email` is the personal address, and
       `git log --format='%ae' | sort | uniq -c` shows no new employer-domain commits.
-- [ ] `python3 tools/heldout-client.py` — LOCAL ONLY, spends the owner's LLM key, never CI: a context-free client
-      (instructions + tools, nothing else) asked the six "Ask it to show you" sentences and the guided-start tour; read
-      `heldout-results.md` — it must point at the right things, and light nothing when it found nothing.
+- [ ] Apply the starter verification tiers: static checks on every commit, unattended preflight on
+      the public bundle, and one acquisition-only client spot-check when routing surfaces change.
+      Owner decision 2026-09-20 retires the cold-start battery; do not launch T3–T6 or a broader held-out
+      client run as a release ritual. The first public v2 acquisition waits for a v2 ZIP and green
+      public preflight. See [the tier report](../handoff/report_starter_verification_tiers_2026_09_20.md).
 - [ ] The person-at-the-screen items the tracker lists as open for this release. No script substitutes for them.
 
 ### 4.1 The release itself

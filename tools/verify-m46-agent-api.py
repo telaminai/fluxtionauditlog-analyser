@@ -199,14 +199,14 @@ def main():
             check("a recall answers about the ANALYSIS, never with a thread-confinement violation",
                   "confined to the thread" not in json.dumps(reply) and "HUNG" not in reply, reply)
 
-        print("A4 - a FRESH instance sharing the home restores the last log: whose does context say it is?")
+        print("A4 - a FRESH instance never implicitly restores the global last log")
         with Analyser(jar, home, "second") as b:
-            restored = b.settled_context().get("log") or {}
-            by = str(restored.get("openedBy"))
-            check("the remembered log was restored (the behaviour under test is its attribution)",
-                  str(restored.get("path", "")).endswith("in-project.yaml"), restored.get("path"))
-            check("it is NOT attributed to 'you' or to the action socket", by not in ("you", "action socket"), by)
-            check("it says it was restored at startup", "restored at startup" in by, by)
+            fresh = b.settled_context()
+            # Project-starter journey supersedes automatic startup restore. This run never
+            # accepted the project offer; a global remembered path grants no restore permission.
+            # verify-session-restart.py separately checks normal quit + explicit project restore.
+            check("the global remembered log stays unopened", not fresh.get("log"), fresh.get("log"))
+            check("an unopened log has no invented attribution", not (fresh.get("log") or {}).get("openedBy"))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
