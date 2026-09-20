@@ -1,6 +1,6 @@
 # Project-starter journey release — 2026-09-21
 
-Status: PARTIALLY PUBLISHED; analyser 1.16.0 HELD. Public acquisition gate remains unverified.
+Status: READY TO RELEASE analyser 1.16.0. Public acquisition completed with documented limitations.
 
 Target: analyser 1.16.0 and deployed v2 starter journey. Public local-tool publication precedes
 playground deployment. The beta claim is limited to onboarding and the evidence actually checked;
@@ -46,8 +46,8 @@ dependency certification and broader provenance work remain open. No v1 comparat
 
 ## Remaining gates
 
-Public acquisition did not complete: see the sealed result below. Analyser 1.16.0 has not been
-dispatched, tagged or published. No battery, T3–T6 or second client attempt was started.
+Final analyser release/assets/docs. The first two attempts remain sealed below; after restored login,
+the owner-authorised fresh attempt completed. No battery or T3–T6 was started.
 
 ## Frozen public acquisition spot-check
 
@@ -126,3 +126,34 @@ retry is useful until credentials recover. Existing analyser main CI at `b9064dc
 **Owner disposition:** wait for login restoration. Release remains held; no gate is waived.
 
 Owner subsequently confirmed login restored; a separately archived fresh attempt is authorised.
+
+## Restored-login attempt — acquisition gate met with limits
+
+[Independent result](evidence/release-journey-2026-09-21/public-acquisition-retry2.json).
+A fresh Sonnet process acquired the public bundle, built it, ran the shipped launcher, exported
+its audit with the shipped helper and stopped with the shipped stop helper. No source checkout,
+compilation key, coaching or dependency substitution. All **43 original files match byte for byte**
+the pristine public download. An independent input-to-audit check verifies **all five business
+rows** and downstream audit; the registry is empty and port 8181 closed afterwards.
+The configured sink is empty because the shipped nodes do not publish sink messages; audit output
+is the verified result. A sink-output scenario is not claimed.
+
+The acquisition took the longer public route: catalogue JSON, the site's distributed encoder and
+`/start/scaffold?s=...`, rather than the documented `template=analyser-bundle` shortcut. The resulting
+project matches the pristine exact-URL preflight artifact. Discovery friction remains a follow-up;
+completion does not mean routing is efficient. The wrapper's bootstrap hit the operator sandbox's
+macOS temporary-directory restriction. The client preserved the error and used installed Maven 3.9.9,
+with unchanged POM and isolated empty cache. It used `-DskipTests`; the separate unattended public
+preflight and analyser CI are the test evidence. This is not a claim that the wrapper worked in the
+client sandbox. No starter code was patched.
+
+Frozen predictions: uncoached completion, shipped launch/stop, five matching events and unchanged
+files all hold. Duration **388.311 s**, prediction 240 s, signed error **+148.311 s**. The attribution
+prediction fails: **87 tool batches**, two `task`, one `readme`, **84 unattributed**. Missing pointers
+remain in the denominator. The transcript shows actual reads but cannot supply the missing declared
+reasons. No comparative routing claim, no v1 improvement and no generation-task acceptance follows.
+Clock drift is 0.0056 s. Prior authentication failures remain failures, not retrospectively passes.
+
+The bounded release claim is public acquisition to independently checked sample output, with the
+above environmental tooling substitution disclosed. Existing static and unattended published-bundle
+gates remain regression protection. The analyser release can now proceed under the owner's instruction.

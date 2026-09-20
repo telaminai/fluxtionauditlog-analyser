@@ -27,13 +27,14 @@ Legend for each item: **[id] status — title** · _acceptance_.
   owner and independently exercised: generated source and descriptor identify 1.0.72.
 - ☑ Public browser preview witnessed by owner: rootNode, child and dependency arrow visible,
   no error. Screenshot and machine results preserved in the release report.
-- ☐ **Public acquisition gate unverified; analyser 1.16.0 HELD.** The sole fresh client stopped
-  at 436.650 seconds on a revoked OAuth token, before download/build. Zero coaching and no retry.
-  64 tool batches: one task pointer, 63 missing. Preserve this environmental failure and the
-  pre-failure discovery difficulty; neither a pass nor a completed product-failure verdict.
-  Published compiler/playground remain available; broader provenance claims remain excluded.
-  Owner-authorised retry also failed: expired OAuth session at 0.723 seconds, before any tool call.
-  Owner explicitly chose to wait for restored login; no release gate waived. Both runs remain sealed.
+- ☑ **Public acquisition completed after restored login.** The two authentication failures remain
+  sealed. The authorised fresh client acquired the public bundle, built, ran, exported and stopped
+  without coaching. Independent check: five correct rows, 43 originals unchanged, registry empty,
+  port closed. Duration 388.311 s. Wrapper bootstrap was blocked by operator sandbox; installed Maven
+  built the unchanged POM. Attribution prediction failed (84/87 batches missing pointers); no routing
+  improvement claim. See the release record for limits and evidence.
+- ◧ Analyser **1.16.0** release next: main CI is green; publish and verify assets/docs.
+
 
 Release record: [report](../handoff/report_release_journey_2026_09_21.md).
 

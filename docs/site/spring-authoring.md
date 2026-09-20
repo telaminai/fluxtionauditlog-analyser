@@ -14,13 +14,11 @@ Start with the [sample design and “what if?” conversations](spring-authoring
 to see the collaboration, then use this page as the capabilities and workflow guide.
 
 !!! info "Availability of the local authoring workflow"
-    The local scripts and extended XML declarations below target the coordinated
-    **next compiler release that includes the local starter tool**. The workflow is
-    implemented and undergoing acceptance before publication. It is separate from
-    an analyser release. A matching project download names its required coordinate
-    in `fluxtion-authoring.json` and includes `RUNBOOK.md`, `setup.sh`, `validate.sh`
-    and `generate.sh`. Its setup command reports when the tool cannot be fetched.
-    For the existing published demo, follow [Playground to analyser](tutorial-playground.md).
+    The local starter tool and extended XML declarations are now published. A matching project
+    download names its required coordinate in `fluxtion-authoring.json` and includes `RUNBOOK.md`,
+    `setup.sh`, `validate.sh` and `generate.sh`. Use those project-pinned versions; setup reports
+    when the required tool cannot be fetched. Compilation credentials depend on the selected route.
+    For the keyless published demo, follow [Playground to analyser](tutorial-playground.md).
 
 ## One conversation, two workspaces
 
@@ -206,9 +204,9 @@ build or a plausible chart alone cannot establish all the intended behaviour.
 
 ## View design and producer findings
 
-!!! info "Available on main; included in the next analyser release"
-    Design mode and producer findings are merged and independently reviewed. Until the next release,
-    use a build from main; analyser 1.15.0 does not include these surfaces.
+!!! info "Requires analyser 1.16.0 or later"
+    Design mode and producer findings require analyser 1.16.0 or later. Analyser 1.15.0 does not
+    include these surfaces.
 
 Open the XML with **File ▸ Open design…**, or `analyser_open {"design":"src/main/resources/design.xml"}`.
 Authorise its directory in source roots; include the project's `target` directory to read producer results.

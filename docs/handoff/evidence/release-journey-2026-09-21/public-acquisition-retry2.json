@@ -1,0 +1,69 @@
+{
+  "status": "PASS_WITH_LIMITATIONS",
+  "scope": "Public acquisition, build, sample audit output and clean stop; no comparative routing claim",
+  "verifiedRows": 5,
+  "expectedRows": [
+    [
+      "AAPL",
+      195.3,
+      1200
+    ],
+    [
+      "MSFT",
+      410.1,
+      800
+    ],
+    [
+      "GOOG",
+      155.75,
+      1500
+    ],
+    [
+      "AMZN",
+      178.22,
+      640
+    ],
+    [
+      "NVDA",
+      905.6,
+      2100
+    ]
+  ],
+  "unchangedOriginalFiles": 43,
+  "changedOriginalFiles": [],
+  "portClosed": true,
+  "registryEmpty": true,
+  "substantiveInterventions": [],
+  "elapsedSeconds": 388.310738667,
+  "predictedSeconds": 240,
+  "predictionErrorSeconds": 148.310738667,
+  "toolBatches": 87,
+  "pointerCounts": {
+    "task": 2,
+    "unattributed": 84,
+    "readme": 1
+  },
+  "limitations": [
+    "Wrapper bootstrap blocked by macOS temporary-directory sandbox; client used installed Maven 3.9.9 with unchanged POM and isolated empty cache.",
+    "Client package used skipTests; independent published preflight and analyser CI are separate evidence.",
+    "Discovery used public catalogue and public token scaffold route, not documented template shortcut.",
+    "Requested source-pointer lines mostly omitted; no routing improvement claim."
+  ],
+  "auditSha256": "718c5a94d187dde0895358a6749b24452f20f1a3431b01cb53ad3fe22f9f268b",
+  "privateEvidenceSha256": {
+    "T1-raw.jsonl": "844209b28a4e1eda739ccf3d561a4de9b4ec1dc84ce40b6e31eb5c85b82d8beb",
+    "T1-events.jsonl": "084153bf07a714fd4b4f569cbdb3152fe48c3dbfcc1a995fbebe140186281050",
+    "input.txt": "aefec07da5a7fc79d7cad04b2bc0c576043daf4f868c99edf8aac7d37d0e42ce",
+    "routing.json": "d44c24a018e4e426e59a9d349a7e6d8f086b5f35d9998cbe5a69f001e7271d0e"
+  },
+  "clock": {
+    "utcNs": 1789947984270923000,
+    "awakeNs": 3000347026461416,
+    "continuousNs": 9446101742573958,
+    "elapsedSeconds": 388.310738667,
+    "awakeSeconds": 388.310732625,
+    "utcElapsedSeconds": 388.31633,
+    "suspendSeconds": 6.041999995431979e-06,
+    "utcDriftSeconds": 0.005591332999983933
+  }
+}

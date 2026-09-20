@@ -44,8 +44,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Spring authoring guide** — working with an LLM as a design partner, the local XML/source workflow,
   and the analyser as the shared canvas for evidence, charts and investigation reports. Flow diagrams
   and illustrative design/"what if?" conversations show how a question becomes a repeatable scenario.
-  The guide states the pending compiler/starter availability separately from the analyser's
-  shipped features.
+  The guide distinguishes the published local starter workflow from analyser features and names
+  the minimum analyser version for design and producer findings.
 
 ### Fixed
 
