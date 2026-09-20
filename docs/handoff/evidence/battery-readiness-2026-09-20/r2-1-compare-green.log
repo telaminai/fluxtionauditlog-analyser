@@ -1,0 +1,40 @@
+expectations: /private/tmp/fluxtion-readiness-1/project/EXPECTED.json
+
+=== scenario A (original shipped data/input.txt) ===
+  ok   order=1 symbol=AAPL price=195.3 volume=1200
+  ok   order=2 symbol=MSFT price=410.1 volume=800
+  ok   order=3 symbol=GOOG price=155.75 volume=1500
+  ok   order=4 symbol=AMZN price=178.22 volume=640
+  ok   order=5 symbol=NVDA price=905.6 volume=2100
+  ok   sink empty as predicted (NOT a verified sink scenario: nothing publishes to the sink)
+
+=== scenario B (task scenario B (duplicate first row)) ===
+  ok   order=1 symbol=ACME price=10.25 volume=3
+  ok   order=2 symbol=ACME price=10.25 volume=3
+  ok   order=3 symbol=BETA price=20.5 volume=7
+  ok   sink empty as predicted (NOT a verified sink scenario: nothing publishes to the sink)
+
+=== scenario C (task scenario C (zero and negative values)) ===
+  ok   order=1 symbol=ZERO price=0.0 volume=0
+  ok   order=2 symbol=NEG price=-12.5 volume=-4
+  ok   order=3 symbol=POS price=12.5 volume=4
+  ok   sink empty as predicted (NOT a verified sink scenario: nothing publishes to the sink)
+
+=== scenario D (task scenario D (magnitude extremes)) ===
+  ok   order=1 symbol=SMALL price=0.125 volume=1
+  ok   order=2 symbol=LARGE price=1000000.25 volume=2000000000
+  ok   order=3 symbol=TAIL price=0.5 volume=2
+  ok   sink empty as predicted (NOT a verified sink scenario: nothing publishes to the sink)
+
+=== scenario E (task scenario E (non-sorted order; tests that delivery preserves file order, no sorting)) ===
+  ok   order=1 symbol=THIRD price=3.0 volume=30
+  ok   order=2 symbol=FIRST price=1.0 volume=10
+  ok   order=3 symbol=SECOND price=2.0 volume=20
+  ok   sink empty as predicted (NOT a verified sink scenario: nothing publishes to the sink)
+
+=== scenario F (task scenario F (single row)) ===
+  ok   order=1 symbol=ONLY price=7.75 volume=11
+  ok   sink empty as predicted (NOT a verified sink scenario: nothing publishes to the sink)
+
+============================================================
+RESULT: PASS — every compared business row matched

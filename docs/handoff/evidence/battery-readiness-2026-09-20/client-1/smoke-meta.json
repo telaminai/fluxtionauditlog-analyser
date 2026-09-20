@@ -1,0 +1,10 @@
+{
+  "started": "2026-09-20T21:01:07.134337+00:00",
+  "scope": "R2 compatibility provisioned-project smoke",
+  "requestedModel": "opus",
+  "run": 1,
+  "substantiveInterventions": [],
+  "exit": 0,
+  "ended": "2026-09-20T21:05:15.212320+00:00",
+  "elapsedSeconds": 248.07
+}

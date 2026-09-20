@@ -1,0 +1,83 @@
+{
+  "run": 3,
+  "models": [
+    "claude-opus-5"
+  ],
+  "originalFiles": 43,
+  "changedOriginals": [],
+  "independentlyMatchedScenarios": {
+    "A": [
+      "evidence/scenarios/A/audit-A.yaml",
+      "evidence/scenarios/A/deploy/logs/audit-preview-smoke.yaml"
+    ],
+    "F": [
+      "evidence/scenarios/F/audit-F.yaml",
+      "evidence/scenarios/F/deploy/logs/audit-preview-smoke.yaml"
+    ],
+    "C": [
+      "evidence/scenarios/C/audit-C.yaml",
+      "evidence/scenarios/C/deploy/logs/audit-preview-smoke.yaml"
+    ],
+    "D": [
+      "evidence/scenarios/D/audit-D.yaml",
+      "evidence/scenarios/D/deploy/logs/audit-preview-smoke.yaml"
+    ],
+    "E": [
+      "evidence/scenarios/E/audit-E.yaml",
+      "evidence/scenarios/E/deploy/logs/audit-preview-smoke.yaml"
+    ],
+    "B": [
+      "evidence/scenarios/B/audit-B.yaml",
+      "evidence/scenarios/B/deploy/logs/audit-preview-smoke.yaml"
+    ]
+  },
+  "fieldDisagreements": [],
+  "sourcePointers": [
+    {
+      "seconds": 2.81,
+      "text": "I'll start by reading the project's entry documents.\n\nstep: 1; from: PROJECT.md"
+    },
+    {
+      "seconds": 44.469,
+      "text": "step: 1 (write EXPECTED.json); from: src/main/java/com/acme/preview/node/RootNode.java"
+    },
+    {
+      "seconds": 71.647,
+      "text": "step: 2; from: run-server.sh"
+    },
+    {
+      "seconds": 418.317,
+      "text": "All six scenarios matched.\n\nstep: 3; from: evidence/compare.py"
+    }
+  ],
+  "expectedWriteTimes": [
+    66.386
+  ],
+  "launchCalls": [
+    {
+      "seconds": 83.232,
+      "command": "mkdir -p evidence/scenarios && cat > evidence/run-scenario.sh <<'EOF'\n#!/bin/bash\n# Deploy one clean copy of the built bundle, feed it a scenario input, export the audit, stop it.\n# Usage: evidence/run-scenario.sh <ID> <input-file>\nset -e\nID=\"$1\"; INPUT=\"$2\"\nROOT=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")/..\" && pwd)\"\nDEPLOY=\"$ROOT/evidence/scenarios/$ID/deploy\"\nrm -rf \"$ROOT/evidence/scenarios/$ID\"\nmkdir -p \"$DEPLOY/target\" \"$DEPLOY/data\"\n# fresh copy: jar (reused, never rebuilt), config, scripts. No audit/, no logs/, no output.txt.\ncp \"$ROOT/target/preview-smoke-1.0.0-SNAPSHOT.jar\" \"$DEPLOY/target/\"\ncp -R \"$ROOT/config\" \"$DEPLOY/config\"\ncp \"$ROOT/run-server.sh\" \"$ROOT/export-audit.sh\" \"$ROOT/stop-server.sh\" \"$DEPLOY/\"\ncp \"$INPUT\" \"$DEPLOY/data/input.txt\"\nOUT=\"$ROOT/evidence/scenarios/$ID\"\n( cd \"$DEPLOY\" && ./run-server.sh > \"$OUT/server-stdout.log\" 2>&1 ) &\nfor i in $(seq 1 60); do\n  sleep 1\n  grep -q \"PriceEvent\" \"$OUT/server-stdout.log\" 2>/dev/null && break\ndone\nsleep 3\n( cd \"$DEPLOY\" && ./export-audit.sh > \"$OUT/export.log\" 2>&1 ) || echo \"EXPORT FAILED rc=$?\" >> \"$OUT/export.log\"\n( cd \"$DEPLOY\" && ./stop-server.sh > \"$OUT/stop.log\" 2>&1 ) || echo \"STOP FAILED rc=$?\" >> \"$OUT/stop.log\"\nwait || true\ncp \"$DEPLOY/logs/audit-preview-smoke.yaml\" \"$OUT/audit-$ID.yaml\" 2>/dev/null || echo \"(no audit yaml exported)\" > \"$OUT/audit-$ID.MISSING\"\ncp \"$DEPLOY/data/output.txt\" \"$OUT/output-$ID.txt\" 2>/dev/null || echo \"(no sink file produced)\" > \"$OUT/output-$ID.ABSENT\"\necho \"scenario $ID done\"\nEOF\nchmod +x evidence/run-scenario.sh\n# scenario inputs\ncp data/input.txt evidence/input-A.txt\nprintf 'ACME,10.25,3\\nACME,10.25,3\\nBETA,20.5,7\\n' > evidence/input-B.txt\nprintf 'ZERO,0,0\\nNEG,-12.5,-4\\nPOS,12.5,4\\n' > evidence/input-C.txt\nprintf 'SMALL,0.125,1\\nLARGE,1000000.25,2000000000\\nTAIL,0.5,2\\n' > evidence/input-D.txt\nprintf 'THIRD,3,30\\nFIRST,1,10\\nSECOND,2,20\\n' > evidence/input-E.txt\nprintf 'ONLY,7.75,11\\n' > evidence/input-F.txt\nmd5 data/input.txt config/server-config.yml src/main/fluxtion/designer/application-context.xml pom.xml > evidence/original-checksums.txt\ncat evidence/original-checksums.txt"
+    }
+  ],
+  "toolErrors": [
+    {
+      "seconds": 29.543,
+      "content": "Exit code 1\ntail: /tmp/build.log: No such file or directory"
+    },
+    {
+      "seconds": 32.647,
+      "content": "Exit code 1\n(eval):1: operation not permitted: /tmp/build.log\n(eval):1: operation not permitted: /tmp/build.log\n\n[exited with code 1]"
+    }
+  ],
+  "registryFiles": [],
+  "meta": {
+    "started": "2026-09-20T21:11:42.405124+00:00",
+    "scope": "R2 compatibility provisioned-project smoke",
+    "requestedModel": "opus",
+    "run": 3,
+    "substantiveInterventions": [],
+    "exit": 0,
+    "ended": "2026-09-20T21:27:38.227108+00:00",
+    "elapsedSeconds": 459.508
+  }
+}

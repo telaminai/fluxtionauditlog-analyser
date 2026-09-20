@@ -1,0 +1,130 @@
+{
+  "project": "preview-smoke",
+  "written_before_running": true,
+  "shipped_versions": {
+    "source": "README.md version table + pom.xml",
+    "fluxtion": "1.0.16",
+    "fluxtion-bom": "1.0.71",
+    "mongoose": "1.0.29",
+    "mongoose-plugins": "1.0.43",
+    "java": "21 (Corretto 21.0.11)",
+    "artifact": "target/preview-smoke-1.0.0-SNAPSHOT.jar"
+  },
+  "supported_commands": {
+    "build": "./mvnw package",
+    "run": "./run-server.sh",
+    "export": "./export-audit.sh  -> logs/audit-preview-smoke.yaml",
+    "stop": "./stop-server.sh",
+    "regenerate_graph": "./mvnw -Pgenerate-fluxtion package  (REQUIRES a Fluxtion API key; not exercised here)",
+    "key_preflight": "./check-fluxtion-key.sh (reads FLUXTION_API_KEY, which the builder does not read)",
+    "admin_console": "http://127.0.0.1:8181"
+  },
+  "substantiation": {
+    "symbol": {
+      "substantiated": true,
+      "evidence": "RootNode.onPriceEvent logs auditLog.info(\"receivedEvent\", event); PriceEvent.toString() carries symbol",
+      "derivation": "field 1 of the CSV line, trimmed"
+    },
+    "price": {
+      "substantiated": true,
+      "evidence": "auditLog.info(\"price\", event.price()) in RootNode.onPriceEvent",
+      "derivation": "Double.parseDouble(field 2)"
+    },
+    "volume": {
+      "substantiated": true,
+      "evidence": "auditLog.info(\"volume\", event.volume()) in RootNode.onPriceEvent",
+      "derivation": "Long.parseLong(field 3)"
+    },
+    "order": {
+      "substantiated": true,
+      "evidence": "audit log event-cycle sequence in logs/audit-preview-smoke.yaml; a single FileEventSource with readStrategy EARLIEST reads data/input.txt line by line, so delivery order equals file line order",
+      "caveat": "Only one feed exists. The hosting runbook's warning about interleaving of independent feeds does not apply here."
+    }
+  },
+  "cannot_substantiate": [
+    {
+      "output": "data/output.txt (file sink 'output')",
+      "reason": "The sink is declared in config/server-config.yml but no graph node holds a MessageSink or publishes to it. RootNode and RiskCheck only store the latest event and write audit entries. Therefore no sink row is expected for any scenario; an empty/absent data/output.txt is the predicted outcome and is NOT a verified sink scenario.",
+      "expected_sink_rows": 0
+    },
+    {
+      "output": "Any derived business value (risk verdict, aggregation, P&L, running totals, per-symbol state)",
+      "reason": "RiskCheck.onRiskCheck() copies rootNode.getLatestEvent() into a field and returns true; it computes nothing and logs nothing. There is no aggregation, filtering, validation or thresholding anywhere in the shipped graph."
+    },
+    {
+      "output": "Rejection / special handling of zero, negative or out-of-range values",
+      "reason": "No validation exists. Zero and negative price/volume pass through the mapper unchanged and are logged as-is."
+    },
+    {
+      "output": "Regenerated processor from the Spring XML design",
+      "reason": "No Fluxtion API key is provisioned; the graph is NOT changed in this test, so the shipped generated MarketProcessor is used as-is."
+    }
+  ],
+  "known_shipped_behaviour_notes": [
+    "CsvToPriceEvent maps a line with fewer than 3 comma fields to PriceEvent(line.trim(), 0.0, 0). If the feed delivers a trailing empty line, an extra row with symbol \"\", price 0.0, volume 0 would appear. This is a shipped mapper behaviour, not a business row; the comparison reports such rows separately.",
+    "price is a Java double, so integral inputs are audited as x.0 (e.g. 3 -> 3.0).",
+    "The Chronicle audit export is cumulative across runs sharing a capture directory; each scenario therefore uses a fresh deployment copy with its own ./audit directory."
+  ],
+  "scenarios": [
+    {
+      "id": "A",
+      "input_source": "original shipped data/input.txt",
+      "expected_business_rows": [
+        {"order": 1, "symbol": "AAPL", "price": 195.3, "volume": 1200},
+        {"order": 2, "symbol": "MSFT", "price": 410.1, "volume": 800},
+        {"order": 3, "symbol": "GOOG", "price": 155.75, "volume": 1500},
+        {"order": 4, "symbol": "AMZN", "price": 178.22, "volume": 640},
+        {"order": 5, "symbol": "NVDA", "price": 905.6, "volume": 2100}
+      ],
+      "expected_sink_rows": 0
+    },
+    {
+      "id": "B",
+      "input_source": "task scenario B (duplicate first row)",
+      "expected_business_rows": [
+        {"order": 1, "symbol": "ACME", "price": 10.25, "volume": 3},
+        {"order": 2, "symbol": "ACME", "price": 10.25, "volume": 3},
+        {"order": 3, "symbol": "BETA", "price": 20.5, "volume": 7}
+      ],
+      "expected_sink_rows": 0
+    },
+    {
+      "id": "C",
+      "input_source": "task scenario C (zero and negative values)",
+      "expected_business_rows": [
+        {"order": 1, "symbol": "ZERO", "price": 0.0, "volume": 0},
+        {"order": 2, "symbol": "NEG", "price": -12.5, "volume": -4},
+        {"order": 3, "symbol": "POS", "price": 12.5, "volume": 4}
+      ],
+      "expected_sink_rows": 0
+    },
+    {
+      "id": "D",
+      "input_source": "task scenario D (magnitude extremes)",
+      "expected_business_rows": [
+        {"order": 1, "symbol": "SMALL", "price": 0.125, "volume": 1},
+        {"order": 2, "symbol": "LARGE", "price": 1000000.25, "volume": 2000000000},
+        {"order": 3, "symbol": "TAIL", "price": 0.5, "volume": 2}
+      ],
+      "expected_sink_rows": 0
+    },
+    {
+      "id": "E",
+      "input_source": "task scenario E (non-sorted order; tests that delivery preserves file order, no sorting)",
+      "expected_business_rows": [
+        {"order": 1, "symbol": "THIRD", "price": 3.0, "volume": 30},
+        {"order": 2, "symbol": "FIRST", "price": 1.0, "volume": 10},
+        {"order": 3, "symbol": "SECOND", "price": 2.0, "volume": 20}
+      ],
+      "expected_sink_rows": 0
+    },
+    {
+      "id": "F",
+      "input_source": "task scenario F (single row)",
+      "expected_business_rows": [
+        {"order": 1, "symbol": "ONLY", "price": 7.75, "volume": 11}
+      ],
+      "expected_sink_rows": 0
+    }
+  ]
+}

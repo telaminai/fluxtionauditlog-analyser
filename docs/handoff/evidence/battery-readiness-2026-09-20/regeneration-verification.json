@@ -1,0 +1,65 @@
+{
+  "expected": [
+    1200,
+    2000,
+    3500,
+    4140,
+    6240
+  ],
+  "observed": [
+    1200,
+    2000,
+    3500,
+    4140,
+    6240
+  ],
+  "matches": true,
+  "graphNodeIds": [
+    "ClockStrategyEvent",
+    "EventLogControlEvent",
+    "PriceEvent",
+    "ServiceListener",
+    "callbackDispatcher",
+    "clock",
+    "context",
+    "eventLogger",
+    "nodeNameLookup",
+    "perfMon",
+    "riskCheck",
+    "rootNode",
+    "serviceRegistry",
+    "subscriptionManager",
+    "volumeTotal"
+  ],
+  "generatedSourceSha256": "3a808b8885819092ea599a77b00468dd5bc6f2391588c12a6cdcecfd619f28bf",
+  "graphSha256": "5fea6b79ffb9b3bb2be0a500bae22d190e36ff4a721766e5c9570d2111a0f9c8",
+  "auditSha256": "67618c59217e0868f4ab93d61f35f5bb49d1a05b87adf3d36e6c7fb2b23525aa",
+  "portClosed": true,
+  "generation": {
+    "stage": "generate",
+    "command": [
+      "./mvnw",
+      "-B",
+      "-Pgenerate-fluxtion",
+      "package"
+    ],
+    "exit": 0,
+    "seconds": 10.228
+  },
+  "export": {
+    "stage": "export",
+    "command": [
+      "./export-audit.sh"
+    ],
+    "exit": 0,
+    "seconds": 0.966
+  },
+  "stop": {
+    "stage": "stop",
+    "command": [
+      "./stop-server.sh"
+    ],
+    "exit": 0,
+    "seconds": 1.032
+  }
+}

@@ -131,6 +131,23 @@ Legend for each item: **[id] status — title** · _acceptance_.
   prerequisites for authoring tasks. Scaffold-time capability refusal is a proposal, not implemented:
   the website cannot infer a local key/provider. Ordinary build/run is not regeneration acceptance.
   Neither preflight nor rehearsal closes publication or public empty-directory acquisition acceptance.
+- ◧ **Battery readiness R2 — 2026-09-20** — one changed graph regenerated through the published
+  customer generation route using the existing external credential, then built, ran, exported and
+  stopped. New `volumeTotal` appears in generated Java/GraphML and all five cumulative values match
+  predictions written before the single generation attempt. This is operator customer-route evidence,
+  not a keyless, private-provider, reconciliation or fresh-client authoring claim. Playground `5b67224`
+  adds the two-host README guard (521 tests); all fourteen default templates emit recognised launchers.
+  Existing staging port 5174 serves older `affdd85`, not the corrected journey preview.
+  [Readiness report](../handoff/report_battery_readiness_2026_09_20.md) and
+  [sealed R2 protocol](../handoff/evidence/battery-readiness-2026-09-20/PROTOCOL.md) distinguish first
+  refusal from terminal runtime, observable timing from declared attribution, and longer compatibility
+  from battery acceptance. Three longer positive clients passed (248/286/460 s monotonic), 54 rows independently checked;
+  a fourth correctly declined the no-launcher fixture. No refusals/interventions. R2-3 has an
+  unexplained UTC/monotonic gap; R2-2 omitted two source pointers. No general reliability or routing
+  improvement claim. PPF-2 (hosted POM naming an omitted launcher) was found in the negative trial
+  and fixed afterwards in playground `3bdcfbd` with a seen-red assertion and 521 green tests; no replacement client run.
+  Public acquisition, generation capability provisioning
+  for beta, publication, held-out task correctness and full T1–T6 acceptance remain open.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation

@@ -1,0 +1,392 @@
+{
+  "scope": "operator customer regeneration and provisioned-project R2 compatibility trials, not battery acceptance",
+  "projection": "visible text/tools only, operator receive times, raw-line pointers; rule-1 redaction and trailing-whitespace normalization",
+  "files": [
+    {
+      "file": "generation/generate.log",
+      "rawSha256": "6cf5d30c176886b0bd94ec9f95c947f6bb6cfdf2cbba13dd6e6d0334c7d33420",
+      "publishedSha256": "f0be22027235377ae2ea246b5ae9b1d63e5d75d9892fa36338157a860c965dee"
+    },
+    {
+      "file": "generation/generate.json",
+      "rawSha256": "55103a11303bd4c2a0e9fea933ab3db874ae26c97d6a7b8316834a3f3bab79d5",
+      "publishedSha256": "55103a11303bd4c2a0e9fea933ab3db874ae26c97d6a7b8316834a3f3bab79d5"
+    },
+    {
+      "file": "generation/run.log",
+      "rawSha256": "e2b55d9553523ee118cac4b9374099149c8be3e987cf21355a3c88e4c85b1673",
+      "publishedSha256": "0a189cdf64133bfe00fc6d5405192c2cf71ea2bb174e2f607348774883c7ce04"
+    },
+    {
+      "file": "generation/run.json",
+      "rawSha256": "b7e1d5604d9f38e51d9751c889cd14869aaf825aed50d4a8bc403f49de66cee3",
+      "publishedSha256": "b7e1d5604d9f38e51d9751c889cd14869aaf825aed50d4a8bc403f49de66cee3"
+    },
+    {
+      "file": "generation/export.log",
+      "rawSha256": "d1bf25ac2c52b69720abd48f1d78151534a78ed0994fad74fc3a2ab8e945df01",
+      "publishedSha256": "d1bf25ac2c52b69720abd48f1d78151534a78ed0994fad74fc3a2ab8e945df01"
+    },
+    {
+      "file": "generation/export.json",
+      "rawSha256": "6170db6acdaff056e651c7397e5c89eb7ea8abd29ccb4935d0a68285b5b2e98f",
+      "publishedSha256": "6170db6acdaff056e651c7397e5c89eb7ea8abd29ccb4935d0a68285b5b2e98f"
+    },
+    {
+      "file": "generation/stop.log",
+      "rawSha256": "cd80d552bb951788f139f7fa194ebb8df469b6ac35272cc6e562eba1d4806e6c",
+      "publishedSha256": "cd80d552bb951788f139f7fa194ebb8df469b6ac35272cc6e562eba1d4806e6c"
+    },
+    {
+      "file": "generation/stop.json",
+      "rawSha256": "53e080d32594cced383ef4d4ebadeada1fb0ed94a9e3844c45f895cb2b69d461",
+      "publishedSha256": "53e080d32594cced383ef4d4ebadeada1fb0ed94a9e3844c45f895cb2b69d461"
+    },
+    {
+      "file": "generation/VolumeTotal.java",
+      "rawSha256": "2ccf5c7c67d530bec73d945d2f3a4d243dd28efa0dd13ab9bfe97e2bb27ec819",
+      "publishedSha256": "2ccf5c7c67d530bec73d945d2f3a4d243dd28efa0dd13ab9bfe97e2bb27ec819"
+    },
+    {
+      "file": "generation/application-context.xml",
+      "rawSha256": "558320942c88264d1da87b8982985981ee228f8b0830986fd8e08cca6e42e94e",
+      "publishedSha256": "558320942c88264d1da87b8982985981ee228f8b0830986fd8e08cca6e42e94e"
+    },
+    {
+      "file": "generation/input.txt",
+      "rawSha256": "d503256ce2dedaeb7cfc725aeab733c7e755cdebf090e1be6ef2186559faaf51",
+      "publishedSha256": "d503256ce2dedaeb7cfc725aeab733c7e755cdebf090e1be6ef2186559faaf51"
+    },
+    {
+      "file": "generation/audit-preview-smoke.yaml",
+      "rawSha256": "67618c59217e0868f4ab93d61f35f5bb49d1a05b87adf3d36e6c7fb2b23525aa",
+      "publishedSha256": "e1b0bd0b79472ca161a557dcbdabc561b713da55c19e365e48a08752daa316de"
+    },
+    {
+      "file": "client-1/smoke-input.txt",
+      "rawSha256": "2cf02df87718f1f8b6bb357b2cf2d2e20ce8c5570b495a8441fe0ccbe46e6f29",
+      "publishedSha256": "2cf02df87718f1f8b6bb357b2cf2d2e20ce8c5570b495a8441fe0ccbe46e6f29"
+    },
+    {
+      "file": "client-1/smoke-probe.log",
+      "rawSha256": "766964ca9358eab92562d0e70eed83d25c6458ec9d0dfcfaf3e2f32dc3afbc5d",
+      "publishedSha256": "766964ca9358eab92562d0e70eed83d25c6458ec9d0dfcfaf3e2f32dc3afbc5d"
+    },
+    {
+      "file": "client-1/smoke-meta.json",
+      "rawSha256": "5f98b5267f982677f1cd6fe3ad5d16cc731802720b96e171fee91845b1ade702",
+      "publishedSha256": "5f98b5267f982677f1cd6fe3ad5d16cc731802720b96e171fee91845b1ade702"
+    },
+    {
+      "file": "client-1/smoke-events.jsonl",
+      "rawSha256": "418bcdacfc6c484a101e98b6f985354a18fa70229b567f02374794607f4414be",
+      "publishedSha256": "418bcdacfc6c484a101e98b6f985354a18fa70229b567f02374794607f4414be"
+    },
+    {
+      "file": "client-1/independent-checks.json",
+      "rawSha256": "01e3071b34b8ae69267e321fcb2101ae3f4e00337db4d1614cdaa59d6221566b",
+      "publishedSha256": "01e3071b34b8ae69267e321fcb2101ae3f4e00337db4d1614cdaa59d6221566b"
+    },
+    {
+      "file": "client-1/project/SMOKE-RESULT.md",
+      "rawSha256": "6887aaebd4048b49208bc4ddfec24dadf5554c7c7f437aa58241e3a1b23d18bc",
+      "publishedSha256": "6887aaebd4048b49208bc4ddfec24dadf5554c7c7f437aa58241e3a1b23d18bc"
+    },
+    {
+      "file": "client-1/project/EXPECTED.json",
+      "rawSha256": "941390684ec56ea1046b6b0b493536f8c246898b9bffef38f8b96baf3ba59f69",
+      "publishedSha256": "941390684ec56ea1046b6b0b493536f8c246898b9bffef38f8b96baf3ba59f69"
+    },
+    {
+      "file": "client-1/project/EXPECTED-wrong-control.json",
+      "rawSha256": "08c80ff3ec3a99859772c900f468bdd4254e3d6708f37fdf8c403870cba89ede",
+      "publishedSha256": "fb2bfe80235fef1560852f2f9e0afc0ea445cb613b9e281493a37952d7ddc3b8"
+    },
+    {
+      "file": "client-1/project/compare.py",
+      "rawSha256": "cf5c7ec716967c58f60fc8a58c774923c7c8281c352de845bcdb2e544e5d6cd4",
+      "publishedSha256": "cf5c7ec716967c58f60fc8a58c774923c7c8281c352de845bcdb2e544e5d6cd4"
+    },
+    {
+      "file": "client-1/project/run-scenario.sh",
+      "rawSha256": "9c299c176ed772118aaf3c14552d5f54d10154c51eb9815289411365d3f377d5",
+      "publishedSha256": "9c299c176ed772118aaf3c14552d5f54d10154c51eb9815289411365d3f377d5"
+    },
+    {
+      "file": "client-1/project/evidence/compare-all.txt",
+      "rawSha256": "3c9e127c2080e76bb447e20ce7d89f5606b35f1bc9ae78c4ff5d39973a8a7ced",
+      "publishedSha256": "3c9e127c2080e76bb447e20ce7d89f5606b35f1bc9ae78c4ff5d39973a8a7ced"
+    },
+    {
+      "file": "client-1/project/evidence/negative-control.txt",
+      "rawSha256": "4b785ae5c5be1cfb9d2248029434ac15230178b113abea0e52f054fe261debcb",
+      "publishedSha256": "4b785ae5c5be1cfb9d2248029434ac15230178b113abea0e52f054fe261debcb"
+    },
+    {
+      "file": "client-1/audit-B.yaml",
+      "rawSha256": "d2a15c0b6e575c1e313ec74f3b932d6e28d3820ad3a508d97a054e49202a9ea7",
+      "publishedSha256": "22c35ca1de2e4a6db3078c17ceec1176d1ca2b1e3d3fcfd93bd23ea8a4d93513"
+    },
+    {
+      "file": "client-1/audit-E.yaml",
+      "rawSha256": "4f3c03eb230a9b52703c75c8ad88ee349999f61cbce8d550d18c2e214885d456",
+      "publishedSha256": "b4be60ba4a88805f919dc8b2a6235dd8ecc250c1f05e7c2c9eb670f988fa6c75"
+    },
+    {
+      "file": "client-1/audit-D.yaml",
+      "rawSha256": "e9392fac50433a14d07788943628760db293b06c954dbf7ec2f3832c2cef4129",
+      "publishedSha256": "82eb5697a6d823711fa9c85c3bc1859da6c888e37ccc12a9c32ec29d2e316202"
+    },
+    {
+      "file": "client-1/audit-C.yaml",
+      "rawSha256": "3bc1bfaed91c61d3b6b15941ae8123e2c2ca50774154bdbe17039298cd88fe7a",
+      "publishedSha256": "096aca0a79401e48bc9f24ae98156d425acc6b1ff0e79e7d0cee51384783fd92"
+    },
+    {
+      "file": "client-1/audit-F.yaml",
+      "rawSha256": "7216602236122736a28246d18322f4aaf2bb4db5b4c20089427d2322fb4ea67d",
+      "publishedSha256": "03bb754e25c4be84ba140bb21ef1b3ed79b709fcf0794907e7fc637fd6ac9b63"
+    },
+    {
+      "file": "client-1/audit-A.yaml",
+      "rawSha256": "fbfb2cf940b915f3afbd792f5b5521926a0945e871a3b57a431d16516904626d",
+      "publishedSha256": "03a17c36336034decdd8b3e72b6f3b1ae0986add6eca0fe70c5116d2a589d272"
+    },
+    {
+      "file": "client-2/smoke-input.txt",
+      "rawSha256": "2cf02df87718f1f8b6bb357b2cf2d2e20ce8c5570b495a8441fe0ccbe46e6f29",
+      "publishedSha256": "2cf02df87718f1f8b6bb357b2cf2d2e20ce8c5570b495a8441fe0ccbe46e6f29"
+    },
+    {
+      "file": "client-2/smoke-probe.log",
+      "rawSha256": "391d0a4a2ee2339dbbae3dab12f9b92faf9e141d39c5d37f6c7920e4e1db52bc",
+      "publishedSha256": "391d0a4a2ee2339dbbae3dab12f9b92faf9e141d39c5d37f6c7920e4e1db52bc"
+    },
+    {
+      "file": "client-2/smoke-meta.json",
+      "rawSha256": "f57b35ac21c92146be2566853408e2beefbe46c1d5b8125d94ce0662ba93d88b",
+      "publishedSha256": "f57b35ac21c92146be2566853408e2beefbe46c1d5b8125d94ce0662ba93d88b"
+    },
+    {
+      "file": "client-2/smoke-events.jsonl",
+      "rawSha256": "61c54355e24bdeacd6670e0fb2bd8fba02bb141503a1afbcce065a908f7dbd54",
+      "publishedSha256": "61c54355e24bdeacd6670e0fb2bd8fba02bb141503a1afbcce065a908f7dbd54"
+    },
+    {
+      "file": "client-2/independent-checks.json",
+      "rawSha256": "46734fdcc00b9bffd3092c4951c500bf315504a46e57b385379fc873f43e369c",
+      "publishedSha256": "46734fdcc00b9bffd3092c4951c500bf315504a46e57b385379fc873f43e369c"
+    },
+    {
+      "file": "client-2/project/SMOKE-RESULT.md",
+      "rawSha256": "ef20fc9053238398efed04e9e191e83bfcc92c150b758ff49cfe2415a1f2e6b0",
+      "publishedSha256": "ef20fc9053238398efed04e9e191e83bfcc92c150b758ff49cfe2415a1f2e6b0"
+    },
+    {
+      "file": "client-2/project/evidence/EXPECTED.json",
+      "rawSha256": "4de45dabc18a4c93b6c37d2660ca01bc908d0ec387b10ebecc74f7acadcbf62a",
+      "publishedSha256": "4de45dabc18a4c93b6c37d2660ca01bc908d0ec387b10ebecc74f7acadcbf62a"
+    },
+    {
+      "file": "client-2/project/evidence/EXPECTED-tampered-F-price.json",
+      "rawSha256": "9712f863f95335cdd5013779f66032d819705cf392b95261bf4fe49d5b408249",
+      "publishedSha256": "e92d830235cf3a9278a7b8729f9ae820f1f5652c1652641659cc3ae5577483fe"
+    },
+    {
+      "file": "client-2/project/evidence/make_tampered.py",
+      "rawSha256": "f810340554753aa4f6f24fd900c6fd5f23fc3ddd978095e0806e93c812bac925",
+      "publishedSha256": "f810340554753aa4f6f24fd900c6fd5f23fc3ddd978095e0806e93c812bac925"
+    },
+    {
+      "file": "client-2/project/evidence/comparison-results.txt",
+      "rawSha256": "e23d2233ff90a9be711861759c6c06c7cbd98d580134997a3a603f5d3f18c9d8",
+      "publishedSha256": "e23d2233ff90a9be711861759c6c06c7cbd98d580134997a3a603f5d3f18c9d8"
+    },
+    {
+      "file": "client-2/project/evidence/compare.py",
+      "rawSha256": "5065d56cb0b48142af31efc04c3f48ca7e80c8327318226048bcec0505448690",
+      "publishedSha256": "5065d56cb0b48142af31efc04c3f48ca7e80c8327318226048bcec0505448690"
+    },
+    {
+      "file": "client-2/audit-B.yaml",
+      "rawSha256": "9b957a81356b27e955773d15f8fae00ffd934b9cbc7fe6aa50fa7355a2395819",
+      "publishedSha256": "8a70c3c8fe40a4e0597f5249ac73420a61180e80ec7241d80d4b0d26b0a0fc33"
+    },
+    {
+      "file": "client-2/audit-E.yaml",
+      "rawSha256": "8e946f6e688f39fad5e956d4d02fcfb8cebd3b4ae2a78a827dff392a56266bc8",
+      "publishedSha256": "45eb05c9103c95016add9343fb4ecfa9671d2f52d43657c86604f176c4cfe38a"
+    },
+    {
+      "file": "client-2/audit-D.yaml",
+      "rawSha256": "52fd18ce9296b61d0c55d5bbf3e75066c3460d6794d9c7503b69f06f03c6eca6",
+      "publishedSha256": "fdbc72dea67eb0b6400520772304f04600bfd2b993c2d08e5f72ad8965158add"
+    },
+    {
+      "file": "client-2/audit-C.yaml",
+      "rawSha256": "33327f16fa587971d37dee3f8d5854b6ff8ad46f5513ee84d3360a99bd03489e",
+      "publishedSha256": "a60fd55610601b99af484be5838ca6fbacf2388ac4a97e3f8d32ad8fe3993521"
+    },
+    {
+      "file": "client-2/audit-F.yaml",
+      "rawSha256": "199c557f13db1a5de2b5b30b42483e40d903d04f6eba325a74aacf1175427085",
+      "publishedSha256": "1a8b83de8f1db823ba9a6119e514f82ecb335478f8ed4bc57f158e7a2ae8ca80"
+    },
+    {
+      "file": "client-2/audit-A.yaml",
+      "rawSha256": "d65992c187f2be520ddc00b83da3ddc0fb53c4a991fb5b582d99224c378d9b6f",
+      "publishedSha256": "984c6352570dbb0ca14684c100a9d935a7e5196406dfa816418b3e02e6049f15"
+    },
+    {
+      "file": "client-3/smoke-input.txt",
+      "rawSha256": "2cf02df87718f1f8b6bb357b2cf2d2e20ce8c5570b495a8441fe0ccbe46e6f29",
+      "publishedSha256": "2cf02df87718f1f8b6bb357b2cf2d2e20ce8c5570b495a8441fe0ccbe46e6f29"
+    },
+    {
+      "file": "client-3/smoke-probe.log",
+      "rawSha256": "61a1efad6868581daad7c3e63069c77678b2b38f04229b0040df6384b84157e2",
+      "publishedSha256": "61a1efad6868581daad7c3e63069c77678b2b38f04229b0040df6384b84157e2"
+    },
+    {
+      "file": "client-3/smoke-meta.json",
+      "rawSha256": "77e8d25a22bad3b3af9bb1a94ad4ba51110098b393151aeb06595a1724c51831",
+      "publishedSha256": "77e8d25a22bad3b3af9bb1a94ad4ba51110098b393151aeb06595a1724c51831"
+    },
+    {
+      "file": "client-3/smoke-events.jsonl",
+      "rawSha256": "cfefec70cb4ca7d3195a069453992e0416f0c92765ab29c19c1118f684fcb7d6",
+      "publishedSha256": "cfefec70cb4ca7d3195a069453992e0416f0c92765ab29c19c1118f684fcb7d6"
+    },
+    {
+      "file": "client-3/independent-checks.json",
+      "rawSha256": "b84abe476180de44cd8b1b52b9e6a28466136d4f704d19828cacc28a91a6233d",
+      "publishedSha256": "b84abe476180de44cd8b1b52b9e6a28466136d4f704d19828cacc28a91a6233d"
+    },
+    {
+      "file": "client-3/project/SMOKE-RESULT.md",
+      "rawSha256": "9e5387014128bf3db13666c5901641bc2dbeef4678693ac8d9d95623483235ff",
+      "publishedSha256": "9e5387014128bf3db13666c5901641bc2dbeef4678693ac8d9d95623483235ff"
+    },
+    {
+      "file": "client-3/project/EXPECTED.json",
+      "rawSha256": "90d5d92a058e07d4e5f0437e4a2f02c95a9c7071c56e91a721f84e281d08933a",
+      "publishedSha256": "90d5d92a058e07d4e5f0437e4a2f02c95a9c7071c56e91a721f84e281d08933a"
+    },
+    {
+      "file": "client-3/project/evidence/EXPECTED-WRONG-D.json",
+      "rawSha256": "9e9565b31ef6868695ef86b1c4c25ce3d1ee0da6946e5d8d901f0eef3a640e19",
+      "publishedSha256": "9e9565b31ef6868695ef86b1c4c25ce3d1ee0da6946e5d8d901f0eef3a640e19"
+    },
+    {
+      "file": "client-3/project/evidence/compare.py",
+      "rawSha256": "5728aac299c68a4b48b992ed0260cd5a64857fb363af4e96e563ca88dabd3078",
+      "publishedSha256": "5728aac299c68a4b48b992ed0260cd5a64857fb363af4e96e563ca88dabd3078"
+    },
+    {
+      "file": "client-3/audit-A.yaml",
+      "rawSha256": "48dcc800df14c94395d8f95defa8ebeafccca215a1e2d43953556bde5940f6d0",
+      "publishedSha256": "ff04ebdf0e9341dce9b8c4f05d05959dfb108897d4c5f9844793474ba207c7fe"
+    },
+    {
+      "file": "client-3/audit-F.yaml",
+      "rawSha256": "fd7d51318dfd7cd79aeef4e7680587237d00c8b8d129a31f66b9b35662e30615",
+      "publishedSha256": "bbe02daa41597679dc8e059416086d9fe6f311931ab236826b5d9d8ba1aea8e4"
+    },
+    {
+      "file": "client-3/audit-C.yaml",
+      "rawSha256": "6dcbd26a81119e2de97cda76ddb0d3418cac00b4de8e62847cf2eddf09123e05",
+      "publishedSha256": "fddd648f79bec7bf61fcefe5f7e50520e4078c052c946f2c5abe816735134ea4"
+    },
+    {
+      "file": "client-3/audit-D.yaml",
+      "rawSha256": "deff2d281db52b2e037942c69602e9823d436f55b0193a458773ac10dc5a8464",
+      "publishedSha256": "ce93237eaf448d2f45bd4ea77bab947f2a965bb35cbed76d8183cbea4c125dc4"
+    },
+    {
+      "file": "client-3/audit-E.yaml",
+      "rawSha256": "fa2a45ae7fe989b7a1e25c8030c9d6e9394a699f744cdddb94e0d6f0fe43f4e0",
+      "publishedSha256": "a26e807c4d4c68e134381001ff60ce8cd7aa8cfd80d3bd34e881e5d109e8fdca"
+    },
+    {
+      "file": "client-3/audit-B.yaml",
+      "rawSha256": "ed9ed0a3493944c97fcf20d89ddb829a8f57050d2c8e11b8ab91877c523d61e5",
+      "publishedSha256": "1b25a608c4956d5908faaf2cc1a3f1dcf49c47c25ba097dcbf969ec7d3902407"
+    },
+    {
+      "file": "client-4/smoke-input.txt",
+      "rawSha256": "a6d4315e8c3720fea1fe1beb6d5899a7753fcd83aa092f225b23f19bd51576b4",
+      "publishedSha256": "a6d4315e8c3720fea1fe1beb6d5899a7753fcd83aa092f225b23f19bd51576b4"
+    },
+    {
+      "file": "client-4/smoke-probe.log",
+      "rawSha256": "4d08bd2290d045d750623d5a0acae1f7964ab5e0c6ce2b1c29418eac5b930934",
+      "publishedSha256": "4d08bd2290d045d750623d5a0acae1f7964ab5e0c6ce2b1c29418eac5b930934"
+    },
+    {
+      "file": "client-4/smoke-meta.json",
+      "rawSha256": "6e128a968466cac981d4ae7bd31e63e17d5aca7b97f5d4d4fc2cce66222413de",
+      "publishedSha256": "6e128a968466cac981d4ae7bd31e63e17d5aca7b97f5d4d4fc2cce66222413de"
+    },
+    {
+      "file": "client-4/smoke-events.jsonl",
+      "rawSha256": "ce8b624c0eea3e539357bd70cc78700a7da9747b52fbeaba3ccf27d40d1bed03",
+      "publishedSha256": "ce8b624c0eea3e539357bd70cc78700a7da9747b52fbeaba3ccf27d40d1bed03"
+    },
+    {
+      "file": "client-4/independent-checks.json",
+      "rawSha256": "5470e34defd54408eda1c5949332cb42f4cd9eafa49858783e29011aa66fbd7b",
+      "publishedSha256": "5470e34defd54408eda1c5949332cb42f4cd9eafa49858783e29011aa66fbd7b"
+    },
+    {
+      "file": "readiness-web-tests.log",
+      "rawSha256": "7e5f2ef56491f1c7d7d502fa023b81635acff82cdbceca2b4cb11dc434bc131c",
+      "publishedSha256": "e997fa86eef87035520684112a47200679c8391f53d54cdac7a4411802d829a1"
+    },
+    {
+      "file": "readiness-analyser-tests.log",
+      "rawSha256": "56c2ef03bc49c7fb5c42e3d688a16741d74998ae09c1f3624305bec026126f10",
+      "publishedSha256": "56c2ef03bc49c7fb5c42e3d688a16741d74998ae09c1f3624305bec026126f10"
+    },
+    {
+      "file": "r2-1-compare-green.log",
+      "rawSha256": "db1643938185bd60bf588a8d2079f0a8b6c44fe602026d6855f72d59970b2b26",
+      "publishedSha256": "db1643938185bd60bf588a8d2079f0a8b6c44fe602026d6855f72d59970b2b26"
+    },
+    {
+      "file": "r2-1-compare-red.log",
+      "rawSha256": "3064ba1266e394e04d265124fb799cf0af4e151169d8e32ddd1562165d42df72",
+      "publishedSha256": "3064ba1266e394e04d265124fb799cf0af4e151169d8e32ddd1562165d42df72"
+    },
+    {
+      "file": "r2-2-compare-green.log",
+      "rawSha256": "dfa649cbcd7e078208bed556a6a2859081283dec217b3186d0c302ed57a974ac",
+      "publishedSha256": "dfa649cbcd7e078208bed556a6a2859081283dec217b3186d0c302ed57a974ac"
+    },
+    {
+      "file": "r2-2-compare-red.log",
+      "rawSha256": "6c41c8cb744ecb9695e84b0a788c0ea94bac891686484fba0c254b0619559670",
+      "publishedSha256": "6c41c8cb744ecb9695e84b0a788c0ea94bac891686484fba0c254b0619559670"
+    },
+    {
+      "file": "r2-3-compare-green.log",
+      "rawSha256": "78c5cd65ced1a8a9fb436b263926ae1f05ec22db58c5f296a1a0c4e45bff045b",
+      "publishedSha256": "78c5cd65ced1a8a9fb436b263926ae1f05ec22db58c5f296a1a0c4e45bff045b"
+    },
+    {
+      "file": "r2-3-compare-red.log",
+      "rawSha256": "ecfb03b68d59d18ebeb91a617ec766d6ce9b7d2d60d92bde77c3a793f2a49b28",
+      "publishedSha256": "ecfb03b68d59d18ebeb91a617ec766d6ce9b7d2d60d92bde77c3a793f2a49b28"
+    },
+    {
+      "file": "readiness-pom-optout-red.log",
+      "rawSha256": "3e97bfe334df6cab2c678ebedd063a999f65e1ef891834dd7d2c4a0c131ecd30",
+      "publishedSha256": "d9bbaf6e31b150481c26db788f11c3218d37b34f8f2227abacc48c15708f8357"
+    },
+    {
+      "file": "readiness-pom-optout-green.log",
+      "rawSha256": "05c4d59da1c7c7d77159127c0637b13535f5a3284fa8a0607c216123f0ec26ce",
+      "publishedSha256": "aafb88cbb3a541feec36c524d5e664e5761c42c0d77b28a204ce47bdc32ab0cc"
+    }
+  ],
+  "negativeZipSha256": "4db718f5da0b314bfdbbe071028723c93900cba9770261d5a096ec4f235090a2"
+}

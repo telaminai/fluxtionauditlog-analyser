@@ -1,0 +1,88 @@
+{
+  "shipped_versions": {
+    "fluxtion": "1.0.16",
+    "fluxtion-bom": "1.0.71",
+    "mongoose": "1.0.29",
+    "mongoose-plugins": "1.0.43",
+    "spring-context": "5.3.29",
+    "slf4j-simple": "2.0.16",
+    "junit-jupiter": "5.11.4",
+    "java_runtime_used": "OpenJDK Corretto 21.0.11 (Java 21)",
+    "maven_wrapper": "Apache Maven 3.9.9"
+  },
+  "supported_commands": [
+    "./mvnw package (documented build command; no Fluxtion API key required because the generated processor is committed under src/main/java/com/acme/preview/generated)",
+    "./mvnw -Pgenerate-fluxtion package (regenerate from XML design; REQUIRES a Fluxtion API key, not exercised in this smoke test since the graph is not being changed)",
+    "./run-server.sh (build-if-needed, then boot MongooseMain with required --add-opens flags; publishes ~/.mongoose/servers/<name>)",
+    "./export-audit.sh (com.acme.preview.BundleLifecycle export; writes logs/audit-<name>.yaml from the running server's admin API/Chronicle capture)",
+    "./stop-server.sh (com.acme.preview.BundleLifecycle stop; SIGTERM via registry pid, closes Chronicle capture, removes registry entry)"
+  ],
+  "graph_under_test": {
+    "feed": "FileEventSource reading data/input.txt, EARLIEST read strategy, one line per event, broadcast=true",
+    "mapper": "CsvToPriceEvent: splits a CSV line on ',' into PriceEvent(symbol:String, price:double, volume:long). Lines with fewer than 3 fields become PriceEvent(trimmed-line, 0.0, 0L) rather than throwing.",
+    "event": "PriceEvent(symbol, price, volume) — exactly these three business fields exist on the event; there is no 'order'/sequence field anywhere in PriceEvent, RootNode, RiskCheck or the generated MarketProcessor.",
+    "nodes": "RootNode.onPriceEvent(event) stores latestEvent and writes three audit records per event: auditLog.info(\"receivedEvent\", event), auditLog.info(\"price\", event.price()), auditLog.info(\"volume\", event.volume()). RiskCheck.onRiskCheck() is triggered downstream but only copies rootNode.getLatestEvent() into its own field — it performs no calculation, threshold check or transformation (both TODO stubs in source).",
+    "sink": "config/server-config.yml wires an 'output' FileMessageSink to data/output.txt, but the generated MarketProcessor's ProcessorDescriptor declares `new ProcessorDescriptor.Sink[] {}` (zero sinks) and no node in RootNode/RiskCheck ever calls a sink/publish API. No code path writes to data/output.txt. An empty output.txt after a run is therefore expected shipped behaviour, not evidence of failure to process events."
+  },
+  "field_support": {
+    "symbol": "Substantiated — visible verbatim in the audit log's 'receivedEvent' PriceEvent.toString() record, one per input row, in file order.",
+    "price": "Substantiated — logged explicitly per event via auditLog.info(\"price\", event.price()); parsed with Double.parseDouble, so exact decimal string round-tripping is not guaranteed (double precision).",
+    "volume": "Substantiated — logged explicitly via auditLog.info(\"volume\", event.volume()); parsed with Long.parseLong (accepts negative and zero values, rejects non-integer volume).",
+    "order": "NOT a field on any business event or node in this application. There is no explicit sequence/order number emitted anywhere. The only substantiable notion of 'order' is the ordinal position of each row's audit records within the exported audit log, which is expected to match input.txt line order because the file feed is a single-threaded EARLIEST reader with broadcast=true and one processor. This is a positional inference from audit-record sequence, not a data field the application produces.",
+    "sink_output_(data/output.txt)": "NOT substantiated for any scenario — the shipped graph has zero wired sinks in the generated processor (see graph_under_test.sink). Expect data/output.txt to remain empty/absent after every scenario run; this is a shipped-application limitation, not a per-scenario bug."
+  },
+  "scenarios": {
+    "A": {
+      "input": "original shipped data/input.txt (unchanged)",
+      "rows": [
+        {"order": 1, "symbol": "AAPL", "price": 195.30, "volume": 1200},
+        {"order": 2, "symbol": "MSFT", "price": 410.10, "volume": 800},
+        {"order": 3, "symbol": "GOOG", "price": 155.75, "volume": 1500},
+        {"order": 4, "symbol": "AMZN", "price": 178.22, "volume": 640},
+        {"order": 5, "symbol": "NVDA", "price": 905.60, "volume": 2100}
+      ]
+    },
+    "B": {
+      "input": "ACME,10.25,3 / ACME,10.25,3 / BETA,20.5,7",
+      "rows": [
+        {"order": 1, "symbol": "ACME", "price": 10.25, "volume": 3},
+        {"order": 2, "symbol": "ACME", "price": 10.25, "volume": 3},
+        {"order": 3, "symbol": "BETA", "price": 20.5, "volume": 7}
+      ],
+      "note": "duplicate rows expected to appear as two independent audit events; no de-duplication exists in RootNode/RiskCheck."
+    },
+    "C": {
+      "input": "ZERO,0,0 / NEG,-12.5,-4 / POS,12.5,4",
+      "rows": [
+        {"order": 1, "symbol": "ZERO", "price": 0.0, "volume": 0},
+        {"order": 2, "symbol": "NEG", "price": -12.5, "volume": -4},
+        {"order": 3, "symbol": "POS", "price": 12.5, "volume": 4}
+      ],
+      "note": "negative/zero values are accepted as-is (Double.parseDouble/Long.parseLong impose no sign or range check); no validation node exists."
+    },
+    "D": {
+      "input": "SMALL,0.125,1 / LARGE,1000000.25,2000000000 / TAIL,0.5,2",
+      "rows": [
+        {"order": 1, "symbol": "SMALL", "price": 0.125, "volume": 1},
+        {"order": 2, "symbol": "LARGE", "price": 1000000.25, "volume": 2000000000},
+        {"order": 3, "symbol": "TAIL", "price": 0.5, "volume": 2}
+      ],
+      "note": "volume 2000000000 fits in long (parsed via Long.parseLong); price 1000000.25 is exactly representable as a double."
+    },
+    "E": {
+      "input": "THIRD,3,30 / FIRST,1,10 / SECOND,2,20",
+      "rows": [
+        {"order": 1, "symbol": "THIRD", "price": 3.0, "volume": 30},
+        {"order": 2, "symbol": "FIRST", "price": 1.0, "volume": 10},
+        {"order": 3, "symbol": "SECOND", "price": 2.0, "volume": 20}
+      ],
+      "note": "no sort/reorder node exists; audit order is expected to match file order verbatim, not symbol or price order."
+    },
+    "F": {
+      "input": "ONLY,7.75,11",
+      "rows": [
+        {"order": 1, "symbol": "ONLY", "price": 7.75, "volume": 11}
+      ]
+    }
+  }
+}

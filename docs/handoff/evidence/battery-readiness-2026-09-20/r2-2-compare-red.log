@@ -1,0 +1,3 @@
+scenario F: 1 audit rows parsed, 1 expected rows
+scenario F: FAIL
+  - order 1: price expected 999.99 got 7.75

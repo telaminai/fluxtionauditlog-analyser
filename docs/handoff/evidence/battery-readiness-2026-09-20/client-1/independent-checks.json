@@ -1,0 +1,74 @@
+{
+  "run": 1,
+  "models": [
+    "claude-opus-5"
+  ],
+  "originalFiles": 43,
+  "changedOriginals": [],
+  "independentlyMatchedScenarios": {
+    "B": [
+      "runs/B/logs/audit-preview-smoke.yaml",
+      "evidence/B/audit-B.yaml"
+    ],
+    "E": [
+      "runs/E/logs/audit-preview-smoke.yaml",
+      "evidence/E/audit-E.yaml"
+    ],
+    "D": [
+      "runs/D/logs/audit-preview-smoke.yaml",
+      "evidence/D/audit-D.yaml"
+    ],
+    "C": [
+      "runs/C/logs/audit-preview-smoke.yaml",
+      "evidence/C/audit-C.yaml"
+    ],
+    "F": [
+      "runs/F/logs/audit-preview-smoke.yaml",
+      "evidence/F/audit-F.yaml"
+    ],
+    "A": [
+      "runs/A/logs/audit-preview-smoke.yaml",
+      "evidence/A/audit-A.yaml"
+    ]
+  },
+  "fieldDisagreements": [],
+  "sourcePointers": [
+    {
+      "seconds": 2.321,
+      "text": "I'll start by reading the project's entry documents.\n\nstep: 1; from: PROJECT.md"
+    },
+    {
+      "seconds": 36.981,
+      "text": "step: 1 (write EXPECTED.json); from: src/main/java/com/acme/preview/node/RootNode.java, config/server-config.yml"
+    },
+    {
+      "seconds": 70.149,
+      "text": "step: 2; from: .claude/skills/run-mongoose-server/SKILL.md, runbooks/hosting.md"
+    },
+    {
+      "seconds": 188.911,
+      "text": "All six pass.\n\nstep: 3; from: prior (compare.py, evidence/)"
+    }
+  ],
+  "expectedWriteTimes": [
+    61.92
+  ],
+  "launchCalls": [],
+  "toolErrors": [
+    {
+      "seconds": 153.044,
+      "content": "<tool_use_error>Blocked: sleep 90 followed by: cat /private/tmp/fluxtion-readiness-1/tmp/claude-501/-private-tmp-fluxtion-readiness-1-project/fa927d86-8198-42bb-9d64-e4e7fe2fcabd/tasks/b1m015hxd.output. To wait for a condition, use Monitor with an until-loop (e.g. `until <check>; do sleep 2; done`). To wait for a command you started, use run_in_background: true. Do not chain shorter sleeps to work around this block.</tool_use_error>"
+    }
+  ],
+  "registryFiles": [],
+  "meta": {
+    "started": "2026-09-20T21:01:07.134337+00:00",
+    "scope": "R2 compatibility provisioned-project smoke",
+    "requestedModel": "opus",
+    "run": 1,
+    "substantiveInterventions": [],
+    "exit": 0,
+    "ended": "2026-09-20T21:05:15.212320+00:00",
+    "elapsedSeconds": 248.07
+  }
+}

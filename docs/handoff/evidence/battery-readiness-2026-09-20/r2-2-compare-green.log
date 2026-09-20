@@ -1,0 +1,2 @@
+scenario F: 1 audit rows parsed, 1 expected rows
+scenario F: PASS — all rows match (symbol, price, volume, order)

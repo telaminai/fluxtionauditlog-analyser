@@ -1,0 +1,10 @@
+{
+  "frozenUtc": "2026-09-20T21:00:12.950161+00:00",
+  "files": {
+    "PROTOCOL.md": "e20fd941c851cbc20431a29ed84035066bb755e1e469fb33f57e5a1b29e74cd2",
+    "positive-input.txt": "2cf02df87718f1f8b6bb357b2cf2d2e20ce8c5570b495a8441fe0ccbe46e6f29",
+    "negative-input.txt": "a6d4315e8c3720fea1fe1beb6d5899a7753fcd83aa092f225b23f19bd51576b4",
+    "predictions.json": "01081e06ddf88e20a7a8e690727ee01a56849e3bd3c2390000cdf1495324bd1a"
+  },
+  "previewZipSha256": "5a354b62c68e1ed6e45e15299bded5df7db21c596bfc56c334338774e020bd20"
+}

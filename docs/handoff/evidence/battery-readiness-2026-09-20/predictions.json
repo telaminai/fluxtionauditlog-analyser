@@ -1,0 +1,16 @@
+{
+  "frozenBeforeFirstTrial": true,
+  "positiveFunctionalPasses": 3,
+  "providerRefusals": 0,
+  "substantiveInterventions": 0,
+  "positiveDurationSeconds": [300, 270, 300],
+  "negativeDurationSeconds": 45,
+  "durationCoverageQualifies": true,
+  "negativeDeclinesWithoutInventedCommand": true,
+  "originalFilesChanged": 0,
+  "expectedSourcePointersPerPositive": 3,
+  "expectedRecurringV1Traps": [],
+  "routedToUnroutedRatio": "not estimable: instructions are provisioned, task differs from the battery",
+  "longestStep": "step 2: six isolated launches, audit exports, comparisons and stops",
+  "limits": "No feature authoring; trap absence is not evidence the authoring traps are closed. No provider causality claim. No new routing adoption ratio."
+}

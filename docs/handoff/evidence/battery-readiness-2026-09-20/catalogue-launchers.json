@@ -1,0 +1,58 @@
+[
+  {
+    "id": "analyser-bundle.starter.json",
+    "launcher": "run-server.sh"
+  },
+  {
+    "id": "fluxtion-aot.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "fluxtion-audit.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "fluxtion-connector.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "fluxtion-dag-multi-io.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "fluxtion-dsl.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "fluxtion-embedded.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "fluxtion-service-export.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "fluxtion-spring-mongoose.starter.json",
+    "launcher": "run-server.sh"
+  },
+  {
+    "id": "fluxtion-spring.starter.json",
+    "launcher": "run.sh"
+  },
+  {
+    "id": "mongoose-dynamic-feed.starter.json",
+    "launcher": "run-server.sh"
+  },
+  {
+    "id": "mongoose-dynamic-spring.starter.json",
+    "launcher": "run-server.sh"
+  },
+  {
+    "id": "mongoose-hosted-fluxtion.starter.json",
+    "launcher": "run-server.sh"
+  },
+  {
+    "id": "mongoose-server.starter.json",
+    "launcher": "run-server.sh"
+  }
+]

@@ -1,0 +1,89 @@
+{
+  "run": 2,
+  "models": [
+    "claude-sonnet-5"
+  ],
+  "originalFiles": 43,
+  "changedOriginals": [],
+  "independentlyMatchedScenarios": {
+    "B": [
+      "scenarios/deploy/B/logs/audit-preview-smoke.yaml"
+    ],
+    "E": [
+      "scenarios/deploy/E/logs/audit-preview-smoke.yaml"
+    ],
+    "D": [
+      "scenarios/deploy/D/logs/audit-preview-smoke.yaml"
+    ],
+    "C": [
+      "scenarios/deploy/C/logs/audit-preview-smoke.yaml"
+    ],
+    "F": [
+      "scenarios/deploy/F/logs/audit-preview-smoke.yaml"
+    ],
+    "A": [
+      "scenarios/deploy/A/logs/audit-preview-smoke.yaml"
+    ]
+  },
+  "fieldDisagreements": [],
+  "sourcePointers": [
+    {
+      "seconds": 3.103,
+      "text": "step: 1; from: task"
+    }
+  ],
+  "expectedWriteTimes": [
+    65.311
+  ],
+  "launchCalls": [
+    {
+      "seconds": 126.082,
+      "command": "cd /private/tmp/fluxtion-readiness-2/project/scenarios/deploy/A\nexport MONGOOSE_SERVERS_DIR=\"$PWD/.mongoose-registry\"\nmkdir -p \"$MONGOOSE_SERVERS_DIR\"\nnohup ./run-server.sh > server.out 2>&1 &\necho \"PID=$!\"\nsleep 4\ntail -30 server.out\nls \"$MONGOOSE_SERVERS_DIR\" 2>&1"
+    },
+    {
+      "seconds": 147.952,
+      "command": "cd /private/tmp/fluxtion-readiness-2/project/scenarios/deploy/B\nexport MONGOOSE_SERVERS_DIR=\"$PWD/.mongoose-registry\"\nmkdir -p \"$MONGOOSE_SERVERS_DIR\"\nnohup ./run-server.sh > server.out 2>&1 &\necho \"PID=$!\"\nsleep 4\ntail -5 server.out"
+    },
+    {
+      "seconds": 165.093,
+      "command": "cd /private/tmp/fluxtion-readiness-2/project/scenarios/deploy/C\nexport MONGOOSE_SERVERS_DIR=\"$PWD/.mongoose-registry\"\nmkdir -p \"$MONGOOSE_SERVERS_DIR\"\nnohup ./run-server.sh > server.out 2>&1 &\nsleep 4\ntail -3 server.out"
+    },
+    {
+      "seconds": 177.448,
+      "command": "cd /private/tmp/fluxtion-readiness-2/project/scenarios/deploy/D\nexport MONGOOSE_SERVERS_DIR=\"$PWD/.mongoose-registry\"\nmkdir -p \"$MONGOOSE_SERVERS_DIR\"\nnohup ./run-server.sh > server.out 2>&1 &\nsleep 4\ntail -3 server.out"
+    },
+    {
+      "seconds": 189.362,
+      "command": "cd /private/tmp/fluxtion-readiness-2/project/scenarios/deploy/E\nexport MONGOOSE_SERVERS_DIR=\"$PWD/.mongoose-registry\"\nmkdir -p \"$MONGOOSE_SERVERS_DIR\"\nnohup ./run-server.sh > server.out 2>&1 &\nsleep 4\ntail -3 server.out"
+    },
+    {
+      "seconds": 201.721,
+      "command": "cd /private/tmp/fluxtion-readiness-2/project/scenarios/deploy/F\nexport MONGOOSE_SERVERS_DIR=\"$PWD/.mongoose-registry\"\nmkdir -p \"$MONGOOSE_SERVERS_DIR\"\nnohup ./run-server.sh > server.out 2>&1 &\nsleep 4\ntail -3 server.out"
+    }
+  ],
+  "toolErrors": [
+    {
+      "seconds": 92.036,
+      "content": "Exit code 1\nmkdir: /private/tmp/fluxtion-readiness-2/scenarios: Operation not permitted\nmkdir: /private/tmp/fluxtion-readiness-2/scenarios: Operation not permitted\n(eval):6: no such file or directory: /private/tmp/fluxtion-readiness-2/scenarios/inputs/B.txt\n(eval):11: no such file or directory: /private/tmp/fluxtion-readiness-2/scenarios/inputs/C.txt\n(eval):16: no such file or directory: /private/tmp/fluxtion-readiness-2/scenarios/inputs/D.txt\n(eval):21: no such file or directory: /private/tmp/fluxtion-readiness-2/scenarios/inputs/E.txt\n(eval):26: no such file or directory: /private/tmp/fluxtion-readiness-2/scenarios/inputs/F.txt\ncp: /private/tmp/fluxtion-readiness-2/scenarios/inputs/A.txt: No such file or directory\nls: /private/tmp/fluxtion-readiness-2/scenarios/inputs: No such file or directory"
+    },
+    {
+      "seconds": 94.854,
+      "content": "Exit code 1\n/private/tmp/fluxtion-readiness-2/tmp\nls: /private/tmp/fluxtion-readiness-2/: Operation not permitted\ntotal 0"
+    },
+    {
+      "seconds": 230.332,
+      "content": "Exit code 1\n(eval):2: can't create temp file for here document: operation not permitted"
+    }
+  ],
+  "registryFiles": [],
+  "meta": {
+    "started": "2026-09-20T21:06:16.921575+00:00",
+    "scope": "R2 compatibility provisioned-project smoke",
+    "requestedModel": "sonnet",
+    "run": 2,
+    "substantiveInterventions": [],
+    "exit": 0,
+    "ended": "2026-09-20T21:11:02.970482+00:00",
+    "elapsedSeconds": 286.041
+  }
+}

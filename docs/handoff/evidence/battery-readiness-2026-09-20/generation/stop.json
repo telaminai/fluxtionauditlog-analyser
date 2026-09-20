@@ -1,0 +1,8 @@
+{
+  "stage": "stop",
+  "command": [
+    "./stop-server.sh"
+  ],
+  "exit": 0,
+  "seconds": 1.032
+}

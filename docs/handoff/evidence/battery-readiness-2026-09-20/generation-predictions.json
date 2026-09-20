@@ -1,0 +1,15 @@
+{
+  "frozenAt": "2026-09-20T20:52:49.785749+00:00",
+  "route": "published Maven dependencies and configured RapidAPI endpoint; no private provider",
+  "command": "./mvnw -B -Pgenerate-fluxtion package",
+  "expectedTotalVolume": [
+    1200,
+    2000,
+    3500,
+    4140,
+    6240
+  ],
+  "expectedNewNode": "volumeTotal",
+  "expectedSourceGraphAndRuntimeAgree": true,
+  "maxGenerationAttempts": 1
+}

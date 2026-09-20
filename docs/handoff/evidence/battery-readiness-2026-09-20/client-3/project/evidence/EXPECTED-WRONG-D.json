@@ -1,0 +1,190 @@
+{
+  "project": "preview-smoke",
+  "written_before_any_run": true,
+  "shipped_versions": {
+    "fluxtion": "1.0.16",
+    "fluxtion-bom": "1.0.71",
+    "mongoose": "1.0.29",
+    "mongoose-plugins": "1.0.43",
+    "jdk_required": "21+",
+    "source_of_versions": [
+      "README.md#Versions",
+      "PROJECT.md",
+      "pom.xml"
+    ]
+  },
+  "supported_commands": [
+    "./mvnw package  (documented build; no API key needed - processor ships AOT-generated)",
+    "./run-server.sh  (build-if-needed, then boot; publishes <registry>/preview-smoke)",
+    "./export-audit.sh  (BundleLifecycle export -> logs/audit-preview-smoke.yaml via admin API)",
+    "./stop-server.sh  (BundleLifecycle stop -> SIGTERM via registry pid, removes registry entry)",
+    "./check-fluxtion-key.sh  (key preflight; only needed to REGENERATE)",
+    "./mvnw -Pgenerate-fluxtion package  (regeneration; REQUIRES compilation-service key - not provisioned here, out of scope)"
+  ],
+  "what_the_shipped_application_can_substantiate": {
+    "symbol": "YES - RootNode.onPriceEvent audits 'receivedEvent' with PriceEvent.toString(), which contains symbol=<symbol>.",
+    "price": "YES - RootNode audits a dedicated 'price' entry (double) and price=<price> inside receivedEvent.",
+    "volume": "YES - RootNode audits a dedicated 'volume' entry (long) and volume=<volume> inside receivedEvent.",
+    "order": "YES (as dispatch order) - the audit log records one event cycle per input row on the single feeds-agent -> processor-agent route; the sequence of cycles in logs/audit-preview-smoke.yaml is the observable order. Compared as 1-based position of each row within the run."
+  },
+  "what_the_shipped_application_cannot_substantiate": [
+    "Sink content: no node in the graph (RootNode, RiskCheck) publishes to any MessageSink; both handlers are TODO stubs that only store latestEvent. config/server-config.yml declares eventSinks 'output' -> data/output.txt, but nothing writes to it. Expect no business rows in data/output.txt. An empty sink is therefore NOT a verified sink scenario.",
+    "Any derived/business value: no risk decision, no notional (price*volume), no aggregation, no dedup, no per-symbol state - RiskCheck.onRiskCheck only copies RootNode.getLatestEvent().",
+    "Input re-ordering or sorting: the application preserves file order; it does not sort (scenario E is expected in file order, not sorted).",
+    "Duplicate suppression: scenario B's repeated identical row is expected to appear twice.",
+    "Validation/rejection of zero or negative price/volume: CsvToPriceEvent parses them as-is; scenario C values are expected to pass through unchanged.",
+    "Regeneration from application-context.xml: requires a compilation-service key, which is not provisioned in this environment."
+  ],
+  "field_mapping": {
+    "csv": "symbol,price,volume",
+    "audit_entry": "receivedEvent=PriceEvent{symbol=<symbol>, price=<price>, volume=<volume>}, plus price=<price> and volume=<volume> entries",
+    "comparison_rule": "symbol compared as exact string; price compared as double (numeric equality); volume compared as long; order compared as 1-based dispatch position"
+  },
+  "scenarios": {
+    "A": {
+      "input_source": "original shipped data/input.txt (unmodified)",
+      "expected_sink_rows": 0,
+      "expected_audit_rows": [
+        {
+          "order": 1,
+          "symbol": "AAPL",
+          "price": 195.3,
+          "volume": 1200
+        },
+        {
+          "order": 2,
+          "symbol": "MSFT",
+          "price": 410.1,
+          "volume": 800
+        },
+        {
+          "order": 3,
+          "symbol": "GOOG",
+          "price": 155.75,
+          "volume": 1500
+        },
+        {
+          "order": 4,
+          "symbol": "AMZN",
+          "price": 178.22,
+          "volume": 640
+        },
+        {
+          "order": 5,
+          "symbol": "NVDA",
+          "price": 905.6,
+          "volume": 2100
+        }
+      ]
+    },
+    "B": {
+      "input_source": "scenario CSV (duplicate row retained)",
+      "expected_sink_rows": 0,
+      "expected_audit_rows": [
+        {
+          "order": 1,
+          "symbol": "ACME",
+          "price": 10.25,
+          "volume": 3
+        },
+        {
+          "order": 2,
+          "symbol": "ACME",
+          "price": 10.25,
+          "volume": 3
+        },
+        {
+          "order": 3,
+          "symbol": "BETA",
+          "price": 20.5,
+          "volume": 7
+        }
+      ]
+    },
+    "C": {
+      "input_source": "scenario CSV (zero and negative values pass through)",
+      "expected_sink_rows": 0,
+      "expected_audit_rows": [
+        {
+          "order": 1,
+          "symbol": "ZERO",
+          "price": 0.0,
+          "volume": 0
+        },
+        {
+          "order": 2,
+          "symbol": "NEG",
+          "price": -12.5,
+          "volume": -4
+        },
+        {
+          "order": 3,
+          "symbol": "POS",
+          "price": 12.5,
+          "volume": 4
+        }
+      ]
+    },
+    "D": {
+      "input_source": "scenario CSV (magnitude boundaries)",
+      "expected_sink_rows": 0,
+      "expected_audit_rows": [
+        {
+          "order": 1,
+          "symbol": "SMALL",
+          "price": 0.125,
+          "volume": 1
+        },
+        {
+          "order": 2,
+          "symbol": "LARGE",
+          "price": 1000000.75,
+          "volume": 2000000000
+        },
+        {
+          "order": 3,
+          "symbol": "TAIL",
+          "price": 0.5,
+          "volume": 2
+        }
+      ]
+    },
+    "E": {
+      "input_source": "scenario CSV (file order, deliberately not alphabetical/numeric)",
+      "expected_sink_rows": 0,
+      "expected_audit_rows": [
+        {
+          "order": 1,
+          "symbol": "THIRD",
+          "price": 3.0,
+          "volume": 30
+        },
+        {
+          "order": 2,
+          "symbol": "FIRST",
+          "price": 1.0,
+          "volume": 10
+        },
+        {
+          "order": 3,
+          "symbol": "SECOND",
+          "price": 2.0,
+          "volume": 20
+        }
+      ]
+    },
+    "F": {
+      "input_source": "scenario CSV (single row)",
+      "expected_sink_rows": 0,
+      "expected_audit_rows": [
+        {
+          "order": 1,
+          "symbol": "ONLY",
+          "price": 7.75,
+          "volume": 11
+        }
+      ]
+    }
+  },
+  "deliberately_wrong": "scenario D row 2 price changed 1000000.25 -> 1000000.75 to prove the comparison rejects a wrong numeric expectation. EXPECTED.json itself is untouched."
+}

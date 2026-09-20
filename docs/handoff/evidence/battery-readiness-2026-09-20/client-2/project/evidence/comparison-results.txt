@@ -1,0 +1,24 @@
+scenario A: 5 audit rows parsed, 5 expected rows
+scenario A: PASS — all rows match (symbol, price, volume, order)
+exit=0
+---
+scenario B: 3 audit rows parsed, 3 expected rows
+scenario B: PASS — all rows match (symbol, price, volume, order)
+exit=0
+---
+scenario C: 3 audit rows parsed, 3 expected rows
+scenario C: PASS — all rows match (symbol, price, volume, order)
+exit=0
+---
+scenario D: 3 audit rows parsed, 3 expected rows
+scenario D: PASS — all rows match (symbol, price, volume, order)
+exit=0
+---
+scenario E: 3 audit rows parsed, 3 expected rows
+scenario E: PASS — all rows match (symbol, price, volume, order)
+exit=0
+---
+scenario F: 1 audit rows parsed, 1 expected rows
+scenario F: PASS — all rows match (symbol, price, volume, order)
+exit=0
+---

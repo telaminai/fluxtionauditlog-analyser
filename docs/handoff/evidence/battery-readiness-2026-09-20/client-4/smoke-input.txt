@@ -1,0 +1,5 @@
+Inspect this downloaded project and determine its supported command-line launch procedure from the shipped files. Execute that procedure only if the project supplies one. If no command-line launch procedure is supplied, report that fact with the relevant file paths and stop. Do not invent a command, use an IDE, regenerate, change files or substitute dependencies. This is a test of the supplied project, not a feature request.
+
+Environment: Java 21 and Python 3 are available; use the project directory or $TMPDIR for scratch if needed. Only this project is in scope. Maximum time: three minutes.
+
+Before acting emit one short visible line: step: 1; from: <project-relative file path>, task or prior. Do not maintain a journal or provide timestamps.

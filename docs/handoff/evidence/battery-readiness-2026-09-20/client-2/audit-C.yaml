@@ -1,0 +1,230 @@
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543020
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.telamin.mongoose.internal.ChronicleAuditCaptureService$ProcessorSink$$Lambda/0x0000007001367bc0@876f552, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543020
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543024
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543024
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543024
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543024
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543024
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543024
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543024
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543024
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543024
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543024
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543024
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543024
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543025
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543025
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543025
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543025
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543025
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543026
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543026
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543026
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543026
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543026
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543026
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543026
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543032
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543032
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543034
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543034
+---
+eventLogRecord:
+    eventTime: 1789938543036
+    logTime: 1789938543036
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Start
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543036
+---
+eventLogRecord:
+    eventTime: 1789938543036
+    logTime: 1789938543036
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: StartComplete
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543036
+---
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789938543036
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs:
+    endTime: 1789938543036
+---
+eventLogRecord:
+    eventTime: 1789938543058
+    logTime: 1789938543058
+    groupingId: null
+    event: PriceEvent
+    eventToString: PriceEvent{symbol=ZERO, price=0.0, volume=0}
+    thread: processor-agent
+    nodeLogs:
+        - rootNode: { thread: processor-agent, method: onPriceEvent, receivedEvent: PriceEvent{symbol=ZERO, price=0.0, volume=0}, price: 0.0, volume: 0}
+        - riskCheck: { thread: processor-agent, method: onRiskCheck}
+    endTime: 1789938543059
+---
+eventLogRecord:
+    eventTime: 1789938543059
+    logTime: 1789938543059
+    groupingId: null
+    event: PriceEvent
+    eventToString: PriceEvent{symbol=NEG, price=-12.5, volume=-4}
+    thread: processor-agent
+    nodeLogs:
+        - rootNode: { thread: processor-agent, method: onPriceEvent, receivedEvent: PriceEvent{symbol=NEG, price=-12.5, volume=-4}, price: -12.5, volume: -4}
+        - riskCheck: { thread: processor-agent, method: onRiskCheck}
+    endTime: 1789938543059
+---
+eventLogRecord:
+    eventTime: 1789938543059
+    logTime: 1789938543059
+    groupingId: null
+    event: PriceEvent
+    eventToString: PriceEvent{symbol=POS, price=12.5, volume=4}
+    thread: processor-agent
+    nodeLogs:
+        - rootNode: { thread: processor-agent, method: onPriceEvent, receivedEvent: PriceEvent{symbol=POS, price=12.5, volume=4}, price: 12.5, volume: 4}
+        - riskCheck: { thread: processor-agent, method: onRiskCheck}
+    endTime: 1789938543059

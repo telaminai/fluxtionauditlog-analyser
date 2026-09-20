@@ -1,0 +1,30 @@
+{
+  "run": 4,
+  "models": [
+    "claude-opus-5"
+  ],
+  "originalFiles": 21,
+  "changedOriginals": [],
+  "independentlyMatchedScenarios": {},
+  "fieldDisagreements": [],
+  "sourcePointers": [
+    {
+      "seconds": 2.529,
+      "text": "step: 1; from: CLAUDE.md, task"
+    }
+  ],
+  "expectedWriteTimes": [],
+  "launchCalls": [],
+  "toolErrors": [],
+  "registryFiles": [],
+  "meta": {
+    "started": "2026-09-20T21:30:12.787115+00:00",
+    "scope": "R2 compatibility provisioned-project smoke",
+    "requestedModel": "opus",
+    "run": 4,
+    "substantiveInterventions": [],
+    "exit": 0,
+    "ended": "2026-09-20T21:30:43.420214+00:00",
+    "elapsedSeconds": 30.633
+  }
+}

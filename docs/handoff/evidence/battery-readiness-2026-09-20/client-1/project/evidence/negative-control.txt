@@ -1,0 +1,12 @@
+expectations: EXPECTED-wrong-control.json
+
+=== scenario D (task scenario D (magnitude extremes)) ===
+  ok   order=1 symbol=SMALL price=0.125 volume=1
+  FAIL row 2 (LARGE): price: expected 1000000.35 actual 1000000.25
+  ok   order=3 symbol=TAIL price=0.5 volume=2
+  ok   sink empty as predicted (NOT a verified sink scenario: nothing publishes to the sink)
+
+============================================================
+RESULT: FAIL — 1 mismatch(es)
+  - D row 2: price: expected 1000000.35 actual 1000000.25
+negative control exit code: 1

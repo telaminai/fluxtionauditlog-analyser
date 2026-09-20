@@ -1,0 +1,222 @@
+[
+  {
+    "run": 1,
+    "refusals": [
+      {
+        "rawLine": 24,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 22,
+          "tool": "Bash",
+          "target": "curl -s \"https://search.maven.org/solrsearch/select?q=g:com.fluxtion&rows=40&wt=json\" | head -c 3000; echo; curl -s https://repo1.maven.org/maven2/com/fluxtion/",
+          "journalRelated": false
+        }
+      }
+    ],
+    "totalCalls": 5,
+    "journalRelatedCalls": 3,
+    "finalCall": {
+      "rawLine": 22,
+      "tool": "Bash",
+      "target": "curl -s \"https://search.maven.org/solrsearch/select?q=g:com.fluxtion&rows=40&wt=json\" | head -c 3000; echo; curl -s https://repo1.maven.org/maven2/com/fluxtion/",
+      "journalRelated": false
+    },
+    "apiErrorTimes": [
+      {
+        "rawLine": 25,
+        "providerTimestamp": "2026-09-20T19:02:43.164Z",
+        "elapsedFromOperatorStartSeconds": 21.791
+      }
+    ],
+    "operatorStarted": "2026-09-20T19:02:21.373070+00:00",
+    "operatorEnded": "2026-09-20T19:02:43.499252+00:00"
+  },
+  {
+    "run": 2,
+    "refusals": [
+      {
+        "rawLine": 21,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 19,
+          "tool": "Bash",
+          "target": "python3 /tmp/jentry.py DECIDE \"Journal entries are inserted by a helper script in /tmp (real UTC timestamps, placed above the Close section)\" \"keep append-only ",
+          "journalRelated": true
+        }
+      }
+    ],
+    "totalCalls": 5,
+    "journalRelatedCalls": 3,
+    "finalCall": {
+      "rawLine": 19,
+      "tool": "Bash",
+      "target": "python3 /tmp/jentry.py DECIDE \"Journal entries are inserted by a helper script in /tmp (real UTC timestamps, placed above the Close section)\" \"keep append-only ",
+      "journalRelated": true
+    },
+    "apiErrorTimes": [
+      {
+        "rawLine": 22,
+        "providerTimestamp": "2026-09-20T19:02:46.808Z",
+        "elapsedFromOperatorStartSeconds": 25.435
+      }
+    ],
+    "operatorStarted": "2026-09-20T19:02:21.373194+00:00",
+    "operatorEnded": "2026-09-20T19:02:47.253791+00:00"
+  },
+  {
+    "run": 3,
+    "refusals": [],
+    "totalCalls": 53,
+    "journalRelatedCalls": 13,
+    "finalCall": {
+      "rawLine": 202,
+      "tool": "Edit",
+      "target": "JOURNAL.md",
+      "journalRelated": true
+    },
+    "apiErrorTimes": [],
+    "operatorStarted": "2026-09-20T19:05:27.856726+00:00",
+    "operatorEnded": "2026-09-20T19:09:54.939587+00:00"
+  },
+  {
+    "run": 4,
+    "refusals": [
+      {
+        "rawLine": 217,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 215,
+          "tool": "Edit",
+          "target": "JOURNAL.md",
+          "journalRelated": true
+        }
+      },
+      {
+        "rawLine": 220,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 219,
+          "tool": "Edit",
+          "target": "JOURNAL.md",
+          "journalRelated": true
+        }
+      },
+      {
+        "rawLine": 225,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 223,
+          "tool": "Bash",
+          "target": "rm -rf src/main/java/com/example/spike && mkdir -p src/main/java/com/example/gridwatch/event src/main/java/com/example/gridwatch/node src/test/java/com/example/",
+          "journalRelated": false
+        }
+      }
+    ],
+    "totalCalls": 45,
+    "journalRelatedCalls": 11,
+    "finalCall": {
+      "rawLine": 223,
+      "tool": "Bash",
+      "target": "rm -rf src/main/java/com/example/spike && mkdir -p src/main/java/com/example/gridwatch/event src/main/java/com/example/gridwatch/node src/test/java/com/example/",
+      "journalRelated": false
+    },
+    "apiErrorTimes": [
+      {
+        "rawLine": 218,
+        "providerTimestamp": "2026-09-20T19:07:33.162Z",
+        "elapsedFromOperatorStartSeconds": 311.789
+      },
+      {
+        "rawLine": 221,
+        "providerTimestamp": "2026-09-20T19:07:40.710Z",
+        "elapsedFromOperatorStartSeconds": 319.337
+      },
+      {
+        "rawLine": 226,
+        "providerTimestamp": "2026-09-20T19:07:45.141Z",
+        "elapsedFromOperatorStartSeconds": 323.768
+      }
+    ],
+    "operatorStarted": "2026-09-20T19:02:21.373079+00:00",
+    "operatorEnded": "2026-09-20T19:07:45.441310+00:00"
+  },
+  {
+    "run": 5,
+    "refusals": [
+      {
+        "rawLine": 80,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 79,
+          "tool": "Edit",
+          "target": "JOURNAL.md",
+          "journalRelated": true
+        }
+      },
+      {
+        "rawLine": 325,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 323,
+          "tool": "Bash",
+          "target": "cd /private/tmp/fluxtion-coldstart-v2/run5/project/riskflow && mkdir -p .attic && mv src/main/java/com/example/riskflow/node/RootNode.java .attic/ && echo MOVED",
+          "journalRelated": false
+        }
+      }
+    ],
+    "totalCalls": 66,
+    "journalRelatedCalls": 10,
+    "finalCall": {
+      "rawLine": 323,
+      "tool": "Bash",
+      "target": "cd /private/tmp/fluxtion-coldstart-v2/run5/project/riskflow && mkdir -p .attic && mv src/main/java/com/example/riskflow/node/RootNode.java .attic/ && echo MOVED",
+      "journalRelated": false
+    },
+    "apiErrorTimes": [
+      {
+        "rawLine": 81,
+        "providerTimestamp": "2026-09-20T19:06:50.105Z",
+        "elapsedFromOperatorStartSeconds": 82.249
+      },
+      {
+        "rawLine": 326,
+        "providerTimestamp": "2026-09-20T19:14:37.383Z",
+        "elapsedFromOperatorStartSeconds": 549.527
+      }
+    ],
+    "operatorStarted": "2026-09-20T19:05:27.856170+00:00",
+    "operatorEnded": "2026-09-20T19:14:37.884875+00:00"
+  },
+  {
+    "run": 6,
+    "refusals": [
+      {
+        "rawLine": 274,
+        "category": "reasoning_extraction",
+        "precedingCall": {
+          "rawLine": 272,
+          "tool": "Edit",
+          "target": "JOURNAL.md",
+          "journalRelated": true
+        }
+      }
+    ],
+    "totalCalls": 62,
+    "journalRelatedCalls": 12,
+    "finalCall": {
+      "rawLine": 272,
+      "tool": "Edit",
+      "target": "JOURNAL.md",
+      "journalRelated": true
+    },
+    "apiErrorTimes": [
+      {
+        "rawLine": 275,
+        "providerTimestamp": "2026-09-20T19:15:46.144Z",
+        "elapsedFromOperatorStartSeconds": 428.148
+      }
+    ],
+    "operatorStarted": "2026-09-20T19:08:37.995971+00:00",
+    "operatorEnded": "2026-09-20T19:15:46.454277+00:00"
+  }
+]

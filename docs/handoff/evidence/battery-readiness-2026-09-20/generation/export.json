@@ -1,0 +1,8 @@
+{
+  "stage": "export",
+  "command": [
+    "./export-audit.sh"
+  ],
+  "exit": 0,
+  "seconds": 0.966
+}

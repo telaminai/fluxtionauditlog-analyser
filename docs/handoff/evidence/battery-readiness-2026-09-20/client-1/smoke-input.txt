@@ -1,0 +1,30 @@
+This is a compatibility test of the downloaded project, not a feature implementation. Keep all original shipped files, source, dependency coordinates and configuration unchanged. You may create evidence and scenario copies inside this directory. If a required command fails, preserve its output and report it; do not repair the project or substitute dependencies.
+
+Environment: Java 21, Python 3 and the project's Maven wrapper are available. Public Maven dependencies are cached. No compilation-service key is provisioned. The project's local port is free. Use this project or $TMPDIR for scratch files. Java home, temporary directory and Mongoose registry are isolated through the supplied environment. Only this project is in scope. Maximum time: ten minutes. Do useful work promptly, with no deliberate delay.
+
+1. Read the project's entry document and applicable instructions. Before running the application, write EXPECTED.json from the input scenarios below. State which business-event fields the shipped application can actually substantiate and which outputs it cannot. Record the shipped versions and supported commands. Do not invent application features.
+2. Build using the documented command. For each of the six scenarios, run a separate clean deployment copy sequentially, changing only its data/input.txt; preserve the original download. Use documented launch/export/stop procedures. Compare every business row's symbol, price, volume and order against the expectations written in step 1. Preserve command outputs, exports and an executable comparison script. Fresh copies must not inherit earlier run evidence or build a new processor. Reusing the same built jar is allowed. Stop each instance before starting the next. Do not count an empty sink as a verified sink scenario.
+3. Demonstrate that your comparison rejects one deliberately wrong expected numeric value, without changing the application or overwriting the original expectations. Verify the original files are unchanged and the final server has stopped. Write SMOKE-RESULT.md distinguishing observations, failures and limits. Finish when done; no further task.
+
+Scenarios (CSV rows, in this exact order):
+A: use the original shipped input file.
+B:
+ACME,10.25,3
+ACME,10.25,3
+BETA,20.5,7
+C:
+ZERO,0,0
+NEG,-12.5,-4
+POS,12.5,4
+D:
+SMALL,0.125,1
+LARGE,1000000.25,2000000000
+TAIL,0.5,2
+E:
+THIRD,3,30
+FIRST,1,10
+SECOND,2,20
+F:
+ONLY,7.75,11
+
+Before executing each numbered step emit one short visible line: step: N; from: <project-relative file path>, or from: task or prior if applicable. These are source pointers, not explanations. Do not maintain a journal or provide timestamps; the operator records tool-event times.

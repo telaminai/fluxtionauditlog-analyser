@@ -1,0 +1,36 @@
+expectations: /private/tmp/fluxtion-readiness-3/project/evidence/EXPECTED-WRONG-D.json
+
+== scenario A
+  OK   row 1: AAPL,195.3,1200
+  OK   row 2: MSFT,410.1,800
+  OK   row 3: GOOG,155.75,1500
+  OK   row 4: AMZN,178.22,640
+  OK   row 5: NVDA,905.6,2100
+  SINK UNVERIFIED: data/output.txt exists but is empty (0 bytes) - no graph node publishes to the sink
+== scenario B
+  OK   row 1: ACME,10.25,3
+  OK   row 2: ACME,10.25,3
+  OK   row 3: BETA,20.5,7
+  SINK UNVERIFIED: data/output.txt exists but is empty (0 bytes) - no graph node publishes to the sink
+== scenario C
+  OK   row 1: ZERO,0.0,0
+  OK   row 2: NEG,-12.5,-4
+  OK   row 3: POS,12.5,4
+  SINK UNVERIFIED: data/output.txt exists but is empty (0 bytes) - no graph node publishes to the sink
+== scenario D
+  OK   row 1: SMALL,0.125,1
+  FAIL row 2: LARGE,1000000.25,2000000000
+       price: expected 1000000.75 observed 1000000.25
+  OK   row 3: TAIL,0.5,2
+  SINK UNVERIFIED: data/output.txt exists but is empty (0 bytes) - no graph node publishes to the sink
+== scenario E
+  OK   row 1: THIRD,3.0,30
+  OK   row 2: FIRST,1.0,10
+  OK   row 3: SECOND,2.0,20
+  SINK UNVERIFIED: data/output.txt exists but is empty (0 bytes) - no graph node publishes to the sink
+== scenario F
+  OK   row 1: ONLY,7.75,11
+  SINK UNVERIFIED: data/output.txt exists but is empty (0 bytes) - no graph node publishes to the sink
+
+RESULT: FAIL (1 mismatch(es))
+  - D row 2: price: expected 1000000.75 observed 1000000.25
