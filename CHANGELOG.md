@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-09-20
+
 ### Fixed
 - Session recovery returns to an actionable offer when a newer open supersedes it, and stale start-page
   buttons cannot answer another project's offer. Recovery rechecks are decided by the session graph;
