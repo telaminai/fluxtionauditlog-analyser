@@ -16,7 +16,10 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-ENTRY = re.compile(r"^##\s*(E\d+)\s*·\s*(\S+)\s*·\s*(\w+)\s*$", re.M)
+ENTRY = re.compile(r"^##\s*(E\d+)\s*·\s*(\S+)\s*·\s*([A-Za-z_]\w*)\b[^\n]*$", re.M)
+# A heading the ENTRY regex cannot match is NOT skipped quietly: its fields would be absorbed into
+# the preceding entry, and dict() keeps the last, silently overwriting the one scored field.
+HEADING = re.compile(r"^##\s*E\d+\b", re.M)
 FIELD = re.compile(r"^(what|why|from):\s*(.*)$", re.M)
 FROM_KINDS = ["runbook", "readme", "contract", "error", "stub", "example", "search", "prior", "operator"]
 ROUTED = {"runbook", "readme", "contract", "error", "stub"}      # a shipped artefact did the work
@@ -54,9 +57,15 @@ def fingerprints(root, baseline):
     out = []
 
     # T-MAIN: a hand-rolled harness - main() that builds the processor and feeds it literal events
-    out.append(("T-MAIN", "hand-rolled harness feeding literal events instead of the shipped feed",
-                [rel(p) for p, t in text.items()
-                 if "static void main" in t and re.search(r"\.onEvent\(\s*new\s", t)]))
+    # A harness that builds a list and feeds it through a variable is the same trap as an inline
+    # literal; matching only `.onEvent(new ` scored two real hits as ok.
+    harness = []
+    for p, t in text.items():
+        if "static void main" not in t or not re.search(r"\.onEvent\(", t):
+            continue
+        inline = bool(re.search(r"\.onEvent\(\s*new\s", t))
+        harness.append(rel(p) + ("" if inline else "  (variable-fed)"))
+    out.append(("T-MAIN", "hand-rolled harness feeding events instead of the shipped feed", harness))
 
     # T-SLEEP: Thread.sleep pacing - the v1 tell for a hand-written scenario
     out.append(("T-SLEEP", "Thread.sleep pacing in a harness",
@@ -77,10 +86,15 @@ def fingerprints(root, baseline):
     # T-TRANSIENT: a NODE's non-static final collection field with no transient / @FluxtionIgnore
     leak = []
     for p in nodes:
+        # Annotations usually sit on their own line above the field; the per-line lookahead could
+        # never see them, so correctly-ignored fields were reported as leaks.
+        joined = text[p]
+        for _ in range(4):
+            joined = re.sub(r"^([ \t]*@[\w.]+(?:\([^)\n]*\))?)[ \t]*\n[ \t]*", r"\1 ", joined, flags=re.M)
         for m in re.finditer(r"^[ \t]*(?!.*@FluxtionIgnore)(?:private|public|protected)?[ \t]*"
                              r"(?!.*\bstatic\b)(?=.*\bfinal\b)(?!.*\btransient\b)"
                              r"[\w<>, .\[\]]*\b(?:Map|List|Set|HashMap|ArrayList|TreeMap|Collection)\s*<[^;]*>\s+(\w+)\s*[=;]",
-                             text[p], re.M):
+                             joined, re.M):
             leak.append(f"{rel(p)}:{m.group(1)}")
     out.append(("T-TRANSIENT", "node field: final collection without transient/@FluxtionIgnore", leak))
 
@@ -124,11 +138,12 @@ def parse(path):
                         "what": fields.get("what", "").strip(),
                         "why": fields.get("why", "").strip(),
                         "from": src, "fromKind": src.split(":")[0].strip().lower() or "MISSING"})
+    unparsed = len(HEADING.findall(body)) - len(entries)
     preds = re.findall(r"^\s*(P\d)\s+(.+)$", text, re.M)
     closes = re.findall(r"^\s*(T\d+ outcome|first checked result at|which existing file[^:]*|"
                         r"what I would have wanted[^:]*|what I read that[^:]*|predictions that[^:]*):\s*(.*)$",
                         text, re.M)
-    return entries, preds, closes
+    return entries, preds, closes, unparsed
 
 
 def elapsed(entries):
@@ -151,7 +166,7 @@ def main():
     args = [a for a in argv if not a.startswith("--")]
     journal = args[0]
     root = Path(args[1]).resolve() if len(args) > 1 else None
-    entries, preds, closes = parse(journal)
+    entries, preds, closes, unparsed = parse(journal)
     kinds = Counter(e["kind"] for e in entries)
     froms = Counter(e["fromKind"] for e in entries)
     routed = sum(v for k, v in froms.items() if k in ROUTED)
@@ -173,6 +188,9 @@ def main():
     print(f"project: {root or '(not supplied)'}")
     print(f"baseline: {baseline or 'NONE - template files are scored as the subject\'s; results inflated'}\n")
     print(f"entries {len(entries)} · elapsed {span or 'n/a'} · first CHECK at {first_check or 'NEVER'}")
+    if unparsed > 0:
+        print(f"  !! {unparsed} heading(s) did not parse — their fields were absorbed by the previous "
+              f"entry and the routing counts below are CORRUPT, not merely incomplete")
     print("kinds   " + "  ".join(f"{k}={v}" for k, v in sorted(kinds.items())))
 
     print("\nROUTING — the headline number")
