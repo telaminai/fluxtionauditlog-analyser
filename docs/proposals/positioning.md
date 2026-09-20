@@ -10,11 +10,65 @@ say later.
 
 > ## Trust the evidence, not the author.
 
-**Fluxtion derives your system's execution structure at compile time, and records what actually ran.
-Correctness becomes something you check, not something you take on faith — whoever, or whatever, wrote
-the code.**
+**Fluxtion derives the order everything runs in, at compile time, and records what actually happened —
+including what did not. Correctness stops being a matter of faith and becomes a comparison you can run,
+whoever, or whatever, wrote the code.**
 
-That last clause does the AI work without the page being about AI.
+That last clause does the AI work without the page being about AI. **"Including what did not" is the
+load-bearing phrase**, and it is there to satisfy D-T7: derivation on its own invites *we already have
+tracing*,
+so the derivation has to arrive as the mechanism and the denominator as the payoff. A tracing reader knows
+instantly that they cannot answer it. Note this reads D-T7's *lead with the denominator* as "make it the
+thing the derivation is for", not "put it in the first clause" — leading absolutely would open on a
+capability before saying what the product is.
+
+**The line cannot travel alone.** The title does not locate the product, so the subtitle goes everywhere the
+title goes — slides, posts, the repo header. That is a discipline to hold, not a defect to fix; a title that
+self-locates would be a description rather than a position.
+
+### Wording decisions, so they are not relitigated
+
+This line will be attacked on three words. Two survive the attack and one did not.
+
+**"Correctness" stays, and the mechanism is now named.** The fair criticism is that the log proves what ran
+and in what order, not that the business logic was right — D-T5 says exactly this, and an engineer will catch
+it. The tempting fix is to weaken the noun to *what ran becomes something you check*. **Do not.** That is
+tracing's sentence, it is the crowded shelf ruled out below, and it discards the denominator that D-T7 says
+is the actual product. The gap is closed by saying who supplies the expectation instead: *a comparison you
+can run* is honest about the tool providing the substrate and someone else providing the prediction, while
+keeping correctness as the subject. Claim the ambitious noun; name the mechanism.
+
+**"The order everything runs in" replaced "your system's execution structure."** Abstract on a first read,
+and *order* is the concrete thing the log actually carries. "At compile time" is the phrase doing the real
+work and is untouched.
+
+**"Derives" is not negotiable.** The suggested *works out how your system runs* hands back the differentiator
+in two words. **Derived, not inferred, is the whole of D-T7**: the order is computed at build time and exists
+as an artefact *before the run*, which is exactly what separates it from tracing, which reconstructs order
+afterwards. *Works out* connotes inference — it would equally describe a profiler. Fix the abstraction, keep
+the verb.
+
+**"Not the author" stays, and the reason is structural rather than stylistic.** The tone risk is real: it can
+read as a dig at the reader's own developers, and for a general engineering audience it does. Two things
+outweigh it. First, the front page is the **regulated buyer** row of the audience table below, and for that
+reader it is not a slight — it is **independence**, the term their process is built on and the thing their
+regime makes them pay for. Second and decisively: **the method is called evidence-gated development.** Drop
+*evidence* from the claim and the claim and the method no longer share a word, which breaks the hinge this
+document is built on — and the same word carries the beta's scoring (*which record in the evidence proves
+it*), the deliverable (an evidence pack) and D-T3. The corpus runs on it.
+
+*Trust what ran, not who wrote it* is the better sentence and the worse keystone: precise, keeps a person in
+it, and implies provenance rather than competence, which removes the sting. **It is the developer-facing
+variant.** Do not pair it with a subtitle containing *what ran* — that is the same phrase twice in three
+lines, which is why the subtitle above says *a comparison you can run* and is compatible with either title.
+*Trust the evidence, not the testimony* is the internal D-T3 form and too inside-baseball for a cold reader;
+it also loses the person, which is what makes the line land.
+
+**The line already describes the analyser**, which is where the checking happens, so resist appending *and
+shows you*. Three reasons: a third verb turns a position into a product list; *shows you* understates an
+analyser that does not display a record so much as let you compare it against an expectation; and it lands
+immediately before the strongest clause and dilutes it. *A comparison you can run* covers the canvas
+implicitly, and the first ten minutes below sells it properly.
 
 ### Why this one
 
@@ -248,6 +302,20 @@ answer is the denominator: tracing has no declared set to subtract from, so *whi
 question it answers badly — it is one it cannot pose. Here the order in the log **is** the dispatch order the
 compiler derived, against a known topology, so "this node did not react to that price" is a checkable
 statement rather than an absence of data. No tracing product can make it.
+
+**"You say trust the evidence — but the record isn't signed, it has no append-only guarantee, and the author
+wrote the logging calls."**
+The right question, and you want it asked, because two thirds of the answer is strong. **The layer that
+carries the claim is not author-written.** Which nodes ran, and in what order, is emitted by the generated
+dispatcher from the declaration; the author writes the *values*. Tampering with a logging call corrupts
+testimony, not the trace — which is D-T3, and why the distinction has to be drawn for the reader rather than
+left implicit. **Determinism gives a second check**: same feed, different host, byte-identical records, so a
+doctored value fails against a rerun or an independent model rather than sitting undetected.
+
+Then the answer runs out, and say so. **The record itself has no provenance** — not signed, not append-only,
+not bound to the run that produced it. That is the same hole as the unpinned dependency and the unsealed
+prediction, in a third place, and it is the strongest argument for treating provenance as its own column
+rather than folding it into proof.
 
 **"Spring XML in 2026?"**
 It is not runtime wiring — it is compiled into a fixed dispatch table. It is also the artefact that makes
