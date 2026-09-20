@@ -180,3 +180,23 @@ behavioural tests proving declared key requirements stay independent of mode/tag
 prohibitions in that structural test remain intact. Untagged end-to-end download/open,
 independent review and producer-first deployment remain open. This is branch implementation, not a
 claim that the public website or released analyser has changed.
+
+## Checkpoint — producer routing and actual profile imports
+
+Playground `0b5660a` follows `0e7bd58`: both bundle agent entries point to PROJECT.md and the bundle
+profile registers the common project task runbooks beside its vendored skills. Each path retains one
+emitter. Skills-none removes vendored skills only, preserving task guidance. The expanded producer
+check exposed an earlier mistake: space-bearing runbook names were rejected by the analyser. Names
+now follow the actual identifier grammar across all templates; bundle profiles also declare processor
+metadata version 1.
+
+[Cross-repo evidence](evidence/project-starter-profile-import-2026-09-20/README.md): 14 real scaffold
+HTTP-handler ZIP responses read by ProjectProfile.load, no rejected/dropped declarations, every
+runbook/source pointer resolves. The retained negative witness restores the former spaced name and
+gets an explicit refusal. The helper is read-only; no app, local host or paid generator ran.
+
+Producer gates: 501/501 full tests, no skips, with the provisioned local starter jar; production build
+passes. Type check reports only the four existing SplitPane errors (and six warnings). Sandbox-denied
+loopback/fetch attempts were rerun with permissions and passed. This closes bundle entry routing and
+profile interoperability, not interactive public acquisition, runtime runbook validation, comment
+resource/parity, vendor prerequisites or the isolated fresh-client acceptance.

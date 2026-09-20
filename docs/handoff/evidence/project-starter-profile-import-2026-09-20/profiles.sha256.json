@@ -1,0 +1,16 @@
+{
+  "analyser-bundle.starter.json/audit-analyser-bundle/.analyser/project.fluxtion-settings": "4c251a33fdbcbf78a0525c5c476d15b8db1305a8a42d3e3957fef7018245672e",
+  "fluxtion-aot.starter.json/fluxtion-aot/.analyser/project.fluxtion-settings": "0ccda79b972946a35eccb42f23075c98b2ddc96c0542e39eaa3e74dcf91938b4",
+  "fluxtion-audit.starter.json/fluxtion-audit/.analyser/project.fluxtion-settings": "cb4fef4627e0a9adc1ce20fb408ab6e28d68dc2faab4c27a38a2495aabfedf9b",
+  "fluxtion-connector.starter.json/fluxtion-connector/.analyser/project.fluxtion-settings": "b05534c3f189239a0fe7deeb7206d6327cdf7bfad5c6f6ecaa2143fc66bd3f21",
+  "fluxtion-dag-multi-io.starter.json/fluxtion-dag-multi-io/.analyser/project.fluxtion-settings": "1f256355d73b2485bf569c193fa739139ab3c5c2e322035f63b9a5febb43e5f0",
+  "fluxtion-dsl.starter.json/fluxtion-dsl/.analyser/project.fluxtion-settings": "29a9f6bbedf7f2949435a14591d0c434c9efaa1bf3a80b4262c01b510a4e5d73",
+  "fluxtion-embedded.starter.json/fluxtion-embedded/.analyser/project.fluxtion-settings": "b05534c3f189239a0fe7deeb7206d6327cdf7bfad5c6f6ecaa2143fc66bd3f21",
+  "fluxtion-service-export.starter.json/fluxtion-service-export/.analyser/project.fluxtion-settings": "069dd30056f0884f4fa4fe85895888014db6bd08c6e22ecd343b73304e47758f",
+  "fluxtion-spring-mongoose.starter.json/fluxtion-spring-mongoose/.analyser/project.fluxtion-settings": "e1e1de99dcd251b89c12139a8444053e131bda72dfbd38b8ee52f267d9c81a1a",
+  "fluxtion-spring.starter.json/fluxtion-spring/.analyser/project.fluxtion-settings": "ae56f65a42f81e29c9459a532e78a6063fbe8fdc8c9cc158efa870cd295bddfc",
+  "mongoose-dynamic-feed.starter.json/mongoose-dynamic-feed/.analyser/project.fluxtion-settings": "fed4563f7f3bedf4fa6a5b8387b933430490d29f2141b2b5fa8df595f58a087c",
+  "mongoose-dynamic-spring.starter.json/mongoose-dynamic-spring/.analyser/project.fluxtion-settings": "fed4563f7f3bedf4fa6a5b8387b933430490d29f2141b2b5fa8df595f58a087c",
+  "mongoose-hosted-fluxtion.starter.json/mongoose-hosted-fluxtion/.analyser/project.fluxtion-settings": "6408f63745ce7281dd6b1326ffa758f39c0b866643557dc393182bdda92fbf38",
+  "mongoose-server.starter.json/mongoose-server/.analyser/project.fluxtion-settings": "fed4563f7f3bedf4fa6a5b8387b933430490d29f2141b2b5fa8df595f58a087c"
+}

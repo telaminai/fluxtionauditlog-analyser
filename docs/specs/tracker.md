@@ -116,7 +116,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
   capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
   user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key
-  disclosures. Recovery through `7eceff5` is implemented; catalogue changes are being gated. Ship picker
+  disclosures. Recovery through `7eceff5` and catalogue through `9244b0e` are implemented and gated on the branch. Ship picker
   expansion after default-on downloads carry profiles. Vendor entry coordinates
   with M67; the optional authoring section shares StartPanel and the existing picker controller.
 - ◧ **Default-on analyser support in generated projects (owner, 2026-09-20)** —
@@ -126,7 +126,12 @@ Legend for each item: **[id] status — title** · _acceptance_.
   Keep this separate from the special `analyserBundle` mode and from runtime/audit choices. Playground
   owns generation; analyser only reads the profile and renders evidence. Implemented on playground
   `feat/project-starter-journey` at `0e7bd58`: schema migration, website flag, headless override, unique-path
-  generation and all-catalogue bootstrap/profile checks. Runtime runbook validation, browser witness,
+  generation and all-catalogue bootstrap/profile checks. Playground `0b5660a` fixes runbook identifiers,
+  routes bundles to the same project entry and retains task guidance with vendored skills disabled.
+  501/501 producer tests pass with the local starter jar; build passes (four known SplitPane type errors
+  remain). [Actual profile import](../handoff/evidence/project-starter-profile-import-2026-09-20/README.md):
+  all 14 scaffold-handler ZIPs load without rejected declarations; every runbook/source pointer resolves.
+  A changed name reproduces the prior rejection. Runtime runbook validation, browser witness,
   independent review and deployment remain open; do not mark this released.
 - ◧ **Author-new-project entry** — the journey branch adds a StartPanel authoring entry using the same
   catalogue/download controller as the File menu, with whole-catalogue explanations. No duplicate
@@ -162,7 +167,8 @@ Legend for each item: **[id] status — title** · _acceptance_.
   No tags means all entries without recommendations, not a Mongoose-only fallback. Implemented on the
   journey branch: full list, declared build/regeneration requirements and absent/empty/populated bootstrap
   disclosure. Mixed/no-tag parser tests and a real Swing picker over all 14 producer-branch entries pass.
-  Untagged end-to-end download acceptance, independent review and producer-first deployment remain open.
+  All 14 scaffold-handler downloads now pass the real profile importer (including untagged entries).
+  Interactive acquisition/discovery acceptance, independent review and producer-first deployment remain open.
   A guided walkthrough is a runbook procedure, not a separate runtime or a guarantee from the tag.
 - ☑ **Preserve the owner's staged-session feedback** — [original report and evidence packet](../handoff/evidence/spring-authoring-feedback-2026-09-19/README.md)
   retain ten participant issues, three inspected screenshots, final application/XML/graph/audit files,

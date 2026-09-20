@@ -1,0 +1,15 @@
+analyser-bundle.starter.json/audit-analyser-bundle/.analyser/project.fluxtion-settings: loaded 9 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-aot.starter.json/fluxtion-aot/.analyser/project.fluxtion-settings: loaded 3 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-audit.starter.json/fluxtion-audit/.analyser/project.fluxtion-settings: loaded 3 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-connector.starter.json/fluxtion-connector/.analyser/project.fluxtion-settings: loaded 3 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-dag-multi-io.starter.json/fluxtion-dag-multi-io/.analyser/project.fluxtion-settings: loaded 3 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-dsl.starter.json/fluxtion-dsl/.analyser/project.fluxtion-settings: loaded 3 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-embedded.starter.json/fluxtion-embedded/.analyser/project.fluxtion-settings: loaded 3 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-service-export.starter.json/fluxtion-service-export/.analyser/project.fluxtion-settings: loaded 3 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-spring-mongoose.starter.json/fluxtion-spring-mongoose/.analyser/project.fluxtion-settings: loaded 4 runbooks, 1 processor declarations; all pointers resolve
+fluxtion-spring.starter.json/fluxtion-spring/.analyser/project.fluxtion-settings: loaded 4 runbooks, 1 processor declarations; all pointers resolve
+mongoose-dynamic-feed.starter.json/mongoose-dynamic-feed/.analyser/project.fluxtion-settings: loaded 4 runbooks, 1 processor declarations; all pointers resolve
+mongoose-dynamic-spring.starter.json/mongoose-dynamic-spring/.analyser/project.fluxtion-settings: loaded 4 runbooks, 1 processor declarations; all pointers resolve
+mongoose-hosted-fluxtion.starter.json/mongoose-hosted-fluxtion/.analyser/project.fluxtion-settings: loaded 4 runbooks, 1 processor declarations; all pointers resolve
+mongoose-server.starter.json/mongoose-server/.analyser/project.fluxtion-settings: loaded 4 runbooks, 1 processor declarations; all pointers resolve
+PASS: 14 real download profiles, no rejected declarations
