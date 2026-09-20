@@ -1,0 +1,7 @@
+Environment for this preview rehearsal: the website base URL is http://127.0.0.1:5187 . Java 21 and Maven are installed. Work in the current directory. Network access to public dependencies and documentation is available. No compilation-service key is provisioned.
+
+Keep the journal in `JOURNAL.md` as described in that file, starting with the predictions.
+Work in this directory. I will not answer questions about the tooling — use what the project gives you.
+
+Build me an event-driven Java application using Fluxtion. Start from nothing in this empty directory.
+I want to see it processing some data and I want to see the output.

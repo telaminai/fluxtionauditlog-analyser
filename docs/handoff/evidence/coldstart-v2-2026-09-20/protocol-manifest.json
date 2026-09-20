@@ -1,0 +1,11 @@
+{
+  "sourceRevision": "8c488c8",
+  "sourceDirectory": "docs/proposals/beta-testing/coldstart",
+  "sha256": {
+    "JOURNAL.md": "cec7446bcd8e7343fa21dfda96f06f4158921805d7fdfacd0921230db02da39e",
+    "HARNESS.md": "a0f0112885aac36129a42064631babb462a0d4cad1047bb3897e4390f2c91a50",
+    "score_journal.py": "93cd211b8bd49f9064b6536bc851bb89261c38b734ad7e1da094c6a4eceefc65",
+    "PROMPTS-COLDSTART.md": "d311b244133ce9d023a261506924cc5fa0d2f951eb2f0d23215df91631218edc"
+  },
+  "modified": false
+}

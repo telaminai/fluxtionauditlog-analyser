@@ -1,0 +1,447 @@
+{
+  "scope": "T1 preview matrix only; not full acceptance battery",
+  "files": [
+    {
+      "path": "run1/input.txt",
+      "rawSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "publishedSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "redactions": {}
+    },
+    {
+      "path": "run1/meta.json",
+      "rawSha256": "ccaebecb22fec4f97965cf05b0692c048c126a6947f6f8fa1359461ca5defa8f",
+      "publishedSha256": "ccaebecb22fec4f97965cf05b0692c048c126a6947f6f8fa1359461ca5defa8f",
+      "redactions": {}
+    },
+    {
+      "path": "run1/scoresheet.txt",
+      "rawSha256": "fde8da02848146b1a682db333b66dcb4afb110dbb3e5f426e292c49f261787a1",
+      "publishedSha256": "fde8da02848146b1a682db333b66dcb4afb110dbb3e5f426e292c49f261787a1",
+      "redactions": {}
+    },
+    {
+      "path": "run1/scores.json",
+      "rawSha256": "9f4cb0d9a67c5c33a82574acab5bf0f37e9a4e5e6a913d98254aa842b991ca5a",
+      "publishedSha256": "9f4cb0d9a67c5c33a82574acab5bf0f37e9a4e5e6a913d98254aa842b991ca5a",
+      "redactions": {}
+    },
+    {
+      "path": "run1/JOURNAL.md",
+      "rawSha256": "0fc9e560b3ea6d78ece3d17272c38caa8e09e0a93fcd5ad9874a6f0e5cf4bd0a",
+      "publishedSha256": "0fc9e560b3ea6d78ece3d17272c38caa8e09e0a93fcd5ad9874a6f0e5cf4bd0a",
+      "redactions": {}
+    },
+    {
+      "path": "run1/transcript.events.jsonl",
+      "rawSha256": "56cb6a5791d4f9d030d7663bf6aa993652cb7153d1f8c122395a62e055e1a31f",
+      "publishedSha256": "042e12844c235572eeed2657524b2a4787a0b52a14c800de53d834bd2e8a6dd5",
+      "redactions": {}
+    },
+    {
+      "path": "run2/input.txt",
+      "rawSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "publishedSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "redactions": {}
+    },
+    {
+      "path": "run2/meta.json",
+      "rawSha256": "de08f05ac051667b371228d0187e8343b38c2f9dbec58b46d3a49a894b8bc7e2",
+      "publishedSha256": "de08f05ac051667b371228d0187e8343b38c2f9dbec58b46d3a49a894b8bc7e2",
+      "redactions": {}
+    },
+    {
+      "path": "run2/scoresheet.txt",
+      "rawSha256": "18b902741a9885db97b9dd0acaab53d72a3d5ddc48b1289ea2b6a9f16657443b",
+      "publishedSha256": "7c078d9ac9d205704465098398cba0743a899cc9119c15c4a34d44d53880c777",
+      "redactions": {}
+    },
+    {
+      "path": "run2/scores.json",
+      "rawSha256": "04a3e2702f85366d2815aeccb7082eab67dcb589cf228681037c9a127c4f9915",
+      "publishedSha256": "04a3e2702f85366d2815aeccb7082eab67dcb589cf228681037c9a127c4f9915",
+      "redactions": {}
+    },
+    {
+      "path": "run2/JOURNAL.md",
+      "rawSha256": "a66fa1e603b2eeeff6060ccaa731b5af8cd73c9415500a8cff03056db38c91f9",
+      "publishedSha256": "a66fa1e603b2eeeff6060ccaa731b5af8cd73c9415500a8cff03056db38c91f9",
+      "redactions": {}
+    },
+    {
+      "path": "run2/transcript.events.jsonl",
+      "rawSha256": "89919b7f5f9db4576994a5fc7e835d80cf1ba51464b5966bbfa90619386b59a7",
+      "publishedSha256": "d119fbb60d40ef8e9cf85318428cf33c300b79b2596c316600e7e446c3291f19",
+      "redactions": {}
+    },
+    {
+      "path": "run3/input.txt",
+      "rawSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "publishedSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "redactions": {}
+    },
+    {
+      "path": "run3/meta.json",
+      "rawSha256": "5602dbe56c6d195f4cb166ebe00fa0874c4e5d3c6b645c1f8aa7fd97624d17d4",
+      "publishedSha256": "5602dbe56c6d195f4cb166ebe00fa0874c4e5d3c6b645c1f8aa7fd97624d17d4",
+      "redactions": {}
+    },
+    {
+      "path": "run3/scoresheet.txt",
+      "rawSha256": "2113b7e4a5b4b4baff71412f6b3d5e59a476d7e81d5cf28b40370309236211ed",
+      "publishedSha256": "59cc99af1cae44a1107efd28df9823bd97017f300e2578df889e242d024655fb",
+      "redactions": {
+        "4": 1
+      }
+    },
+    {
+      "path": "run3/scores.json",
+      "rawSha256": "970eef96aaccb3cc8f075aca166d93361deab71e695e92a8ee47b938fb12aa2c",
+      "publishedSha256": "970eef96aaccb3cc8f075aca166d93361deab71e695e92a8ee47b938fb12aa2c",
+      "redactions": {}
+    },
+    {
+      "path": "run3/JOURNAL.md",
+      "rawSha256": "27231f11183f8a7b152ecff4a609a24d2050a8a983e05f1715e39efb045c4a69",
+      "publishedSha256": "765e42eeceee10c412a12fd3eab1484a1e9b3a56a875fdc942cbb2bd833f8ae3",
+      "redactions": {
+        "4": 1
+      }
+    },
+    {
+      "path": "run3/transcript.events.jsonl",
+      "rawSha256": "c12c3ebddb0219dc79dffd2ed6edaddeb0a812b4103916669509ed410fcf815b",
+      "publishedSha256": "1d1927c0a4e13222d0ae13e08a694cb14a27d017d94d508bc88bdce47b1a7de8",
+      "redactions": {
+        "4": 10
+      }
+    },
+    {
+      "path": "run4/input.txt",
+      "rawSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "publishedSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "redactions": {}
+    },
+    {
+      "path": "run4/meta.json",
+      "rawSha256": "faac78a0035bdd53d9632745ed4aaacdc2e68f1120e1488d61e1dc0636d43fb0",
+      "publishedSha256": "faac78a0035bdd53d9632745ed4aaacdc2e68f1120e1488d61e1dc0636d43fb0",
+      "redactions": {}
+    },
+    {
+      "path": "run4/scoresheet.txt",
+      "rawSha256": "a30ff937f641e9271e82f3558f1e5c244956dc9671a35d35b935a5d26e6d7efb",
+      "publishedSha256": "a30ff937f641e9271e82f3558f1e5c244956dc9671a35d35b935a5d26e6d7efb",
+      "redactions": {}
+    },
+    {
+      "path": "run4/scores.json",
+      "rawSha256": "eb06ce31353d5f0e28cdc676b16d99050b3f0794e988983662c066d6701c14a9",
+      "publishedSha256": "eb06ce31353d5f0e28cdc676b16d99050b3f0794e988983662c066d6701c14a9",
+      "redactions": {}
+    },
+    {
+      "path": "run4/JOURNAL.md",
+      "rawSha256": "6ab54ba9ad4ef4313581ca34887d04a38f304ee608f08d72c0a5919f69b03a1d",
+      "publishedSha256": "6ab54ba9ad4ef4313581ca34887d04a38f304ee608f08d72c0a5919f69b03a1d",
+      "redactions": {}
+    },
+    {
+      "path": "run4/transcript.events.jsonl",
+      "rawSha256": "49fe4be6167b8db581698b7005893cf6cc7e38ceafa85956d354857853cddfeb",
+      "publishedSha256": "42243ce3424144e785a68bc2b4a3adcf8f719193df5412bd46c922f4a9a524bb",
+      "redactions": {
+        "4": 1
+      }
+    },
+    {
+      "path": "run5/input.txt",
+      "rawSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "publishedSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "redactions": {}
+    },
+    {
+      "path": "run5/meta.json",
+      "rawSha256": "74d2081eb378141bb1081bbb8fc66fe7380c16bcd34fb06aa80786bed6ee3de0",
+      "publishedSha256": "74d2081eb378141bb1081bbb8fc66fe7380c16bcd34fb06aa80786bed6ee3de0",
+      "redactions": {}
+    },
+    {
+      "path": "run5/scoresheet.txt",
+      "rawSha256": "6ff4a2c1a109eb8c85a4c34b1889cb97de0e699f49fa9f11aa70995ba6326c48",
+      "publishedSha256": "ed7f0e87722b29ca3fdc2497850556977c6d5b83481b21f3c0df8250cf8d65dd",
+      "redactions": {}
+    },
+    {
+      "path": "run5/scores.json",
+      "rawSha256": "0a9dad2869d1f704764dee6e29cc431c583bdbb00be097c5d304b28cd05c3aff",
+      "publishedSha256": "0a9dad2869d1f704764dee6e29cc431c583bdbb00be097c5d304b28cd05c3aff",
+      "redactions": {}
+    },
+    {
+      "path": "run5/JOURNAL.md",
+      "rawSha256": "17a7061601395d9673f9272108d1a4e80cd59a0b1731b1e89c4be975dd4c802d",
+      "publishedSha256": "17a7061601395d9673f9272108d1a4e80cd59a0b1731b1e89c4be975dd4c802d",
+      "redactions": {}
+    },
+    {
+      "path": "run5/transcript.events.jsonl",
+      "rawSha256": "a6b0ccffdb9112c8d24110895ce979c8d6035dd59a8e9f4eb96c17382e76efa1",
+      "publishedSha256": "083fbc02bd40396533b26de85e615ceba06849973e027a1ac5bed4b02385044b",
+      "redactions": {}
+    },
+    {
+      "path": "run6/input.txt",
+      "rawSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "publishedSha256": "57a2738bace4e6b9d96cfc7870ba104ee4d436309018caac707d9073812e2737",
+      "redactions": {}
+    },
+    {
+      "path": "run6/meta.json",
+      "rawSha256": "1906611ca7254ea10ad58af56c2e01eba3a167ef173318edf23a60c9083a0e47",
+      "publishedSha256": "1906611ca7254ea10ad58af56c2e01eba3a167ef173318edf23a60c9083a0e47",
+      "redactions": {}
+    },
+    {
+      "path": "run6/scoresheet.txt",
+      "rawSha256": "5a9ffcbc4f124c0f2e4e731cce051122f5ac4f1eb41e540db3d83073a45349c0",
+      "publishedSha256": "5a9ffcbc4f124c0f2e4e731cce051122f5ac4f1eb41e540db3d83073a45349c0",
+      "redactions": {}
+    },
+    {
+      "path": "run6/scores.json",
+      "rawSha256": "db4eb11c78928d60a12ee8c35898e82e8e08084f1e4c70fae098e71c650a811d",
+      "publishedSha256": "db4eb11c78928d60a12ee8c35898e82e8e08084f1e4c70fae098e71c650a811d",
+      "redactions": {}
+    },
+    {
+      "path": "run6/JOURNAL.md",
+      "rawSha256": "674883e156efb15f5e56cff0d0953d69de372ffe11078fc4a018058bcbb8f766",
+      "publishedSha256": "674883e156efb15f5e56cff0d0953d69de372ffe11078fc4a018058bcbb8f766",
+      "redactions": {}
+    },
+    {
+      "path": "run6/transcript.events.jsonl",
+      "rawSha256": "69c512df9e9374c8bbc7effb9d79499e407f9adcfc905b0de2602e47b2bf1168",
+      "publishedSha256": "6f72a2c97e16f2551186e47f1c4c29b7e945e56d8a9e58c6d02c56437b3dffcf",
+      "redactions": {}
+    },
+    {
+      "path": "run3/project/src/main/java/com/example/ordermonitor/OrderMonitorApp.java",
+      "rawSha256": "d573c43656740cd7964309e7322857370e12cd2dc4325395111fba1645dd55cb",
+      "publishedSha256": "d573c43656740cd7964309e7322857370e12cd2dc4325395111fba1645dd55cb",
+      "redactions": {}
+    },
+    {
+      "path": "run3/project/pom.xml",
+      "rawSha256": "efeb4a43055646f352cbcf826876d1d07d7c0313b7dcfa3f3d512fd4795c70bd",
+      "publishedSha256": "efeb4a43055646f352cbcf826876d1d07d7c0313b7dcfa3f3d512fd4795c70bd",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/EventFileReader.java",
+      "rawSha256": "174c96dd43f11b0c23a9121a59e6995204982b5e13f59f1044019babe030944c",
+      "publishedSha256": "174c96dd43f11b0c23a9121a59e6995204982b5e13f59f1044019babe030944c",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/FluxtionMain.java",
+      "rawSha256": "56a4cc87641475a08068b0efb5933a6cc74730b66170644a037ce8c50f71152f",
+      "publishedSha256": "56a4cc87641475a08068b0efb5933a6cc74730b66170644a037ce8c50f71152f",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/builder/PricingDagBuilder.java",
+      "rawSha256": "4ae6db35d86dfd13fd4a5d4408671c941259507955759ad4ecf96f241c68ba06",
+      "publishedSha256": "4ae6db35d86dfd13fd4a5d4408671c941259507955759ad4ecf96f241c68ba06",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/builder/RiskGraphBuilder.java",
+      "rawSha256": "ae4ca18d75cf9cc5434aa92ecc2173d6ce17b29f4f0e249d2fd4aaf493364b86",
+      "publishedSha256": "ae4ca18d75cf9cc5434aa92ecc2173d6ce17b29f4f0e249d2fd4aaf493364b86",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/event/OrderEvent.java",
+      "rawSha256": "6b4f865ca7198bc8be59aa6ee6b56bef861d9931fbe85797454e9761833a05cf",
+      "publishedSha256": "6b4f865ca7198bc8be59aa6ee6b56bef861d9931fbe85797454e9761833a05cf",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/event/PriceUpdate.java",
+      "rawSha256": "8acda2c103fb9a3171e308c8d9f1e6eb9ad8e2f56fa431b802f80d8cbfd3f022",
+      "publishedSha256": "8acda2c103fb9a3171e308c8d9f1e6eb9ad8e2f56fa431b802f80d8cbfd3f022",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/generated/PricingDag.java",
+      "rawSha256": "4918ca047e948b4be9ac0a0de0b53a524ea74a822f49d52206b86140a3573d06",
+      "publishedSha256": "4918ca047e948b4be9ac0a0de0b53a524ea74a822f49d52206b86140a3573d06",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/Audit.java",
+      "rawSha256": "3c93770db12fe7b8c8532e883e61f1c791711c216eb9a712ed6478229551b65a",
+      "publishedSha256": "3c93770db12fe7b8c8532e883e61f1c791711c216eb9a712ed6478229551b65a",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/Enrich.java",
+      "rawSha256": "601e67a852a67bf48b911ccb04c62f141252597428ea5c5c6fb6789d13d8a8b3",
+      "publishedSha256": "601e67a852a67bf48b911ccb04c62f141252597428ea5c5c6fb6789d13d8a8b3",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/ExposureCalculator.java",
+      "rawSha256": "d0f30bdb33624aebd2184a9af6ec219813844e61fc731b5cf4b2ac16579ee5f0",
+      "publishedSha256": "d0f30bdb33624aebd2184a9af6ec219813844e61fc731b5cf4b2ac16579ee5f0",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/MarketData.java",
+      "rawSha256": "f76794d315683b5d3c5f560a05ab177aa1c0c9d732160ba6b4f604c29885d402",
+      "publishedSha256": "f76794d315683b5d3c5f560a05ab177aa1c0c9d732160ba6b4f604c29885d402",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/OrderIntake.java",
+      "rawSha256": "2c74be06878c2e35f6840a56bc80ee362ad0cb6fbb7c90f39bbaec2ec2dd6aa5",
+      "publishedSha256": "2c74be06878c2e35f6840a56bc80ee362ad0cb6fbb7c90f39bbaec2ec2dd6aa5",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/PositionBook.java",
+      "rawSha256": "2410344a2dd082dc69ebe9074c84677e222f4a8678d9e995f803212ec99ec1c9",
+      "publishedSha256": "2410344a2dd082dc69ebe9074c84677e222f4a8678d9e995f803212ec99ec1c9",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/Risk.java",
+      "rawSha256": "3fbc3eea2637b36c303c82d1b86cf9341e607930449f61b5cd80a949bb39ca3c",
+      "publishedSha256": "3fbc3eea2637b36c303c82d1b86cf9341e607930449f61b5cd80a949bb39ca3c",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/main/java/com/example/riskflow/node/RiskAlerter.java",
+      "rawSha256": "556c5e76940eb7f926dd306079bb31210a957ce8641c5952d8f1097be75cdfc6",
+      "publishedSha256": "556c5e76940eb7f926dd306079bb31210a957ce8641c5952d8f1097be75cdfc6",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/test/java/com/example/riskflow/PricingDagTest.java",
+      "rawSha256": "f98c47e4f88d28890de9b6b95bc1be45894ed6169397a7e386a781967501247d",
+      "publishedSha256": "f98c47e4f88d28890de9b6b95bc1be45894ed6169397a7e386a781967501247d",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/src/test/java/com/example/riskflow/RiskGraphTest.java",
+      "rawSha256": "24c8f4d28c4978301410e5b766c96c57dfe3320d6ce51b10de618bc35bb86aef",
+      "publishedSha256": "24c8f4d28c4978301410e5b766c96c57dfe3320d6ce51b10de618bc35bb86aef",
+      "redactions": {}
+    },
+    {
+      "path": "run5/project/pom.xml",
+      "rawSha256": "33fc9ee2a57b953ccbe7d9d1b8a09fcc1a5d0da4d5952f31799399de32a52be1",
+      "publishedSha256": "33fc9ee2a57b953ccbe7d9d1b8a09fcc1a5d0da4d5952f31799399de32a52be1",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/EventFeed.java",
+      "rawSha256": "a37540602901af5ceaa28cb3ea59b7e86a8a2e067572dede843ccc20b6442925",
+      "publishedSha256": "a37540602901af5ceaa28cb3ea59b7e86a8a2e067572dede843ccc20b6442925",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/RiskWatchGraph.java",
+      "rawSha256": "3e494d55446edd34c105a8f0ced4cd53249346a18ef96b0befb74e10f152ab4b",
+      "publishedSha256": "3e494d55446edd34c105a8f0ced4cd53249346a18ef96b0befb74e10f152ab4b",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/RiskWatchMain.java",
+      "rawSha256": "0cdbfce1083aa6b2e8e7f8f873d901166f6f6920565c0842931d5d8355ab4468",
+      "publishedSha256": "0cdbfce1083aa6b2e8e7f8f873d901166f6f6920565c0842931d5d8355ab4468",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/event/MarketTick.java",
+      "rawSha256": "30128b8e21b088db8517850e3a9b12e2d7eae57c59636f110b54bae1359a96a8",
+      "publishedSha256": "30128b8e21b088db8517850e3a9b12e2d7eae57c59636f110b54bae1359a96a8",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/event/RiskLimitUpdate.java",
+      "rawSha256": "39e8567b8343f484ba5c09f3b8152e681843a55539fc8d8f891e902b847ab451",
+      "publishedSha256": "39e8567b8343f484ba5c09f3b8152e681843a55539fc8d8f891e902b847ab451",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/event/Trade.java",
+      "rawSha256": "d5719e2e0179557c46a2f70c354c74babafcc825a86b52a950435034112b3418",
+      "publishedSha256": "d5719e2e0179557c46a2f70c354c74babafcc825a86b52a950435034112b3418",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/node/ConsoleReporter.java",
+      "rawSha256": "fff419ab7564cef415f4727da3b71123443e7017670cc9719c319b4d45a1f855",
+      "publishedSha256": "fff419ab7564cef415f4727da3b71123443e7017670cc9719c319b4d45a1f855",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/node/LimitStore.java",
+      "rawSha256": "03d85f8a8466f6f3b142cc5b569b252d601563e06220fdf4191ecd545f2aabb3",
+      "publishedSha256": "03d85f8a8466f6f3b142cc5b569b252d601563e06220fdf4191ecd545f2aabb3",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/node/MarkToMarket.java",
+      "rawSha256": "ae5eebceaa5db5f7403a2e216b7017ecc2f360574ee536976bfe1e85e6d7e647",
+      "publishedSha256": "ae5eebceaa5db5f7403a2e216b7017ecc2f360574ee536976bfe1e85e6d7e647",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/node/PositionBook.java",
+      "rawSha256": "48e52ac24d5312706f67ba9709c9345d4e725ea70c7b91686c54115e038cc54e",
+      "publishedSha256": "48e52ac24d5312706f67ba9709c9345d4e725ea70c7b91686c54115e038cc54e",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/node/PriceBook.java",
+      "rawSha256": "be4ad2abd501ddb9bd1770a4ea345da746fcdcc911e1508f25c5419708daabe4",
+      "publishedSha256": "be4ad2abd501ddb9bd1770a4ea345da746fcdcc911e1508f25c5419708daabe4",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/main/java/com/example/riskwatch/node/RiskMonitor.java",
+      "rawSha256": "cb94354df1565bae88d43c73808ddff75906b30f3d1373c2d0e2c978da66433c",
+      "publishedSha256": "cb94354df1565bae88d43c73808ddff75906b30f3d1373c2d0e2c978da66433c",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/src/test/java/com/example/riskwatch/RiskWatchTest.java",
+      "rawSha256": "6f5a921d2316110ec49d6c2ef70004a8615b0cdb973a3da1edaab7daadb89e20",
+      "publishedSha256": "6f5a921d2316110ec49d6c2ef70004a8615b0cdb973a3da1edaab7daadb89e20",
+      "redactions": {}
+    },
+    {
+      "path": "run6/project/pom.xml",
+      "rawSha256": "3a56099fcf4cceab4e1a08a7504d365995fbbfb24e55082e4100d1056fd1988c",
+      "publishedSha256": "3a56099fcf4cceab4e1a08a7504d365995fbbfb24e55082e4100d1056fd1988c",
+      "redactions": {}
+    },
+    {
+      "path": "acquisition-requests.jsonl",
+      "rawSha256": "eca6a79acda696e765e140d83859fe8235c7e9b3ed9772c335b8c3016b1126f5",
+      "publishedSha256": "eca6a79acda696e765e140d83859fe8235c7e9b3ed9772c335b8c3016b1126f5",
+      "redactions": {}
+    },
+    {
+      "path": "final-isolation-probe.log",
+      "rawSha256": "9e433dbf3372d8d6b0d84c64c7b73ec7a6e2a44cfd267ce1ee9a533e2d0d2871",
+      "publishedSha256": "d2e5af87cd7674c7e151eaee32bd5e279c4665f76a1d0e1c093e5d4e76a67cfe",
+      "redactions": {}
+    }
+  ],
+  "transcriptProjection": "Visible assistant text, tool calls/results, initial tool/model inventory and final result. Thinking/signature blocks and provider telemetry omitted. Raw JSONL retained locally.",
+  "redactions": "Case-insensitive rule-1 terms replaced by numbered neutral markers. Public export also removes trailing whitespace/terminal blank lines; unedited verbatim originals retained locally."
+}

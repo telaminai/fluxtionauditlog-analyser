@@ -1,0 +1,42 @@
+{
+ "entries": 16,
+ "kinds": {
+  "READ": 2,
+  "DECIDE": 4,
+  "WRITE": 4,
+  "ERROR": 1,
+  "RUN": 2,
+  "CHECK": 3
+ },
+ "from": {
+  "operator": 1,
+  "contract": 3,
+  "search": 2,
+  "error": 2,
+  "prior": 8
+ },
+ "routed": 5,
+ "unrouted": 11,
+ "examples": {},
+ "firstCheck": "E9",
+ "elapsed": "0:00:00",
+ "fingerprints": {
+  "T-EVENTLOG": [
+   "src/main/java/com/example/riskwatch/node/RiskMonitor.java",
+   "src/main/java/com/example/riskwatch/node/LimitStore.java",
+   "src/main/java/com/example/riskwatch/node/PositionBook.java",
+   "src/main/java/com/example/riskwatch/node/ConsoleReporter.java",
+   "src/main/java/com/example/riskwatch/node/MarkToMarket.java",
+   "src/main/java/com/example/riskwatch/node/PriceBook.java"
+  ],
+  "T-TRANSIENT": [
+   "src/main/java/com/example/riskwatch/node/RiskMonitor.java:breached",
+   "src/main/java/com/example/riskwatch/node/RiskMonitor.java:alerts",
+   "src/main/java/com/example/riskwatch/node/LimitStore.java:limits",
+   "src/main/java/com/example/riskwatch/node/PositionBook.java:quantity",
+   "src/main/java/com/example/riskwatch/node/PositionBook.java:averageCost",
+   "src/main/java/com/example/riskwatch/node/MarkToMarket.java:risk",
+   "src/main/java/com/example/riskwatch/node/PriceBook.java:lastPrice"
+  ]
+ }
+}

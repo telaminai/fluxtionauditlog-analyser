@@ -1,0 +1,22 @@
+{
+  "analyser": "DENIED",
+  "playground": "DENIED",
+  "compiler": "DENIED",
+  "staged_sample": "DENIED",
+  "operator": "DENIED",
+  "unfiltered_server": "DENIED",
+  "project_write": true
+}
+preview HTTP 200 26467
+public Maven HTTP 200
+mvn probe 0 Apache Maven 3.9.9 (8e8579a9e76f7d015ee5ec7bfcdc97d260186937)
+Maven home: /Users/greg/.sdkman/candidates/maven/current
+Java version: 21.0.11, vendor: Amazon.com Inc., runtime: /Users/greg/Library/Java/JavaVirtualMachines/corretto-21.0.11/Contents/Home
+Default locale: en_GB, platform encoding: UTF-8
+OS name: "mac os x", version: "26.5.1", arch: "aarch64", family: "mac"
+ Picked up JAVA_TOOL_OPTIONS: -Duser.home=/private/tmp/fluxtion-coldstart-v2/run6/tmp/java-home -Djava.io.tmpdir=/private/tmp/fluxtion-coldstart-v2/run6/tmp
+
+java probe 0 Picked up JAVA_TOOL_OPTIONS: -Duser.home=/private/tmp/fluxtion-coldstart-v2/run6/tmp/java-home -Djava.io.tmpdir=/private/tmp/fluxtion-coldstart-v2/run6/tmp
+openjdk version "21.0.11" 2026-04-21 LTS
+OpenJDK Runtime Environment Corretto-21.0.11.10.1 (build 21.0.11+10-LTS)
+OpenJDK 64-Bit Server VM Corretto-21.0.11.10.1 (build 21.0.11+10-LTS, mixed mode, sharing)

@@ -1,0 +1,84 @@
+COLD-START SCORESHEET · /private/tmp/fluxtion-coldstart-v2/run6/project/JOURNAL.md
+project: /private/tmp/fluxtion-coldstart-v2/run6/project
+baseline: NONE - template files are scored as the subject's; results inflated
+
+entries 16 · elapsed n/a · first CHECK at E9
+kinds   CHECK=3  DECIDE=4  ERROR=1  READ=2  RUN=2  WRITE=4
+
+ROUTING — the headline number
+  contract     3   routed
+  error        2   routed
+  search       2   unrouted
+  prior        8   unrouted
+  operator     1   unrouted
+  --> routed 5/16 = 31%   operator interventions: 1
+
+IMITATION — which existing files were copied (the v1 failure channel)
+  none recorded
+
+TRAP FINGERPRINTS over the finished project
+  [ ok ] T-MAIN           hand-rolled harness feeding literal events instead of the shipped feed
+  [ ok ] T-SLEEP          Thread.sleep pacing in a harness
+  [HIT ] T-EVENTLOG       node with a handler that never writes to the audit log
+           src/main/java/com/example/riskwatch/node/RiskMonitor.java
+           src/main/java/com/example/riskwatch/node/LimitStore.java
+           src/main/java/com/example/riskwatch/node/PositionBook.java
+           src/main/java/com/example/riskwatch/node/ConsoleReporter.java
+           src/main/java/com/example/riskwatch/node/MarkToMarket.java
+           src/main/java/com/example/riskwatch/node/PriceBook.java
+  [ ok ] T-RETURN-TRUE    signal handler returns true (propagates to dependents)
+  [HIT ] T-TRANSIENT      node field: final collection without transient/@FluxtionIgnore
+           src/main/java/com/example/riskwatch/node/RiskMonitor.java:breached
+           src/main/java/com/example/riskwatch/node/RiskMonitor.java:alerts
+           src/main/java/com/example/riskwatch/node/LimitStore.java:limits
+           src/main/java/com/example/riskwatch/node/PositionBook.java:quantity
+           src/main/java/com/example/riskwatch/node/PositionBook.java:averageCost
+           src/main/java/com/example/riskwatch/node/MarkToMarket.java:risk
+  [ ok ] T-TWOFEEDS       more than one event feed in one host config
+  [ ok ] T-NODEBEANS-JAR  nodeBeans entry whose class has no source in the project
+  [ ok ] V-CHECK          candidate independent-check artefacts (informational, noisy)
+
+PREDICTIONS (frozen before T1)
+  P1 how will I run data through the application? A main() that feeds hardcoded/synthetic events into an EventProcessor via onEvent(), run with mvn exec or java -cp.
+  P2 where will the application's output go? stdout via System.out/println in the node classes, seen in the terminal.
+  P3 what will tell me whether my change was correct? The printed output matching hand-computed expected aggregates, plus it compiling and running without exceptions.
+  P4 what do I expect to be the hardest part? Getting the Fluxtion Maven coordinates/version and the AOT-vs-interpreted graph build API right without a key for the compile service.
+  P5 what do I expect to get wrong first? The annotation set (@OnEventHandler vs @OnTrigger) and how nodes are registered/wired into the graph builder.
+  P1 right in shape (main + onEvent) but the events came from a scripted EventFeed list, not
+  P2 right — stdout, but more of it comes from framework-side .console(...) sinks than I expected.
+  P3 right, and stronger than predicted: the hand-computed numbers went into JUnit assertions.
+  P4 WRONG in the interesting way. I predicted the hard part would be coordinates and API shape;
+  P5 WRONG. The annotations were exactly as predicted (@OnEventHandler returning boolean to gate
+
+CLOSE-OUT
+  T1 outcome: complete
+  first checked result at: E9 (probe printed node output), first check of the real app at E13a
+  what I would have wanted and could not find: a stated keyless local path. The site says
+  what I read that turned out to be irrelevant: quickstart-maven (dataflow-maven-plugin AOT path —
+  which existing file in the project most influenced what I wrote, and why: JOURNAL.md — it was the
+  predictions that were wrong, and what was actually true: P1 right in shape (main + onEvent) but the events came from a scripted EventFeed list, not
+
+MANUAL — this script cannot determine these; score them from the transcript
+  [ ] T1 reached a measured first result unassisted
+  [ ] T3 used the correct per-parent mechanism (and via which from:)
+  [ ] T4(a) expectations derived independently of the application's own output
+  [ ] T4(a) named assertions exist for arithmetic / grouping / count / threshold below-equal-above
+  [ ] T4(a) both trigger paths and the empty state are covered
+  [ ] T4(b) non-regression checked separately
+  [ ] injected errors 1-5: which failed a named assertion, which survived
+  [ ] for each survivor: scenario gap (state never created) or check gap (state created, not asserted)
+  [ ] T5 established WHICH build of the dependency was used
+  [ ] T6 identified the node from the log before editing code
+  [ ] journal honesty: 10% of from: fields spot-checked against the transcript
+  [ ] journal abandoned or degraded at any point (instrument too heavy)
+
+COMPARE WITH v1 CONTROL (2026-09-19/20 session)
+  T-MAIN         HIT   hand-rolled harness written twice
+  T-EVENTLOG     HIT   twice, second time on a node whose purpose was audit output
+  T-RETURN-TRUE  near  caught by reading the stub, not by the docs
+  T-TWOFEEDS     ok    avoided only by reading Mongoose source
+  T-NODEBEANS-JAR HIT  empty shell written over a certified class
+  operator             2 decisive interventions
+  injected errors      2 of 6 survived, both scenario gaps
+v2 is better only if the HIT list shortens AND unrouted/operator fall. Faster with the same
+routing failures is not an improvement.

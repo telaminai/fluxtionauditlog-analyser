@@ -1,0 +1,10 @@
+{
+  "run": 1,
+  "task": 1,
+  "requestedModel": "sonnet",
+  "started": "2026-09-20T19:02:21.373070+00:00",
+  "scope": "v2-preview-rehearsal",
+  "substantiveInterventions": [],
+  "exit": 1,
+  "ended": "2026-09-20T19:02:43.499252+00:00"
+}

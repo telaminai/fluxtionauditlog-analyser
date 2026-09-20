@@ -1,0 +1,28 @@
+{
+ "entries": 13,
+ "kinds": {
+  "READ": 2,
+  "CHECK": 2,
+  "DECIDE": 2,
+  "WRITE": 3,
+  "RUN": 3,
+  "ERROR": 1
+ },
+ "from": {
+  "prior": 6,
+  "search": 1,
+  "readme": 1,
+  "contract": 2,
+  "example": 2,
+  "error": 1
+ },
+ "routed": 4,
+ "unrouted": 7,
+ "examples": {
+  ".scratch/getting-started-pom.xml (dependency block shape)": 1,
+  ".scratch/TutorialPart2.java (branch-from-shared-builder + multi-sink pattern), .scratch/GroupByReduceSample.java (plain groupBy(key, aggregateFactory) signature), .scratch/FilterSample.java (filter signature)": 1
+ },
+ "firstCheck": "E3",
+ "elapsed": "0:53:00",
+ "fingerprints": {}
+}

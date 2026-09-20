@@ -1,0 +1,40 @@
+{
+ "entries": 17,
+ "kinds": {
+  "READ": 5,
+  "DECIDE": 4,
+  "RUN": 3,
+  "ERROR": 3,
+  "CHECK": 1,
+  "WRITE": 1
+ },
+ "from": {
+  "operator": 1,
+  "contract": 5,
+  "readme": 1,
+  "runbook": 1,
+  "error": 3,
+  "search": 2,
+  "stub": 1,
+  "prior": 2,
+  "example": 1
+ },
+ "routed": 11,
+ "unrouted": 5,
+ "examples": {
+  "riskflow/src/main/java/com/example/riskflow/builder/PricingDagBuilder.java": 1
+ },
+ "firstCheck": "E15",
+ "elapsed": "0:55:00",
+ "fingerprints": {
+  "T-MAIN": [
+   "spike/Spike.java"
+  ],
+  "T-TRANSIENT": [
+   "src/main/java/com/example/riskflow/node/RiskAlerter.java:breached",
+   "src/main/java/com/example/riskflow/node/PositionBook.java:positionBySymbol",
+   "src/main/java/com/example/riskflow/node/MarketData.java:midBySymbol",
+   "src/main/java/com/example/riskflow/node/ExposureCalculator.java:exposureBySymbol"
+  ]
+ }
+}

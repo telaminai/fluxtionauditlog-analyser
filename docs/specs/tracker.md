@@ -103,9 +103,16 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ◧ **Cold-start v2 preview rehearsal — 2026-09-20** — owner selected the branch preview because
   the public Spring download lacks the v2 entry/profile/runbooks. Operator predictions are frozen in
   [the journal](../handoff/evidence/coldstart-v2-2026-09-20/OPERATOR-JOURNAL.md) before subject execution.
-  Direct OS probes deny source checkouts, staged solutions and operator materials; pristine downloads
-  and transcripts are captured separately. Setup is in progress; no subject result or acceptance is
-  claimed. This rehearsal cannot close publication or public empty-directory acquisition acceptance.
+  [Operator report](../handoff/report_coldstart_v2_preview_2026_09_20.md) and
+  [six-trial evidence](../handoff/evidence/coldstart-v2-2026-09-20/README.md): **T1 matrix complete;
+  full T1–T6 battery incomplete; v2 acceptance NOT ESTABLISHED.** Five provider refusals; one normal
+  client completion on older dependencies; another legacy application emitted output/tests before its
+  refusal. One subject acquired a v2 ZIP, but none verified the v2 workflow. T2–T4/T6 not run; T5 ineligible.
+  Direct OS probes deny source/staged-answer contents; pristine ZIP and transcripts are retained.
+  CS-1–CS-5 record client/instrument, parser, fingerprint and target-migration findings. Scorer unchanged;
+  raw output and manual corrections are separate. Durable unedited local archive is git-ignored.
+  **Next:** validate the measurement harness and client compatibility, then rerun on recorded supported
+  prerequisites. This rehearsal cannot close publication or public empty-directory acquisition acceptance.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation

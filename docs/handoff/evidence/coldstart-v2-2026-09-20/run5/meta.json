@@ -1,0 +1,10 @@
+{
+  "run": 5,
+  "task": 1,
+  "requestedModel": "opus",
+  "started": "2026-09-20T19:05:27.856170+00:00",
+  "scope": "v2-preview-rehearsal",
+  "substantiveInterventions": [],
+  "exit": 1,
+  "ended": "2026-09-20T19:14:37.884875+00:00"
+}
