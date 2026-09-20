@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "independentJvms": 3,
+  "checks": [
+    "normal quit persists session",
+    "relaunch offers without opening inputs",
+    "explicit restore reloads log/topology/design/diagnostics/selection/focus",
+    "CLI input does not grant restore permission",
+    "dismiss keeps CLI input and refuses restore"
+  ],
+  "scope": "Shipped Main startup and window-close path; isolated home; no model client"
+}

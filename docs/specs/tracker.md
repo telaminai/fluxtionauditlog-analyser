@@ -21,8 +21,17 @@ Legend for each item: **[id] status — title** · _acceptance_.
 - ☑ Existing M46 release probe updated for the owner's explicit-restore decision: a global remembered
   log must stay unopened. M46, M48 and M64 built-jar gates pass; five conversation capture scenarios
   complete, with unchanged transcript and restored generated images. Display set: 41 passing tests.
-- ☐ Public v2 artifact/download checks, acquisition-only fresh client and witnessed browser preview.
-  Browser connection is currently unavailable; this is not recorded as a pass.
+- ☑ Compiler/starter **1.0.72 published**, playground **d1f7dcc deployed**, public artifact parity
+  and unattended empty-cache customer download/build/run/stop pass (workflow 35544485872).
+  All five sample rows verified; 43 shipped originals unchanged. Railway deployment confirmed by
+  owner and independently exercised: generated source and descriptor identify 1.0.72.
+- ☑ Public browser preview witnessed by owner: rootNode, child and dependency arrow visible,
+  no error. Screenshot and machine results preserved in the release report.
+- ☐ **Public acquisition gate unverified; analyser 1.16.0 HELD.** The sole fresh client stopped
+  at 436.650 seconds on a revoked OAuth token, before download/build. Zero coaching and no retry.
+  64 tool batches: one task pointer, 63 missing. Preserve this environmental failure and the
+  pre-failure discovery difficulty; neither a pass nor a completed product-failure verdict.
+  Published compiler/playground remain available; broader provenance claims remain excluded.
 
 Release record: [report](../handoff/report_release_journey_2026_09_21.md).
 
