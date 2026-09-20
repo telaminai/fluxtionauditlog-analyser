@@ -452,49 +452,54 @@ separately tracked as behaviour work, not closed by generated comments.
     fail even though ownership hashes remain equal; neither emitter may independently redefine the text.
     Exercise the selected failing diagnostic cases and verify rule, consequence and actionable correction
     against the actual fixture. Comments alone cannot close a behaviour defect.
-12. Freeze predictions before the fresh-client journey in acceptance 4. Record which entry/runbook links
-    are followed, applicable hazards found before the first affected edit, time to first checked result,
-    corrective iterations, unused guidance and every owner intervention. Include a held-out task, such as
-    adding an observer/report to an already verified processor. For that task require two separate results:
-    (a) report correctness against independently derived per-book/per-symbol expectations from the feed,
-    with named assertions for arithmetic, grouping, accepted-order count and threshold below/equal/above,
-    checking both structured audit summaries and rendered report output, both trigger paths and empty state;
-    (b) existing application observations compared separately as non-regression. A generated report or
-    unchanged old outputs cannot satisfy (a). Inject isolated mark-selection, multiplier, threshold,
-    grouping and order-count errors; each must fail a named report assertion. Preserve expectations and
-    actual values, not only a pass count. Other held-out tasks need analogous independent checks of their
-    new behaviour. An assisted run is recorded as assisted, not passed as unassisted discovery.
-    Publish the task, versions and bounded results; one successful session is not cross-model validation.
-    **Adoption threshold (H3):** require the same routing friction in two independent sessions on different
-    applicable tasks before treating it as a recurring finding. Trial a correction with before/after
-    evidence on those tasks, then require an unassisted held-out task to pass its frozen checks before
-    adopting the correction. A failed or assisted held-out run leaves adoption open. A single-session
-    observation remains a hypothesis; independently reproduced broken links/incorrect instructions can be
-    fixed as factual defects without claiming recurring usability evidence. Removing guidance as unused
-    requires non-use in both applicable task sessions and the held-out run, plus a recorded check that no
-    unique prerequisite or hazard is lost (retain or reroute such content). Archive removed material and
-    measurements. Stop and hand off after a clean held-out run or report non-convergence; do not add/delete
-    indefinitely. This applies the onboarding recurrence rule without making non-use proof of irrelevance.
-    Record source/example imitation and whether it followed the template's intended runtime shape.
-    The now-discussed EOD scenario is a regression task, not held out. Select a different unexposed task
-    before the participant starts; preserve an access manifest proving the client cannot read prior
-    transcripts, retrospectives, solutions, oracles or mutant-killing answers (including staged desk files).
-    Start from a clean generated download, not the staged project. Keep the assessor's independent
-    expectations outside the participant's accessible workspace; record any isolation breach as contamination.
+12. **Owner decision, 2026-09-20 — three verification tiers replace the battery.** No T3–T6,
+    additional cohorts, completed-trial reruns or retrospective v1 reconstruction. The published v1
+    control has no numeric unrouted total, so a claim that v2 reduces unrouted actions versus v1 is
+    unavailable. Retain the historical protocol/evidence unchanged; do not reopen that comparison.
 
+    - **Static, every commit:** run the pinned trap-fingerprint corpus and check finished projects
+      without a journal. Treat fingerprints as review candidates, not automatic behavioural verdicts.
+      Across all generated surfaces, a project-local command must name an emitted file. Hosted launch
+      advice must use a launcher that carries the necessary JVM options; no invented fallback. Check
+      catalogue variants, disabled launchers and support opt-out, with negative mutation witnesses.
+    - **Preflight, every published supported bundle:** download from the customer route into an empty
+      workspace/cache, require the v2 files, build, run the shipped launcher, independently verify sample
+      rows, then cleanly stop. No LLM client, compilation key/provider or operator coaching. CI responds
+      to successful production publication, retains the exact ZIP/hash and command/result evidence,
+      and fails on missing v2, wrong output or failed stop. A preview execution proves the harness only.
+    - **Spot-check, routing-surface changes only:** agent entry, catalogue, runbook templates and README
+      structure trigger one short acquisition-only session. Most releases change none and need no client.
+      Run cheap checks first. Freeze the task, predictions and cap before the session, preserve the
+      pristine download, record observable tool events, count missing pointers as unattributed, and
+      stop on first refusal. No journal or subject-authored timing. Coalesce related routing changes
+      rather than running once per commit or release.
 
-### Cold-start instrument intake (2026-09-20)
+    The one remaining initial beta session is acquisition through the **public** route, only once its
+    ZIP carries v2 and unattended preflight passes. This is acceptance 4 on the real customer surface;
+    no authoring/reporting battery follows it. Existing preview acquisition and extension establish an
+    absolute capability, not public acquisition, distribution-wide reliability or improvement over v1.
+    See [the tier decision and implementation](../handoff/report_starter_verification_tiers_2026_09_20.md).
+
+    **Standing closure rule:** a finding is not closed until the static regression check that would
+    catch it next time exists. Runtime defects also retain their executable preflight assertion and
+    wrong-output witness. A trial alone is discovery, not continuing regression protection. Findings
+    without a check remain open. For genuine routing-adoption claims the H3 recurrence rule remains:
+    two independent sessions on different applicable tasks, not several repeats of one smoke task.
+    That evidential threshold does not mandate a new battery or a v1 comparison for release.
+
+    Report arithmetic, grouping, counts, boundaries, both trigger paths and empty state still require
+    independent expected values and negative checks when that behaviour is implemented. Unchanged
+    existing outputs do not establish correctness of a new report. Those are software correctness
+    checks, not a requirement to spend fresh clients on T4. Never expose previous solutions to a
+    participant or relabel the documented EOD exercise as held out.
+
+### Cold-start instrument disposition (2026-09-20)
 
 The [preserved proposal and intake review](../handoff/evidence/coldstart-proposal-2026-09-20/REVIEW.md)
-provide pre-action attribution, example-imitation records and pristine-download baseline provenance for
-acceptance 4/12. A journal is testimony; transcript/tool observations and operator-owned snapshots check
-its chronology. Static fingerprints are review leads, never automatic defect or pass counts. Record search,
-prior knowledge and operator intervention separately and adjudicate whether routing actually failed.
-The reconstructed v1 session is historical context, not a matched quantitative control. Choose one fresh
-session per complete journey and keep the operator prompts, injected-error answers and prior solutions
-outside the subject's enforced access boundary. Validate the scorer inputs and report unknown/missing
-observations before using its output for acceptance. This intake does not claim a trial has run or authorize
-paid key use; the existing recurrence and held-out thresholds still govern adoption.
+are historical discovery artefacts. The journal mechanism and battery are retired by the owner decision
+above. Preserve the original v1 control and all completed transcripts; do not repair their timing or
+invent a missing comparison denominator. The repaired static fingerprints and pinned corpus remain
+useful without any client or journal collection. New acquisition spot-checks use tool-event observation.
 
 
 ### Processor declaration wire contract — implementation pin, version 1

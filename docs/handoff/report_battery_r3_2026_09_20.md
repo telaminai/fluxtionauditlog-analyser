@@ -1,7 +1,10 @@
 # Preview battery R3 — operator checkpoint
 
-**Checkpointed after two tasks; further client sessions held following the owner's time concern.
-No full-battery or release verdict.** The target is the corrected playground
+**STOPPED by owner decision after two tasks. No T3–T6, further cohorts or reruns.** The battery is
+retired, not passed. The [verification tiers](report_starter_verification_tiers_2026_09_20.md) replace it.
+The published v1 control has no numeric unrouted total: no comparative routing claim can be established,
+and that control will not be repaired retrospectively. No full-battery or release verdict.
+The target is the corrected playground
 `feat/project-starter-journey@3bdcfbd`, selected by name before the trial. This tests preview
 acquisition of the Audit analyser bundle, not unguided catalogue discovery or public acquisition.
 The [protocol](evidence/battery-r3-2026-09-20/PROTOCOL.md), exact task quotations, preface and
@@ -62,8 +65,9 @@ The two observed client durations sum to 403.873 seconds (6m 44s). Operator prep
 investigation, independent verification and documentation are additional elapsed work, not hidden
 inside that number. These results establish one cohort's acquisition and event-extension path;
 they do not establish the reporting task, a routing improvement, or general client reliability.
-No client is running at this checkpoint. T3/T4/T6 and cohorts 2–6 remain unperformed; do not call
-the six-cohort battery complete. Raw attribution scoring and full prediction scoring remain open.
+No client is running. T3–T6 and cohorts 2–6 will not be performed; do not call
+the six-cohort battery complete. Full-matrix predictions are untested, not failed or retrospectively
+revised. There is no continuing battery-preparation or scoring gate.
 
 The first T2 launch was rejected by the operator command sandbox before the client started
 (`sandbox_apply: Operation not permitted`). Its empty transcript, stderr and metadata are retained
@@ -72,7 +76,8 @@ environment launch failure, not a subject/provider refusal or a product result.
 
 ## Still open
 
-- Full eligible battery, manual attribution, static-trap classification and prediction scoring.
+- No further battery work. One public acquisition spot-check remains, gated on the public v2 ZIP
+  and unattended preflight, as specified in the tier decision.
 - Playground launch advice should derive from one shared launch decision across all emitted
   surfaces, with cross-template agreement tests. PPF-1/PPF-2 fixes remain verified; this further
   structural work is not claimed complete and must not change the sealed preview mid-trial.

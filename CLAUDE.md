@@ -71,6 +71,11 @@ architecture, conventions). This file is only the rules that must never be skipp
 7. **Tracker discipline**: finished items → ☑ in `docs/specs/tracker.md`; fully-shipped
    milestones/rounds → move to `docs/specs/completed/tracker.md`. The live tracker holds only
    in-progress + future work.
+8. **Regression closure**: a finding is not closed until the static regression check that would
+   catch it next time exists. Runtime boundaries also need their executable check and a wrong-result
+   witness. Name the cheap check beside the disposition; a successful client trial alone is not
+   regression protection. Starter verification uses static, published-bundle preflight and routing-change
+   acquisition spot-check tiers; the cold-start battery is retired, not a release gate.
 
 ## Current work
 

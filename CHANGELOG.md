@@ -16,6 +16,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ### Added
 - **Cold-start corpus check** — `tools/check_coldstart_corpus.py` replays the reviewed scorer defects
   against preserved public evidence, without starting model sessions or using a key.
+  It also fingerprints finished projects with `--project` and `--baseline`, without a journal;
+  the corpus and observer-clock regressions run in static CI on every commit.
 - **Whole starter catalogue** — File ▸ New project from template and the start page's authoring action
   show every entry, marking recommended starting points and disclosing declared build/regeneration key
   needs and agent entry files. Missing and explicitly empty declarations remain distinct.

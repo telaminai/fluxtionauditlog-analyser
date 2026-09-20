@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "requestedUrl": "https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle",
+  "scope": "public",
+  "emptyMavenCache": true,
+  "clientSessions": 0,
+  "generationKeyProvisioned": false,
+  "resolvedUrl": "https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle",
+  "zipSha256": "3304d3ad03f6aaff60a98a73cc4d4cb379e3118bcbf558e444153a45e1e5d1d2",
+  "error": "public target does not carry v2: missing PROJECT.md, runbooks/build.md, runbooks/hosting.md",
+  "seconds": 0.261
+}

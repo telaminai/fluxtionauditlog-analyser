@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "requestedUrl": "http://127.0.0.1:5186/start/scaffold?template=analyser-bundle",
+  "scope": "explicit alternate route",
+  "emptyMavenCache": true,
+  "clientSessions": 0,
+  "generationKeyProvisioned": false,
+  "resolvedUrl": "http://127.0.0.1:5186/start/scaffold?template=analyser-bundle",
+  "zipSha256": "00aefa886b0e68d545d13fe0bb2f851de82c1373b50390a2eed0d9d904aed90c",
+  "expectedRows": [
+    [
+      "AAPL",
+      195.3,
+      1200
+    ],
+    [
+      "MSFT",
+      410.1,
+      800
+    ],
+    [
+      "GOOG",
+      155.75,
+      1500
+    ],
+    [
+      "AMZN",
+      178.22,
+      640
+    ],
+    [
+      "NVDA",
+      905.6,
+      2100
+    ]
+  ],
+  "sampleSha256": "d503256ce2dedaeb7cfc725aeab733c7e755cdebf090e1be6ef2186559faaf51",
+  "verifiedRows": 5,
+  "auditSha256": "ef1438ce035311e8968c88b193e4b09878a4cd88cc408dfa08d8003790cd8099",
+  "cleanStop": true,
+  "unchangedOriginalFiles": 43,
+  "seconds": 33.035
+}

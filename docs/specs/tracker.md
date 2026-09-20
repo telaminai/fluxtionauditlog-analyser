@@ -148,19 +148,35 @@ Legend for each item: **[id] status — title** · _acceptance_.
   and fixed afterwards in playground `3bdcfbd` with a seen-red assertion and 521 green tests; no replacement client run.
   Public acquisition, generation capability provisioning
   for beta, publication, held-out task correctness and full T1–T6 acceptance remain open.
-- ◧ **Preview battery R3 — checkpointed, 2026-09-20** — [checkpoint](../handoff/report_battery_r3_2026_09_20.md)
+- ☑ **Preview battery R3 — STOPPED by owner decision, 2026-09-20** — [checkpoint](../handoff/report_battery_r3_2026_09_20.md)
   and [sealed protocol](../handoff/evidence/battery-r3-2026-09-20/PROTOCOL.md). Sleep-inclusive recorder,
   retained UTC/awake clocks, idle-sleep assertion and 60-second clock probe close the timing-instrument
   prerequisite. Missing source pointers remain unattributed in the denominator. R2 compatibility
   repeats do not count as different-task recurrence. First cohort T1 independently verified: five
   matching business records, all 43 original files unchanged, no hint/refusal. T2 independently verified:
   changed graph regenerated, new event dispatch and four running totals match the input. Client time
-  191.149 + 212.724 s; operator work additional. Further sessions held following the owner's time concern;
-  no client running. T3/T4/T6, cohorts 2–6 and manual scoring open; T5 ineligible.
-  **No battery acceptance or release claim.**
+  191.149 + 212.724 s; operator work additional. No client running. No T3–T6, further cohorts or
+  completed-trial reruns will be started. The incomplete battery is retired, not passed.
+  **Established absolute claim:** "a fresh client, with no prior exposure and no coaching, acquired the
+  supported v2 bundle and extended it with a new event to correct running totals; results independently
+  verified; zero substantive interventions." Here fresh/no prior exposure means clean session context,
+  no supplied history, no source-tree or previous-trial access; it is not a claim about model training.
+  T1/T2 are separate fresh contexts extending one cohort's project, not two independent full journeys.
+  **No v1 comparison:** the published v1 control has no numeric unrouted total. A reduction versus v1
+  cannot be established; do not reopen it or repair the control retrospectively. Preview only:
+  **no public-acquisition or release claim.**
   Follow-up: one shared playground launch decision for README/POM/runbook agreement; do not alter
   the frozen target during the matrix. Public starter artifact remains 404; public acquisition,
   browser preview and OS-process restart gates stay open.
+- ◧ **Starter verification tiers — owner-approved replacement for the battery** —
+  [decision, implementation and gates](../handoff/report_starter_verification_tiers_2026_09_20.md).
+  Playground implementation `4b41631`; analyser static checks accompany the report.
+  Static corpus/command checks every commit; unattended empty-cache customer-download preflight on
+  production publication; one acquisition-only spot-check when routing paths change, not per release.
+  A defect is not closed without its cheap regression check. The remaining initial beta client trial
+  is public acquisition only, after the public ZIP carries v2 and preflight passes. Current public
+  ZIP lacks PROJECT.md and v2 runbooks; do not schedule a client against it. Publication/CI activation
+  remain open until the feature branches are merged and the public target passes.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation
