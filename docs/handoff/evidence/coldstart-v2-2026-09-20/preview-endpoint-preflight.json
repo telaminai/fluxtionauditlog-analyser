@@ -1,0 +1,15 @@
+{
+  "scope": "operator preflight only; not subject acquisition",
+  "branch": "feat/project-starter-journey",
+  "playgroundRevision": "47b9952",
+  "sha256": "2215838a6473f063a4ea8b8f512357f163c1da95061279f7c3921e7a7a959008",
+  "entries": 35,
+  "v2Files": [
+    "fluxtion-spring/PROJECT.md",
+    "fluxtion-spring/runbooks/build.md",
+    "fluxtion-spring/runbooks/comment-contract.json",
+    "fluxtion-spring/runbooks/comment-contract-manifest.json",
+    "fluxtion-spring/runbooks/analyser.md",
+    "fluxtion-spring/.analyser/project.fluxtion-settings"
+  ]
+}

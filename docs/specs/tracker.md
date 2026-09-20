@@ -100,6 +100,12 @@ Legend for each item: **[id] status — title** · _acceptance_.
   Plugin before/after hashing is an accepted, documented limitation. The bulk-read performance comment
   requested by the reviewer is added. Publication/public parity, actual process restart, deployed
   acquisition, browser preview and fresh-client acceptance remain separate open gates.
+- ◧ **Cold-start v2 preview rehearsal — 2026-09-20** — owner selected the branch preview because
+  the public Spring download lacks the v2 entry/profile/runbooks. Operator predictions are frozen in
+  [the journal](../handoff/evidence/coldstart-v2-2026-09-20/OPERATOR-JOURNAL.md) before subject execution.
+  Direct OS probes deny source checkouts, staged solutions and operator materials; pristine downloads
+  and transcripts are captured separately. Setup is in progress; no subject result or acceptance is
+  claimed. This rehearsal cannot close publication or public empty-directory acquisition acceptance.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation

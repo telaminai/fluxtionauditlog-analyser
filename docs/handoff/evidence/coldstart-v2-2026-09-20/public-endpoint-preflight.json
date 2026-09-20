@@ -1,0 +1,13 @@
+{
+  "url": "https://fluxtion-playground.dev/start/scaffold?template=fluxtion-spring.starter.json",
+  "sha256": "1130d276591aa1ab75b5a1f842ab7adcdb2c6be0cc552572e6236080d33e6c20",
+  "entries": 22,
+  "v2_files": {
+    "PROJECT.md": false,
+    "runbooks/build.md": false,
+    "runbooks/analyser.md": false,
+    ".analyser/project.fluxtion-settings": false,
+    "runbooks/comment-contract.json": false
+  },
+  "scope": "Operator preflight only; no subject has run."
+}
