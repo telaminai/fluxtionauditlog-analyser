@@ -1,0 +1,287 @@
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849556504
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.TradeScenario$$Lambda/0x0000007001014000@7c53a9eb, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs: 
+    endTime: 1789849556504
+---
+eventLogRecord: 
+    eventTime: 1789849556505
+    logTime: 1789849556505
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs: 
+        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}
+    endTime: 1789849556505
+---
+eventLogRecord: 
+    eventTime: 1789849556505
+    logTime: 1789849556505
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Start
+    thread: main
+    nodeLogs: 
+    endTime: 1789849556505
+---
+eventLogRecord: 
+    eventTime: 1789849556506
+    logTime: 1789849556506
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=100.0, price=190.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: AAPL, quantity: 100.0, tradePrice: 190.0, position: 100.0, position_AAPL: 100.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_AAPL: 0.0, openSymbols: 1, totalPnl: 0.0}
+    endTime: 1789849556515
+---
+eventLogRecord: 
+    eventTime: 1789849556548
+    logTime: 1789849556548
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=MSFT, quantity=200.0, price=410.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: MSFT, quantity: 200.0, tradePrice: 410.0, position: 200.0, position_MSFT: 200.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_AAPL: 0.0, openSymbols: 2, totalPnl: 0.0}
+    endTime: 1789849556548
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849556574
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=AAPL, price=191.5, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=AAPL, price=191.5, filterId=7}, price: 191.5}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_AAPL: 150.0, openSymbols: 2, totalPnl: 150.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 191.5, paused: false}
+    endTime: 1789849556577
+---
+eventLogRecord: 
+    eventTime: 1789849556607
+    logTime: 1789849556607
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=NVDA, quantity=-30.0, price=900.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: NVDA, quantity: -30.0, tradePrice: 900.0, position: -30.0, position_NVDA: -30.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_NVDA: 0.0, pnl_AAPL: 150.0, openSymbols: 3, totalPnl: 150.0}
+    endTime: 1789849556607
+---
+eventLogRecord: 
+    eventTime: 1789849556638
+    logTime: 1789849556638
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=50.0, price=192.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: AAPL, quantity: 50.0, tradePrice: 192.0, position: 150.0, position_AAPL: 150.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_NVDA: 0.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 125.0}
+    endTime: 1789849556638
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849556667
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=MSFT, price=413.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=MSFT, price=413.0, filterId=7}, price: 413.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 600.0, pnl_NVDA: 0.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 725.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 2, lastProcessedPrice: 413.0, paused: false}
+    endTime: 1789849556668
+---
+eventLogRecord: 
+    eventTime: 1789849556693
+    logTime: 1789849556693
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=MSFT, quantity=-50.0, price=415.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: MSFT, quantity: -50.0, tradePrice: 415.0, position: 150.0, position_MSFT: 150.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: 0.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 825.0}
+    endTime: 1789849556693
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849556724
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=NVDA, price=905.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=NVDA, price=905.0, filterId=7}, price: 905.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -150.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 675.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 3, lastProcessedPrice: 905.0, paused: false}
+    endTime: 1789849556724
+---
+eventLogRecord: 
+    eventTime: 1789849556752
+    logTime: 1789849556752
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=NVDA, quantity=-20.0, price=910.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: NVDA, quantity: -20.0, tradePrice: 910.0, position: -50.0, position_NVDA: -50.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 775.0}
+    endTime: 1789849556752
+---
+eventLogRecord: 
+    eventTime: 1789849556782
+    logTime: 1789849556782
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=-80.0, price=195.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: AAPL, quantity: -80.0, tradePrice: 195.0, position: 70.0, position_AAPL: 70.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 405.0, openSymbols: 3, totalPnl: 1055.0}
+    endTime: 1789849556782
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849556810
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=AAPL, price=194.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=AAPL, price=194.0, filterId=7}, price: 194.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 580.0, openSymbols: 3, totalPnl: 1230.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 4, lastProcessedPrice: 194.0, paused: false}
+    endTime: 1789849556811
+---
+eventLogRecord: 
+    eventTime: 1789849556838
+    logTime: 1789849556838
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=-120.0, price=193.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: AAPL, quantity: -120.0, tradePrice: 193.0, position: -50.0, position_AAPL: -50.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 1110.0}
+    endTime: 1789849556838
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849556868
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=NVDA, price=885.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=NVDA, price=885.0, filterId=7}, price: 885.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: 950.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 2110.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 5, lastProcessedPrice: 885.0, paused: false}
+    endTime: 1789849556869
+---
+eventLogRecord: 
+    eventTime: 1789849556895
+    logTime: 1789849556895
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=NVDA, quantity=10.0, price=880.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: NVDA, quantity: 10.0, tradePrice: 880.0, position: -40.0, position_NVDA: -40.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: 1000.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 2160.0}
+    endTime: 1789849556896
+---
+eventLogRecord: 
+    eventTime: 1789849556922
+    logTime: 1789849556922
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=MSFT, quantity=-50.0, price=412.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: MSFT, quantity: -50.0, tradePrice: 412.0, position: 100.0, position_MSFT: 100.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 650.0, pnl_NVDA: 1000.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 2110.0}
+    endTime: 1789849556923
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849556949
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=AAPL, price=190.5, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=AAPL, price=190.5, filterId=7}, price: 190.5}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 650.0, pnl_NVDA: 1000.0, pnl_AAPL: 635.0, openSymbols: 3, totalPnl: 2285.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 6, lastProcessedPrice: 190.5, paused: false}
+    endTime: 1789849556949
+---
+eventLogRecord: 
+    eventTime: 1789849556979
+    logTime: 1789849556979
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=50.0, price=191.0]
+    thread: main
+    nodeLogs: 
+        - positionNode: { thread: main, method: onTrade, symbol: AAPL, quantity: 50.0, tradePrice: 191.0, position: 0.0, position_AAPL: 0.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 650.0, pnl_NVDA: 1000.0, pnl_AAPL: 610.0, openSymbols: 3, totalPnl: 2260.0}
+    endTime: 1789849556979
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849557005
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=MSFT, price=416.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=MSFT, price=416.0, filterId=7}, price: 416.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 950.0, pnl_NVDA: 1000.0, pnl_AAPL: 610.0, openSymbols: 3, totalPnl: 2560.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 7, lastProcessedPrice: 416.0, paused: false}
+    endTime: 1789849557006
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849557036
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=NVDA, price=870.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { thread: main, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=NVDA, price=870.0, filterId=7}, price: 870.0}
+        - markToMarketNode: { thread: main, method: onMarkToMarketNode, pnl_MSFT: 950.0, pnl_NVDA: 1600.0, pnl_AAPL: 610.0, openSymbols: 3, totalPnl: 3160.0}
+        - child: { thread: main, method: onChild, action: priceProcessed, processedCount: 8, lastProcessedPrice: 870.0, paused: false}
+    endTime: 1789849557037
+---
+eventLogRecord: 
+    eventTime: 1789849557064
+    logTime: 1789849557064
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Stop
+    thread: main
+    nodeLogs: 
+    endTime: 1789849557064
+---
+eventLogRecord: 
+    eventTime: 1789849557065
+    logTime: 1789849557065
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: TearDown
+    thread: main
+    nodeLogs: 
+    endTime: 1789849557067

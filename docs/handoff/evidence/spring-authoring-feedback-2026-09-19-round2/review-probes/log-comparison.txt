@@ -1,0 +1,7 @@
+Business records=19, standalone vs host1=true, host1 vs host2=true
+Different full-log row=0 event=EventLogControlEvent
+  first=EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@28dada3f, sourceId=null, groupId=null}
+  second=EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@5acc4af3, sourceId=null, groupId=null}
+Different full-log row=3 event=EventLogControlEvent
+  first=EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@28dada3f, sourceId=null, groupId=null}
+  second=EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@5acc4af3, sourceId=null, groupId=null}

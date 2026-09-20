@@ -1,0 +1,55 @@
+{
+  "capturedAt": "2026-09-19T21:52:55.946785+00:00",
+  "privateSnapshot": "/Users/greg/fluxtion-local-evidence/spring-demo-20260919T214833Z",
+  "privateManifestSha256": "fcd1a7fbd97798f33cd5fa5dd701305d9e616c7f35ea2f710834aebc3c0b970f",
+  "privateSnapshotEntries": 252,
+  "headsRead": {
+    "analyser": "703136e7f538d52fe290de99491abeebed77f49d",
+    "compiler": "fdd24d61033532befadba8d87efa4e2ad3ab9b9a",
+    "playground": "affdd85d0fa6884b082ece2e75413baec0edc5a3"
+  },
+  "files": [
+    {
+      "source": "/Users/greg/fluxtion-local-evidence/spring-demo-20260919T214833Z/project/ANALYSER-FEEDBACK.md",
+      "saved": "ANALYSER-FEEDBACK.md",
+      "bytes": 46989,
+      "sha256": "d6cac09f30628f9f9d108c85d5720cb57baa707c318dc0544408145f46d86624"
+    },
+    {
+      "source": "/Users/greg/fluxtion-local-evidence/spring-demo-20260919T214833Z/project/vendor/PREDICTIONS.md",
+      "saved": "vendor/PREDICTIONS.md",
+      "bytes": 14854,
+      "sha256": "95bae79d3d62d8543186f69953baa652219cc2d062d971fd0c1324f19ccc2b3e"
+    },
+    {
+      "source": "/Users/greg/fluxtion-local-evidence/spring-demo-20260919T214833Z/project/evidence/vendor-topology.png",
+      "saved": "evidence/vendor-topology.png",
+      "bytes": 158193,
+      "sha256": "7ce4b441cec7566cda37cc8491c04d487c0c92ba7796470edcf840903e1fe0f7"
+    },
+    {
+      "source": "/tmp/spring-vendor-review/shadow-proof.txt",
+      "saved": "review-probes/shadow-proof.txt",
+      "bytes": 139,
+      "sha256": "6a91685be7e923a15b4d95a79d43b141d2009823e29be305930c139f37dd6a03"
+    },
+    {
+      "source": "/tmp/spring-vendor-review/jar-receipt-probe.json",
+      "saved": "review-probes/jar-receipt-probe.json",
+      "bytes": 756,
+      "sha256": "29f43b69bc83fe75ac216b00e6135e2ec68bf6e7000ebff23c7c2b9ca2ccc939"
+    },
+    {
+      "source": "/tmp/spring-vendor-review/project/src/main/java/com/acmerisk/RiskEngine.java",
+      "saved": "review-probes/generated-shell.java",
+      "bytes": 51,
+      "sha256": "e26d597bb6b65a77cd640d45f23b61332e9384c4326c76a8e18f2ab93e843df9"
+    },
+    {
+      "source": "/Users/greg/fluxtion-local-evidence/spring-demo-20260919T214833Z/project/AUTHORING-DOCS-FEEDBACK.md",
+      "saved": "AUTHORING-DOCS-FEEDBACK.md",
+      "bytes": 40981,
+      "sha256": "cba2430d9f27323d1e8ece6567f8a827528a220aed15ea4a818707ddf07682ba"
+    }
+  ]
+}

@@ -1,0 +1,373 @@
+{
+  "capturedAt": "2026-09-19T20:38:35.615448+00:00",
+  "headsRead": {
+    "analyser": "703136e7f538d52fe290de99491abeebed77f49d",
+    "compiler": "fdd24d61033532befadba8d87efa4e2ad3ab9b9a",
+    "playground": "affdd85d0fa6884b082ece2e75413baec0edc5a3",
+    "runtime": "96885a838d947f713199743d451f22b43e2aa234",
+    "mongoose": "17a03b40792ea7b581ca8b850ce23b18ffb854e2"
+  },
+  "kind": "post-session snapshot; reports include both addenda and corrections",
+  "files": [
+    {
+      "source": "ANALYSER-FEEDBACK.md",
+      "saved": "ANALYSER-FEEDBACK.md",
+      "bytes": 33139,
+      "sha256": "66635bd9c21b67f1b6697d2fcdc75aae8d1da80937c9ed9c9902ea8e1ee76438"
+    },
+    {
+      "source": "AUTHORING-DOCS-FEEDBACK.md",
+      "saved": "AUTHORING-DOCS-FEEDBACK.md",
+      "bytes": 19321,
+      "sha256": "efb35914cf6fc6f2df0af23bb8d2abaddd8f57ea82d2d9455c95be1131eba43f"
+    },
+    {
+      "source": "LOCAL-DEMO.md",
+      "saved": "LOCAL-DEMO.md",
+      "bytes": 2514,
+      "sha256": "f28cf71dfef22a9bff484760e1ec6ba262cc1be918de24ac64cb0025c9e91fe4"
+    },
+    {
+      "source": "README.md",
+      "saved": "project-README.md",
+      "bytes": 4136,
+      "sha256": "87570a80637436897ad6b08e5d056b2b9df07979737740cca1e2f9a691db676b"
+    },
+    {
+      "source": "RUNBOOK.md",
+      "saved": "RUNBOOK.md",
+      "bytes": 2865,
+      "sha256": "905866c82734f5da0faf5a0bd0448478ea68122c5c3b75234c35ee3f33329a45"
+    },
+    {
+      "source": "authoring-docs/contract.md",
+      "saved": "authoring-docs/contract.md",
+      "bytes": 24901,
+      "sha256": "26cf4683f425a18af328e623094f2325a46ded42bff8f4cbbbd3ff7d8e5e1a14"
+    },
+    {
+      "source": "authoring-docs/example.md",
+      "saved": "authoring-docs/example.md",
+      "bytes": 12558,
+      "sha256": "b65ce7957f48d6d16ed19f51120b139f667c3b0210a4c91c637ca84973efc342"
+    },
+    {
+      "source": "authoring-docs/fluxtion-golden-path.md",
+      "saved": "authoring-docs/fluxtion-golden-path.md",
+      "bytes": 15168,
+      "sha256": "619822764440099bb98b8174e55799b788893feca15620fff80edfab9b2460d4"
+    },
+    {
+      "source": "authoring-docs/playground-CLAUDE.md",
+      "saved": "authoring-docs/playground-CLAUDE.md",
+      "bytes": 25059,
+      "sha256": "e146f218799ba788a999bf8843fdc8e7f4299b3443b5d89cfb9cb9bf200aca0d"
+    },
+    {
+      "source": "authoring-docs/skill.md",
+      "saved": "authoring-docs/skill.md",
+      "bytes": 9851,
+      "sha256": "0c2c7bfb78940463f407213c43577ac2feb3b2470baa97b1863be42bc8e2a365"
+    },
+    {
+      "source": "config/server-config.yml",
+      "saved": "config/server-config.yml",
+      "bytes": 1167,
+      "sha256": "38919a9449f28213331568e2f84f3f07c5498e1ccad22a4cd688e9ce1a39614f"
+    },
+    {
+      "source": "data/market.csv",
+      "saved": "data/market.csv",
+      "bytes": 365,
+      "sha256": "eeaedbc62f79d0740e2ead19685970f70a654578e5a2e69baa8005343a4ca085"
+    },
+    {
+      "source": "evidence/analyser-current-state-paced.png",
+      "saved": "evidence/analyser-current-state-paced.png",
+      "bytes": 146632,
+      "sha256": "2b35f67d37ce8c31c900c1bae8b403f0e3726dd6c17253356d76d24fddd88364"
+    },
+    {
+      "source": "evidence/analyser-current-state.png",
+      "saved": "evidence/analyser-current-state.png",
+      "bytes": 150873,
+      "sha256": "173a968d807ae846fa5e71e14a43ad7d39ae67f33d0a6d368f5ee14a91fee598"
+    },
+    {
+      "source": "evidence/analyser-mongoose-pnl-spotlight.png",
+      "saved": "evidence/analyser-mongoose-pnl-spotlight.png",
+      "bytes": 210222,
+      "sha256": "1aa89c8229a84fb82ef5ec3b47c6b82b924c9fe002aa9265d448644ad08a2d10"
+    },
+    {
+      "source": "evidence/latest/audit.yaml",
+      "saved": "evidence/latest/audit.yaml",
+      "bytes": 4479,
+      "sha256": "53cbb4f9c8a1820b6a741bfacf525af96c7196016d598f8c2c8b12c8e445a353"
+    },
+    {
+      "source": "evidence/latest/checked.csv",
+      "saved": "evidence/latest/checked.csv",
+      "bytes": 59,
+      "sha256": "2bf3266bd5e316cd6499019a7c918019b1294de0e525a3b3d757dd64e61ec509"
+    },
+    {
+      "source": "evidence/latest/state.csv",
+      "saved": "evidence/latest/state.csv",
+      "bytes": 356,
+      "sha256": "e8cf614681f1a10030fd7a1456f6840f4817d7ad01c31747a5da4a0aa616810e"
+    },
+    {
+      "source": "evidence/mongoose-paced/audit.yaml",
+      "saved": "evidence/mongoose-paced/audit.yaml",
+      "bytes": 17044,
+      "sha256": "964097fc4757224f24373e953ff6e1b8bbb266ecbad4a1c7bd69ba67117180c5"
+    },
+    {
+      "source": "evidence/mongoose-paced/server.log",
+      "saved": "evidence/mongoose-paced/server.log",
+      "bytes": 8829,
+      "sha256": "db4da21c335a2c25fa6419e023db9334f76d260957f127609cec152ddfd2fca4"
+    },
+    {
+      "source": "evidence/mongoose-run1/audit.yaml",
+      "saved": "evidence/mongoose-run1/audit.yaml",
+      "bytes": 17044,
+      "sha256": "f9f5c9ec07105b0467b111ebfe94fb28decc5555a8173ba7a24f6e2422f8f59a"
+    },
+    {
+      "source": "evidence/mongoose-run1/server.log",
+      "saved": "evidence/mongoose-run1/server.log",
+      "bytes": 8828,
+      "sha256": "9f8d20794f93f709ab42f9cf4a16052bfdb2fdae073cd325d684f98d78b65d33"
+    },
+    {
+      "source": "evidence/mongoose-run2/audit.yaml",
+      "saved": "evidence/mongoose-run2/audit.yaml",
+      "bytes": 17044,
+      "sha256": "b0031a3f14832e7f985955bb3dcc91033ccd815c1c3c647055d5f12625048ab7"
+    },
+    {
+      "source": "evidence/mongoose-run2/server.log",
+      "saved": "evidence/mongoose-run2/server.log",
+      "bytes": 8828,
+      "sha256": "929d39a8f71fb9b303728b85b9bb20fafd1259f804806cadae7a1cc3dec71618"
+    },
+    {
+      "source": "evidence/pnl-trade-vs-price-spotlight.png",
+      "saved": "evidence/pnl-trade-vs-price-spotlight.png",
+      "bytes": 196518,
+      "sha256": "47c348d54d9656a41547700eadf4dad930c341a237139a63d7a27919882f600a"
+    },
+    {
+      "source": "evidence/position-by-instrument-2.png",
+      "saved": "evidence/position-by-instrument-2.png",
+      "bytes": 120237,
+      "sha256": "e6acf19f169c58d34945377cd384f8c5afdff3d8220ce505594ecdf6636c5437"
+    },
+    {
+      "source": "evidence/position-by-instrument.png",
+      "saved": "evidence/position-by-instrument.png",
+      "bytes": 128961,
+      "sha256": "c8f6a39e4d39075bff390af15a20babd2b8581151cb6f3bfc3572e59f9614cc9"
+    },
+    {
+      "source": "evidence/trades/audit.yaml",
+      "saved": "evidence/trades/audit.yaml",
+      "bytes": 12504,
+      "sha256": "165e3647456619554c195186073c1f799637ff0719ca8c6c9fe94aa9bb8e89a5"
+    },
+    {
+      "source": "evidence/trades/positions.csv",
+      "saved": "evidence/trades/positions.csv",
+      "bytes": 861,
+      "sha256": "51d98358aea65cb6c32a2237efb3142d8c9e024a42940c71759b85855f2afe10"
+    },
+    {
+      "source": "evidence/xml-changes-spotlight-all.png",
+      "saved": "evidence/xml-changes-spotlight-all.png",
+      "bytes": 290018,
+      "sha256": "54195b57bb1ee475bcda1d5fd63610fd0f3a7c91c205dcfe735cd0f4af0712cb"
+    },
+    {
+      "source": "evidence/xml-changes-spotlight-beans.png",
+      "saved": "evidence/xml-changes-spotlight-beans.png",
+      "bytes": 301073,
+      "sha256": "de150a77c3296e5661de1cbca52e0c57e5f20e36ca4d7576fb96976fbe41feb9"
+    },
+    {
+      "source": "evidence/xml-changes-spotlight.png",
+      "saved": "evidence/xml-changes-spotlight.png",
+      "bytes": 253938,
+      "sha256": "5ee5a00efd45523a3e91391cc46d50fc64cff55d816cd478e8d18dbbc454e3d7"
+    },
+    {
+      "source": "fluxtion-authoring.json",
+      "saved": "fluxtion-authoring.json",
+      "bytes": 5382,
+      "sha256": "17c12dc839f76f8fc468a4116da8a14ff1ac650aaf80e1c86b404e796b827a24"
+    },
+    {
+      "source": "generate.sh",
+      "saved": "generate.sh",
+      "bytes": 548,
+      "sha256": "94ccb8d51c788d5be4547d70139120b80a5246312162d355108637229ab432fb"
+    },
+    {
+      "source": "pom.xml",
+      "saved": "pom.xml",
+      "bytes": 7737,
+      "sha256": "7fd5df36d119f8b9f591dfcaa7d984f38ccd008af0fd9227634bff6ba24d152c"
+    },
+    {
+      "source": "target/classes/fluxtion-diagnostics.json",
+      "saved": "producer-results/classes/fluxtion-diagnostics.json",
+      "bytes": 77,
+      "sha256": "28de5aad876ccf3ec3d60d6f5954013bffbc156c52330a28154e2818a5df5bbf"
+    },
+    {
+      "source": "target/fluxtion-reconciliation.json",
+      "saved": "producer-results/fluxtion-reconciliation.json",
+      "bytes": 3226,
+      "sha256": "55a7621279909f166a37596c00c71f74e2fd67ea91a0ce08b332474aaab3cd3a"
+    },
+    {
+      "source": "target/fluxtion-run.json",
+      "saved": "producer-results/fluxtion-run.json",
+      "bytes": 2213,
+      "sha256": "3c68c49eefc402e04e4fc6e15a5f5dc8dcb7a55cb144359c3fa7fbc65b8b090e"
+    },
+    {
+      "source": "target/fluxtion-validation.json",
+      "saved": "producer-results/fluxtion-validation.json",
+      "bytes": 348,
+      "sha256": "9a8f3e497d7a6fb89fd492e216a87b4bb2fbab1e434860371f932d7c5a005744"
+    },
+    {
+      "source": "run-scenario.sh",
+      "saved": "run-scenario.sh",
+      "bytes": 244,
+      "sha256": "e20baaf22a42f02c2b7423783d468f037d97a1074fbe2c54ce2eb1678983e0dd"
+    },
+    {
+      "source": "run-server.sh",
+      "saved": "run-server.sh",
+      "bytes": 2835,
+      "sha256": "1afe498ae2ede466647956941b11a229d6401e0247b0db63eb392a80880d0c7a"
+    },
+    {
+      "source": "setup.sh",
+      "saved": "setup.sh",
+      "bytes": 1185,
+      "sha256": "8b060e9e84ba6357b85005a4a7514f4efc7de40d1bea1a4f2236ef62739967c4"
+    },
+    {
+      "source": "src/main/fluxtion/designer/application-context.xml",
+      "saved": "src/main/fluxtion/designer/application-context.xml",
+      "bytes": 4155,
+      "sha256": "12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/AcceptanceScenario.java",
+      "saved": "src/main/java/com/example/myapp/AcceptanceScenario.java",
+      "bytes": 4168,
+      "sha256": "71d41469795d712a2c7e29667d394a214182bc1b72ba16ba74590bb157347186"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/FluxtionMain.java",
+      "saved": "src/main/java/com/example/myapp/FluxtionMain.java",
+      "bytes": 1269,
+      "sha256": "f531867fc8793e20af53a2ccbb988ce0f5220fde623cdacddb2481b103cfc577"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/MongooseMain.java",
+      "saved": "src/main/java/com/example/myapp/MongooseMain.java",
+      "bytes": 1853,
+      "sha256": "0975a387c30e0a298304e24f8fc7da45089e5cca4857f31f74d5a3f41dc3f240"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/TradeScenario.java",
+      "saved": "src/main/java/com/example/myapp/TradeScenario.java",
+      "bytes": 5435,
+      "sha256": "5a0186061b53ef519de215ea9ddd2d7dbda2ea81ed45e3361310f4d891ae7101"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/builder/MyProcessorSupplier.java",
+      "saved": "src/main/java/com/example/myapp/builder/MyProcessorSupplier.java",
+      "bytes": 1122,
+      "sha256": "89db53cfc68c68df08af4aa995fa2bec5c76628d8102fc502848c6e8e855c761"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/builder/SpringAotBuilder.java",
+      "saved": "src/main/java/com/example/myapp/builder/SpringAotBuilder.java",
+      "bytes": 1766,
+      "sha256": "8902addbd6a9794246793e1ef0e0e3b2ed597cd485ce4ebccb8f3778c7bdb3a6"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/event/Checked.java",
+      "saved": "src/main/java/com/example/myapp/event/Checked.java",
+      "bytes": 83,
+      "sha256": "081e4499cea55ad939a77cfb52d20b53a7d33247cd24eb730bbf079b2494309d"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/event/PriceUpdate.java",
+      "saved": "src/main/java/com/example/myapp/event/PriceUpdate.java",
+      "bytes": 992,
+      "sha256": "b4dc16482430b5b75c615f4fa63a031583a729172f2053dbfa2ad5ecc5a51e76"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/event/Trade.java",
+      "saved": "src/main/java/com/example/myapp/event/Trade.java",
+      "bytes": 169,
+      "sha256": "6f8fded1b1c6e5f36c94d18c5eccf7a883e99be9e75a34b39afb419bc325ce15"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/mapper/CsvToMarketEvent.java",
+      "saved": "src/main/java/com/example/myapp/mapper/CsvToMarketEvent.java",
+      "bytes": 1447,
+      "sha256": "62219b6c7ad4c7ccc2504c8ecb9691d46fde6b7fa213d948af9cce98054d109f"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/Child.java",
+      "saved": "src/main/java/com/example/myapp/node/Child.java",
+      "bytes": 3619,
+      "sha256": "0a317a992ff19988fd9848982b76e64bea6c6a96232e75d59b56b74f386bebfd"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/MarkToMarketNode.java",
+      "saved": "src/main/java/com/example/myapp/node/MarkToMarketNode.java",
+      "bytes": 1808,
+      "sha256": "ed2f277b6c758a084118e6d933b57ada8ca8e81de94c800dcb9ab6e59c525a62"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/PositionNode.java",
+      "saved": "src/main/java/com/example/myapp/node/PositionNode.java",
+      "bytes": 1895,
+      "sha256": "9bbdb2fcfc5f17db3f6dd910885dbd775d248a500c8282cc600c358e8b9d2e3d"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/RootNode.java",
+      "saved": "src/main/java/com/example/myapp/node/RootNode.java",
+      "bytes": 1125,
+      "sha256": "1389c8812facdd823730b19a445a933ae3ba5a02d417b2d876dd647570470ef6"
+    },
+    {
+      "source": "src/main/java/com/example/myapp/service/Commands.java",
+      "saved": "src/main/java/com/example/myapp/service/Commands.java",
+      "bytes": 123,
+      "sha256": "a58db13e1745c9085ec1e2154c48c1aaddb7d20f6bc9c01df5499c00e03ca267"
+    },
+    {
+      "source": "src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+      "saved": "src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+      "bytes": 26211,
+      "sha256": "2117cc5c1385e8ebbe5cf23ab403954d4be0f66fd4438f285f543726ab5f05d0"
+    },
+    {
+      "source": "validate.sh",
+      "saved": "validate.sh",
+      "bytes": 312,
+      "sha256": "4b54f2036f95d048fbe3f765355b235274fe10e70d5613d89a776e0133483743"
+    }
+  ]
+}

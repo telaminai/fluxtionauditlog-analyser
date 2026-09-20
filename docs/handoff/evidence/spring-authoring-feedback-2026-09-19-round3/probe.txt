@@ -1,0 +1,9 @@
+resolved=[TOPOLOGY:true:warning=null, SERIES:true:warning=null, FINDING:true:warning=null]
+topology fallback present=false
+series fallback present=true
+expected behaviour headed WHAT IS WRONG=true
+text equality rejected='"REJECT"' is not a duration — use e.g. "250ms", "5s", "2m", "1h" in expression "orderGateway.decision == "REJECT""
+read table rows=[[67, 1789851431739, ClientOrder, REJECT], [68, 1789851431739, Signal, ], [69, 1789851431739, ClientOrder, REJECT], [70, 1789851431739, ClientOrder, REJECT], [71, 1789851431739, Signal, ], [72, 1789851431739, ClientOrder, ACCEPT]]
+table over series rows=1; notes=[]
+true quoted=false kind=BOOLEAN graphValue=OptionalDouble[1.0]
+true quoted=true kind=TEXT graphValue=OptionalDouble.empty

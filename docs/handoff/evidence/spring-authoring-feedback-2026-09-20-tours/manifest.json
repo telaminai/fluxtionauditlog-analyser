@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-09-20T08:17:33.238612+00:00",
+  "source": "/private/tmp/fluxtion-spring-demo/project/ANALYSER-FEEDBACK.md",
+  "files": [
+    {
+      "path": "ANALYSER-FEEDBACK-before-reconciliation.md",
+      "sha256": "ac34aa2d23755116f57bca57bbc6ec626653bc33a098a94ee39efd1b19ac9ef3"
+    },
+    {
+      "path": "ANALYSER-FEEDBACK.md",
+      "sha256": "17301a0b58d522aa6d0bad5e585e2576330604fe57e3d9730e9792800ce97436"
+    },
+    {
+      "path": "ANALYSER-FEEDBACK-feature-40.md",
+      "sha256": "c8e4163a1cf65379a52cfbe868cbbc7ffe6cdc015d2ed5d680bb510b534036ac"
+    }
+  ],
+  "scope": "Number reconciliation, participant 36\u201339, retained overlap 40, saved-walkthrough proposal P1; no new runtime probes",
+  "latestNote": "Participant feature request 40 is authoritative for captions; older overlap number 40 is an intake collision, now tracked descriptively. Live participant text retained unchanged."
+}

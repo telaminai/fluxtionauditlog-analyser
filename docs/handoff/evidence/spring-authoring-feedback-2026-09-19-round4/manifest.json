@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-09-19T21:23:19.846795+00:00",
+  "analyserHead": "703136e7f538d52fe290de99491abeebed77f49d",
+  "jarSha256": "fbdc43449e9f85ce8401f0496b6d75c80582c2edfab2ff103c0e09a506051088",
+  "files": [
+    {
+      "source": "/private/tmp/fluxtion-spring-demo/project/AUTHORING-DOCS-FEEDBACK.md",
+      "saved": "AUTHORING-DOCS-FEEDBACK.md",
+      "bytes": 30204,
+      "sha256": "edec3c8a9df9b35fa3adacd3d8269d5960711403241c9455c94976ca3bc514c5"
+    },
+    {
+      "source": "/tmp/spring-canvas-review/ComparisonScopeProbe.java",
+      "saved": "ComparisonScopeProbe.java",
+      "bytes": 1743,
+      "sha256": "dfc4c0996a20eb9dba41ea70e025d38e775f938ae66448ec72ce1840d4eecdfe"
+    },
+    {
+      "source": "/tmp/spring-canvas-review/comparison-scope.txt",
+      "saved": "comparison-scope.txt",
+      "bytes": 263,
+      "sha256": "0f6fd95c652410b2d3228de61889d1741b715d1f00a9c29850950b82dac6cf7b"
+    }
+  ]
+}

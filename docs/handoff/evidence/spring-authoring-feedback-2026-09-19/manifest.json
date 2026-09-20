@@ -1,0 +1,163 @@
+{
+  "capturedAt": "2026-09-19T19:48:47.352145+00:00",
+  "analyserHead": "703136e7f538d52fe290de99491abeebed77f49d",
+  "kind": "participant-reported feedback and post-session files; not an independent reproduction",
+  "files": [
+    {
+      "source": "ANALYSER-FEEDBACK.md",
+      "saved": "ANALYSER-FEEDBACK.md",
+      "sha256": "b1269da91e61dc744b07f899aa6f0e3461305ec0a371e3303a300afe4451c4fc",
+      "bytes": 21139
+    },
+    {
+      "source": "fluxtion-authoring.json",
+      "saved": "fluxtion-authoring.json",
+      "sha256": "17c12dc839f76f8fc468a4116da8a14ff1ac650aaf80e1c86b404e796b827a24",
+      "bytes": 5382
+    },
+    {
+      "source": "src/main/fluxtion/designer/application-context.xml",
+      "saved": "src/main/fluxtion/designer/application-context.xml",
+      "sha256": "12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f",
+      "bytes": 4155
+    },
+    {
+      "source": "src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+      "saved": "src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+      "sha256": "2117cc5c1385e8ebbe5cf23ab403954d4be0f66fd4438f285f543726ab5f05d0",
+      "bytes": 26211
+    },
+    {
+      "source": "target/fluxtion-run.json",
+      "saved": "producer-results/fluxtion-run.json",
+      "sha256": "cad754532300e23cd1f08d6b67a7750df6162b65fd31fe98df82d8809fa80892",
+      "bytes": 2213
+    },
+    {
+      "source": "target/fluxtion-reconciliation.json",
+      "saved": "producer-results/fluxtion-reconciliation.json",
+      "sha256": "ade6a9216e1771469facb1cb98cc606f0f293e77966c1e76c4c1b206501e8335",
+      "bytes": 3226
+    },
+    {
+      "source": "target/fluxtion-validation.json",
+      "saved": "producer-results/fluxtion-validation.json",
+      "sha256": "9a8f3e497d7a6fb89fd492e216a87b4bb2fbab1e434860371f932d7c5a005744",
+      "bytes": 348
+    },
+    {
+      "source": "target/classes/fluxtion-diagnostics.json",
+      "saved": "producer-results/classes/fluxtion-diagnostics.json",
+      "sha256": "28de5aad876ccf3ec3d60d6f5954013bffbc156c52330a28154e2818a5df5bbf",
+      "bytes": 77
+    },
+    {
+      "source": "evidence/xml-changes-spotlight-all.png",
+      "saved": "evidence/xml-changes-spotlight-all.png",
+      "sha256": "54195b57bb1ee475bcda1d5fd63610fd0f3a7c91c205dcfe735cd0f4af0712cb",
+      "bytes": 290018
+    },
+    {
+      "source": "evidence/xml-changes-spotlight-beans.png",
+      "saved": "evidence/xml-changes-spotlight-beans.png",
+      "sha256": "de150a77c3296e5661de1cbca52e0c57e5f20e36ca4d7576fb96976fbe41feb9",
+      "bytes": 301073
+    },
+    {
+      "source": "evidence/xml-changes-spotlight.png",
+      "saved": "evidence/xml-changes-spotlight.png",
+      "sha256": "5ee5a00efd45523a3e91391cc46d50fc64cff55d816cd478e8d18dbbc454e3d7",
+      "bytes": 253938
+    },
+    {
+      "source": "evidence/latest/audit.yaml",
+      "saved": "evidence/latest/audit.yaml",
+      "sha256": "ea05a2ab97527012c40c19d64e9209b9f80fb6de2e4bf0d6dedc6a23809dc240",
+      "bytes": 4479
+    },
+    {
+      "source": "evidence/latest/checked.csv",
+      "saved": "evidence/latest/checked.csv",
+      "sha256": "fa0036d3b44a3c56bb12174ee8814fb9fcbfd417cb83abcfefb0520676e500a6",
+      "bytes": 59
+    },
+    {
+      "source": "evidence/latest/state.csv",
+      "saved": "evidence/latest/state.csv",
+      "sha256": "3630e93c01aa02fa332389a8016b3b22b70cea4df0c55fa5d7d051069c172855",
+      "bytes": 356
+    },
+    {
+      "source": "src/main/java/com/example/myapp/AcceptanceScenario.java",
+      "saved": "src/main/java/com/example/myapp/AcceptanceScenario.java",
+      "sha256": "71d41469795d712a2c7e29667d394a214182bc1b72ba16ba74590bb157347186",
+      "bytes": 4168
+    },
+    {
+      "source": "src/main/java/com/example/myapp/FluxtionMain.java",
+      "saved": "src/main/java/com/example/myapp/FluxtionMain.java",
+      "sha256": "f531867fc8793e20af53a2ccbb988ce0f5220fde623cdacddb2481b103cfc577",
+      "bytes": 1269
+    },
+    {
+      "source": "src/main/java/com/example/myapp/builder/SpringAotBuilder.java",
+      "saved": "src/main/java/com/example/myapp/builder/SpringAotBuilder.java",
+      "sha256": "8902addbd6a9794246793e1ef0e0e3b2ed597cd485ce4ebccb8f3778c7bdb3a6",
+      "bytes": 1766
+    },
+    {
+      "source": "src/main/java/com/example/myapp/event/Checked.java",
+      "saved": "src/main/java/com/example/myapp/event/Checked.java",
+      "sha256": "081e4499cea55ad939a77cfb52d20b53a7d33247cd24eb730bbf079b2494309d",
+      "bytes": 83
+    },
+    {
+      "source": "src/main/java/com/example/myapp/event/PriceUpdate.java",
+      "saved": "src/main/java/com/example/myapp/event/PriceUpdate.java",
+      "sha256": "b4dc16482430b5b75c615f4fa63a031583a729172f2053dbfa2ad5ecc5a51e76",
+      "bytes": 992
+    },
+    {
+      "source": "src/main/java/com/example/myapp/event/Trade.java",
+      "saved": "src/main/java/com/example/myapp/event/Trade.java",
+      "sha256": "6f8fded1b1c6e5f36c94d18c5eccf7a883e99be9e75a34b39afb419bc325ce15",
+      "bytes": 169
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/Child.java",
+      "saved": "src/main/java/com/example/myapp/node/Child.java",
+      "sha256": "0a317a992ff19988fd9848982b76e64bea6c6a96232e75d59b56b74f386bebfd",
+      "bytes": 3619
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/MarkToMarketNode.java",
+      "saved": "src/main/java/com/example/myapp/node/MarkToMarketNode.java",
+      "sha256": "0d01a3b4fc08076c7af35c9ccaa9255afeb615a535bbaa9ee5dab343df9aba92",
+      "bytes": 1719
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/PositionNode.java",
+      "saved": "src/main/java/com/example/myapp/node/PositionNode.java",
+      "sha256": "5f3374d364f8aa93b3f519b2c4833b4505dde4b89285f64857f34bbdd8a487eb",
+      "bytes": 1745
+    },
+    {
+      "source": "src/main/java/com/example/myapp/node/RootNode.java",
+      "saved": "src/main/java/com/example/myapp/node/RootNode.java",
+      "sha256": "1389c8812facdd823730b19a445a933ae3ba5a02d417b2d876dd647570470ef6",
+      "bytes": 1125
+    },
+    {
+      "source": "src/main/java/com/example/myapp/service/Commands.java",
+      "saved": "src/main/java/com/example/myapp/service/Commands.java",
+      "sha256": "a58db13e1745c9085ec1e2154c48c1aaddb7d20f6bc9c01df5499c00e03ca267",
+      "bytes": 123
+    },
+    {
+      "source": "../logs/context.json (launcher snapshot before participant edits)",
+      "saved": "baseline/analyser-context.json",
+      "sha256": "ae179772a12a3d8b89bcfa97ae8f8a3f264e030afc4941d2fe575bfb11174065",
+      "bytes": 6951
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "before": {
+    "projectActive": true,
+    "runbookCount": 2,
+    "logLoaded": true,
+    "visibleChartNames": [
+      "Graph 1",
+      "Position by instrument",
+      "PnL by instrument",
+      "Desk PnL by book",
+      "Hedging: exposure and working"
+    ],
+    "reportCount": 1,
+    "designLoaded": true,
+    "graphSource": "OPENED"
+  },
+  "reopened": {
+    "projectActive": true,
+    "runbookCount": 2,
+    "logLoaded": false,
+    "visibleChartNames": [],
+    "reportCount": 1,
+    "designLoaded": false,
+    "graphSource": "NONE"
+  },
+  "logReopened": {
+    "projectActive": true,
+    "runbookCount": 2,
+    "logLoaded": true,
+    "visibleChartNames": [
+      "Graph 1",
+      "Position by instrument",
+      "PnL by instrument",
+      "Desk PnL by book",
+      "Hedging: exposure and working"
+    ],
+    "reportCount": 1,
+    "designLoaded": false,
+    "graphSource": "NONE"
+  }
+}

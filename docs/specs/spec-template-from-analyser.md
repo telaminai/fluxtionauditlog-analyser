@@ -11,6 +11,10 @@ _Raised by the owner, 2026-08-30, in these words: **"I thought we would be able 
 from the swing app to make it seamless to get started."** That expectation is reasonable and the
 product did not meet it. This spec records the implemented boundary and its acceptance evidence._
 
+**Owner revision, 2026-09-20 — accepted, implementation pending:** show the full catalogue and mark
+entries tagged `onboarding` as **Recommended starting points**. D-1 below supersedes the shipped
+onboarding-only selection rule. The August acceptance evidence covers the old picker, not this revision.
+
 ---
 
 ## The gap
@@ -74,12 +78,15 @@ onboarding; the overrides are what stop this from degrading into a fixed zip.
 Unknown `template` → **404 naming the catalogue URL**. Both `s` and `template` → 400 (they are
 alternative inputs, and silently preferring one is how a caller learns the wrong mental model).
 
-### B2 · Analyser: `File ▸ New project from template…` — **IMPLEMENTED `9d38cc4`**
+### B2 · Analyser: `File ▸ New project from template…`
+
+The download/open flow shipped in `9d38cc4`; step 2 is revised by the owner's 2026-09-20 decision
+and remains to be implemented.
 
 1. `GET /starter-templates/index.json`; refuse a `catalogue` integer this build does not know, with a
    message naming the analyser version — the same refusal shape as `x-analyser-min-version`.
-2. List the **onboarding subset** (D-1), showing `name` + `description` — the fields the catalogue
-   already carries for exactly this.
+2. List **all catalogue entries**, showing `name` + `description`. Mark entries tagged `onboarding`
+   as **Recommended starting points** (D-1); the tag must not hide the other entries.
 3. Ask for a destination directory and, optionally, artifact/package (defaults pre-filled).
 4. `GET /start/scaffold?template=…`, unzip under **D-4's** constraints, then hand straight to the
    existing new-project path — which is where the old M19.5 scope (import + open + Follow) resumes,
@@ -87,19 +94,48 @@ alternative inputs, and silently preferring one is how a caller learns the wrong
 5. Show fixed commands for recognised run/export wrappers, copyable, **without reading command text
    from the bundle or executing it** (D-3).
 
+**Review correction F1 (2026-09-20):** the current flow has two branches: an archive with a profile opens
+it; an archive without one reaches a discovery offer whose checkboxes start unselected. These are not
+equivalent onboarding experiences. Release the full-catalogue expansion after playground default-on
+support supplies the promised profiles/bootstrap. Keep the discovery path explicitly described and
+tested for legacy/profile-less downloads. Explicit opt-out must not be silently reversed by discovery.
+See [the cross-repo delivery order](spec-project-starter-journey.md#delivery-order-and-catalogue-coverage).
+
 ## C — decisions
 
-**D-1 · Which templates the analyser lists.** Not all 14. The catalogue is written for the playground
-gallery — someone learning to *build*; the analyser's audience is someone diagnosing a system that
-already exists. Listing "Fluxtion DataFlow DSL" to that person is noise.
+**D-1 · All templates, with catalogue-owned recommendations — owner decision 2026-09-20.**
+`New project from template…` shows every entry in the supported catalogue. The analyser is also a
+starting point for authoring, so embedded, DSL and other project types must remain available alongside
+hosted examples. There is no hardcoded name list or restriction by project type.
 
-Selection must not be an allowlist hardcoded in the analyser: that is a second source of truth which
-drifts the first time a template is renamed. Use the **existing optional `tags` field** (present on 3
-entries today) with a new value `onboarding`. Additive, no new key, and consistent with §C2's
-discipline of encoding a fact once. Filed as the playground half of UP-PG-03.
+The existing optional `onboarding` tag means **Recommended starting points** in this picker. Render
+that recommendation visibly without excluding untagged entries. With no onboarding tags, show all
+entries without recommendations; do not fall back to a Mongoose-only subset. The catalogue remains
+the single source of template names, descriptions and recommendations. No catalogue schema change is
+required, and the number of entries is not pinned to today's fourteen.
 
-Until that tag exists, the analyser lists `type: mongoose|hosted` **and** falls back to showing
-everything with a one-line note rather than an empty dialog.
+This replaces the original D-1: the shipped client selected only onboarding-tagged entries, otherwise
+Mongoose/hosted entries, otherwise everything. That historical rule explains the two-entry picker;
+it is no longer the intended behaviour. Existing archive, version and network refusals remain intact.
+A recommendation alone does not certify that the template contains a tutorial, complete agent
+instructions or keyless generation; those capabilities need their own evidence and documentation.
+
+Render the catalogue's existing `agentBootstrap` disclosure: listed entry files, explicitly none for an
+empty array, or **not declared** when absent. The field is already on playground main; it is the analyser
+reader/display that is missing. Show **build key: not declared** when `keyNeed` is absent, including on
+recommended entries. Never infer either capability from recommendation, project type or compilation mode.
+Render supported declared key requirements as facts; unknown future values are reported as unrecognised,
+not silently treated as keyless. Catalogue declarations describe the default download; if the user opts
+out or changes capabilities, show effective configuration rather than retaining a contradicted badge.
+
+**Terminology — a guided walkthrough uses a project.** A template selects the project's code,
+configuration, scripts and documentation. A guided walkthrough is an optional procedure in its
+runbook: run a supplied scenario, predict an outcome, inspect the evidence, make one explained change
+and compare the result. Freeform design starts from the user's own behaviour requirements instead of
+following that exercise. Either style can use a hosted, embedded or vendor-integration project.
+Thus “guided starter” may name a worked example with a walkthrough, but is not a new execution mode
+or an automatic property of an `onboarding` tag. No separate guided-session engine is specified here;
+the human/LLM follows the runbook, and the analyser presents design and evidence.
 
 **D-2 · `mode: aot` does not mean "needs a key" — and the catalogue implied it did. LANDED, and it
 was a live bug, not a hypothetical.** Reading the code made it worse than this section first stated:
@@ -117,9 +153,10 @@ warning on the one template the tutorial recommends** — the first thing a new 
 needs to distinguish *builds keylessly* from *regenerates keylessly*; they are different facts and
 `mode` currently carries neither cleanly. Also filed as UP-PG-03.
 
-The analyser reads the additive `keyNeed` fact and renders `none` when it is expressly declared. It
-says nothing where the field is absent and never consults `mode` for a key statement. The generated
-project's `README` / `CLAUDE.md` remains authoritative for regeneration.
+The shipped analyser renders `none` when expressly declared and otherwise says nothing. **Revised
+requirement after F3:** render declared supported values and **not declared** for absence, without
+consulting `mode`. The generated project's README/bootstrap remains authoritative for regeneration;
+a build-key badge must not imply a regeneration-key guarantee.
 
 **D-3 · OWNER DECISION: the analyser does not run the project in M19.5.**
 This is the boundary the owner should set deliberately, because the seamless version of this feature
@@ -165,6 +202,23 @@ not a stack trace. Network and extraction never block the EDT and expose modeles
 
 ## E — acceptance
 
+**2026-09-20 revision, still to verify:**
+
+- A catalogue with fourteen entries and two onboarding tags presents all fourteen; only the two
+  tagged entries carry the recommendation. Test the general rule as well, without a fixed size limit.
+- A catalogue with no onboarding tags presents every entry, including embedded and DSL choices;
+  no implicit Mongoose restriction remains.
+- An untagged entry can be selected, downloaded with its declared identity defaults and opened through
+  the appropriate flow. Witness both a profile-bearing download and a legacy/profile-less discovery
+  offer with nothing preselected; say which occurred. Explicit opt-out is not silently undone.
+- Verify `agentBootstrap` present/empty/absent and `keyNeed` declared/absent/unrecognised on recommended
+  and ordinary entries. Check advertised entry files against the generated default ZIP. The reader
+  handles unknown additive catalogue fields without treating them as capabilities.
+- Witness the picker on screen: recommendation labels and descriptions are clear, every entry is
+  reachable, and the existing version/network/archive refusals still apply. No build or run is executed.
+
+The following records the original shipped acceptance:
+
 A bench in `tools/bench/`, run headlessly in CI, that: reads the live catalogue; refuses a bumped
 `catalogue` integer; fetches a named template from the real endpoint; asserts the zip generates a
 project whose profile opens with `project.active` and its runbooks resolved; and **fails on each D-4
@@ -183,6 +237,6 @@ D-1/D-2, which are additive under `catalogue: 1`. Analyser half: a dialog, an HT
 **hardened** unzip, which is most of the work and all of the risk. The D-4 list is not padding; it is
 the reason this is not an afternoon.
 
-It does not remove the terminal from onboarding (D-3). It removes the browser, the "which of 14?"
-question, and the unzip-to-the-right-place step — and it makes the analyser the place you start,
-which is the part the owner actually asked for.
+It does not remove the terminal from onboarding (D-3). It removes the required browser round trip
+and manual extraction. Catalogue recommendations help the user choose while keeping every template
+available. The analyser is one starting point; website and direct LLM downloads remain valid routes.

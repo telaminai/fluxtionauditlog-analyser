@@ -1,0 +1,56 @@
+{
+  "schemaVersion" : "1.0",
+  "stages" : {
+    "build" : {
+      "at" : "2026-09-19T20:23:00.856295Z",
+      "outcome" : "ok",
+      "inputs" : {
+        "xmlHash" : "sha256:12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f",
+        "sourceHash" : "sha256:79b505bc69a7987e1aba93567e7ab37055dcc74a9256fa0f488b6b49cadb3171",
+        "recordHash" : "sha256:17c12dc839f76f8fc468a4116da8a14ff1ac650aaf80e1c86b404e796b827a24"
+      },
+      "compilerRan" : true,
+      "route" : "local",
+      "outputs" : {
+        "xmlHash" : "sha256:12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f",
+        "sourceHash" : "sha256:79b505bc69a7987e1aba93567e7ab37055dcc74a9256fa0f488b6b49cadb3171",
+        "recordHash" : "sha256:17c12dc839f76f8fc468a4116da8a14ff1ac650aaf80e1c86b404e796b827a24"
+      }
+    },
+    "preflight" : {
+      "at" : "2026-09-19T20:22:56.078431Z",
+      "outcome" : "ok",
+      "route" : "local"
+    },
+    "regenerate" : {
+      "at" : "2026-09-19T20:22:55.856032Z",
+      "outcome" : "ok",
+      "inputs" : {
+        "xmlHash" : "sha256:12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f",
+        "sourceHash" : "sha256:79b505bc69a7987e1aba93567e7ab37055dcc74a9256fa0f488b6b49cadb3171",
+        "recordHash" : "sha256:17c12dc839f76f8fc468a4116da8a14ff1ac650aaf80e1c86b404e796b827a24"
+      },
+      "outputs" : {
+        "xmlHash" : "sha256:12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f",
+        "sourceHash" : "sha256:79b505bc69a7987e1aba93567e7ab37055dcc74a9256fa0f488b6b49cadb3171",
+        "recordHash" : "sha256:17c12dc839f76f8fc468a4116da8a14ff1ac650aaf80e1c86b404e796b827a24"
+      },
+      "options" : {
+        "generateDeregistration" : "false",
+        "reconcileExisting" : "true",
+        "sourceRoot" : "src/main/java",
+        "xml" : "src/main/fluxtion/designer/application-context.xml"
+      }
+    },
+    "validate" : {
+      "at" : "2026-09-19T20:22:55.707728Z",
+      "outcome" : "ok",
+      "inputs" : {
+        "xmlHash" : "sha256:12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f"
+      },
+      "options" : {
+        "xml" : "src/main/fluxtion/designer/application-context.xml"
+      }
+    }
+  }
+}

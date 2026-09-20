@@ -1,0 +1,96 @@
+{
+  "schemaVersion" : "1.0",
+  "inputs" : {
+    "xmlHash" : "sha256:12734c3594b5caf14f31ef6f1111e63839f08212977e6d1b0f028d6bfc0cb99f",
+    "sourceHash" : "sha256:79b505bc69a7987e1aba93567e7ab37055dcc74a9256fa0f488b6b49cadb3171",
+    "recordHash" : "sha256:17c12dc839f76f8fc468a4116da8a14ff1ac650aaf80e1c86b404e796b827a24"
+  },
+  "classes" : {
+    "com.example.myapp.node.Child" : {
+      "added" : [ ],
+      "removed" : [ ],
+      "demoted" : [ ],
+      "updated" : [ ],
+      "adopted" : [ ],
+      "unchanged" : [ {
+        "member" : "field:parent",
+        "signature" : "final private com.example.myapp.node.RootNode parent"
+      }, {
+        "member" : "field:sinkChecked",
+        "signature" : "public com.telamin.fluxtion.runtime.output.SinkPublisher<com.example.myapp.event.Checked> sinkChecked"
+      }, {
+        "member" : "implements:com.example.myapp.service.Commands",
+        "signature" : "implements com.example.myapp.service.Commands"
+      }, {
+        "member" : "cancel(java.lang.String)",
+        "signature" : "public void cancel(java.lang.String)"
+      }, {
+        "member" : "initialise()",
+        "signature" : "public void initialise()"
+      }, {
+        "member" : "onChild()",
+        "signature" : "public boolean onChild()"
+      }, {
+        "member" : "onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)",
+        "signature" : "public boolean onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)"
+      }, {
+        "member" : "reset()",
+        "signature" : "public void reset()"
+      }, {
+        "member" : "start()",
+        "signature" : "public void start()"
+      }, {
+        "member" : "stop()",
+        "signature" : "public void stop()"
+      }, {
+        "member" : "tearDown()",
+        "signature" : "public void tearDown()"
+      } ]
+    },
+    "com.example.myapp.node.MarkToMarketNode" : {
+      "added" : [ ],
+      "removed" : [ ],
+      "demoted" : [ ],
+      "updated" : [ ],
+      "adopted" : [ ],
+      "unchanged" : [ {
+        "member" : "field:positionNode",
+        "signature" : "final private com.example.myapp.node.PositionNode positionNode"
+      }, {
+        "member" : "field:rootNode",
+        "signature" : "final private com.example.myapp.node.RootNode rootNode"
+      }, {
+        "member" : "onMarkToMarketNode()",
+        "signature" : "public boolean onMarkToMarketNode()"
+      } ]
+    },
+    "com.example.myapp.node.PositionNode" : {
+      "added" : [ ],
+      "removed" : [ ],
+      "demoted" : [ ],
+      "updated" : [ ],
+      "adopted" : [ ],
+      "unchanged" : [ {
+        "member" : "onTrade(com.example.myapp.event.Trade)",
+        "signature" : "public boolean onTrade(com.example.myapp.event.Trade)"
+      } ]
+    },
+    "com.example.myapp.node.RootNode" : {
+      "added" : [ ],
+      "removed" : [ ],
+      "demoted" : [ ],
+      "updated" : [ ],
+      "adopted" : [ ],
+      "unchanged" : [ {
+        "member" : "onPriceUpdate(com.example.myapp.event.PriceUpdate)",
+        "signature" : "public boolean onPriceUpdate(com.example.myapp.event.PriceUpdate)"
+      } ]
+    }
+  },
+  "diagnosticReport" : {
+  "diagnosticsVersion": "1.0",
+  "sourceRoot": "src/main/java",
+  "truncated": false,
+  "diagnostics": []
+}
+}

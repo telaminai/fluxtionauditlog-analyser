@@ -24,8 +24,258 @@ Legend for each item: **[id] status — title** · _acceptance_.
   render — Spring XML on the canvas), now merged on main and unreleased; both guides link its design view.
 - ☐ **Independent review of the two pages** — version correction is implemented; diagrams and overall claims
   still need the owner-chosen review. The next analyser release carries the reviewed pages.
+- ☑ **Local preview syntax correction** — Mermaid 11 rejects the semicolon in the sequence message
+  `Agreed; show the transition`. Changed the punctuation; reproduced the parse failure before the fix
+  and verified the corrected sequence with the docs theme's Mermaid 11 parser. Visual diagram review
+  remains open; MkDocs strict alone cannot validate Mermaid syntax.
 
 ## Spring authoring observed acceptance — 2026-09-19
+
+- ◧ **Starter journey implementation started — 2026-09-20** — owner authorized commits, pushes and
+  isolated branches through the full reviewed workflow. Preserve existing checkouts/staging. Planned
+  branch in each owning repo: `feat/project-starter-journey`; analyser from current main, playground and
+  compiler from their reviewed Spring-authoring heads with upstream integration checked explicitly.
+  Track acceptance and exact heads in [implementation handoff](../handoff/handoff_project_starter_implementation_2026_09_20.md).
+  Public release gates remain distinct from local development verification.
+
+- ◧ **Starter journey design review F1–F16 (2026-09-20)** — [review](../handoff/review_project_starter_journey_2026_09_20.md)
+  is CONDITIONAL; [author response](../handoff/response_project_starter_journey_2026_09_20.md) records corrections
+  and source limits. **Owner decisions:** absent `analyserSupport` means on even in old links; explicit false
+  stays off. Both quit/relaunch and project reopen use the same explicit restore offer.
+  [Re-review](../handoff/rereview_project_starter_journey_2026_09_20.md) accepts the F-series dispositions
+  and leaves G1–G3. Those are now corrected in spec text: absent query means no override; one emitter per
+  output path with a duplicate assertion; Project panel states, StartPanel landing offers actions.
+  [Second re-review](../handoff/rereview2_project_starter_journey_2026_09_20.md) closes F/G and leaves
+  H1–H3 in the learning section. Author corrections now require choice-neutral comments and changed-mode
+  acceptance, a version-neutral fallback exception with unverified-compatibility disclosure, and explicit
+  recurrence/held-out thresholds for adopting or removing guidance. Independent confirmation of H and
+  implementation remain open. [Consolidated review](../handoff/review_all_specs_2026_09_20.md) approves the
+  template spec subject to sequencing and adds H4–H6 for the journey. Current author corrections cover
+  canonical comment ownership with direct parity, independent report assertions/mutations separate from
+  non-regression, and hosted ordering/reset/replay/capture contracts.
+  [Latest re-review](../handoff/rereview_all_specs_2026_09_20.md) closes H1–H6. Author corrections for J1–J3
+  now specify the public starter artifact/resource/version/digest mechanism, stamp Mongoose snapshot
+  observations separately from resolved project defaults, and clarify late-subscriber cache behaviour.
+  [Final re-review](../handoff/rereview_final_project_starter_journey_2026_09_20.md) closes J1–J3 and marks
+  the combined handoff READY. Its K1 endpoint and K2 digest wording corrections are now incorporated:
+  Repsy is authoritative; resource digest checks content parity, artifact digest checks immutable releases.
+  Slices 1–4 can start; comment publication verification requires a released starter containing the resource.
+  Shared metadata, recipe version floors and other named implementation prerequisites remain open.
+  No implementation or publication is claimed.
+- ◧ **Additional starter-journey review scope — learning routes** — participant feedback now informs
+  the journey spec's “Learning at the point of use” and acceptance 10–12: routed bootstrap/task references,
+  decision-point stub comments, actionable diagnostics, version compatibility and a measured held-out
+  journey. F/G/H/J are independently closed; final review READY with K1/K2 wording now corrected. Preserve generated-body
+  ownership/hash compatibility and the analyser's pointers-only boundary. No guide verb or new runtime
+  default is approved. Compiler/starter and playground own emitted guidance; agent/harness owns execution.
+- ☐ **Journey delivery dependencies** — playground support/default/API override → factored profiles and
+  capability-specific runbooks → documented agent entry. Analyser saved-graph context → project landing →
+  user-local per-project restore, replacing global implicit startup opens → full catalogue with bootstrap/key
+  disclosures. Ship picker expansion after default-on downloads carry profiles. Vendor entry coordinates
+  with M67; the optional authoring section shares StartPanel and the existing picker controller.
+- ☐ **Default-on analyser support in generated projects (owner, 2026-09-20)** —
+  [starter journey spec](spec-project-starter-journey.md): website option, headless configuration parity,
+  portable profile and project-specific bootstrap/runbooks, explicitly switchable off. Mongoose includes
+  applicable deploy/start/stop/feed/audit guidance; ordinary project instructions survive opting out.
+  Keep this separate from the special `analyserBundle` mode and from runtime/audit choices. Playground
+  owns generation; analyser only reads the profile and renders evidence. Schema migration and delivery
+  across the template set remain to be implemented and verified.
+- ☐ **Author-new-project page proposal** — explain the shared catalogue and continue through the existing
+  download/open flow, with website configuration for richer choices. No duplicate generator/configurator.
+  Page design and a simpler plain-JSON headless request are proposals, not shipped capabilities.
+- ☑ **Diagnose owner close/reopen context report (2026-09-20)** — reproduced on a copied sample with the
+  staged jar, real Swing and action socket. Project/roots/runbooks/report survive; log/topology/design/results
+  close; five saved chart definitions return after explicit log open. Screenshots confirm the generic demo
+  welcome obscures the surviving project state. The launcher performs extra evidence-open calls that ordinary
+  reopening does not. No persistent-definition loss reproduced; menu clicks/quit-relaunch untested. The live
+  project was unchanged. Focused checks: 46 tests pass. [Evidence](../handoff/evidence/spring-authoring-feedback-2026-09-20-reopen/README.md).
+- ☐ **Project-aware landing and explicit resume** — show saved project context and unavailable/closed inputs
+  instead of leading with the generic demo page. Implement the freshness-checked restore offer (feedback 28)
+  and test human/MCP parity. The download profile/runbooks must make first open and later re-entry understandable
+  without the local launcher's hidden steps. [Journey spec](spec-project-starter-journey.md).
+- ☐ **Journey starts before a project exists (owner clarification, 2026-09-20)** — provide one catalogue
+  reached from the website, a local LLM or the analyser's existing template picker. The LLM can download
+  a project without the analyser; it follows project runbooks to set up/build/run, then connects the
+  analyser as the shared design/evidence canvas. Requested entry choices: guided starter, Mongoose +
+  Spring authoring, bare Fluxtion, vendor + Fluxtion. Each needs its own runbook, with one short bootstrap
+  entry and shared references rather than divergent copies. Keep tutorial guidance, freeform design and
+  held-out evaluation explicit; guidance can apply to multiple project types. Clarify vendor consumer
+  versus library-author tasks in that runbook. Verify from an empty directory with no source-repo access,
+  including template choice, prerequisites, setup, first result, analyser connection and teardown.
+  **Observed today:** the live catalogue and headless `start/scaffold?template=fluxtion-spring-mongoose`
+  return a 22-entry ZIP with README, but no dedicated RUNBOOK/authoring-docs/bootstrap files. Download
+  availability does not establish delivery of the branch's authoring workflow or publication readiness.
+  No app execution moves into the analyser; no template/API implementation is claimed by this intake.
+- ☐ **Show the full template catalogue (owner accepted, 2026-09-20)** —
+  [template-picker spec D-1](spec-template-from-analyser.md#c--decisions) now replaces the onboarding-only
+  rule: list every catalogue entry and mark onboarding-tagged entries as **Recommended starting points**.
+  No tags means all entries without recommendations, not a Mongoose-only fallback. Implementation and
+  UI verification remain open; test mixed tags, no tags and downloading an untagged choice. A guided
+  walkthrough is a runbook procedure using a project, not a separate runtime or a guarantee from the tag.
+- ☑ **Preserve the owner's staged-session feedback** — [original report and evidence packet](../handoff/evidence/spring-authoring-feedback-2026-09-19/README.md)
+  retain ten participant issues, three inspected screenshots, final application/XML/graph/audit files,
+  producer results and the launcher's baseline context with SHA-256 manifest. Original report unchanged;
+  observations, proposed fixes and unconfirmed causes are distinguished. No fixes or independent
+  reproductions of these ten issues are claimed by this intake.
+- ☑ **Review the complete staged-session feedback** — read all 21 issues, both correcting addenda and
+  the companion authoring/hosting report; inspected all nine screenshots. Independent saved-log probes
+  reproduce marker overcounting (5/6 business events become 11/10 standalone markers and 9/10 hosted),
+  confirm the 19 matching business records, and isolate listener identity differences in control records.
+  The existing headless scaffold endpoint returned the hosted template. Selection-scoped `nodeTypes`
+  and successful same-path reopen narrow two reported defects. [Review and decisions](../handoff/review_staged_spring_feedback_2026_09_19.md)
+  distinguish reproduced, source-confirmed and participant-only evidence; [complete second packet](../handoff/evidence/spring-authoring-feedback-2026-09-19-round2/README.md)
+  preserves both reports and supporting files. This is review/triage, not implementation or release approval.
+- ☐ **Staged feedback — evidence correctness first** — alongside existing DX-02, address loaded/on-disk
+  and producer freshness (1/9), final combined-action echo (20), source spotlight geometry and departure
+  accounting (2–4), and explicit event-versus-carried-state marker semantics (12/19). Acceptance must
+  use the saved logs (new same-record markers: 5/6/8), overwritten snapshots and scrolled source views;
+  preserve Follow and decide saved-marker compatibility explicitly. Proposed priority: P1 correctness;
+  combined echo P2. Keep original feedback numbers separate from DX and compiler F/G identifiers.
+- ☐ **Topology feedback 37 — Show all focus exit** — participant reports depth 1/16 nodes after
+  `showAll:true, scaffolding:false`; `pop:"all"` works. Source confirms MCP calls `clearView`, which only
+  clears highlights, while the toolbar pops focus first. Align both paths; test nested focus, showAll alone
+  and with both scaffolding values, selection/shading/breadcrumbs and echo/context. No runtime repro or fix yet.
+- ☐ **Topology callout placement (extension of feedback 14)** — participant reports six captions covering non-target
+  nodes. Inspected the existing six-target screenshot; geometry currently scores lit cut-outs/other captions,
+  not all visible nodes. Feed occupied node bounds to placement and specify crowded-viewport fallback;
+  verify zoom/pan/resize and pixels. Same family as 14, but a topology/spotlight implementation scope.
+- ☑ **Reconcile concurrent feedback numbering and preserve new intake** — participant 36–39 retained:
+  focus management, Show all, partial restart and invalid bounds echo. Prior intake's 36 maps to 37;
+  prior 37 (overlap) was temporarily 40; participant feature request 40 now owns that number and overlap
+  is tracked descriptively as an extension of 14. Archived packets are unchanged. [Latest packet and proposal P1](../handoff/evidence/spring-authoring-feedback-2026-09-20-tours/README.md)
+  preserves before/after documents, source qualifications and the second participant observation of 6.
+- ☐ **Feedback 36 — named focus lifecycle over MCP** — save/recall exists; deletion has a UI but no MCP
+  parameter, and rename is missing. Add explicit operations through existing topology scope with collision,
+  persistence and dependent-reference semantics. Do not recommend editing an active profile: close can flush
+  dirty memory over it. Empty focus must not ambiguously mean deletion.
+- ☐ **Feedback 38/39 and recurring 6** — include design/diagnostics in the project-scoped restore contract
+  and report omissions (38, participant restart evidence); compare spotlight echo and painted bounds after
+  settled layout (39), retaining tests for earlier mispaint. Compiler/starter owner: repeat EndOfDayReporter
+  audit-scaffolding case and define new-owned-node policy; absence of values is not absence of execution.
+- ☐ **Feature request 40 (intake alias P1) — saved focus captions** — assess explicit ordered commentary associated with a focus,
+  preserving transient spotlight defaults. Attribute text; bind structural claims to model/code identity where
+  available and observational steps to original run/record or existing report references. Current report
+  fingerprints are coarse, not exact identity. Keep unresolved targets visible and define rename/delete and
+  partial-recall behaviour. This needs design review before changing the pinned never-saved spotlight rule;
+  it is not a second evidence/report engine. Correctness and focus-management work take priority.
+  **Participant clarification:** the gap is optional ordered captions on an already-persistent focus;
+  caption-free focuses behave unchanged. The actual six-step example mixes structural explanation with
+  four run-specific observations. Preserve written-against context and qualify mismatched/unknown runs;
+  do not narrow the use case to structural-only captions or introduce another focus-save route.
+  Latest participant write-up is preserved verbatim. Priority is not established across models: record
+  frequency in independent tasks and test whether a returning/new reader can resume the explanation
+  without retyping, while correctly identifying stale observations. Existing saved graphs/reports remain
+  other durable shareable state; the proposal extends focuses rather than introducing persistence generally.
+- ☐ **Staged feedback — authoring route and hosted audit boundary** — playground/compiler/docs owners:
+  short entry point, discoverable existing headless download, CSV-driven example, server-owned audit
+  listener, accurate feed/reset/completion instructions, and consistent auditing for new owned classes (6).
+  A fresh client should follow generated docs without source bundling or invented timing. Existing classes
+  must not be re-parented; trace-only evidence remains distinct from missing execution.
+- ☐ **Staged feedback — next chart capabilities** — record-order x-axis (17) before same-record entity
+  grouping (11), with record identity, filtering, selection, marker/note/export consistency and cardinality
+  limits. The full-speed hosted fixture must be useful without pacing the application or logging a new
+  key per entity. Formula documentation exists; improve discovery (15) rather than introduce another parser.
+- ☐ **Staged feedback — presentation and maintenance** — reserved annotation/legend space (14/21),
+  explicit note anchoring/remapping (18), optional held tails (13), compiler formatting/output (7/8,
+  overlapping F5/G13/F10), stable runtime control text (16), and documented nodeTypes scope (10).
+  Cross-run note mapping must never silently equate unrelated record indices. Changeset targets (5)
+  remain deferred pending a previous-text/revision contract. Full dispositions and acceptance are in the review.
+- ☑ **Review the report-export addendum (24–27)** — visually inspected both PDFs (17 pages) and ran
+  an independent headless probe: a resolved topology's fallback disappears; series fallback survives;
+  expected behaviour gets a defect heading; text equality produces the reported duration error.
+  Read-backed tables are contiguous, while series-statistics tables already work. Title/provenance
+  clipping is confirmed; the missing boolean band needs its exact definition (quoted text is deliberately
+  not a boolean). [Decisions and verification](../handoff/review_staged_spring_feedback_2026_09_19.md#third-addendum--report-export-issues-2427),
+  [updated feedback and probe](../handoff/evidence/spring-authoring-feedback-2026-09-19-round3/README.md).
+- ☐ **Report integrity — first correctness slice** — 24: every requested section must render or carry
+  an in-place reason and export warning. Cover resolved-but-unassembled topology, not only missing
+  references. A full topology export must render the named saved focus without changing the user's
+  current view. The series-section limitation (26b) also needs an honest export warning.
+- ☐ **Reports as evidence, not automatically defects** — before optional chart polish: neutral finding
+  language and an explicit persisted category at the flag write site (25); typed same-record text
+  predicates (26a); real series-section assembly using existing computations (26b); bounded derived
+  tables over selected records (26c); complete exported provenance and wrapped titles (27a).
+  Preserve the narrative/evidence distinction, old saved findings, row provenance and explicit caps.
+- ☐ **Additional desk-session intake (22/23/28)** — compiler owner: reproduce signal-stub propagation
+  hazard before choosing a default (return-false everywhere is also wrong), document callback boolean
+  values with actionable errors. Analyser: consider an explicit restore-last-session offer with identity
+  and freshness checks; retain the project session boundary. These are participant-reported intake,
+  not re-run compiler mutants or a witnessed project reset. Issue 27b requires the exact band/key/scope.
+- ☑ **Review the four-use-case / validation-pack proposal** — the authoring-docs feedback gained 159
+  lines; analyser issues are unchanged. Accept the framing, with conversation spanning the other use
+  cases. Existing posture already reaches the UI and context. Comparison probe: the default scorer
+  passes 11 trade events even after all eight price-event names change; the record diff ignores earlier
+  overwritten values by contract. These are bounded tools, not complete run equivalence. [Review and
+  revised predictions](../handoff/review_staged_spring_feedback_2026_09_19.md#fourth-addendum--four-use-cases-and-the-validation-pack),
+  [preserved proposal and probe](../handoff/evidence/spring-authoring-feedback-2026-09-19-round4/README.md).
+- ☐ **Validation-pack discovery experiment and result contract** — after evidence/report correctness:
+  one project entry point over bootstrap docs for Fluxtion, the analyser, audit logs, Mongoose and
+  Mongoose plugins, then task-specific runbooks, spec, feeds, oracle/checker, mutations and results;
+  cold-test discovery without the transcript. Agent/harness executes; analyser consumes evidence. Review typed
+  result intake with input/build/output identities, scope, completion, freshness and per-rule anchors;
+  PASS/FAIL/UNKNOWN/NOT-RUN must remain distinct. No analyser command runner or new verb approved.
+- ☐ **EOD reporting validation follow-up (participant assessment, 2026-09-20)** — unchanged desk outputs
+  do not validate report arithmetic. Freeze predictions, derive report expectations independently from the
+  feed, compare audit summaries and rendered output, and kill isolated mark/multiplier/threshold/grouping/
+  order-count mutations. Cover both triggers and boundary/empty cases; keep desk non-regression separate.
+  Project runbook/harness executes; analyser presents results. No new run claimed. [Assessment and limits](../handoff/review_staged_spring_feedback_2026_09_19.md#eighth-addendum--participant-system-assessment-and-eod-qualification).
+- ☐ **Two-run comparison experiment** — specify alignment, normalization, event/value/occurrence scope
+  and missing/extra/damaged input handling before product implementation. Reuse existing comparison
+  parts only within their contracts. Fixing control-event identity alone is insufficient. Feed recovery
+  needs explicit capture/mapping and prior state; a `toString` audit record cannot promise reproduction.
+  Saved analyses are a starting point for later walkthroughs, distinct from M67; human question anchors
+  and posture-suggested defaults need task evidence and must not reinterpret saved findings.
+
+- ☑ **Review vendor-component feedback (29–35)** — full private project snapshot preserves 252 entries
+  outside the public repo, with SHA verification. Independently reproduced regeneration creating an empty
+  source class that shadows a dependency (29); changing jar bytes leaves receipt inputs unchanged (30).
+  Also reviewed the companion's 157-line docs advice: accept discoverable tested examples and cold-start
+  tasks, qualify causality/certification claims and keep model evaluations separate from routine snippet CI.
+  Traced the missing subtype dispatch edge through GraphML, generated calls and nine saved records (34):
+  compiler/exporter metadata owns this gap. Reviewed cached classpath handling and the existing vendor guide.
+  [Dispositions and limits](../handoff/review_staged_spring_feedback_2026_09_19.md#fifth-addendum--vendor-components-issues-2935),
+  [preserved packet](../handoff/evidence/spring-authoring-feedback-2026-09-19-round5/README.md).
+- ☐ **Dependency-provided classes stay foreign (29), P1** — starter/compiler: distinguish missing project
+  source from dependency-provided types before generating shells. Missing/stale classpath information must
+  not silently authorize shadowing. Test listed and referenced vendor beans without paid compilation.
+- ☐ **Dependency identity and classpath lifecycle (30/33)** — producers record effective artifact byte
+  identities and phase-specific classpath precedence; scripts refresh or verify dependency inputs after
+  setup. Analyser consumes provenance. Hashes do not establish certification or link an unrelated log to a
+  binary. Review this contract before implementation; dependency provenance P1, cached-path reliability P2.
+- ☐ **Authoritative dispatch metadata (34), P1** — compiler/exporter supplies known concrete dispatch
+  relationships and declared handler types with explicit semantics; analyser displays the facts and their
+  limits. Never infer compiler dispatch by executing application classes or inventing edges from observations.
+- ☐ **Vendor authoring diagnostics and guidance (31/32/35), P2** — earlier constructibility diagnostics,
+  stable instance naming and bootstrap discovery of the existing vendor guide. Test supported construction
+  routes and multiple component instances; document state bridging separately from shared event interfaces.
+- ☑ **Review the session-audit proposal** — preserved the latest note tying 1/20/28 to session state.
+  Existing sink export has no MCP/UI path and omits completeness counters; current events do not capture
+  the final action echo. Ran seven session-audit/design tests: zero failures, errors or skips.
+  [Contract and limitations](../handoff/review_staged_spring_feedback_2026_09_19.md#sixth-addendum--the-analysers-own-session-audit),
+  [latest note](../handoff/evidence/spring-authoring-feedback-2026-09-19-round6/README.md).
+- ☐ **Bounded session diagnostic snapshot** — review explicit local export with immutable records/counters,
+  capture boundary, model/version identity and request/response correlation. Preserve project boundaries;
+  restore remains an explicit freshness-checked offer (28). Geometry still needs screenshots. This supports
+  current correctness work without delaying it; no new MCP verb, automatic upload or application runner is
+  approved by this intake. Test overflow, sink/export failure, stale completions and unchanged live state.
+
+- ☑ **Owner local rehearsal launcher** — `tools/start-spring-demo.sh` prepares the existing worked
+  sample, project profile/recent-project entry and `.mcp.json`, starts an isolated analyser and local
+  playground/docs, and probes the MCP bridge. Teardown preserves project edits. Start, repeated start,
+  stop and restart passed; 19 source/record/MCP/evidence files remained byte-identical. Three process
+  ownership/preservation tests pass. Java gate: 1,688 tests, zero failures/errors, 31 display skips;
+  MkDocs strict and the sweep pass. [Local instructions](../admin/local-spring-demo.md) and
+  [verification report](../handoff/report_local_spring_demo_2026_09_19.md). This is local provisioning,
+  not publication, a witnessed browser preview or G14 evidence.
+- **Reply-review intake (owner supplied, 2026-09-19):** both reply reviews accept the disposition;
+  implementations remain READY WITH FOLLOW-UPS. Compiler review branches
+  `review/spring-pass4-reply-G` (`4227a856a`) and `review/spring-pass4-reply-claude-g`
+  (`c4085e31`, `fa4d6ab1`) have not been integrated by this analyser task. Record the F8 attribution
+  correction: G pass 4 read the wording; F witnessed the path. **G15:** merge current compiler develop
+  before the publication build and rerun gates. **G16:** rate F11 P3 when publication makes the split-version
+  download installable. **G17:** G12 reaches reference fields whose name differs from the bean id,
+  including the extended-XML download; pin the regression to that template. These are review intake,
+  not fixes or independently reverified closures. Publication, witnessed preview and G14 remain open.
 
 - ☑ **Fresh-session trial performed and independently assessed.** Predictions were frozen first; no inherited
   conversation or observer coaching. The session produced two real matching runs and a chart/report with existing
@@ -691,20 +941,21 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
-- [M19.23] ◐ **UP-PG-02 `agentBootstrap` — IN PROGRESS, playground session** _(2026-08-30)_ —
-  plan: [`plan_playground_agent_bootstrap.txt`](../handoff/completed/plan_playground_agent_bootstrap.txt). No spec
-  exists (D-B5 lists it as "still open, and NOT specified here"), and the catalogue is a contract the
-  M19.5 picker consumes, so the shape is being agreed before it ships rather than after.
+- [M19.23] ◧ **UP-PG-02 producer LANDED; analyser disclosure OPEN** _(corrected 2026-09-20)_ —
+  plan: [`plan_playground_agent_bootstrap.txt`](../handoff/completed/plan_playground_agent_bootstrap.txt).
+  `agentBootstrap` exists on playground `origin/main` and in the live catalogue inspected on September 20.
+  The analyser's `TemplateCatalogue.Entry` does not yet consume it. Parse/render present, explicitly empty
+  and absent declarations as part of the journey/picker revision; recommendations do not imply readiness.
   **Evidence the ask did not have:** all fourteen templates were generated — `analyser-bundle` ships
   `CLAUDE.md` + `AGENTS.md`, the other **thirteen ship neither**. So the field carries real information.
   **The gap that matters more than the field:** the `onboarding` subset the picker lists is TWO
   templates and only ONE ships agent instructions, so a user choosing `fluxtion-spring-mongoose` from
   inside the analyser gets a project with no CLAUDE.md, no AGENTS.md and no skills — chosen from a list
-  whose purpose is onboarding. The field DISCLOSES that; it does not fix it. **Whether `onboarding`
-  should MEAN "arrives ready for an agent" is an analyser decision** (it owns the selection rule,
-  spec-template-from-analyser D-1) and is explicitly not being taken unilaterally. Shipping now: the
-  field, plus a test that generates each template and asserts the field matches what the project
-  actually contains, because a hand-maintained boolean rots in a week.
+  whose purpose is onboarding. The field DISCLOSES that; it does not fix it. **2026-09-20 owner decision:**
+  spec-template-from-analyser D-1 now requires all entries, with `onboarding` a recommendation rather
+  than an exclusion rule or a guarantee of agent readiness; that picker change is not implemented yet.
+  The bootstrap-content gap remains. Producer field delivery is complete; re-run generated ZIP/metadata
+  consistency checks when default-on support extends bootstrap output to the other project types.
 - [M19.22] ◐ **The generated processor's header claims CONFIDENTIALITY — filed as
   [fluxtion#24](https://github.com/telaminai/fluxtion/issues/24)** _(found 2026-08-30 against the live
   bundle)_ — [`spec-onboarding-example.md` ▸ D-B6](spec-onboarding-example.md). Every generated processor
@@ -1227,6 +1478,10 @@ with each entry's description, takes artifact/group/base-package, downloads the 
 and makes the generated project's profile the active project. That is .2, .3 and .4 — the templates are the playground's
 (14 in the versioned catalogue), not a directory in this repo.
 
+**Owner revision 2026-09-20, pending implementation:** D-1 now requires the full catalogue, with
+onboarding entries marked **Recommended starting points**. The subset above describes shipped behaviour,
+not the revised requirement; see the open full-catalogue item under Spring authoring observed acceptance.
+
 **The idea.** The analyser offers a set of Fluxtion project templates. A user picks one; that is what
 their AI client starts from, rather than an empty directory plus prose.
 
@@ -1434,6 +1689,16 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 
 ## Decisions (resolved)
 
+- **The LLM operates the application toolchain through documentation and runbooks; the analyser
+  renders evidence** _(owner, 2026-09-19, staged-feedback review)_. Bootstrap the LLM's understanding
+  of Fluxtion, the analyser, audit logs, Mongoose and Mongoose plugins, then point it to project/task
+  runbooks. Application processing, generation, hosting, replay and domain validation execute in their
+  owning tools/application/test harness, driven externally by the LLM or developer. The analyser must
+  not acquire application execution or orchestration logic, interpret runbooks as commands, or become
+  another implementation of domain behaviour. It retains log queries, reductions, scoped comparisons,
+  provenance/freshness checks and shared presentation of externally produced results. A validation
+  pack is portable documentation, test assets and evidence, not an analyser-run workflow. This narrows
+  the fourth feedback addendum's invariant/validation proposals; it authorizes no new execution verb.
 - **1.15.0 shipped 2026-09-18** with M64.10/.11/.12 and the two review rounds' fixes; no patch releases between _(owner)_.
 - **1.14.0 shipped 2026-09-17 with the whole M46-closure block, M65 and M64.8/.9; no 1.13.3** _(owner)_.
 - **This block ships as 1.14.0, together — NO 1.13.3, NO cherry-pick** _(owner, 2026-09-17, after the re-review)_.

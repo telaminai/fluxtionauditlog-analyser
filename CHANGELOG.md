@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Added
+- **Local Spring rehearsal launcher** — `tools/start-spring-demo.sh` provisions the existing acceptance
+  sample, its project MCP configuration and an isolated analyser, plus playground/docs previews.
+  `tools/stop-spring-demo.sh` stops its services while retaining project edits and evidence.
 - **Spring design on the canvas (M66)** — open a session XML design, browse its bean index in Source ▸
   Design, and use `source` for a fresh, read-only file/bean/line/class glance. Design Follow works without a
   log; bean spotlights follow identity across edits and qualify old captions. File ▸ Open producer diagnostics
@@ -22,6 +25,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- Correct the Mermaid sequence-diagram syntax on the Spring authoring conversations page.
 - Keep both Spring authoring guides tied to the compiler release that includes the starter tool; the downloaded project holds the exact version pin.
 
 ### Changed

@@ -1,0 +1,4 @@
+source records=36, default scored events=11
+All PriceUpdate event names changed: PASS 11/11 events, every figure within tolerance
+Repeated writes [1,2] vs [2], record diff differences=0
+These are documented comparison scopes, not a whole-run equivalence verdict.

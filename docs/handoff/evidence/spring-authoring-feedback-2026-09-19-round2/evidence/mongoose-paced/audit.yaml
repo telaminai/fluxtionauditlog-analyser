@@ -1,0 +1,418 @@
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707124
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@41418eab, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707124
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707125
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707125
+---
+eventLogRecord: 
+    eventTime: 1789849707125
+    logTime: 1789849707125
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: processor-agent
+    nodeLogs: 
+        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}
+    endTime: 1789849707126
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707126
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@41418eab, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707126
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707126
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707126
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707126
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707126
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707126
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707128
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707128
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707128
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707128
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707128
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707128
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707128
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707128
+---
+eventLogRecord: 
+    eventTime: 1789849707132
+    logTime: 1789849707132
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Start
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707132
+---
+eventLogRecord: 
+    eventTime: 1789849707132
+    logTime: 1789849707132
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: StartComplete
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707132
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849707132
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789849707132
+---
+eventLogRecord: 
+    eventTime: 1789849708872
+    logTime: 1789849708872
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=100.0, price=190.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: AAPL, quantity: 100.0, tradePrice: 190.0, position: 100.0, position_AAPL: 100.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_AAPL: 0.0, openSymbols: 1, totalPnl: 0.0}
+    endTime: 1789849708876
+---
+eventLogRecord: 
+    eventTime: 1789849708906
+    logTime: 1789849708906
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=MSFT, quantity=200.0, price=410.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: MSFT, quantity: 200.0, tradePrice: 410.0, position: 200.0, position_MSFT: 200.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_AAPL: 0.0, openSymbols: 2, totalPnl: 0.0}
+    endTime: 1789849708906
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849708939
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=AAPL, price=191.5, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=AAPL, price=191.5, filterId=7}, price: 191.5}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_AAPL: 150.0, openSymbols: 2, totalPnl: 150.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 1, lastProcessedPrice: 191.5, paused: false}
+    endTime: 1789849708941
+---
+eventLogRecord: 
+    eventTime: 1789849708976
+    logTime: 1789849708976
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=NVDA, quantity=-30.0, price=900.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: NVDA, quantity: -30.0, tradePrice: 900.0, position: -30.0, position_NVDA: -30.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_NVDA: 0.0, pnl_AAPL: 150.0, openSymbols: 3, totalPnl: 150.0}
+    endTime: 1789849708976
+---
+eventLogRecord: 
+    eventTime: 1789849709009
+    logTime: 1789849709009
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=50.0, price=192.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: AAPL, quantity: 50.0, tradePrice: 192.0, position: 150.0, position_AAPL: 150.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 0.0, pnl_NVDA: 0.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 125.0}
+    endTime: 1789849709009
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849709041
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=MSFT, price=413.0, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=MSFT, price=413.0, filterId=7}, price: 413.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 600.0, pnl_NVDA: 0.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 725.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 2, lastProcessedPrice: 413.0, paused: false}
+    endTime: 1789849709041
+---
+eventLogRecord: 
+    eventTime: 1789849709075
+    logTime: 1789849709075
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=MSFT, quantity=-50.0, price=415.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: MSFT, quantity: -50.0, tradePrice: 415.0, position: 150.0, position_MSFT: 150.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: 0.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 825.0}
+    endTime: 1789849709075
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849709111
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=NVDA, price=905.0, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=NVDA, price=905.0, filterId=7}, price: 905.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -150.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 675.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 3, lastProcessedPrice: 905.0, paused: false}
+    endTime: 1789849709112
+---
+eventLogRecord: 
+    eventTime: 1789849709147
+    logTime: 1789849709147
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=NVDA, quantity=-20.0, price=910.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: NVDA, quantity: -20.0, tradePrice: 910.0, position: -50.0, position_NVDA: -50.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 125.0, openSymbols: 3, totalPnl: 775.0}
+    endTime: 1789849709147
+---
+eventLogRecord: 
+    eventTime: 1789849709185
+    logTime: 1789849709185
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=-80.0, price=195.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: AAPL, quantity: -80.0, tradePrice: 195.0, position: 70.0, position_AAPL: 70.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 405.0, openSymbols: 3, totalPnl: 1055.0}
+    endTime: 1789849709185
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849709218
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=AAPL, price=194.0, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=AAPL, price=194.0, filterId=7}, price: 194.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 580.0, openSymbols: 3, totalPnl: 1230.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 4, lastProcessedPrice: 194.0, paused: false}
+    endTime: 1789849709218
+---
+eventLogRecord: 
+    eventTime: 1789849709255
+    logTime: 1789849709255
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=-120.0, price=193.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: AAPL, quantity: -120.0, tradePrice: 193.0, position: -50.0, position_AAPL: -50.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: -50.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 1110.0}
+    endTime: 1789849709256
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849709294
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=NVDA, price=885.0, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=NVDA, price=885.0, filterId=7}, price: 885.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: 950.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 2110.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 5, lastProcessedPrice: 885.0, paused: false}
+    endTime: 1789849709294
+---
+eventLogRecord: 
+    eventTime: 1789849709329
+    logTime: 1789849709329
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=NVDA, quantity=10.0, price=880.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: NVDA, quantity: 10.0, tradePrice: 880.0, position: -40.0, position_NVDA: -40.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 700.0, pnl_NVDA: 1000.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 2160.0}
+    endTime: 1789849709329
+---
+eventLogRecord: 
+    eventTime: 1789849709363
+    logTime: 1789849709363
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=MSFT, quantity=-50.0, price=412.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: MSFT, quantity: -50.0, tradePrice: 412.0, position: 100.0, position_MSFT: 100.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 650.0, pnl_NVDA: 1000.0, pnl_AAPL: 460.0, openSymbols: 3, totalPnl: 2110.0}
+    endTime: 1789849709363
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849709395
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=AAPL, price=190.5, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=AAPL, price=190.5, filterId=7}, price: 190.5}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 650.0, pnl_NVDA: 1000.0, pnl_AAPL: 635.0, openSymbols: 3, totalPnl: 2285.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 6, lastProcessedPrice: 190.5, paused: false}
+    endTime: 1789849709395
+---
+eventLogRecord: 
+    eventTime: 1789849709427
+    logTime: 1789849709427
+    groupingId: null
+    event: Trade
+    eventToString: Trade[symbol=AAPL, quantity=50.0, price=191.0]
+    thread: processor-agent
+    nodeLogs: 
+        - positionNode: { thread: processor-agent, method: onTrade, symbol: AAPL, quantity: 50.0, tradePrice: 191.0, position: 0.0, position_AAPL: 0.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 650.0, pnl_NVDA: 1000.0, pnl_AAPL: 610.0, openSymbols: 3, totalPnl: 2260.0}
+    endTime: 1789849709427
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849709463
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=MSFT, price=416.0, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=MSFT, price=416.0, filterId=7}, price: 416.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 950.0, pnl_NVDA: 1000.0, pnl_AAPL: 610.0, openSymbols: 3, totalPnl: 2560.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 7, lastProcessedPrice: 416.0, paused: false}
+    endTime: 1789849709463
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789849709501
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=NVDA, price=870.0, filterId=7}
+    thread: processor-agent
+    nodeLogs: 
+        - rootNode: { thread: processor-agent, method: onPriceUpdate, receivedEvent: PriceUpdate{symbol=NVDA, price=870.0, filterId=7}, price: 870.0}
+        - markToMarketNode: { thread: processor-agent, method: onMarkToMarketNode, pnl_MSFT: 950.0, pnl_NVDA: 1600.0, pnl_AAPL: 610.0, openSymbols: 3, totalPnl: 3160.0}
+        - child: { thread: processor-agent, method: onChild, action: priceProcessed, processedCount: 8, lastProcessedPrice: 870.0, paused: false}
+    endTime: 1789849709501

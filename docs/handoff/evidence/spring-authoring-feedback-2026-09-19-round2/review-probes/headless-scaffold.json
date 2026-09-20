@@ -1,0 +1,42 @@
+{
+  "request": "GET http://127.0.0.1:5174/start/scaffold?template=fluxtion-spring-mongoose",
+  "zipSha256": "f39c1d31755aed03946d7cd0d9c2f8bb2e4c1de880784c572dbb40c794158dd7",
+  "entries": [
+    "fluxtion-spring-mongoose/.gitignore",
+    "fluxtion-spring-mongoose/.idea/runConfigurations/MongooseMain.xml",
+    "fluxtion-spring-mongoose/.idea/runConfigurations/MongooseProgrammaticMain.xml",
+    "fluxtion-spring-mongoose/.mvn/wrapper/maven-wrapper.properties",
+    "fluxtion-spring-mongoose/check-fluxtion-key.sh",
+    "fluxtion-spring-mongoose/config/server-config.yml",
+    "fluxtion-spring-mongoose/data/input.txt",
+    "fluxtion-spring-mongoose/mvnw",
+    "fluxtion-spring-mongoose/mvnw.cmd",
+    "fluxtion-spring-mongoose/pom.xml",
+    "fluxtion-spring-mongoose/README.md",
+    "fluxtion-spring-mongoose/run-server.sh",
+    "fluxtion-spring-mongoose/src/main/fluxtion/designer/application-context.xml",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/builder/MarketProcessorSupplier.java",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/builder/SpringAotBuilder.java",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/event/PriceEvent.java",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/mapper/CsvToPriceEvent.java",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/MongooseMain.java",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/MongooseProgrammaticMain.java",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/node/RiskCheck.java",
+    "fluxtion-spring-mongoose/src/main/java/com/example/myapp/node/RootNode.java",
+    "fluxtion-spring-mongoose/src/test/java/com/example/myapp/MarketProcessorGraphTest.java"
+  ],
+  "supplierAuditLines": [
+    {
+      "file": "fluxtion-spring-mongoose/src/main/java/com/example/myapp/builder/MarketProcessorSupplier.java",
+      "line": 29,
+      "text": "flow.setAuditLogProcessor(logRecord -> System.out.println(logRecord));"
+    }
+  ],
+  "hostBootLines": [
+    {
+      "file": "fluxtion-spring-mongoose/src/main/java/com/example/myapp/MongooseMain.java",
+      "line": 21,
+      "text": "server = MongooseServer.bootServer(reader);"
+    }
+  ]
+}

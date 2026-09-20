@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-09-20T08:11:54.881167+00:00",
+  "source": "/private/tmp/fluxtion-spring-demo/project/ANALYSER-FEEDBACK.md",
+  "saved": "ANALYSER-FEEDBACK.md",
+  "sha256": "d92a44e81352504ee67b30caafcd9cbb8f6c28518c2c7240c6969b4946884312",
+  "screenshotRead": {
+    "source": "/private/tmp/fluxtion-spring-demo/project/evidence/eod-feed-path.png",
+    "sha256": "1c83c208011c99f9276cc38e5c420a61833bdd7792fe547465cbbdd4dedfd30e",
+    "copiedToPublicRepo": false
+  },
+  "scope": "Issues 36/37 added from owner feedback; source checks, no live interaction reproduction"
+}

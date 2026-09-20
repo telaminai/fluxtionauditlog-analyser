@@ -1,0 +1,17 @@
+{
+  "mutation": "added harmless jar entry on disposable copy; no compilation or business run",
+  "jarBefore": "1a62ee49fe0a8c3b009b81db70dc82e9da4fdbeb8f0488997468a8e38d6feea3",
+  "jarAfter": "bda7167a661308ae296d2d736b6dcaecc1c04265d1ab2d161bbdcc6795c5c480",
+  "receiptInputsUnchanged": true,
+  "inputs": {
+    "build": null,
+    "regenerate": {
+      "xmlHash": "sha256:d76f4737336a32e109c0d094f802706f9f4f950716b0d9ce4ec6ce6fd1a7d9ab",
+      "sourceHash": "sha256:02d94956a467ce588a68f0fb2d706b7fe1a756ca98c5aa2954196ef7a20621ad",
+      "recordHash": "sha256:e3d6cbb554b3a6656676da8342e263892b30b0bf59c8a2ffa928f78358fc58b9"
+    },
+    "validate": {
+      "xmlHash": "sha256:d76f4737336a32e109c0d094f802706f9f4f950716b0d9ce4ec6ce6fd1a7d9ab"
+    }
+  }
+}

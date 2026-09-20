@@ -113,7 +113,7 @@ sequenceDiagram
   participant A as Analyser canvas
   H->>L: What if the limit changes mid-sequence?
   L->>H: Proposed inputs and expected outputs
-  H->>L: Agreed; show the transition
+  H->>L: Agreed. Show the transition
   L->>P: Read XML, node code, runbook and tests
   L->>P: Validate and generate if the design changed
   P-->>L: Diagnostics and generated source

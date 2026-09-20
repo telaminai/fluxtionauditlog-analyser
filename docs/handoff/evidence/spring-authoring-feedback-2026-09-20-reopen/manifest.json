@@ -1,0 +1,24 @@
+{
+  "stagedJarSha256": "fbdc43449e9f85ce8401f0496b6d75c80582c2edfab2ff103c0e09a506051088",
+  "liveProfileSha256Unchanged": "937110d6ea68a3314181841f098a57b80b193832beec669ea97da6f3f04bdbad",
+  "privateRun": "/private/tmp/spring-reopen-ui-0_f5u9h6",
+  "scope": "Real Swing instance via action socket; close/reopen menu clicks not driven; screenshots inspected; no live project mutations",
+  "files": [
+    {
+      "path": "after.png",
+      "sha256": "8ee3313d6a9d4d09f097eb14eaf3922aca00d3807ad4cbb64cd87b7fbcda7ce5"
+    },
+    {
+      "path": "before.png",
+      "sha256": "eb6010bc5bd7c5e3d4768d4053c2475d98bef1f749251e119c5beb4bcb2cbdf1"
+    },
+    {
+      "path": "probe.py",
+      "sha256": "1c7b6d2cb77728a394f35693a5cf99caa60ee4a13db3deaf20878b622a1c2d70"
+    },
+    {
+      "path": "summary.json",
+      "sha256": "753b12e3b725744ef5ba76f75d3cdf05bc91b87924b9b127137d09acb2269350"
+    }
+  ]
+}

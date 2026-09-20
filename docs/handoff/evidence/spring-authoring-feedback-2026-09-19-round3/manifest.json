@@ -1,0 +1,50 @@
+{
+  "capturedAt": "2026-09-19T21:05:49.776573+00:00",
+  "analyserHead": "703136e7f538d52fe290de99491abeebed77f49d",
+  "files": [
+    {
+      "source": "/private/tmp/fluxtion-spring-demo/project/ANALYSER-FEEDBACK.md",
+      "saved": "ANALYSER-FEEDBACK.md",
+      "sha256": "c04a86d5d6218cc03f89898ab5023dc8644d833d8e464a38c0ebe948b1e7af09",
+      "bytes": 37624
+    },
+    {
+      "source": "independent reviewer probe",
+      "saved": "ReportFeedbackProbe.java",
+      "sha256": "cdb6336726c04add3022c5e87c300d0500949c46d4e6103ed19e04bce6f9812d",
+      "bytes": 2930
+    },
+    {
+      "source": "independent reviewer probe",
+      "saved": "probe.txt",
+      "sha256": "a9a1ec3fd7f8d50b6cc37b76934d15321a84f660b4037b07c52e9a0212f067ad",
+      "bytes": 741
+    }
+  ],
+  "inspectedOriginals": [
+    {
+      "source": "/private/tmp/fluxtion-spring-demo/project/evidence/desk-validation-report.pdf",
+      "sha256": "8f219c6ee341f48612a8b9795be53b38fcc9dd150a6f80309282c8a84c4133f3",
+      "bytes": 195729,
+      "copied": false
+    },
+    {
+      "source": "/private/tmp/fluxtion-spring-demo/project/evidence/desk-validation-report-v2.pdf",
+      "sha256": "d96a341fda000bdb3298d2e687bc31c567c283b4077adddb59e8af2c4794fc5f",
+      "bytes": 196672,
+      "copied": false
+    },
+    {
+      "source": "/private/tmp/fluxtion-spring-demo/project/evidence/desk-final/audit.yaml",
+      "sha256": "571d167c66fa266188ad0713f68092ebcdd24cb1433bf6845222a68390d61de4",
+      "bytes": 53614,
+      "copied": false
+    },
+    {
+      "source": "/private/tmp/fluxtion-spring-demo/project/desk/ITERATIONS.md",
+      "sha256": "c6ad8f62d4e3715de1958c83ad28ff0a19f012406f5d7d13c7962d38e0ac2f11",
+      "bytes": 11153,
+      "copied": false
+    }
+  ]
+}

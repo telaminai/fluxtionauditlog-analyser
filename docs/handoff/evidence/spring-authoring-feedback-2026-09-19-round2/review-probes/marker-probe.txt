@@ -1,0 +1,20 @@
+FILE=/private/tmp/fluxtion-spring-demo/project/evidence/trades/audit.yaml records=24 events={EventLogControlEvent=1, LifecycleEvent=4, PriceUpdate=8, Trade=11} observedBuys=5 observedSells=6 distinctTimes=23 maxSameTime=2
+WHEN=positionNode.quantity > 0 count=11 rows=[3:Trade, 4:Trade, 5:PriceUpdate, 7:Trade, 8:PriceUpdate, 16:Trade, 19:Trade, 20:PriceUpdate, 21:PriceUpdate, 22:LifecycleEvent, 23:LifecycleEvent]
+WHEN=positionNode.quantity < 0 count=10 rows=[6:Trade, 9:Trade, 10:PriceUpdate, 11:Trade, 12:Trade, 13:PriceUpdate, 14:Trade, 15:PriceUpdate, 17:Trade, 18:PriceUpdate]
+WHEN=rootNode.price count=8 rows=[5:PriceUpdate, 8:PriceUpdate, 10:PriceUpdate, 13:PriceUpdate, 15:PriceUpdate, 18:PriceUpdate, 20:PriceUpdate, 21:PriceUpdate]
+MSFT last=1789849556922 value=100.0 logEnd=1789849557065
+FILE=/private/tmp/fluxtion-spring-demo/project/evidence/mongoose-run1/audit.yaml records=36 events={EventLogControlEvent=3, ExportFunctionAuditEvent=11, LifecycleEvent=3, PriceUpdate=8, Trade=11} observedBuys=5 observedSells=6 distinctTimes=10 maxSameTime=12
+WHEN=positionNode.quantity > 0 count=9 rows=[17:Trade, 18:Trade, 19:PriceUpdate, 21:Trade, 22:PriceUpdate, 30:Trade, 33:Trade, 34:PriceUpdate, 35:PriceUpdate]
+WHEN=positionNode.quantity < 0 count=10 rows=[20:Trade, 23:Trade, 24:PriceUpdate, 25:Trade, 26:Trade, 27:PriceUpdate, 28:Trade, 29:PriceUpdate, 31:Trade, 32:PriceUpdate]
+WHEN=rootNode.price count=8 rows=[19:PriceUpdate, 22:PriceUpdate, 24:PriceUpdate, 27:PriceUpdate, 29:PriceUpdate, 32:PriceUpdate, 34:PriceUpdate, 35:PriceUpdate]
+MSFT last=1789849381147 value=100.0 logEnd=1789849381148
+FILE=/private/tmp/fluxtion-spring-demo/project/evidence/mongoose-run2/audit.yaml records=36 events={EventLogControlEvent=3, ExportFunctionAuditEvent=11, LifecycleEvent=3, PriceUpdate=8, Trade=11} observedBuys=5 observedSells=6 distinctTimes=10 maxSameTime=10
+WHEN=positionNode.quantity > 0 count=9 rows=[17:Trade, 18:Trade, 19:PriceUpdate, 21:Trade, 22:PriceUpdate, 30:Trade, 33:Trade, 34:PriceUpdate, 35:PriceUpdate]
+WHEN=positionNode.quantity < 0 count=10 rows=[20:Trade, 23:Trade, 24:PriceUpdate, 25:Trade, 26:Trade, 27:PriceUpdate, 28:Trade, 29:PriceUpdate, 31:Trade, 32:PriceUpdate]
+WHEN=rootNode.price count=8 rows=[19:PriceUpdate, 22:PriceUpdate, 24:PriceUpdate, 27:PriceUpdate, 29:PriceUpdate, 32:PriceUpdate, 34:PriceUpdate, 35:PriceUpdate]
+MSFT last=1789849383770 value=100.0 logEnd=1789849383770
+FILE=/private/tmp/fluxtion-spring-demo/project/evidence/mongoose-paced/audit.yaml records=36 events={EventLogControlEvent=3, ExportFunctionAuditEvent=11, LifecycleEvent=3, PriceUpdate=8, Trade=11} observedBuys=5 observedSells=6 distinctTimes=24 maxSameTime=7
+WHEN=positionNode.quantity > 0 count=9 rows=[17:Trade, 18:Trade, 19:PriceUpdate, 21:Trade, 22:PriceUpdate, 30:Trade, 33:Trade, 34:PriceUpdate, 35:PriceUpdate]
+WHEN=positionNode.quantity < 0 count=10 rows=[20:Trade, 23:Trade, 24:PriceUpdate, 25:Trade, 26:Trade, 27:PriceUpdate, 28:Trade, 29:PriceUpdate, 31:Trade, 32:PriceUpdate]
+WHEN=rootNode.price count=8 rows=[19:PriceUpdate, 22:PriceUpdate, 24:PriceUpdate, 27:PriceUpdate, 29:PriceUpdate, 32:PriceUpdate, 34:PriceUpdate, 35:PriceUpdate]
+MSFT last=1789849709363 value=100.0 logEnd=1789849709501

@@ -1,0 +1,182 @@
+{
+  "ok": true,
+  "action": "context",
+  "context": {
+    "log": {
+      "path": "/private/tmp/fluxtion-spring-demo/project/evidence/latest/audit.yaml",
+      "openedFrom": "/private/tmp/fluxtion-spring-demo/project/evidence/latest/audit.yaml",
+      "records": 12,
+      "sizeBytes": 4170,
+      "from": 1789844571273,
+      "to": 1789844571477,
+      "openedBy": "action socket"
+    },
+    "project": {
+      "active": true,
+      "name": "project",
+      "settings": "/private/tmp/fluxtion-spring-demo/project/.analyser/project.fluxtion-settings",
+      "root": "/private/tmp/fluxtion-spring-demo/project"
+    },
+    "fluxtionKey": {
+      "canonicalFilePresent": false,
+      "canonicalFile": "~/.fluxtion/fluxtion.apiKeyFile",
+      "precedenceNote": "a -Dfluxtion.apiKey system property passed to the build overrides this file; FLUXTION_API_KEY is not read by the builder"
+    },
+    "graphPairing": {
+      "graph": "MyProcessor.graphml",
+      "graphSource": "OPENED",
+      "graphPath": "/private/tmp/fluxtion-spring-demo/project/src/main/resources/com/example/myapp/generated/MyProcessor.graphml",
+      "applies": true,
+      "loggedNodes": 3,
+      "declaredByGraph": 2,
+      "verdict": "the graph declares 2 of the 3 node(s) this log writes",
+      "auditLogging": "enabled",
+      "auditLoggingNote": "Audit logging is installed on this processor (EventLogManager is on the graph), so a run can produce a log. Whether a given NODE appears in it is a separate question \u2014 a node logs only if it has an audit logger and calls it, which is why 'did not log' is never by itself 'did not run'."
+    },
+    "processors": [
+      {
+        "class": "com.example.myapp.generated.MyProcessor",
+        "selected": true,
+        "source": "found",
+        "from": "project"
+      }
+    ],
+    "runbooks": [
+      {
+        "name": "local-demo",
+        "path": "LOCAL-DEMO.md",
+        "description": "Local rehearsal, scenarios, evidence and MCP connection.",
+        "resolved": "/private/tmp/fluxtion-spring-demo/project/LOCAL-DEMO.md",
+        "exists": true,
+        "from": "project",
+        "note": "a pointer \u2014 read the file from the repository; the analyser stores no instructions and executes nothing"
+      },
+      {
+        "name": "spring-authoring",
+        "path": "RUNBOOK.md",
+        "description": "Validate, reconcile and generate the Spring project.",
+        "resolved": "/private/tmp/fluxtion-spring-demo/project/RUNBOOK.md",
+        "exists": true,
+        "from": "project",
+        "note": "a pointer \u2014 read the file from the repository; the analyser stores no instructions and executes nothing"
+      }
+    ],
+    "handoff": {
+      "posture": {
+        "value": "authoring/deploy",
+        "source": "derived",
+        "note": "a starting guess from what is open (a project is open) \u2014 derivation lags intent; set it with open {posture} or AI \u25b8 Posture"
+      }
+    },
+    "design": {
+      "relationship": "unverified",
+      "note": "working copy; matched by name; relationship to this run unknown",
+      "file": "/private/tmp/fluxtion-spring-demo/project/src/main/fluxtion/designer/application-context.xml",
+      "revision": "08491c2128262fc6127ccf70d870faf802eb16a617bfef5b293b468361d1a4f2",
+      "beans": [
+        "rootNode",
+        "child",
+        "fluxtionSpringConfig"
+      ],
+      "diagnosticsFile": "/private/tmp/fluxtion-spring-demo/project/target/fluxtion-validation.json",
+      "inputs": {
+        "relationship": "input-current",
+        "scope": "XML input only; relationship to the loaded log is unverified",
+        "stage": "validate",
+        "receipt": {
+          "at": "2026-09-19T19:02:45.847832Z",
+          "outcome": "ok",
+          "inputs": {
+            "xmlHash": "sha256:08491c2128262fc6127ccf70d870faf802eb16a617bfef5b293b468361d1a4f2"
+          },
+          "options": {
+            "xml": "src/main/fluxtion/designer/application-context.xml"
+          }
+        },
+        "hashBasis": "inputs",
+        "inputChecks": {
+          "checkedAt": "2026-09-19T19:09:02.723360Z",
+          "currentSourceHash": "sha256:f4b82c015ef59a9b49bf4d4820aa0e64543c92c624d2e76f4cc31671acc9b32b",
+          "currentRecordHash": "sha256:ff629aff3fe16cfa7233e631ed0c72ba79ac8fe090bb943f28f2252ee13d1a9b",
+          "sourceHash": "unknown",
+          "recordHash": "unknown",
+          "buildSourceHash": "match"
+        },
+        "logRelationship": "unverified",
+        "build": {
+          "at": "2026-09-19T19:02:51.140732Z",
+          "outcome": "ok",
+          "inputs": {
+            "xmlHash": "sha256:08491c2128262fc6127ccf70d870faf802eb16a617bfef5b293b468361d1a4f2",
+            "sourceHash": "sha256:f4b82c015ef59a9b49bf4d4820aa0e64543c92c624d2e76f4cc31671acc9b32b",
+            "recordHash": "sha256:ff629aff3fe16cfa7233e631ed0c72ba79ac8fe090bb943f28f2252ee13d1a9b"
+          },
+          "compilerRan": true,
+          "route": "local",
+          "outputs": {
+            "xmlHash": "sha256:08491c2128262fc6127ccf70d870faf802eb16a617bfef5b293b468361d1a4f2",
+            "sourceHash": "sha256:f4b82c015ef59a9b49bf4d4820aa0e64543c92c624d2e76f4cc31671acc9b32b",
+            "recordHash": "sha256:ff629aff3fe16cfa7233e631ed0c72ba79ac8fe090bb943f28f2252ee13d1a9b"
+          }
+        },
+        "resultStatus": "see input checks; XML match alone does not establish result freshness"
+      }
+    },
+    "exports": {
+      "enabled": true,
+      "dir": "/private/tmp/fluxtion-spring-demo/project/evidence"
+    },
+    "dispatchOrder": "total \u2014 position in nodeLogs IS dispatch order (derived); safe to read as causality",
+    "source": {
+      "roots": [
+        "/private/tmp/fluxtion-spring-demo/project/src/main/java",
+        "/private/tmp/fluxtion-spring-demo/project"
+      ],
+      "eventProcessor": "com.example.myapp.generated.MyProcessor",
+      "rootTiers": [
+        {
+          "path": "/private/tmp/fluxtion-spring-demo/project/src/main/java",
+          "tier": "project",
+          "form": "project-relative"
+        },
+        {
+          "path": "/private/tmp/fluxtion-spring-demo/project",
+          "tier": "project",
+          "form": "project-relative"
+        }
+      ]
+    },
+    "topology": {
+      "recordIndex": 0,
+      "rowIndex": -1,
+      "orderMeaningful": true,
+      "graphSource": "OPENED",
+      "atEntry": true,
+      "rowCount": 0,
+      "recordsOpen": 12,
+      "position": "no record selected \u2014 12 open; goto {recordIndex} to step through one",
+      "currentNode": null,
+      "selected": [],
+      "scope": "node",
+      "routeBound": true,
+      "focus": false,
+      "context": "All (18)",
+      "contextDepth": 0,
+      "scaffolding": false,
+      "syncSource": true,
+      "visibleNodes": 4,
+      "totalNodes": 18,
+      "callout": true
+    },
+    "filter": {},
+    "showing": {
+      "visible": 12,
+      "total": 12
+    },
+    "selection": [],
+    "flags": [],
+    "graphs": [
+      "Graph 1"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+Keyless regenerate exited 0 and created vendor FQCN shell.
+origin=file:/private/tmp/spring-vendor-review/shadow-classes/
+declaredMethods=0

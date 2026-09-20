@@ -1,0 +1,136 @@
+{
+  "schemaVersion" : "1.0",
+  "starterVersion" : "1.0.72-demo-52efd42e2ddb",
+  "templateMode" : "spring-aot",
+  "xml" : "src/main/fluxtion/designer/application-context.xml",
+  "sourceRoot" : "src/main/java",
+  "reconcileExisting" : true,
+  "generateDeregistration" : false,
+  "ownership" : {
+    "com.example.myapp.node.Child" : {
+      "cancel(java.lang.String)" : {
+        "state" : "owned",
+        "signature" : "public void cancel(java.lang.String)",
+        "ownedAnnotations" : { },
+        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+      },
+      "field:parent" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.RootNode parent",
+        "ownedAnnotations" : { }
+      },
+      "field:sinkChecked" : {
+        "state" : "owned",
+        "signature" : "public com.telamin.fluxtion.runtime.output.SinkPublisher<com.example.myapp.event.Checked> sinkChecked",
+        "ownedAnnotations" : { },
+        "stubBodyHash" : "sha256:1b0f3ae5bdd06b3bdf70e63008dafd5db29fcc62f06dff89e29642a90b8a9f8e"
+      },
+      "implements:com.example.myapp.service.Commands" : {
+        "state" : "owned",
+        "signature" : "implements com.example.myapp.service.Commands",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.ExportService" : { }
+        }
+      },
+      "initialise()" : {
+        "state" : "owned",
+        "signature" : "public void initialise()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.Initialise" : { }
+        },
+        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+      },
+      "onChild()" : {
+        "state" : "owned",
+        "signature" : "public boolean onChild()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+        },
+        "stubBodyHash" : "sha256:d825e114758311fb8262ad7863bcda50b59ca88ee1e19483cb72ab41866be686"
+      },
+      "onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)" : {
+        "state" : "owned",
+        "signature" : "public boolean onSignalPause(com.telamin.fluxtion.runtime.event.Signal<?>)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : {
+            "filterString" : "\"pause\""
+          }
+        },
+        "stubBodyHash" : "sha256:50df28fd6a356b6426b0071ac1b66a5546f439c66842fed5f92ee8e864c2c98c"
+      },
+      "reset()" : {
+        "state" : "owned",
+        "signature" : "public void reset()",
+        "ownedAnnotations" : { },
+        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+      },
+      "start()" : {
+        "state" : "owned",
+        "signature" : "public void start()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.Start" : { }
+        },
+        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+      },
+      "stop()" : {
+        "state" : "owned",
+        "signature" : "public void stop()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.Stop" : { }
+        },
+        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+      },
+      "tearDown()" : {
+        "state" : "owned",
+        "signature" : "public void tearDown()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.TearDown" : { }
+        },
+        "stubBodyHash" : "sha256:bbaa971bc41901db6f76aea6ec5f59b97567aa1fcae8b7abc2533f1375bc61be"
+      }
+    },
+    "com.example.myapp.node.MarkToMarketNode" : {
+      "field:positionNode" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.PositionNode positionNode",
+        "ownedAnnotations" : { }
+      },
+      "field:rootNode" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.RootNode rootNode",
+        "ownedAnnotations" : { }
+      },
+      "onMarkToMarketNode()" : {
+        "state" : "owned",
+        "signature" : "public boolean onMarkToMarketNode()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+        },
+        "stubBodyHash" : "sha256:50df28fd6a356b6426b0071ac1b66a5546f439c66842fed5f92ee8e864c2c98c"
+      }
+    },
+    "com.example.myapp.node.PositionNode" : {
+      "onTrade(com.example.myapp.event.Trade)" : {
+        "state" : "owned",
+        "signature" : "public boolean onTrade(com.example.myapp.event.Trade)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+        },
+        "stubBodyHash" : "sha256:50df28fd6a356b6426b0071ac1b66a5546f439c66842fed5f92ee8e864c2c98c"
+      }
+    },
+    "com.example.myapp.node.RootNode" : {
+      "onPriceUpdate(com.example.myapp.event.PriceUpdate)" : {
+        "state" : "owned",
+        "signature" : "public boolean onPriceUpdate(com.example.myapp.event.PriceUpdate)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : {
+            "filterId" : "7",
+            "propagate" : "true"
+          }
+        },
+        "stubBodyHash" : "sha256:6cc8d57ab8df20305c6b52a63b9c13e1bfc8a91470a2c979ab800a9a57485f20"
+      }
+    }
+  }
+}
