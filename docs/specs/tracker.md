@@ -6,6 +6,33 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
+
+Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
+with graphml fixtures. The runtime matched every prediction; 13 places where a tool describes the application
+incorrectly are baselined in the spec (D1–D13). Direction check: re-count that table each release.
+
+- **[TA-1] ☐ — one declared set for pairing, including framework nodes that log** · _src-round3 fixture pairs
+  cleanly (no "different build"); all three call sites return identical verdicts; the M35.1 foreign-graph
+  negative control still fails._
+- **[TA-2] ☐ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
+  and node counts reported; source copy ranks first against a round-3 log; works with no log open._
+- **[TA-3] ☐ — `flag {kind: confirmation}` with neutral labels** · _existing flags unchanged; Observation /
+  Assessment in table, callout, report and PDF; kind survives restore._
+- **[TA-4] ☐ — window edges never silently change a rolling answer** · _A8 reproduction returns the flip, or
+  an explicit edge note._
+- **[TA-5] ☐ — live Mongoose evidence without reverse-engineering** · _audit-evidence section in the vendored
+  runbook; decision recorded (live-store source vs supported export-follow); one spot-check session reaches a
+  followed log without jar disassembly or a hand-written follower._
+- **[TA-6] ☐ — trailing unterminated record shown as pending** · _fixture without trailing separator shows the
+  hint; any quiet-period acceptance is marked._
+- **[TA-7] ☐ — assistant can start Follow** · _echo and toolbar agree._
+- **[TA-8] ☐ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
+- **[TA-U] ☐ — upstream asks recorded with owners** · _D3, D7–D13 and the template items carried into
+  `docs/proposals/upstream-asks.md`; stub-shape fix sequenced before "always use the generator"._
+
+---
+
 ## Release execution — 2026-09-21
 
 - ☑ Owner-requested release completed: analyser **1.16.0**; public starter publication
