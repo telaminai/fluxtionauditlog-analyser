@@ -12,15 +12,28 @@ Rewritten after the public release: the battery is retired, acquisition is measu
 observed tool events, and the fifth draft's slices A–D become a short blocker list (proposal §7).
 
 - **[BETA-6] ◧ — sixth draft written; one review round before any approach** · _owner decisions in §15._
-- **[BETA-B1] ☐ — A2 needs a generation key, and the customer key journey is untested** · _A2 is a graph change;
+- **[BETA-B1] ◧ — A2 needs a generation key, and the customer key journey is untested** · _A2 is a graph change;
   the bundle README and the SG-1 report both put regeneration behind a key, and both release reports say customer
   credential acquisition is not established. Resolve before A2: test the key journey, or provision revocable keys,
-  or redesign A2._
+  or redesign A2._ **2026-09-21, virgin-session runs (sealed predictions, verified independently, n=1 each):** with no
+  key, the subject stops honestly with no edits (r1); whether it also says where to get one varied between an
+  unchanged control and a one-line treatment, so that is run-to-run variance, not a fix. With a key present, the
+  full journey passed: one new node (r2b, 71 s) and the beta's A2 wording, two related nodes (A2, 126 s, 11/11
+  predictions). **Still open:** customer key *acquisition*. Owner, 2026-09-21: free registration is enough for now,
+  and simple key registration in the analyser is a separate future item. Evidence:
+  `.local-evidence/coldstart-v2-2026-09-20/{key-journey-*,a2-*}` (git-ignored).
 - **[BETA-B2] ☐ — new-node stubs must audit before the beta** · _feedback 6 / issue 3; otherwise A2 measures the
   product, not the tester (§11 carve-out)._
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
   standalone Spring, the only template with a verified local authoring route._
 - **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _none exists yet._
+- **[BETA-7] ☑ — the A3 report instrument asks two halves, and the client skill teaches the shape** · _a blind second
+  reader agrees the cited record proves the SYMPTOM and the pack SUPPORTS the cause._ 2026-09-21: two readers answered
+  *partly* to the single question (a record cannot prove a claim about code); with `point-at-the-fault`'s new
+  write-up section (symptom from the record, cause from the fix diff plus before/after sources) and the split
+  question, a third answered yes to both (n=1 per wording). Proposal §9/§11 and the script reworded; skill
+  re-pinned in `m19-skills/2` at `49b4c361`; playground re-vendored and deployed 2026-09-21: fluxtion-web `c1d5a01`, CI 35598412775 and 35598518229 pass, and a fresh public `analyser-bundle` download carries the section byte-identical to canonical.
+  Evidence: `.local-evidence/coldstart-v2-2026-09-20/{a3-*,reader-a3-*}`.
 
 ---
 
@@ -74,6 +87,39 @@ VI-1 vendor-integration documentation shipped on 2026-09-21 after owner-approved
 [completed record](completed/tracker.md).
 
 ---
+
+## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md) (2026-09-21)
+
+Remove the export step: Mongoose writes a file the analyser opens directly. Cross-repo; nothing is built.
+
+- **[AFMT-1] ◧ — proposal reviewed at revision 4 (`952a9555`) and again at revision 5 (`473b8db5`); now at revision 6 (`23560093`)** ·
+  _the direction (option B) survives; the review's findings are addressed or explicitly declined._ Findings,
+  OBSERVED on the shipped bundle's processor and a live server (evidence:
+  `.local-evidence/coldstart-v2-2026-09-20/audit-format-review-2026-09-21/`):
+  1. A live swap to binary is **not** equivalent to starting binary. Both `DataFlow` swap orders throw; the one
+     order that runs silently drops trace entries of nodes that do not log for themselves (`riskCheck` 15 → 0)
+     and leaves an unresolved id. `EventLogManager.updateLogRecord()` rebuilds only log-source loggers. So binary
+     needs a runtime fix or a build-time choice. Sink-only swap (text) works today.
+  2. The repository list omits this repo (`run-mongoose-server` says Mongoose does not write analyser-readable
+     YAML; re-pin + re-vendor) and the runtime (per 1), and the web admin's audit views are Chronicle-bound.
+  3. Recommend text first: its content is `asCharSequence()`, already produced and read on every hosted run.
+  4. `/ws/audit-tail` root cause (svc-admin-web 1.0.43): `ThreadingIllegalStateException` on every tick at
+     `WebAdminService.java:1022`, swallowed at DEBUG; plus unsent batches are discarded per tick. The route,
+     upgrade and unknown-processor error all work. The tail reads the Chronicle capture, so it is not
+     independent of the format change.
+  5. Acceptance must compare per-node entries, not record counts; `chronicle` + `binary` must be refused.
+  **Second review, revision 5 (`473b8db5`), 2026-09-21** — text-first confirmed (export is byte-identical to the
+  Chronicle excerpts joined by `---`), but: the framing requirement omits the `---` separator (records merge into one,
+  silently); an end marker is invisible to the analyser without a format-spec change and analyser code; any record
+  swap, not only a format swap, drops traced-only nodes; no shipped client opens `/ws/audit-tail`; twelve true items
+  were lost across revisions 2–5 and not restored in revision 6. Evidence: `…/audit-format-review-2026-09-21/rev5/`.
+- **[AFMT-2] ☐ — file the `/ws/audit-tail` defect upstream (mongoose-plugins)** · _tailer created and read on one
+  thread; tick failures reported, not swallowed; unsent records carried to the next tick; delivered count equals
+  exported count for the same window._
+- **[AFMT-3] ☐ — a per-node log level of NONE corrupts the whole text audit record (public runtime, live today)** ·
+  _after `EventLogControlEvent(sourceId, null, NONE)`, the next record keeps its values but loses its header, keys and
+  newlines, for every node. Observed on the bundle's processor (fluxtion-runtime 1.0.16); global levels and per-node
+  DEBUG are unaffected. Cause not diagnosed. Repro: `…/audit-format-review-2026-09-21/rev5/LevelTest3.java`._
 
 ## Release execution — 2026-09-21
 
