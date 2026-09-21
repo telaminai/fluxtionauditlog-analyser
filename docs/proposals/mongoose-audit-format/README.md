@@ -1,9 +1,9 @@
 # Reading Mongoose audit output without an export step
 
-_Status: **PROPOSAL, 2026-09-21. Not implemented, not reviewed, not owner-approved.** Three dependent
-slices: Mongoose writes a directly readable audit file, the record renderer moves into the shared runtime,
-and the broken audit-tail socket is fixed. Filed in the holding pen because all three land in Mongoose and
-the runtime, not here. Raised by the owner
+_Status: **PROPOSAL, 2026-09-21. Not implemented, not reviewed, not owner-approved.** One required slice —
+Mongoose writes a directly readable audit file — plus two independent ones: the broken audit-tail socket,
+and an optional renderer move that is recorded but not recommended. Filed in the holding pen because the
+work lands in Mongoose and the playground, not here. Raised by the owner
 after repeated friction reading Mongoose audit logs. Companion:
 [trust structure](../../specs/spec-trust-structure.md) (D-T8, D-T9),
 [tool agreement](../../specs/spec-tool-agreement.md),
@@ -12,6 +12,13 @@ after repeated friction reading Mongoose audit logs. Companion:
 _**Revision 1, 2026-09-21.** An independent session tested the one claim in the first draft that could be
 tested, and three premises were wrong or incomplete. Their corrections are folded in below and marked
 **OBSERVED**. One stated reason was false and has been removed._
+
+_**Revision 4, 2026-09-21 — the format is a deployment property, and one obstacle was my error.** The
+owner challenged two claims and was right on both. Selecting binary is *not* build-time only: the control
+event carries a `LogRecord` and a `LogRecordListener`, and both swap live, so no closed-compiler change is
+needed. And the renderer move is demoted from required to optional rather than tying a specification to
+the public runtime's release cadence. **Two repositories carry the friction fix.** See **The format is a
+deployment property**._
 
 _**Revision 3, 2026-09-21.** At the owner's request the renderer move and the broken `/ws/audit-tail`
 socket are raised here rather than filed separately, because they form one dependency chain with the
@@ -116,75 +123,83 @@ is therefore already answered for binary, in shipped code**, and unanswered for 
 **And binary needs less new code.** `BinaryLogWriter` already *is* a `LogRecordListener`. Text would need
 a new adapter class to call `asCharSequence()` and write it.
 
-## What binary actually costs, per repository
+## The format is a deployment property — corrected, and it removes an obstacle
 
-| Repository | Change needed |
-|---|---|
-| **fluxtion-runtime** | **None.** Writer, reader, decoder and round-trip tests all exist. |
-| **Analyser** | **None.** It already reads the binary format in core, with filters, series, coverage and reports working unchanged. |
-| **Mongoose** | Select `BinaryLogWriter` as the live listener instead of the capture service's no-op, own the output stream's lifecycle, and validate `backend`/`format` and refuse unknown values by name. |
-| **Generator / templates** | The processor must be **built** to emit binary records. See the constraint below. |
+**Revision 4 corrects an error of mine, and the correction makes this materially smaller.**
 
-**The constraint, and it is the one real obstacle.** `BinaryLogWriter.processLogRecord` throws
-`IllegalArgumentException` unless the record is a `BinaryLogRecord`, and the record type is an
-`EventLogManager` **build input**: `binaryRecord` is applied at `init()`, set by
-`EventProcessorConfig.addLowLatencyEventLog(level, BINARY)`. So selecting binary is not purely a
-server-side configuration change — a hosted AOT processor has to have been generated with it. Checked:
-the shipped bundle template emits no such call, so it produces text records today.
+The previous revision said selecting binary was a build input, so a hosted processor had to be
+*generated* to emit binary records, which pushed part of slice 1 into the closed compiler because
+`FluxtionSpringConfig` carries `logLevel` and no format. That obstacle does not exist.
 
-**A documentation discrepancy worth reporting upstream, and the same class as the `backend` one.**
-`EventLogManager` states that *"the runtime swap through `EventLogControlEvent` still works and is still
-the way to change format on a running processor"*. `EventLogControlEvent` carries no format field that I
-could find. Either the mechanism is elsewhere or the comment is stale. **Unverified** — worth resolving
-before anyone plans on switching a running processor's format, because the answer decides whether this is
-a build-time choice only.
+I had grepped `EventLogControlEvent` for a field called `format`, found none, and flagged
+`EventLogManager`'s claim of a runtime swap as a possibly stale comment. **The field is called
+`logRecord`.** The event carries both:
 
-## Three slices, one dependency chain
+- `private LogRecord logRecord` with constructor `EventLogControlEvent(LogRecord)`
+- `private LogRecordListener logRecordProcessor` with constructor `EventLogControlEvent(LogRecordListener)`
 
-The owner asked for the renderer move and the broken socket to be raised here rather than filed apart.
-They belong here, because they are not three independent pieces of work. Each one is the prerequisite for
-the next, and doing them in the wrong order means writing something twice.
+and `EventLogManager` swaps both live at `:215-224`, preserving log level and buffer across the
+replacement. So a running processor's **record format and its sink are both settable at runtime**. The
+comment was right; the discrepancy was my bad search, and the earlier revision's "unverified" flag on it
+should be read as withdrawn rather than unresolved.
 
-```
-Slice 1  Mongoose writes binary          → the analyser opens the file directly
-   ↓     (needs nothing new in the runtime or the analyser)
-Slice 2  Move the renderer to the runtime → binary can be rendered as text by anyone
-   ↓     (needs slice 1 to be worth doing; unblocks slice 3)
-Slice 3  Fix /ws/audit-tail               → live records reach a browser, and the same
-         (needs slice 2 if the store is binary)   renderer serves the REST export
-```
+**Why this is the right shape, not merely a cheaper one.** The format is a property of a deployment, not
+of a graph. The same declared graph should run in development writing text and in production writing
+binary, with only the observation differing. Baking it into `FluxtionSpringConfig` would mean recompiling
+an artefact to change a log format, and would make two deployments of one design produce two different
+binaries — which cuts against the determinism argument the product rests on.
 
-The ordering matters for one concrete reason: **if slice 3 is attempted before slice 2, the web admin
-needs its own binary-to-text conversion**, which is the second implementation the standing rule exists to
-prevent.
+**Consequences:**
 
-### Slice 2 — move the record renderer into the runtime
+- **No closed-compiler change.** `FluxtionSpringConfig` needs no audit-format field.
+- **No public-runtime change.** `binaryRecord` at build time stays what its own comment says it is: the
+  way to *start* in the right format, not the only way to be in it.
+- **The config seam already exists.** Mongoose already imports `EventLogControlEvent` and already carries
+  `logLevel` per processor group in `EventProcessorGroupConfig`. A format setting belongs beside it.
+- **The sink is settable the same way**, which means the capture service's no-op listener is a live
+  override rather than a fixed design, and may make the implementation risk below smaller than stated.
 
-The owner asked whether the web admin could simply render text from the binary writer. The capability
-exists and is proven, but not where it is callable.
+## What this actually costs, per repository
 
-`asCharSequence()` is on `LogRecord`, not on the writer. The binary-to-text conversion lives in the
-analyser as `RecordTextRenderer`, a **private** class inside `BinaryAuditReader` implementing the
-runtime's `BinaryLogReader.Visitor`. It works: it is how the analyser turns a binary file into the record
-text the rest of its pipeline consumes, so filters, series, coverage and reports all work unchanged.
+| Repository | Slice | Work |
+|---|---|---|
+| **mongoose** | 1 | Send the control event at boot with the chosen record type and the file writer as sink; validate `backend`/`format` and refuse unknown values by name |
+| **fluxtion-web** | 1 | Surface the choice in templates, runbooks and generated documentation |
+| **mongoose-plugins** | 3 | The audit-tail producer and a client that opens it |
+| fluxtion *(public runtime)* | — | **None.** Writer, reader, decoder, round-trip tests and the runtime swap all exist |
+| fluxtion-compiler *(closed)* | — | **None**, once the format is a deployment property |
+| fluxtionauditlog-analyser | — | **None.** It already reads the binary format in core |
 
-So the shape is right and the placement is wrong for reuse. Under the one-implementation rule, the answer
-is **not** a second renderer in the web admin. It is to **move it into the runtime beside
-`BinaryLogReader`**, where every consumer can call it.
+**Two repositories carry the friction fix.** That is the whole of slice 1.
 
-**What this buys.** The server can store binary and still serve text on request, so the REST export keeps
-working unchanged. The web admin gets a supported way to show records. The analyser loses nothing: it
-calls the moved class instead of its own private one. And there stays exactly one implementation of the
-conversion, tested once.
+## Three slices, and only the first is required
 
-**Acceptance.** The analyser's existing binary fixtures render identically before and after the move,
-byte for byte. The runtime carries the renderer's tests. No second renderer exists anywhere; assert it by
-searching for a duplicate visitor implementation.
+Slice 1 stands alone and removes the friction by itself. The other two are worth doing on their own
+merits and neither blocks it.
 
-### Slice 3 — fix `/ws/audit-tail/{processor}`
+### Slice 2 — move the record renderer into the runtime · *optional, deferred*
+
+An earlier revision made this a required prerequisite, on the reasoning that a binary-backed web admin
+would otherwise need its own binary-to-text conversion. **With the format a deployment property, that
+case mostly disappears:** a deployment that wants a live web-admin view chooses text, the records are
+already text, and `asCharSequence()` is on the record. A deployment that chooses binary is choosing
+offline analysis, which the analyser already does with its own renderer.
+
+What remains is the narrow case of live-viewing a deployment configured for binary. That is not the
+friction this proposal exists to fix, and the owner's objection stands: the renderer would live in
+`fluxtion-runtime`, whose release cadence is deliberately slow, and tying a specification to it for a
+narrow case is a poor trade.
+
+**Recorded, not recommended.** If it is ever wanted, the shape is settled: move the analyser's private
+`RecordTextRenderer` beside `BinaryLogReader` rather than writing a second one, per the one-implementation
+rule. Until then the analyser keeps it private and nothing is lost.
+
+### Slice 3 — fix `/ws/audit-tail/{processor}` · *independent*
 
 **Observed:** the socket reports a healthy connection and delivers zero messages, including for two rows
 appended after the client connected, both confirmed processed by the export.
+
+It no longer depends on slice 2: with text deployed, the tail carries the records as written.
 
 **A likely cause, read in source and offered as a hypothesis rather than a diagnosis.** In the
 mongoose-plugins checkout available here, `3f5fd03` dated 2026-09-14:
@@ -203,7 +218,7 @@ confirming rather than believing.
 
 **What the fix looks like, if the hypothesis holds.** A producer class in the shape of the two that
 already work, publishing frames in the contract the client parser already specifies, and a client that
-opens the socket. With slice 2 done, it renders from whatever the store holds rather than assuming text.
+opens the socket.
 
 **Acceptance.** A client connected before the run receives records appended during it; a client connected
 mid-run receives subsequent records; the count delivered equals the count exported for the same window.
@@ -222,7 +237,7 @@ Recorded here rather than guessed, because they decide the shape of slice 3:
 4. **Is the frame contract in `eventlog-parser.js` the intended one**, or has it moved? The fix should
    satisfy the documented contract or change it deliberately.
 5. **Was audit capture enabled in the tested run**, and is the tail sourced from the capture service or
-   from the live listener? If it is sourced from the capture service, slice 1 changes what it reads.
+   from the live listener? If from the capture service, slice 1 changes what it reads.
 
 ## The options
 
@@ -315,9 +330,9 @@ justifies a plugin's dependency cost. It should not be the answer to local devel
 **Option C only if B is refused**, and then as a request-response endpoint, recorded as a decision rather
 than reached as a default.
 
-**The slices ship in order: binary writing, then the renderer move, then the socket.** Slice 1 stands
-alone and delivers the friction fix by itself. Slices 2 and 3 are worth doing on their own merits, and
-doing them in this order means the conversion is written once.
+**Only slice 1 is required, and it stands alone.** It needs Mongoose and the playground and nothing else.
+The socket fix is independent and can proceed in parallel. The renderer move is recorded as optional and
+is not recommended, because the case for it mostly disappears once the format is a deployment choice.
 
 ## Implementation risk, from earlier work in this project
 
@@ -380,5 +395,7 @@ than accepted from the report: `getBackend()` has no call sites, `ws-tail.log` r
 implementation exists to measure. The hot-path cost in Q3 is unmeasured and is marked as such. No binary
 audit file was produced from a Mongoose server, because no template emits binary records today; the
 binary claims here rest on the runtime's own round-trip tests and the analyser's shipped reader, not on
-an end-to-end run. **One question is explicitly unresolved:** whether a running processor's record format
-can be switched at all, where `EventLogManager`'s comment and `EventLogControlEvent`'s fields disagree.
+an end-to-end run. **The question revision 3 left unresolved is now resolved against me:** a running processor's record
+format and sink *can* both be switched, through `EventLogControlEvent`'s `logRecord` and
+`logRecordProcessor` fields and `EventLogManager:215-224`. Revision 3 searched for a field named `format`,
+found none, and wrongly doubted a correct comment.
