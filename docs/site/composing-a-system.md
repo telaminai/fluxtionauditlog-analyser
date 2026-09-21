@@ -46,7 +46,7 @@ classes without knowing the graph they will be composed into. An integrator writ
     `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
     looks like a class that does not exist yet, and the skeleton silently replaces it: the build
     stays green and the supplier's component is gone. This is the open
-    [dependency-shadowing defect (feedback #29)][tracker], reproduced in [the experiment's P4 record][predictions].
+    [dependency-shadowing issue][tracker], reproduced in [the experiment's P4 record][predictions].
 
 Nobody writes the dispatch order. The compiler derives it from the references.
 
@@ -186,5 +186,5 @@ described somewhere a compiler can read it.
 
 [evidence]: https://github.com/telaminai/fluxtionauditlog-analyser/tree/597c5886eafa07f5bc22143589e923dd0d63599a/docs/handoff/evidence/vendor-integration-2026-09-19
 [predictions]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/597c5886eafa07f5bc22143589e923dd0d63599a/docs/handoff/evidence/vendor-integration-2026-09-19/PREDICTIONS.md
-[tracker]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/tracker.md
-[ta9]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-tool-agreement.md#ta-9--p1--draw-the-route-that-actually-runs-when-dispatch-goes-through-a-supertype
+[tracker]: https://github.com/telaminai/fluxtionauditlog-analyser/issues/2
+[ta9]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/332701dada41c52bd62a3abbf27d4f5e12492799/docs/specs/spec-tool-agreement.md#ta-9--p1--draw-the-route-that-actually-runs-when-dispatch-goes-through-a-supertype

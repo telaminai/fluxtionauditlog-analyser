@@ -2,7 +2,8 @@
 
 **Status:** proposed 2026-09-21 · **Builds:** the analyser work items TA-1…TA-9 · **Counts:** the open
 category B items of the 2026-09-19/20 feedback (D14–D20), which are built under their existing tracker
-items · **Also records:** the upstream asks the same evidence raised, so they are owned rather than lost.
+items · **Also records:** the upstream asks the same evidence raised, so they are owned rather than lost,
+and the subsequent starter comment-emission finding D21. Baseline: 21 rows; D21 is upstream-owned.
 
 ## Why this spec exists
 
@@ -254,6 +255,18 @@ launch gate as TA-1 to TA-4 (slice B, truthful echoes), so it should be **P0 alo
 Not carried: #29 and #30 (dependency integrity) were deliberately excluded by the 2026-09-21 release
 decision. They remain slice A and are not a truthful-echo item.
 
+## Additional upstream finding — reviewer evidence, 2026-09-21
+
+| # | What a tool emits | What is wrong | Owner | Status / evidence |
+|---|---|---|---|---|
+| D21 | starter 1.0.73 repeats comment-contract text and inserts it between Java modifiers and annotations | the generated explanation is duplicated within the declaration rather than attached once to its member | **starter/compiler**, upstream | ☐ — [preserved reviewer packet](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md), especially `AlertNode.as-generated.java` |
+
+The saved source directly shows the formatting defect. The reviewer reports that this source compiled;
+this intake did not independently rerun generation or compilation. It is not a runtime finding and does
+not change the analyser-owned denominator. Before closing D21, test that each canonical comment appears
+once at its member boundary, never between modifiers/annotations, after generation and subsequent
+reconciliation; retain the cross-emitter comment-contract parity and Java compilation checks.
+
 ---
 
 ## Not the analyser's to build — recorded so they are owned
@@ -279,6 +292,9 @@ Carry these into [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.
   hand-wrote round 2.
 - **Ownership record:** stubs generated in a copy and brought into a project leave no
   `fluxtion-authoring.json` behind (§8). The next reconcile cannot know who owns those members.
+- **Comment emission (D21):** starter/compiler owner: eliminate duplicated/interleaved comment-contract
+  text in new and reconciled members; preserve the canonical wording and implemented bodies. Regression
+  acceptance and the reviewer evidence are recorded above. Do not close this by cleaning up the fixture.
 - **Compiler (D11):** carry `SinkBinding.valueType` into the generated field type.
 - **Mongoose plugins 1.0.43 (D12, D13):** `/ws/audit-tail` must deliver records or be removed;
   `/api/audit/files` must report live counts and times; the export must close its final record.

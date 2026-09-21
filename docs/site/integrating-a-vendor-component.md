@@ -10,6 +10,21 @@ independent calculation. The VaR comparisons below were re-run from that copy fo
 Generated-code excerpts and the build observations are attributed to the original
 [prediction and results record][predictions]; they are not a new generation run.
 
+## What you get
+
+The supplier component becomes part of the host's event graph, with its own inputs, control
+service and audit trail. The experiment shows what that means:
+
+- **Recorded — a sub-graph from a root reference.** The reference discovered **three internal
+  vendor nodes, two vendor event types and one exported service**, without the integrator
+  wiring each internal node. See [P5, P7, P11 and P12][predictions].
+- **Re-verified — an audit order across the boundary.** Reading the preserved quote record
+  reproduces `acmeQuoteFeed → acmeVarCalculator → acmeRiskEngine → riskLimitGuard`: supplier
+  processing followed by the host's response. See [the genuine log][genuine] and [checker][checker].
+- **Recorded — shared events without adapter code.** The host's `MarketPrice` implements the
+  supplier's `Quote` interface, so the generated dispatcher calls both handlers. See
+  [P17's generated-code excerpt][predictions].
+
 ## The component
 
 The [supplier source][source] depends on Fluxtion's runtime. `RiskEngine` owns a `VarCalculator`,
@@ -43,7 +58,7 @@ Spring excerpt preserved in the [experiment's evidence record][record]:
     `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
     looks like a class that does not exist yet, and the skeleton silently replaces it: the build
     stays green and the supplier's component is gone. This is the open
-    [feedback #29 defect][tracker], documented in [the P4 reproduction][predictions].
+    [dependency-shadowing issue][tracker], documented in [the P4 reproduction][predictions].
 
 Only the host node belongs in the starter's `nodeBeans` selection here. The compiler discovers
 the supplier's sub-graph through the reference. These discovered nodes use the supplier's
@@ -143,7 +158,7 @@ does not identify the supplier jar's bytes or establish the correctness of its a
 ### For integrators
 
 - Declare the supplier root and reference it from your own node. Keep dependency-only classes
-  out of `nodeBeans` while [feedback #29][tracker] remains open.
+  out of `nodeBeans` while [the dependency-shadowing issue][tracker] remains open.
 - Refresh the runtime classpath after adding or changing a jar; do not assume a successful
   Maven build refreshed a launcher's cached classpath.
 - Read the supplier's naming contract. Discovered nodes need supplier-provided stable names;
@@ -178,5 +193,5 @@ conflicts, or two suppliers choosing the same node name.
 [genuine]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/597c5886eafa07f5bc22143589e923dd0d63599a/docs/handoff/evidence/vendor-integration-2026-09-19/runs/risk-run3/audit.yaml
 [tampered]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/597c5886eafa07f5bc22143589e923dd0d63599a/docs/handoff/evidence/vendor-integration-2026-09-19/runs/risk-tampered/audit.yaml
 [screenshot]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/597c5886eafa07f5bc22143589e923dd0d63599a/docs/handoff/evidence/vendor-integration-2026-09-19/runs/vendor-topology.png
-[tracker]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/tracker.md
-[ta9]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-tool-agreement.md#ta-9--p1--draw-the-route-that-actually-runs-when-dispatch-goes-through-a-supertype
+[tracker]: https://github.com/telaminai/fluxtionauditlog-analyser/issues/2
+[ta9]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/332701dada41c52bd62a3abbf27d4f5e12492799/docs/specs/spec-tool-agreement.md#ta-9--p1--draw-the-route-that-actually-runs-when-dispatch-goes-through-a-supertype

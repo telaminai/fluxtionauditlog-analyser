@@ -9,8 +9,9 @@ Legend for each item: **[id] status — title** · _acceptance_.
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
-with graphml fixtures. The runtime matched every prediction; 13 places where a tool describes the application
-incorrectly are baselined in the spec (D1–D13). Direction check: re-count that table each release.
+with graphml fixtures. The runtime matched every prediction. The baseline now records D1–D20 plus the
+subsequent upstream starter comment-emission finding D21 (21 rows). Direction check: re-count each release;
+adding D21 does not increase the analyser-owned count.
 
 - **[TA-1] ☐ — one declared set for pairing, including framework nodes that log** · _src-round3 fixture pairs
   cleanly (no "different build"); all three call sites return identical verdicts; the M35.1 foreign-graph
@@ -37,6 +38,9 @@ incorrectly are baselined in the spec (D1–D13). Direction check: re-count that
   TA-1–TA-4, since it is the same slice B gate._
 - **[TA-U] ☐ — upstream asks recorded with owners** · _D3, D7–D13 and the template items carried into
   `docs/proposals/upstream-asks.md`; stub-shape fix sequenced before "always use the generator"._
+  D21 intake: starter/compiler owns duplicated comment-contract text between modifiers/annotations.
+  [Preserved reviewer evidence](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md);
+  source inspected, generator not independently re-run. Spec records the regression requirement; open.
 - **[VI-1] ◧ — vendor integration on the site; branch ready for owner review, not published** — [proposal](../proposals/vendor-integration-doc/site-proposal.md)
   from the [evidence record](../proposals/vendor-integration-doc/README.md) · _claim audit of
   `composing-a-system.md` resolved (3 sentences contradicted by the measured record); `nodeBeans` warning ships
@@ -48,6 +52,12 @@ incorrectly are baselined in the spec (D1–D13). Direction check: re-count that
   publication and bootstrap discovery remain pending. Feedback 6/29 and TA-9 remain open. The existing C++
   equivalence wording is unchanged and needs the owner's preview-status confirmation before merge.
   [Verification and claim audit](../handoff/report_vi1_vendor_integration_site_2026_09_21.md).
+  Review reply: public status links now point to [dependency shadowing, issue 2](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2)
+  and [new-node audit scaffolding, issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3),
+  the TA-9 reference is pinned, and the worked example opens with recorded/re-verified benefits.
+  The reviewer's 1.0.73 reconciliation-preservation result is attributed, not claimed as a new run.
+  C++ confirmation and owner merge of [PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1)
+  remain pending; no deployment authorized.
 
 ---
 
