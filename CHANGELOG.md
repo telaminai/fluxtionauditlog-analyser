@@ -15,6 +15,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - Assistants can start/stop the existing Follow control with standalone `open {follow: true|false}`; unsupported or still-loading readers refuse.
 
 ### Fixed
+- Chart legends reserve space beside the plot; explanations and note text sit below it. Nearby note
+  pins combine into numbered ranges above the plot, and exported charts include the legend.
 - Follow-capable YAML files keep unterminated records pending from initial open, disclose the pending
   count and wait for a complete separator line; a quiet interval never completes a record.
 - Windowed rolling-series queries retain earlier history, so delta changes at the lower bound match
@@ -27,6 +29,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   across discovery, the topology view and session state. Hiding scaffolding no longer changes the verdict.
 
 ### Documentation
+- Refresh demo, chart, topology, conversation and Spring guide screenshots; update the guides and
+  recorded conversation echoes for pending tails, unknown hierarchy and the chart layout.
 - Canonical Mongoose guidance documents snapshot audit export, the observed 1.0.43 tail/listing limits,
   and the live-reader delivery boundary; no polling command or completed starter update is implied.
 - Qualify C++ as a preview target and limit the reported Java/C++ equivalence to the tested graph

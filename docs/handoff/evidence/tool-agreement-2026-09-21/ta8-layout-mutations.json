@@ -1,0 +1,38 @@
+[
+  {
+    "item": "A11",
+    "mutation": "plotY + plotH + B, Math.max(0, plotW), footer -> plotY + plotH - footer, Math.max(0, plotW), footer",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "commentaryIsBelowThePlotAndOverflowIsAvailableOnHover",
+        "failure": "commentary must never cover data ==> expected: <true> but was: <false>"
+      }
+    ],
+    "restored": true
+  },
+  {
+    "item": "A12-pins",
+    "mutation": "if (!padded.intersects(pin.bounds())) break; -> if (true) break;",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "adjacentAndCoincidentNotePinsShareDisjointRangesOutsideThePlot",
+        "failure": "nearby columns must not overlap ==> expected: <false> but was: <true>"
+      }
+    ],
+    "restored": true
+  },
+  {
+    "item": "A12-legend",
+    "mutation": "return (axes.hasRightAxis() ? 56 : R) + legendWidth; -> return axes.hasRightAxis() ? 56 : R;",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "legendReservesSpaceAndIsPartOfExport",
+        "failure": "legend must not cover data ==> expected: <false> but was: <true>"
+      }
+    ],
+    "restored": true
+  }
+]

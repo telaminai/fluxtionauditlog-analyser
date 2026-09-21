@@ -290,8 +290,8 @@ different packages are not conflated, and that missing metadata stays explicitly
 | A4 ☑ | a spotlight on a hidden Project section reveals it, as other targets are revealed | `spec-spotlight.md` |
 | A5 ☑ | `open {design}` outside the roots: the error names the one `source_root` call that fixes it | here; the starter-profile half is upstream |
 | A10 ☑ | PDF flag glyph renders, or falls back to text | here |
-| A11 | chart explanation box can be positioned, or is drawn below the plot | here |
-| A12 | chart notes avoid collisions; legend sits outside the plot | here |
+| A11 ☑ | chart explanation box can be positioned, or is drawn below the plot | here |
+| A12 ☑ | chart notes avoid collisions; legend sits outside the plot | here |
 
 ---
 

@@ -191,7 +191,7 @@ def main():
     t.you("The quote service looked wrong at 09:00 today. Use the fluxtion-analyser tools: what happened, and mark "
           "the records I should look at.")
     t.context(["log", "graphPairing.graph", "graphPairing.applies", "showing"])
-    t.prose("Ten records, and the graph applies to this log — so a node's absence would be evidence, not silence. The "
+    t.prose("Nine complete records and one pending tail; the graph declares the logged nodes. Silence still does not prove non-execution. The "
             "agent starts wide, then narrows.")
     t.call("aggregate", {"groupBy": "dimension"})
     t.call("read", {"recordIndex": 7}, show=["records", "record", "event", "logTime", "nodeLogs"])
@@ -199,7 +199,7 @@ def main():
     t.agent("At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live "
             "orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged "
             "both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. "
-            "Nothing else in the ten records is unusual.",
+            "I have not treated the pending trailing record as complete.",
             cites=["breachedOn", "ord-2", "riskMonitor"])
     cd.act(ep, "goto", {"recordIndex": 7, "reveal": True})
     t.shot("conv-what-happened.png", "The two flagged records, the note in the detail pane — the agent's answer as things you can click")
@@ -258,9 +258,9 @@ def main():
     t.agent("The chart is on your Graph tab — spread on the left axis, live orders on the right, captioned with why I "
             "drew it. The report is saved in the project as *spread-vs-live* and rendered to the exchange directory "
             "as `spread-vs-live.pdf`. Its aggregate table is also exported as CSV, so the report carries the event "
-            "population rather than a hand-picked ten-record sample; its header names the log it was written against, "
+            "population rather than a hand-picked short sample; its header names the log it was written against, "
             "so whoever receives it can check it against the same file.")
-    t.shot("conv-chart-and-report.png", "The report on the Reports tab, written against the 726-record series log — the narrative labelled as the author's account, not evidence; the chart it refers to is on the Graph tab")
+    t.shot("conv-chart-and-report.png", "The report on the Reports tab, written against the longer series log — the narrative labelled as the author's account, not evidence; the chart it refers to is on the Graph tab")
 
     # 6 ---------------------------------------------------------------------------------------------
     t.heading("5 · \"Use what the project knows\" — runbooks, glossary, a saved analysis")

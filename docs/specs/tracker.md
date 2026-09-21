@@ -97,7 +97,7 @@ after review:** the first version reversed the two fixture fingerprints (source 
   **Result:** held. `PairingDuringLoadFrameTest.assistantFollowEchoAndHumanControlsAgree` passes; forcing
   stop makes the expected-true echo assertion fail. Full suite green; restored display test green.
   Counts unchanged, 7/8. [Witness](../handoff/evidence/tool-agreement-2026-09-21/ta7-mutation.json).
-- **[TA-8] ☐ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
+- **[TA-8] ☑ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
   **A2 frozen prediction:** boolean literals use the existing +1/-1 graph convention; text equality
   distinguishes quoted "true" from boolean true and preserves missing as unknown. Constructed goldens
   agree across chart/query STRICT/LOCF; text row highlights and marker predicates use the same evaluator.
@@ -113,6 +113,16 @@ after review:** the first version reversed the two fixture fingerprints (source 
   Project reveal; `DesignWorkspaceTest.refusedDesignNamesExactRootCallWithoutAddingIt` and
   `FindingReportTest.pdfFlagGlyphHasReadableTextFallback` cover the other boundaries. Each disabled
   behavior fails its assertion; restored full suite and display cases pass. Counts unchanged.
+  **A11/A12 frozen prediction:** explanations/numbered note text occupy a footer below the plot;
+  nearby note pins combine into labelled ranges in a separate top gutter instead of colliding;
+  the legend reserves a right-hand strip outside the plot and stays in exported images. Long footer
+  text discloses clipping and is fully available on hover. Geometry tests and a real-frame capture
+  will show disjoint plot/footer/legend and pin boxes. Removing any reservation fails the geometry
+  regression. Counts before: analyser 7, upstream 8.
+  **A11/A12 result:** held. `ChartAnnotationLayoutTest` covers footer bounds/full overflow hover,
+  grouped disjoint note pins, legend separation and inclusion in exported images. All three removed
+  reservations fail their named assertions; restored full suite and real-frame spotlight tests pass.
+  The native chart captures show the separate annotation/footer/legend regions. Counts unchanged.
 - **[TA-9] ☐ — analyser half of "Authoritative dispatch metadata (34)"** · _blocked on producer metadata;
   the analyser never infers the hierarchy. `desk-quote-supertype.graphml` is the before case: hierarchy shown as
   unknown, not off-path. With a relationship-carrying fixture: union route drawn; unrelated class adds none;
@@ -135,39 +145,9 @@ VI-1 vendor-integration documentation shipped on 2026-09-21 after owner-approved
 
 ---
 
-## Release execution — 2026-09-21
+## Release execution — ☑ completed 2026-09-21
 
-- ☑ Owner-requested release completed: analyser **1.16.0**; public starter publication
-  and playground deployment are coordinated prerequisites for the starter journey. The broader
-  dependency-integrity claims remain excluded; the cold-start battery remains retired.
-- ☑ Main integrated on an isolated release branch without conflict; original feature branch and IDE
-  edits preserved. A whitespace-only main document regression was corrected without changing wording.
-- ☑ Real process restart: `tools/verify-session-restart.py` drives three independent JVMs through
-  shipped startup/window-close paths. Relaunch offers without loading; explicit restore reloads log,
-  topology, design, diagnostics, selection and focus. A CLI log does not grant restore permission;
-  dismiss leaves that log intact. Initial probe assumed selection was an integer list; corrected to
-  compare the documented selection objects. No application fix was needed.
-- ☑ Existing M46 release probe updated for the owner's explicit-restore decision: a global remembered
-  log must stay unopened. M46, M48 and M64 built-jar gates pass; five conversation capture scenarios
-  complete, with unchanged transcript and restored generated images. Display set: 41 passing tests.
-- ☑ Compiler/starter **1.0.72 published**, playground **d1f7dcc deployed**, public artifact parity
-  and unattended empty-cache customer download/build/run/stop pass (workflow 35544485872).
-  All five sample rows verified; 43 shipped originals unchanged. Railway deployment confirmed by
-  owner and independently exercised: generated source and descriptor identify 1.0.72.
-- ☑ Public browser preview witnessed by owner: rootNode, child and dependency arrow visible,
-  no error. Screenshot and machine results preserved in the release report.
-- ☑ **Public acquisition completed after restored login.** The two authentication failures remain
-  sealed. The authorised fresh client acquired the public bundle, built, ran, exported and stopped
-  without coaching. Independent check: five correct rows, 43 originals unchanged, registry empty,
-  port closed. Duration 388.311 s. Wrapper bootstrap was blocked by operator sandbox; installed Maven
-  built the unchanged POM. Attribution prediction failed (84/87 batches missing pointers); no routing
-  improvement claim. See the release record for limits and evidence.
-- ☑ Analyser **1.16.0 published** at `02dac9d3`; workflow 35545989495 and docs deployment
-  35546034206 passed. Downloaded jars match checksums/version; the published jar passes the three-JVM
-  recovery smoke. Public release notes verified. Detailed asset results are in the release record.
-
-
-Release record: [report](../handoff/report_release_journey_2026_09_21.md).
+See the [completed release record](completed/tracker.md#release-execution--2026-09-21).
 
 ## Spring getting-started guide — 2026-09-21
 
@@ -2121,7 +2101,8 @@ _(spec-closed-loop O1–O4 all resolved — statuses recorded in the M18 block a
 
 ### Tool-agreement documentation capture refresh — 2026-09-21
 
-- ☐ Owner requested screenshot audit. Inspected topology-step-through and graph-bands: topology still
-  labels untraced branches off-path; graph overlays still cover data. Regenerate the affected native
-  screenshots after the chart layout settles, audit Spring guide captures separately, and record
-  images actually refreshed versus retained historical evidence. Use only isolated demo profiles.
+- ☑ Owner-requested screenshot audit: 24 native demo captures, five conversation shots/echoes and four
+  Spring design/validation shots refreshed and visually inspected. Guides now describe unknown
+  hierarchy and the separate chart legend/commentary regions. The asset README records the separate
+  MCP/picker/tutorial modes not rerun and the historical website/vendor evidence retained unchanged.
+  Full Java suite, tool smoke tests and strict docs pass. See the tool-agreement handoff for scope.

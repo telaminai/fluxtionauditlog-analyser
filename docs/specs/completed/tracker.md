@@ -1,3 +1,38 @@
+## Release execution — 2026-09-21
+
+- ☑ Owner-requested release completed: analyser **1.16.0**; public starter publication
+  and playground deployment are coordinated prerequisites for the starter journey. The broader
+  dependency-integrity claims remain excluded; the cold-start battery remains retired.
+- ☑ Main integrated on an isolated release branch without conflict; original feature branch and IDE
+  edits preserved. A whitespace-only main document regression was corrected without changing wording.
+- ☑ Real process restart: `tools/verify-session-restart.py` drives three independent JVMs through
+  shipped startup/window-close paths. Relaunch offers without loading; explicit restore reloads log,
+  topology, design, diagnostics, selection and focus. A CLI log does not grant restore permission;
+  dismiss leaves that log intact. Initial probe assumed selection was an integer list; corrected to
+  compare the documented selection objects. No application fix was needed.
+- ☑ Existing M46 release probe updated for the owner's explicit-restore decision: a global remembered
+  log must stay unopened. M46, M48 and M64 built-jar gates pass; five conversation capture scenarios
+  complete, with unchanged transcript and restored generated images. Display set: 41 passing tests.
+- ☑ Compiler/starter **1.0.72 published**, playground **d1f7dcc deployed**, public artifact parity
+  and unattended empty-cache customer download/build/run/stop pass (workflow 35544485872).
+  All five sample rows verified; 43 shipped originals unchanged. Railway deployment confirmed by
+  owner and independently exercised: generated source and descriptor identify 1.0.72.
+- ☑ Public browser preview witnessed by owner: rootNode, child and dependency arrow visible,
+  no error. Screenshot and machine results preserved in the release report.
+- ☑ **Public acquisition completed after restored login.** The two authentication failures remain
+  sealed. The authorised fresh client acquired the public bundle, built, ran, exported and stopped
+  without coaching. Independent check: five correct rows, 43 originals unchanged, registry empty,
+  port closed. Duration 388.311 s. Wrapper bootstrap was blocked by operator sandbox; installed Maven
+  built the unchanged POM. Attribution prediction failed (84/87 batches missing pointers); no routing
+  improvement claim. See the release record for limits and evidence.
+- ☑ Analyser **1.16.0 published** at `02dac9d3`; workflow 35545989495 and docs deployment
+  35546034206 passed. Downloaded jars match checksums/version; the published jar passes the three-JVM
+  recovery smoke. Public release notes verified. Detailed asset results are in the release record.
+
+
+Release record: [report](../../handoff/report_release_journey_2026_09_21.md).
+
+
 ## VI-1 · Vendor integration site — ☑ SHIPPED 2026-09-21
 
 Owner-approved [PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1) merged linearly

@@ -53,11 +53,12 @@ public final class GraphPanel extends JPanel {
     private final JSplitPane seriesSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
     private JComponent seriesPanel;
 
-    // the plot key rendered as a floating Swing overlay (opaque, untruncated) at the plot's top-right,
+    // the plot key rendered as a Swing key in a reserved strip to the right of the plot,
     // with the "Edit series" toggle stacked above it — right-click a label to remove that series.
     // The overlay is a CHILD of the chart so it repaints with it (e.g. survives panning/zooming).
     private final JPanel legendOverlay = new JPanel();
     private final JPanel legendLabels = new JPanel();
+    private final JScrollPane legendScroll = new JScrollPane(legendOverlay);
 
     /** A derived (formula) series: display label, the expr text, and the resolve policy. */
     private record Derived(String label, String exprText, SeriesExtractor.Resolve resolve) { }
@@ -145,7 +146,7 @@ public final class GraphPanel extends JPanel {
         row1.add(exportPng);
         add(row1, BorderLayout.NORTH);
 
-        // the plot key as an opaque floating overlay (top-right of the plot), Edit-series toggle on top
+        // the plot key as an key in its reserved right strip, Edit-series toggle on top
         buildLegendOverlay();
 
         // chart alone by default; toggling "Edit series" swaps in a splitter with the Series panel beside it
@@ -175,7 +176,7 @@ public final class GraphPanel extends JPanel {
         fit.addActionListener(e -> chart.resetView());
     }
 
-    // ---- Plot key overlay (floating, opaque, untruncated) ---------------------------------------
+    // ---- Plot key (reserved strip, scrollable) ---------------------------------------
 
     /** Build the top-right overlay: the "Edit series" toggle stacked above the (right-aligned) series key. */
     private void buildLegendOverlay() {
@@ -197,20 +198,25 @@ public final class GraphPanel extends JPanel {
 
         // parent the overlay ON the chart so a chart repaint (pan/zoom drag) repaints it too
         chart.setLayout(null);
-        chart.add(legendOverlay);
+        legendScroll.setBorder(null);
+        legendScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        legendScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        chart.add(legendScroll);
         chart.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent e) { positionLegendOverlay(); }
         });
     }
 
-    /** Float the overlay at the chart's top-right corner, clamped to the chart bounds. */
+    /** Reserve a right strip and clamp the scrollable key to the chart bounds. */
     private void positionLegendOverlay() {
         if (chart.getWidth() == 0) return;
         java.awt.Dimension pref = legendOverlay.getPreferredSize();
-        int x = Math.max(0, chart.getWidth() - pref.width - 14);
-        int hgt = Math.min(pref.height, Math.max(0, chart.getHeight() - 24));
-        legendOverlay.setBounds(x, 10, pref.width, hgt);
-        legendOverlay.revalidate();
+        int width = Math.min(pref.width + 4, Math.max(100, chart.getWidth() / 3));
+        int hgt = Math.min(pref.height + 4, Math.max(0, chart.getHeight() - 24));
+        chart.setLegendWidth(width + 14);
+        legendScroll.setBounds(chart.getWidth() - width - 8, 10, width, hgt);
+        legendScroll.doLayout();
+        legendScroll.revalidate();
     }
 
     /** Rebuild the overlay's series rows (raw keys then formulas, in plot-colour order). */

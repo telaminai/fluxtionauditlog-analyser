@@ -53,7 +53,7 @@ without them. To restore any of them, load the demo fixture and capture by hand 
 
 ```bash
 mvn package                        # the harness drives the built jar
-python3 tools/capture-docs.py      # regenerates every image in the inventory above
+python3 tools/capture-docs.py      # main/demo, chart, project/menu and spotlight shots
 python3 tools/capture-docs.py --mcp # regenerates only the isolated MCP setup/dialog shots
 ```
 
@@ -76,3 +76,19 @@ real alt text, e.g. from a `user-guide/` page:
 ```
 
 - `start-page.png` — the start page (M36): what the analyser shows with no log open. Captured by closing the log (`open {close: "all"}`) so the shot is the real state, not a mode built for the camera.
+
+## Capture audit — 2026-09-21
+
+The tool-agreement branch refreshes the full 24-image demo suite, the five conversation shots
+(and their recorded echoes), and four Spring project/design/validation shots. Old topology pictures
+claimed off-path without complete dispatch metadata; old chart pictures put commentary and legends
+over data. Both now show the changed UI. Demo files with an unterminated final record now show that
+record as pending; counts in the conversations were corrected rather than editing fixture evidence.
+
+Spring captures use the preserved public project copy with the released 1.0.73 keyless validator.
+They establish design/validation rendering, not a new setup/generation or client trial.
+
+Not recaptured in this pass: the MCP dialogs, template-picker and bundle tutorial sequence. Their
+separate capture modes require their own fixtures. The owner-witnessed website Spring preview and
+vendor topology picture are historical evidence, not screenshots of the new analyser. The vendor
+evidence image is deliberately retained unchanged.

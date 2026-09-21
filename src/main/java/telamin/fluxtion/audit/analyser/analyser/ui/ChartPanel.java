@@ -41,7 +41,7 @@ public final class ChartPanel extends JPanel {
     private static final Color[] MARKER_PALETTE = {
             new Color(0xE8590C), new Color(0xD6409F), new Color(0x66A80F), new Color(0x7048E8)
     };
-    private static final int L = 56, R = 16, T = 14, B = 44;   // legend is a Swing overlay now, not an in-margin paint
+    private static final int L = 56, R = 16, T = 14, B = 44;   // legend has a separately reserved right margin
 
     private final List<Series> series = new ArrayList<>();
     private java.util.function.LongConsumer onPlotClick = t -> { };   // click in the plot → time at cursor
@@ -62,6 +62,13 @@ public final class ChartPanel extends JPanel {
             new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment();
     private telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes =
             telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.EMPTY;
+    private int legendWidth;
+    private java.awt.Rectangle explanationBounds = new java.awt.Rectangle();
+    private List<String> explanationLines = List.of();
+    private List<ChartAnnotationLayout.Pin> notePins = List.of();
+    void setLegendWidth(int width) { if (legendWidth != width) { legendWidth = width; repaint(); } }
+    java.awt.Rectangle explanationBounds() { return new java.awt.Rectangle(explanationBounds); }
+    List<ChartAnnotationLayout.Pin> notePins() { return notePins; }
     private int plotX, plotY, plotW, plotH;           // last painted plot rect
     private int dragX, dragY;
 
@@ -196,7 +203,7 @@ public final class ChartPanel extends JPanel {
         int w = Math.max(getWidth(), 640), h = Math.max(getHeight(), 360);
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
-        paintComponent(g);
+        paint(g); // include the legend in its reserved strip
         g.dispose();
         return img;
     }
@@ -243,7 +250,7 @@ public final class ChartPanel extends JPanel {
         repaint();
     }
 
-    /** The explanation block and the pinned notes drawn over the plot. */
+    /** Explanation and note text below the plot; numbered pins above it. */
     public void setNotes(telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes) {
         this.notes = notes == null
                 ? telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.EMPTY : notes;
@@ -267,10 +274,11 @@ public final class ChartPanel extends JPanel {
 
     public java.awt.Rectangle noteBounds(int n) {
         if (n < 1 || notes.notes().isEmpty() || Double.isNaN(vx0)) return null;
-        int index = 0;
-        for (var entry : notes.byColumn(vx0, vx1, plotW).entrySet()) {
-            for (var ignored : entry.getValue()) {
-                if (++index == n) return new java.awt.Rectangle(plotX + entry.getKey() - 9, plotY, 18, plotH);
+        for (var pin : notePins) {
+            if (n >= pin.first() && n <= pin.last()) {
+                var bounds = new java.awt.Rectangle(pin.bounds());
+                for (int column : pin.columns()) bounds.add(new java.awt.Rectangle(plotX + column - 1, plotY, 3, plotH));
+                return bounds;
             }
         }
         return null;
@@ -283,7 +291,7 @@ public final class ChartPanel extends JPanel {
 
     /** True when a right-hand scale is being drawn, so the caller can widen the right margin. */
     private int rightMargin() {
-        return axes.hasRightAxis() ? 56 : R;
+        return (axes.hasRightAxis() ? 56 : R) + legendWidth;
     }
 
     /**
@@ -426,6 +434,10 @@ public final class ChartPanel extends JPanel {
 
     @Override
     public String getToolTipText(MouseEvent e) {
+        if (explanationBounds.contains(e.getPoint())) {
+            String text = String.join("<br>", annotationLines().stream().map(line -> line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")).toList());
+            return "<html><div width='600'>" + text + "</div></html>";
+        }
         if (Double.isNaN(vx0) || plotW <= 0) return null;
         if (e.getX() < plotX || e.getX() > plotX + plotW) return null;
         var mHit = markerAt(e.getX(), e.getY());
@@ -478,7 +490,14 @@ public final class ChartPanel extends JPanel {
         g.setColor(panelBg);
         g.fillRect(0, 0, w, h);
 
-        plotX = L; plotY = T; plotW = w - L - rightMargin(); plotH = h - T - B;
+        plotX = L; plotW = w - L - rightMargin();
+        notePins = ChartAnnotationLayout.pins(notes.byColumn(vx0, vx1, plotW), plotX, plotW, T,
+                g.getFontMetrics());
+        plotY = T + (notePins.isEmpty() ? 0 : 24);
+        explanationLines = ChartAnnotationLayout.wrap(annotationLines(), g.getFontMetrics(), Math.max(30, plotW - 16));
+        int footer = explanationLines.isEmpty() ? 0 : Math.min(Math.max(42, h / 3), explanationLines.size() * g.getFontMetrics().getHeight() + 16);
+        plotH = h - plotY - B - footer;
+        explanationBounds = new java.awt.Rectangle(plotX, plotY + plotH + B, Math.max(0, plotW), footer);
         if (plotW > 10 && plotH > 10) {
             g.setColor(canvas);
             g.fillRect(plotX, plotY, plotW, plotH);   // the plot card, distinct from the panel margins
@@ -495,6 +514,7 @@ public final class ChartPanel extends JPanel {
                             : "No data under the current filter — the configured series matched no "
                                     + "records in view. Widen the filter to see them.",
                     L, h / 2);
+            paintExplanation(g, dark);
             g.dispose();
             return;
         }
@@ -543,6 +563,7 @@ public final class ChartPanel extends JPanel {
         paintGuides(g, dark);
         paintNotes(g, dark);
         g.setClip(null);
+        paintNotePins(g, dark);
         if (externalStamp != null) {
             // bottom-left, inside the plot frame: visible on screen AND in every painted export
             g.setColor(dark ? new Color(0xD29922) : new Color(0x9A6700));
@@ -694,7 +715,7 @@ public final class ChartPanel extends JPanel {
      * Notes pinned to moments: a dashed rule at the time, a numbered marker, and the text.
      *
      * <p>Numbered rather than labelled in place, because a note long enough to be worth writing is long
-     * enough to cover the data it is about. The number sits on the plot; the words sit under it, in the
+     * enough to cover the data it is about. The number sits above the plot; the words sit under it, in the
      * same order.
      */
     private void paintNotes(Graphics2D g, boolean dark) {
@@ -702,27 +723,23 @@ public final class ChartPanel extends JPanel {
             return;
         }
         Color rule = dark ? new Color(0x6E7681) : new Color(0x8C959F);
-        Color pin = dark ? new Color(0xE3B341) : new Color(0x9A6700);
-        var columns = notes.byColumn(vx0, vx1, plotW);   // the exact view bounds, as the series use
-        int index = 0;
-        for (var entry : columns.entrySet()) {
-            int px = plotX + entry.getKey();
+        for (var pinGroup : notePins) for (int column : pinGroup.columns()) {
+            int px = plotX + column;
             g.setColor(rule);
             g.setStroke(new java.awt.BasicStroke(1f, java.awt.BasicStroke.CAP_BUTT,
                     java.awt.BasicStroke.JOIN_MITER, 10f, new float[]{3f, 4f}, 0f));
             g.drawLine(px, plotY, px, plotY + plotH);
-            // notes sharing a column stack downwards rather than overprinting each other
-            int stack = 0;
-            for (var ignored : entry.getValue()) {
-                index++;
-                int cy = plotY + 12 + stack * 16;
-                g.setColor(pin);
-                g.fillOval(px - 7, cy - 7, 14, 14);
-                g.setColor(dark ? Color.BLACK : Color.WHITE);
-                String n = String.valueOf(index);
-                g.drawString(n, px - g.getFontMetrics().stringWidth(n) / 2, cy + 4);
-                stack++;
-            }
+        }
+    }
+
+    private void paintNotePins(Graphics2D g, boolean dark) {
+        for (var pin : notePins) {
+            var r = pin.bounds();
+            g.setColor(dark ? new Color(0xE3B341) : new Color(0x9A6700));
+            g.fillRoundRect(r.x, r.y, r.width, r.height, 8, 8);
+            g.setColor(dark ? Color.BLACK : Color.WHITE);
+            g.drawString(pin.label(), r.x + (r.width - g.getFontMetrics().stringWidth(pin.label())) / 2,
+                    r.y + 13);
         }
     }
 
@@ -777,46 +794,35 @@ public final class ChartPanel extends JPanel {
     }
 
     /**
-     * The explanation block, bottom-left inside the plot: what this chart is for, in the author's words.
+     * The explanation block, in a reserved footer below the plot: what this chart is for, in the author's words.
      *
      * <p>Drawn on the chart rather than beside it so it survives an exported PNG — a rationale that lives
      * only in the app is lost the moment the picture is shared, which is exactly when it is needed.
      */
-    private void paintExplanation(Graphics2D g, boolean dark) {
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        if (!notes.explanation().isBlank()) {
-            lines.addAll(java.util.Arrays.asList(notes.explanation().split("\n")));
-        }
+    private List<String> annotationLines() {
+        List<String> lines = new ArrayList<>();
+        if (!notes.explanation().isBlank()) lines.addAll(java.util.Arrays.asList(notes.explanation().split("\n")));
         int n = 0;
-        for (var note : notes.between((long) vx0, (long) vx1)) {
-            lines.add(++n + ". " + note.text()
-                    + (note.series() == null ? "" : "  [" + note.series() + "]"));
-        }
-        if (lines.isEmpty() || plotW < 120) {
-            return;
-        }
-        java.awt.FontMetrics fm = g.getFontMetrics();
-        int pad = 8;
-        int lineH = fm.getHeight();
-        int boxW = 0;
-        for (String line : lines) {
-            boxW = Math.max(boxW, fm.stringWidth(line));
-        }
-        boxW = Math.min(boxW + pad * 2, plotW - 16);
-        int boxH = lines.size() * lineH + pad * 2;
-        int bx = plotX + 8;
-        int by = plotY + plotH - boxH - 8;
+        for (var note : notes.between((long) vx0, (long) vx1))
+            lines.add(++n + ". " + note.text() + (note.series() == null ? "" : "  [" + note.series() + "]"));
+        return lines;
+    }
 
-        Color fill = dark ? new Color(0x1B1F24) : new Color(0xFFFFFF);
-        g.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 235));
-        g.fillRoundRect(bx, by, boxW, boxH, 8, 8);
-        g.setColor(dark ? new Color(0x3D444D) : new Color(0xC2CAD3));
-        g.drawRoundRect(bx, by, boxW, boxH, 8, 8);
+    private void paintExplanation(Graphics2D g, boolean dark) {
+        if (explanationLines.isEmpty() || explanationBounds.width < 30) return;
+        g.setFont(getFont().deriveFont(11f));
+        var fm = g.getFontMetrics();
+        var box = explanationBounds;
+        g.setColor(dark ? new Color(0x1B1F24) : Color.WHITE);
+        g.fillRect(box.x, box.y, box.width, box.height);
         g.setColor(dark ? new Color(0xC9D1D9) : new Color(0x24292F));
-        int ty = by + pad + fm.getAscent();
-        for (String line : lines) {
-            g.drawString(clip(fm, line, boxW - pad * 2), bx + pad, ty);
-            ty += lineH;
+        int capacity = Math.max(1, (box.height - 16) / fm.getHeight());
+        int shown = Math.min(explanationLines.size(), capacity);
+        for (int i = 0; i < shown; i++) {
+            String line = explanationLines.get(i);
+            if (i == shown - 1 && shown < explanationLines.size())
+                line = "+" + (explanationLines.size() - shown + 1) + " more lines — hover to read all";
+            g.drawString(clip(fm, line, box.width - 16), box.x + 8, box.y + 8 + fm.getAscent() + i * fm.getHeight());
         }
     }
 

@@ -12,22 +12,21 @@ rest of the graph is shaded by what the log actually supports, which is not the 
 
 Look at `spreadCalculator`, sitting between them with a **dashed** outline. It certainly executed: the
 spread it computes is in `quotePublisher`'s log line. It simply writes no audit output of its own, so the
-log never mentions it. The order-handling branch is faded because a market-data event cannot reach it.
+log never mentions it. The silent order-handling branch remains unknown: this graph does not declare whether another route enters through a supertype.
 
 !!! danger "No audit entry does not mean the node didn't run"
 
     A node appears in `nodeLogs` only if it **writes** audit output, and only at the audit level in
     force. Plenty of nodes execute silently. So the tab never colours a node "didn't run" — it shows
-    four different claims, and says which is which:
+    three claims on an ordinary, untraced record, and says which is which:
 
     | On screen | What it means |
     |---|---|
     | **green ring + number** | **logged** — it wrote audit output, and the number is its dispatch position. The only thing directly observed. |
     | **solid outline** | **ran, logged nothing** — it is the *only* way into something that ran, so dispatch had no other route. Certain. |
-    | **dashed outline** | **may have run** — connected to something that logged, but the log cannot say whether dispatch reached it. A genuine unknown. |
-    | **faded** | **not on this path** — nothing that logged is connected to it. |
+    | **dashed outline** | **may have run** — the log does not say whether it ran. Missing supertype routes cannot rule it out. |
 
-    The distinction between the last two matters: a node with several parents only needs *one* of them
+    The distinction between the solid and dashed outlines matters: a node with several parents only needs *one* of them
     to have fired, so its other ancestors are unknowns, not certainties. Hover any node and it tells you
     in words.
 
@@ -304,9 +303,9 @@ Use the **Callout** state (or `topology {"callout": false}`) to hide it without 
 The two graph views answer different questions, and the second is the one people forget to ask:
 
 - **The cycle** — only the nodes this event reached, and the order they logged in.
-- **Where it sits in the processor** — the whole graph with that cycle lit. What stayed grey is what the
-  event did *not* reach, which is the entire evidence for anything of the form "the check never fired".
-  A trace on its own cannot show an absence.
+- **Where it sits in the processor** — the whole graph with that cycle lit. Unlogged nodes remain
+  unknown on an ordinary audit record; only a complete invocation trace makes their absence conclusive.
+  Missing graph edges do not establish that a check never fired.
 
 Both are drawn for the page rather than screenshotted from the tab, so the document never inherits
 whatever zoom you happened to be at, and exporting never changes what you are looking at. Node logs

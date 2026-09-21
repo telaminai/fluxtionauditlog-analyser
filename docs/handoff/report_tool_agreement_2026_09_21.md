@@ -226,3 +226,34 @@ Frozen predictions all held, on constructed inputs:
 behavior and fail its named assertion. Restored full headless gate, both real-frame cases and strict
 docs pass. Counts remain **analyser 7, upstream 8 open**. The owner also requested a screenshot audit;
 old topology and chart pictures are confirmed stale and will be refreshed after the remaining layout work.
+
+## TA-8 A11/A12 — completed
+
+Frozen prediction held: plot, commentary footer and legend do not overlap; nearby note pins combine
+into numbered ranges above the plot. Overflow is disclosed and the full commentary remains on hover.
+`ChartAnnotationLayoutTest` verifies each geometry boundary and that chart export includes its Swing
+legend; the existing fractional-note boundary regression still passes. All inputs are constructed.
+
+[Three mutations](evidence/tool-agreement-2026-09-21/ta8-layout-mutations.json) move the footer into the
+plot, disable pin grouping, and remove the legend reservation. Each fails its own named assertion.
+Restored full suite and the two real-frame spotlight classes pass. Native demo captures independently
+show the new chart arrangement. Counts unchanged: **analyser 7, upstream 8 open**.
+
+## Documentation screenshot audit
+
+The owner's concern was confirmed: topology legend and chart overlays were obsolete. Rebuilt the
+jar and ran `tools/capture-docs.py`: **24 native captures, all successful**. Ran
+`tools/capture-conversations.py`: **five captures**, recorded echoes regenerated. Ran the Spring
+capture script on the preserved public project copy with released starter 1.0.73: four captures,
+real keyless validation rejection and correction. All refreshed images were visually inspected.
+The main suite includes a ringed derivative of its native menu image; it does not invent app content.
+
+Updated topology/graph prose in place and removed the conversation's unsound absence claim. The
+preserved demo logs have unterminated tails: screenshots now show 9/725 complete records plus a
+pending tail instead of asserting 10/726 complete. No raw historical evidence was changed.
+The asset README names coverage and limits: MCP/template-picker/bundle tutorial shots were not
+recaptured, nor the historical owner-witnessed website preview/vendor evidence.
+
+Full Java suite and strict docs pass. Completed release-execution section moved to the completed
+tracker; partial sections retained. This housekeeping was requested first but was missed initially;
+it is now corrected without changing its recorded release evidence.

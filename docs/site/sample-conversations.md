@@ -20,25 +20,29 @@ The client discovers one tool per verb — `analyser_context`, `analyser_aggrega
       "log": {
         "path": "…/analyser/src/test/resources/topology/demo-quote-audit.yaml",
         "openedFrom": "…/analyser/src/test/resources/topology/demo-quote-audit.yaml",
-        "records": 10,
+        "records": 9,
         "sizeBytes": 4053,
         "from": 1767258000090,
-        "to": 1767258000360,
-        "openedBy": "the command line that started this analyser"
+        "to": 1767258000330,
+        "openedBy": "the command line that started this analyser",
+        "following": false,
+        "supportsFollow": true,
+        "trailingRecordsPending": 1,
+        "pendingNote": "1 trailing record(s) pending — awaiting complete separator lines"
       },
       "graphPairing": {
         "graph": "demo-quote-processor.graphml",
         "applies": true
       },
       "showing": {
-        "visible": 10,
-        "total": 10
+        "visible": 9,
+        "total": 9
       }
     }
     ```
 
 
-Ten records, and the graph applies to this log — so a node's absence would be evidence, not silence. The agent starts wide, then narrows.
+Nine complete records and one pending tail; the graph declares the logged nodes. Silence still does not prove non-execution. The agent starts wide, then narrows.
 
 
 ??? example "→ `analyser_aggregate`"
@@ -47,7 +51,7 @@ Ten records, and the graph applies to this log — so a node's absence would be 
     ← {
       "metric": "count",
       "groupBy": "dimension",
-      "total": 10,
+      "total": 9,
       "buckets": [
         {
           "key": "OrderUpdateEvent",
@@ -58,13 +62,13 @@ Ten records, and the graph applies to this log — so a node's absence would be 
           "count": 3
         },
         {
-          "key": "ExportFunctionAuditEvent",
-          "count": 2
+          "key": "RiskBreachEvent",
+          "count": 1
         },
         "… (+1 more)"
       ],
       "population": {
-        "records": 10,
+        "records": 9,
         "filter": {
           "dimensions": [],
           "from": null,
@@ -100,7 +104,7 @@ Ten records, and the graph applies to this log — so a node's absence would be 
           "logTime": 1767258000300,
           "text": "eventLogRecord: \n    eventTime: 1767258000290\n    logTime: 1767258000300\n    groupingId: null\n    event: Ri…"
         },
-        "… (+2 more)"
+        "… (+1 more)"
       ]
     }
     ```
@@ -120,7 +124,7 @@ Ten records, and the graph applies to this log — so a node's absence would be 
     ```
 
 
-> **Agent:** At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. Nothing else in the ten records is unusual.
+> **Agent:** At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. I have not treated the pending trailing record as complete.
 
 
 ![The two flagged records, the note in the detail pane — the agent's answer as things you can click](assets/conv-what-happened.png)
@@ -244,10 +248,10 @@ Ten records, and the graph applies to this log — so a node's absence would be 
     ```
 
 
-> **Agent:** The chart is on your Graph tab — spread on the left axis, live orders on the right, captioned with why I drew it. The report is saved in the project as *spread-vs-live* and rendered to the exchange directory as `spread-vs-live.pdf`. Its aggregate table is also exported as CSV, so the report carries the event population rather than a hand-picked ten-record sample; its header names the log it was written against, so whoever receives it can check it against the same file.
+> **Agent:** The chart is on your Graph tab — spread on the left axis, live orders on the right, captioned with why I drew it. The report is saved in the project as *spread-vs-live* and rendered to the exchange directory as `spread-vs-live.pdf`. Its aggregate table is also exported as CSV, so the report carries the event population rather than a hand-picked short sample; its header names the log it was written against, so whoever receives it can check it against the same file.
 
 
-![The report on the Reports tab, written against the 726-record series log — the narrative labelled as the author's account, not evidence; the chart it refers to is on the Graph tab](assets/conv-chart-and-report.png)
+![The report on the Reports tab, written against the longer series log — the narrative labelled as the author's account, not evidence; the chart it refers to is on the Graph tab](assets/conv-chart-and-report.png)
 
 
 ## 5 · "Use what the project knows" — runbooks, glossary, a saved analysis
@@ -368,7 +372,7 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
     → analyser_context {}
     ← {
       "log": {
-        "records": 10
+        "records": 9
       },
       "provenance": "DEMO quote service · uat",
       "provenanceSource": "project environment 'uat' — the log is under logs/uat",
@@ -387,7 +391,7 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
       "covered": 5,
       "uncovered": 0,
       "ratio": 1.0,
-      "recordsScanned": 10,
+      "recordsScanned": 9,
       "excludedNote": "excluded 5 declared item(s) that can never write audit output: 3 event class(es), 1 exported service(s), 1 …"
     }
     ```
@@ -424,6 +428,13 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
         "path": "…/analyser/src/test/resources/topology/demo-quote-processor-noaudit.graphml",
         "graphNodes": 18,
         "authoredNodes": 10,
+        "copyComparison": {
+          "roots": [
+            "…/analyser/examples/fixture-generator/src/main/java",
+            "…/analyser/src/test/resources/topology"
+          ],
+          "state": "pending"
+        },
         "pairing": "no log is open — nothing to check this graph against"
       }
     }
@@ -438,6 +449,10 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
         "auditLogging": "not_enabled",
         "auditLoggingNote": "This processor was built WITHOUT audit logging: EventLogManager is not on the graph, so it will write no au…",
         "graph": "demo-quote-processor-noaudit.graphml"
+      },
+      "log": {
+        "following": false,
+        "supportsFollow": false
       }
     }
     ```

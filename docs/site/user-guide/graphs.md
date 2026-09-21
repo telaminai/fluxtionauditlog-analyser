@@ -9,7 +9,7 @@ Plot any node value over time. Open the **Graph** tab; each graph is its own sub
 - Or **right-click an attribute** in the record detail view to add it straight to the current, a
   named, or a new graph.
 
-The series key sits as an overlay on the top-right of the plot; right-click a label to remove it.
+The series key has a reserved strip to the right of the plot; it never covers data. Right-click a label to remove it. Long keys and lists scroll within that strip.
 
 ![A node value plotted over time — priceListener.mid across 400 market-data cycles](../assets/graph-series-dark.png)
 
@@ -167,7 +167,7 @@ chart has stopped being a picture.
 A plot says *what happened*. It never says *why that matters*, and that second half is usually lost with
 the screenshot. Both are held with the graph and drawn **on** it, so they survive an exported PNG:
 
-- **`explanation`** — a multi-line write-up in a box on the plot.
+- **`explanation`** — a multi-line write-up below the plot, with long lines wrapped.
 - **`notes`** — pinned to moments, numbered on the chart and listed beneath it. Anchor one with `at`
   (epoch millis) or `recordIndex`, whichever you have to hand.
 
@@ -177,7 +177,7 @@ the screenshot. Both are held with the graph and drawn **on** it, so they surviv
             "series": "stockLedger.onHand"}]}
 ```
 
-Notes landing on the same pixel column stack rather than overprinting, and `clearNotes` drops the pins
+Nearby or coincident note pins combine into numbered ranges above the plot; the full numbered text stays below. A long footer explicitly counts omitted lines and shows all text on hover. `clearNotes` drops the pins
 while keeping the write-up. The [threshold chart above](#thresholds-and-condition-bands) wears both:
 its explanation box states what each layer means, and note ① pins the session's opening moment.
 
