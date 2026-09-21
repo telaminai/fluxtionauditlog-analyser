@@ -176,3 +176,19 @@ Mutation: force the adapter to stop instead of starting. The echo assertion fail
 The first witness collector rejected the test's `(Path)` suffix; the collector was corrected and the
 mutation repeated. Both executions failed the intended assertion. Restored display test and full
 headless suite pass; strict docs pass. No new verb. Counts unchanged: **analyser 7, upstream 8 open**.
+
+## TA-9 — before case completed; producer union blocked
+
+Frozen prediction: the committed `desk-quote-supertype.graphml` cannot rule out `acmeQuoteFeed` for a
+constructed MarketPrice record logging priceBook. Context, human status/legend and coverage/report notes
+say hierarchy unknown; an explicit complete invocation trace retains its stronger absence verdict.
+**Held.** Both `DispatchHierarchyTest` methods pass. Existing tests that asserted off-path solely from
+missing edges now assert unknown; logged and complete-trace controls are unchanged. The framework
+reference was fetched before this change. No application class, source hierarchy or cycle co-occurrence
+was used to invent a dispatch relationship.
+
+Mutation: restore off-path classification. The committed-fixture test fails
+`unknown hierarchy cannot exclude the vendor handler ==> expected: <MAY_HAVE_RUN> but was: <OFF_PATH>`.
+[Witness](evidence/tool-agreement-2026-09-21/ta9-before-mutation.json). Full restored headless suite and
+strict docs pass. No new edge or union implemented: those require the producer contract and future
+relationship-carrying fixture. D20 stays open. Counts unchanged: **analyser 7, upstream 8 open**.

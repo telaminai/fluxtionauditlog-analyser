@@ -253,6 +253,10 @@ agree. Negative: on a reader without follow support, the echo reports that it is
 
 ### TA-9 · P1 · Draw the route that actually runs when dispatch goes through a supertype
 
+**Status: ◧ before case implemented; producer relationship contract still blocked.**
+`DispatchHierarchyTest` checks the committed graph, unknown disclosure and complete-trace negative control.
+[Mutation and limits](../handoff/report_tool_agreement_2026_09_21.md#ta-9--before-case-completed-producer-union-blocked). D20 remains open.
+
 **Built under the existing item** "Authoritative dispatch metadata (34), P1": the compiler/exporter supplies
 known concrete dispatch relationships, and the analyser displays the facts and their limits. TA-9 is the
 **analyser half** of that item, not a new one. An earlier revision of this spec called #34 untracked; that

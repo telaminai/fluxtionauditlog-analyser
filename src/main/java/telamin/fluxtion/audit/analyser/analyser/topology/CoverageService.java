@@ -60,6 +60,8 @@ public final class CoverageService {
         AuditLevel auditLevel = AuditLevel.of(levels);
 
         Map<String, Object> echo = new LinkedHashMap<>();
+        echo.put("dispatchHierarchy", "unknown");
+        echo.put("dispatchNote", EntryPointResolver.HIERARCHY_NOTE);
         echo.put("declared", coverage.declaredCount());
         if (!scope.excluded().isEmpty()) {
             echo.put("excludedFromDenominator", scope.excluded());
@@ -91,6 +93,7 @@ public final class CoverageService {
 
         List<Map<String, Object>> ledger = ledger(input.topology(), input.authored(), scope, logged);
         List<String> notes = new ArrayList<>();
+        notes.add(EntryPointResolver.HIERARCHY_NOTE);
         if (scope.note() != null) notes.add(scope.note());
         if (!coverage.uncovered().isEmpty() && auditLevel.note() != null) notes.add(auditLevel.note());
         if (echo.get("warning") != null) notes.add(echo.get("warning").toString());

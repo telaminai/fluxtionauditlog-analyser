@@ -322,3 +322,12 @@ A Mongoose server with the admin web console can show you a live processor's gra
 other situation, which is most of production support: **many logs, archived, no server to ask** — and
 here the graph is wired into the rest of the analyser, so a node reaches its source, its values and the
 records it appears in.
+
+### Missing dispatch hierarchy
+
+Current GraphML files do not declare a complete event hierarchy. The Topology status and cycle
+legend therefore disclose **dispatch hierarchy unknown**. A named event entry and its drawn edges
+do not exclude a second route through a supertype. An unlogged node is not shaded as off-path
+on that basis. The topology context and coverage echo carry the same qualification;
+coverage report notes and exported cycle legends retain it. A complete invocation trace can still
+prove that a node did not run. The analyser does not infer missing inheritance or add edges.

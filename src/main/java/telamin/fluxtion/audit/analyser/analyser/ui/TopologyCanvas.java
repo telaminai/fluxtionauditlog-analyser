@@ -1188,11 +1188,11 @@ public final class TopologyCanvas extends JPanel {
         String[] labels = complete
                 ? new String[]{dispatch.size() + " ran", "did not run"}
                 : new String[]{dispatch.size() + " logged", "ran, logged nothing",
-                        "may have run", "not on this path"};
+                        "may have run (dispatch hierarchy unknown)"};
         Color[] colours = complete
                 ? new Color[]{firedBorder(dark), fade(ranSilentlyBorder(dark), dark)}
                 : new Color[]{firedBorder(dark), ranSilentlyBorder(dark),
-                        ranSilentlyBorder(dark), fade(ranSilentlyBorder(dark), dark)};
+                        ranSilentlyBorder(dark)};
         FontMetrics fm = g.getFontMetrics();
         int y = 18;
         int x = 12;

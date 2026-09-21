@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Topology and coverage disclose unknown dispatch hierarchy; missing supertype edges no longer shade unlogged branches as off-path. Complete invocation traces retain their stronger claim.
+
 - Assistants can start/stop the existing Follow control with standalone `open {follow: true|false}`; unsupported or still-loading readers refuse.
 
 ### Fixed

@@ -79,11 +79,11 @@ class ExecutionClassificationTest {
     }
 
     @Test
-    void anUnconnectedNodeIsOffThePath() {
+    void anUnconnectedNodeHasUnknownDispatch() {
         Map<String, ProcessorTopology.Execution> state =
                 topo("a->b", "x->y").classifyCycle(List.of("a"));
-        assertEquals(OFF_PATH, state.get("x"));
-        assertEquals(OFF_PATH, state.get("y"));
+        assertEquals(MAY_HAVE_RUN, state.get("x"));
+        assertEquals(MAY_HAVE_RUN, state.get("y"));
     }
 
     @Test
@@ -104,10 +104,10 @@ class ExecutionClassificationTest {
 
     @Test
     void withNothingLoggedNothingIsClaimed() {
-        // no evidence at all: every node is off-path, and crucially none is marked as having not run
+        // no evidence at all: every node is unknown, never absent
         Map<String, ProcessorTopology.Execution> state = topo("a->b").classifyCycle(List.of());
-        assertEquals(OFF_PATH, state.get("a"));
-        assertEquals(OFF_PATH, state.get("b"));
+        assertEquals(MAY_HAVE_RUN, state.get("a"));
+        assertEquals(MAY_HAVE_RUN, state.get("b"));
         assertFalse(state.containsValue(LOGGED));
     }
 
@@ -121,13 +121,13 @@ class ExecutionClassificationTest {
     }
 
     @Test
-    void aRealisticCycleLeavesMostOfTheGraphOffPath() {
+    void aRealisticCycleCannotExcludeUnmappedDispatch() {
         ProcessorTopology t = topo("evt->handler", "handler->calc", "calc->publisher",
                 "other->unrelated", "unrelated->elsewhere");
         Map<String, ProcessorTopology.Execution> state = t.classifyCycle(List.of("calc"), List.of("evt"));
         assertEquals(RAN_SILENTLY, state.get("handler"), "calc's only parent");
         assertEquals(RAN_SILENTLY, state.get("evt"), "the entry itself");
         assertEquals(MAY_HAVE_RUN, state.get("publisher"));
-        assertEquals(OFF_PATH, state.get("other"));
+        assertEquals(MAY_HAVE_RUN, state.get("other"));
     }
 }

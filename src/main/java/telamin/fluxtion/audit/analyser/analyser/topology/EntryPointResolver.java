@@ -21,6 +21,10 @@ import java.util.Set;
 public final class EntryPointResolver {
     private EntryPointResolver() { }
 
+    /** No supported producer vocabulary currently declares the complete event hierarchy. */
+    public static final String HIERARCHY_NOTE = "Dispatch hierarchy unknown: this graph does not declare complete supertype routes. "
+            + "Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.";
+
     /** The audit event type used when an exported service interface method is called. */
     private static final String EXPORTED_CALL = "ExportFunctionAuditEvent";
 

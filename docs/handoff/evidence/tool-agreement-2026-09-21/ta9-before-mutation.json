@@ -1,0 +1,11 @@
+{
+  "mutation": "Restore off-path classification without complete producer hierarchy",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "committedSupertypeGraphCannotExcludeAnUnmappedRoute",
+      "failure": "unknown hierarchy cannot exclude the vendor handler ==> expected: <MAY_HAVE_RUN> but was: <OFF_PATH>"
+    }
+  ],
+  "restored": true
+}

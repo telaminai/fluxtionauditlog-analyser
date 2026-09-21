@@ -82,15 +82,15 @@ class EntryPointResolverTest {
         ProcessorTopology t = topology();
         // hedgeMonitor is the entry; nothing logged at all on its branch
         Map<String, ProcessorTopology.Execution> without = t.classifyCycle(List.of());
-        assertEquals(ProcessorTopology.Execution.OFF_PATH, without.get("calc_2"),
+        assertEquals(ProcessorTopology.Execution.MAY_HAVE_RUN, without.get("calc_2"),
                 "with no entry point there is nothing to reason from");
 
         Map<String, ProcessorTopology.Execution> with = t.classifyCycle(List.of(), List.of("hedgeMonitor"));
         assertEquals(ProcessorTopology.Execution.MAY_HAVE_RUN, with.get("hedgeMonitor"));
         assertEquals(ProcessorTopology.Execution.MAY_HAVE_RUN, with.get("calc_2"),
                 "dispatch could have reached it — unknown, not 'the event never came near it'");
-        assertEquals(ProcessorTopology.Execution.OFF_PATH, with.get("orphan_3"),
-                "genuinely unreachable from the entry");
+        assertEquals(ProcessorTopology.Execution.MAY_HAVE_RUN, with.get("orphan_3"),
+                "no declared edge is not proof of no route");
     }
 
     @Test
@@ -103,13 +103,13 @@ class EntryPointResolverTest {
     }
 
     @Test
-    void aKnownEntryPointRulesOutWhatItCannotReach() {
+    void aNamedEntryPointCannotRuleOutUnmappedRoutes() {
         // handler_1 also feeds calc_2, but this cycle came in through hedgeMonitor — so however calc_2
-        // is wired, the price branch did not run. Connectivity to a logged node must not resurrect it.
+        // is wired, missing producer hierarchy leaves the price branch unknown.
         Map<String, ProcessorTopology.Execution> state =
                 topology().classifyCycle(List.of("calc_2"), List.of("hedgeMonitor"));
-        assertEquals(ProcessorTopology.Execution.OFF_PATH, state.get("handler_1"));
-        assertEquals(ProcessorTopology.Execution.OFF_PATH, state.get("priceEvent"));
+        assertEquals(ProcessorTopology.Execution.MAY_HAVE_RUN, state.get("handler_1"));
+        assertEquals(ProcessorTopology.Execution.MAY_HAVE_RUN, state.get("priceEvent"));
     }
 
     @Test

@@ -890,6 +890,7 @@ public final class TopologyPanel extends JPanel {
         appendPart(sb, stepPart);
         appendPart(sb, scopePart);
         appendPart(sb, copyComparisonPart);
+        if (hasTopology()) appendPart(sb, EntryPointResolver.HIERARCHY_NOTE);
         appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
         if (!orderMeaningful) {
             appendPart(sb, "⚠ ARRIVAL ORDER, NOT DISPATCH ORDER — this source declares no order "
@@ -1378,6 +1379,10 @@ public final class TopologyPanel extends JPanel {
         out.put("syncSource", syncButton.isSelected());
         out.put("visibleNodes", canvas.topology().nodeCount());
         out.put("totalNodes", fullTopology.nodeCount());
+        if (hasTopology()) {
+            out.put("dispatchHierarchy", "unknown");
+            out.put("dispatchNote", EntryPointResolver.HIERARCHY_NOTE);
+        }
         out.put("callout", canvas.isCalloutVisible());
         // echo the finding actually on screen, so a caller that has just written one can confirm the
         // graph is showing it rather than assume it

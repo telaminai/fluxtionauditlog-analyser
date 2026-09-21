@@ -582,6 +582,14 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
 - ☐ **Authoritative dispatch metadata (34), P1** — compiler/exporter supplies known concrete dispatch
   relationships and declared handler types with explicit semantics; analyser displays the facts and their
   limits. Never infer compiler dispatch by executing application classes or inventing edges from observations.
+  **TA-9 before-case prediction (frozen):** with committed `desk-quote-supertype.graphml`, a constructed
+  MarketPrice record logging priceBook leaves acmeQuoteFeed unknown, not off-path. Context, topology
+  status/legend and coverage/report notes disclose the missing hierarchy. Explicit complete invocation
+  traces still prove absence. Restoring off-path classification makes the fixture test fail.
+  Counts before: analyser 7, upstream 8; D20 stays open pending producer metadata.
+  **Before case completed:** prediction held; `DispatchHierarchyTest` uses the committed graph and
+  constructed record, plus the complete-trace negative control. Restoring off-path makes its vendor
+  assertion fail. Full suite and strict docs pass. Counts stay 7/8; producer-dependent union remains blocked.
 - ☐ **Vendor authoring diagnostics and guidance (31/32/35), P2** — earlier constructibility diagnostics,
   stable instance naming and bootstrap discovery of the existing vendor guide. Test supported construction
   routes and multiple component instances; document state bridging separately from shared event interfaces.

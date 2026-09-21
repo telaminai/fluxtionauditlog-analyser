@@ -231,11 +231,11 @@ public final class ProcessorTopology {
          */
         RAN_SILENTLY,
         /**
-         * Silent, and downstream of something that logged. Dispatch may have reached it, or may have
+         * Silent. Dispatch may have reached it through a drawn or an unmapped supertype route, or may have
          * stopped short — the log does not say. <b>Unknown, not "no".</b>
          */
         MAY_HAVE_RUN,
-        /** Not connected to anything that logged: no reason to think this event's dispatch came near it. */
+        /** Reserved for a future producer-declared complete dispatch path; missing edges do not establish it. */
         OFF_PATH,
         /**
          * <b>Did not run.</b> Only ever claimed when the record traces every invocation
@@ -420,9 +420,9 @@ public final class ProcessorTopology {
      * <ul>
      *   <li>{@link Execution#RAN_SILENTLY} — <b>forced</b>: the node is the <em>only</em> parent of
      *       something that ran, so dispatch had no other way in;</li>
-     *   <li>{@link Execution#MAY_HAVE_RUN} — connected to something that logged, upstream or down, but
-     *       not forced. A genuine unknown;</li>
-     *   <li>{@link Execution#OFF_PATH} — not connected to anything that logged.</li>
+     *   <li>{@link Execution#MAY_HAVE_RUN} — silent and not forced. Without a complete producer
+     *       dispatch hierarchy, missing edges cannot exclude it;</li>
+     *   <li>Missing edges do not exclude execution: producer supertype routes are unknown.</li>
      * </ul>
      *
      * <p><b>Why "only parent" and not "any ancestor".</b> A node with several parents needs just one of
@@ -438,11 +438,9 @@ public final class ProcessorTopology {
      * As {@link #classifyCycle(Collection)}, but told where the cycle <b>entered</b> the graph
      * (see {@link EntryPointResolver}).
      *
-     * <p>This matters for the case the log is worst at. A branch that executed but logged nothing at all
-     * is invisible to reasoning that starts from logged nodes — it comes out {@link Execution#OFF_PATH},
-     * which reads as "the event never went near it". Given the entry point, everything reachable from it
-     * is on the path dispatch <em>could</em> have taken, so those nodes are reported as
-     * {@link Execution#MAY_HAVE_RUN}: unknown, which is the truth, rather than excluded.
+     * <p>Named entries are partial evidence only. The supported producer vocabulary does not declare
+     * a complete event hierarchy, so missing edges never establish an off-path verdict. Explicit
+     * complete invocation traces can still establish absence independently of this graph limitation.
      */
     public Map<String, Execution> classifyCycle(Collection<String> loggedIds, Collection<String> entryIds) {
         return classifyCycle(loggedIds, entryIds, false);
@@ -474,8 +472,8 @@ public final class ProcessorTopology {
         }
 
         // The predicted path: everything dispatch could have reached from where the cycle came in.
-        // When it is known and consistent with the evidence it is AUTHORITATIVE — a node the event
-        // could not reach did not run, however it happens to be wired to something that logged.
+        // When it is known and consistent with the evidence it is a partial route only: producer hierarchy metadata is absent.
+        // Missing edges never prove that the event could not reach another branch.
         Set<String> predicted = new LinkedHashSet<>(entries);
         predicted.addAll(reach(entries, true));
         boolean trustPredicted = !entries.isEmpty() && predicted.containsAll(logged);
@@ -496,17 +494,6 @@ public final class ProcessorTopology {
             }
         }
 
-        Set<String> connected;
-        if (trustPredicted) {
-            connected = predicted;
-        } else {
-            // no entry point, or one that contradicts the log (a resolution miss, or a build mismatch) —
-            // fall back to reasoning outward from what actually logged
-            connected = reach(logged, false);
-            connected.addAll(reach(logged, true));
-            connected.addAll(predicted);
-        }
-
         for (String id : nodes.keySet()) {
             Execution state;
             if (logged.contains(id)) {
@@ -515,8 +502,7 @@ public final class ProcessorTopology {
                 state = Execution.DID_NOT_RUN;   // the log records every invocation, so absence is proof
             } else {
                 state = ran.contains(id) ? Execution.RAN_SILENTLY
-                        : connected.contains(id) ? Execution.MAY_HAVE_RUN
-                        : Execution.OFF_PATH;
+                        : Execution.MAY_HAVE_RUN; // TA-9: incomplete producer hierarchy cannot rule out another route
             }
             out.put(id, state);
         }

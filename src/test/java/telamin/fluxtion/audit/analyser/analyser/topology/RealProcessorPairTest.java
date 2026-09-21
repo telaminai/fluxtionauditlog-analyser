@@ -156,15 +156,15 @@ class RealProcessorPairTest {
     }
 
     @Test
-    void anEventOnlyLightsItsOwnBranch() throws IOException {
+    void anEventNameDoesNotProveTheWholeDispatchRoute() throws IOException {
         ProcessorTopology t = topology();
         LogRecord marketData = records().stream()
                 .filter(r -> "MarketDataEvent".equals(r.event())).findFirst().orElseThrow();
         Map<String, ProcessorTopology.Execution> state = t.classifyCycle(
                 loggedIn(marketData),
                 List.copyOf(EntryPointResolver.resolve(t, marketData.event(), marketData.eventToString())));
-        assertEquals(OFF_PATH, state.get("orderTracker"),
-                "an order-update handler is not reachable from a market-data event");
+        assertEquals(MAY_HAVE_RUN, state.get("orderTracker"),
+                "the graph declares no complete hierarchy, so missing routes cannot exclude execution");
     }
 
     // ---- re-dispatch ------------------------------------------------------------------------------
