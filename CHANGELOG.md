@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Documentation
+- Add a vendor-integration worked example and supplier checklist, qualify composition and topology
+  claims, and document the open dependency-shadowing and new-node audit-scaffolding gaps.
 - Add a guided Spring authoring path with real project/design/validation screenshots, a client prompt,
   runbook and prerequisite checkpoints.
 - Update the Spring guide for the verified 1.0.73 provisioning fix, with upgrade instructions and

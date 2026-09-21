@@ -15,7 +15,9 @@ for (String beanDefinitionName : context.getBeanDefinitionNames()) {
 }
 ```
 
-Every selected bean becomes a graph node, named by its bean id. Fluxtion reflects over each bean's
+When the integrator declares and selects each class separately, its bean id names the graph node.
+Nodes discovered inside a supplier's root need their own naming convention, described below.
+Fluxtion reflects over each bean's
 annotations — `@OnEventHandler`, `@OnTrigger`, `@ServiceRegistered` — and its references to other
 beans, derives the dispatch order, and generates a processor.
 
@@ -39,7 +41,52 @@ classes without knowing the graph they will be composed into. An integrator writ
 <bean id="intent" class="vendor.orders.IntentPublisher">…</bean>
 ```
 
+!!! warning "Never list a supplier's class in nodeBeans"
+    Reference it from one of your own nodes instead. The starter writes skeleton classes for
+    `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
+    looks like a class that does not exist yet, and the skeleton silently replaces it: the build
+    stays green and the supplier's component is gone. This is the open
+    [dependency-shadowing defect (feedback #29)][tracker], reproduced in [the experiment's P4 record][predictions].
+
 Nobody writes the dispatch order. The compiler derives it from the references.
+
+## Two ways to compose a supplier's component
+
+**Declare each class.** The integrator wires the individual supplier classes as beans, as in the
+example above. When selected directly for the graph, those beans retain the integrator's names.
+This describes the compiler's composition model; the starter's open `nodeBeans` defect makes the
+reference route below the safe authoring path for dependency-only classes today.
+
+**Reference a root.** The supplier constructs its own sub-graph. The integrator declares its root
+bean and references it from a host node; the compiler discovers the internals through fields.
+The root's bean id does not name those discovered nodes. The supplier should implement `NamedNode`
+for stable names; otherwise generated names can change between builds. Names are global, so
+suppliers must coordinate them: the same name in two components can collide. A collision between
+suppliers was not exercised in this experiment. See [the naming result and limits][predictions].
+
+## Components that speak your events
+
+A supplier can type its event handler on an interface it owns. The customer's event implements
+that interface, and the compiler composes the routes. In the experiment, the fictional Acme Risk
+component handles `com.acmerisk.api.Quote`; the host's `MarketPrice` implements it.
+
+This abbreviated generated-code excerpt is transcribed from [the experiment's P17 record][predictions].
+The ellipses omit code, and the final line is from the outer event dispatch; it is not a complete
+Java method to copy:
+
+```java
+public void handleEvent(MarketPrice typedEvent) {
+    …  isDirty_acmeQuoteFeed = acmeQuoteFeed.onQuote(typedEvent);   // vendor
+    …  isDirty_priceBook     = priceBook.onMarketPrice(typedEvent); // host
+} else if (event instanceof Quote) { …                              // any other implementor
+```
+
+The supplier publishes interfaces, the customer's events implement them, and neither side needs
+an adapter for that shared event. This does not bridge host state automatically: the experiment
+shared quotes, while vendor positions still came from its own feed.
+
+The [worked example](integrating-a-vendor-component.md) shows the component, its audit trail and
+the independent calculation used to check its results.
 
 ## Spring is a build-time description, not a runtime container
 
@@ -55,9 +102,13 @@ You pay for the description once, when you build, and it leaves nothing behind.
 
 ## The wiring is checked before it runs
 
-Because the composition is a build step, mistakes in it are build failures rather than silence. The
-adapter raises typed diagnostics: a handler bound to an event it cannot receive, a binding naming a
+Composition at build time catches several wiring mistakes. The
+adapter raises typed diagnostics for a handler bound to an event it cannot receive, a binding naming a
 bean that was not selected, an undeclared service callback, conflicting log levels.
+
+It does not catch every mistake. In particular, the starter's dependency-shadowing defect above
+can remove a supplier's component while the build stays green. A successful build alone does not
+establish that the intended supplier graph was included.
 
 The reasoning attached to the first is the clearest statement of what this design removes:
 
@@ -67,8 +118,9 @@ The reasoning attached to the first is the clearest statement of what this desig
 
 ## Why the analyser can show you a topology
 
-One build emits three artefacts keyed by **the same names**: the processor, a GraphML topology, and
-audit records whose node ids are the bean ids.
+One build emits the processor, a GraphML topology and audit records keyed by node names.
+For directly selected beans these are the bean ids; discovered supplier nodes use the supplier's
+`NamedNode` names or generated names.
 
 So a name typed in a configuration file appears verbatim in the binary audit log:
 
@@ -86,13 +138,17 @@ and in the graph the [Topology tab](user-guide/topology.md) renders and steps th
 **The topology is a build artefact, not a runtime reconstruction**, and that is the load-bearing
 difference. In a runtime-wired system you can log a great deal, but you cannot produce a faithful graph
 of a structure nobody ever declared, because it does not exist in written form anywhere. Here it does.
-Stepping through a recorded cycle is then an account of what ran, in order — not an inference from
-timestamps.
+The audit record names the nodes that logged during a cycle, in dispatch order, rather than asking
+you to infer their order from timestamps. The topology still has a known display gap: a concrete
+event that implements a supplier's interface can dispatch down both routes while the graph shows
+them as separate event types. Until [TA-9][ta9] ships, do not read the highlighted route as the
+complete path for such an event. Absence from the log is also not proof that an unlogged node did
+not execute.
 
 The consequence for integration is the useful one: you can compose a system out of parts you did not
-write and still get a complete node-level trace of it, **across supplier boundaries**. A supplier's node
-appears in your log under the name *you* gave it, in the dispatch position the compiler chose, with its
-contributions ordered.
+write and still get a node-level trace **across supplier boundaries**. An audited supplier node
+appears under the integrator's name when directly selected, or the supplier's name when discovered
+through its root, in the dispatch position the compiler chose.
 
 ## The same description, a different target
 
@@ -111,6 +167,24 @@ Suppliers still ship classes carrying Fluxtion's **runtime annotations** — tha
 worth knowing before you plan around it. What they do not need is a build-time dependency on the
 compiler, or any knowledge of the graph they will be part of.
 
+They do have construction obligations. The generated processor rebuilds nodes from another package,
+so every internal node needs a public class and a public wiring constructor matching its final
+fields. Suppliers should provide `NamedNode` names, getters and setters for configurable properties,
+and interface-typed handlers when customers need to supply their own event types. The
+[supplier checklist](integrating-a-vendor-component.md#for-suppliers) collects these requirements.
+
+In the preserved tampered-jar run, the component reported zero risk. Re-running the independent
+VaR calculation finds **9 mismatches in 11 records**, against **none in 11** for the genuine run
+([checker and inputs][evidence]). The experiment's [P16 record][predictions] reports a green build
+and unchanged receipt hashes after the jar was replaced. The trace names the nodes that logged
+and their order; it does not establish which build of the supplier jar produced those values or
+whether the calculation is right.
+
 Spring XML is one front end and the one that makes the point most plainly. It is not the only way to
 describe a graph, and nothing above depends on Spring in particular — only on the composition being
 described somewhere a compiler can read it.
+
+[evidence]: https://github.com/telaminai/fluxtionauditlog-analyser/tree/597c5886eafa07f5bc22143589e923dd0d63599a/docs/handoff/evidence/vendor-integration-2026-09-19
+[predictions]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/597c5886eafa07f5bc22143589e923dd0d63599a/docs/handoff/evidence/vendor-integration-2026-09-19/PREDICTIONS.md
+[tracker]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/tracker.md
+[ta9]: https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-tool-agreement.md#ta-9--p1--draw-the-route-that-actually-runs-when-dispatch-goes-through-a-supertype

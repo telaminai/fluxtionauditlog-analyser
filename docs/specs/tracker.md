@@ -37,10 +37,17 @@ incorrectly are baselined in the spec (D1–D13). Direction check: re-count that
   TA-1–TA-4, since it is the same slice B gate._
 - **[TA-U] ☐ — upstream asks recorded with owners** · _D3, D7–D13 and the template items carried into
   `docs/proposals/upstream-asks.md`; stub-shape fix sequenced before "always use the generator"._
-- **[VI-1] ☐ — vendor integration on the site** — [proposal](../proposals/vendor-integration-doc/site-proposal.md)
+- **[VI-1] ◧ — vendor integration on the site; branch ready for owner review, not published** — [proposal](../proposals/vendor-integration-doc/site-proposal.md)
   from the [evidence record](../proposals/vendor-integration-doc/README.md) · _claim audit of
   `composing-a-system.md` resolved (3 sentences contradicted by the measured record); `nodeBeans` warning ships
   while feedback 29 is open; worked-example page added; `mkdocs build --strict` passes; owner review._
+  Implemented on `docs/vendor-integration-vi1`: both composition/naming patterns, qualified build and
+  topology claims, the interface-handler excerpt, dependency-shadowing warnings on both existing pages,
+  the new-node audit-scaffolding workaround, and the worked example with the preserved screenshot and
+  integrator/supplier checklists. The supplier checklist addresses feedback 35's missing-page request;
+  publication and bootstrap discovery remain pending. Feedback 6/29 and TA-9 remain open. The existing C++
+  equivalence wording is unchanged and needs the owner's preview-status confirmation before merge.
+  [Verification and claim audit](../handoff/report_vi1_vendor_integration_site_2026_09_21.md).
 
 ---
 
@@ -498,6 +505,8 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
 - ☐ **Vendor authoring diagnostics and guidance (31/32/35), P2** — earlier constructibility diagnostics,
   stable instance naming and bootstrap discovery of the existing vendor guide. Test supported construction
   routes and multiple component instances; document state bridging separately from shared event interfaces.
+  VI-1 adds the supplier checklist for feedback 35 on its review branch; owner review/publication and
+  starter bootstrap discovery remain pending. This does not close the diagnostics/naming work (31/32).
 - ☑ **Review the session-audit proposal** — preserved the latest note tying 1/20/28 to session state.
   Existing sink export has no MCP/UI path and omits completeness counters; current events do not capture
   the final action echo. Ran seven session-audit/design tests: zero failures, errors or skips.

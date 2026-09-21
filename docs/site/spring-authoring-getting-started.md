@@ -122,6 +122,14 @@ Ask the LLM: “What feeds this node? Which references should trigger it, and wh
 supply data?” The [capability guide](spring-authoring.md#what-you-can-design-together) explains
 `DATA`, `TRIGGER`, events, services and lifecycle declarations.
 
+!!! warning "Never list a supplier's class in nodeBeans"
+    Reference it from one of your own nodes instead. The starter writes skeleton classes for
+    `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
+    looks like a class that does not exist yet, and the skeleton silently replaces it: the build
+    stays green and the supplier's component is gone. This remains open as
+    [feedback #29](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/tracker.md).
+    See the [vendor worked example](integrating-a-vendor-component.md) before adding a supplier jar.
+
 The website also previews imported XML as a graph. This separate two-node example shows its
 **declaration** view; its arrow points from `child` to its dependency `rootNode`:
 
@@ -176,6 +184,15 @@ Then follow `RUNBOOK.md`:
 
 Reconciliation plans source changes first, preserves implemented bodies where ownership permits,
 and refuses conflicts. Read the refusal rather than deleting ownership records to get past it.
+
+!!! warning "New-node stubs still need audit scaffolding"
+    Starter 1.0.73 makes stub generation reachable on the standalone template, but generated
+    stubs for **new nodes** do not extend `EventLogNode`. Their bodies cannot use its `auditLog`
+    field until you add that support. For a new node that must write audit values, manually make
+    it extend `com.telamin.fluxtion.runtime.audit.EventLogNode`, then implement the logging and
+    check the emitted record. Do not assume a generated stub already logs. This is the known,
+    still-open [feedback #6 audit-scaffolding gap](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/tracker.md).
+
 The build receipt is `target/fluxtion-run.json`; compilation diagnostics belong to the latest
 attempt only when that receipt says the compiler ran and its input checks still hold.
 
@@ -183,8 +200,10 @@ The default remote route requires a compilation key. Configure it using the proj
 instructions or **AI ▸ Fluxtion API key…**, never by committing it. An installed local provider
 can be keyless; a custom HTTP host is not automatically a local provider.
 
-This guide's fresh capture verifies download, design rendering and XML validation. It does not
-claim a fresh generated Spring run while the setup defect is open. For a Mongoose template, use
+The screenshots show download, design rendering and XML validation. The separate
+[1.0.73 release check](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/handoff/report_sg1_release_2026_09_21.md)
+verifies the standalone setup, changed-design generation and sample run. The hosted-template
+authoring gap (SG-2) remains open. For a Mongoose template, use
 its emitted `run-server.sh` and host runbook; do not substitute the standalone `run.sh` commands.
 
 ## 6. Answer one question from evidence
