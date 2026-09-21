@@ -5,6 +5,13 @@ category B items of the 2026-09-19/20 feedback (D14–D20), which are built unde
 items · **Also records:** the upstream asks the same evidence raised, so they are owned rather than lost,
 and the subsequent starter comment-emission finding D21. Baseline: 21 rows; D21 is upstream-owned.
 
+> **Revised 2026-09-21 after review** (`docs/handoff/review_tool_agreement_brief_2026_09_21.md`). The first
+> version **reversed the two fixture fingerprints**: the source copy is `4ecd6133…` and the stale copy
+> `f6ae6f84…` (and `4ecd6134` was a typo). If you copied either value into a test, correct it. The first
+> version also called feedback #23, #25 and #34 untracked; all three were already tracked, so TA-3 and TA-9
+> now build under the existing items. Also resolved: fixture scope, hierarchy authority, pending-only
+> trailing records, TA-5's delivery boundary, the counting rule, and the upstream asks after starter 1.0.73.
+
 ## Why this spec exists
 
 On 2026-09-21 a fresh LLM session with no coaching took the unmodified Spring/Mongoose starter
@@ -18,7 +25,7 @@ in the session was the agent's.
 
 **The tooling around the runtime did not always tell the truth.** The analyser said a graph was "probably
 from a different build" when it was not. The jar shipped a graph from the previous build next to the
-running code. `validate` passed with every declared class missing. Report labels called confirmed-correct
+running code. Report labels called confirmed-correct
 behaviour "WHAT IS WRONG". None of these is a runtime defect, and every one is a tool describing the
 application incorrectly.
 
@@ -40,33 +47,43 @@ the source.
 | File | SHA-256 | What it is |
 |---|---|---|
 | [`session-report.md`](../handoff/evidence/unguided-session-2026-09-21/session-report.md) | `dc8f6798…5029787` | the session's own report, verbatim; source `~/tmp/fluxtion-spring-mongoose-1/docs/session-report-2026-09-21.md` |
-| [`fixtures/MarketProcessor.src-round3.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml) | `d56fc497…e324a03d8` | the generated graph for the running build: 23 nodes, `sourceFingerprint` `f6ae6f84…` |
-| [`fixtures/MarketProcessor.target-stale.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.target-stale.graphml) | `b057121f…782b77f766` | the copy in `target/classes` and the jar: 20 nodes, `sourceFingerprint` `4ecd6134…`, missing `MarketCloseEvent`, `eodReport`, `eodReportPublisher` |
+| [`fixtures/MarketProcessor.src-round3.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml) | `d56fc497…e324a03d8` | the generated graph for the running build: 23 nodes, `sourceFingerprint` `4ecd6133…` |
+| [`fixtures/MarketProcessor.target-stale.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.target-stale.graphml) | `b057121f…782b77f766` | the copy in `target/classes` and the jar: 20 nodes, `sourceFingerprint` `f6ae6f84…`, missing `MarketCloseEvent`, `eodReport`, `eodReportPublisher` |
 | [`fixtures/desk-quote-supertype.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/desk-quote-supertype.graphml) | `2b5b9ecf…78353b6b3781c` | TA-9's fixture: the 2026-09-20 principal-desk baseline graph. `MarketPrice → priceBook` and `Quote → acmeQuoteFeed` are separate event nodes; at runtime one `MarketPrice` (which `implements com.acmerisk.api.Quote`) dispatches to both |
 
-Citations below are **report § / appendix row**. Every analyser item's acceptance uses these fixtures;
-no new LLM session is needed to build or verify any of it.
+Citations below are **report § / appendix row**. The packet holds **three graphml files and no audit log**.
+Graph behaviour (TA-1, TA-2, TA-9) is tested on these fixtures. Behaviour the packet cannot supply —
+windowed series, growing files, flags and reports — uses minimal **constructed** fixtures, labelled as
+constructed regression cases and never presented as replays of the session.
 
 ## Baseline — known disagreements on 2026-09-21
 
 This table is the direction check. Re-count it each release. The spec succeeds when every
 **analyser**-owned row is closed by a committed test, and every other row has an owner and a link.
 
-| # | What a tool says | What is true | Owner | Evidence |
-|---|---|---|---|---|
-| D1 | pairing: "declares 2 of 3 node(s)… probably from a different build" | the graphml declares `output`; it is a framework `SinkPublisher` | **analyser** → TA-1 | §5.6, A1 |
-| D2 | the three pairing call sites compute "declared" three different ways | one question should have one answer | **analyser** → TA-1 | code, below |
-| D3 | the jar's graph has fingerprint `4ecd6134…` | the running processor includes `eodReportPublisher` (R1 proves it ran); only `f6ae6f84…` declares it | build → upstream; **analyser** detects → TA-2 | §5.5, §3.6 R1, fixtures |
-| D4 | report finding: "WHAT IS WRONG / LIKELY CAUSE" | the flag confirms correct behaviour | **analyser** → TA-3 | §5.6, A9 |
-| D5 | windowed `delta` answer omits the flip at record 27 | the flip is present in the whole-log answer | **analyser** → TA-4 | A8 |
-| D6 | follow shows the log as current | the newest record is held back until the next one arrives | **analyser** → TA-6 | §3.2 step 5, A7 |
-| D7 | `validate`: "XML: valid; 5 nodes, 4 edges" | all three declared classes were missing | starter | §3.6 G1–G2 |
-| D8 | the build accepts the round-1 `RiskCheck` | the reconciler refuses it three ways, for rules the contract does not state | starter / contract | §3.6 |
-| D9 | the authoring contract: the starter generates stubs | nothing in the project can run it | starter | App. B |
-| D10 | generated stubs are the recommended shape | they lack `EventLogNode`, so they cannot audit — the template's own convention. **This is feedback #6**, tracked ◧ under "Feedback 38/39 and recurring 6", and found again here | starter | §3.6 G4 |
-| D11 | `SinkBinding.valueType = java.lang.String` | the generated processor declares `java.lang.Object` | compiler | §5.8 |
-| D12 | `/ws/audit-tail` accepts connections | it delivers no records (starts at `toEnd()`) | Mongoose plugins 1.0.43 | §3.2, §5.2 |
-| D13 | `/api/audit/files` reports record counts and times | they are frozen at startup while the queue grows | Mongoose plugins 1.0.43 | §5.3 |
+| # | What a tool says | What is true | Owner | Evidence | Status |
+|---|---|---|---|---|---|
+| D1 | pairing: "declares 2 of 3 node(s)… probably from a different build" | the graphml declares `output`; it is a framework `SinkPublisher` | **analyser** → TA-1 | §5.6, A1 | ☐ |
+| D2 | the three pairing call sites compute "declared" three different ways | one question should have one answer | **analyser** → TA-1 | code, below | ☐ |
+| D3a | the jar ships a graph with fingerprint `f6ae6f84…` (20 nodes) | the running processor includes `eodReportPublisher` (R1 proves it ran); only the source copy `4ecd6133…` (23 nodes) declares it | build → upstream | §5.5, §3.6 R1, fixtures | ☐ |
+| D3b | discovery and open say nothing when two copies of one graph disagree | they differ in fingerprint and node set | **analyser** → TA-2 | fixtures | ☐ |
+| D4 | report finding: "WHAT IS WRONG / LIKELY CAUSE" | the flag confirms correct behaviour | **analyser** → existing "Reports as evidence, not automatically defects" (25); TA-3 | §5.6, A9 | ☐ |
+| D5 | windowed `delta` answer omits the flip at record 27 | the flip is present in the whole-log answer | **analyser** → TA-4 | A8 | ☐ |
+| D6 | follow shows the log as current | the newest record is held back until the next one arrives | **analyser** → TA-6 | §3.2 step 5, A7 | ☐ |
+| D7 | `validate`: "XML: valid; 5 nodes, 4 edges" | true: the XML was valid. Three declared classes were missing, which `validate` does not claim to check | — | §3.6 G1–G2 | ⊘ reclassified — not an untrue echo; see the `validate` scope note below |
+| D8 | the build accepts the round-1 `RiskCheck` | the reconciler refuses it three ways, for rules the contract does not state | starter / contract | §3.6 | ☐ |
+| D9 | the authoring contract: the starter generates stubs | **standalone:** runnable since starter 1.0.73 (SG-1). **Hosted template:** still ships no local authoring files | playground → SG-2 | App. B; SG-1 release report | standalone ☑ · hosted ☐ |
+| D10 | generated stubs are the recommended shape | they lack `EventLogNode`, so they cannot audit — the template's own convention. Feedback #6, tracked ◧ under "Feedback 38/39 and recurring 6"; found again here | starter | §3.6 G4 | ☐ |
+| D11 | `SinkBinding.valueType = java.lang.String` | the generated processor declares `java.lang.Object` | compiler | §5.8 | ☐ |
+| D12 | `/ws/audit-tail` accepts connections | it delivers no records (starts at `toEnd()`) | Mongoose plugins 1.0.43 | §3.2, §5.2 | ☐ |
+| D13 | `/api/audit/files` reports record counts and times | they are frozen at startup while the queue grows | Mongoose plugins 1.0.43 | §5.3 | ☐ |
+
+**How to count.** Twenty-one findings, D1–D21, with D3 split into D3a and D3b. **Analyser
+responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Upstream: 8 open** — D3a, D8, D9 (hosted),
+D10–D13 and D21; D7 is reclassified. Report the two counts separately. Closing D3b (detection) never closes
+D3a (the build defect). A compound row closes only when every disagreement it names is closed, and records
+its regression test when it does. Track TA items alongside the rows: TA-5, TA-7 and TA-8 carry work with no
+row of their own, so a zero analyser count is not completion of this spec.
 
 ---
 
@@ -107,10 +124,10 @@ question, and they would drift."
 
 ### TA-2 · P0 · Say so when two copies of the same graph disagree
 
-**Evidence.** One project held two `MarketProcessor.graphml` files: the source copy (23 nodes, `f6ae6f84…`)
-and the `target/classes` copy, which is also what the jar ships (20 nodes, `4ecd6134…`). Resources are
+**Evidence.** One project held two `MarketProcessor.graphml` files: the source copy (23 nodes, `4ecd6133…`)
+and the `target/classes` copy, which is also what the jar ships (20 nodes, `f6ae6f84…`). Resources are
 copied before generation runs, so the shipped copy trails the build (§5.5). Fixing the build order is
-upstream (D3). **Detecting** it is the analyser's job, because the analyser is where someone opens a graph
+upstream (D3a). **Detecting** it (D3b) is the analyser's job, because the analyser is where someone opens a graph
 and trusts it.
 
 **Required.**
@@ -128,6 +145,7 @@ and trusts it.
 2. With a log in which `eodReportPublisher` writes, the source copy ranks first. The stale copy's pairing
    names the logged-but-not-declared id.
 3. With no log open, the disagreement is still reported. It is a fact about the files, not about a run.
+4. **Negative control:** two byte-identical copies under one root are reported as agreeing.
 
 ### TA-3 · P0 · A finding can be a confirmation
 
@@ -135,15 +153,18 @@ and trusts it.
 including when the flag records correct behaviour (A9). This is a truthfulness defect, not cosmetics: the
 tool asserts a fault that does not exist. It also pushes agents to phrase confirmations as faults.
 
+**Built under the existing item** "Reports as evidence, not automatically defects", which already
+specifies neutral finding language and an explicit persisted category at the flag write site for feedback
+#25. This is not a parallel item: A9 is fresh evidence for it, and the requirement and acceptance below are
+offered to that item.
+
 **Required.** `flag` accepts `kind: fault | confirmation`, defaulting to `fault` for backward
 compatibility. A confirmation renders as **Observation / Assessment** in the records table, the topology
 callout, the report, and the PDF.
 
-**Acceptance.** Existing reports and flags render unchanged. A confirmation flag renders the neutral labels
-on all four surfaces. The kind survives save and restore.
-
-**Closes feedback #25** (2026-09-20: "every finding is headed WHAT IS WRONG; validation needs an evidence
-tone"), which had no tracker entry until now.
+**Acceptance**, on constructed flag and report inputs. Existing reports and flags render unchanged. A
+confirmation flag renders the neutral labels on all four surfaces, including the PDF. The kind survives
+save and restore.
 
 ### TA-4 · P0 · Window edges must not change the answer silently
 
@@ -155,8 +176,11 @@ with the window, and nothing said so.
 Where that is not possible, the result must state that edge rows have no history. A silent omission is not
 acceptable.
 
-**Acceptance.** The A8 reproduction returns the flip at 27 with the window applied, or returns it absent
-together with an explicit edge note naming the affected rows.
+**Acceptance.** The original A8 inputs (expression, window bounds, record values) were not preserved, so
+this is a **constructed regression case, not a replay**: a minimal log whose tracked value changes on the
+first record inside the window's lower bound. Freeze the expected semantics before the fix: with look-back,
+the windowed answer includes the change; otherwise it carries an edge note naming the row. Mutation
+witness: disabling the look-back, or the note, makes the test fail.
 
 ### TA-5 · P1 · Live Mongoose evidence in without reverse-engineering
 
@@ -167,16 +191,18 @@ together with an explicit edge note naming the affected rows.
 follower, and then found the unterminated last record by reading raw bytes (§3.2, §5.1–5.4). That took
 most of an hour before the first measurement.
 
-**Required.**
-- **Documentation, owned here.** The analyser's runbook and skill are vendored into starters. They gain
-  an "Audit evidence" section: the export endpoint, D12 and D13 with workarounds, and the supported way
-  to follow a live run.
-- **A decision record.** Either ship the live-store follow source, or declare export-follow the supported
-  path and ship one follower instead of every agent writing its own.
+**Required — three deliverables, owned separately.**
+- **TA-5a · analyser · this spec.** Documentation: the vendored runbook and skill gain an "Audit evidence"
+  section — the export endpoint, D12 and D13 with workarounds. A decision record naming the supported follow
+  route (the live-store source, or one shipped export follower) **and its owner**.
+- **TA-5b · the owner named in TA-5a.** Implement that route and vendor the updated documentation into the
+  starters. Anything not shipped stays open; TA-5a does not close it.
+- **TA-5c · one spot-check session**, only once TA-5a and TA-5b are available in a starter: a fresh agent
+  reaches a followed, live log without disassembling a jar or writing a follower, scored from tool events.
+  This is the only new session this spec permits.
 
-**Acceptance.** A fresh agent given the starter reaches a followed, live log in the analyser without
-disassembling a jar or writing a follower. Verify this with one **spot-check** session scored from tool
-events, not with the retired battery.
+**Acceptance.** TA-5a closes on the committed documentation and decision record. TA-5b and TA-5c close on
+their own evidence. Nothing here reopens in-app discovery or runs the application from the analyser.
 
 ### TA-6 · P1 · A trailing unterminated record is shown as pending, never as complete
 
@@ -184,39 +210,51 @@ events, not with the retired battery.
 holds the newest record back and the view is always one behind (§3.2 step 5, A7).
 
 **Required.** Follow the binary reader's rule (`spec-binary-audit-reader.md`): a record that may be partial
-is never presented as complete. The status shows **"1 trailing record pending"**. Optionally, accept the
-record after a quiet period if it parses completely. If that option ships, the accepted record is marked
-as accepted-on-quiet.
+is never presented as complete. The status shows **"1 trailing record pending"**. **Pending only in this
+delivery:** a quiet interval does not establish completeness, because a valid prefix can still gain fields
+after a pause, so no record is accepted on quiet. Any provisional display is a later, separate decision
+with its own semantics.
 
-**Acceptance.** A fixture log without a trailing separator shows the pending hint. If the option ships, the
-record appears after the quiet interval, carrying its mark.
+**Acceptance**, on a constructed growing file. Without a trailing separator the record shows as pending and
+is excluded from counts; appending the separator after a pause makes it appear. Mutation witness: a
+follower that accepts on quiet fails the append-after-pause case.
 
 ### TA-7 · P1 · The assistant can turn Follow on
 
 **Evidence.** No verb starts Follow; the person had to click it (A6, §5.7).
 
-**Required.** `open {follow: true}` or a `follow` verb. The echo states that follow is on. The person can
-still stop it.
+**Required.** Use the existing `open` surface: `open {follow: true}`. The verb surface is pinned, so a new
+`follow` verb needs separate approval. The echo states that follow is on. A reader that cannot follow says
+so and never echoes Follow as active. The person can still stop it.
 
-**Acceptance.** The agent path starts follow on a growing fixture file. The echo and the toolbar agree.
+**Acceptance**, on a constructed growing file. The agent path starts follow; the echo and the toolbar
+agree. Negative: on a reader without follow support, the echo reports that it is not following.
 
 ### TA-9 · P1 · Draw the route that actually runs when dispatch goes through a supertype
 
-**Evidence.** Feedback #34 (2026-09-20) reported that supertype dispatch is not drawn. It had no tracker
-entry. The vendor-integration experiment the same day showed its consequence. `MarketPrice` implements the vendor's
-`com.acmerisk.api.Quote`, so one `MarketPrice` event dispatches down **both** `MarketPrice → priceBook` and
-`Quote → acmeQuoteFeed`. The graph shows them as unrelated event types. That polymorphism is **how a vendor
-component is integrated**, so the missing route is the integration itself. Anything keyed on the event's own
-class sees half of what runs.
+**Built under the existing item** "Authoritative dispatch metadata (34), P1": the compiler/exporter supplies
+known concrete dispatch relationships, and the analyser displays the facts and their limits. TA-9 is the
+**analyser half** of that item, not a new one. An earlier revision of this spec called #34 untracked; that
+was wrong.
 
-**Required.** When a logged event's class, superclasses or interfaces match more than one graph event node,
-the topology for that record shows every route the event can take. Coverage and "not on this path" shading
-use the same union. Where the class hierarchy is unavailable, say so rather than showing one route as the
-whole path.
+**Evidence.** `MarketPrice` implements the vendor's `com.acmerisk.api.Quote`, so one `MarketPrice` event
+dispatches down **both** `MarketPrice → priceBook` and `Quote → acmeQuoteFeed`. The graph shows them as
+unrelated event types. That polymorphism is **how a vendor component is integrated**, so the missing route is
+the integration itself. Anything keyed on the event's own class sees half of what runs.
 
-**Acceptance.** Using `fixtures/desk-quote-supertype.graphml` and a `MarketPrice` record, `acmeQuoteFeed` and
-its downstream nodes are shown as on the route, not shaded "not on this path". A record whose class matches
-one event node is unchanged.
+**Required.** The authority is the **producer**. The compiler already derives this dispatch when it generates
+the processor, so the relationship must arrive as producer metadata in the graph, under the existing item's
+contract. The analyser consumes it and never infers it: not by executing application classes, not from a
+hierarchy it was not given, and not from nodes appearing in the same cycle. With the metadata, a record's
+topology shows every route its event takes, and coverage and "not on this path" shading use that same union.
+Without it, the route is shown as **unknown**, never as absent.
+
+**Acceptance.** Blocked on the producer contract. The committed `desk-quote-supertype.graphml` does **not**
+encode `MarketPrice implements Quote` (it carries no superclass or interface metadata), so it is the *before*
+case: with it, the analyser reports the hierarchy as unknown rather than shading `acmeQuoteFeed` as off-path.
+Once the producer vocabulary exists, add a fixture carrying the relationship and test that the union route is
+drawn, that an unrelated event class draws no extra route, that two event types sharing a simple name in
+different packages are not conflated, and that missing metadata stays explicitly unknown.
 
 ### TA-8 · P2 · Ergonomics raised by the same session
 
@@ -247,7 +285,7 @@ existing tracker items**. Their acceptance lives there; this table does not dupl
 | D17 | an empty plot, with no explanation, after a pinned window survives a log change | #41 | "Chart feedback 41–43 intake" | ☐ |
 | D18 | left-axis values contaminated by right-axis values under windowing | #42 | "Chart feedback 41–43 intake" | ☐ |
 | D19 | `showAll: true` reports the full graph while a focus is still active | #37 | "Topology feedback 37" | ☐ |
-| D20 | the graph shows one route for an event that dispatches down two | #34 | **TA-9** (previously untracked) | ☐ |
+| D20 | the graph shows one route for an event that dispatches down two | #34 | "Authoritative dispatch metadata (34)"; analyser half in TA-9 | ☐ |
 
 **Priority change proposed:** "Staged feedback — evidence correctness first" is filed as P1. It is the same
 launch gate as TA-1 to TA-4 (slice B, truthful echoes), so it should be **P0 alongside them**.
@@ -273,23 +311,25 @@ reconciliation; retain the cross-emitter comment-contract parity and Java compil
 
 Carry these into [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.md) with an owner each.
 
-- **Build order (D3):** generation must run before resources are copied, or the build must copy the
+- **Build order (D3a):** generation must run before resources are copied, or the build must copy the
   regenerated graph. Stale generated source must not break a constructor change (§5.5, §6.5). This was
   found independently on 2026-09-20 during a separate regeneration experiment as well: two sessions, one defect.
-- **`validate` (D7):** check the Java against the design, or rename it to say it checks the XML only.
+- **`validate` scope (D7, reclassified):** `validate` said "XML: valid" and was right. The unmet expectation
+  is that a command named `validate` checks the code. Keep the agreed XML-only validation tier; state that
+  scope in its output and help text, and leave code-against-design checking to the separately owned
+  model/build tier. This is capability disclosure, not an untrue echo.
 - **Reconciler versus build (D8):** document the three conventions — reference field named after its
   bean, sink as a field rather than a bean, no literal constructor arguments — in the authoring contract,
   or make the build enforce them. Today a project can be valid to the build and permanently outside what
-  the authoring tool will touch. Add feedback **#23** (2026-09-20, untracked): `parentUpdateCallback` is
-  documented without a type, and the error does not say what is expected. Same failure: the rule exists
-  in the tool but not in the contract.
-- **Stub generation (D9, D10):** publish a released `fluxtion-starter-core` matching the pinned
-  coordinate, ship a project script (`./author.sh validate|regenerate|link`), and make generated stubs
-  match the template (`EventLogNode`, comment-contract comments, imports, formatting). D10 was filed on
-  2026-09-19 as analyser feedback issue #6 and has now been found again independently.
-  **Sequencing:** fix the stubs **before** telling agents to always use the generator. Otherwise the
-  instruction sends every agent into T-EVENTLOG. The session avoided that trap only because it
-  hand-wrote round 2.
+  the authoring tool will touch. Feedback **#23** (`parentUpdateCallback` documented without a
+  type) is the same failure — the rule exists in the tool but not in the contract — and is already tracked
+  under "Additional desk-session intake (22/23/28)".
+- **Stub generation (D9, D10), rescoped after starter 1.0.73.** The standalone template has shipped
+  setup, validate and generate since 1.0.73 (SG-1, closed), so do not re-request publication or a new
+  command surface. Still open: the hosted template's missing authoring files (**SG-2**), and new-node stubs
+  that cannot audit (**D10**, feedback #6; public issue #3). **Sequencing:** fix the stub shape **before**
+  telling agents to always use the generator, or the instruction sends every agent into T-EVENTLOG. The
+  session avoided that trap only because it hand-wrote round 2.
 - **Ownership record:** stubs generated in a copy and brought into a project leave no
   `fluxtion-authoring.json` behind (§8). The next reconcile cannot know who owns those members.
 - **Comment emission (D21):** starter/compiler owner: eliminate duplicated/interleaved comment-contract
@@ -305,8 +345,9 @@ Carry these into [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.
 
 ## What this spec deliberately does not do
 
-- It runs **no new LLM sessions**. Every analyser item is built and verified against the committed
-  fixtures.
+- It runs **no new LLM sessions except one**: TA-5c's single spot-check, once its route and documentation
+  have shipped. Graph behaviour is verified on the committed fixtures; everything else on labelled
+  constructed fixtures.
 - It does **not** reopen item 18.2. TA-5 fixes the documentation and asks for a decision; it does not
   bring back in-app discovery.
 - It attributes **nothing to the runtime**. Every runtime prediction in the session matched. The defects
@@ -315,6 +356,7 @@ Carry these into [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.
 ## Closing rule
 
 The rule from the cold-start work applies: **a finding is closed only when the check that would catch it
-next time exists.** Every TA item's acceptance names a committed test on these fixtures. Re-count the
+next time exists.** Every TA item's acceptance names a committed test — on the committed fixtures, or on constructed ones
+labelled as such — with a mutation witness showing it can fail. Re-count the
 baseline table each release. The count of places where two tools disagree about the same artefact is the
 measure of whether this is heading in the right direction.

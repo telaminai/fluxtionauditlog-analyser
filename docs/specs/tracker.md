@@ -9,35 +9,45 @@ Legend for each item: **[id] status — title** · _acceptance_.
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
-with graphml fixtures. The runtime matched every prediction. The baseline now records D1–D20 plus the
-subsequent upstream starter comment-emission finding D21 (21 rows). Direction check: re-count each release;
-adding D21 does not increase the analyser-owned count.
+with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
+D3a (build) and D3b (detection). Two counts, reported separately: **analyser 13 open**, **upstream 8 open**;
+D7 is reclassified as capability disclosure. Direction check: re-count each release. **Revised 2026-09-21
+after review:** the first version reversed the two fixture fingerprints (source `4ecd6133…`, stale
+`f6ae6f84…`), and wrongly called feedback 23, 25 and 34 untracked.
 
 - **[TA-1] ☐ — one declared set for pairing, including framework nodes that log** · _src-round3 fixture pairs
   cleanly (no "different build"); all three call sites return identical verdicts; the M35.1 foreign-graph
-  negative control still fails._
+  negative control still fails; mutation witness._
 - **[TA-2] ☐ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
-  and node counts reported; source copy ranks first against a round-3 log; works with no log open._
-- **[TA-3] ☐ — `flag {kind: confirmation}` with neutral labels (closes feedback 25)** · _existing flags
+  and node counts reported; source copy ranks first against a round-3 log; works with no log open; negative
+  control: byte-identical copies reported as agreeing._
+- **[TA-3] ☐ — `flag {kind: confirmation}` with neutral labels** — built under the existing "Reports as
+  evidence, not automatically defects" (25), not a parallel item · _on constructed inputs: existing flags
   unchanged; Observation / Assessment in table, callout, report and PDF; kind survives restore._
-- **[TA-4] ☐ — window edges never silently change a rolling answer** · _A8 reproduction returns the flip, or
-  an explicit edge note._
-- **[TA-5] ☐ — live Mongoose evidence without reverse-engineering** · _audit-evidence section in the vendored
-  runbook; decision recorded (live-store source vs supported export-follow); one spot-check session reaches a
-  followed log without jar disassembly or a hand-written follower._
-- **[TA-6] ☐ — trailing unterminated record shown as pending** · _fixture without trailing separator shows the
-  hint; any quiet-period acceptance is marked._
-- **[TA-7] ☐ — assistant can start Follow** · _echo and toolbar agree._
+- **[TA-4] ☐ — window edges never silently change a rolling answer** · _constructed regression case (the A8
+  inputs were not preserved): a change on the first in-window record is returned, or an edge note names it;
+  semantics frozen first; mutation witness._
+- **[TA-5a] ☐ — audit-evidence documentation and a follow-route decision (analyser)** · _vendored runbook
+  section (export endpoint, D12/D13 workarounds); decision record naming the route AND its owner._
+- **[TA-5b] ☐ — implement and vendor the chosen route (owner named in TA-5a)** · _open until shipped in a starter._
+- **[TA-5c] ☐ — one spot-check session, only after TA-5a and TA-5b ship** · _fresh agent reaches a followed
+  log without jar disassembly or a hand-written follower; scored from tool events. The spec's only session._
+- **[TA-6] ☐ — trailing unterminated record shown as pending, pending only** · _constructed growing file:
+  pending and excluded from counts until the separator arrives; no accept-on-quiet; append-after-pause witness._
+- **[TA-7] ☐ — assistant can start Follow via `open {follow: true}`** (no new verb without approval) · _echo
+  and toolbar agree; a reader without follow support never echoes Follow as active._
 - **[TA-8] ☐ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
-- **[TA-9] ☐ — draw every route an event takes through a supertype (feedback 34, previously untracked)** ·
-  _`desk-quote-supertype.graphml` + a MarketPrice record: `acmeQuoteFeed` and downstream shown on the route,
-  not "not on this path"; single-match records unchanged._
+- **[TA-9] ☐ — analyser half of "Authoritative dispatch metadata (34)"** · _blocked on producer metadata;
+  the analyser never infers the hierarchy. `desk-quote-supertype.graphml` is the before case: hierarchy shown as
+  unknown, not off-path. With a relationship-carrying fixture: union route drawn; unrelated class adds none;
+  same simple name in different packages not conflated; missing metadata stays unknown._
 - **[TA-B] ☐ — category B of the 2026-09-19/20 feedback counted in the baseline (D14–D20)** · _built under their
   existing items below ("evidence correctness first", "Feedback 38/39 and recurring 6", "Chart feedback
   41–43", "Topology feedback 37"); proposed: raise "evidence correctness first" from P1 to P0 alongside
   TA-1–TA-4, since it is the same slice B gate._
-- **[TA-U] ☐ — upstream asks recorded with owners** · _D3, D7–D13 and the template items carried into
-  `docs/proposals/upstream-asks.md`; stub-shape fix sequenced before "always use the generator"._
+- **[TA-U] ☐ — upstream asks recorded with owners** · _D3a, D8–D13, D21 and the template items carried into
+  `docs/proposals/upstream-asks.md`, scoped to the affected template and version (standalone authoring shipped
+  in 1.0.73; hosted is SG-2); D7 reclassified; stub-shape fix sequenced before "always use the generator"._
   D21 intake: starter/compiler owns duplicated comment-contract text between modifiers/annotations.
   [Preserved reviewer evidence](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md);
   source inspected, generator not independently re-run. Spec records the regression requirement; open.
