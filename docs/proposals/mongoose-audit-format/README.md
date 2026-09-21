@@ -34,17 +34,21 @@ revision 1: taking a mechanism's existence for its behaviour.
 | # | Decision | Consequence |
 |---|---|---|
 | 1 | **The analyser learns to report incompleteness.** | Format-spec amendment plus analyser code join release 1. Without it an end marker is invisible; see *Framing*. |
-| 2 | **The per-node `NONE` corruption waits.** | Not patched now. See the note below: "wait" resolves to release 2, not to never. |
+| 2 | **The per-node `NONE` corruption rides release 2.** | Confirmed by the owner, 2026-09-21. Not patched now, and not left indefinitely: it is a live defect that must not outlive the next runtime release. |
 | 3 | **Fix the audit-tail thread bug now**, for Chronicle users. | Pulled out of slice 2 as immediate work, independent of the format change. |
 | 4 | **Public documentation is in scope.** | The tutorial and format spec change, so release 1 includes a site deploy. |
 | 5 | **Text is the default** in generated projects, with an easy switch to Chronicle. | Templates default `backend: file`, `format: text`. |
 | 6 | **Fund binary, and make record selection pluggable in the runtime** rather than only fixing the bug. | Release 2 is larger than a patch, and the closed-compiler route becomes a fallback rather than a rival. |
 | 7 | **Web-admin audit views should keep working under a file backend, if possible.** | The socket is fed from the live listener rather than by tailing storage. |
 
-**Decisions 2 and 6 interact, and the reading matters.** Decision 2 says wait; decision 6 funds a runtime
-release. So **"wait" resolves to "ride release 2"**, not to "never" — the corruption is a live defect that
-should not outlive the next runtime release. Flagged because taken separately the two answers look like a
-contradiction. If the intent was never, say so and it moves to a standing known-defect record.
+**Decisions 2 and 6 were raised together and the owner confirmed the reading: ride release 2.** The
+corruption is not patched now and is not deferred indefinitely — it is scheduled work with a named
+release, which is what keeps it from becoming a silent known defect. Release 2 therefore carries three
+runtime items, not one: pluggable record selection, the record-swap staleness, and this corruption.
+
+**One consequence for release 2's scope.** Its cause is undiagnosed. Diagnosing it is a prerequisite for
+the release rather than work inside it, because a release that carries an undiagnosed corruption cannot
+state whether it fixed it.
 
 ## The friction, stated precisely
 
@@ -212,8 +216,8 @@ into release 1 for no benefit, which is the thing this sequencing exists to avoi
 ### Release 2 — binary, the renderer and the live defects, once text is stable.
 
 Slices 3 and 4 in **one** `fluxtion-runtime` release, and under decision 6 it is **pluggable record
-selection**, not merely a bug fix. Two live defects ride it: the wider record-swap staleness, and the
-per-node `NONE` corruption held by decision 2.
+selection**, not merely a bug fix. Two live defects ride it by owner decision: the wider
+record-swap staleness, and the per-node `NONE` corruption.
 
 **They are logically coupled, not merely convenient to batch.** The renderer only matters once binary
 exists, and binary only works once the stale-logger fix ships. Releasing them separately means two slow
