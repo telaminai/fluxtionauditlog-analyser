@@ -68,6 +68,46 @@ either is filed.
 
 ---
 
+## TA-U · Tool-agreement upstream intake — 2026-09-21
+
+Status: **recorded, not implemented or independently reproduced here**. Source:
+[the preserved session](../handoff/evidence/unguided-session-2026-09-21/session-report.md) and
+[the spec baseline](../specs/spec-tool-agreement.md). Every runtime prediction matched; these asks
+concern the tools and templates describing the application.
+
+| Row | Owner | Affected surface and acceptance | Status |
+|---|---|---|---|
+| D3a | compiler/build lifecycle maintainer (`fluxtion-compiler`) | Starter 1.0.72 hosted build copies resources before graph generation: jar and generated source must carry the same fingerprint/node set; prove it on the preserved 20/23-node pair. Analyser D3b detects, never repairs this. | ☐ |
+| D8 | starter/contract maintainer (`fluxtion-compiler`) | Round-1 hosted 1.0.72 source builds but reconciliation rejects undocumented declaration rules. Document the actual refusal rules with rule/why/fix diagnostics and regression fixtures; do not weaken ownership to make it pass. | ☐ |
+| D9 | starter generator maintainer (`fluxtion-web`), SG-2 | Standalone local authoring shipped in 1.0.73 (SG-1). Hosted templates still lack the local commands. Deliver and verify those commands under SG-2; do not mark the standalone route unshipped. | ☐ hosted |
+| D10 | starter reconciler maintainer (`fluxtion-compiler`) | New-node stubs lack EventLogNode on standalone 1.0.73 as well as the earlier observed route. A newly generated audit-enabled node must compile an audit write and produce a checked record. | ☐ |
+| D11 | graph/contract emitter maintainer (`fluxtion-compiler`) | Observed 1.0.72 SinkBinding declares String where the generated processor declares Object. Align declared/generated types with a compile-time regression; do not infer a runtime fault. | ☐ |
+| D12 | audit streaming maintainer (`mongoose-plugins`) | Observed 1.0.43 `/ws/audit-tail/{processor}` accepts but emits nothing. Test subscription plus an appended record, or disclose/remove the unsupported route. | ☐ |
+| D13 | audit listing maintainer (`mongoose-plugins`) | Observed 1.0.43 `/api/audit/files` counts/times remain at startup. Refresh metadata as capture grows or explicitly mark it a snapshot; append-after-list regression. | ☐ |
+| D21 | comment emitter/reconciler maintainer (`fluxtion-compiler`) | Standalone 1.0.73 duplicates comment-contract text between modifiers. Preserve the reviewer's generated/hand-finished source; emit each comment once outside modifier tokens, compile and test repeated reconciliation. | ☐ |
+
+**D7 is reclassified, not a ninth upstream defect:** XML validation reported valid XML and did not claim
+that classes existed. Keep that tier boundary explicit. D21's independent evidence is the
+[preserved reviewer packet](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md); the generator
+was not rerun in this analyser delivery.
+
+**Sequencing:** generated stubs must extend EventLogNode where the template requires audit-capable
+nodes **before** agents are told to always use the generator. The current manual workaround is not a
+closure of D10. Hosted local authoring remains SG-2.
+
+**TA-5b / UP-RDR-01:** Chronicle reader/plugin maintainers own the accepted M31 live-store follow reader;
+playground owns shipping it and the revised runbook/skill in applicable starters. Keep this route open
+until delivered; no invented follower CLI. TA-5c waits for that shipment. The analyser consumes files
+and reader SPI observations; server discovery/execution stays with the agent and host tools.
+
+**TA-9 / existing Authoritative dispatch metadata (34):** the compiler/exporter owns explicit concrete
+and supertype dispatch relationships. Supply an authoritative relationship-carrying fixture before the
+analyser can draw a union route; the current desk fixture is only the missing-metadata control. No
+source/class execution or cycle co-occurrence inference is an alternative. This existing tracker item
+remains blocked and is not duplicated by this intake.
+
+---
+
 ## 1 · Fluxtion compiler — rejection codes and machine-readable diagnostics
 
 The owner is adding rejection codes (2026-08-16). These are the asks that would have saved time in this

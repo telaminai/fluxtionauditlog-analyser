@@ -67,6 +67,32 @@ the bottom of this file, and the check belongs immediately before it.
    redeploy reached the OLD processor in one session, whose mapper turned it into a zero-priced event
    that the risk check then passed. Stop, edit, rebuild, start.
 
+## Audit evidence
+
+The preserved session observed these limits with **mongoose-plugins 1.0.43**. Do not assume they apply
+to a later version without checking that version's result.
+
+- Export captured records with `/api/audit/file/{id}/export?format=yaml`. Resolve the server URL,
+  authentication and actual file id from the project's registry/API or its shipped export script;
+  never guess them. The export is a snapshot, not a live stream.
+- **D12:** `/ws/audit-tail/{processor}` accepted the session's connection but delivered no records.
+  A connected socket is not proof of audit delivery. Workaround: use the snapshot export.
+- **D13:** `/api/audit/files` counts and times stayed at their startup values while the queue grew.
+  Use that listing for file discovery, not freshness. Export and inspect the records themselves;
+  state the export time and provenance. Do not call a startup count the current total.
+- Keep each export as a new snapshot file and explicitly reopen it to inspect a later snapshot.
+  Do not overwrite a file currently being followed, append a whole cumulative export, or manufacture
+  a final separator. A trailing unterminated record is **pending**, not proven complete by a quiet
+  interval. The session's separator-rewriting workaround is not a supported completeness rule.
+- The supported architectural route for live follow remains the **M31 Chronicle live-store reader**,
+  with `supportsFollow`, owned by the **Chronicle reader/plugin maintainers (UP-RDR-01)**. Its delivery
+  and starter integration are **TA-5b, still open**. This documentation does not assert that the reader
+  is installed or shipped in this project. Until it is, use explicit snapshot export/reopen; do not
+  write or prescribe a new polling follower as if it were a shipped project command.
+
+The agent runs the project's export and application commands. The analyser reads evidence files;
+it does not discover server logs, deploy, start or stop the application. No new analyser verb is needed.
+
 ## Do not start a second instance
 
 If a server is already running for this project, find it before starting another — the published

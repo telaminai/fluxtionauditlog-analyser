@@ -52,6 +52,17 @@ class CanonicalSkillsTest {
     }
 
     @Test
+    void auditEvidenceRunbookAndSkillShareTheVersionedLimitsAndDeliveryBoundary() throws Exception {
+        String skill = Files.readString(ROOT.resolve("mongoose/run-mongoose-server/SKILL.md"));
+        String runbook = Files.readString(Path.of("docs/runbooks/mongoose-audit-evidence.md"));
+        String section = skill.substring(skill.indexOf("## Audit evidence"), skill.indexOf("## Do not start a second instance")).strip();
+        assertTrue(runbook.contains(section), "the generated guidance sources must not contradict each other");
+        for (String required : List.of("mongoose-plugins 1.0.43", "/api/audit/file/{id}/export?format=yaml",
+                "D12", "D13", "pending", "UP-RDR-01", "TA-5b, still open", "snapshot export/reopen"))
+            assertTrue(section.contains(required), "missing audit evidence requirement: " + required);
+    }
+
+    @Test
     void loadLogSkillOpensAProjectBeforeTheLogBecauseTheSwitchEndsTheSession() throws Exception {
         String text = Files.readString(ROOT.resolve("common/load-audit-log/SKILL.md"));
         int projectCall = text.indexOf("analyser_open {\"project\"");

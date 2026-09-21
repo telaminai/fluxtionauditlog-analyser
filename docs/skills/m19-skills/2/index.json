@@ -7,7 +7,7 @@
     "",
     "The shape states the rule: `common` is a list and is always selected; `specialisations` is a map and a",
     "TEMPLATE names the ones it wants. Selection = common + the named specialisations. There is deliberately",
-    "no classification of a specialisation as host-or-style — nothing selects on that.",
+    "no classification of a specialisation as host-or-style \u2014 nothing selects on that.",
     "",
     "REPLAY IS A SPECIALISATION, NOT COMMON (review F3). replay-a-run carries a required TODO(bundle) marker",
     "and the accepted M19 bundle has no replay entry point, so making it unconditional would either trip the",
@@ -19,7 +19,7 @@
     "substitutes every marker and passes that gate on a generated bundle. Until then v1 remains the",
     "",
     "There is deliberately NO `templates` map here. A template declares the specialisations it wants, and",
-    "templates are the playground's catalogue — centralising one of them in this analyser-owned index would",
+    "templates are the playground's catalogue \u2014 centralising one of them in this analyser-owned index would",
     "be the second source of truth this design exists to avoid. A sample selection lives in a TEST FIXTURE",
     "instead (CanonicalSkillsTest), which exercises the rule without owning the data.",
     "",
@@ -67,14 +67,5 @@
       ]
     }
   },
-  "revision": "01b6a4fa0e6ebc64e4f33c03e7cf4866da7239f0",
-  "sha256": {
-    "common/load-audit-log/SKILL.md": "1fa42762aed0cb8f0f004e42cccdfb4e7111388a4d6e55b3d3a43369dab14d59",
-    "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
-    "common/point-at-the-fault/SKILL.md": "0193e5b2fb4ea903ff22b3cce0ce5460457e1d400a560eda8d0a237d1cf1f1c5",
-    "mongoose/run-mongoose-server/SKILL.md": "1e7b0e627cc957f31a5f1c15f3dda1b97a7e8526b9f1fb06152bca4c0e014fe4",
-    "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
-    "spring/add-a-node/SKILL.md": "ec76851eeebe9b71bb70239cdcbfbebf73676f19feb7abaa1f05acb2511116a0",
-    "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
-  }
+  "status": "DRAFT \u2014 TA-5a documentation repin pending source commit"
 }

@@ -62,8 +62,13 @@ after review:** the first version reversed the two fixture fingerprints (source 
   disable look-back in `SeriesScan` and `SeriesExtractor`; both fail the first-window-delta case.
   [Witnesses](../handoff/report_tool_agreement_2026_09_21.md#ta-4--completed). Full suite and strict docs pass.
   D5 closed; analyser 8 open, upstream 8 open.
-- **[TA-5a] ☐ — audit-evidence documentation and a follow-route decision (analyser)** · _vendored runbook
+- **[TA-5a] ◧ — audit-evidence documentation and a follow-route decision (analyser)** · _vendored runbook
   section (export endpoint, D12/D13 workarounds); decision record naming the route AND its owner._
+  **TA-5a prediction frozen before documentation edits:** the skill and canonical runbook will name
+  the export endpoint, version-scoped D12/D13 limitations and pending-only framing, without a fabricated
+  follower command. A contract check must fail if any of these is removed. Retain the already accepted
+  live-store reader route, owned by the Chronicle reader maintainers; TA-5b/c remain open.
+  Before: analyser 8 open; upstream 8 open.
 - **[TA-5b] ☐ — implement and vendor the chosen route (owner named in TA-5a)** · _open until shipped in a starter._
 - **[TA-5c] ☐ — one spot-check session, only after TA-5a and TA-5b ship** · _fresh agent reaches a followed
   log without jar disassembly or a hand-written follower; scored from tool events. The spec's only session._
@@ -81,9 +86,10 @@ after review:** the first version reversed the two fixture fingerprints (source 
   41–43", "Topology feedback 37"); proposed: raise "evidence correctness first" from P1 to P0 alongside
   TA-1–TA-4, since it is the same slice B gate._
   **Owner decision, 2026-09-21:** keep evidence correctness first at P1 for this pass; do not reorder it.
-- **[TA-U] ☐ — upstream asks recorded with owners** · _D3a, D8–D13, D21 and the template items carried into
+- **[TA-U] ☑ — upstream asks recorded with owners** · _D3a, D8–D13, D21 and the template items carried into
   `docs/proposals/upstream-asks.md`, scoped to the affected template and version (standalone authoring shipped
   in 1.0.73; hosted is SG-2); D7 reclassified; stub-shape fix sequenced before "always use the generator"._
+  TA-U recorded in `docs/proposals/upstream-asks.md` with an owner per row and delivery/version scope.
   D21 intake: starter/compiler owns duplicated comment-contract text between modifiers/annotations.
   [Preserved reviewer evidence](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md);
   source inspected, generator not independently re-run. Spec records the regression requirement; open.

@@ -1,0 +1,11 @@
+{
+  "mutation": "Remove D12 disclosure from the canonical skill",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "auditEvidenceRunbookAndSkillShareTheVersionedLimitsAndDeliveryBoundary",
+      "failure": "the generated guidance sources must not contradict each other ==> expected: <true> but was: <false>"
+    }
+  ],
+  "restored": true
+}

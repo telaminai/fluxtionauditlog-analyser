@@ -17,6 +17,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   across discovery, the topology view and session state. Hiding scaffolding no longer changes the verdict.
 
 ### Documentation
+- Canonical Mongoose guidance documents snapshot audit export, the observed 1.0.43 tail/listing limits,
+  and the live-reader delivery boundary; no polling command or completed starter update is implied.
 - Qualify C++ as a preview target and limit the reported Java/C++ equivalence to the tested graph
   and event stream; the vendor experiment does not establish general supplier compatibility.
 - Add a vendor-integration worked example and supplier checklist, qualify composition and topology
