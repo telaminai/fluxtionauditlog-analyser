@@ -123,11 +123,11 @@ class RolledLogStoreTest {
             assertEquals(StreamEnd.State.UNKNOWN, whole.streamEnd().state(),
                     "every member is whole, and that is not evidence about the SET");
             assertFalse(whole.streamEnd().isKnownComplete());
-            assertEquals(1, whole.sourceDiagnostics().size(),
+            assertEquals(1, whole.completenessDiagnostics().size(),
                     () -> "say what the members established AND what they did not: "
                             + whole.sourceDiagnostics());
-            assertTrue(whole.sourceDiagnostics().get(0).contains("unknown"),
-                    () -> whole.sourceDiagnostics().get(0));
+            assertTrue(whole.completenessDiagnostics().get(0).contains("unknown"),
+                    () -> whole.completenessDiagnostics().get(0));
         }
     }
 
@@ -182,8 +182,8 @@ class RolledLogStoreTest {
         try (RolledLogStore lossy = RolledLogStore.open(List.of(a, b), 512)) {
             assertEquals(StreamEnd.State.MISSING_RECORDS, lossy.streamEnd().state(),
                     "loss inside a member IS something a member can establish about itself");
-            assertEquals(1, lossy.sourceDiagnostics().size());
-            assertTrue(lossy.sourceDiagnostics().get(0).startsWith("s.log "),
+            assertEquals(1, lossy.completenessDiagnostics().size());
+            assertTrue(lossy.completenessDiagnostics().get(0).startsWith("s.log "),
                     () -> "the diagnostic must name WHICH member: " + lossy.sourceDiagnostics());
         }
     }

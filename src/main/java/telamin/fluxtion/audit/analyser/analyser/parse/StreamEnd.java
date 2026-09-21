@@ -23,7 +23,7 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * no amount of tail inspection would have helped.
  */
 public record StreamEnd(State state, long declaredRecords, long emittedRecords, Segment segment,
-                        Member member) {
+                        Member member, java.util.List<Run> runs) {
 
     /**
      * Which run a verdict is about, when the file holds more than one. Null when the file is a single
@@ -62,22 +62,42 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
      */
     public record Member(String file, long fileRecords) {}
 
+    /**
+     * One run that did not match its marker — {@code spec-audit-stream-end.md} D-E6.
+     *
+     * <p>Round five found the tracker keeping only the FIRST worst run and dropping every other, on both
+     * surfaces. A file of {@code 3 records, marker 5, 2 records, marker 12} reported "run 1 is missing 2"
+     * and said nothing at all about run 2, which was missing ten. A verdict that names one failure while
+     * concealing another is the D-T8 failure wearing a number.
+     */
+    public record Run(int ordinal, long firstRecord, long lastRecord, State state,
+                      long declaredRecords, long emittedRecords) {
+        public boolean isEmpty() {
+            return lastRecord < firstRecord;
+        }
+    }
+
     public StreamEnd(State state, long declaredRecords, long emittedRecords) {
-        this(state, declaredRecords, emittedRecords, null, null);
+        this(state, declaredRecords, emittedRecords, null, null, java.util.List.of());
     }
 
     public StreamEnd(State state, long declaredRecords, long emittedRecords, Segment segment) {
-        this(state, declaredRecords, emittedRecords, segment, null);
+        this(state, declaredRecords, emittedRecords, segment, null, java.util.List.of());
     }
 
     /** The same verdict, said about a named run rather than about the file. */
     public StreamEnd inSegment(Segment s) {
-        return new StreamEnd(state, declaredRecords, emittedRecords, s, member);
+        return new StreamEnd(state, declaredRecords, emittedRecords, s, member, runs);
+    }
+
+    /** The same verdict, carrying every run that did not match its marker (D-E6). */
+    public StreamEnd withRuns(java.util.List<Run> all) {
+        return new StreamEnd(state, declaredRecords, emittedRecords, segment, member, java.util.List.copyOf(all));
     }
 
     /** The same verdict, said about one named FILE of a rolled set, with that file's own count. */
     public StreamEnd inMember(String file, long fileRecords) {
-        return new StreamEnd(state, declaredRecords, emittedRecords, segment, new Member(file, fileRecords));
+        return new StreamEnd(state, declaredRecords, emittedRecords, segment, new Member(file, fileRecords), runs);
     }
 
     public enum State {

@@ -58,6 +58,27 @@ public interface LogStore extends AutoCloseable {
     }
 
     /**
+     * What this source says about its own COMPLETENESS, as sentences — {@code spec-audit-stream-end.md}.
+     *
+     * <p>Separate from {@link #sourceDiagnostics()}, which is what the reader could not read. Round five
+     * found a rolled set of whole files labelled "source damage" on the status bar, because every store
+     * diagnostic was wrapped as damage. These are a different kind of statement and now say so.
+     *
+     * <p>Derived HERE from {@link #streamEnd()} rather than overridden per store: three stores each had
+     * their own copy of the same two lines, and the SPI store's copy was simply missing, so a plugin-read
+     * log told an agent records were missing and told the person nothing.
+     */
+    default java.util.List<String> completenessDiagnostics() {
+        String d = StreamEndReport.sentence(streamEnd(), "this log");
+        return d == null ? java.util.List.of() : java.util.List.of(d);
+    }
+
+    /** True when {@link #completenessDiagnostics()} states a limit rather than reporting a fault. */
+    default boolean completenessIsNote() {
+        return streamEnd().state() == StreamEnd.State.UNKNOWN;
+    }
+
+    /**
      * Whether this source says it is whole — {@code spec-audit-stream-end.md} D-E3.
      *
      * <p>The default is UNKNOWN, and that is the honest answer for every store that cannot tell: a

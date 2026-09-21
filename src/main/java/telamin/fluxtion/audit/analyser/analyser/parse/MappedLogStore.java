@@ -40,29 +40,32 @@ public final class MappedLogStore implements LogStore {
         var capture = FileReadIdentity.begin(path);
         StreamEndTracker tracker = new StreamEndTracker();
         try (var in = capture.open()) {
-            // Same TA-6 interaction as the heap store: a trailing MARKER is not a trailing RECORD, so
-            // it must not make this a snapshot that includes an EOF record.
-            boolean[] lastWasRecord = {false};
+            // Same one-item lookahead as the heap store, and for the same §1a reason: an unterminated
+            // final item is never a marker, and whether it was terminated is only known at the end.
+            Object[] held = {null, null, null};
             boolean eof = ByteRecordFramer.frameWithEof(in, (offset, length, text) -> {
-                lastWasRecord[0] = tracker.accept(text);
-                if (lastWasRecord[0]) index.add(RecordParser.parse(text, offset, length));
+                if (held[2] != null) offer(tracker, index, (long) held[0], (int) held[1], (String) held[2], false);
+                held[0] = offset; held[1] = length; held[2] = text;
             });
-            includesEofRecord = eof && lastWasRecord[0];
+            if (held[2] != null) offer(tracker, index, (long) held[0], (int) held[1], (String) held[2], eof);
+            includesEofRecord = eof;
         }
         this.streamEnd = tracker.resolve();
         this.readIdentity = capture.finish();
         this.channel = FileChannel.open(path, StandardOpenOption.READ);
     }
 
-    @Override
-    public StreamEnd streamEnd() {
-        return streamEnd;
+    /** @see HeapLogStore#offer — an unterminated final item is never a marker (§1a). */
+    private static void offer(StreamEndTracker tracker, LogIndex index, long offset, int length,
+                              String text, boolean unterminated) {
+        if (unterminated) tracker.acceptRecord();            // a record, but never a marker (§1a)
+        else if (!tracker.accept(text)) return;              // the marker itself: not a record
+        index.add(RecordParser.parse(text, offset, length));
     }
 
     @Override
-    public java.util.List<String> sourceDiagnostics() {
-        String d = streamEnd.diagnostic("this log");
-        return d == null ? java.util.List.of() : java.util.List.of(d);
+    public StreamEnd streamEnd() {
+        return streamEnd;
     }
 
     @Override

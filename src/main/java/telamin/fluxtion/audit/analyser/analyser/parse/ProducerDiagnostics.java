@@ -49,7 +49,33 @@ public record ProducerDiagnostics(List<Finding> findings) {
          * Stated by the reader ({@code AuditLogReader.read} with a diagnostic consumer), carried by the
          * store, shown here beside the records it did read. Not a repair, not a record.
          */
-        SOURCE_DAMAGE
+        SOURCE_DAMAGE,
+        /**
+         * The container's own claim about completeness did not check out — records missing, more than
+         * declared, or an end asserted with no readable count ({@code spec-audit-stream-end.md} D-E3).
+         *
+         * <p>Round five: these used to arrive as {@link #SOURCE_DAMAGE}, because every store diagnostic
+         * did. A rolled set of individually whole files was therefore labelled <i>source damage</i> on
+         * the status bar, which is both wrong and alarming — nothing about it is damaged, and what is
+         * unknown is the SET, not any file in it.
+         */
+        COMPLETENESS_GAP,
+        /**
+         * A completeness statement that is not a fault: what the container established, and what it did
+         * not. A set whose every member says it is whole lands here. It belongs in the tooltip and in
+         * {@code context}, and it must NOT raise a warning on the status bar.
+         */
+        COMPLETENESS_NOTE
+    }
+
+    /** True for a finding a person should see flagged, as opposed to one that merely states a limit. */
+    public boolean isWarning() {
+        return !findings.isEmpty() && findings.get(0).kind() != Kind.COMPLETENESS_NOTE;
+    }
+
+    /** The first finding worth a warning glyph, or empty when the only findings are plain statements. */
+    public java.util.Optional<Finding> firstWarning() {
+        return findings.stream().filter(f -> f.kind() != Kind.COMPLETENESS_NOTE).findFirst();
     }
 
     /**
@@ -89,9 +115,22 @@ public record ProducerDiagnostics(List<Finding> findings) {
      *                          a log that is not all there is the first thing to know about it
      */
     public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText, List<String> sourceDiagnostics) {
+        return of(idx, rawText, sourceDiagnostics, List.of(), false);
+    }
+
+    /**
+     * @param completeness what the container said about its own wholeness; {@code note} when those are
+     *                     statements of a limit rather than reports of a fault (D-E3)
+     */
+    public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText,
+                                         List<String> sourceDiagnostics, List<String> completeness,
+                                         boolean note) {
         List<Finding> out = new ArrayList<>();
         for (String d : sourceDiagnostics) {
             out.add(new Finding(Kind.SOURCE_DAMAGE, d));
+        }
+        for (String d : completeness) {
+            out.add(new Finding(note ? Kind.COMPLETENESS_NOTE : Kind.COMPLETENESS_GAP, d));
         }
         if (idx == null || idx.size() == 0) return new ProducerDiagnostics(List.copyOf(out));
 

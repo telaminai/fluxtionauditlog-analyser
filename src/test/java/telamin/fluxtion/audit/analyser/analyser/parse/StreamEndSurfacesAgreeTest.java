@@ -65,7 +65,13 @@ class StreamEndSurfacesAgreeTest {
                 String who = name(s);
                 StreamEnd end = s.streamEnd();
                 Map<String, Object> facts = StreamEndReport.facts(end, s.size());
-                List<String> said = s.sourceDiagnostics();
+                // Everything a person is shown: the reader's findings AND the container's completeness
+                // statements. Round five split these so a whole set stops being called "source damage";
+                // this test reads the union, because the union is what reaches the tooltip.
+                List<String> said = new java.util.ArrayList<>(s.sourceDiagnostics());
+                said.addAll(s.completenessDiagnostics());
+                assertTrue(s.sourceDiagnostics().stream().noneMatch(d -> d.contains("declares")),
+                        who + ": a completeness verdict is not source damage and must not arrive as one");
 
                 assertEquals(3, s.size(), who + " must read every record");
 
@@ -105,8 +111,8 @@ class StreamEndSurfacesAgreeTest {
                 boolean rolled = s instanceof RolledLogStore;
                 assertEquals(rolled ? "unknown" : "complete", facts.get("state"),
                         who + ": a set is never complete (D-E5); a single file can be");
-                assertTrue(s.sourceDiagnostics().stream().noneMatch(d -> d.contains("declares")),
-                        who + " must not warn about a whole file: " + s.sourceDiagnostics());
+                assertTrue(s.completenessDiagnostics().stream().noneMatch(d -> d.contains("declares")),
+                        who + " must not warn about a whole file: " + s.completenessDiagnostics());
             }
         }
     }

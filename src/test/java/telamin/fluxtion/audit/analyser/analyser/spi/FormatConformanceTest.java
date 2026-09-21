@@ -585,9 +585,9 @@ class FormatConformanceTest {
         // declares 3 over the 3 records that precede it. The weakest verdict is the file's.
         assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNVERIFIED,
                 s.streamEnd().state(), "an unreadable count is unverified, never missing-records");
-        assertEquals(1, s.sourceDiagnostics().size());
-        assertTrue(s.sourceDiagnostics().get(0).contains("no readable record count"),
-                s.sourceDiagnostics().get(0));
+        assertEquals(1, s.completenessDiagnostics().size());
+        assertTrue(s.completenessDiagnostics().get(0).contains("no readable record count"),
+                s.completenessDiagnostics().get(0));
     }
 
     @Test

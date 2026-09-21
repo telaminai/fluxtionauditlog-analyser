@@ -111,6 +111,17 @@ class StreamEndTest {
         assertEquals(StreamEnd.State.UNVERIFIED, StreamEnd.declared(m.records(), 26).state());
     }
 
+    /** The whole point of the digit rule: an exotic digit must not buy a completeness claim. */
+    @Test
+    void aFullwidthDigitDoesNotMakeAFileComplete() {
+        var store = new HeapLogStore(file(REC, REC, REC,
+                "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: \uFF13\n"));
+        assertEquals(3, store.size());
+        assertEquals(StreamEnd.State.UNVERIFIED, store.streamEnd().state(),
+                "this read as 3 and reported COMPLETE - a claim a stricter reader would not make");
+        assertFalse(store.streamEnd().isKnownComplete());
+    }
+
     @Test
     void aMarkerWhoseCountMatchesIsComplete() {
         StreamEnd e = StreamEnd.declared(25, 25);
@@ -135,6 +146,22 @@ class StreamEndTest {
         assertEquals(StreamEnd.State.MORE_THAN_DECLARED, e.state(),
                 "this reported MISSING_RECORDS and printed '-5 are missing'");
         assertTrue(e.diagnostic("x.yaml").contains("5 records more"), e.diagnostic("x.yaml"));
+    }
+
+    /**
+     * Singular and plural, on the surface a person reads. Round five found the round-three wording fix
+     * untested: making the helper always add "s" left the whole suite green.
+     */
+    @Test
+    void oneOfAnythingReadsAsOneNotOnes() {
+        String one = StreamEnd.declared(2, 1).diagnostic("x.yaml");
+        assertTrue(one.contains("2 records") && one.contains("1 was read"), one);
+        assertTrue(one.contains("1 record is missing"), () -> "not '1 records are missing': " + one);
+        String many = StreamEnd.declared(5, 2).diagnostic("x.yaml");
+        assertTrue(many.contains("5 records") && many.contains("2 were read"), many);
+        assertTrue(many.contains("3 records are missing"), many);
+        String over = StreamEnd.declared(2, 3).diagnostic("x.yaml");
+        assertTrue(over.contains("1 record more"), () -> "not '1 records more': " + over);
     }
 
     @Test
@@ -193,8 +220,8 @@ class StreamEndTest {
         var store = new HeapLogStore(file(REC, REC, String.format(MARKER, 9)));
         assertEquals(2, store.size());
         assertEquals(StreamEnd.State.MISSING_RECORDS, store.streamEnd().state());
-        assertEquals(1, store.sourceDiagnostics().size());
-        assertTrue(store.sourceDiagnostics().get(0).contains("9"));
+        assertEquals(1, store.completenessDiagnostics().size());
+        assertTrue(store.completenessDiagnostics().get(0).contains("9"));
     }
 
     @Test
@@ -250,7 +277,7 @@ class StreamEndTest {
         String good = file(REC, REC, String.format(MARKER, 2));
         var store = new HeapLogStore(bad + good);
         assertEquals(4, store.size());
-        String d = store.sourceDiagnostics().get(0);
+        String d = store.completenessDiagnostics().get(0);
         assertTrue(d.contains("run 1"), () -> "the run must be named: " + d);
         assertTrue(d.contains("records 0 to 1"), () -> "and the records it covers: " + d);
         assertTrue(d.contains("of 4 in the file"),
@@ -268,11 +295,12 @@ class StreamEndTest {
      */
     @Test
     void aRunWithNoRecordsIsNamedAsEmptyRatherThanGivenABackwardsRange() {
+        // both markers terminated: §1a says an unterminated final item is not a marker at all
         String body = file(REC, REC, String.format(MARKER, 2));
-        var store = new HeapLogStore(body + "---\n" + String.format(MARKER, 3));
+        var store = new HeapLogStore(body + String.format(MARKER, 3) + "---\n");
         assertEquals(2, store.size());
         assertEquals(StreamEnd.State.MISSING_RECORDS, store.streamEnd().state());
-        String d = store.sourceDiagnostics().get(0);
+        String d = store.completenessDiagnostics().get(0);
         assertTrue(d.contains("holds no records at all"), () -> d);
         assertFalse(d.matches("(?s).*records 2 to 1.*"), () -> "a backwards range: " + d);
         assertTrue(store.streamEnd().segment().isEmpty());
@@ -282,7 +310,7 @@ class StreamEndTest {
     void aSingleRunFileNamesNoRunBecauseTheFileIsTheRun() {
         var store = new HeapLogStore(file(REC, REC, String.format(MARKER, 9)));
         assertNull(store.streamEnd().segment(), "'run 1 of' is noise when there is only one run");
-        String d = store.sourceDiagnostics().get(0);
+        String d = store.completenessDiagnostics().get(0);
         assertFalse(d.contains("run 1"), d);
         assertTrue(d.startsWith("this log declares 9"), d);
     }
@@ -313,7 +341,14 @@ class StreamEndTest {
      */
     @Test
     void anyUnusableCountReadsBackAsExactlyMinusOne() {
-        for (String v : new String[]{"banana", "-5", "-1", "99999999999999999999", "", "  "}) {
+        // §1a: ASCII digits with an optional sign, and nothing else, AFTER the value is stripped — so
+        // `streamEndRecords:   3` is the count 3 and agrees with a Python reader's int(" 3"). The Unicode
+        // entries are the ones
+        // that mattered: Long.parseLong accepts any Unicode decimal digit, so a fullwidth "3" made a
+        // three-record file report COMPLETE where a reader following the prose said unverified. That is
+        // the unsafe direction, and it was found by implementing §1a from its own text.
+        for (String v : new String[]{"banana", "-5", "-1", "99999999999999999999", "", "  ",
+                "\uFF13", "\u0663", "3_0"}) {
             var m = StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: " + v + "\n");
             assertTrue(m.isPresent(), "an unusable count does not stop it being a marker: " + v);
             assertEquals(-1, m.get().records(), "records() must normalise '" + v + "' to -1");

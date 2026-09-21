@@ -188,18 +188,18 @@ public final class RolledLogStore implements LogStore {
     }
 
     /**
-     * Each member's own diagnostic, named by its file so a set of twelve says WHICH one is short.
+     * Each member's own completeness sentence, named by its file so a set of twelve says WHICH one is
+     * short — and, when every member is whole, what that does and does not establish.
      *
-     * <p>When every member IS whole, one further statement is added. It is not a warning: it says what
-     * the members established and, in the same breath, what they did not. Without it the set is silently
-     * UNKNOWN and a reader who can see twelve files each marked complete will supply the wrong
-     * conclusion themselves.
+     * <p>Round five: these were {@link #sourceDiagnostics()}, so a set of individually whole files was
+     * rendered as "source damage". Nothing here is damaged. What is unknown is the SET.
      */
     @Override
-    public java.util.List<String> sourceDiagnostics() {
+    public java.util.List<String> completenessDiagnostics() {
         List<String> out = new ArrayList<>();
         for (int i = 0; i < members.size(); i++) {
-            String d = members.get(i).streamEnd().diagnostic(paths.get(i).getFileName().toString());
+            String d = StreamEndReport.sentence(members.get(i).streamEnd(),
+                    paths.get(i).getFileName().toString());
             if (d != null) out.add(d);
         }
         if (everyMemberIsWhole()) {
@@ -212,6 +212,12 @@ public final class RolledLogStore implements LogStore {
                     + "set's completeness is unknown.");
         }
         return List.copyOf(out);
+    }
+
+    /** A set of whole files states a limit; a set with a short member reports a fault. */
+    @Override
+    public boolean completenessIsNote() {
+        return everyMemberIsWhole() || streamEnd().state() == StreamEnd.State.UNKNOWN;
     }
 
     @Override

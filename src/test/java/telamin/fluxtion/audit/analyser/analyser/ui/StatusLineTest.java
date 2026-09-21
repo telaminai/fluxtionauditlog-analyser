@@ -64,7 +64,7 @@ class StatusLineTest {
     @Test
     void aSetsMemberNumbersAreNestedUnderTheFileThatOwnsThem() {
         var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3, null,
-                new StreamEnd.Member("g.log", 3));
+                new StreamEnd.Member("g.log", 3), java.util.List.of());
         var facts = MainFrame.streamEndFacts(end, 25);
 
         assertEquals(25L, facts.get("recordsRead"), "the top level is always the whole log");
@@ -83,7 +83,7 @@ class StatusLineTest {
     @Test
     void aSetsMemberRunPositionsStayInsideTheMember() {
         var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3,
-                new StreamEnd.Segment(2, 2, 4, 5), new StreamEnd.Member("g.log", 5));
+                new StreamEnd.Segment(2, 2, 4, 5), new StreamEnd.Member("g.log", 5), java.util.List.of());
         @SuppressWarnings("unchecked")
         var member = (java.util.Map<String, Object>) MainFrame.streamEndFacts(end, 25).get("member");
         assertEquals("g.log", member.get("file"));

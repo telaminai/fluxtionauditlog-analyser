@@ -53,15 +53,49 @@ public final class HeapLogStore implements LogStore {
     private HeapLogStore(String file, boolean requireTerminator) {
         this.file = (file == null) ? "" : file;
         this.index = new LogIndex();
-        boolean[] lastWasRecord = {false};
+        // ONE-ITEM LOOKAHEAD. §1a requires a marker to be followed by its `---`, so an unterminated
+        // final item is never a marker — and whether the final item was terminated is only known when the
+        // framer returns. So each item is held back until the next one arrives, and the last is decided
+        // with `eof` in hand. See the class comment for why that rule exists.
+        java.util.ArrayDeque<RawRecord> held = new java.util.ArrayDeque<>(1);
         boolean eof = RecordFramer.frameWithPending(this.file, raw -> {
-            lastWasRecord[0] = tracker.accept(raw.text());
-            if (lastWasRecord[0]) index.add(RecordParser.parse(raw.text(), raw.offset()));
+            if (!held.isEmpty()) offer(held.poll(), false);
+            held.add(raw);
         }, requireTerminator);
+        if (!held.isEmpty()) offer(held.poll(), eof && !requireTerminator);
         this.trailingPending = eof && requireTerminator;
-        this.includesEofRecord = eof && !requireTerminator && lastWasRecord[0];
+        this.includesEofRecord = eof && !requireTerminator;
         this.streamEnd = tracker.resolve();
-        if (trailingPending && streamEnd.isKnownComplete()) streamEnd = StreamEnd.unknown(index.size());
+        if (trailingPending) streamEnd = pendingOverride(streamEnd, index.size());
+    }
+
+    /**
+     * Offer one framed item to the tracker and, if it is a record, to the index.
+     *
+     * @param unterminated true when this item had no closing {@code ---}. §1a: such an item is NEVER a
+     *                     marker, because at the byte level a marker a writer has finished and one it is
+     *                     halfway through writing are the same bytes. Round five measured both sides of
+     *                     that: a half-written {@code streamEndRecords: 1} of an intended 12 read as
+     *                     "the marker is wrong, 12 were read", and a finished-but-unterminated marker
+     *                     made follow and a fresh load of identical bytes disagree for ever.
+     */
+    private void offer(RawRecord raw, boolean unterminated) {
+        if (unterminated) tracker.acceptRecord();            // a record, but never a marker (§1a)
+        else if (!tracker.accept(raw.text())) return;        // the marker itself: not a record
+        index.add(RecordParser.parse(raw.text(), raw.offset()));
+    }
+
+    /**
+     * A live read holding a record still being written cannot report the file's own verdict.
+     *
+     * <p>That pending record sits AFTER the last marker, which §1a already calls unknown — but the
+     * tracker never saw it, because follow withholds an unterminated item, so the tracker believed the
+     * marker was the last thing in the file. Round five's V-4: a live read said "declares 5 records and
+     * 3 were read" where a fresh read of the same bytes said unknown. The state is forced to unknown and
+     * <b>the failing runs travel with it</b>, so the proof of an earlier loss is not lost in the process.
+     */
+    private static StreamEnd pendingOverride(StreamEnd end, int records) {
+        return StreamEnd.unknown(records).withRuns(end.runs());
     }
 
     public static HeapLogStore fromFile(Path path) throws IOException {
@@ -134,13 +168,15 @@ public final class HeapLogStore implements LogStore {
         // halves of this broken: an appended marker was indexed as a record, and streamEnd kept its
         // load-time value for ever.
         tracker.reset();
+        // Follow withholds an unterminated final item, so everything the sink sees here IS terminated and
+        // no lookahead is needed: the §1a rule is satisfied by requireTerminator itself.
         trailingPending = RecordFramer.frameWithPending(full, raw -> {
             if (!tracker.accept(raw.text())) return;      // a marker is never a record, in follow either
             if (seen[0]++ < before) return;               // already indexed, and byte-identical
             index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
         this.streamEnd = tracker.resolve();
-        if (trailingPending && streamEnd.isKnownComplete()) streamEnd = StreamEnd.unknown(index.size());
+        if (trailingPending) streamEnd = pendingOverride(streamEnd, index.size());
         return index.size() - before;
     }
 
@@ -149,12 +185,6 @@ public final class HeapLogStore implements LogStore {
     @Override
     public StreamEnd streamEnd() {
         return streamEnd;
-    }
-
-    @Override
-    public java.util.List<String> sourceDiagnostics() {
-        String d = streamEnd.diagnostic("this log");
-        return d == null ? java.util.List.of() : java.util.List.of(d);
     }
 
     @Override

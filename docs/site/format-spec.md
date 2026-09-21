@@ -41,6 +41,18 @@ eventLogRecord:
 ---
 ```
 
+**A marker MUST be followed by a `---` separator**, and a reader MUST NOT treat an unterminated final
+record as a marker. This is not tidiness. At the byte level a marker its writer has finished and one it is
+halfway through writing are *the same bytes*: `streamEndRecords: 1` is a complete marker for a one-record
+run and also the first character of `12`. Measured on a reader that did not require termination, a marker
+caught mid-write after twelve records reported **"this log declares 1 record and 12 were read - the marker
+is wrong"**, a fabricated verdict about a file that was simply still being written. The same ambiguity made
+a live reader and a fresh read of identical bytes disagree for ever about whether the file was complete.
+
+The terminator is what makes the claim atomic: until it is there, nothing has been claimed. An
+unterminated final record is an ordinary record in a static read and a *pending* record in a live read. It
+is never evidence about completeness in either.
+
 A marker record carries **nothing else** but, optionally, its own `logTime`. A record that also names an
 `event`, carries `nodeLogs`, or holds any other key is a **record**, whatever it says about `streamEnd` —
 and a reader MUST index and count it. This is not pedantry about shape: audit records carry a producer's
@@ -50,7 +62,9 @@ and then report the file as short. Recognise the marker by what the record conta
 what it mentions.
 
 **The recognition rule, precisely.** Take the record's text, split it into lines, and strip each line of
-surrounding whitespace and a leading byte-order mark. Ignore lines that are empty, that begin with `#`
+surrounding whitespace and a leading byte-order mark. **Whitespace here is space, tab, carriage return and
+line feed only** - not U+00A0 or any other Unicode space, which are content. A line that begins with a
+non-breaking space is therefore not a key, and its record is not a marker. Ignore lines that are empty, that begin with `#`
 (the §2 header comment), or that are exactly `eventLogRecord:`. The record is a marker **if and only if**
 every remaining line is one of:
 
@@ -77,7 +91,12 @@ the record an ordinary record. `<value>` is read to end of line, and then:
   quotes is data, not a comment;
 - otherwise an unquoted `#` begins a comment and the value is what precedes it.
 
-A `streamEndRecords` that is absent, unparseable as a signed 64-bit integer, or negative means **no
+A `streamEndRecords` value, **after the surrounding whitespace defined above is stripped**, is **ASCII
+digits `0`-`9` with an optional leading `+` or `-`, and nothing else**. This is stated exactly because "parseable as an integer" is not portable: Java's parser accepts any
+Unicode decimal digit, so `streamEndRecords: ３` (fullwidth) and `٣` (Arabic-Indic) read as 3 and a file was
+reported **complete** where a stricter reader said unverified - the unsafe direction. Python's `int()`
+additionally accepts surrounding whitespace and `3_0`. A value outside this rule, or absent, out of 64-bit
+range, or negative, means **no
 count**, and the reader reports **unverified** rather than guessing. Flow style (`{streamEnd: normal}`)
 is **not** a marker under this rule; a reader MAY accept it, and one that does not is conformant.
 
@@ -123,6 +142,13 @@ restarts — are therefore two segments, each checked against its own marker, an
 | a marker claims fewer records than precede it | **more records than declared** — the marker is wrong, or it is not an end |
 | a marker carries no readable count | **unverified**: an end is claimed and nothing backs it |
 | no marker, or records after the last one | **unknown whether complete** |
+
+**Precedence, when more than one row applies.** Records after the last marker make the FILE unknown:
+nothing vouches for the tail. But a run that already failed its own count has already proved it, and a
+reader MUST still report that run. The file's state is `unknown`; the failed run is named beside it. A
+reader that reported only `unknown` there would conceal a proven loss behind an honest one, which is the
+failure this section exists to prevent. This is the ordinary shape of a cumulative export read while its
+server is running again after a restart.
 
 The last row is the point, and it is the common case. **Silence MUST NOT be read as completeness.**
 Every producer that predates this section, and every export the analyser has ever read, lands there and

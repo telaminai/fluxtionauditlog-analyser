@@ -35,6 +35,8 @@ public final class StreamEndTracker {
     private int segments;
     private int worstOrdinal = -1;
     private long worstFirstRecord = -1;
+    /** Every run that did not match its marker, in file order — D-E6, round five A-3. */
+    private final java.util.List<StreamEnd.Run> badRuns = new java.util.ArrayList<>();
 
     /**
      * Whether this record text should be indexed.
@@ -53,6 +55,19 @@ public final class StreamEndTracker {
         return true;
     }
 
+    /**
+     * Count one item that is a RECORD without asking whether it looks like a marker.
+     *
+     * <p>For an unterminated final item: §1a says it cannot be a marker, but it is still a record, and
+     * the tracker must count it or the marker before it looks like the end of the file. Skipping the
+     * tracker entirely left a run's records uncounted, so a file whose last record was still arriving
+     * reported its previous marker's verdict as the file's.
+     */
+    public void acceptRecord() {
+        indexedTotal++;
+        sinceMarker++;
+    }
+
     /** Re-run from the start. Follow re-frames the whole file, so the tracker must too. */
     public void reset() {
         indexedTotal = 0;
@@ -64,12 +79,19 @@ public final class StreamEndTracker {
         segments = 0;
         worstOrdinal = -1;
         worstFirstRecord = -1;
+        badRuns.clear();
     }
 
     private void closeSegment(long declared) {
         sawMarker = true;
         segments++;
         StreamEnd verdict = StreamEnd.declared(declared, sinceMarker);
+        long first = indexedTotal - sinceMarker;
+        if (verdict.state() != StreamEnd.State.COMPLETE) {
+            // D-E6: keep EVERY failing run. Keeping only the worst concealed a second one entirely.
+            badRuns.add(new StreamEnd.Run(segments, first, first + sinceMarker - 1, verdict.state(),
+                    declared, sinceMarker));
+        }
         if (rank(verdict.state()) > rank(worst)) {
             worst = verdict.state();
             worstDeclared = declared;
@@ -100,10 +122,15 @@ public final class StreamEndTracker {
      * live shape of a cumulative export whose current run has not finished.
      */
     public StreamEnd resolve() {
-        if (!sawMarker || sinceMarker > 0) return StreamEnd.unknown(indexedTotal);
+        if (!sawMarker) return StreamEnd.unknown(indexedTotal);
+        // D-E7, round five A-4: records after the last marker leave the FILE unknown — nothing vouches
+        // for the tail. But a run that already proved it lost records proved it, and dropping that
+        // because a later run is still open is the concealment D-T8 forbids. The state stays unknown;
+        // the evidence travels with it.
+        if (sinceMarker > 0) return StreamEnd.unknown(indexedTotal).withRuns(badRuns);
         if (worst == StreamEnd.State.COMPLETE) return new StreamEnd(StreamEnd.State.COMPLETE,
                 worstDeclared < 0 ? indexedTotal : worstDeclared, indexedTotal);
-        StreamEnd verdict = new StreamEnd(worst, worstDeclared, worstEmitted);
+        StreamEnd verdict = new StreamEnd(worst, worstDeclared, worstEmitted).withRuns(badRuns);
         // Only name a run when there is more than one. In a single-run file "run 1 of this log (records
         // 0 to 24, of 25 in the file)" is noise dressed as precision, and the file IS the run.
         return segments <= 1 ? verdict

@@ -3294,6 +3294,9 @@ public final class MainFrame extends JFrame {
      * status bar and {@code context}, never a dialog: opens arrive from the socket as often as from a
      * human, and a modal in the load path is the defect M35.7 closed.
      */
+    /** The completeness state the follow tick last told a person about (round five A-2). */
+    private telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State followStreamEndState =
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN;
     private telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerDiagnostics =
             telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.clean();
 
@@ -3827,10 +3830,9 @@ public final class MainFrame extends JFrame {
         // What the log says about its EMITTER. Computed here, after the index is built, because two of
         // the three checks read the index and the third reads a record's text.
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics());
-        String producerWarning = producerDiagnostics.isClean() ? ""
-                : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
-                        java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
+                .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
+                        loaded.completenessDiagnostics(), loaded.completenessIsNote());
+        String producerWarning = producerWarning();
         status.setText(statusText(loaded.size(), range,
                 logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
                         : displayName(location),
@@ -4139,8 +4141,22 @@ public final class MainFrame extends JFrame {
             openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
             return;
         }
+        // Round five A-2: a marker arriving on its own adds NO rows, and the tick used to return here —
+        // so `context.streamEnd` said "missing_records" to an agent while the person watching the file
+        // was shown nothing at all. The completeness state is re-read on every tick and the human
+        // surfaces are refreshed when it moves, whether or not any record came with it.
+        var endState = store.streamEnd().state();
+        if (followNeedsDiagnosticRefresh(followStreamEndState, endState, added)) {
+            followStreamEndState = endState;
+            producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                    .of(store.index(), store::rawText, store.sourceDiagnostics(),
+                            store.completenessDiagnostics(), store.completenessIsNote());
+            status.setToolTipText(producerDiagnostics.isClean() ? null
+                    : String.join("\n\n", producerDiagnostics.messages()));
+        }
         if (added == 0) {
-            status.setText("Following " + displayName(followPath) + " · " + store.size() + " records" + trailingPendingNote());
+            status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
+                    store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
             return;
         }
         if (tableModel != null) tableModel.rowsAppended(before);
@@ -4150,9 +4166,53 @@ public final class MainFrame extends JFrame {
         onFilterChanged();
         graphTabs.onRecordsAppended();   // M65 D-F1: open charts re-extract; the echo above no longer moves them (D-F8)
         tablePanel.scrollToLast();
-        String range = store.minLogTime() == null ? "no timestamps"
+        status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
+                store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+    }
+
+    /** The follow line's time range, or the words for a log that carries no timestamps. */
+    private String followRange() {
+        return store == null || store.minLogTime() == null ? "no timestamps"
                 : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
-        status.setText("Following " + displayName(followPath) + " · " + store.size() + " records · " + range + trailingPendingNote());
+    }
+
+    /** The producer warning as the status bar renders it, shared by the load and follow lines. */
+    private String producerWarning() {
+        // Round five A-5: a COMPLETENESS_NOTE states a limit — "each file says it is whole, and that says
+        // nothing about the set" — and must not wear a warning glyph. It still reaches the tooltip and
+        // `context`; it simply is not a fault.
+        return producerDiagnostics.firstWarning()
+                .map(f -> "  ·  ⚠ " + f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ')
+                        + " — ask 'context', or hover")
+                .orElse("");
+    }
+
+    /**
+     * Whether a follow tick must rebuild the producer diagnostics and the tooltip.
+     *
+     * <p>Round five A-2. Records arriving is the obvious trigger. The one that was missing is a change
+     * of completeness STATE with no records at all: the last thing a writer does is emit its marker, so
+     * the tick that learns a file is complete — or that it declared more records than it holds — is
+     * exactly the tick that appends nothing. Returning early on {@code added == 0} left the agent's
+     * surface saying one thing and the person's saying nothing.
+     *
+     * <p>Kept pure so it is testable: rule 4 keeps the tick itself out of the headless suite.
+     */
+    static boolean followNeedsDiagnosticRefresh(
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State before,
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State after, int added) {
+        return added > 0 || before != after;
+    }
+
+    /**
+     * The status line while following — assembled where a test can read it, for the same reason
+     * {@link #statusText} is.
+     */
+    static String followStatusText(String location, int records, String range, boolean knownComplete,
+                                   String producerWarning, String pendingNote) {
+        String wholeNote = knownComplete ? "  ·  complete" : "";
+        return "Following " + location + " · " + records + " records · " + range
+                + wholeNote + producerWarning + pendingNote;
     }
 
     /** Record-density buckets across the log-time range, for the slider histogram. */

@@ -65,7 +65,12 @@ public record StreamEndMarker(String reason, long records) {
                 if (sawCount) return Optional.empty();
                 sawCount = true;
                 try {
-                    records = Long.parseLong(value(t.substring(COUNT_KEY.length())));
+                    String v = value(t.substring(COUNT_KEY.length()));
+                    // §1a: ASCII digits with an optional sign, and nothing else. Long.parseLong accepts
+                    // ANY Unicode decimal digit, so a fullwidth or Arabic-Indic "3" was read as 3 and a
+                    // file reported COMPLETE where a reader following the prose said unverified — the
+                    // unsafe direction, found by implementing §1a from its own text.
+                    records = isAsciiInteger(v) ? Long.parseLong(v) : -1;
                 } catch (NumberFormatException ignored) {
                     records = -1;                 // unreadable or overflowing count: no count at all
                 }
@@ -106,6 +111,16 @@ public record StreamEndMarker(String reason, long records) {
      * a timed marker widened that reader's time range. Tolerated here because a file already written
      * that way must still be read correctly.
      */
+    /** §1a: {@code [+-]?[0-9]+}, ASCII only. Nothing else is a count. */
+    private static boolean isAsciiInteger(String v) {
+        int i = v.isEmpty() ? 0 : (v.charAt(0) == '+' || v.charAt(0) == '-') ? 1 : 0;
+        if (i >= v.length()) return false;
+        for (; i < v.length(); i++) {
+            if (v.charAt(i) < '0' || v.charAt(i) > '9') return false;
+        }
+        return true;
+    }
+
     private static boolean isAllowedCompanion(String trimmedLine) {
         return trimmedLine.startsWith("logTime:");
     }

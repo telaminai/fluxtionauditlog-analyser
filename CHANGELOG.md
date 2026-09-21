@@ -19,20 +19,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - A record is never removed from a log because of its own contents. An event whose `toString` happens to
   contain a line shaped like the stream-end marker is an ordinary record, and is indexed, counted and
   shown like any other.
-### Fixed
-- A text log that ends after its last record, with no trailing `---`, is read as the whole, ordinary file
-  it is. An unreleased version of the stream-end work reported it as a writer that stopped mid-record,
-  which described every export written by a Mongoose server. `---` separates records; it does not
-  terminate them, and its absence at the end of a file means nothing.
-- The status bar now actually shows *complete* for a log that claims it. The note was computed and then
-  never added to the text.
-- A log whose completeness verdict concerns one run of several now says which run, and how many records
-  the whole file holds. It previously reported that run's numbers as though they were the file's. The
-  same applies to a rolled set: a verdict that came from one file names that file, and its numbers sit
-  under it rather than beside the set's own record count, and a run inside one of those files nests
-  again, so every number sits with the thing it counts. A log read through a reader plugin now shows its
-  completeness verdict to a person as well as to an agent; it previously told only the agent.
-- A log file saved with a byte-order mark no longer counts a leading stream-end marker as a record.
+- The marker must be followed by its `---` separator to count. Until it is, a writer may be halfway
+  through writing it, and the same bytes mean two different things — so an unterminated final record is
+  an ordinary record, never a completeness claim. This is what keeps a live tail and a fresh open of the
+  same file in agreement.
+- Every number is reported in the scope it belongs to: a run inside a file, a file inside a rolled set,
+  the whole log at the top. A verdict about one run of several names that run, and a set's verdict names
+  the file it came from. Every run that fails its count is reported, not only the first.
+- A log read through a reader plugin, or followed as it grows, shows its completeness verdict to the
+  person at the screen as well as to an assistant.
+- A log file saved with a byte-order mark reads its stream-end marker correctly.
 
 
 ## [1.17.0] - 2026-09-21

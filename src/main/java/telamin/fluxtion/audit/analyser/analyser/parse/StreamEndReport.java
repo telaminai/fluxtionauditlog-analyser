@@ -40,22 +40,51 @@ public final class StreamEndReport {
      * reach {@link #facts}, where a reader is asking rather than being interrupted.
      */
     public static String sentence(StreamEnd end, String logName) {
-        if (end.state() == StreamEnd.State.COMPLETE || end.state() == StreamEnd.State.UNKNOWN) return null;
+        if (end.state() == StreamEnd.State.COMPLETE) return null;
+        // D-E7: an unknown FILE may still contain a run that proved it lost records. Silence about the
+        // file is right; silence about the proof is not.
+        if (end.state() == StreamEnd.State.UNKNOWN) {
+            return end.runs().isEmpty() ? null : logName + " does not say whether it is whole - it carries "
+                    + "records after its last marker. " + runsSentence(end.runs()) + " That much is proven "
+                    + "whatever the rest of the file turns out to be.";
+        }
         String subject = subject(end, logName);
         long declared = end.declaredRecords();
         long read = end.emittedRecords();
         return switch (end.state()) {
             case UNVERIFIED -> subject + " ends with a marker saying the writer finished, but the marker "
-                    + "carries no readable record count. The claim cannot be checked, so it is not evidence.";
+                    + "carries no readable record count. The claim cannot be checked, so it is not evidence." + others(end);
             case MISSING_RECORDS -> subject + " declares " + plural(declared, "record") + " and "
                     + read + were(read) + " read. " + plural(declared - read, "record")
-                    + is(declared - read) + " missing from the middle or the end.";
+                    + is(declared - read) + " missing from the middle or the end." + others(end);
             case MORE_THAN_DECLARED -> subject + " declares " + plural(declared, "record") + " and "
                     + read + were(read) + " read - " + plural(read - declared, "record")
                     + " more than the marker says. The marker is wrong, or it is not the end of what it "
-                    + "claims to end. Either way the count is not evidence of a whole file.";
+                    + "claims to end. Either way the count is not evidence of a whole file." + others(end);
             default -> null;
         };
+    }
+
+    /** "Run 1 (records 0 to 2) declares 5 records and 3 were read." — every failing run, in file order. */
+    private static String runsSentence(java.util.List<StreamEnd.Run> runs) {
+        StringBuilder b = new StringBuilder();
+        for (StreamEnd.Run r : runs) {
+            b.append(b.length() == 0 ? "" : " ").append("Run ").append(r.ordinal());
+            b.append(r.isEmpty() ? " (which holds no records)"
+                    : " (records " + r.firstRecord() + " to " + r.lastRecord() + ")");
+            b.append(r.declaredRecords() < 0
+                    ? " ends with a marker carrying no readable count."
+                    : " declares " + plural(r.declaredRecords(), "record") + " and " + r.emittedRecords()
+                            + were(r.emittedRecords()) + " read.");
+        }
+        return b.toString();
+    }
+
+    /** ", and 2 other runs in this file also disagree with their marker" — never a silent drop. */
+    private static String others(StreamEnd end) {
+        int n = end.runs().size() - 1;                 // the headline run is one of them
+        return n <= 0 ? "" : " " + plural(n, "other run") + " in this file also "
+                + (n == 1 ? "disagrees" : "disagree") + " with its marker; `context` lists them.";
     }
 
     private static String were(long n) {
@@ -106,6 +135,24 @@ public final class StreamEndReport {
             out.put("member", member);
         } else {
             putRunOrNumbers(out, end);
+        }
+        // D-E6/D-E7: every failing run, so nothing an agent could act on is reachable only through the
+        // sentence. An unknown FILE with proven losses reaches context this way and no other.
+        if (!end.runs().isEmpty()) {
+            java.util.List<Map<String, Object>> bad = new java.util.ArrayList<>();
+            for (StreamEnd.Run r : end.runs()) {
+                Map<String, Object> one = new LinkedHashMap<>();
+                one.put("ordinal", r.ordinal());
+                one.put("state", r.state().name().toLowerCase(Locale.ROOT));
+                if (!r.isEmpty()) {
+                    one.put("firstRecord", r.firstRecord());
+                    one.put("lastRecord", r.lastRecord());
+                }
+                if (r.declaredRecords() >= 0) one.put("declaredRecords", r.declaredRecords());
+                one.put("recordsRead", r.emittedRecords());
+                bad.add(one);
+            }
+            out.put("failingRuns", java.util.List.copyOf(bad));
         }
         return out;
     }
