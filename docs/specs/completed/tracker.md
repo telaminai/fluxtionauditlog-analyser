@@ -1,3 +1,13 @@
+## SG-1 · Public Spring provisioning — ☑ SHIPPED 2026-09-21
+
+Starter **1.0.73** publishes a flattened consumer POM, eliminating the unavailable parent required
+by 1.0.72. No compiler Java/generation logic changed; immutable 1.0.72 artifacts were retained.
+The public standalone Spring ZIP now passes shipped setup/validate with an empty Maven cache and
+no private settings, then an edited graph generates and runs through the supported remote backend.
+Regression: published-descriptor test (seen red on old packaging), strengthened publication probe,
+and public-download setup preflight in playground production CI. A separate hosted-template gap is
+SG-2 in the live tracker. See [release evidence](../../handoff/report_sg1_release_2026_09_21.md).
+
 ## M66 · Design render — the Spring XML on the canvas — ☑ SHIPPED in 1.16.0 — 2026-09-21 (spec **[spec-design-render.md](../spec-design-render.md)** revision 2)
 
 Numbering correction: the incoming spec reused M49, already assigned to Runtime performance in

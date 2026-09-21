@@ -1,0 +1,11 @@
+{
+  "status": "FAIL",
+  "requestedUrl": "https://fluxtion-playground.dev/start/scaffold?template=fluxtion-spring-mongoose",
+  "emptyMavenCache": true,
+  "privateSettings": false,
+  "generationAttempted": false,
+  "clientSessions": 0,
+  "zipSha256": "7768309debda334487511395231b581c2e2837c3d23646c765e9804ca631bd3e",
+  "error": "[Errno 2] No such file or directory: '/home/runner/work/_temp/customer-spring/download/fluxtion-spring-mongoose/fluxtion-authoring.json'",
+  "elapsedSeconds": 0.538
+}

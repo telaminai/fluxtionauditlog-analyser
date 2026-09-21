@@ -1,5 +1,9 @@
 # Illustrated Spring getting-started guide — 2026-09-21
 
+**Later on 2026-09-21:** SG-1 is fixed in published starter 1.0.73; see the
+[release correction and public verification](report_sg1_release_2026_09_21.md). The capture-time
+failure below remains historical evidence; its temporary guide workaround has been removed.
+
 Owner request: getting-started documentation with screenshots and a clear guided path.
 
 Added `docs/site/spring-authoring-getting-started.md` under Getting started, linked from the home

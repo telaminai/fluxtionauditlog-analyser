@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "starterVersion": "1.0.73",
+  "edit": "Add PriceTick handler binding to sentimentCalc",
+  "scripts": {
+    "validate": 0,
+    "generate": 0,
+    "run": 0
+  },
+  "generatedDispatch": true,
+  "compilerRan": true,
+  "xmlSha256": "64c901f29f0498a8a78e2df8f395cdf151f8887c5e7b4f676d052563c7009977",
+  "sampleEvents": [
+    "PriceTick",
+    "OrderEvent",
+    "NewsEvent"
+  ],
+  "frameworkEvents": [
+    "LifecycleEvent",
+    "EventLogControlEvent"
+  ],
+  "changedHandlerObserved": true,
+  "wrongHandlerWitnessRejected": true,
+  "clientVersion": "1.0.73",
+  "deployedGeneratorVersion": "1.0.72"
+}

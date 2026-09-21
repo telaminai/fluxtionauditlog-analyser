@@ -80,14 +80,14 @@ Release record: [report](../handoff/report_release_journey_2026_09_21.md).
   client connection and copy-ready prompt, design inspection, real validation refusal/correction,
   generation prerequisites and explicit session restore. Four native analyser screenshots plus the
   owner-witnessed website preview. The analyser remains a read-only canvas, not an application runner.
-- ☐ **SG-1 — public Spring setup is blocked (compiler publication / playground provisioning).**
-  Fresh public `fluxtion-spring` download: `./setup.sh` fails on missing public parent
-  `com.telamin.fluxtion:master:pom:1.0.72`. Confirmed with ordinary and empty Maven caches plus HTTP404.
-  The public executable itself validates correctly; direct jar/BOM GET checks and the keyless bundle
-  preflight missed the Maven descriptor path. Closure requires a repeatable empty-cache public Spring
-  `setup.sh` gate, then validation and a real generation route. No private/local artifacts may fill gaps.
-  The guide names the blocker and an XML-only direct-public-jar route; it does not present full setup
-  or a newly generated application as verified. Broader repair belongs to the owning repos.
+- ☑ SG-1 fixed and released in starter **1.0.73**; public standalone setup/validate and changed-graph
+  generation/run pass. Closure and regression checks are in the [completed tracker](completed/tracker.md).
+- ☐ **SG-2 — hosted Spring download omits local authoring files (playground).** The expanded
+  preflight found no authoring record or local scripts in `fluxtion-spring-mongoose`; its generator
+  emits graph files without the local-tooling wrapper. Separate from the fixed Maven descriptor.
+  Actual hosted ZIP coverage must prove record/scripts, launcher preservation, setup/validate and
+  generation/run without breaking the keyless bundle. The guide states the current scope.
+
 
 Evidence and regeneration: [guide author report](../handoff/report_spring_getting_started_2026_09_21.md).
 

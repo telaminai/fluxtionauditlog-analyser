@@ -7,14 +7,15 @@ The LLM edits and runs the project through its own tools; the analyser displays 
 **Guided means a conversation following the project's runbooks.** It is optional, with no special
 runtime mode or separate “guided” project type. You can follow the same steps yourself.
 
-!!! warning "Current Spring setup limitation — checked 21 September 2026"
-    The public Spring download pinned to starter **1.0.72** currently fails in `setup.sh`: Maven
-    cannot resolve the starter's parent `com.telamin.fluxtion:master:pom:1.0.72` from the public
-    repository. This also fails with an empty cache. A compilation key does not fix it.
-    You can download the project, inspect its design, and use the explicit keyless validation
-    route in step 4. The normal setup/generate path needs this publication defect corrected.
-    For a complete keyless build/run/export walkthrough today, use the
-    [Audit analyser bundle](tutorial-playground.md); that is a different template.
+!!! info "Use starter 1.0.73 or later"
+    New **Fluxtion Spring XML** downloads include the fixed public Maven descriptor. The shipped
+    `setup.sh`, validation, changed-design generation and sample run have been verified with
+    starter **1.0.73**. Setup and XML validation need no compilation key; generation still needs
+    the backend prerequisites below.
+
+    If you already downloaded a 1.0.72 project, update `starterVersion` in
+    `fluxtion-authoring.json` to `1.0.73`, and update the POM's `fluxtion.bom.version` from
+    `1.0.72` to `1.0.73`. Keep your source and ownership entries. Run `./setup.sh` again.
 
 ## Choose your starting point
 
@@ -23,7 +24,7 @@ runtime mode or separate “guided” project type. You can follow the same step
 | Learn the analyser without building anything | [Guided analyser tour](guided-start.md), using its included demo log. |
 | Run an existing example and examine its evidence without a compilation key | [Playground to analyser](tutorial-playground.md), using the Audit analyser bundle. |
 | Design and change an application in Spring XML | This guide, using **Fluxtion Spring XML**. |
-| Host a Spring design in Mongoose | Start with **Fluxtion Spring in Mongoose** in the catalogue and follow its own `runbooks/hosting.md`; its launcher and capture setup differ. |
+| Host a Spring design in Mongoose | Use **Fluxtion Spring in Mongoose** and its hosting/build runbooks. It currently omits the local authoring record and scripts, so the setup/validate/generate steps below apply to the standalone template only. |
 
 For the Spring path, use JDK 21, network access for provisioning, and analyser **1.16.0 or later**.
 Your local LLM needs access to the downloaded project and a terminal. Generation through RapidAPI
@@ -131,33 +132,16 @@ audit log when investigating execution.
 
 ## 4. Validate and read a real finding
 
-The intended project commands are:
+Run the shipped project commands:
 
 ```bash
 ./setup.sh
 ./validate.sh --summary-detail
 ```
 
-`setup.sh` fetches the pinned tool and resolves the classpath. Stop if it fails; the current
-publication problem is described above. Validation checks XML declarations, without loading
+`setup.sh` fetches the pinned tool and resolves the classpath. Stop if it fails; do not treat
+an incomplete setup as successful validation. Validation checks XML declarations without loading
 your node classes. It writes `target/fluxtion-validation.json`.
-
-??? info "Keyless XML-only preview while the 1.0.72 setup defect is open"
-    For a project whose `fluxtion-authoring.json` pins **1.0.72**, the standalone published jar
-    can validate XML directly. This bypasses the broken Maven descriptor resolution for this
-    one operation; it does **not** complete setup or provision a generation classpath.
-
-    ```bash
-    mkdir -p .fluxtion
-    curl --fail --location \
-      'https://repo.repsy.io/mvn/fluxtion/fluxtion-public/com/telamin/fluxtion/fluxtion-starter-core/1.0.72/fluxtion-starter-core-1.0.72-all.jar' \
-      --output .fluxtion/fluxtion-starter-core.jar
-    echo '7333d2c7bbb0fa9393c4e2bae36e4139dda1cd20db4b434aeec7b947e07de087  .fluxtion/fluxtion-starter-core.jar' | shasum -a 256 -c -
-    ./validate.sh --summary-detail
-    ```
-
-    Run validation only after the checksum reports `OK`. These shell commands target macOS/Linux.
-    The screenshots below use this exact public executable and a disposable copy of the download.
 
 In the analyser, choose **File ▸ Open producer diagnostics…** and open that JSON file.
 The result appears under **Reports ▸ Producer findings**.

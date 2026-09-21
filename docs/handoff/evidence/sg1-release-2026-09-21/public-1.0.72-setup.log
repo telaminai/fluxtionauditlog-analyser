@@ -1,0 +1,11 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/private/tmp/sg1-public-red-network/java-home -Djava.io.tmpdir=/private/tmp/sg1-public-red-network/tmp
+3.9.9
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/private/tmp/sg1-public-red-network/java-home -Djava.io.tmpdir=/private/tmp/sg1-public-red-network/tmp
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-dependency-plugin:3.7.0:copy (default-cli) on project fluxtion-spring: Unable to find/resolve artifact. Failed to read artifact descriptor for com.telamin.fluxtion:fluxtion-starter-core:jar:all:1.0.72: The following artifacts could not be resolved: com.telamin.fluxtion:master:pom:1.0.72 (absent): Could not find artifact com.telamin.fluxtion:master:pom:1.0.72 in central (https://repo.maven.apache.org/maven2) -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+Cannot provision Spring authoring: com.telamin.fluxtion:fluxtion-starter-core:1.0.72:jar:all is unavailable. This workflow requires the compiler release that publishes that coordinate. Check publication and repository access before retrying; curated examples use their separate released BOM.

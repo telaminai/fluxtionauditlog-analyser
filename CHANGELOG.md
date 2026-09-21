@@ -8,7 +8,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Documentation
 - Add a guided Spring authoring path with real project/design/validation screenshots, a client prompt,
-  runbook and prerequisite checkpoints, and the confirmed public starter setup limitation.
+  runbook and prerequisite checkpoints.
+- Update the Spring guide for the verified 1.0.73 provisioning fix, with upgrade instructions and
+  the separate hosted-template tooling limitation.
 
 ## [1.16.0] - 2026-09-20
 

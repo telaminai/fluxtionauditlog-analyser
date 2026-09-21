@@ -1,0 +1,64 @@
+eventLogRecord:
+    eventTime: 1789980209499
+    logTime: 1789980209499
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs:
+    endTime: 1789980209500
+eventLogRecord:
+    eventTime: -1
+    logTime: 1789980209500
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.FluxtionMain$$Lambda/0x0000007001014468@2401f4c3, sourceId=null, groupId=null}
+    thread: main
+    nodeLogs:
+    endTime: 1789980209500
+eventLogRecord:
+    eventTime: 1789980209500
+    logTime: 1789980209500
+    groupingId: null
+    event: PriceTick
+    eventToString: PriceTick{symbol=demo, price=1.0}
+    thread: main
+    nodeLogs:
+        - marketDataNode: { thread: main, method: onPriceTick, receivedEvent: PriceTick{symbol=demo, price=1.0}, price: 1.0}
+        - sentimentCalc: { thread: main, method: onSentimentCalc}
+        - sentimentCalc: { thread: main, method: onPriceTick}
+        - volatilityCalc: { thread: main, method: onVolatilityCalc}
+        - riskEngine: { thread: main, method: onRiskEngine}
+        - orderGate: { thread: main, method: onOrderGate}
+    endTime: 1789980209504
+eventLogRecord:
+    eventTime: 1789980209504
+    logTime: 1789980209504
+    groupingId: null
+    event: OrderEvent
+    eventToString: OrderEvent{symbol=demo, qty=1}
+    thread: main
+    nodeLogs:
+        - marketDataNode: { thread: main, method: onOrderEvent, receivedEvent: OrderEvent{symbol=demo, qty=1}, qty: 1}
+        - sentimentCalc: { thread: main, method: onSentimentCalc}
+        - volatilityCalc: { thread: main, method: onVolatilityCalc}
+        - riskEngine: { thread: main, method: onRiskEngine}
+        - orderGate: { thread: main, method: onOrderGate}
+        - orderGate: { thread: main, method: onOrderEvent}
+    endTime: 1789980209506
+eventLogRecord:
+    eventTime: 1789980209506
+    logTime: 1789980209506
+    groupingId: null
+    event: NewsEvent
+    eventToString: NewsEvent{headline=demo}
+    thread: main
+    nodeLogs:
+        - marketDataNode: { thread: main, method: onNewsEvent, receivedEvent: NewsEvent{headline=demo}}
+        - sentimentCalc: { thread: main, method: onSentimentCalc}
+        - sentimentCalc: { thread: main, method: onNewsEvent}
+        - volatilityCalc: { thread: main, method: onVolatilityCalc}
+        - riskEngine: { thread: main, method: onRiskEngine}
+        - orderGate: { thread: main, method: onOrderGate}
+    endTime: 1789980209507
+FluxtionMain: processed sample events

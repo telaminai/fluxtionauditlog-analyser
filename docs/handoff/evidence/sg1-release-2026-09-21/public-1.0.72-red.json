@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "requestedUrl": "https://fluxtion-playground.dev/start/scaffold?template=fluxtion-spring",
+  "emptyMavenCache": true,
+  "privateSettings": false,
+  "generationAttempted": false,
+  "clientSessions": 0,
+  "zipSha256": "723684c5ed4f2aecaae40b42d60b115f3baa78e607a88d3dd87305cafbf14272",
+  "starterVersion": "1.0.72",
+  "error": "setup.sh failed (2); see logs/setup.log",
+  "elapsedSeconds": 14.853
+}
