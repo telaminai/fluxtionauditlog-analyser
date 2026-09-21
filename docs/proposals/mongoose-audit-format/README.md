@@ -239,6 +239,44 @@ Once the logger fix requires a runtime release regardless, the renderer costs al
 3. **The closed-compiler fallback stays priced.** A build-time format means a processor *starts* binary and
    never swaps, avoiding the path rather than repairing it — useful if pluggable selection slips.
 
+## Repository order — what to do, in sequence
+
+Six repositories across the plan. Derived from the dependencies above and stated as a sequence so nobody
+has to re-derive it. **The analyser appears three times**, twice in release 1, which is the part most
+likely to be missed.
+
+### Now, standalone — **mongoose-plugins**
+
+The audit-tail thread fix (decision 3). No dependency on anything else here, and it repairs live tailing
+for every existing Chronicle deployment. It can start today and does not wait for the format work.
+
+### Release 1 — text
+
+| # | Repository | Work | Why here |
+|---|---|---|---|
+| 1 | **analyser** | Format-spec amendment defining the end marker | **The contract.** Both sides implement it, so nothing else can start correctly until it exists |
+| 2a | **mongoose** | The text writer: `asCharSequence()` + `\n---\n` + end marker; config validation | Implements the contract |
+| 2b | **analyser** | Incompleteness reporting in code | Reads the contract. **Parallel with 2a** — same contract, two ends, no reason to serialise |
+| 3 | **mongoose-plugins** | Web-admin audit views under a file backend, fed from the live listener (decision 7) | Needs the backend to exist |
+| 4 | **fluxtion-web** | Templates default to text (decision 5) | **Deliberately late.** Defaulting before Mongoose supports it would generate projects whose configuration does nothing — the `backend` defect repeated |
+| 5 | **analyser** | Skills, the coupled specs, the tutorial, the site deploy (decision 4) | Describes shipped behaviour, so it goes last |
+
+**One loop to plan for.** Step 5 changes the Mongoose skill, which changes its pin, which the playground
+re-vendors. So **`fluxtion-web` is touched twice**: at step 4 and again at the tail of step 5.
+
+### Release 2 — binary, once text is stable
+
+**Gate:** diagnose the per-node `NONE` corruption first. A release carrying an undiagnosed corruption
+cannot state whether it fixed it.
+
+| # | Repository | Work |
+|---|---|---|
+| 1 | **fluxtion** *(public runtime)* | Pluggable record selection, the record-swap staleness, the `NONE` corruption, and the renderer — **one release** |
+| 2 | **analyser** | Delete the private renderer, call the moved one |
+| 3 | **mongoose** | Select binary through the pluggable mechanism |
+| 4 | **fluxtion-web** | Templates can offer binary |
+| 5 | **fluxtion-compiler** *(closed)* | **Only if pluggable selection slips** — the build-time fallback |
+
 ## The slices
 
 ### Slice 1 — Mongoose writes a text audit file *(release 1, required)*
