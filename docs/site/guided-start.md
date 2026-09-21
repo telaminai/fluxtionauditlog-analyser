@@ -6,6 +6,10 @@ walks you through what the tool does **by driving the window while you watch**.
 You need **JDK 21+**. You do **not** need a Fluxtion API key, an account, or a project of your own — the
 analyser ships with a demo set.
 
+**Want to design a new application instead?** Follow [Spring authoring step by step](spring-authoring-getting-started.md).
+That guided path starts from a downloaded project and its runbooks. This page tours the analyser
+using existing evidence; it does not generate a Spring application.
+
 !!! note "Every command is written out on purpose"
 
     You can read every command before your assistant runs it, and so can your security team — there is no

@@ -54,8 +54,9 @@ The declarations describe the default download; verify its actual files before f
    silently opted back into support. Creating the optional pointers-only reference guide requires its own
    unchecked-by-default checkbox; an existing project guide is never overwritten.
 
-The [earlier picker capture](../assets/template-picker.png) records the previously released recommendation-only
-list; the whole-catalogue revision is unreleased. Its deployment follows support-enabled playground downloads.
+The [earlier picker capture](../assets/template-picker.png) records the former recommendation-only
+list. Analyser 1.16.0 shows the whole catalogue. For a new Spring project, follow the
+[illustrated authoring path](../spring-authoring-getting-started.md).
 
 The archive boundary is deliberately strict: only the configured playground HTTPS origin is contacted;
 absolute and parent-traversing ZIP entries are refused; entry count and expanded sizes are capped; a
@@ -82,7 +83,7 @@ a project is open.
 - **File ▸ New project from template…** — downloads a catalogue-selected starter into a destination
   you approve, safely extracts it and opens its bundled profile. It shows commands but runs none. Its
   destination dialog carries one unchecked option to **create a `CLAUDE.md`** of canonical authoring links
-  in the new project: most catalogue templates ship no agent instructions at all, and a template that does
+  in a legacy or support-disabled project. Current support-enabled templates ship agent entry files; a template that does
   ship one keeps it — the file is never overwritten, and the status line says which happened.
 - **File ▸ New project…** — chooses a directory, then offers the Java source roots, `SKILL.md` runbooks
   and GraphML it can already see there, plus one option that is different in kind: **creating a

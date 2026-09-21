@@ -34,7 +34,7 @@ See [Install & run](install.md) for details.
 
 ## What it does
 
-**Building a system with an LLM?** [Spring authoring](spring-authoring.md) takes you from a design
+**Building a system with an LLM?** [The illustrated Spring authoring path](spring-authoring-getting-started.md) takes you from a design
 conversation to a Java project, then brings the run back into the analyser. The LLM renders evidence,
 charts and reports on a canvas you can both inspect and question.
 

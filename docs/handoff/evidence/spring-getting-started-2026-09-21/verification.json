@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-21",
+  "analyser": "1.16.0",
+  "starter": "1.0.72",
+  "downloadUrl": "https://fluxtion-playground.dev/start/scaffold?template=fluxtion-spring&artifact=spring-first-project&group=com.acme&basePackage=com.acme.springdemo",
+  "downloadSha256": "af554a3aa84c5646f2be6897bf2cea6f525aadb93473d6b1dd1b72d2c86b0537",
+  "starterJarSha256": "7333d2c7bbb0fa9393c4e2bae36e4139dda1cd20db4b434aeec7b947e07de087",
+  "normalSetup": "FAIL on ordinary cache and fresh isolated cache; missing parent POM",
+  "publicParentUrl": "https://repo.repsy.io/mvn/fluxtion/fluxtion-public/com/telamin/fluxtion/master/1.0.72/master-1.0.72.pom",
+  "publicParentHttpStatus": 404,
+  "directExecutableValidationExitCodes": [
+    0,
+    1,
+    0
+  ],
+  "captures": {
+    "spring-starter-preview.png": "67a1892bb2c7a60ce38cfce53aa05554e31d2d7277b9fafa4b5bde0be42b5f54",
+    "spring-project-landing.png": "d7769c3f9b71ea7f5ac9fbb62eeaf390a399c58cd21d42ce1dd10bb265a452af",
+    "spring-validation-finding.png": "fa8c643242b59a8308e1de107ffff153141596e25c3e0c16686305b68c7efecc",
+    "spring-validation-clean.png": "a5c5d81f877acb3140eac96e8c5ff1f0751f0672449faf01ab2042266d866aca",
+    "spring-design.png": "9e28ea1df49ad5add0894ab923c6f289fbd2f8b086f17c8103cda9bc7b32cd60"
+  },
+  "captureMode": "Native isolated analyser window; real public project and validator; no generated app/log claimed",
+  "websiteScreenshot": "Owner-witnessed public two-node preview, reused from release evidence; browser was unavailable in this documentation session"
+}

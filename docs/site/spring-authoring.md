@@ -10,8 +10,9 @@ chart or an investigation report gives both of you something concrete to discuss
 The LLM's explanation should lead back to those observations and the source that
 produced them.
 
-Start with the [sample design and “what if?” conversations](spring-authoring-conversations.md)
-to see the collaboration, then use this page as the capabilities and workflow guide.
+Start with [Spring authoring step by step](spring-authoring-getting-started.md) for the guided
+path, download instructions and screenshots. The [sample design and “what if?” conversations](spring-authoring-conversations.md)
+show the collaboration; this page explains the capabilities and workflow.
 
 !!! info "Availability of the local authoring workflow"
     The local starter tool and extended XML declarations are now published. A matching project
@@ -19,6 +20,11 @@ to see the collaboration, then use this page as the capabilities and workflow gu
     `setup.sh`, `validate.sh` and `generate.sh`. Use those project-pinned versions; setup reports
     when the required tool cannot be fetched. Compilation credentials depend on the selected route.
     For the keyless published demo, follow [Playground to analyser](tutorial-playground.md).
+
+!!! warning "Current public setup issue"
+    The Spring starter jar is published, but `setup.sh` for the 1.0.72 download currently fails
+    to resolve its parent POM. See the [verified limitation and XML-only preview route](spring-authoring-getting-started.md)
+    before starting. Published executable availability does not prove Maven provisioning succeeds.
 
 ## One conversation, two workspaces
 

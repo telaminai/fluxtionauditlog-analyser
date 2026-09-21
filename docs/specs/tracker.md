@@ -40,6 +40,23 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 Release record: [report](../handoff/report_release_journey_2026_09_21.md).
 
+## Spring getting-started guide — 2026-09-21
+
+- ☑ Illustrated guided path: website/analyser acquisition, default-on support, project runbooks,
+  client connection and copy-ready prompt, design inspection, real validation refusal/correction,
+  generation prerequisites and explicit session restore. Four native analyser screenshots plus the
+  owner-witnessed website preview. The analyser remains a read-only canvas, not an application runner.
+- ☐ **SG-1 — public Spring setup is blocked (compiler publication / playground provisioning).**
+  Fresh public `fluxtion-spring` download: `./setup.sh` fails on missing public parent
+  `com.telamin.fluxtion:master:pom:1.0.72`. Confirmed with ordinary and empty Maven caches plus HTTP404.
+  The public executable itself validates correctly; direct jar/BOM GET checks and the keyless bundle
+  preflight missed the Maven descriptor path. Closure requires a repeatable empty-cache public Spring
+  `setup.sh` gate, then validation and a real generation route. No private/local artifacts may fill gaps.
+  The guide names the blocker and an XML-only direct-public-jar route; it does not present full setup
+  or a newly generated application as verified. Broader repair belongs to the owning repos.
+
+Evidence and regeneration: [guide author report](../handoff/report_spring_getting_started_2026_09_21.md).
+
 ## Spring authoring documentation — 2026-09-19
 
 - ☑ **Design partner and evidence canvas guides** — `docs/site/spring-authoring.md` covers capabilities,

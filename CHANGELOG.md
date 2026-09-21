@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Documentation
+- Add a guided Spring authoring path with real project/design/validation screenshots, a client prompt,
+  runbook and prerequisite checkpoints, and the confirmed public starter setup limitation.
+
 ## [1.16.0] - 2026-09-20
 
 ### Fixed
