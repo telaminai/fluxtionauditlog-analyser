@@ -20,6 +20,14 @@ public final class HeapLogStore implements LogStore {
     private final LogIndex index;
     private volatile boolean trailingPending;
     private final boolean includesEofRecord;
+    /** D-E3: whether this file says it is whole. Never null; UNKNOWN for every producer that is silent. */
+    private volatile StreamEnd streamEnd = StreamEnd.unknown(0);
+    /**
+     * Kept across appends so follow uses the same rule the initial load did. Review found the marker
+     * leaking into the index in follow mode and the state never moving off its load-time value, because
+     * {@link #appendFrom} framed without a tracker at all.
+     */
+    private final StreamEndTracker tracker = new StreamEndTracker();
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
 
@@ -27,13 +35,33 @@ public final class HeapLogStore implements LogStore {
         this(file, false);
     }
 
+    /**
+     * Indexes the file and, on the same pass, works out whether it says it is whole
+     * ({@code spec-audit-stream-end.md} D-E3).
+     *
+     * <p>The marker is dropped rather than indexed (D-E4): it is a container fact wearing a record's
+     * clothes, and it must not reach the table, a count, a series or the timeline. Dropping it HERE, at
+     * the one place records enter the index, is why no downstream surface needs to remember to filter it.
+     *
+     * <p><b>Two interactions with TA-6, both found by the integration rehearsal rather than by me.</b>
+     * {@code includesEofRecord} must also require that the last framed item WAS a record: a file whose
+     * final item is a marker has an unterminated tail that is not a record, and treating it as an EOF
+     * record would make {@link #appendFrom} refuse to follow a file that is simply finished. And a file
+     * with a trailing PENDING record cannot be COMPLETE whatever an earlier marker declared — the
+     * records after that marker are exactly the case D-E3 calls unknown.
+     */
     private HeapLogStore(String file, boolean requireTerminator) {
         this.file = (file == null) ? "" : file;
         this.index = new LogIndex();
-        boolean eof = RecordFramer.frameWithPending(this.file,
-                raw -> index.add(RecordParser.parse(raw.text(), raw.offset())), requireTerminator);
+        boolean[] lastWasRecord = {false};
+        boolean eof = RecordFramer.frameWithPending(this.file, raw -> {
+            lastWasRecord[0] = tracker.accept(raw.text());
+            if (lastWasRecord[0]) index.add(RecordParser.parse(raw.text(), raw.offset()));
+        }, requireTerminator);
         this.trailingPending = eof && requireTerminator;
-        this.includesEofRecord = eof && !requireTerminator;
+        this.includesEofRecord = eof && !requireTerminator && lastWasRecord[0];
+        this.streamEnd = tracker.resolve();
+        if (trailingPending && streamEnd.isKnownComplete()) streamEnd = StreamEnd.unknown(index.size());
     }
 
     public static HeapLogStore fromFile(Path path) throws IOException {
@@ -96,16 +124,38 @@ public final class HeapLogStore implements LogStore {
         // could throw meanwhile (impl review F2).
         this.readIdentity = null; // follow changes the indexed view; no stale opening digest may describe it
         this.file = full;
-        // require a terminator so a record still being written isn't indexed until complete; the
-        // first `before` records are byte-identical (append-only) so we skip them and add the rest
+        // Require a terminator so a record still being written isn't indexed until complete; the first
+        // `before` records are byte-identical (append-only) so we skip them and add the rest.
+        //
+        // The tracker is RESET and re-run over the whole file rather than continued from where the load
+        // left it. This pass already walks every record — the skip below is what makes it cheap, not the
+        // framing — so re-running costs one marker test per record and keeps the follow state derived
+        // from the same rule, in the same order, as a fresh load of the same bytes. Review found both
+        // halves of this broken: an appended marker was indexed as a record, and streamEnd kept its
+        // load-time value for ever.
+        tracker.reset();
         trailingPending = RecordFramer.frameWithPending(full, raw -> {
-            if (seen[0]++ < before) return;
+            if (!tracker.accept(raw.text())) return;      // a marker is never a record, in follow either
+            if (seen[0]++ < before) return;               // already indexed, and byte-identical
             index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
+        this.streamEnd = tracker.resolve();
+        if (trailingPending && streamEnd.isKnownComplete()) streamEnd = StreamEnd.unknown(index.size());
         return index.size() - before;
     }
 
     @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
+
+    @Override
+    public StreamEnd streamEnd() {
+        return streamEnd;
+    }
+
+    @Override
+    public java.util.List<String> sourceDiagnostics() {
+        String d = streamEnd.diagnostic("this log");
+        return d == null ? java.util.List.of() : java.util.List.of(d);
+    }
 
     @Override
     public int size() {

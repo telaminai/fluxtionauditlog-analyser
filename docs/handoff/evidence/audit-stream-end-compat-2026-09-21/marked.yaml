@@ -1,0 +1,20 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.1}
+---
+#00:00:00.001 [t] INFO L
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.2}
+---
+eventLogRecord:
+  logTime: 1002
+  streamEnd: normal
+  streamEndRecords: 2
+---

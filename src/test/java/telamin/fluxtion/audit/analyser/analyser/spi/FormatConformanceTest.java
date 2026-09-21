@@ -460,7 +460,8 @@ class FormatConformanceTest {
                     "c05-untimed.yaml", "c06-out-of-order.yaml", "c07-duplicate-instance.yaml",
                     "c08-lenient-values.yaml", "c09-garbage.yaml", "c11-attribution.yaml",
                     "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
-                    "c17-legacy-quotes.yaml"), names,
+                    "c17-legacy-quotes.yaml", "c18-stream-end.yaml", "c19-export-layout.yaml",
+                    "c20-marker-lookalike.yaml", "c21-real-export.yaml", "c22-marker-syntax.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -485,5 +486,125 @@ class FormatConformanceTest {
                     .append("\" target=\"").append(st[1]).append("\"/>");
         }
         return sb.append("</graph></graphml>").toString();
+    }
+
+    /**
+     * C18 — the stream-end marker is a container fact and not a record (spec-audit-stream-end D-E4).
+     *
+     * <p>The assertion that matters is the one about BOTH paths: if the built-in reader suppressed the
+     * marker and the SPI path did not, two readers of one file would disagree about how many records it
+     * holds. {@code bothPathsAgree} would catch it, which is why this fixture runs through it.
+     */
+    @Test
+    void c18_streamEndMarkerIsNotARecordInEitherPath() throws IOException {
+        LogStore s = bothPathsAgree("c18-stream-end.yaml");
+        assertEquals(2, s.size(), "two records; the marker is not one of them");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE,
+                s.streamEnd().state(), "the marker's count matches what was read");
+        assertEquals(Long.valueOf(1001), s.maxLogTime(),
+                "the marker's own logTime must not extend the timeline");
+    }
+
+    /**
+     * C19 — a whole file may end without a trailing separator, and this is the common case.
+     *
+     * <p>§1 makes {@code ---} a separator, not a terminator, and Mongoose's audit export writes
+     * {@code \n---\n} only BETWEEN records. The first version of the stream-end work treated an unclosed
+     * trailing record as a writer that stopped mid-record, so every real export was reported as damaged
+     * while all fifteen existing fixtures — each of which happens to end with a separator — stayed green.
+     * That is what this fixture is for: the suite could not see the dominant real shape.
+     */
+    @Test
+    void c19_aFileThatEndsWithoutASeparatorIsWholeAndOrdinary() throws IOException {
+        LogStore s = bothPathsAgree("c19-export-layout.yaml");
+        assertEquals(2, s.size(), "both records are read; the last one is not withheld or flagged");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                s.streamEnd().state(), "nothing in this file claims completeness either way");
+        assertTrue(s.sourceDiagnostics().isEmpty(),
+                () -> "an ordinary export must not be reported as damaged: " + s.sourceDiagnostics());
+    }
+
+    /**
+     * C20 — a producer's own text must never be able to delete a record.
+     *
+     * <p>{@link telamin.fluxtion.audit.analyser.analyser.parse.RecordParser} is indentation-insensitive,
+     * so a line inside a multiline {@code eventToString} looks exactly like a top-level key. Recognising
+     * the marker by searching for that key therefore let an ordinary {@code toString} remove its own
+     * record from the index on all three paths, and the file then reported records missing. Silent,
+     * content-controlled data loss — a D-T8 violation — so recognition is an allow-list instead.
+     */
+    /**
+     * C21 — a REAL export, kept because everything else here is something a person typed.
+     *
+     * <p>Three review rounds turned on the gap between the layout this project imagined and the layout
+     * its own producer writes. Round one measured it: a byte-exact export of 25 records reported as a
+     * damaged tail, while every hand-written fixture stayed green. `c19` was the corrective and is still
+     * constructed, with invented headers; this is the bytes themselves. It carries details nobody would
+     * have thought to invent — four-space indent, a trailing space after `eventLogRecord:`, an empty
+     * `nodeLogs:` on lifecycle records, no leading separator and no trailing one.
+     */
+    @Test
+    void c21_theRealProducersOwnLayoutReadsAsAnOrdinaryWholeLog() throws IOException {
+        LogStore s = bothPathsAgree("c21-real-export.yaml");
+        assertEquals(25, s.size(), "every record of the real export is read");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                s.streamEnd().state(), "it carries no marker, so it claims nothing");
+        assertTrue(s.sourceDiagnostics().isEmpty(),
+                () -> "the dominant real producer must not look damaged: " + s.sourceDiagnostics());
+        int parseErrors = 0;
+        for (int i = 0; i < s.size(); i++) {
+            if (s.record(i).kind() == telamin.fluxtion.audit.analyser.analyser.model.EventKind.PARSE_ERROR) {
+                parseErrors++;
+            }
+        }
+        assertEquals(0, parseErrors, "four-space indent and trailing spaces are not parse errors");
+        assertEquals("PriceEvent", s.record(24).event());
+        assertEquals(2, s.record(24).nodeLogsCount(), "a real cycle's node logs survive the round trip");
+    }
+
+    /**
+     * C22 — the two shapes where a reader written from §1a's PROSE disagreed with this code.
+     *
+     * <p>Re-review implemented §1a from the published text alone and compared 53 files; these two
+     * differed. Both are now stated in the prose and pinned here, because a normative section exists so
+     * that someone else can implement it and agree.
+     */
+    @Test
+    void c22_everyRuleInTheRecognitionTable() throws IOException {
+        LogStore s = bothPathsAgree("c22-marker-syntax.yaml");
+        // Two real records, plus the two marker LOOKALIKES the table disqualifies, which are records.
+        assertEquals(4, s.size(),
+                "a duplicate key and an empty value are not markers, so both are ordinary records");
+        assertEquals("Tick", s.record(0).event());
+        assertEquals("Tick", s.record(1).event());
+        assertNull(s.record(2).event(), "the duplicate-streamEnd record, kept as evidence");
+        assertNull(s.record(3).event(), "the empty-value record, kept as evidence");
+
+        // Run 1 is closed by a marker whose count is unreadable: an end claimed with nothing behind it.
+        // Run 2's marker has no space after the colon and a quoted count followed by a comment, and
+        // declares 3 over the 3 records that precede it. The weakest verdict is the file's.
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNVERIFIED,
+                s.streamEnd().state(), "an unreadable count is unverified, never missing-records");
+        assertEquals(1, s.sourceDiagnostics().size());
+        assertTrue(s.sourceDiagnostics().get(0).contains("no readable record count"),
+                s.sourceDiagnostics().get(0));
+    }
+
+    @Test
+    void c20_aRecordThatMentionsTheMarkerKeyIsStillARecord() throws IOException {
+        LogStore s = bothPathsAgree("c20-marker-lookalike.yaml");
+        assertEquals(2, s.size(), "both lookalikes are records; only the real marker is suppressed");
+        assertEquals("ShutdownRequest", s.record(0).event(), "the multiline toString kept its record");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE,
+                s.streamEnd().state(), "and the real marker still counts two");
+    }
+
+    /** A file with no marker is UNKNOWN — the state of every fixture here, and of every existing log. */
+    @Test
+    void c01_aFileWithNoMarkerIsUnknownNotComplete() throws IOException {
+        LogStore s = builtIn("c01-minimal.yaml");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                s.streamEnd().state());
+        assertFalse(s.streamEnd().isKnownComplete(), "silence is not a completeness claim");
     }
 }

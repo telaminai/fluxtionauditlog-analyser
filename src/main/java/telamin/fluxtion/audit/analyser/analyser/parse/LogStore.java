@@ -58,6 +58,17 @@ public interface LogStore extends AutoCloseable {
     }
 
     /**
+     * Whether this source says it is whole — {@code spec-audit-stream-end.md} D-E3.
+     *
+     * <p>The default is UNKNOWN, and that is the honest answer for every store that cannot tell: a
+     * silent producer, a reader plugin over someone else's container, a rolled set. UNKNOWN is not a
+     * defect and must never be rendered as "complete" (D-T8).
+     */
+    default StreamEnd streamEnd() {
+        return StreamEnd.unknown(size());
+    }
+
+    /**
      * A bounded view for a walk that may overlap a follow append (M65 D-F0). {@link #size()} is fixed when the
      * view is taken; {@link #record}/{@link #rawText} serve rows below it from data captured with that size, so a
      * walker never reads a row the store is still writing. Take one per walk; do not hold it across walks.

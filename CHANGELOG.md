@@ -6,6 +6,35 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **A log can say whether it is whole** — audit format 1.1 §1a adds an optional stream-end marker, and
+  `context` reports `log.streamEnd` as `complete`, `missing_records`, `more_than_declared`, `unverified`
+  or `unknown`. A file that makes no claim reads as **unknown**, never as complete, so "this node never
+  ran" stays a conclusion you have earned rather than one the file's shape implied. The status bar says
+  *complete* when a file claims it. The marker is never shown as a record. A **rolled set is never
+  reported as complete**, however many of its files say they are: a marker vouches for the file that
+  carries it, and nothing records how many files a set should hold, so a set with a whole file missing
+  looks exactly like one with nothing missing. A member that lost records still makes the set say so, and
+  names the file. See *Analyser assistant ▸ Is the log whole?* and *format specification §1a*.
+- A record is never removed from a log because of its own contents. An event whose `toString` happens to
+  contain a line shaped like the stream-end marker is an ordinary record, and is indexed, counted and
+  shown like any other.
+### Fixed
+- A text log that ends after its last record, with no trailing `---`, is read as the whole, ordinary file
+  it is. An unreleased version of the stream-end work reported it as a writer that stopped mid-record,
+  which described every export written by a Mongoose server. `---` separates records; it does not
+  terminate them, and its absence at the end of a file means nothing.
+- The status bar now actually shows *complete* for a log that claims it. The note was computed and then
+  never added to the text.
+- A log whose completeness verdict concerns one run of several now says which run, and how many records
+  the whole file holds. It previously reported that run's numbers as though they were the file's. The
+  same applies to a rolled set: a verdict that came from one file names that file, and its numbers sit
+  under it rather than beside the set's own record count, and a run inside one of those files nests
+  again, so every number sits with the thing it counts. A log read through a reader plugin now shows its
+  completeness verdict to a person as well as to an agent; it previously told only the agent.
+- A log file saved with a byte-order mark no longer counts a leading stream-end marker as a record.
+
+
 ## [1.17.0] - 2026-09-21
 
 - Context keeps loaded log sizes separate from on-disk metadata, flags changed graph/log/result inputs, and labels producer hash comparisons as of intake. The Project panel and exported reports carry the qualification.

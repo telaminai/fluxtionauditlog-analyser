@@ -1,0 +1,24 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: ShutdownRequest
+  eventToString: |
+    ShutdownRequest{
+    streamEnd: normal
+    reason=operator
+    }
+  nodeLogs:
+    - controller: { state: stopping}
+---
+#00:00:00.001 [t] INFO L
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.2, note: "streamEnd: normal"}
+---
+eventLogRecord:
+  streamEnd: normal
+  streamEndRecords: 2
+---

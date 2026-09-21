@@ -1,6 +1,6 @@
 # Audit record format — specification
 
-**Format 1 · status: published, open.** This page is the normative description of the record format
+**Format 1 · status: published, open.** *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
 the analyser reads. It exists so that anything that can describe a run — a Fluxtion processor, a
 Mongoose server, a workflow engine, a translator over someone else's trace — can emit records the
 analyser understands, and know *what the analyser will do with them*. The [Log format](log-format.md)
@@ -27,6 +27,146 @@ The key words MUST, SHOULD and MAY are used as in RFC 2119.
   filter, `read`, report quoting — works on that text, so it MUST be complete: a record with no text
   form is not a record.
 - Records are consumed **in container order**. The analyser never re-sorts.
+
+### 1a. Saying the file is whole (Format 1.1, additive)
+
+A container MAY end with a **stream-end marker**: a record carrying `streamEnd` and, when it can,
+`streamEndRecords`.
+
+```yaml
+---
+eventLogRecord:
+  streamEnd: normal        # normal | stopping
+  streamEndRecords: 25     # records written since the previous marker, or since the start
+---
+```
+
+A marker record carries **nothing else** but, optionally, its own `logTime`. A record that also names an
+`event`, carries `nodeLogs`, or holds any other key is a **record**, whatever it says about `streamEnd` —
+and a reader MUST index and count it. This is not pedantry about shape: audit records carry a producer's
+own `toString` output, which may contain any text at all, including a line that reads exactly like this
+key. A reader that recognises the marker by looking for the key will delete such a record from its index
+and then report the file as short. Recognise the marker by what the record contains in full, never by
+what it mentions.
+
+**The recognition rule, precisely.** Take the record's text, split it into lines, and strip each line of
+surrounding whitespace and a leading byte-order mark. Ignore lines that are empty, that begin with `#`
+(the §2 header comment), or that are exactly `eventLogRecord:`. The record is a marker **if and only if**
+every remaining line is one of:
+
+| line | rule |
+|---|---|
+| `streamEnd: <value>` | REQUIRED, exactly once, and `<value>` after unquoting MUST be non-empty |
+| `streamEndRecords: <value>` | OPTIONAL, at most once |
+| `logTime: <value>` | OPTIONAL |
+
+A line matches one of these when it begins with the key, then a colon, then **optional** whitespace.
+Note that this differs from YAML, where `streamEnd:normal` with no space is a plain scalar rather than a
+key: Format 1 accepts it as a key, here and in §2 alike, because §2's reader has always split on the
+first colon of an identifier. A reader that requires the space will disagree with the analyser on a
+record no producer is likely to write, and it should not. A reader built on a **YAML library** will
+disagree here, because that library reads `streamEnd:normal` as a plain scalar rather than a key: such a
+reader sees no marker and reports **unknown**, which is the conservative answer and therefore safe. A
+reader that wants to agree exactly should split the line itself rather than delegate it.
+
+Any other line, a second `streamEnd`, a second `streamEndRecords`, or an empty `streamEnd` value makes
+the record an ordinary record. `<value>` is read to end of line, and then:
+
+- a value that **begins** with a single or double quote runs to its matching quote, and anything after
+  the closing quote is discarded — so `"25"  # declared` is the value `25`, and a `#` **inside** the
+  quotes is data, not a comment;
+- otherwise an unquoted `#` begins a comment and the value is what precedes it.
+
+A `streamEndRecords` that is absent, unparseable as a signed 64-bit integer, or negative means **no
+count**, and the reader reports **unverified** rather than guessing. Flow style (`{streamEnd: normal}`)
+is **not** a marker under this rule; a reader MAY accept it, and one that does not is conformant.
+
+An unrecognised `streamEnd` value is **tolerated**: any non-empty value makes a marker. `normal` and
+`stopping` are the defined values; a reader MUST NOT treat a third value as a reason to reject the marker
+or the file. A reader MAY surface the value. Whether the distinction is worth surfacing at all is an open
+question in the design spec, and the analyser currently reads the value without showing it.
+
+**Two things this rule deliberately does not say.** A `PARSE_ERROR` record (§2) counts towards its
+segment like any other record, because it occupies a position a producer wrote to. And nothing here
+applies to a **set** of rolled files: a marker vouches for the file that carries it, so a set of whole
+files is not a whole set, and a reader MUST NOT report one as complete. Nothing in Format 1 records how
+many files a set should hold, in what order, or under what identity.
+
+That last one is deferred rather than refused, on the same terms as the mid-record limit above. Two
+routes would establish it: a **manifest** naming the set's members, or a marker **naming its
+successor**, so the files form a chain a reader can walk. **Neither is specified here**, and a reader
+MUST NOT infer a set's completeness from its members', from filenames, or from timestamps being
+contiguous. A reader SHOULD say what the members established and that the set's own completeness is
+unknown, so that a person looking at a shelf of whole-looking files does not supply the conclusion
+themselves.
+
+It is **physically a record and semantically a container fact**, and it is a record only because §1
+leaves no position for non-record text. A reader MUST NOT present it as a record: not in a record count,
+a table, a query result, a report, coverage, a series, or the time range. A reader that does present it
+is still conformant — it has merely failed to recognise an unknown field, which §2 permits — but it is
+not doing what this section asks.
+
+A writer SHOULD emit the marker only when it believes it finished. A writer that cannot count its records
+MAY omit `streamEndRecords`; a reader MUST then treat the completeness claim as unverified rather than
+proven, because a marker that cannot say how much it wrote is not evidence.
+
+**A marker counts the records since the previous marker**, or since the start of the container if it is
+the first. Two whole runs appended into one file — which is what a cumulative export produces across
+restarts — are therefore two segments, each checked against its own marker, and the file is complete.
+
+**Five states, and a reader SHOULD distinguish them:**
+
+| the container | the reader reports |
+|---|---|
+| every marker's count matches its segment, and a marker is last | **complete**, and verified |
+| a marker claims more records than its segment holds | **records missing**, naming both numbers |
+| a marker claims fewer records than precede it | **more records than declared** — the marker is wrong, or it is not an end |
+| a marker carries no readable count | **unverified**: an end is claimed and nothing backs it |
+| no marker, or records after the last one | **unknown whether complete** |
+
+The last row is the point, and it is the common case. **Silence MUST NOT be read as completeness.**
+Every producer that predates this section, and every export the analyser has ever read, lands there and
+MUST keep loading exactly as before. What a reader owes is to say it does not know, not to guess.
+
+**What a reader cannot do, and the one condition under which it could.** A text container **cannot**
+detect a writer that stopped in the middle of a record **unless the writer has declared that it closes
+every record**. §1 makes `---` a *separator*: a whole file may end with its last record and no separator
+after it, and real producers do exactly that. The absence of a trailing separator therefore carries **no
+information on its own**, and a reader MUST NOT report such a file as truncated, damaged or stopped. An
+earlier draft of this section did, and it reported every export from the reference producer as damaged
+while every conformance fixture stayed green, because all of them happened to end with a separator. A run
+killed at any point carries no marker and is **unknown**, which is the honest answer.
+
+The condition is worth naming rather than losing. A writer that terminates **every** record with `---`,
+including the last, turns an unclosed tail back into a sound signal, because for that writer the absence
+is no longer ambiguous. Two ways a container could say so are open: a `streamEnd` marker earlier in the
+file already proves its writer emits markers, so a file with a marker **and** an unclosed tail after it is
+a mid-record stop; and a start-of-stream record could declare closed framing for the first run too.
+**Neither is specified here**, and a reader MUST NOT assume either. This paragraph exists so the
+capability is deferred on the record rather than quietly given up, and so that a writer contributing to a
+future revision knows which promise would buy it.
+
+Two signals that look sound and are not, both measured. **A tail that fails to parse** is unreliable: a
+half-written record usually still parses, because a reader recognising any field at all treats the record
+as ordinary — the released reader read one with a single node log of four and no end time as `OK`. **A
+byte count in the marker** cannot help either, since a truncation that loses the tail loses the marker
+with it.
+
+What the count *can* find is loss in the **middle** of a run, which no amount of tail inspection would
+have found.
+
+**A writer SHOULD omit `logTime` from the marker**, and MUST NOT give it a time later than the last
+record's. This is the one place the marker can affect an older reader, and it is avoidable. Measured
+against the released 1.16.0 reader, which has no §1a support: a marker timed after the last record moved
+that reader's `maxLogTime` from 1001 to 1002, widening its time range and every axis drawn from it. The
+same file with the marker untimed — or reusing the last record's time — left the range untouched. An
+untimed record is already defined by §2 as kept but off the timeline, so this needs no new rule.
+
+**Compatibility, measured rather than asserted.** A reader written before this section sees one extra
+record carrying unknown fields, which §2 already requires it to tolerate. Verified against released
+1.16.0: a marked file loaded with **3 records, zero parse errors**, every record `OK`, against 2 records
+for the same file unmarked. With the marker untimed, the two files differ only by that extra record.
+Nothing about Format 1 changes for a file that carries no marker.
 
 ## 2. The record
 
@@ -248,6 +388,7 @@ author: *emit these records and you get exactly what the native log gets.*
 | C06 out of order | reported with its first record; never re-sorted |
 | C07 duplicate instanceId | every occurrence kept; last wins; one point per record |
 | C08 lenient values | only top-level separators split; nothing fails; `NaN` detected |
+| C18 stream end | the marker is a container fact, not a record: both paths report 2 records for a file holding 2 and a marker; its `logTime` does not extend the time range; no marker means unknown, never complete |
 | C09 garbage | a `PARSE_ERROR` record with its text; neighbours untouched; count preserved |
 | C10 ordering claim | `TOTAL`/`PARTIAL` is the reader's and reaches the index; the old constructor means `TOTAL` |
 | C11 attribution | the core attributes by position and never merges — broadcast makes duplicates; a component-less key is not even expressible |

@@ -24,6 +24,7 @@ public final class MappedLogStore implements LogStore {
 
     private final FileChannel channel;
     private final LogIndex index;
+    private final StreamEnd streamEnd;
     private final Path path;
     private final FileReadIdentity readIdentity;
     private final boolean includesEofRecord;
@@ -37,11 +38,31 @@ public final class MappedLogStore implements LogStore {
         this.path = path;
         this.index = new LogIndex();
         var capture = FileReadIdentity.begin(path);
+        StreamEndTracker tracker = new StreamEndTracker();
         try (var in = capture.open()) {
-            includesEofRecord = ByteRecordFramer.frameWithEof(in, (offset, length, text) -> index.add(RecordParser.parse(text, offset, length)));
+            // Same TA-6 interaction as the heap store: a trailing MARKER is not a trailing RECORD, so
+            // it must not make this a snapshot that includes an EOF record.
+            boolean[] lastWasRecord = {false};
+            boolean eof = ByteRecordFramer.frameWithEof(in, (offset, length, text) -> {
+                lastWasRecord[0] = tracker.accept(text);
+                if (lastWasRecord[0]) index.add(RecordParser.parse(text, offset, length));
+            });
+            includesEofRecord = eof && lastWasRecord[0];
         }
+        this.streamEnd = tracker.resolve();
         this.readIdentity = capture.finish();
         this.channel = FileChannel.open(path, StandardOpenOption.READ);
+    }
+
+    @Override
+    public StreamEnd streamEnd() {
+        return streamEnd;
+    }
+
+    @Override
+    public java.util.List<String> sourceDiagnostics() {
+        String d = streamEnd.diagnostic("this log");
+        return d == null ? java.util.List.of() : java.util.List.of(d);
     }
 
     @Override

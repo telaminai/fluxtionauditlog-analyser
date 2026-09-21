@@ -92,6 +92,52 @@ drive the same verbs:
 `GET /manifest` publishes a JSON schema for every verb, so a foreign agent learns the shapes up front
 instead of trial-and-erroring against the structured errors.
 
+## Is the log whole?
+
+A log file can be cut short. A server killed mid-write, a partial copy, a transfer that stopped — the
+file still opens, and the records in it are still real. What changes is whether you can treat *absence*
+as evidence.
+
+`context` reports this under `log.streamEnd`, and it has five answers:
+
+| state | what it means |
+|---|---|
+| `complete` | the file says it finished, and the count it declares matches what was read |
+| `missing_records` | the file claims more records than it holds: records were lost |
+| `more_than_declared` | the file holds more records than its marker claims — the marker is wrong, or it is not the end |
+| `unverified` | the file says it finished but carries no readable count, so nothing backs the claim |
+| `unknown` | the file makes no claim either way |
+
+**`unknown` is the ordinary answer, and it is not a fault.** Nothing that writes audit logs today emits a
+completeness claim, so almost every file you open will say `unknown`. It is reported rather than hidden
+because "I cannot tell" and "it is whole" are different answers, and only one of them lets you say a node
+never ran.
+
+**What `unknown` covers, and why there is no "truncated" answer.** A text log is a sequence of records
+*separated* by `---`, so a whole file may simply end after its last record with nothing following it —
+and the usual writers do end that way. The absence of anything after the last record is therefore not a
+sign of damage, and the analyser will not call it one. A server killed mid-record wrote no marker, so its
+file reads as `unknown`. That is the honest answer: the records in it are still real, and what you cannot
+do is treat a missing node as proof it never ran. A count in a marker *can* catch records lost from the
+middle of a run, which is the case nothing else would find.
+
+`recordsRead` is always the number of records in the **file**. When a file holds more than one run, and
+the verdict concerns one of them, that run's own numbers sit under a `run` key beside it, with the run's
+position and the records it covers. Nothing about a single run is ever reported as though it were the
+file, which is a mistake worth naming because an agent calculates with these numbers.
+
+When a file does claim completeness, the status bar says **complete** beside the record count. The states
+with something to report appear as a source diagnostic, the same place a cut binary tail is reported.
+
+**A rolled set is never reported as complete**, however many of its files say they are. A marker is
+written by the process that wrote that one file, and nothing records how many files a set should hold, so
+a set whose middle file was never copied looks exactly like a set with nothing missing. A file that lost
+records still makes the set say so, and names the file. Everything else about a set is `unknown`.
+
+The marker a writer emits to make this claim is defined in the
+[format specification §1a](../format-spec.md). It is never shown as a record: it is a fact about the
+file, so it is absent from the table, from counts, from series and from the time range.
+
 ## Ask it to show you
 
 An explanation you have to map onto the screen yourself is half an explanation. Any assistant driving the

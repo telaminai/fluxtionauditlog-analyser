@@ -3831,9 +3831,11 @@ public final class MainFrame extends JFrame {
         String producerWarning = producerDiagnostics.isClean() ? ""
                 : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
                         java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
-        status.setText(loaded.size() + " records · " + range + " · "
-                + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
-                        : displayName(location)) + orderWarning + producerWarning + trailingPendingNote());
+        status.setText(statusText(loaded.size(), range,
+                logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
+                        : displayName(location),
+                loaded.streamEnd().isKnownComplete(), orderWarning, producerWarning,
+                trailingPendingNote()));
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
@@ -4198,6 +4200,51 @@ public final class MainFrame extends JFrame {
         };
 
         @Override public String toString() { return label; }
+    }
+
+    /**
+     * What `context` says about the file's completeness — {@code spec-audit-stream-end.md} D-E3.
+     *
+     * <p><b>{@code recordsRead} is always the FILE's count.</b> Re-review found the diagnostic sentence
+     * reporting one run's numbers as the whole file's, and this map had the same defect, unfixed, on the
+     * surface that matters more: a person reads the sentence and may notice it is odd, while an agent
+     * reads this and calculates with it. For a two-run file whose first run declared 3 over 2 records,
+     * this said {@code recordsRead: 2} about a file holding 4.
+     *
+     * <p>So a verdict about one run of several puts ITS numbers inside {@code run}, where they are
+     * labelled, and the top level keeps only what is true of the file. A single-run file has no
+     * {@code run} key, because the file is the run and a nested duplicate would be noise.
+     */
+    /**
+     * What `context` says about completeness — rendered by the one thing that renders it.
+     *
+     * <p>This used to build the map here and leave the sentence to be built somewhere else, which is how
+     * the two surfaces disagreed five times across three review rounds. Both now come from
+     * {@link telamin.fluxtion.audit.analyser.analyser.parse.StreamEndReport}, so a number cannot appear
+     * in one and not the other, or appear in both under different scopes.
+     */
+    static Map<String, Object> streamEndFacts(
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int logRecords) {
+        return telamin.fluxtion.audit.analyser.analyser.parse.StreamEndReport.facts(end, logRecords);
+    }
+
+    /**
+     * The status-bar line, assembled where a test can read it.
+     *
+     * <p><b>Why this is not inline any more.</b> The "complete" note (D-E3) was computed into a local
+     * variable and never concatenated into the text, so the one human surface {@code context}'s own
+     * comment named did not exist. The fix was one word long; re-review then pointed out under rule 8
+     * that nothing would catch it coming back, because rule 4 keeps Swing out of the headless suite.
+     * Extracting the ASSEMBLY rather than the decision is what closes it: a test that only checked
+     * "should the note appear?" would still pass with the note dropped on the floor again, which is
+     * precisely the defect that happened. This method touches no Swing, so it costs the suite nothing.
+     */
+    static String statusText(int records, String range, String location, boolean knownComplete,
+                             String orderWarning, String producerWarning, String pendingNote) {
+        // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent.
+        String wholeNote = knownComplete ? "  ·  complete" : "";
+        return records + " records · " + range + " · " + location
+                + wholeNote + orderWarning + producerWarning + pendingNote;
     }
 
     private static String displayName(String location) {
@@ -5809,6 +5856,15 @@ public final class MainFrame extends JFrame {
             if (store != null && store.trailingRecordsPending() >= 0) {
                 log.put("trailingRecordsPending", store.trailingRecordsPending());
                 if (store.trailingRecordsPending() > 0) log.put("pendingNote", store.trailingRecordsPending() + " trailing record(s) pending — awaiting complete separator lines");
+            }
+            // spec-audit-stream-end D-E3: whether the FILE says it is whole. Always present when a log is
+            // open, including "unknown" — an agent that cannot tell complete from unverified will read
+            // silence as success, which is the failure the whole contract exists to prevent (D-T8).
+            // Human surface: the status bar ("· complete") and the existing source-diagnostic line (the
+            // states that have something to report). Docs: user-guide/assistant.md ▸ "Is this log whole?"
+            // and site/format-spec.md §1a. The pointer said log-sources.md, which never mentioned it.
+            if (!log.isEmpty() && store != null) {
+                log.put("streamEnd", streamEndFacts(store.streamEnd(), store.size()));
             }
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""

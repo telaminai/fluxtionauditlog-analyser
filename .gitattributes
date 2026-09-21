@@ -1,2 +1,14 @@
 # Preserve the reviewed integration patch byte-for-byte, including diff context lines.
 docs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch -whitespace
+
+# The real-producer conformance fixture keeps its producer's own trailing spaces.
+#
+# `c21-real-export.yaml` is the byte-for-byte output of a Mongoose audit export, and Mongoose writes
+# `eventLogRecord: ` and `nodeLogs: ` WITH a trailing space. Stripping them would make `git diff --check`
+# pass and would falsify the one fixture whose entire purpose is to be the producer's own bytes rather
+# than someone's idea of them. Every other fixture in that directory is hand-written and stays checked.
+#
+# `whitespace=-blank-at-eol` switches off ONLY the end-of-line check, where `-whitespace` above switches
+# off every check for its file. Round five asked for the narrow form here: this fixture should still be
+# caught if it ever grows a tab-space indent fault, and only its trailing spaces are deliberate.
+src/test/resources/conformance/c21-real-export.yaml whitespace=-blank-at-eol
