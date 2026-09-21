@@ -6,7 +6,7 @@ Reviewed `71e50ee5247ac165a23d5201b2e2e196af9a3346` on `spec/design-render`, inc
 
 ## R1 — P1 / CONFIRMED: the diagnostic-to-design rule cannot resolve the promised cases
 
-**Location:** [spec lines 91–99](../specs/spec-design-render.md#d-4--evidence--design), acceptance 5, and the tracker claim “any `SPRING_*` diagnostic”.
+**Location:** [spec lines 91–99](../specs/completed/spec-design-render.md#d-4--evidence--design), acceptance 5, and the tracker claim “any `SPRING_*` diagnostic”.
 
 The companion diagnostic contract is a tagged union, not a guarantee of `element.beanName`:
 

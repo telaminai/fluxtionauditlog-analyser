@@ -6,7 +6,7 @@ the Spring-authoring release. **Milestone:** M67. **Tracker:** [tracker.md](trac
 **Builds on:** [`spec-guided-start.md`](spec-guided-start.md) (the tour form: point, then speak; the held-out
 harness), [`spec-spotlight.md`](spec-spotlight.md) (M64, the vocabulary), [`spec-template-from-analyser.md`](spec-template-from-analyser.md)
 (a live, versioned catalogue read by the analyser — the pattern this spec copies for jars),
-[M66 design render](spec-design-render.md) (the beat that lights the declaration), [`spec-component-catalogue.md`](spec-component-catalogue.md) (M48.13 — a
+[M66 design render](completed/spec-design-render.md) (the beat that lights the declaration), [`spec-component-catalogue.md`](spec-component-catalogue.md) (M48.13 — a
 jar's self-description, an **optimisation, not a requirement** of this tour), the public Spring-authoring documents
 (`contract.md`, `skill.md`, the project `RUNBOOK.md`) and the compiler diagnostics contract.
 

@@ -64,7 +64,7 @@ Regression: published-descriptor test (seen red on old packaging), strengthened 
 and public-download setup preflight in playground production CI. A separate hosted-template gap is
 SG-2 in the live tracker. See [release evidence](../../handoff/report_sg1_release_2026_09_21.md).
 
-## M66 · Design render — the Spring XML on the canvas — ☑ SHIPPED in 1.16.0 — 2026-09-21 (spec **[spec-design-render.md](../spec-design-render.md)** revision 2)
+## M66 · Design render — the Spring XML on the canvas — ☑ SHIPPED in 1.16.0 — 2026-09-21 (spec **[spec-design-render.md](spec-design-render.md)** revision 2)
 
 Numbering correction: the incoming spec reused M49, already assigned to Runtime performance in
 `completed/tracker.md`. Design rendering is M66; the old review filenames remain historical references.
@@ -3706,3 +3706,367 @@ _Items 1–3 and 6 of the 2026-09-17 refresh; the numbers are as they stood ther
   `.analyser/project.fluxtion-settings` becomes the active project (*Download and open*); the commands to run it are shown.
 - [M47.4] ☑ **More than one template** — the catalogue's onboarding entries (of 14), each with its description; names come
   from the catalogue, never from the application. The proposal's local template directory was superseded by this.
+
+## Tidy 2026-09-21 — ticked items archived per rule 7 (moved verbatim from the live tracker; shipped in 1.16.0 / 1.17.0)
+
+### Completed rounds and milestones
+## Release execution — ☑ completed 2026-09-21
+
+See the [completed release record](tracker.md#release-execution--2026-09-21).
+## M66 · Design render — shipped in 1.16.0
+
+Implementation, review and release history moved to [completed tracker](tracker.md).
+Remaining provenance work stays under M48; this milestone adds no application execution.
+
+### Tool agreement — the nine items released in 1.17.0
+- **[TA-1] ☑ — one declared set for pairing, including framework nodes that log** · _src-round3 fixture pairs
+  cleanly (no "different build"); all three call sites return identical verdicts; the M35.1 foreign-graph
+  negative control still fails; mutation witness._
+  **Prediction frozen before TA-1 edits, 2026-09-21:** on the committed 23-node graph, the constructed
+  logged set `{rootNode, riskCheck, output}` will produce 3/3 matches through the UI, discovery and
+  session paths after unifying the declared set. Restoring either UI/discovery authored-only call
+  will fail the equality regression; the existing foreign-graph control will remain rejected.
+  Baseline before: analyser 13 open; upstream 8 open.
+  **Result:** prediction held. `GraphPairingTest.frameworkLoggerIsDeclaredInTheCommittedGraph` and
+  `PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession` use the
+  committed graph and constructed log. Shared declared-set mutation fails with 23→8 declared nodes and
+  3→2 matched loggers; restored tests pass. Existing foreign-graph controls still reject.
+  [Witness and validation](../../handoff/report_tool_agreement_2026_09_21.md). D1/D2 closed; analyser 11 open,
+  upstream 8 open. Discovery retains its separately labelled authored-node count.
+- **[TA-2] ☑ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
+  and node counts reported; source copy ranks first against a round-3 log; works with no log open; negative
+  control: byte-identical copies reported as agreeing._
+  **Prediction frozen before TA-2 edits, 2026-09-21:** copying the two committed MarketProcessor
+  fixtures under the same basename in separate directories will report a fingerprint/node-set
+  disagreement without a log; the round-3 logger will rank the 23-node copy first and name
+  `eodReportPublisher` missing from the 20-node copy. Identical copies will agree. Opening either
+  copy will announce the disagreement without refusing it. Disabling copy comparison must fail the
+  regression. Before: analyser 11 open; upstream 8 open.
+  **Result:** held. `GraphmlDiscoveryTest.committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence`
+  and `PairingDuringLoadFrameTest.openingCommittedCopiesAnnouncesDisagreementWithoutRefusing` pass.
+  Identical copies agree; absent fingerprints are unknown; constructed processor metadata and node-id
+  changes are covered separately. Disabling the disagreement verdict fails three tests with
+  expected disagree / actual agree. Restored full headless and pairing-frame suites pass; strict docs pass.
+  [Evidence](../../handoff/report_tool_agreement_2026_09_21.md#ta-2--completed). D3b closed; D3a unchanged.
+  After: analyser 10 open; upstream 8 open.
+- **[TA-3] ☑ — `flag {kind: confirmation}` with neutral labels** — built under the existing "Reports as
+  evidence, not automatically defects" (25), not a parallel item · _on constructed inputs: existing flags
+  unchanged; Observation / Assessment in table, callout, report and PDF; kind survives restore._
+- **[TA-4] ☑ — window edges never silently change a rolling answer** · _constructed regression case (the A8
+  inputs were not preserved): a change on the first in-window record is returned, or an edge note names it;
+  semantics frozen first; mutation witness._
+  **TA-4 prediction frozen before edits, 2026-09-21:** for constructed values 10, 10, 15, 15,
+  a time window starting at the third record returns delta 5 at its first row, through both `series`
+  and chart extraction, in STRICT and LOCF modes. Time bounds select output; rolling history starts
+  at the loaded log's beginning, respecting other filters. Earlier values feed crossing history too,
+  so a window cannot invent an entry into an already-active region. Turning off look-back must fail.
+  Before: analyser 9 open; upstream 8 open.
+  **Result:** held. `WindowedHistoryTest` covers both resolution modes, both query/chart paths,
+  duration/count windows, crossing history and a non-time-filter negative control. Independent mutations
+  disable look-back in `SeriesScan` and `SeriesExtractor`; both fail the first-window-delta case.
+  [Witnesses](../../handoff/report_tool_agreement_2026_09_21.md#ta-4--completed). Full suite and strict docs pass.
+  D5 closed; analyser 8 open, upstream 8 open.
+- **[TA-5a] ☑ — audit-evidence documentation and a follow-route decision (analyser)** · _vendored runbook
+  section (export endpoint, D12/D13 workarounds); decision record naming the route AND its owner._
+  **TA-5a prediction frozen before documentation edits:** the skill and canonical runbook will name
+  the export endpoint, version-scoped D12/D13 limitations and pending-only framing, without a fabricated
+  follower command. A contract check must fail if any of these is removed. Retain the already accepted
+  live-store reader route, owned by the Chronicle reader maintainers; TA-5b/c remain open.
+  Before: analyser 8 open; upstream 8 open.
+  **Result:** held. Canonical skill and `docs/runbooks/mongoose-audit-evidence.md` share tested guidance;
+  index re-pinned to the source commit. Removing D12 from the skill fails the parity contract.
+  TA-5b/c remain open. Counts unchanged: analyser 8 open; upstream 8 open.
+- **[TA-6] ☑ — trailing unterminated record shown as pending, pending only** · _constructed growing file:
+  pending and excluded from counts until the separator arrives; no accept-on-quiet; append-after-pause witness._
+  **TA-6 prediction frozen before edits, 2026-09-21:** a local follow-capable YAML file with one complete
+  record plus an unterminated second record will expose one trailing pending record and count only one,
+  including at initial open. A quiet poll cannot complete it; fields appended after that poll must appear
+  when a real separator arrives, exactly once. For this file reader, EOF is not a completion delimiter.
+  In-memory static strings retain their existing framing. Disabling terminator enforcement must fail.
+  Before: analyser 8 open; upstream 8 open.
+  **Result:** held. `FollowAppendTest.pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator`
+  covers initial open, quiet poll, late fields, split separator and exactly-once append; the real-frame
+  pending-status test checks context and Follow. Disabling terminator enforcement fails the new test
+  and the existing append control. Restored full suite and strict docs pass. D6 closed: analyser 7,
+  upstream 8 open. [Evidence](../../handoff/report_tool_agreement_2026_09_21.md#ta-6--completed).
+- **[TA-7] ☑ — assistant can start Follow via `open {follow: true}`** (no new verb without approval) · _echo
+  and toolbar agree; a reader without follow support never echoes Follow as active._
+  **Frozen prediction:** standalone `open {follow: true}` on a loaded local file starts the actual timer
+  and selects both human controls; false stops it. A rolled reader and an in-flight open refuse start.
+  Mixed open operations refuse rather than silently attaching to the previous file. Forcing the adapter
+  to stop instead of start fails the real-frame echo/control test. Counts before: analyser 7, upstream 8.
+  **Result:** held. `PairingDuringLoadFrameTest.assistantFollowEchoAndHumanControlsAgree` passes; forcing
+  stop makes the expected-true echo assertion fail. Full suite green; restored display test green.
+  Counts unchanged, 7/8. [Witness](../../handoff/evidence/tool-agreement-2026-09-21/ta7-mutation.json).
+- **[TA-8] ☑ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
+  **A2 frozen prediction:** boolean literals use the existing +1/-1 graph convention; text equality
+  distinguishes quoted "true" from boolean true and preserves missing as unknown. Constructed goldens
+  agree across chart/query STRICT/LOCF; text row highlights and marker predicates use the same evaluator.
+  Disabling typed equality makes the text/boolean golden fail. Counts before: analyser 7, upstream 8.
+  **A2 completed:** prediction held. Goldens 11–13, `LiteralFormulaTest`, marker and report tests pass;
+  disabling text equality fails all four surfaces. Full suite and strict docs green. Counts unchanged.
+  **A3/A4/A5/A10 frozen predictions:** a marker-label spotlight refuses explicitly as not targetable;
+  a hidden Project row reveals through its existing rail control before measurement; a readable design
+  outside roots names a single JSON `source_root` add call for its real parent, without granting access;
+  PDF flag glyphs fall back to text. Disabling each behavior fails its dedicated regression.
+  All inputs constructed. Counts before: analyser 7, upstream 8.
+  **A3/A4/A5/A10 completed:** predictions held. Named real-frame tests cover marker refusal and hidden
+  Project reveal; `DesignWorkspaceTest.refusedDesignNamesExactRootCallWithoutAddingIt` and
+  `FindingReportTest.pdfFlagGlyphHasReadableTextFallback` cover the other boundaries. Each disabled
+  behavior fails its assertion; restored full suite and display cases pass. Counts unchanged.
+  **A11/A12 frozen prediction:** explanations/numbered note text occupy a footer below the plot;
+  nearby note pins combine into labelled ranges in a separate top gutter instead of colliding;
+  the legend reserves a right-hand strip outside the plot and stays in exported images. Long footer
+  text discloses clipping and is fully available on hover. Geometry tests and a real-frame capture
+  will show disjoint plot/footer/legend and pin boxes. Removing any reservation fails the geometry
+  regression. Counts before: analyser 7, upstream 8.
+  **A11/A12 result:** held. `ChartAnnotationLayoutTest` covers footer bounds/full overflow hover,
+  grouped disjoint note pins, legend separation and inclusion in exported images. All three removed
+  reservations fail their named assertions; restored full suite and real-frame spotlight tests pass.
+  The native chart captures show the separate annotation/footer/legend regions. Counts unchanged.
+- **[TA-U] ☑ — upstream asks recorded with owners** · _D3a, D8–D13, D21 and the template items carried into
+  `docs/proposals/upstream-asks.md`, scoped to the affected template and version (standalone authoring shipped
+  in 1.0.73; hosted is SG-2); D7 reclassified; stub-shape fix sequenced before "always use the generator"._
+  TA-U recorded in `docs/proposals/upstream-asks.md` with an owner per row and delivery/version scope.
+  D21 intake: starter/compiler owns duplicated comment-contract text between modifiers/annotations.
+  [Preserved reviewer evidence](../../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md);
+  source inspected, generator not independently re-run. Spec records the regression requirement; open.
+VI-1 vendor-integration documentation shipped on 2026-09-21 after owner-approved merge of
+[PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1). See the
+[completed record](tracker.md).
+
+### Beta preparation
+- **[BETA-7] ☑ — the A3 report instrument asks two halves, and the client skill teaches the shape** · _a blind second
+  reader agrees the cited record proves the SYMPTOM and the pack SUPPORTS the cause._ 2026-09-21: two readers answered
+  *partly* to the single question (a record cannot prove a claim about code); with `point-at-the-fault`'s new
+  write-up section (symptom from the record, cause from the fix diff plus before/after sources) and the split
+  question, a third answered yes to both (n=1 per wording). Proposal §9/§11 and the script reworded; skill
+  re-pinned in `m19-skills/2` at `49b4c361`; playground re-vendored and deployed 2026-09-21: fluxtion-web `c1d5a01`, CI 35598412775 and 35598518229 pass, and a fresh public `analyser-bundle` download carries the section byte-identical to canonical.
+  Evidence: `.local-evidence/coldstart-v2-2026-09-20/{a3-*,reader-a3-*}`.
+
+### Spring authoring documentation
+- ☑ **Design partner and evidence canvas guides** — `docs/site/spring-authoring.md` covers capabilities,
+  local workflow, reconciliation and the analyser handoff; `spring-authoring-conversations.md` adds
+  illustrative design and behaviour-question conversations with flow diagrams. Expected results are
+  explicitly distinguished from captured runs. The coordinated local authoring workflow remains
+  review/publication-gated; these pages add no analyser execution or generation capability.
+  Review correction G10: both guides now name the carrying compiler release, not a speculative version;
+  the exact tool coordinate belongs to the downloaded project and publication gate.
+  The documentation correction passed 1,656 tests (31 display skips), MkDocs strict and the rule-1 sweep.
+  Evidence and remaining review: [author report](../../handoff/report_spring_authoring_docs_2026_09_19.txt).
+  **Landed directly on main (`6f8568e8`, 2026-09-19) with an author report and no review pass** — the report's own
+  *not verified* list (four Mermaid diagrams unwitnessed at any width; the conversations are illustrative, not captured)
+  remains a review brief. **G10 version wording is now fixed in `5142e47`:** both pages name the compiler release
+  that carries the tool; no guessed release version remains. The analyser-side complement is **M66** (design
+  render — Spring XML on the canvas), now shipped in 1.16.0; both guides link its design view.
+- ☑ **Local preview syntax correction** — Mermaid 11 rejects the semicolon in the sequence message
+  `Agreed; show the transition`. Changed the punctuation; reproduced the parse failure before the fix
+  and verified the corrected sequence with the docs theme's Mermaid 11 parser. Visual diagram review
+  remains open; MkDocs strict alone cannot validate Mermaid syntax.
+
+### Spring authoring observed acceptance — intake, reviews and shipped slices
+- ☑ **Journey implementation review and re-review — 2026-09-20** —
+  [brief](../../handoff/brief_review_project_starter_implementation_2026_09_20.md),
+  [initial review](../../handoff/review_project_starter_implementation_2026_09_20_claude.md),
+  [author response](../../handoff/response_project_starter_implementation_2026_09_20.md), and
+  [independent re-review](../../handoff/rereview_project_starter_implementation_2026_09_20_claude.md).
+  **JI-1–JI-6 CLOSED. Analyser READY WITH FOLLOW-UPS at `9ff95e7`; full journey/release NOT READY.**
+  Playground/compiler verdicts remain READY WITH FOLLOW-UPS at their unchanged reviewed heads.
+  Reviewer reproduced 1,718 headless tests (40 display skips), 41 display tests with no skips, both
+  mutation families, independent heap/mapped SHA parity, and a finer-grained JI-4 mutation removing
+  only one completion call. The JI-2 reproduction correction is accepted explicitly in the re-review.
+  Owner's full-verification decision stands: no cutoff; native readers hash their indexed bytes.
+  Plugin before/after hashing is an accepted, documented limitation. The bulk-read performance comment
+  requested by the reviewer is added. Publication/public parity, actual process restart, deployed
+  acquisition, browser preview and fresh-client acceptance remain separate open gates.
+- ☑ **Preview battery R3 — STOPPED by owner decision, 2026-09-20** — [checkpoint](../../handoff/report_battery_r3_2026_09_20.md)
+  and [sealed protocol](../../handoff/evidence/battery-r3-2026-09-20/PROTOCOL.md). Sleep-inclusive recorder,
+  retained UTC/awake clocks, idle-sleep assertion and 60-second clock probe close the timing-instrument
+  prerequisite. Missing source pointers remain unattributed in the denominator. R2 compatibility
+  repeats do not count as different-task recurrence. First cohort T1 independently verified: five
+  matching business records, all 43 original files unchanged, no hint/refusal. T2 independently verified:
+  changed graph regenerated, new event dispatch and four running totals match the input. Client time
+  191.149 + 212.724 s; operator work additional. No client running. No T3–T6, further cohorts or
+  completed-trial reruns will be started. The incomplete battery is retired, not passed.
+  **Established absolute claim:** "a fresh client, with no prior exposure and no coaching, acquired the
+  supported v2 bundle and extended it with a new event to correct running totals; results independently
+  verified; zero substantive interventions." Here fresh/no prior exposure means clean session context,
+  no supplied history, no source-tree or previous-trial access; it is not a claim about model training.
+  T1/T2 are separate fresh contexts extending one cohort's project, not two independent full journeys.
+  **No v1 comparison:** the published v1 control has no numeric unrouted total. A reduction versus v1
+  cannot be established; do not reopen it or repair the control retrospectively. Preview only:
+  **no public-acquisition or release claim.**
+  Follow-up: one shared playground launch decision for README/POM/runbook agreement; do not alter
+  the frozen target during the matrix. Public starter artifact remains 404; public acquisition,
+  browser preview and OS-process restart gates stay open.
+- ☑ **Saved-chart declarations before input — implementation slice** — `context.savedGraphs` and the
+  reveal-only Project panel render persisted definitions separately from live tabs. 1,691 tests pass
+  (31 display skips), strict docs and rule-1 sweep pass at this slice. Landing/restore and its display witness
+  subsequently landed through `7eceff5`; complete downloaded-project acceptance remains open.
+- ☑ **Project landing and processor declarations — reviewed implementation slice** — version-1 additive profile
+  family is pinned in the journey spec and consumed/exported with event processors. Runtime/unspecified
+  entries forbid invented FQCNs; invalid profiles refuse before state replacement. StartPanel now shows
+  project facts and explicit evidence-open actions while no log is loaded; the Project panel stays
+  reveal-only. 1,695 tests pass (31 display skips), strict docs pass at this slice. The following recovery
+  adapter supplies the display witness and replaces global startup restoration; independent implementation review is complete.
+- ☑ **Restore storage and decision foundation** — user-local snapshots preserve ordered inputs and
+  SHA-256 identities per canonical profile, with a distinct no-project bucket. The generated session graph
+  now owns an explicit-offer/accept/check plan; stale project completions are ignored, and one unavailable
+  rolled-log member refuses the whole log set while independent design inputs can remain available.
+  Seven focused tests and the full 1,700-test suite pass (31 display skips). Generated processor refreshed
+  with the installed local provider, Java 21 and pinned released builder; no owner key or remote generation.
+  UI/MCP wiring, exit flushing and startup migration are now implemented in the following slice; the
+  foundation's earlier gate alone did not claim those capabilities.
+- ☑ **Explicit recovery adapter and startup migration — reviewed implementation slice** — one StartPanel offer/Restore/Dismiss and
+  `open {restore: last|dismiss}`, with Project-panel status from the graph. Actual reader completions
+  drive the outcome; unchanged design/results can reopen when the complete log set is refused.
+  Saved filters/selection/focus require observed loaded-byte identity, with visible pin/filter caveats.
+  Both implicit startup paths are removed. Five real-frame cases plus the existing lifecycle display
+  gate pass: 37 tests, no skips. [Evidence](../../handoff/evidence/project-session-recovery-2026-09-20/README.md)
+  includes inspected screenshots and a seen-red stale-view mutation. Final headless/package checks are
+  recorded in the implementation handoff. The independent re-review closes all six findings and expands
+  the display gate to 41 passing cases. Native large-log hashing is measured and verified; opaque plugins
+  retain their stated cost. OS-process restart, deployed acquisition and held-out acceptance remain open.
+- ☑ **Diagnose owner close/reopen context report (2026-09-20)** — reproduced on a copied sample with the
+  staged jar, real Swing and action socket. Project/roots/runbooks/report survive; log/topology/design/results
+  close; five saved chart definitions return after explicit log open. Screenshots confirm the generic demo
+  welcome obscures the surviving project state. The launcher performs extra evidence-open calls that ordinary
+  reopening does not. No persistent-definition loss reproduced; menu clicks/quit-relaunch untested. The live
+  project was unchanged. Focused checks: 46 tests pass. [Evidence](../../handoff/evidence/spring-authoring-feedback-2026-09-20-reopen/README.md).
+- ☑ **Preserve the owner's staged-session feedback** — [original report and evidence packet](../../handoff/evidence/spring-authoring-feedback-2026-09-19/README.md)
+  retain ten participant issues, three inspected screenshots, final application/XML/graph/audit files,
+  producer results and the launcher's baseline context with SHA-256 manifest. Original report unchanged;
+  observations, proposed fixes and unconfirmed causes are distinguished. No fixes or independent
+  reproductions of these ten issues are claimed by this intake.
+- ☑ **Review the complete staged-session feedback** — read all 21 issues, both correcting addenda and
+  the companion authoring/hosting report; inspected all nine screenshots. Independent saved-log probes
+  reproduce marker overcounting (5/6 business events become 11/10 standalone markers and 9/10 hosted),
+  confirm the 19 matching business records, and isolate listener identity differences in control records.
+  The existing headless scaffold endpoint returned the hosted template. Selection-scoped `nodeTypes`
+  and successful same-path reopen narrow two reported defects. [Review and decisions](../../handoff/review_staged_spring_feedback_2026_09_19.md)
+  distinguish reproduced, source-confirmed and participant-only evidence; [complete second packet](../../handoff/evidence/spring-authoring-feedback-2026-09-19-round2/README.md)
+  preserves both reports and supporting files. This is review/triage, not implementation or release approval.
+- ☑ **Staged feedback — evidence correctness first** — alongside existing DX-02, address loaded/on-disk
+  and producer freshness (1/9), final combined-action echo (20), source spotlight geometry and departure
+  accounting (2–4), and explicit event-versus-carried-state marker semantics (12/19). Acceptance must
+  use the saved logs (new same-record markers: 5/6/8), overwritten snapshots and scrolled source views;
+  preserve Follow and decide saved-marker compatibility explicitly. Proposed priority: P1 correctness;
+  combined echo P2. Keep original feedback numbers separate from DX and compiler F/G identifiers.
+  **D16 frozen prediction / compatibility decision:** new MCP marker conditions default to STRICT
+  same-record values; explicit LOCF retains carried-state evaluation. Saved definitions with no
+  resolution retain LOCF, are labelled as carried state, and are never silently reinterpreted.
+  The preserved standalone and hosted logs produce 5 buy, 6 sell and 8 bare-price markers in STRICT;
+  LOCF retains the independently recorded extra fires. Mode survives profile/config round trips;
+  source record anchors remain correct. Disabling per-record clearing must fail those counts.
+  Counts before: analyser 4, upstream 8. This fixes 12/19 under this existing item.
+  **D16 result:** held. `MarkerResolutionTest` verifies 5/6/8 against all three preserved logs,
+  record anchors and config/share round trips; `GraphEchoWarningsTest` verifies new-call default,
+  explicit LOCF and invalid-mode refusal. `MarkerLegendTest` checks visible mode and PDF notes.
+  Removing per-record clearing yields 11 instead of 5 and fails. D16 closes: analyser 3, upstream 8.
+  **D15 frozen prediction:** synchronous design reveal cancels queued earlier scrolls, then measures
+  the actual text viewport. A set spanning beyond it refuses; nearby bean/line targets share one
+  geometry path and remain aligned after the EDT drains. Adding a distant line reports the old
+  target in wentOut; a surviving status target keeps its number. Every successful echo is positive
+  and within the screenshot. Mutating the viewport check must make the real-frame regression fail.
+  Constructed tall XML plus the committed participant XML; counts before: analyser 3, upstream 8.
+  **D15 result:** held. `DesignSpotlightFrameTest` drives a real window: conflicting lines refuse,
+  add reports departures and retains survivor numbering, the echo equals painted cutouts, and queued
+  callbacks cannot scroll them away. Preserved participant XML is exercised at both reported sizes.
+  Removing viewport containment fails the hidden-line assertion. D15 closes: analyser 2, upstream 8.
+  **D14 frozen prediction:** loaded byte size never comes from a new on-disk stat. Separately
+  labelled metadata observations flag overwritten/missing logs, graph files, receipts and source
+  inputs without silently reopening them. Unchanged metadata is not a content-identity claim;
+  producer hash comparisons remain explicitly as of intake. Same-path reopen updates the loaded
+  snapshot, Follow updates its observation, and combined open retains its loading/pending verdict.
+  Tests overwrite files and mutate the metadata comparison; removing detection must fail.
+  Counts before: analyser 2, upstream 8. No new reload verb or automatic artifact selection.
+  **D14 result:** held. `LoadedFileObservationFrameTest` overwrites same-path log/graph snapshots,
+  verifies loaded byte size and explicit reopen, missing-file disclosure and human rendering.
+  `DesignWorkspaceTest.producerSnapshotDetectsNewReceiptAndEditedSourceWithoutReopening` expires
+  old checks without selecting the new receipt. Existing `PairingDuringLoadFrameTest` retains the
+  combined-open pending verdict. Mutations disable metadata comparison and reinstate live size.
+  Metadata observations deliberately do not assert content identity; full recovery hashes remain.
+  D14 closes: analyser 1 (D20 blocked), upstream 8.
+- ☑ **Topology feedback 37 — Show all focus exit** — participant reports depth 1/16 nodes after
+  `showAll:true, scaffolding:false`; `pop:"all"` works. Source confirms MCP calls `clearView`, which only
+  clears highlights, while the toolbar pops focus first. Align both paths; test nested focus, showAll alone
+  and with both scaffolding values, selection/shading/breadcrumbs and echo/context.
+  **D19 frozen prediction:** with two nested focus contexts, `showAll` alone and combined with either
+  scaffolding value will return depth zero, no selection or cycle shading, and the full visible graph;
+  its echo will equal the panel state. `showAll:false` leaves the context in place. Reverting only the
+  executor call to `clearView` will fail the regression. Constructed regression on the committed demo
+  graph, not a replay of the participant session. Counts before: analyser 7, upstream 8.
+  **Result:** held. `TopologyShowAllTest` passes; old executor call fails with depth 2 instead of 0.
+  The first test draft used the wrong ActionResult envelope; corrected before mutation. D19 closes.
+- ☑ **Reconcile concurrent feedback numbering and preserve new intake** — participant 36–39 retained:
+  focus management, Show all, partial restart and invalid bounds echo. Prior intake's 36 maps to 37;
+  prior 37 (overlap) was temporarily 40; participant feature request 40 now owns that number and overlap
+  is tracked descriptively as an extension of 14. Archived packets are unchanged. [Latest packet and proposal P1](../../handoff/evidence/spring-authoring-feedback-2026-09-20-tours/README.md)
+  preserves before/after documents, source qualifications and the second participant observation of 6.
+- ☑ **Review the report-export addendum (24–27)** — visually inspected both PDFs (17 pages) and ran
+  an independent headless probe: a resolved topology's fallback disappears; series fallback survives;
+  expected behaviour gets a defect heading; text equality produces the reported duration error.
+  Read-backed tables are contiguous, while series-statistics tables already work. Title/provenance
+  clipping is confirmed; the missing boolean band needs its exact definition (quoted text is deliberately
+  not a boolean). [Decisions and verification](../../handoff/review_staged_spring_feedback_2026_09_19.md#third-addendum--report-export-issues-2427),
+  [updated feedback and probe](../../handoff/evidence/spring-authoring-feedback-2026-09-19-round3/README.md).
+- ☑ **Review the four-use-case / validation-pack proposal** — the authoring-docs feedback gained 159
+  lines; analyser issues are unchanged. Accept the framing, with conversation spanning the other use
+  cases. Existing posture already reaches the UI and context. Comparison probe: the default scorer
+  passes 11 trade events even after all eight price-event names change; the record diff ignores earlier
+  overwritten values by contract. These are bounded tools, not complete run equivalence. [Review and
+  revised predictions](../../handoff/review_staged_spring_feedback_2026_09_19.md#fourth-addendum--four-use-cases-and-the-validation-pack),
+  [preserved proposal and probe](../../handoff/evidence/spring-authoring-feedback-2026-09-19-round4/README.md).
+- ☑ **Review vendor-component feedback (29–35)** — full private project snapshot preserves 252 entries
+  outside the public repo, with SHA verification. Independently reproduced regeneration creating an empty
+  source class that shadows a dependency (29); changing jar bytes leaves receipt inputs unchanged (30).
+  Also reviewed the companion's 157-line docs advice: accept discoverable tested examples and cold-start
+  tasks, qualify causality/certification claims and keep model evaluations separate from routine snippet CI.
+  Traced the missing subtype dispatch edge through GraphML, generated calls and nine saved records (34):
+  compiler/exporter metadata owns this gap. Reviewed cached classpath handling and the existing vendor guide.
+  [Dispositions and limits](../../handoff/review_staged_spring_feedback_2026_09_19.md#fifth-addendum--vendor-components-issues-2935),
+  [preserved packet](../../handoff/evidence/spring-authoring-feedback-2026-09-19-round5/README.md).
+- ☑ **Review the session-audit proposal** — preserved the latest note tying 1/20/28 to session state.
+  Existing sink export has no MCP/UI path and omits completeness counters; current events do not capture
+  the final action echo. Ran seven session-audit/design tests: zero failures, errors or skips.
+  [Contract and limitations](../../handoff/review_staged_spring_feedback_2026_09_19.md#sixth-addendum--the-analysers-own-session-audit),
+  [latest note](../../handoff/evidence/spring-authoring-feedback-2026-09-19-round6/README.md).
+- ☑ **Owner local rehearsal launcher** — `tools/start-spring-demo.sh` prepares the existing worked
+  sample, project profile/recent-project entry and `.mcp.json`, starts an isolated analyser and local
+  playground/docs, and probes the MCP bridge. Teardown preserves project edits. Start, repeated start,
+  stop and restart passed; 19 source/record/MCP/evidence files remained byte-identical. Three process
+  ownership/preservation tests pass. Java gate: 1,688 tests, zero failures/errors, 31 display skips;
+  MkDocs strict and the sweep pass. [Local instructions](../../admin/local-spring-demo.md) and
+  [verification report](../../handoff/report_local_spring_demo_2026_09_19.md). This is local provisioning,
+  not publication, a witnessed browser preview or G14 evidence.
+
+### Delivery-order history — the 2026-09-17 and 2026-09-19 refreshes, retired 2026-09-21
+
+_Previous refresh, 2026-09-17 — the previous refresh was 2026-08-28 and had gone three weeks and five releases stale (its
+item 1 was "Release 1.12.0"). Shipped since: **1.12.0**, **1.13.0–1.13.2** (M44.3 the asynchronous open as a
+session-processor decision, M52 the binary audit reader, M45 the GraphML vocabulary, M50's performance spine on
+runtime 1.0.15 / compiler 1.0.67), and now **1.14.0/1.14.1** (below). The owner's chosen sequence of 2026-09-17 —
+**close off open work before opening new** — was followed: its first three items shipped and are archived._
+
+**1.14.0 WAS RELEASED 2026-09-17 (`37f6812`), AND 1.14.1 THE SAME DAY.** 1.14.0 carried items 1–3 and 6 of the sequence
+above — now in [`completed/tracker.md`](tracker.md) ▸ *Tidy 2026-09-17* — with M65 and M64.8/.9 (the whole
+review record and the map from every as-reviewed SHA to its commit on main:
+`docs/handoff/completed/sha-map_m46_closure_branch.txt`). 1.14.1 carried the tutorial docs (*New project from
+template…* pictured and marked, the guided-start page's first screenshots), the left-column fix (it started expanded and
+empty with both panels toggled off; `context.handoff.posture.note` named the folded `handoff` verb) and
+`screenshot {scope: "menu:…"}` reporting `menuItems`. The three `verify-*.py` scripts were last run on main `2f26eb7`
+(17/17, 18/18, 83/83; the last pre-1.14.1 commit that changed the jar) and rule 1's two checks on `88d19ba` (the two
+employer-domain totals unchanged at 132 and 82; three 2026-09-16 commits carry a tool vendor's address, not an
+employer's). **The person-at-the-screen checks, closed 2026-09-17 where a test or a run can close them:** `PersonAtTheScreenFrameTest`
+(in the `ui-frame` CI job; 3 run, 0 skipped under xvfb at `9e3b6b7c`) holds *AI ▸ Posture* and *Clear mode-selector record* through
+the real menu items, the Project-panel row for a log RESTORED at startup, and Escape with a focused combo's popup open while
+two spotlights are lit (a posted key needs the window to own focus, so that case is real in CI and skipped on a Mac whose
+foreground app is the terminal). The six "Ask it to show you" sentences and the guided-start tour ran on a CONTEXT-FREE
+client — `tools/heldout-client.py`, local only, the owner's key — and the claim holds: 5 of 6 sentences lit the right thing
+with and without the guidance paragraph, and the tour lit every beat before it spoke
+([`heldout_m64_2026-09-17.md`](../../handoff/completed/heldout_m64_2026-09-17.md); two docs follow-ups → M64.12). **Still a
+person's:** *File ▸ Close log* during a slow FIRST load as a physical click (its listener is held by
+`AsyncOpenInterleavingFrameTest`), and *AI ▸ Place mode-selector record…* (a file chooser). **The playground re-vendor is DONE 2026-09-17** (fluxtion-web `e8e70f0`, canonical@`01b6a4fa`; whole web suite 462 passed). One correction to the ledger entry's claim that "a generator that copies `common` needs no change": the vendor script copies the whole `common` list, but the bundle ASSEMBLER (`web/src/lib/starter/bundle.ts`) refuses any canonical skill without an explicit D-R2 substitution decision — `point-at-the-fault` needed one (verbatim: it names no project-owned value), so every new canonical skill is one line there too. Ledger-review F1/F2 fixed in `9e1d0c7c`. **1.15.0 released 2026-09-18** (`c2b127e`; the release workflow on `0bca53b`): M64.10/.11/.12, the ledger-review follow-ups and the review-of-main fixes — the §4.0 scripts ran on the release jar (17/17, 18/18, 94/94; capture scenarios complete; fixture check). **Review of main 2026-09-18** (Codex; F1 a duplicated external label reordered the legend against the plot, F2 the held-out harness truncated the guidance it claimed to send, F3 a failed screenshot verb could exit as a permission warning): all fixed on `fix/review-main-2026-09-18`, re-reviewed READY WITH FOLLOW-UPS, merged by fast-forward the same day; the held-out harness now runs a fresh analyser per conversation with the baseline asserted (`--check-fixture`, no key) and `/manifest` serves the bridge instructions verbatim (`docs/handoff/completed/review_main_2026_09_18.txt`, `review_fix_review_main_2026_09_18.txt`).mjs` in the playground repo; until it runs, a generated starter teaches the
+`coverage` target this analyser refuses). Still open after that, not gating: the valid `add` + `detail:node`
+end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
+M64.10, M46.11.

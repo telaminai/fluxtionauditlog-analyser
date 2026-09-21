@@ -1,7 +1,7 @@
 # M66 design-render implementation handoff
 
 Implementation snapshot: `b7c82f5` on `feat/m66-design-render` in `telaminai/fluxtionauditlog-analyser`.
-The [spec](../specs/spec-design-render.md) defines the contract; the [tracker](../specs/tracker.md) owns status.
+The [spec](../specs/completed/spec-design-render.md) defines the contract; the [tracker](../specs/tracker.md) owns status.
 The [independent spec re-review](review_spec_design_render_232c846a.md) is preserved at `aa41d06`.
 This handoff records pre-merge implementation evidence. Subsequent independent acceptance, upstream contract
 intake and the owner-authorised merge are recorded in the tracker; the limits below still apply.

@@ -111,7 +111,7 @@ The [live tracker](../specs/tracker.md) owns current status and delivery order; 
 released work from **Unreleased**. The latest release is 1.15.0 (2026-09-18).
 
 **M66 design render is independently accepted and merged on main, unreleased.** Start with the
-[spec](../specs/spec-design-render.md) and [implementation handoff](handoff_m66_design_render.md). The tracker
+[spec](../specs/completed/spec-design-render.md) and [implementation handoff](handoff_m66_design_render.md). The tracker
 records the independent implementation review of `b7c82f5`, its reproduced tests and packaged-app checks,
 and the upstream source-location contract intake. Exact producer-delivery integration remains a stated
 boundary; matching a bean name never establishes the loaded log's relationship to the design.

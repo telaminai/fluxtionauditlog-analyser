@@ -1,13 +1,13 @@
 # Design render — the Spring XML on the canvas (Design Spec)
 
 **Status:** IMPLEMENTED ON MAIN, UNRELEASED, **revision 2** (2026-09-19) — revised after the independent review
-[`review_spec_design_render_71e50ee5.md`](../handoff/review_spec_design_render_71e50ee5.md) (NOT READY, R1–R4;
+[`review_spec_design_render_71e50ee5.md`](../../handoff/review_spec_design_render_71e50ee5.md) (NOT READY, R1–R4;
 all accepted). Revision 2 author-checked, then independently re-reviewed in
-[`review_spec_design_render_232c846a.md`](../handoff/review_spec_design_render_232c846a.md). Implementation
+[`review_spec_design_render_232c846a.md`](../../handoff/review_spec_design_render_232c846a.md). Implementation
 accepted at `b7c82f5` and merged on main with owner approval on 2026-09-19; unreleased. Current status and
-producer-delivery limits are in the tracker. **Milestone:** M66. **Tracker:** [tracker.md](tracker.md).
-**Builds on:** [`spec-shared-evidence-canvas.md`](spec-shared-evidence-canvas.md) (the thesis this serves),
-[`spec-authoring-modes.md`](spec-authoring-modes.md), the `open` / `source_root` / `spotlight` verbs, the
+producer-delivery limits are in the tracker. **Milestone:** M66. **Tracker:** [tracker.md](../tracker.md).
+**Builds on:** [`spec-shared-evidence-canvas.md`](../spec-shared-evidence-canvas.md) (the thesis this serves),
+[`spec-authoring-modes.md`](../spec-authoring-modes.md), the `open` / `source_root` / `spotlight` verbs, the
 public Spring-authoring documents ([`contract.md`](https://fluxtion-playground.dev/spring-authoring/contract.md),
 [`skill.md`](https://fluxtion-playground.dev/spring-authoring/skill.md), the project `RUNBOOK.md` those documents
 introduce), and the compiler diagnostics contract (`diagnosticsVersion 1.0`; per-code pages under
