@@ -1,3 +1,24 @@
+## VI-1 · Vendor integration site — ☑ SHIPPED 2026-09-21
+
+Owner-approved [PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1) merged linearly
+at `592a0802bcb5d793cb5bbde7cd04ee178db2eaf4`. The automatic
+[Pages build and deployment](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35584849832)
+passed. Verified the public worked example, its screenshot reference, the C++ preview qualification,
+and the two public issue links in the Spring guide after deployment.
+
+Delivered: both composition/naming patterns, the interface-handler excerpt, qualified build and
+trace claims, supplier/integrator checklists, dependency-shadowing warnings and new-node audit
+workaround. The owner chose to label C++ as preview and limit its comparison to the tested graph
+and event stream. The guide links the preserved reviewer evidence for regeneration preservation.
+
+Verification: strict docs build; 1,718 tests with no failures/errors and 40 display skips; genuine
+VaR comparison 0/11 mismatches, tampered 9/11 (expected rejection); original evidence bytes retained.
+Full [claim audit and publication record](../../handoff/report_vi1_vendor_integration_site_2026_09_21.md).
+
+Feedback 35's missing-page request is delivered. Starter bootstrap discovery, diagnostics/naming,
+feedback 6/29, TA-9 and D21 remain open under their respective owners. This publication does not
+claim those product defects are fixed. No analyser binary release was needed for the site change.
+
 ## SG-1 · Public Spring provisioning — ☑ SHIPPED 2026-09-21
 
 Starter **1.0.73** publishes a flattened consumer POM, eliminating the unavailable parent required

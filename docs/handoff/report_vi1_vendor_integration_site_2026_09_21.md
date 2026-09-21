@@ -1,7 +1,8 @@
 # VI-1 — vendor integration site change, 2026-09-21
 
-Status: implemented on `docs/vendor-integration-vi1`, awaiting owner review. No publication authorized
-by this report; only a branch push and PR. Main and other sessions' IDE edits remain untouched.
+Status: **PUBLISHED**, 2026-09-21. The owner authorized merge and publication after review and the
+C++ wording decision. PR 1 merged at `592a0802`; Pages run `35584849832` passed. Local main is
+updated; other sessions' IDE edits and the separate tool-agreement review are preserved.
 
 ## Delivered
 
@@ -13,8 +14,8 @@ by this report; only a branch push and PR. Main and other sessions' IDE edits re
 - `integrating-a-vendor-component.md`: fictional-vendor label, wiring, original screenshot, audit
   order, configuration/control, independent calculation, upgrade procedure, tampered result and
   integrator/supplier checklists. Navigation follows the composition page under The audit log.
-- Tracker VI-1 records owner review pending. Feedback 35's page/checklist is delivered in this branch;
-  publication/bootstrap discovery and the distinct 31/32 work remain open. Feedback 6/29 and TA-9
+- VI-1 is archived as shipped. Feedback 35's page/checklist is published; starter bootstrap
+  discovery and the distinct 31/32 work remain open. Feedback 6/29 and TA-9
   are not closed by documentation. Changelog updated.
 
 ## Claim-audit disposition
@@ -48,7 +49,8 @@ the preserved vendor evidence. No new assurance mechanism is proposed.
   Java. Original before/after receipts are also absent; their unchanged hashes remain attributed
   historical observations, not independently rechecked receipt evidence.
 - `SpecLinksResolveTest`, strict docs build, rule-1 sweep and staged diff whitespace check: PASS.
-- No key use, fresh client session, production-source change, merge or push to main.
+- Implementation used no key or fresh client session and changed no production source. The
+  later owner-authorized merge/publication is recorded below.
 
 After the owner-approved C++ qualification, the full test gate found the preserved reviewer source's
 trailing-space line. Added those exact source paths to `TrailingWhitespaceTest`'s existing evidence
@@ -103,7 +105,7 @@ statement of the integration's value. Implemented in the same PR:
   compiled the result but did not run key-gated generation or witness a runtime audit value. The guide
   keeps that distinction. The [scratch evidence is preserved](evidence/stub-reconcile-1.0.73-2026-09-21/README.md); no independent rerun is claimed.
 - Historical host totals remain omitted. The owner subsequently chose the preview qualification
-  recorded in the claim table. Merge remains pending.
+  recorded in the claim table. The owner subsequently authorized merge and publication.
 
 The reviewer also reported repeated/interleaved comment-contract text in generated stubs. That is
 recorded as upstream-owned tool-agreement D21 with a regression acceptance requirement. The
@@ -129,3 +131,15 @@ RPOS,ESZ6,0,50               2361.98        0.00  false     false   <-- MISMATCH
 rows 11 records 11 mismatches 9
 node order in a quote record: ['acmeQuoteFeed', 'acmeVarCalculator', 'acmeRiskEngine', 'riskLimitGuard']
 ```
+
+## Publication — owner authorized, 2026-09-21
+
+- [PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1) merged with linear history:
+  `592a0802bcb5d793cb5bbde7cd04ee178db2eaf4`.
+- [Pages run 35584849832](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35584849832):
+  build and deploy successful.
+- Retrieved all three public pages after deployment and checked the new worked example, its
+  screenshot reference, C++ preview text, and public warning destinations. No new browser/UI
+  interaction is claimed by this HTML verification.
+- [Worked example](https://telaminai.github.io/fluxtionauditlog-analyser/integrating-a-vendor-component/)
+  is live. VI-1 moved to the completed tracker; upstream issues remain open.

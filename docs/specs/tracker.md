@@ -41,24 +41,9 @@ adding D21 does not increase the analyser-owned count.
   D21 intake: starter/compiler owns duplicated comment-contract text between modifiers/annotations.
   [Preserved reviewer evidence](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md);
   source inspected, generator not independently re-run. Spec records the regression requirement; open.
-- **[VI-1] ◧ — vendor integration on the site; branch ready for owner review, not published** — [proposal](../proposals/vendor-integration-doc/site-proposal.md)
-  from the [evidence record](../proposals/vendor-integration-doc/README.md) · _claim audit of
-  `composing-a-system.md` resolved (3 sentences contradicted by the measured record); `nodeBeans` warning ships
-  while feedback 29 is open; worked-example page added; `mkdocs build --strict` passes; owner review._
-  Implemented on `docs/vendor-integration-vi1`: both composition/naming patterns, qualified build and
-  topology claims, the interface-handler excerpt, dependency-shadowing warnings on both existing pages,
-  the new-node audit-scaffolding workaround, and the worked example with the preserved screenshot and
-  integrator/supplier checklists. The supplier checklist addresses feedback 35's missing-page request;
-  publication and bootstrap discovery remain pending. Feedback 6/29 and TA-9 remain open. Owner decision,
-  2026-09-21: label C++ as preview and limit the historical equivalence result to the tested graph and
-  event stream; remove the general supplier-deployment claim. Implemented on the review branch.
-  [Verification and claim audit](../handoff/report_vi1_vendor_integration_site_2026_09_21.md).
-  Review reply: public status links now point to [dependency shadowing, issue 2](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2)
-  and [new-node audit scaffolding, issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3),
-  the TA-9 reference is pinned, and the worked example opens with recorded/re-verified benefits.
-  The reviewer's 1.0.73 reconciliation-preservation result is attributed, not claimed as a new run.
-  The C++ wording decision is resolved; owner merge of
-  [PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1) remains pending. No deployment authorized.
+VI-1 vendor-integration documentation shipped on 2026-09-21 after owner-approved merge of
+[PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1). See the
+[completed record](completed/tracker.md).
 
 ---
 
@@ -516,8 +501,8 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
 - ☐ **Vendor authoring diagnostics and guidance (31/32/35), P2** — earlier constructibility diagnostics,
   stable instance naming and bootstrap discovery of the existing vendor guide. Test supported construction
   routes and multiple component instances; document state bridging separately from shared event interfaces.
-  VI-1 adds the supplier checklist for feedback 35 on its review branch; owner review/publication and
-  starter bootstrap discovery remain pending. This does not close the diagnostics/naming work (31/32).
+  VI-1 published the supplier checklist for feedback 35 on 2026-09-21; starter bootstrap discovery
+  remains pending. This does not close the diagnostics/naming work (31/32).
 - ☑ **Review the session-audit proposal** — preserved the latest note tying 1/20/28 to session state.
   Existing sink export has no MCP/UI path and omits completeness counters; current events do not capture
   the final action echo. Ran seven session-audit/design tests: zero failures, errors or skips.
