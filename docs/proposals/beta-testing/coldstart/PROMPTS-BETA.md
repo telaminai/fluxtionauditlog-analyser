@@ -136,7 +136,8 @@ exactly that. Requiring a fresh client session would break the design-partner co
 and would not close the route anyway, since a fresh client can simply be handed the file.
 
 **So discovery is free and the artefact is scored.** What counts is whether the report cites the record that
-proves the fault, however they first came to suspect it.
+proves the symptom and carries what supports the cause — the fix diff and the changed source files — however they
+first came to suspect it. The client's `point-at-the-fault` skill asks for exactly this shape.
 
 This is a correction rather than a concession. The product's claim is *you can show what happened and why* — not
 *you can find bugs without reading code*. Scoring the report tests the claim directly; scoring the discovery

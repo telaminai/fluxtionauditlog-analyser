@@ -69,7 +69,7 @@ Two acts, each ending in a report the tester could hand to their own reviewer. S
    *and* it produces the surface act 3 needs.
 3. **The operator seeds one defect into what the tester just wrote**, during a two-minute break, then
    rebuilds and confirms the evidence shows something before handing back. The report must cite the record
-   that proves the fault.
+   that proves the symptom, and carry what supports the cause: the fix diff and the changed source files.
 
 Two things this act had to survive. **Seeding into the template** would not outlast a competent engineer — it is
 public, and §8 requires a pristine baseline for scoring, so a clean copy is a fetch and a diff away. And
@@ -334,16 +334,25 @@ met the author, working from the artefact alone, is that claim with the trust re
 
 ### The same instrument, applied to A3
 
-A3 is scored on whether its report **cites the record that proves the fault** — and deciding whether it does is
+A3 is scored on whether its report **cites the record that proves the symptom, and supports the cause it
+states** — and deciding whether it does is
 a judgement, not a count, which would otherwise land it in the hand-scored set with all the conflict §12 exists
 to manage.
 
 It does not have to. Hand the A3 report and its log to the same second reader:
 
-> *Does the record this report cites prove the fault it states?*
+> *Does the record this report cites prove the symptom it states — and does the pack support the cause it
+> states?*
 
-Lighter than the act-2 pack — a report, a log, a yes or no with reasoning, roughly ten minutes — and it is the
-identical question with the author removed. The instrument, the consent and the scoring shape are already in
+Lighter than the act-2 pack — a report, its logs, the fix diff and the changed source files, a yes or no on each
+half with reasoning, roughly ten minutes — and it is the identical question with the author removed.
+
+**Why two halves (2026-09-21).** The first wording asked whether the record *proves the fault*. Two blind
+second readers answered *partly*, both for the same sound reason: a record proves what the system **did**, and
+the stated cause was a claim about what the code **says**, which no record can prove. Asked that way, a strict
+reader never answers yes for a code-level cause, so the row measured the question rather than the report. The
+record is held to proving the symptom; the cause is held to being supported by the pack. A report passes only
+if **both** halves are yes. Evidence: `.local-evidence/coldstart-v2-2026-09-20/reader-a3-*` (git-ignored). The instrument, the consent and the scoring shape are already in
 place, so this costs one further ask rather than a parallel mechanism.
 
 ---
@@ -387,7 +396,7 @@ of **completed A3 acts**; *break attempts* is out of **those who reached A7**.
 | Traps hit that slice C claims to have closed | 0 | 1 | ≥ 2 |
 | Attempted to break the evidence claim, per §10's pre-registration, and failed | ≥ 2 | 1 | nobody tried — wrong audience or wrong framing |
 | Returned for act 2 | ≥ 3 | 2 | 0–1 |
-| **A3 reports whose cited record a second reader agrees proves the fault** | all but at most one | two fail | three or more fail |
+| **A3 reports a second reader agrees on both halves: the cited record proves the symptom, and the pack supports the cause** | all but at most one | two fail | three or more fail |
 | **Second-person test reaches the right conclusion from the act-2 pack alone** | 2 of 2 | 1 of 2 | 0 of 2 |
 | **Design-partner conversation opened** | ≥ 1 | — | 0 |
 
@@ -412,7 +421,7 @@ diagnostics.
   trap hits with no judgement involved.
 - **Hand-scored rows are blinded to session identity**, or given to someone who ran no sessions. Preferably both.
   Rows are named here rather than numbered, because §11's table has been renumbered twice by findings.
-- **The A3 report row is delegated, not blinded.** Whether a cited record proves a fault is a judgement, and it
+- **The A3 report row is delegated, not blinded.** Whether a cited record proves a symptom, and a pack supports a cause, is a judgement, and it
   goes to the second reader (§9) rather than to a blinded operator. That removes the conflict instead of
   managing it, and costs one extra ask because the instrument already exists.
 - **The break-attempt row cannot be blinded** — judging it needs full session context. §10's pre-registration is

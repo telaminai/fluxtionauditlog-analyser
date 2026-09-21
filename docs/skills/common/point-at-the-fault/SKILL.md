@@ -136,8 +136,10 @@ that says *"this record proves the fault"* makes two claims, and each needs its 
 3. **Label what comes from the source.** Anything the log cannot show — which node reads which, a rule
    that fires only once — mark as *from the source*, so the reader knows what they can check in the log
    and what they are taking from the code.
-4. **Make the pack stand alone.** It holds everything you cite: the report, the diff, the logs. If one
-   export holds more than one run, say where each run starts and which build produced it.
+4. **Make the pack stand alone.** It holds everything you cite: the report, the diff, the logs — and
+   **copies of the source files you changed, before and after**, plus any file whose behaviour you cite
+   *from the source*, so the reader can check the diff against the code rather than take it from you. If
+   one export holds more than one run, say where each run starts and which build produced it.
 
 A reader who can verify the symptom in the log and the cause in the diff does not need to trust you. That
 is the point of the report.
