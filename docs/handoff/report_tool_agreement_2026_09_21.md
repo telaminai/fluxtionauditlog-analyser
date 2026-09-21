@@ -117,3 +117,23 @@ Both fail the delta test (`expected: <2> but was: <1>`) and the mean-window test
 Validation: full `mvn -q test` and `mkdocs build --strict` pass. Query responses describe the history
 boundary; no data before the loaded log is invented. Point-wise formulas keep their previous semantics.
 Counts: analyser **9 → 8 open** (D5), upstream **8 → 8 open**.
+
+## TA-5a and TA-U — documentation completed; delivery remains open
+
+Frozen prediction: version-scoped export/D12/D13/pending limits appear in the skill and canonical
+runbook without a fabricated follower; a missing disclosure fails the contract check. **Held.**
+`CanonicalSkillsTest.auditEvidenceRunbookAndSkillShareTheVersionedLimitsAndDeliveryBoundary` checks
+both sources and the existing delivery boundary. Removing D12 from the skill failed the parity assertion;
+[witness](evidence/tool-agreement-2026-09-21/ta5a-mutation.json). The full suite passed after restoration.
+The skill index is re-pinned to the committed bytes; the source commit temporarily marks its index draft
+so it cannot make a false provenance claim, then the following commit supplies revision and hashes.
+
+Decision: retain the previously accepted M31 Chronicle live-store reader route. Reader/plugin maintainers
+own delivery; playground owns starter integration and vendoring. The canonical runbook is source material
+for that vendoring, **not a claim that a starter already includes it**. TA-5b and TA-5c remain open. No
+new follower, server integration or client session was built or run.
+
+TA-U records all eight upstream rows with owners and template/version scope, D7's reclassification,
+SG-1/SG-2 separation and the EventLogNode-before-generator-guidance dependency. This records ownership,
+not upstream fixes. Endpoint behavior is read from preserved testimony, not independently re-exercised.
+Counts remain **analyser 8 open; upstream 8 open**.

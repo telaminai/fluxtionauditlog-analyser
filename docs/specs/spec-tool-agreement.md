@@ -197,6 +197,9 @@ witness: disabling the look-back, or the note, makes the test fail.
 
 ### TA-5 · P1 · Live Mongoose evidence in without reverse-engineering
 
+**Status:** TA-5a ☑ documented and pinned; TA-5b ☐ route delivery/starter vendoring; TA-5c ☐ post-shipment spot-check.
+[Route decision and canonical runbook](../runbooks/mongoose-audit-evidence.md). Counts unchanged: analyser 8, upstream 8 open.
+
 **Context — do not reopen the decision.** `spec-agent-brokered-dev-loop.md` deleted in-app log discovery
 (item 18.2) on purpose, handed fetching to the agent, and names an M31 live-store source
 (`supportsFollow`) as the fix for Follow. The session shows what that route costs today. The agent found

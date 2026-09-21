@@ -62,13 +62,16 @@ after review:** the first version reversed the two fixture fingerprints (source 
   disable look-back in `SeriesScan` and `SeriesExtractor`; both fail the first-window-delta case.
   [Witnesses](../handoff/report_tool_agreement_2026_09_21.md#ta-4--completed). Full suite and strict docs pass.
   D5 closed; analyser 8 open, upstream 8 open.
-- **[TA-5a] ◧ — audit-evidence documentation and a follow-route decision (analyser)** · _vendored runbook
+- **[TA-5a] ☑ — audit-evidence documentation and a follow-route decision (analyser)** · _vendored runbook
   section (export endpoint, D12/D13 workarounds); decision record naming the route AND its owner._
   **TA-5a prediction frozen before documentation edits:** the skill and canonical runbook will name
   the export endpoint, version-scoped D12/D13 limitations and pending-only framing, without a fabricated
   follower command. A contract check must fail if any of these is removed. Retain the already accepted
   live-store reader route, owned by the Chronicle reader maintainers; TA-5b/c remain open.
   Before: analyser 8 open; upstream 8 open.
+  **Result:** held. Canonical skill and `docs/runbooks/mongoose-audit-evidence.md` share tested guidance;
+  index re-pinned to the source commit. Removing D12 from the skill fails the parity contract.
+  TA-5b/c remain open. Counts unchanged: analyser 8 open; upstream 8 open.
 - **[TA-5b] ☐ — implement and vendor the chosen route (owner named in TA-5a)** · _open until shipped in a starter._
 - **[TA-5c] ☐ — one spot-check session, only after TA-5a and TA-5b ship** · _fresh agent reaches a followed
   log without jar disassembly or a hand-written follower; scored from tool events. The spec's only session._
