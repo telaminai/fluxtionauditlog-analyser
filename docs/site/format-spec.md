@@ -89,6 +89,10 @@ the record an ordinary record. `<value>` is read to end of line, and then:
 - a value that **begins** with a single or double quote runs to its matching quote, and anything after
   the closing quote is discarded — so `"25"  # declared` is the value `25`, and a `#` **inside** the
   quotes is data, not a comment;
+- an opening quote with **no** matching quote later in the line is not special: it is part of the value,
+  which then follows the rule below. So `streamEnd: "normal` is the value `"normal` — a non-empty value,
+  and therefore a marker, since §1a tolerates any value it does not recognise. It is NOT an empty value
+  and does not make the record ordinary;
 - otherwise an unquoted `#` begins a comment and the value is what precedes it.
 
 A `streamEndRecords` value, **after the surrounding whitespace defined above is stripped**, is **ASCII

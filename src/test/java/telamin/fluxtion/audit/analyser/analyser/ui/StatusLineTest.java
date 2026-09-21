@@ -64,7 +64,7 @@ class StatusLineTest {
     @Test
     void aSetsMemberNumbersAreNestedUnderTheFileThatOwnsThem() {
         var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3, null,
-                new StreamEnd.Member("g.log", 3), java.util.List.of());
+                new StreamEnd.Member("g.log", 3, 0), java.util.List.of());
         var facts = MainFrame.streamEndFacts(end, 25);
 
         assertEquals(25L, facts.get("recordsRead"), "the top level is always the whole log");
@@ -83,7 +83,7 @@ class StatusLineTest {
     @Test
     void aSetsMemberRunPositionsStayInsideTheMember() {
         var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3,
-                new StreamEnd.Segment(2, 2, 4, 5), new StreamEnd.Member("g.log", 5), java.util.List.of());
+                new StreamEnd.Segment(2, 2, 4, 5), new StreamEnd.Member("g.log", 5, 20), java.util.List.of());
         @SuppressWarnings("unchecked")
         var member = (java.util.Map<String, Object>) MainFrame.streamEndFacts(end, 25).get("member");
         assertEquals("g.log", member.get("file"));
@@ -94,9 +94,13 @@ class StatusLineTest {
         var run = (java.util.Map<String, Object>) member.get("run");
         assertNotNull(run, "a run inside a member is its own scope");
         assertEquals(2, run.get("ordinal"));
-        assertEquals(2L, run.get("firstRecord"),
-                "records 2 to 4 of g.log, never of the 25-record set the agent is looking at");
-        assertEquals(4L, run.get("lastRecord"));
+        // A-6: the pair a verb accepts is the SET's numbering. g.log starts at set row 20, so the run
+        // that is rows 2-4 of that file is rows 22-24 of the log `read` and `goto` index.
+        assertEquals(22L, run.get("firstRecord"),
+                "this reported 2, and `read {recordIndex: 2}` landed in a different file's run");
+        assertEquals(24L, run.get("lastRecord"));
+        assertEquals(2L, run.get("firstRecordInFile"), "the member-local pair is kept, and labelled");
+        assertEquals(4L, run.get("lastRecordInFile"));
         assertEquals(3L, run.get("recordsRead"), "the run's count, labelled as the run's");
     }
 

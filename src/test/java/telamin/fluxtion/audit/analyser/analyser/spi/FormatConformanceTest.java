@@ -461,7 +461,8 @@ class FormatConformanceTest {
                     "c08-lenient-values.yaml", "c09-garbage.yaml", "c11-attribution.yaml",
                     "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
                     "c17-legacy-quotes.yaml", "c18-stream-end.yaml", "c19-export-layout.yaml",
-                    "c20-marker-lookalike.yaml", "c21-real-export.yaml", "c22-marker-syntax.yaml"), names,
+                    "c20-marker-lookalike.yaml", "c21-real-export.yaml", "c22-marker-syntax.yaml",
+                    "c23-marker-values.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -588,6 +589,38 @@ class FormatConformanceTest {
         assertEquals(1, s.completenessDiagnostics().size());
         assertTrue(s.completenessDiagnostics().get(0).contains("no readable record count"),
                 s.completenessDiagnostics().get(0));
+    }
+
+    /**
+     * C23 — the value rules of §1a's recognition table, which nothing pinned as a fixture.
+     *
+     * <p>Round five listed them: a second {@code streamEndRecords}, a negative count, a {@code #} inside
+     * quotes, single quotes, a comment line inside a marker, an unknown reason value, flow style, and the
+     * unbalanced-quote fallback. They were covered by unit tests only, so an outside adapter author
+     * running the published suite never met them — which is the same gap that let a round-three blocker
+     * through. Eight Tick records survive; the two disqualified lookalikes are records.
+     */
+    @Test
+    void c23_theValueRulesOfTheRecognitionTable() throws IOException {
+        LogStore s = bothPathsAgree("c23-marker-values.yaml");
+        assertEquals(10, s.size(),
+                "eight ordinary records, plus the duplicate-key and flow-style records that are NOT markers");
+        assertEquals("Tick", s.record(6).event());
+        assertNull(s.record(7).event(), "a second streamEndRecords disqualifies: this is a record");
+        assertNull(s.record(9).event(), "flow style is not a marker either");
+        // `stopping`, an unknown value, single quotes, a quoted `#`, an unbalanced quote and a comment
+        // line all ARE markers, so none of them reached the index. Asserted as "no indexed row parses as
+        // a marker" rather than "no indexed row mentions the key" — the two lookalikes DO mention it, and
+        // that is the whole point of c20.
+        for (int i = 0; i < s.size(); i++) {
+            assertTrue(telamin.fluxtion.audit.analyser.analyser.parse.StreamEndMarker
+                            .of(s.rawText(i)).isEmpty(),
+                    "row " + i + " is a marker and should never have been indexed");
+        }
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                s.streamEnd().state(), "a record follows the last marker");
+        assertEquals(1, s.streamEnd().runs().size(),
+                "and the negative count is still reported as an unverified run");
     }
 
     @Test

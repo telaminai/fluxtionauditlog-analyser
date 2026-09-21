@@ -1,0 +1,83 @@
+---
+#00:00:00.000 [t] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.1}
+---
+eventLogRecord:
+  streamEnd: stopping
+  streamEndRecords: 1
+---
+#00:00:00.001 [t] INFO L
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.2}
+---
+eventLogRecord:
+  streamEnd: winding-down
+  streamEndRecords: 1
+---
+eventLogRecord:
+  logTime: 1002
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.3}
+---
+eventLogRecord:
+  # a comment line inside a marker carries no content
+  streamEnd: 'normal'
+  streamEndRecords: 1
+---
+eventLogRecord:
+  logTime: 1003
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.4}
+---
+eventLogRecord:
+  streamEnd: "normal # not a comment"
+  streamEndRecords: 1
+---
+eventLogRecord:
+  logTime: 1004
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.5}
+---
+eventLogRecord:
+  streamEnd: "normal
+  streamEndRecords: 1
+---
+eventLogRecord:
+  logTime: 1005
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.6}
+---
+eventLogRecord:
+  streamEnd: normal
+  streamEndRecords: -4
+---
+eventLogRecord:
+  logTime: 1006
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.7}
+---
+eventLogRecord:
+  streamEnd: normal
+  streamEndRecords: 1
+  streamEndRecords: 1
+---
+eventLogRecord:
+  logTime: 1007
+  event: Tick
+  nodeLogs:
+    - book: { mid: 17.8}
+---
+eventLogRecord: {streamEnd: normal, streamEndRecords: 1}
+---

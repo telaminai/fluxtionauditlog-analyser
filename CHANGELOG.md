@@ -29,6 +29,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - A log read through a reader plugin, or followed as it grows, shows its completeness verdict to the
   person at the screen as well as to an assistant.
 - A log file saved with a byte-order mark reads its stream-end marker correctly.
+- Inside a rolled set, a verdict about one run reports the rows `read` and `goto` accept — the whole
+  set's numbering — with that file's own numbering kept beside it.
 
 
 ## [1.17.0] - 2026-09-21

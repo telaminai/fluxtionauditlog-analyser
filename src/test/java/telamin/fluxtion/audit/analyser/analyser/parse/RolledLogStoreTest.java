@@ -201,6 +201,37 @@ class RolledLogStoreTest {
         }
     }
 
+    /**
+     * Round five A-6. A run inside a member was reported with the member's own row numbers, and every
+     * verb — `read`, `goto`, the records table — indexes the whole set. So "records 2 to 4" named set
+     * rows 4 to 6, and an agent that followed them landed in a different file's run, which was whole.
+     */
+    @Test
+    void aRunInsideAMemberIsReportedInTheNumberingTheVerbsAccept() throws IOException {
+        Path a = dir.resolve("m.log.1");
+        Path b = dir.resolve("m.log");
+        Files.writeString(a, records("A", 100, 110) + marker(2));               // set rows 0-1
+        Files.writeString(b, records("B", 200, 210) + marker(2)
+                + records("C", 300, 310, 320) + marker(9));                     // rows 2-3, then 4-6
+        try (RolledLogStore set = RolledLogStore.open(List.of(a, b), 512)) {
+            assertEquals(7, set.size());
+            assertEquals("C", set.record(4).event(), "the failing run really does start at set row 4");
+            assertEquals("C", set.record(6).event());
+
+            String said = set.completenessDiagnostics().get(0);
+            assertTrue(said.contains("records 4 to 6 of this set"),
+                    () -> "this said 'records 2 to 4', which is a different run: " + said);
+            assertTrue(said.contains("records 2 to 4 of 5 in that file"),
+                    () -> "the member's own numbering is kept beside it: " + said);
+
+            var run = (java.util.Map<?, ?>) ((java.util.Map<?, ?>)
+                    StreamEndReport.facts(set.streamEnd(), set.size()).get("member")).get("run");
+            assertEquals(4L, run.get("firstRecord"), "the map agrees with the sentence");
+            assertEquals(6L, run.get("lastRecord"));
+            assertEquals(2L, run.get("firstRecordInFile"));
+        }
+    }
+
     @Test
     void recordIndexAnchorsNeedNoFileAndKeepWorking() throws IOException {
         RolledLogStore store = RolledLogStore.open(threeFiles(), 512);

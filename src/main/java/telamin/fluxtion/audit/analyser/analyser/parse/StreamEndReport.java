@@ -101,11 +101,24 @@ public final class StreamEndReport {
         var seg = end.segment();
         if (seg == null) return file;
         long of = end.member() != null ? end.member().fileRecords() : seg.fileRecords();
-        return seg.isEmpty()
-                ? "run " + seg.ordinal() + " of " + file + " (which holds no records at all, of "
-                        + of + " in the file)"
-                : "run " + seg.ordinal() + " of " + file + " (records " + seg.firstRecord() + " to "
-                        + seg.lastRecord() + ", of " + of + " in the file)";
+        if (seg.isEmpty()) {
+            return "run " + seg.ordinal() + " of " + file + " (which holds no records at all, of "
+                    + of + " in the file)";
+        }
+        // A-6: inside a rolled set a run's own positions are member-local, and every verb — `read`,
+        // `goto`, the table — indexes the whole set. Reporting the local pair sent a reader to a
+        // different file's run. The set-global pair leads, because it is the one that can be used.
+        long shift = rowShift(end);
+        String where = "records " + (seg.firstRecord() + shift) + " to " + (seg.lastRecord() + shift);
+        return "run " + seg.ordinal() + " of " + file + " (" + where
+                + (shift == 0 ? ", of " + of + " in the file)"
+                        : " of this set; records " + seg.firstRecord() + " to " + seg.lastRecord()
+                                + " of " + of + " in that file)");
+    }
+
+    /** How far a member's own row numbers sit into the whole log; zero for a single file. */
+    private static long rowShift(StreamEnd end) {
+        return end.member() == null ? 0 : end.member().firstRowInLog();
     }
 
     /** "1 record", "5 records" — re-review found "declares 1 records" and "each of the 1 files". */
@@ -131,6 +144,7 @@ public final class StreamEndReport {
             Map<String, Object> member = new LinkedHashMap<>();
             member.put("file", end.member().file());
             member.put("recordsRead", end.member().fileRecords());   // the MEMBER's own count
+            member.put("firstRowInLog", end.member().firstRowInLog());
             putRunOrNumbers(member, end);
             out.put("member", member);
         } else {
@@ -167,8 +181,15 @@ public final class StreamEndReport {
         Map<String, Object> run = new LinkedHashMap<>();
         run.put("ordinal", seg.ordinal());
         if (!seg.isEmpty()) {                        // an empty run has no positions to give
-            run.put("firstRecord", seg.firstRecord());
-            run.put("lastRecord", seg.lastRecord());
+            // A-6: `firstRecord`/`lastRecord` are ALWAYS indexes into the open log, because that is what
+            // `read` and `goto` take. Inside a set the member-local pair is kept beside them, labelled.
+            long shift = rowShift(end);
+            run.put("firstRecord", seg.firstRecord() + shift);
+            run.put("lastRecord", seg.lastRecord() + shift);
+            if (shift != 0) {
+                run.put("firstRecordInFile", seg.firstRecord());
+                run.put("lastRecordInFile", seg.lastRecord());
+            }
         }
         if (end.declaredRecords() >= 0) run.put("declaredRecords", end.declaredRecords());
         run.put("recordsRead", end.emittedRecords());

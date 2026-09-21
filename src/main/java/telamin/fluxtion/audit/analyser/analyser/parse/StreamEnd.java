@@ -60,7 +60,13 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
      * four then found the same thing one level down: a run's numbers presented as the member's, with the
      * member's own count missing entirely. Every scope now states its own count beside its own numbers.
      */
-    public record Member(String file, long fileRecords) {}
+    /**
+     * @param firstRowInLog the set-global index of this file's first record — the numbering `read` and
+     *                      `goto` accept. Round five A-6: a run's positions were reported inside their
+     *                      member, so "records 2 to 4" named set rows 4 to 6 and an agent following them
+     *                      landed in a different file's run, which was whole.
+     */
+    public record Member(String file, long fileRecords, long firstRowInLog) {}
 
     /**
      * One run that did not match its marker — {@code spec-audit-stream-end.md} D-E6.
@@ -96,8 +102,9 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
     }
 
     /** The same verdict, said about one named FILE of a rolled set, with that file's own count. */
-    public StreamEnd inMember(String file, long fileRecords) {
-        return new StreamEnd(state, declaredRecords, emittedRecords, segment, new Member(file, fileRecords), runs);
+    public StreamEnd inMember(String file, long fileRecords, long firstRowInLog) {
+        return new StreamEnd(state, declaredRecords, emittedRecords, segment,
+                new Member(file, fileRecords, firstRowInLog), runs);
     }
 
     public enum State {
