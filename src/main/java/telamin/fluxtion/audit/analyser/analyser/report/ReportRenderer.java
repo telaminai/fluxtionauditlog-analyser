@@ -135,11 +135,11 @@ public final class ReportRenderer {
                 Finding f = r.finding();
                 // BYTE-IDENTICAL to what flag wrote (D-I1): the strings pass through untouched
                 if (f.hasNote()) {
-                    callout(doc, c, "What is wrong — record #" + f.recordIndex(), f.note(),
+                    callout(doc, c, f.noteLabel() + " — record #" + f.recordIndex(), f.note(),
                             PROBLEM, PROBLEM_BG);
                 }
                 if (f.hasFix()) {
-                    callout(doc, c, "Likely cause / suggested fix", f.fix(), FIX, FIX_BG);
+                    callout(doc, c, f.fixLabel(), f.fix(), FIX, FIX_BG);
                 }
                 if (body.monoLines() != null) {
                     mono(doc, c, "Record #" + f.recordIndex(), body.monoLines());

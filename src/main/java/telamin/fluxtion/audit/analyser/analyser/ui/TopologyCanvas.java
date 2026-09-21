@@ -736,22 +736,9 @@ public final class TopologyCanvas extends JPanel {
             return;   // too narrow to be read; a clipped diagnosis is worse than none
         }
 
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        java.util.List<Boolean> isFix = new java.util.ArrayList<>();
-        for (String line : wrapText(fm, callout.note(), maxW - 24)) {
-            lines.add(line);
-            isFix.add(false);
-        }
-        if (callout.hasFix()) {
-            if (!lines.isEmpty()) {
-                lines.add("");
-                isFix.add(true);
-            }
-            for (String line : wrapText(fm, "Fix · " + callout.fix(), maxW - 24)) {
-                lines.add(line);
-                isFix.add(true);
-            }
-        }
+        var layout = calloutLines(callout, fm, maxW - 24);
+        var lines = layout.stream().map(CalloutLine::text).toList();
+        var isFix = layout.stream().map(CalloutLine::assessment).toList();
         if (lines.isEmpty()) {
             return;
         }
@@ -784,6 +771,22 @@ public final class TopologyCanvas extends JPanel {
             g.drawString(lines.get(i), bx + pad + 6, ty);
             ty += lineH;
         }
+    }
+
+    record CalloutLine(String text, boolean assessment) { }
+
+    static java.util.List<CalloutLine> calloutLines(
+            telamin.fluxtion.audit.analyser.analyser.report.Finding callout, FontMetrics fm, int width) {
+        java.util.List<CalloutLine> lines = new java.util.ArrayList<>();
+        for (String text : wrapText(fm, callout.confirmation()
+                ? callout.noteLabel() + " · " + callout.note() : callout.note(), width))
+            lines.add(new CalloutLine(text, false));
+        if (callout.hasFix()) {
+            if (!lines.isEmpty()) lines.add(new CalloutLine("", true));
+            for (String text : wrapText(fm, (callout.confirmation() ? callout.fixLabel() : "Fix")
+                    + " · " + callout.fix(), width)) lines.add(new CalloutLine(text, true));
+        }
+        return lines;
     }
 
     /** Greedy word wrap to a pixel width; a word wider than the box is left long rather than broken. */

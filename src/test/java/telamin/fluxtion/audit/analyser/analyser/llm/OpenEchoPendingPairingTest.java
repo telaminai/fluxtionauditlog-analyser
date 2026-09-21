@@ -84,7 +84,7 @@ class OpenEchoPendingPairingTest {
         GraphTabs tabs = new GraphTabs();
         FilterState filter = new FilterState();
         tabs.bind(store, filter);
-        ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f) -> { });
+        ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f, k) -> { });
         ex.bind(null, app);
         return ex;
     }

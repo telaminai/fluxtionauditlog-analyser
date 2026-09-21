@@ -10,7 +10,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
-D3a (build) and D3b (detection). Two counts, reported separately: **analyser 10 open** (13 at baseline), **upstream 8 open**;
+D3a (build) and D3b (detection). Two counts, reported separately: **analyser 9 open** (13 at baseline), **upstream 8 open**;
 D7 is reclassified as capability disclosure. Direction check: re-count each release. **Revised 2026-09-21
 after review:** the first version reversed the two fixture fingerprints (source `4ecd6133…`, stale
 `f6ae6f84…`), and wrongly called feedback 23, 25 and 34 untracked.
@@ -45,7 +45,7 @@ after review:** the first version reversed the two fixture fingerprints (source 
   expected disagree / actual agree. Restored full headless and pairing-frame suites pass; strict docs pass.
   [Evidence](../handoff/report_tool_agreement_2026_09_21.md#ta-2--completed). D3b closed; D3a unchanged.
   After: analyser 10 open; upstream 8 open.
-- **[TA-3] ☐ — `flag {kind: confirmation}` with neutral labels** — built under the existing "Reports as
+- **[TA-3] ☑ — `flag {kind: confirmation}` with neutral labels** — built under the existing "Reports as
   evidence, not automatically defects" (25), not a parallel item · _on constructed inputs: existing flags
   unchanged; Observation / Assessment in table, callout, report and PDF; kind survives restore._
 - **[TA-4] ☐ — window edges never silently change a rolling answer** · _constructed regression case (the A8
@@ -484,6 +484,17 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   predicates (26a); real series-section assembly using existing computations (26b); bounded derived
   tables over selected records (26c); complete exported provenance and wrapped titles (27a).
   Preserve the narrative/evidence distinction, old saved findings, row provenance and explicit caps.
+  **TA-3 prediction frozen before edits, 2026-09-21:** constructed confirmation flags will render
+  Observation / Assessment in the table tooltip, topology callout, report panel and both PDF routes;
+  existing fault findings retain their labels. The kind will survive explicit session save/restore only
+  against the verified same log. Disabling neutral-label selection will fail the regression; mismatched
+  log recovery must not restore flags. Before: analyser 10 open; upstream 8 open.
+  **TA-3 result:** held. `FindingPresentationTest`, confirmation cases in `FindingReportTest` and
+  `ReportRendererTest`, and `SessionRecoveryFrameTest.confirmationFlagSurvivesExplicitRecoveryOnlyAgainstTheSameLog`
+  verify neutral labels, old defaults, invalid-category refusal and real project recovery. Removing
+  confirmation label selection fails three tests. Restored headless and full recovery display suites pass.
+  [Evidence](../handoff/report_tool_agreement_2026_09_21.md#ta-3--completed). D4 closed; analyser 9 open,
+  upstream 8 open. This closes the category/labels slice only; the other requirements of this item stay open.
 - ☐ **Additional desk-session intake (22/23/28)** — compiler owner: reproduce signal-stub propagation
   hazard before choosing a default (return-false everywhere is also wrong), document callback boolean
   values with actionable errors. Analyser: consider an explicit restore-last-session offer with identity

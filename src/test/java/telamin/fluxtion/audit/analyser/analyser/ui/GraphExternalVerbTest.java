@@ -34,7 +34,7 @@ class GraphExternalVerbTest {
         tabs.bind(store, new FilterState());
         FilterState filter = new FilterState();
         ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(),
-                (r, n, f) -> { });
+                (r, n, f, k) -> { });
         AppConfig cfg = new AppConfig();
         cfg.assistantExports = true;
         cfg.assistantExportDir = exchangeDir.toString();

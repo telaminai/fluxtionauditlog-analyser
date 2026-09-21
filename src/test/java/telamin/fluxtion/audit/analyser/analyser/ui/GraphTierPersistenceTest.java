@@ -62,7 +62,7 @@ class GraphTierPersistenceTest {
         GraphTabs tabs = new GraphTabs();
         tabs.bind(store, filter);
         LogTablePanel table = new LogTablePanel();
-        ActionExecutor executor = new ActionExecutor(() -> store, () -> filter, tabs, table, (r, n, f) -> { });
+        ActionExecutor executor = new ActionExecutor(() -> store, () -> filter, tabs, table, (r, n, f, k) -> { });
         wire(tabs, config, session, store);
 
         // create a graph EXACTLY as the verb does

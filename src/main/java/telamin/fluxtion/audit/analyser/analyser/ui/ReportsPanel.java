@@ -244,12 +244,12 @@ public final class ReportsPanel extends JPanel {
             case FINDING -> {
                 var f = r.finding();
                 JPanel box = calloutBox(theme.problem(), theme.tint(theme.problem()));
-                JTextArea wrong = bold("What is wrong — record #" + f.recordIndex());
+                JTextArea wrong = bold(f.noteLabel() + " — record #" + f.recordIndex());
                 wrong.setForeground(theme.problem());
                 box.add(wrong);
                 box.add(wrapped(f.note()));
                 if (f.hasFix()) {
-                    JTextArea fixHeading = bold("Suggested fix");
+                    JTextArea fixHeading = bold(f.confirmation() ? f.fixLabel() : "Suggested fix");
                     fixHeading.setForeground(theme.fix());
                     box.add(fixHeading);
                     box.add(wrapped(f.fix()));

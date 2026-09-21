@@ -31,7 +31,7 @@ class SpotlightEndsWhenTheViewChangesTest {
         GraphTabs tabs = new GraphTabs();
         FilterState filter = new FilterState();
         tabs.bind(store, filter);
-        ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f) -> { });
+        ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f, k) -> { });
         AppControl app = (AppControl) Proxy.newProxyInstance(AppControl.class.getClassLoader(),
                 new Class<?>[]{AppControl.class}, (proxy, method, args) -> {
                     if (method.getName().equals("clearSpotlight")) {

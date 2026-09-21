@@ -63,7 +63,8 @@ drive the same verbs:
   plots discrete events as glyphs (buys ▲ / sells ▼ on a price line) with a payload — an order id —
   on hover, and clicking a marker selects its record.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
-- **flag** — bookmark the culprit records with a `note` and an optional `fix`. This is the **one** place
+- **flag** — bookmark records with a `note` and an optional `fix`. Use `kind: "confirmation"` for
+  correct behavior, labelled Observation / Assessment; otherwise new findings default to `fault`. This is the **one** place
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that
   record, and in an exported report. Supplying only one of `note`/`fix` keeps the other, so adding a
   suggested fix can't wipe the explanation it's a fix for.

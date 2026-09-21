@@ -71,6 +71,18 @@ class ReportRendererTest {
         assertTrue(pdf.contains("raise the cap review"));
     }
 
+    @Test
+    void confirmationSectionUsesNeutralLabels() {
+        ReportSpec spec = spec(SectionSpec.finding(1));
+        Finding confirmation = new Finding(1, "at-limit accepted", "expected boundary", "confirmation");
+        String pdf = body(ReportRenderer.render(spec, resolve(spec, Map.of(1, confirmation)),
+                List.of(), "demo.yaml", null));
+        assertTrue(pdf.contains("OBSERVATION"));
+        assertTrue(pdf.contains("ASSESSMENT"));
+        assertFalse(pdf.contains("WHAT IS WRONG"));
+        assertFalse(pdf.contains("SUGGESTED FIX"));
+    }
+
     // ---- D-I3/D-I3a: loud, and first --------------------------------------------------------------
 
     @Test

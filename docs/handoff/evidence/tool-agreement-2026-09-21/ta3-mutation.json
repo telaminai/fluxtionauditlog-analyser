@@ -1,0 +1,19 @@
+{
+  "mutation": "Disable Finding confirmation label selection",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "confirmationUsesNeutralLabelsOnTableTopologyAndReports",
+      "failure": "expected: <Observation: at-limit accepted\nAssessment: matches expected boundary> but was: <at-limit accepted>"
+    },
+    {
+      "test": "confirmationUsesNeutralLabelsAndKeepsItsKindAcrossSerializedMerge",
+      "failure": "expected: <true> but was: <false>"
+    },
+    {
+      "test": "confirmationSectionUsesNeutralLabels",
+      "failure": "expected: <true> but was: <false>"
+    }
+  ],
+  "restored": true
+}

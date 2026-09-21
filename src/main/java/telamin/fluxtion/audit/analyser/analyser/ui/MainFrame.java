@@ -305,7 +305,7 @@ public final class MainFrame extends JFrame {
         tablePanel.setFlagToggle(this::toggleFlags);
         tablePanel.setNoteProvider(row -> {
             var f = findings.get(row);
-            return f == null || !f.hasNote() ? null : f.note();
+            return f == null ? null : f.tableText();
         });
         // the callout on the graph is the same finding as the note in the table, resolved through the
         // table's own view→model mapping so stepping and filtering cannot pull them apart
@@ -794,14 +794,14 @@ public final class MainFrame extends JFrame {
      * was concluded. A caller supplying only one of note/fix is refining the finding, so the other is
      * kept — see {@link telamin.fluxtion.audit.analyser.analyser.report.Finding#merge}.
      */
-    private void flagRowsFromAction(int[] modelRows, String note, String fix) {
+    private void flagRowsFromAction(int[] modelRows, String note, String fix, String kind) {
         for (int r : modelRows) {
             flaggedRows.add(r);
-            if (note != null || fix != null) {
+            if (note != null || fix != null || kind != null) {
                 var existing = findings.get(r);
                 findings.put(r, existing == null
-                        ? new telamin.fluxtion.audit.analyser.analyser.report.Finding(r, note, fix)
-                        : existing.merge(note, fix));
+                        ? new telamin.fluxtion.audit.analyser.analyser.report.Finding(r, note, fix, kind)
+                        : existing.merge(note, fix, kind));
             }
         }
         tablePanel.repaintRows();
@@ -832,10 +832,24 @@ public final class MainFrame extends JFrame {
 
         JPanel form = new JPanel(new java.awt.BorderLayout(0, 6));
         JPanel top = new JPanel(new java.awt.BorderLayout(0, 4));
-        top.add(new JLabel("What is wrong with record " + row + "?"), java.awt.BorderLayout.NORTH);
+        JComboBox<String> kind = new JComboBox<>(new String[]{"fault", "confirmation"});
+        kind.setSelectedItem(existing == null ? "fault" : existing.kind());
+        JLabel noteLabel = new JLabel();
+        JLabel fixLabel = new JLabel();
+        Runnable labels = () -> {
+            var selected = new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, "", null, (String)kind.getSelectedItem());
+            noteLabel.setText(selected.noteLabel() + " — record " + row);
+            fixLabel.setText(selected.fixLabel() + " (optional)");
+        };
+        kind.addActionListener(e -> labels.run());
+        labels.run();
+        JPanel heading = new JPanel(new java.awt.BorderLayout());
+        heading.add(noteLabel, java.awt.BorderLayout.CENTER);
+        heading.add(kind, java.awt.BorderLayout.EAST);
+        top.add(heading, java.awt.BorderLayout.NORTH);
         top.add(new JScrollPane(note), java.awt.BorderLayout.CENTER);
         JPanel bottom = new JPanel(new java.awt.BorderLayout(0, 4));
-        bottom.add(new JLabel("Likely cause / suggested fix (optional)"), java.awt.BorderLayout.NORTH);
+        bottom.add(fixLabel, java.awt.BorderLayout.NORTH);
         bottom.add(new JScrollPane(fix), java.awt.BorderLayout.CENTER);
         form.add(top, java.awt.BorderLayout.CENTER);
         form.add(bottom, java.awt.BorderLayout.SOUTH);
@@ -850,7 +864,7 @@ public final class MainFrame extends JFrame {
             findings.remove(row);
         } else {
             findings.put(row, new telamin.fluxtion.audit.analyser.analyser.report.Finding(
-                    row, noteText, fixText.isEmpty() ? null : fixText));
+                    row, noteText, fixText.isEmpty() ? null : fixText, (String)kind.getSelectedItem()));
             flaggedRows.add(row);   // an explained record is a flagged one: findings live on the flag
         }
         tablePanel.repaintRows();
@@ -6021,6 +6035,7 @@ public final class MainFrame extends JFrame {
                 Map<String, Object> flag = new java.util.LinkedHashMap<>();
                 flag.put("recordIndex", row);
                 var finding = findings.get(row);
+                flag.put("kind", finding == null ? "fault" : finding.kind());
                 if (finding != null && finding.hasNote()) flag.put("note", finding.note());
                 if (finding != null && finding.hasFix()) flag.put("fix", finding.fix());
                 flags.add(flag);
@@ -6115,6 +6130,8 @@ public final class MainFrame extends JFrame {
             savedFilter.put("text", filter.text()); savedFilter.put("groupMode", filter.groupMode().name());
             view.put("filter", savedFilter);
         }
+        view.put("findings", flaggedRows.stream().sorted().map(row -> findings.getOrDefault(row,
+                new telamin.fluxtion.audit.analyser.analyser.report.Finding(row, null, null)).toMap()).toList());
         view.put("selectedRecords", java.util.Arrays.stream(tablePanel.selectedModelRows()).boxed().toList());
         view.put("topology", topologyPanel.recoveryView());
         view.put("selectedGraph", graphTabs.selectedGraphName());
@@ -6267,6 +6284,21 @@ public final class MainFrame extends JFrame {
     @SuppressWarnings("unchecked")
     private void restoreRecoveryView(Map<String,Object> view, java.util.List<String> outcomes, boolean logIdentity, boolean graphIdentity) {
         try {
+            if (view.get("findings") instanceof List<?> saved) {
+                if (logIdentity && store != null) {
+                    var restored = new java.util.LinkedHashMap<Integer, telamin.fluxtion.audit.analyser.analyser.report.Finding>();
+                    for (Object entry : saved) {
+                        if (!(entry instanceof Map<?,?> map)) throw new IllegalArgumentException("invalid saved finding");
+                        var finding = telamin.fluxtion.audit.analyser.analyser.report.Finding.fromMap(map);
+                        if (finding.recordIndex() >= store.size()) throw new IllegalArgumentException("saved finding outside log");
+                        restored.put(finding.recordIndex(), finding);
+                    }
+                    findings.clear(); findings.putAll(restored);
+                    flaggedRows.clear(); flaggedRows.addAll(restored.keySet());
+                    tablePanel.repaintRows(); topologyPanel.refreshFinding(); graphTabs.refreshFlagRug();
+                    outcomes.add("Restored " + restored.size() + " flags/findings against the unchanged log");
+                } else outcomes.add("Flags/findings withheld: no unchanged log identity");
+            }
             if (logIdentity && filter != null && view.get("filter") instanceof Map<?,?> f) {
                 var snapshot = new telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot(
                         f.get("from") instanceof Number n ? n.longValue() : null,

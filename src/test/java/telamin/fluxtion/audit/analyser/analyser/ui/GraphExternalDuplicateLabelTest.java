@@ -27,7 +27,7 @@ class GraphExternalDuplicateLabelTest {
     private ActionExecutor executor(GraphTabs tabs, Path exchangeDir) {
         tabs.bind(store, new FilterState());
         FilterState filter = new FilterState();
-        ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f) -> { });
+        ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f, k) -> { });
         AppConfig cfg = new AppConfig();
         cfg.assistantExports = true;                 // the CSV must sit inside the exchange directory to be readable
         cfg.assistantExportDir = exchangeDir.toString();

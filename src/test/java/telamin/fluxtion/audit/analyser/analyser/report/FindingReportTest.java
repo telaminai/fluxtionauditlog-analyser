@@ -180,6 +180,22 @@ class FindingReportTest {
     }
 
     @Test
+    void confirmationUsesNeutralLabelsAndKeepsItsKindAcrossSerializedMerge() {
+        // Constructed confirmation, not a claim about the preserved session's records.
+        Finding f = new Finding(99, "at-limit accepted", "matches the declared boundary", "confirmation");
+        var json = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(f.toMap());
+        Finding restored = Finding.fromMap((java.util.Map<?,?>)telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(json));
+        assertEquals(f, restored);
+        assertEquals("confirmation", restored.merge(null, "still matches").kind());
+        assertEquals("fault", Finding.fromMap(java.util.Map.of("recordIndex", 0, "note", "legacy")).kind());
+        String out = body(FindingReport.render(evidence(restored, null, null, null)));
+        assertTrue(out.contains("OBSERVATION"));
+        assertTrue(out.contains("ASSESSMENT"));
+        assertFalse(out.contains("WHAT IS WRONG"));
+        assertFalse(out.contains("SUGGESTED FIX"));
+    }
+
+    @Test
     void aReportCarriesTheExplanationAndTheFix() {
         Finding f = new Finding(99, "revenue is posted before the shelf is checked",
                 "move the stock check upstream of BasketAccumulator");

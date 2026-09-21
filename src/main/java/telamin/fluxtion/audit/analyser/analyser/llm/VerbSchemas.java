@@ -130,8 +130,9 @@ public final class VerbSchemas {
                 props(
                         p("byteOffsets", arr(integer()), "anchors by byte offset"),
                         p("recordIndexes", arr(integer()), "anchors by record index"),
-                        p("note", string(), "what is wrong with this cycle, and why it matters"),
-                        p("fix", string(), "the likely cause or suggested fix — where to look")),
+                        p("kind", enumStr("fault", "confirmation"), "finding category; new findings default to fault. Omission preserves an existing category. Confirmation labels are Observation / Assessment."),
+                        p("note", string(), "what you observed (confirmation), or what is wrong (fault)"),
+                        p("fix", string(), "your assessment (confirmation), or likely cause / suggested fix (fault)")),
                 List.of()));
 
         s.put("coverage", schema("Which of the processor's nodes never wrote audit output in this run — "

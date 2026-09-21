@@ -97,14 +97,14 @@ public final class FindingReport {
         metaStrip(doc, c, e);
 
         if (e.finding().hasNote()) {
-            calloutBlock(doc, c, "What is wrong", e.finding().note(), PROBLEM, PROBLEM_BG);
+            calloutBlock(doc, c, e.finding().noteLabel(), e.finding().note(), PROBLEM, PROBLEM_BG);
         }
         if (e.finding().hasFix()) {
-            calloutBlock(doc, c, "Likely cause / suggested fix", e.finding().fix(), FIX, FIX_BG);
+            calloutBlock(doc, c, e.finding().fixLabel(), e.finding().fix(), FIX, FIX_BG);
         }
         // no finding text at all: say so rather than leaving a gap the reader has to interpret
         if (e.finding().isEmpty()) {
-            calloutBlock(doc, c, "What is wrong",
+            calloutBlock(doc, c, e.finding().noteLabel(),
                     "No explanation was recorded for this record.", MUTED, PANEL);
         }
 

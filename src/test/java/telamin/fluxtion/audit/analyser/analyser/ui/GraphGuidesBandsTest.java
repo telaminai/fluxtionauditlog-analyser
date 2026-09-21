@@ -25,7 +25,7 @@ class GraphGuidesBandsTest {
     private ActionExecutor executor(GraphTabs tabs) {
         tabs.bind(store, new FilterState());
         FilterState filter = new FilterState();
-        return new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f) -> { });
+        return new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(), (r, n, f, k) -> { });
     }
 
     @Test

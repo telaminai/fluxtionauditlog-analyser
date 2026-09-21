@@ -7,6 +7,10 @@ shareable, instead of living in a chat window that scrolls away.
 ## References, never a document
 
 A report is an **ordered list of references with connective prose** — never a free-form document.
+A finding flagged as `kind: "confirmation"` uses **Observation / Assessment**, including in exported
+PDFs. Existing fault findings retain their labels. Choose the category when writing the flag; the report
+uses that same finding.
+
 Sections are typed: a `finding` points at a flagged record, a `record` at a cycle, a `chart` at a
 named graph, a `topology` at a named focus, a `table` at the query that derives its rows, and only
 `narrative` stores its own content. That one constraint keeps this a forensic instrument: a report

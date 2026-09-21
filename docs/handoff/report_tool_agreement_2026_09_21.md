@@ -67,3 +67,31 @@ acceptance. Neither error is presented as a product failure or mutation witness.
 
 Restored validation: `mvn -q test`; all `PairingDuringLoadFrameTest` cases with display enabled;
 `mkdocs build --strict`. All pass. No new LLM sessions, no producer fix, no release or main push.
+
+## TA-3 — completed
+
+Frozen before edits under the existing reports item: confirmations use Observation / Assessment in the
+table tooltip, topology callout, report panel and both PDF routes; fault labels remain unchanged; kind
+survives explicit recovery against the same verified log, but changed logs cannot regain saved flags;
+disabling the label selection fails. **Held.** All inputs are **constructed regression cases**.
+
+Tests: `FindingPresentationTest.confirmationUsesNeutralLabelsOnTableTopologyAndReports` checks the table
+presentation, actual painted callout line layout and rendered report-panel component text.
+`faultRemainsTheDefaultAndInvalidKindsNeverReachTheSink` drives the verb and its category refusal.
+`FindingReportTest.confirmationUsesNeutralLabelsAndKeepsItsKindAcrossSerializedMerge` covers JSON,
+legacy default, partial edits and the single-finding PDF.
+`ReportRendererTest.confirmationSectionUsesNeutralLabels` covers the investigation PDF.
+`SessionRecoveryFrameTest.confirmationFlagSurvivesExplicitRecoveryOnlyAgainstTheSameLog` drives a real
+project close/reopen/explicit restore, including a changed-log refusal. Flags were not previously part of
+recovery; they now use its existing verified-log guard, with no implicit restore or new identity policy.
+
+Mutation: `Finding.confirmation()` always returns false. Three presentation/PDF tests fail; the
+[saved witness](evidence/tool-agreement-2026-09-21/ta3-mutation.json) records the failing assertions.
+Fault controls remain valid. Source restored; full headless suite and full recovery display suite pass.
+The manifest parity test caught a missing `kind` mention in the built-in prompt; that omission was fixed
+before the final green run (1,729 tests, 43 display skips). One sandboxed full run could not bind
+loopback sockets; the unrestricted rerun passed. The initial recovery assertion expected an absent flags key where context
+returns an empty list; corrected to assert no restored flags, preserving the negative control.
+
+Counts: analyser **10 → 9 open** (D4), upstream **8 → 8 open**. The broader reports tracker item is still
+open for its other requirements. No claim that commentary becomes runtime evidence; no client sessions.

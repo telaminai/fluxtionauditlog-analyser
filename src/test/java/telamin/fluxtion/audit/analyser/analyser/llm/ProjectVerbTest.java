@@ -138,7 +138,7 @@ class ProjectVerbTest {
         FilterState filter = new FilterState();
         tabs.bind(store, filter);
         ActionExecutor ex = new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(),
-                (r, n, f) -> { });
+                (r, n, f, k) -> { });
         ex.bind(null, app);
         return ex;
     }

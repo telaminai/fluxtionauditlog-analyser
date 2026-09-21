@@ -43,7 +43,7 @@ public final class ActionExecutor implements RenderExecutor {
      */
     @FunctionalInterface
     public interface FlagSink {
-        void flag(int[] modelRows, String note, String fix);
+        void flag(int[] modelRows, String note, String fix, String kind);
     }
 
     private final FlagSink flagRows;
@@ -634,14 +634,18 @@ public final class ActionExecutor implements RenderExecutor {
         if (rows.isEmpty()) return ActionResult.error("flag needs byteOffsets[] or recordIndexes[]");
         String note = asText(p.get("note"));
         String fix = asText(p.get("fix"));
+        String kind = asText(p.get("kind"));
+        if (p.containsKey("kind") && !Set.of("fault", "confirmation").contains(kind == null ? "" : kind))
+            return ActionResult.error("flag kind must be fault or confirmation");
         int[] rowArr = rows.stream().mapToInt(Integer::intValue).toArray();
         return onEdt(() -> {
-            flagRows.flag(rowArr, note, fix);
+            flagRows.flag(rowArr, note, fix, kind);
             Map<String, Object> applied = new LinkedHashMap<>();
             applied.put("flagged", rowArr.length);
             applied.put("recordIndexes", rows.stream().sorted().toList());
             if (note != null) applied.put("note", note);
             if (fix != null) applied.put("fix", fix);
+            if (kind != null) applied.put("kind", kind);
             return ActionResult.ok("flag", "applied", applied);
         });
     }

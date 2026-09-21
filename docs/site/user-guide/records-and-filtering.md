@@ -123,3 +123,15 @@ finding (a clock step, a mis-merge), and re-sorting records would destroy the ev
 violation exists, time-anchored answers (`at`, rolling windows, buckets) carry a caveat note; record
 anchors are unaffected. Agents open an explicit set with `open {logs: [...]}` and read the same
 report from `context`.
+
+### Confirming correct behavior
+
+A finding can confirm expected behavior. Use `flag` with `kind: "confirmation"`, a `note` stating the
+observation and an optional `fix` carrying your assessment. These appear as **Observation / Assessment**
+in the table tooltip, topology callout and reports, including PDF. The record's context menu offers the
+same category choice when writing a finding. Existing findings default to `fault`; omitting `kind` while
+editing a finding preserves its category and any omitted text.
+
+Flags and finding categories are included in the local session-recovery snapshot. Closing and reopening
+a project offers restoration explicitly; findings are restored only against the verified unchanged log.
+They are commentary about the records, not additional runtime evidence.

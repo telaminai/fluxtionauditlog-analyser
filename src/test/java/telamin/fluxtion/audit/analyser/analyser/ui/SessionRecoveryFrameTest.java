@@ -21,6 +21,35 @@ class SessionRecoveryFrameTest {
     private String originalHome;
     private Path profile, log, design, diagnostics, graph;
 
+    @Test void confirmationFlagSurvivesExplicitRecoveryOnlyAgainstTheSameLog() throws Exception {
+        start();
+        try {
+            openEvidence();
+            act("flag", Map.of("recordIndexes", List.of(0), "kind", "confirmation",
+                    "note", "at-limit accepted", "fix", "matches expected boundary"));
+            act("flag", Map.of("recordIndexes", List.of(0), "fix", "assessment refined"));
+            var table = field(frame, "tablePanel", LogTablePanel.class);
+            @SuppressWarnings("unchecked") var notes = field(table, "noteProvider", java.util.function.IntFunction.class);
+            assertEquals("Observation: at-limit accepted\nAssessment: assessment refined", notes.apply(0));
+            act("open", Map.of("close", "project"));
+            act("open", Map.of("project", profile.toString()));
+            await(c -> "offered".equals(map(c.get("restoration")).get("state")));
+            act("open", Map.of("restore", "last"));
+            var restored = await(c -> "finished".equals(map(c.get("restoration")).get("state")));
+            var flags = (List<?>)restored.get("flags");
+            assertEquals(1, flags.size());
+            assertEquals("confirmation", map(flags.getFirst()).get("kind"));
+            assertEquals("assessment refined", map(flags.getFirst()).get("fix"));
+            act("open", Map.of("close", "project"));
+            act("open", Map.of("project", profile.toString()));
+            await(c -> "offered".equals(map(c.get("restoration")).get("state")));
+            Files.writeString(log, Files.readString(log) + "\n# changed bytes\n");
+            act("open", Map.of("restore", "last"));
+            var changed = await(c -> "finished".equals(map(c.get("restoration")).get("state")));
+            assertTrue(((List<?>)changed.getOrDefault("flags", List.of())).isEmpty(), "no flags may be attached to a different log: " + changed);
+        } finally { stop(); }
+    }
+
     @Test void closeReopenOffersThenRestoresLogDesignDiagnosticsAndGraph() throws Exception {
         start();
         try {
