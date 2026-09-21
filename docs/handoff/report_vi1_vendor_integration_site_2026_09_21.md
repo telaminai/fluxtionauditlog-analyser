@@ -79,6 +79,31 @@ rows 11 records 11 mismatches 0
 node order in a quote record: ['acmeQuoteFeed', 'acmeVarCalculator', 'acmeRiskEngine', 'riskLimitGuard']
 ```
 
+## Owner-supplied review reply — 2026-09-21
+
+The review accepts the evidence treatment and asks for public warning destinations and a clearer
+statement of the integration's value. Implemented in the same PR:
+
+- Opened [issue 2](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2) for dependency
+  shadowing and [issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3) for new-node
+  audit scaffolding. Public pages now use descriptive issue links rather than internal feedback numbers.
+- Pinned the TA-9 spec references to `332701dada41c52bd62a3abbf27d4f5e12492799`.
+- Added “What you get” near the top: recorded discovery of the supplier internals/event types/service,
+  re-verified audit order across the boundary, and recorded shared-interface dispatch without adapters.
+  Recorded claims link to the original predictions; they are not relabelled as newly run experiments.
+- Added the reviewer-reported 1.0.73 workaround result: a manually added `EventLogNode` superclass
+  and audit-writing body survived regeneration and a subsequent handler declaration. The reviewer
+  compiled the result but did not run key-gated generation or witness a runtime audit value. The guide
+  keeps that distinction. The [scratch evidence is preserved](evidence/stub-reconcile-1.0.73-2026-09-21/README.md); no independent rerun is claimed.
+- Historical host totals remain omitted. The C++ section remains unchanged; owner confirmation and
+  merge are still pending.
+
+The reviewer also reported repeated/interleaved comment-contract text in generated stubs. That is
+recorded as upstream-owned tool-agreement D21 with a regression acceptance requirement. The
+preserved snapshots directly show the formatting defect; neither this report nor the page calls the
+generator independently re-run. Original source whitespace is retained (one trailing-space line in
+the evidence snapshot); edited prose passes the whitespace check.
+
 ### risk-tampered — exit 1
 
 ```text

@@ -127,7 +127,7 @@ supply data?” The [capability guide](spring-authoring.md#what-you-can-design-t
     `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
     looks like a class that does not exist yet, and the skeleton silently replaces it: the build
     stays green and the supplier's component is gone. This remains open as
-    [feedback #29](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/tracker.md).
+    [the dependency-shadowing issue](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2).
     See the [vendor worked example](integrating-a-vendor-component.md) before adding a supplier jar.
 
 The website also previews imported XML as a graph. This separate two-node example shows its
@@ -191,7 +191,11 @@ and refuses conflicts. Read the refusal rather than deleting ownership records t
     field until you add that support. For a new node that must write audit values, manually make
     it extend `com.telamin.fluxtion.runtime.audit.EventLogNode`, then implement the logging and
     check the emitted record. Do not assume a generated stub already logs. This is the known,
-    still-open [feedback #6 audit-scaffolding gap](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/tracker.md).
+    still-open [new-node audit-scaffolding gap](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3).
+
+In the [reviewed new-node case](https://github.com/telaminai/fluxtionauditlog-analyser/tree/c1e23172fcfe1cc23b6c002fef2172c2116e8f24/docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21) on starter 1.0.73, reconciliation preserved the manually added
+`EventLogNode` superclass and audit-writing body, including after a later handler declaration was
+added. That checks edit preservation; check the emitted audit value after running your application.
 
 The build receipt is `target/fluxtion-run.json`; compilation diagnostics belong to the latest
 attempt only when that receipt says the compiler ran and its input checks still hold.
