@@ -460,7 +460,7 @@ class FormatConformanceTest {
                     "c05-untimed.yaml", "c06-out-of-order.yaml", "c07-duplicate-instance.yaml",
                     "c08-lenient-values.yaml", "c09-garbage.yaml", "c11-attribution.yaml",
                     "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
-                    "c17-legacy-quotes.yaml"), names,
+                    "c17-legacy-quotes.yaml", "c18-stream-end.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -485,5 +485,31 @@ class FormatConformanceTest {
                     .append("\" target=\"").append(st[1]).append("\"/>");
         }
         return sb.append("</graph></graphml>").toString();
+    }
+
+    /**
+     * C18 — the stream-end marker is a container fact and not a record (spec-audit-stream-end D-E4).
+     *
+     * <p>The assertion that matters is the one about BOTH paths: if the built-in reader suppressed the
+     * marker and the SPI path did not, two readers of one file would disagree about how many records it
+     * holds. {@code bothPathsAgree} would catch it, which is why this fixture runs through it.
+     */
+    @Test
+    void c18_streamEndMarkerIsNotARecordInEitherPath() throws IOException {
+        LogStore s = bothPathsAgree("c18-stream-end.yaml");
+        assertEquals(2, s.size(), "two records; the marker is not one of them");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE,
+                s.streamEnd().state(), "the marker's count matches what was read");
+        assertEquals(Long.valueOf(1001), s.maxLogTime(),
+                "the marker's own logTime must not extend the timeline");
+    }
+
+    /** A file with no marker is UNKNOWN — the state of every fixture here, and of every existing log. */
+    @Test
+    void c01_aFileWithNoMarkerIsUnknownNotComplete() throws IOException {
+        LogStore s = builtIn("c01-minimal.yaml");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                s.streamEnd().state());
+        assertFalse(s.streamEnd().isKnownComplete(), "silence is not a completeness claim");
     }
 }

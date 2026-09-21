@@ -24,6 +24,7 @@ public final class MappedLogStore implements LogStore {
 
     private final FileChannel channel;
     private final LogIndex index;
+    private final StreamEnd streamEnd;
     private final Path path;
     private final FileReadIdentity readIdentity;
     private final Map<Integer, LogRecord> cache = new LinkedHashMap<>(CACHE, 0.75f, true) {
@@ -36,11 +37,26 @@ public final class MappedLogStore implements LogStore {
         this.path = path;
         this.index = new LogIndex();
         var capture = FileReadIdentity.begin(path);
+        StreamEndTracker tracker = new StreamEndTracker();
         try (var in = capture.open()) {
-            ByteRecordFramer.frame(in, (offset, length, text) -> index.add(RecordParser.parse(text, offset, length)));
+            ByteRecordFramer.frame(in, (offset, length, text) -> {
+                if (tracker.accept(text)) index.add(RecordParser.parse(text, offset, length));
+            });
         }
+        this.streamEnd = tracker.resolve();
         this.readIdentity = capture.finish();
         this.channel = FileChannel.open(path, StandardOpenOption.READ);
+    }
+
+    @Override
+    public StreamEnd streamEnd() {
+        return streamEnd;
+    }
+
+    @Override
+    public java.util.List<String> sourceDiagnostics() {
+        String d = streamEnd.diagnostic("this log");
+        return d == null ? java.util.List.of() : java.util.List.of(d);
     }
 
     @Override

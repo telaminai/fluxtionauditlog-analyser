@@ -3783,6 +3783,8 @@ public final class MainFrame extends JFrame {
         String producerWarning = producerDiagnostics.isClean() ? ""
                 : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
                         java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
+        // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent
+        String wholeNote = loaded.streamEnd().isKnownComplete() ? "  ·  complete" : "";
         status.setText(loaded.size() + " records · " + range + " · "
                 + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
                         : displayName(location)) + orderWarning + producerWarning);
@@ -5679,6 +5681,19 @@ public final class MainFrame extends JFrame {
             Map<String, Object> log = facts.logAsMap();
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
+            // spec-audit-stream-end D-E3: whether the FILE says it is whole. Always present when a log is
+            // open, including "unknown" — an agent that cannot tell complete from unverified will read
+            // silence as success, which is the failure the whole contract exists to prevent (D-T8).
+            // Human surface: the status bar (complete) and the existing source-diagnostic line (the two
+            // bad states). Docs: user-guide/log-sources.md and site/format-spec.md §1a.
+            if (!log.isEmpty() && store != null) {
+                var end = store.streamEnd();
+                Map<String, Object> se = new java.util.LinkedHashMap<>();
+                se.put("state", end.state().name().toLowerCase(java.util.Locale.ROOT));
+                if (end.declaredRecords() >= 0) se.put("declaredRecords", end.declaredRecords());
+                se.put("recordsRead", end.emittedRecords());
+                log.put("streamEnd", se);
+            }
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance != null) out.put("provenance", logProvenance);

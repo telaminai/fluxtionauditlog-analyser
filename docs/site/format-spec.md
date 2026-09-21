@@ -1,6 +1,6 @@
 # Audit record format — specification
 
-**Format 1 · status: published, open.** This page is the normative description of the record format
+**Format 1 · status: published, open.** *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2.* This page is the normative description of the record format
 the analyser reads. It exists so that anything that can describe a run — a Fluxtion processor, a
 Mongoose server, a workflow engine, a translator over someone else's trace — can emit records the
 analyser understands, and know *what the analyser will do with them*. The [Log format](log-format.md)
@@ -27,6 +27,47 @@ The key words MUST, SHOULD and MAY are used as in RFC 2119.
   filter, `read`, report quoting — works on that text, so it MUST be complete: a record with no text
   form is not a record.
 - Records are consumed **in container order**. The analyser never re-sorts.
+
+### 1a. Saying the file is whole (Format 1.1, additive)
+
+A container MAY end with a **stream-end marker**: a record carrying `streamEnd` and, when it can,
+`streamEndRecords`.
+
+```yaml
+---
+eventLogRecord:
+  logTime: 1789993421904
+  streamEnd: normal        # normal | stopping
+  streamEndRecords: 25     # records written before this marker
+---
+```
+
+It is **physically a record and semantically a container fact**, and it is a record only because §1
+leaves no position for non-record text. A reader MUST NOT present it as a record: not in a record count,
+a table, a query result, a report, coverage, a series, or the time range. A reader that does present it
+is still conformant — it has merely failed to recognise an unknown field, which §2 permits — but it is
+not doing what this section asks.
+
+A writer SHOULD emit the marker only when it believes it finished. A writer that cannot count its records
+MAY omit `streamEndRecords`; a reader MUST then treat the completeness claim as unverified rather than
+proven, because a marker that cannot say how much it wrote is not evidence.
+
+**Four states, and a reader SHOULD distinguish them:**
+
+| the container | the reader reports |
+|---|---|
+| marker present, count matches the records read | **complete**, and verified |
+| marker present, count does not match | **records missing**, naming both numbers |
+| text after the last separator that never closed | **stopped mid-write**, naming the unread bytes |
+| ends cleanly, no marker | **unknown whether complete** |
+
+The fourth row is the point, and it is the common case. **Silence MUST NOT be read as completeness.**
+Every producer that predates this section, and every export the analyser has ever read, lands there and
+MUST keep loading exactly as before. What a reader owes is to say it does not know, not to guess.
+
+**Compatibility.** A reader written before this section sees one extra record carrying unknown fields,
+which §2 already requires it to tolerate. Nothing about Format 1 changes for a file that carries no
+marker.
 
 ## 2. The record
 
@@ -248,6 +289,7 @@ author: *emit these records and you get exactly what the native log gets.*
 | C06 out of order | reported with its first record; never re-sorted |
 | C07 duplicate instanceId | every occurrence kept; last wins; one point per record |
 | C08 lenient values | only top-level separators split; nothing fails; `NaN` detected |
+| C18 stream end | the marker is a container fact, not a record: both paths report 2 records for a file holding 2 and a marker; its `logTime` does not extend the time range; no marker means unknown, never complete |
 | C09 garbage | a `PARSE_ERROR` record with its text; neighbours untouched; count preserved |
 | C10 ordering claim | `TOTAL`/`PARTIAL` is the reader's and reaches the index; the old constructor means `TOTAL` |
 | C11 attribution | the core attributes by position and never merges — broadcast makes duplicates; a component-less key is not even expressible |

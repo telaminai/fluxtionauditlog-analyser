@@ -22,6 +22,8 @@ public final class SpiLogStore implements LogStore {
     private final LogIndex index = new LogIndex();
     private final AuditLogReader reader;
     private final List<String> sourceDiagnostics = new ArrayList<>();
+    private telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd streamEnd =
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.unknown(0);
 
     /** Asked once at open (M34.1) — a reader that scans a registry must not be re-invoked per query. */
     private AuditLogReader.SourceGraph sourceGraph;
@@ -62,18 +64,31 @@ public final class SpiLogStore implements LogStore {
         long[] offset = {0};
         // The grammar is the READER's declaration, applied to every record; the text is never sniffed.
         AuditLogReader.TextEncoding encoding = reader.textEncoding();
+        // D-E4: the marker is a container fact in EVERY path, so a plugin's records are filtered by the
+        // same rule the built-in reader uses. The conformance suite asserts the two agree record for
+        // record, and a filter in one path only would be a real divergence, not just a red test.
+        var tracker = new telamin.fluxtion.audit.analyser.analyser.parse.StreamEndTracker();
         reader.read(source, text -> {
+            if (!tracker.accept(text)) return;
             LogRecord rec = RecordParser.parse(text, offset[0], encoding);
             store.index.add(rec);
             store.texts.add(text);
             offset[0] += text.length();   // synthetic — never handed out as a real file offset
         }, store.sourceDiagnostics::add);
+        // A plugin owns its container, so the analyser cannot see an unterminated tail through the SPI:
+        // whatever the reader chose to hand over is all there is. A marker still counts.
+        store.streamEnd = tracker.resolve();
         return store;
     }
 
     @Override
     public AuditLogReader.TextEncoding textEncoding() {
         return reader.textEncoding();
+    }
+
+    @Override
+    public telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd streamEnd() {
+        return streamEnd;
     }
 
     @Override

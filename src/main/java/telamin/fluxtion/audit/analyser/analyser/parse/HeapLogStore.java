@@ -18,6 +18,8 @@ public final class HeapLogStore implements LogStore {
 
     private volatile String file;        // grows in follow/tail mode (append-only); volatile: read off-EDT by readView()
     private final LogIndex index;
+    /** D-E3: whether this file says it is whole. Never null; UNKNOWN for every producer that is silent. */
+    private StreamEnd streamEnd = StreamEnd.unknown(0);
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
 
@@ -81,10 +83,34 @@ public final class HeapLogStore implements LogStore {
         return index.size() - before;
     }
 
-    private static LogIndex buildIndex(String file) {
+    /**
+     * Indexes the file and, on the same pass, works out whether it says it is whole
+     * ({@code spec-audit-stream-end.md} D-E3).
+     *
+     * <p>The marker is dropped rather than indexed (D-E4): it is a container fact wearing a record's
+     * clothes, and it must not reach the table, a count, a series or the timeline. Dropping it HERE,
+     * at the one place records enter the index, is why no downstream surface needs to remember to
+     * filter it.
+     */
+    private LogIndex buildIndex(String file) {
         LogIndex idx = new LogIndex();
-        RecordFramer.frame(file, raw -> idx.add(RecordParser.parse(raw.text(), raw.offset())));
+        StreamEndTracker tracker = new StreamEndTracker();
+        RecordFramer.frame(file, raw -> {
+            if (tracker.accept(raw.text())) idx.add(RecordParser.parse(raw.text(), raw.offset()));
+        }, false, tracker::unterminatedTail);
+        this.streamEnd = tracker.resolve();
         return idx;
+    }
+
+    @Override
+    public StreamEnd streamEnd() {
+        return streamEnd;
+    }
+
+    @Override
+    public java.util.List<String> sourceDiagnostics() {
+        String d = streamEnd.diagnostic("this log");
+        return d == null ? java.util.List.of() : java.util.List.of(d);
     }
 
     @Override

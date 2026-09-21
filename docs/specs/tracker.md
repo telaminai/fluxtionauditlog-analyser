@@ -13,7 +13,7 @@ proposal carries the seven decisions, the repository order and the acceptance. R
 touches no `fluxtion` code; release 2 is one runtime release carrying binary, the renderer and two live
 defects. **Nothing below is implemented.**
 
-- **[AF-1] ◧ — the stream-end contract** · _[spec-audit-stream-end.md](spec-audit-stream-end.md), written
+- **[AF-1] ☑ — the stream-end contract** · _[spec-audit-stream-end.md](spec-audit-stream-end.md), written
   2026-09-21, awaiting review._ Step 1 of release 1 and the blocker for everything after it: the writer and
   the reader implement the same contract, so it exists first. **Why it is not trivial:** the proposal's
   original "write an end marker" was measured unworkable — as its own document it becomes a phantom record,
@@ -21,14 +21,23 @@ defects. **Nothing below is implemented.**
   separates the two problems (mid-record stop needs no format change; boundary stop does), makes the marker
   an additive reserved field on a record because Format 1 has no non-record position, and adds a count so
   the claim is checkable rather than declarative.
-- **[AF-2] ☐ — amend `docs/site/format-spec.md` and add conformance fixtures** · _four new fixtures for the
+- **[AF-2] ☑ — amend `docs/site/format-spec.md` and add conformance fixtures** · _four new fixtures for the
   four states; all fifteen existing fixtures unchanged in behaviour through both paths; **forward
   compatibility demonstrated against the released jar**, not a branch with the feature off._ Public site
   page, so it deploys (owner decision 4).
-- **[AF-3] ☐ — the analyser reports incompleteness** · _owner decision 1. Four states reported distinctly,
+- **[AF-3] ◧ — the analyser reports incompleteness** · _owner decision 1. Four states reported distinctly,
   the unknown one **not** rendered as complete; a mid-record stop still shows every complete record before
   it; the marker absent from table, `read`, report, coverage, series, record count, `context` and the time
   range._
+- **[AF-2/AF-3 implementation note, 2026-09-21]** · _branch `feat/audit-format-end-marker`._ Format 1.1 §1a
+  is additive; `c18-stream-end.yaml` runs through **both** paths, which is what forced the marker filter into
+  one shared `StreamEndTracker` rather than three stores — the built-in and SPI readers must agree on how many
+  records a file holds. Two spec corrections found by building it: the marker is **flat scalars**, not a nested
+  mapping, because `RecordParser` switches on top-level scalars and a nested payload would need new parser
+  machinery for no compatibility gain; and the framer only withholds an unterminated tail in **follow** mode, so
+  an ordinary load needed an explicit callback rather than inheriting the behaviour. **Still open in AF-3:** the
+  `read` verb, reports, coverage and series have not been checked for marker leakage — the marker never enters
+  the index so they should be clean by construction, but D-E4 asks for the assertion, not the inference.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository. `asCharSequence()` + `\n---\n` per
   record, the marker, config validation refusing unknown values by name. **Byte-identical to a known-good
   export** modulo the marker; per-node entry parity, not a record count._

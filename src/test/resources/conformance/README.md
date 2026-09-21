@@ -26,5 +26,7 @@ that a leading comment block is skipped was wrong. The fixtures corrected the sp
 | `c17-legacy-quotes.yaml` | Text is read with the legacy grammar, byte for byte as it always was: a backslash is a character, a quote mark is the producer's data (`"hello"` keeps its quotes), `prefix "C:\"` closes at its second quote so the `price` after it is still a figure, and a multiline value containing a line that LOOKS like a control field (`nodeLogsEncoding: quoted`) is value data folded by continuation - nothing in the text selects a grammar. |
 | `c13-exported-call.yaml` | An exported service call: eventToString is a Java method signature, so the record's dimension is the CALLBACK name and the declaring type is captured; eventTime is -1 because no event drove it. |
 
+| `c18-stream-end.yaml` | A stream-end marker is a CONTAINER fact, not a record: the file holds two records and a marker claiming two, and both the built-in reader and the SPI path report a size of 2. The marker never reaches the index, a count, the timeline or the table (spec-audit-stream-end D-E4), and its `logTime` does not extend the time range. A file carrying no marker is UNKNOWN, never complete. |
+
 C10 (the ordering claim), C14 (synthesised text) and C15 (graph provenance) have no file: their subject is
 the reader — its declaration, its constructed text, the graph it hands over — not a record.

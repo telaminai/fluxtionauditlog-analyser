@@ -91,6 +91,33 @@ drive the same verbs:
 `GET /manifest` publishes a JSON schema for every verb, so a foreign agent learns the shapes up front
 instead of trial-and-erroring against the structured errors.
 
+## Is the log whole?
+
+A log file can be cut short. A server killed mid-write, a partial copy, a transfer that stopped — the
+file still opens, and the records in it are still real. What changes is whether you can treat *absence*
+as evidence.
+
+`context` reports this under `log.streamEnd`, and it has four answers:
+
+| state | what it means |
+|---|---|
+| `complete` | the file says it finished, and the count it declares matches what was read |
+| `missing_records` | the file says it finished and claims more records than it holds |
+| `stopped_mid_write` | the last record never closed — a writer that stopped, or a damaged tail |
+| `unknown` | the file makes no claim either way |
+
+**`unknown` is the ordinary answer, and it is not a fault.** Nothing that writes audit logs today emits a
+completeness claim, so almost every file you open will say `unknown`. It is reported rather than hidden
+because "I cannot tell" and "it is whole" are different answers, and only one of them lets you say a node
+never ran.
+
+When a file does claim completeness, the status bar says **complete** beside the record count. The two
+unhappy states appear as a source diagnostic, the same place a cut binary tail is reported.
+
+The marker a writer emits to make this claim is defined in the
+[format specification §1a](../format-spec.md). It is never shown as a record: it is a fact about the
+file, so it is absent from the table, from counts, from series and from the time range.
+
 ## Ask it to show you
 
 An explanation you have to map onto the screen yourself is half an explanation. Any assistant driving the

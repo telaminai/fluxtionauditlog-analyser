@@ -34,6 +34,21 @@ public final class RecordFramer {
      * still being written isn't indexed until it is complete.
      */
     public static void frame(String file, Consumer<RawRecord> sink, boolean requireTerminator) {
+        frame(file, sink, requireTerminator, null);
+    }
+
+    /**
+     * As {@link #frame(String, Consumer, boolean)}, and additionally reports a trailing record that
+     * never closed with a {@code ---} separator.
+     *
+     * <p>{@code onUnterminatedTail} receives the character length of that tail. It fires whether or not
+     * the tail is emitted, which is the point: in an ordinary load the tail IS emitted
+     * ({@code requireTerminator == false}), so nothing downstream could otherwise tell a file that
+     * stopped mid-record from one that ended cleanly. Follow mode withholds the tail instead, and still
+     * needs to know it is there. See {@code spec-audit-stream-end.md} D-E3.
+     */
+    public static void frame(String file, Consumer<RawRecord> sink, boolean requireTerminator,
+                             java.util.function.IntConsumer onUnterminatedTail) {
         if (file == null || file.isEmpty()) return;
         int n = file.length();
         int i = 0;
@@ -55,7 +70,10 @@ public final class RecordFramer {
             }
             i = (j < n) ? j + 1 : n;              // advance past '\n'
         }
-        if (recStart >= 0 && !requireTerminator) emit(file, recStart, n, sink);
+        if (recStart >= 0) {
+            if (onUnterminatedTail != null) onUnterminatedTail.accept(n - recStart);
+            if (!requireTerminator) emit(file, recStart, n, sink);
+        }
     }
 
     private static void emit(String file, int start, int end, Consumer<RawRecord> sink) {
