@@ -6,6 +6,48 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md), revision 9 (2026-09-21)
+
+Remove the export step between a Mongoose run and the analyser. Owner decisions taken 2026-09-21; the
+proposal carries the seven decisions, the repository order and the acceptance. Release 1 is text and
+touches no `fluxtion` code; release 2 is one runtime release carrying binary, the renderer and two live
+defects. **Nothing below is implemented.**
+
+- **[AF-1] ◧ — the stream-end contract** · _[spec-audit-stream-end.md](spec-audit-stream-end.md), written
+  2026-09-21, awaiting review._ Step 1 of release 1 and the blocker for everything after it: the writer and
+  the reader implement the same contract, so it exists first. **Why it is not trivial:** the proposal's
+  original "write an end marker" was measured unworkable — as its own document it becomes a phantom record,
+  inside the last record it is silently absorbed, and absent it is indistinguishable from either. The spec
+  separates the two problems (mid-record stop needs no format change; boundary stop does), makes the marker
+  an additive reserved field on a record because Format 1 has no non-record position, and adds a count so
+  the claim is checkable rather than declarative.
+- **[AF-2] ☐ — amend `docs/site/format-spec.md` and add conformance fixtures** · _four new fixtures for the
+  four states; all fifteen existing fixtures unchanged in behaviour through both paths; **forward
+  compatibility demonstrated against the released jar**, not a branch with the feature off._ Public site
+  page, so it deploys (owner decision 4).
+- **[AF-3] ☐ — the analyser reports incompleteness** · _owner decision 1. Four states reported distinctly,
+  the unknown one **not** rendered as complete; a mid-record stop still shows every complete record before
+  it; the marker absent from table, `read`, report, coverage, series, record count, `context` and the time
+  range._
+- **[AF-4] ☐ — mongoose writes the text file** · _not this repository. `asCharSequence()` + `\n---\n` per
+  record, the marker, config validation refusing unknown values by name. **Byte-identical to a known-good
+  export** modulo the marker; per-node entry parity, not a record count._
+- **[AF-5] ☐ — the audit-tail thread fix, immediate and standalone** · _not this repository; owner decision
+  3. Create the tailer and call `toEnd()` on the reading thread. Repairs live tailing for every existing
+  Chronicle deployment and waits for nothing here. A second defect behind it discards unflushed reads, so
+  the test needs a sub-50 ms burst._
+- **[AF-6] ☐ — the coupled analyser documents** · _the Mongoose skill states Mongoose does not write
+  analyser-readable YAML directly, which this makes false; its pin and the playground re-vendor follow.
+  Also `spec-tool-agreement.md` D12/D13, `spec-onboarding-example.md:62-72`, `spec-guided-start.md:66`,
+  `spec-follow-refreshes-graphs.md:37`, `docs/experience/current/skills/read-audit-log`,
+  `tutorial-playground.md` §3, and `TemplateArchive` installing `export-audit`._ Last in release 1: it
+  describes shipped behaviour.
+- **[AF-7] ☐ — release 2, blocked** · _one `fluxtion-runtime` release: pluggable record selection (owner
+  decision 6), the record-swap staleness, the per-node `NONE` corruption (owner decision 2, confirmed to
+  ride this release), and the renderer move. **Gate:** the corruption's cause is undiagnosed, and diagnosis
+  is a prerequisite for the release rather than work inside it — a release carrying an undiagnosed
+  corruption cannot say whether it fixed it._
+
 ## Beta — [proposal](../proposals/beta-testing/README.md), sixth draft (2026-09-21)
 
 Rewritten after the public release: the battery is retired, acquisition is measured, the journal is replaced by
