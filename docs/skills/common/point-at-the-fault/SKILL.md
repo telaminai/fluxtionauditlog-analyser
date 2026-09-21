@@ -1,6 +1,6 @@
 ---
 name: point-at-the-fault
-description: Check an audit log for one class of fault and point at the evidence, or write up a fault you found or fixed so a reader can check it. Use when asked whether a log shows a fault (a limit reached, a value gone NaN, a node that stopped logging), for a runbook that checks one, or a report proving one.
+description: Use when asked what is wrong with this application, to find and fix a fault, or to show which record proves it. Keep the broken run's evidence, fix, then report the symptom from a cited record and the cause from the diff. Also checks an audit log for one fault class and points at the evidence.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -12,6 +12,27 @@ that quotes what it matched on. *"Here is what I found"* becomes *"here it is"* 
 tool learns where that kind of fault shows up at the same moment they learn they have one.
 
 This skill is the **shape**. Copy it for your own fault class; the worked example at the end is one.
+
+## If you are fixing a fault — read this first
+
+**You do not need the analyser running.** The exported audit file is the evidence: read it, cite its
+records by file and line, and carry on. The `analyser_*` steps further down are for pointing at the record
+on screen when an analyser is connected; without one, skip them rather than stopping.
+
+1. **Keep the broken run's evidence before you change anything.** Run the project as you found it, export,
+   and copy the export aside (for example `evidence/before.yaml`). Rebuilding, restarting or re-exporting
+   overwrites it, and deleting `audit/` destroys it. A report whose "before" record no longer exists
+   proves nothing.
+2. **A change inside a method body needs a rebuild, not a regeneration.** Regenerate only when the graph
+   changes — a node, a bean or a reference in the design.
+3. **Never edit shipped data or input files** to make a result appear. If the data does not exercise the
+   fault, say so.
+4. **Read a flag before calling it wrong.** A value that is `false` on the events after a threshold was
+   crossed may be edge-triggered — true only on the event where it changed. Check what the node's source
+   says it means.
+
+Then fix the cause, run again, and write it up as described in **Writing it up** below: the symptom from a
+cited record, the cause from the diff, and a pack that stands alone.
 
 ## The two rules that make it safe
 
