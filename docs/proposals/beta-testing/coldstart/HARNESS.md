@@ -1,5 +1,9 @@
 # Cold-start validation of the v2 starter — operator protocol
 
+> **Retired 2026-09-20 by owner decision.** This battery is kept for the record. It was replaced by
+> [verification tiers](../../../handoff/report_starter_verification_tiers_2026_09_20.md), and public acquisition
+> was measured on 2026-09-21 ([release report](../../../handoff/report_release_journey_2026_09_21.md)). Do not run it.
+
 _Harness for [the beta proposal](../README.md). Run from this directory; paths below are relative to it._
 
 Measures whether a fresh LLM, with no prior Fluxtion exposure and no access to your source tree, can get

@@ -4,7 +4,8 @@
 > **human assurance engineer working with their own LLM client as a design partner**. It is not the
 > [cold-start battery](PROMPTS-COLDSTART.md), whose subject is a model and whose purpose is measuring routing
 > in the starter. The two share the intervention rules below and the `from:` vocabulary in
-> [`JOURNAL.md`](JOURNAL.md), and nothing else.
+> [`JOURNAL.md`](JOURNAL.md), and nothing else. **Sixth draft:** the journal is retired for the beta; timing and
+> reads come from observed tool events, and the client is asked only for a one-line `from:` pointer (proposal §8).
 
 **Session one is acts 1–3: 45–60 minutes.** Session two is acts 4–7, 60 minutes, with whoever returns.
 
@@ -16,13 +17,14 @@ mid-experiment, which is worse for attrition than an honest hour.
 
 ## Preface — say once, then A1
 
-> You'll work with your own LLM client as a design partner. Ask it to keep a running journal in `JOURNAL.md` —
-> the format is in that file, four lines an entry, written before each action. It writes the journal, not you.
+> You'll work with your own LLM client as a design partner. Ask it to write one line before each batch of
+> actions saying what pointed it there — `from: readme:`, `from: runbook:`, `from: error:`, and so on. Nothing
+> else is asked of it; we record the session's tool events ourselves.
 >
 > I'll give you one task at a time. I won't answer questions about Fluxtion, the project or the tooling — use
 > what the project gives you. Ask me anything about the environment.
 
-Confirm consent and journal extraction are agreed **before** A1, not after (proposal §6).
+Confirm consent, the recording fallback and the key arrangement are agreed **before** A1, not after (proposal §6, §7 B1).
 
 ---
 
@@ -236,7 +238,8 @@ acts completed / capped / operator-completed:
 A3 wording used (authored / rescued):
 substantive interventions (verbatim, or none):
 environment answers (count):
-journal extracted:  yes / no      if no, fallback used:
+tool events captured:  yes / no      if no, fallback used:
+key arrangement (§7 B1):
 transcript saved at:
 consent on file:    yes / no      onward-disclosure consent (§9): yes / no
 ```
