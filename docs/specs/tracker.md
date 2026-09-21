@@ -84,10 +84,23 @@ defects. **Nothing below is implemented.**
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository. `asCharSequence()` + `\n---\n` per
   record, the marker, config validation refusing unknown values by name. **Byte-identical to a known-good
   export** modulo the marker; per-node entry parity, not a record count._
-- **[AF-5] ☐ — the audit-tail thread fix, immediate and standalone** · _not this repository; owner decision
+- **[AF-5] ◧ — the audit-tail thread fix, immediate and standalone** · _not this repository; owner decision
   3. Create the tailer and call `toEnd()` on the reading thread. Repairs live tailing for every existing
   Chronicle deployment and waits for nothing here. A second defect behind it discards unflushed reads, so
   the test needs a sub-50 ms burst._
+  **Implemented 2026-09-21** in `telaminai/mongoose-plugins`, branch `fix/audit-tail-thread-safety`,
+  commit `419f8d4`, pushed and **not yet reviewed or merged**. Both defects were in
+  `WebAdminService.java` as diagnosed: the tailer was created with `toEnd()` on the Jetty connect thread
+  and read on a scheduled executor, so every tick threw `ThreadingIllegalStateException` and the catch
+  logged it at debug — which is why the socket completed a real upgrade, reported healthy, and delivered
+  nothing. Behind it, each tick read into a LOCAL list and discarded it unless the flush condition was
+  met, losing records the tailer had already advanced past. Tailer now created lazily on first tick; the
+  batch lives in the per-socket state and clears only after a successful send. `AuditTailThreadingTest`,
+  3 tests; the first reproduces Chronicle's cross-thread refusal against a bare queue, so the lazy
+  creation is load-bearing rather than stylistic. Module suite 100 pass, 0 fail.
+  **Not ◧→☑ until:** the end-to-end acceptance that the count DELIVERED equals the count EXPORTED for the
+  same window. That needs a live server and a client, and **no shipped client opens `/ws/audit-tail` yet**
+  — which is the other half of the original finding and is still open.
 - **[AF-6] ☐ — the coupled analyser documents** · _the Mongoose skill states Mongoose does not write
   analyser-readable YAML directly, which this makes false; its pin and the playground re-vendor follow.
   Also `spec-tool-agreement.md` D12/D13, `spec-onboarding-example.md:62-72`, `spec-guided-start.md:66`,
