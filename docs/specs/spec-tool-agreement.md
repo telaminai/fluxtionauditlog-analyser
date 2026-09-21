@@ -41,8 +41,7 @@ the source.
 | [`session-report.md`](../handoff/evidence/unguided-session-2026-09-21/session-report.md) | `dc8f6798…5029787` | the session's own report, verbatim; source `~/tmp/fluxtion-spring-mongoose-1/docs/session-report-2026-09-21.md` |
 | [`fixtures/MarketProcessor.src-round3.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml) | `d56fc497…e324a03d8` | the generated graph for the running build: 23 nodes, `sourceFingerprint` `f6ae6f84…` |
 | [`fixtures/MarketProcessor.target-stale.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.target-stale.graphml) | `b057121f…782b77f766` | the copy in `target/classes` and the jar: 20 nodes, `sourceFingerprint` `4ecd6134…`, missing `MarketCloseEvent`, `eodReport`, `eodReportPublisher` |
-
-| [`fixtures/desk-quote-supertype.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/desk-quote-supertype.graphml) | `2b5b9ecf…78353b6b3781c` | TA-9's fixture: the 2026-09-20 principal-desk baseline sealed in the path-audit experiment. `MarketPrice → priceBook` and `Quote → acmeQuoteFeed` are separate event nodes; at runtime one `MarketPrice` (which `implements com.acmerisk.api.Quote`) dispatches to both |
+| [`fixtures/desk-quote-supertype.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/desk-quote-supertype.graphml) | `2b5b9ecf…78353b6b3781c` | TA-9's fixture: the 2026-09-20 principal-desk baseline graph. `MarketPrice → priceBook` and `Quote → acmeQuoteFeed` are separate event nodes; at runtime one `MarketPrice` (which `implements com.acmerisk.api.Quote`) dispatches to both |
 
 Citations below are **report § / appendix row**. Every analyser item's acceptance uses these fixtures;
 no new LLM session is needed to build or verify any of it.
@@ -203,12 +202,11 @@ still stop it.
 ### TA-9 · P1 · Draw the route that actually runs when dispatch goes through a supertype
 
 **Evidence.** Feedback #34 (2026-09-20) reported that supertype dispatch is not drawn. It had no tracker
-entry. The path-audit experiment the same day measured its consequence. `MarketPrice` implements the vendor's
+entry. The vendor-integration experiment the same day showed its consequence. `MarketPrice` implements the vendor's
 `com.acmerisk.api.Quote`, so one `MarketPrice` event dispatches down **both** `MarketPrice → priceBook` and
 `Quote → acmeQuoteFeed`. The graph shows them as unrelated event types. That polymorphism is **how a vendor
 component is integrated**, so the missing route is the integration itself. Anything keyed on the event's own
-class sees half of what runs; a per-event-type path check built on it false-positived on legitimate vendor
-dispatch until it walked the class hierarchy.
+class sees half of what runs.
 
 **Required.** When a logged event's class, superclasses or interfaces match more than one graph event node,
 the topology for that record shows every route the event can take. Coverage and "not on this path" shading
@@ -264,7 +262,7 @@ Carry these into [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.
 
 - **Build order (D3):** generation must run before resources are copied, or the build must copy the
   regenerated graph. Stale generated source must not break a constructor change (§5.5, §6.5). This was
-  found independently on 2026-09-20 in the path-auditor experiment as well: two sessions, one defect.
+  found independently on 2026-09-20 during a separate regeneration experiment as well: two sessions, one defect.
 - **`validate` (D7):** check the Java against the design, or rename it to say it checks the XML only.
 - **Reconciler versus build (D8):** document the three conventions — reference field named after its
   bean, sink as a field rather than a bean, no literal constructor arguments — in the authoring contract,
