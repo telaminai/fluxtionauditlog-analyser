@@ -10,7 +10,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
-D3a (build) and D3b (detection). Two counts, reported separately: **analyser 9 open** (13 at baseline), **upstream 8 open**;
+D3a (build) and D3b (detection). Two counts, reported separately: **analyser 8 open** (13 at baseline), **upstream 8 open**;
 D7 is reclassified as capability disclosure. Direction check: re-count each release. **Revised 2026-09-21
 after review:** the first version reversed the two fixture fingerprints (source `4ecd6133…`, stale
 `f6ae6f84…`), and wrongly called feedback 23, 25 and 34 untracked.
@@ -48,9 +48,20 @@ after review:** the first version reversed the two fixture fingerprints (source 
 - **[TA-3] ☑ — `flag {kind: confirmation}` with neutral labels** — built under the existing "Reports as
   evidence, not automatically defects" (25), not a parallel item · _on constructed inputs: existing flags
   unchanged; Observation / Assessment in table, callout, report and PDF; kind survives restore._
-- **[TA-4] ☐ — window edges never silently change a rolling answer** · _constructed regression case (the A8
+- **[TA-4] ☑ — window edges never silently change a rolling answer** · _constructed regression case (the A8
   inputs were not preserved): a change on the first in-window record is returned, or an edge note names it;
   semantics frozen first; mutation witness._
+  **TA-4 prediction frozen before edits, 2026-09-21:** for constructed values 10, 10, 15, 15,
+  a time window starting at the third record returns delta 5 at its first row, through both `series`
+  and chart extraction, in STRICT and LOCF modes. Time bounds select output; rolling history starts
+  at the loaded log's beginning, respecting other filters. Earlier values feed crossing history too,
+  so a window cannot invent an entry into an already-active region. Turning off look-back must fail.
+  Before: analyser 9 open; upstream 8 open.
+  **Result:** held. `WindowedHistoryTest` covers both resolution modes, both query/chart paths,
+  duration/count windows, crossing history and a non-time-filter negative control. Independent mutations
+  disable look-back in `SeriesScan` and `SeriesExtractor`; both fail the first-window-delta case.
+  [Witnesses](../handoff/report_tool_agreement_2026_09_21.md#ta-4--completed). Full suite and strict docs pass.
+  D5 closed; analyser 8 open, upstream 8 open.
 - **[TA-5a] ☐ — audit-evidence documentation and a follow-route decision (analyser)** · _vendored runbook
   section (export endpoint, D12/D13 workarounds); decision record naming the route AND its owner._
 - **[TA-5b] ☐ — implement and vendor the chosen route (owner named in TA-5a)** · _open until shipped in a starter._

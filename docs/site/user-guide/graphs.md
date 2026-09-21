@@ -53,6 +53,11 @@ askMakerOrder.price − bidMakerOrder.price
   the samples actually cover, so a filling window and a full one both read the true rate. A time window
   needs no fill (one sample answers; a `rate` needs two, separated in time), and old samples age out
   against each record's own clock.
+  The `series` query follows the same rule: `filter.from` / `filter.to` restrict returned points,
+  while rolling formulas use earlier history from the loaded log (with other filters still applied).
+  A change on the first in-window record is retained, and an already-active threshold does not become
+  a new crossing merely because the window starts there. Missing history before the log begins still
+  produces no point until the function's history requirement is met.
   Zooming the time slider never changes a window's contents; only changing the dimension/text filter
   re-extracts.
 

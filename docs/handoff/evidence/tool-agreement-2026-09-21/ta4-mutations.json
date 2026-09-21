@@ -1,0 +1,36 @@
+[
+  {
+    "mutation": "Disable rolling look-back in SeriesScan",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "durationAndSampleWindowsUseEarlierHistoryButReturnOnlyRequestedTimes",
+        "failure": "expected: <1> but was: <0>"
+      },
+      {
+        "test": "deltaAtWindowStartAgreesWithWholeLogForBothResolutionModes",
+        "failure": "expected: <2> but was: <1>"
+      },
+      {
+        "test": "windowDoesNotInventAnEntryAlreadyPresentBeforeItsLowerBound",
+        "failure": "expected: <2> but was: <1>"
+      }
+    ],
+    "restored": true
+  },
+  {
+    "mutation": "Disable rolling look-back in SeriesExtractor",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "durationAndSampleWindowsUseEarlierHistoryButReturnOnlyRequestedTimes",
+        "failure": "expected: <1> but was: <0>"
+      },
+      {
+        "test": "deltaAtWindowStartAgreesWithWholeLogForBothResolutionModes",
+        "failure": "expected: <2> but was: <1>"
+      }
+    ],
+    "restored": true
+  }
+]

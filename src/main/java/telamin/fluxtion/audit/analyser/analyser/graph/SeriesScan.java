@@ -67,7 +67,9 @@ public final class SeriesScan {
         String bucket = params.get("buckets") == null ? null
                 : params.get("buckets").toString().toLowerCase(java.util.Locale.ROOT);
 
-        var index = store.index();
+        var view = store.readView();
+        var index = view.index();
+        boolean history = !expr.windowFunctions().isEmpty();
         Set<GraphKey> refs = expr.refs();
         Evaluator eval = expr.newEvaluator();   // ONE per scan — rolling windows reset with the scan (W0)
         Map<GraphKey, Double> carry = new HashMap<>();
@@ -82,9 +84,8 @@ public final class SeriesScan {
         boolean truncated = false;
         TreeMap<String, double[]> buckets = bucket == null ? null : new TreeMap<>();   // key → [count,min,max,sum]
 
-        var view = store.readView();   // bounded walk: the `series` verb runs off the EDT while follow appends (M65 D-F0)
         for (int row = 0; row < view.size(); row++) {
-            if (!filter.test(index, row)) continue;
+            if (history ? !filter.testExceptTime(index, row) : !filter.test(index, row)) continue;
             Long logTime = index.logTime(row);
             List<NodeLog> nodeLogs = view.record(row).nodeLogs();
 
@@ -127,6 +128,10 @@ public final class SeriesScan {
             }
             if (logTime == null) continue;   // nothing below here is meaningful without a time
             if (v == null) continue;
+            if (!filter.test(index, row)) {
+                prev = v; // earlier rolling samples establish the crossing state, but are not output
+                continue;
+            }
 
             count++;
             sum += v;
@@ -162,6 +167,8 @@ public final class SeriesScan {
         out.put("expr", exprText.toString());
         out.put("resolve", resolve.name());
         out.put("points", count);
+        if (history) out.put("history", "Rolling history starts at the beginning of the loaded log, with non-time filters applied; "
+                + "from/to restrict output only. Insufficient history still produces no point.");
         if (count > 0) {
             Map<String, Object> stats = new LinkedHashMap<>();
             stats.put("min", min);

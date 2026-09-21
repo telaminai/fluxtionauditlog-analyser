@@ -95,3 +95,25 @@ returns an empty list; corrected to assert no restored flags, preserving the neg
 
 Counts: analyser **10 → 9 open** (D4), upstream **8 → 8 open**. The broader reports tracker item is still
 open for its other requirements. No claim that commentary becomes runtime evidence; no client sessions.
+
+## TA-4 — completed
+
+Frozen before edits: constructed values 10, 10, 15, 15, with the time window starting at record three,
+will return delta 5 at its first point in both query and chart extraction, STRICT and LOCF. Time bounds
+select output; rolling history starts at the loaded log's beginning and respects other filters. Existing
+threshold state must not be presented as a new crossing at the lower bound. **Held.**
+
+`WindowedHistoryTest.deltaAtWindowStartAgreesWithWholeLogForBothResolutionModes` covers both paths and
+resolution modes. `windowDoesNotInventAnEntryAlreadyPresentBeforeItsLowerBound` checks threshold-state
+history. `durationAndSampleWindowsUseEarlierHistoryButReturnOnlyRequestedTimes` covers duration/count
+windows and preserves the non-time-filter boundary. All are **constructed regression cases**; A8's
+original inputs do not exist in the packet and no session replay is claimed.
+
+Two independent mutations set `history = false`, first in `SeriesScan`, then in `SeriesExtractor`.
+Both fail the delta test (`expected: <2> but was: <1>`) and the mean-window test
+(`expected: <1> but was: <0>`). The query mutation also fails the crossing-history case.
+[Saved witnesses](evidence/tool-agreement-2026-09-21/ta4-mutations.json). Both sources restored.
+
+Validation: full `mvn -q test` and `mkdocs build --strict` pass. Query responses describe the history
+boundary; no data before the loaded log is invented. Point-wise formulas keep their previous semantics.
+Counts: analyser **9 → 8 open** (D5), upstream **8 → 8 open**.

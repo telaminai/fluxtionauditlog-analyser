@@ -67,11 +67,14 @@ public final class SeriesExtractor {
         var view = store.readView();   // bounded walk (M65 D-F0)
         var index = view.index();
         Set<GraphKey> refs = expr.refs();
+        boolean history = !expr.windowFunctions().isEmpty();
         Evaluator eval = expr.newEvaluator();   // ONE per scan — rolling windows reset with the scan (W0)
         java.util.Map<GraphKey, Double> carry = new java.util.HashMap<>();   // LOCF last-known finite value
 
         for (int row = 0; row < view.size(); row++) {
-            if (acrossAllTime ? !filter.testExceptTime(index, row) : !filter.test(index, row)) continue;
+            if (!filter.testExceptTime(index, row)) continue;
+            boolean inWindow = acrossAllTime || filter.test(index, row);
+            if (!inWindow && !history) continue;
             Long logTime = index.logTime(row);
             List<NodeLog> nodeLogs = view.record(row).nodeLogs();
 
@@ -86,7 +89,7 @@ public final class SeriesExtractor {
                 }
                 if (!allFinite || logTime == null) continue;
                 double v = eval.eval(logTime, vals);
-                if (Double.isFinite(v)) series.add(logTime, v);
+                if (inWindow && Double.isFinite(v)) series.add(logTime, v);
             } else {   // LOCF
                 boolean touched = false;
                 for (GraphKey k : refs) {
@@ -99,7 +102,7 @@ public final class SeriesExtractor {
                 }
                 if (!touched || logTime == null) continue;
                 double v = eval.eval(logTime, carry);
-                if (Double.isFinite(v)) series.add(logTime, v);
+                if (inWindow && Double.isFinite(v)) series.add(logTime, v);
             }
         }
         return series;

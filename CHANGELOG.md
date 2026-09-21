@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- Windowed rolling-series queries retain earlier history, so delta changes at the lower bound match
+  whole-log results and an existing threshold state is not reported as a new crossing.
 - Confirmation findings use Observation / Assessment across the shared views and PDF exports.
   Flag categories and text survive explicit session recovery against the verified same log.
 - Graph discovery reports disagreeing copies with fingerprints, node counts and missing logged ids.
