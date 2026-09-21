@@ -56,6 +56,14 @@ class MarkerExtractorTest {
     }
 
     @Test
+    void textPredicateUsesTypedLiteralComparison() {
+        var m = extract(new GraphSpec.MarkerSpec("second fill", "triangleUp",
+                "fills.clOrdId == \"ORD-2\"", "axis", null));
+        assertEquals(1, m.points().size());
+        assertEquals(4000L, m.points().getFirst().time());
+    }
+
+    @Test
     void keyTripleSource_theMotivatingChart() {
         // "plot buys on the price graph with the client order id"
         MarkerSeries m = extract(new GraphSpec.MarkerSpec(

@@ -566,12 +566,12 @@ public final class ReportVerb {
 
     private static boolean firesOn(Expr rule, Set<GraphKey> refs, LogStore store, int recordIndex) {
         var nodeLogs = store.record(recordIndex).nodeLogs();
-        Map<GraphKey, Double> values = new LinkedHashMap<>();
+        Map<GraphKey, Object> values = new LinkedHashMap<>();
         for (GraphKey k : refs) {
             KV kv = SeriesExtractor.lastMatching(nodeLogs, k);
             if (kv != null) {
-                var d = kv.graphValue();
-                if (d.isPresent()) values.put(k, d.getAsDouble());
+                var d = Evaluator.sample(kv);
+                if (d != null) values.put(k, d);
             }
         }
         Long lt = store.index().logTime(recordIndex);

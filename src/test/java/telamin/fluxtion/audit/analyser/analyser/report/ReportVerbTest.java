@@ -184,6 +184,12 @@ class ReportVerbTest {
     }
 
     @Test
+    void rowWhenCanCompareTextWithoutInventingValuesOnMissingRows() {
+        var a = ReportVerb.assembleTable(tableOverMid("fills.clOrdId == \"ORD-2\""), STORE);
+        assertArrayEquals(new boolean[]{false, false, false, true}, a.table().highlighted());
+    }
+
+    @Test
     void rowWhenEvaluatesStrictlyAgainstEachRowsOwnRecord() {
         var a = ReportVerb.assembleTable(tableOverMid("book.mid > 17.25"), STORE);
         assertArrayEquals(new boolean[]{false, false, true, true}, a.table().highlighted(),

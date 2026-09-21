@@ -1,0 +1,39 @@
+{
+  "mutation": "Make all text-literal equalities false",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "textEqualityKeepsBooleanAndTextDistinctAndMissingUnknown",
+      "failure": "expected: <1.0> but was: <0.0>"
+    },
+    {
+      "test": "textOnlyPermitsEqualityAndDurationsKeepTheirWindowMeaning",
+      "failure": "expected: <1.0> but was: <0.0>"
+    },
+    {
+      "test": "goldenFixtures",
+      "failure": "\n  fixture: literal-11-LOCF\n  why:     Legacy text keeps quote characters literally: only rejected equals the text literal; booleans and other text differ; null clears carry.\n  expr:    node.state == \"rejected\"\n  got:     [1=>0.0, 2=>0.0, 3=>0.0, 4=>0.0, 5=>0.0]\n  want:    [1=>0.0, 2=>0.0, 3=>0.0, 4=>0.0, 5=>1.0]\n\u2192 y[4] (value at t=5) differs ==> expected: <1.0> but was: <0.0>"
+    },
+    {
+      "test": "goldenFixtures",
+      "failure": "\n  fixture: literal-11-STRICT\n  why:     Legacy text keeps quote characters literally: only rejected equals the text literal; booleans and other text differ; null clears carry.\n  expr:    node.state == \"rejected\"\n  got:     [1=>0.0, 2=>0.0, 3=>0.0, 4=>0.0, 5=>0.0]\n  want:    [1=>0.0, 2=>0.0, 3=>0.0, 4=>0.0, 5=>1.0]\n\u2192 y[4] (value at t=5) differs ==> expected: <1.0> but was: <0.0>"
+    },
+    {
+      "test": "goldenFixtures",
+      "failure": "\n  fixture: literal-13-LOCF\n  why:     Typed inequality includes boolean values differing from text; null remains unknown.\n  expr:    node.state != \"rejected\"\n  got:     [1=>1.0, 2=>1.0, 3=>1.0, 4=>1.0, 5=>1.0]\n  want:    [1=>1.0, 2=>1.0, 3=>1.0, 4=>1.0, 5=>0.0]\n\u2192 y[4] (value at t=5) differs ==> expected: <0.0> but was: <1.0>"
+    },
+    {
+      "test": "goldenFixtures",
+      "failure": "\n  fixture: literal-13-STRICT\n  why:     Typed inequality includes boolean values differing from text; null remains unknown.\n  expr:    node.state != \"rejected\"\n  got:     [1=>1.0, 2=>1.0, 3=>1.0, 4=>1.0, 5=>1.0]\n  want:    [1=>1.0, 2=>1.0, 3=>1.0, 4=>1.0, 5=>0.0]\n\u2192 y[4] (value at t=5) differs ==> expected: <0.0> but was: <1.0>"
+    },
+    {
+      "test": "rowWhenCanCompareTextWithoutInventingValuesOnMissingRows",
+      "failure": "array contents differ at index [3], expected: <true> but was: <false>"
+    },
+    {
+      "test": "textPredicateUsesTypedLiteralComparison",
+      "failure": "expected: <1> but was: <0>"
+    }
+  ],
+  "restored": true
+}

@@ -7,5 +7,5 @@ import java.util.Map;
  * time and the resolved reference values. {@code logTime} is a primitive because every call site
  * skips logTime-null rows before evaluating — a record with no time can anchor no window.
  */
-public record EvalContext(long logTime, Map<GraphKey, Double> values) {
+public record EvalContext(long logTime, Map<GraphKey, ?> values) {
 }

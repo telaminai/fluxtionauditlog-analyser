@@ -1,0 +1,51 @@
+name: literal-12-LOCF
+why: Boolean false is the existing -1 graph scalar, true is +1; strings are not numeric values.
+expr: node.state == false
+keys: node.state
+resolve: LOCF
+--- LOG ---
+---
+#t [t] INFO L
+eventLogRecord:
+  logTime: 1
+  event: E
+  nodeLogs:
+    - node: { state: true}
+---
+#t [t] INFO L
+eventLogRecord:
+  logTime: 2
+  event: E
+  nodeLogs:
+    - node: { state: false}
+---
+#t [t] INFO L
+eventLogRecord:
+  logTime: 3
+  event: E
+  nodeLogs:
+    - node: { state: "true"}
+---
+#t [t] INFO L
+eventLogRecord:
+  logTime: 4
+  event: E
+  nodeLogs:
+    - node: { state: "false"}
+---
+#t [t] INFO L
+eventLogRecord:
+  logTime: 5
+  event: E
+  nodeLogs:
+    - node: { state: rejected}
+---
+#t [t] INFO L
+eventLogRecord:
+  logTime: 6
+  event: E
+  nodeLogs:
+    - node: { state: null}
+--- EXPECT ---
+1 => 0.0
+2 => 1.0

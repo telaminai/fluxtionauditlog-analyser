@@ -40,6 +40,12 @@ askMakerOrder.price − bidMakerOrder.price
 
   draws the spread only where it is in breach, with gaps everywhere else. An unknowable condition
   (a missing value) plots nothing rather than guessing a branch.
+- **Literals** — `node.ready == true` and `node.ready == false` use the graph's existing
+  +1/-1 boolean representation. Compare flags explicitly: bare `false` is -1, not the numeric
+  zero used by conditional results. `node.status == "rejected"` or `!= "rejected"` compares text
+  exactly, without converting booleans or numbers to strings. Missing/null values remain unknown.
+  A quoted-scalar reader preserves `"true"` as text; the legacy text reader keeps quote characters
+  literally. Strings support equality/inequality only; quoted durations still name rolling windows.
 - **Rolling windows** — formulas can remember recent samples: `lag(x, N)` (the value N samples ago),
   `delta(x)` (change since the previous sample), and `mean` / `sum` / `rollingMin` / `rollingMax`
   `(x, N)` over the last N samples. A window fills before it speaks (no point until N samples), a
@@ -107,7 +113,7 @@ rest of the graph draws.
 Values answer "what was it"; **markers** answer "what happened": fills, rejections, cancels drawn as
 glyphs (▲ buys, ▼ sells) at their price, each carrying a **payload** — a client order id — shown on
 hover. **Clicking a marker selects its record**: the marker is a signpost to the evidence, never a
-substitute for it, which is also why payloads never enter formulas or filters. A moment with many
+substitute for it, payload display alone does not make the payload a formula input. A formula must name a logged key explicitly. A moment with many
 markers renders one glyph with a **×N count badge** rather than soup — the presence of hidden markers
 is always visible. A marker's `y` can be a key, a formula, a plotted series to ride, or `axis` for a
 tick lane under the plot; and hovering **any** series now snaps to the nearest actual sample

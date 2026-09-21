@@ -192,3 +192,20 @@ Mutation: restore off-path classification. The committed-fixture test fails
 [Witness](evidence/tool-agreement-2026-09-21/ta9-before-mutation.json). Full restored headless suite and
 strict docs pass. No new edge or union implemented: those require the producer contract and future
 relationship-carrying fixture. D20 stays open. Counts unchanged: **analyser 7, upstream 8 open**.
+
+## TA-8 A2 — completed
+
+Frozen prediction: boolean literals preserve +1/-1 plotting semantics; text equality preserves scalar
+types and missing values; chart/query policies, marker predicates and row highlights agree. **Held.**
+Constructed goldens 11–13 cover both policies and the chart/query cross-check. `LiteralFormulaTest`
+checks typed quoted scalars, missing values, escapes and duration disambiguation; `ReportVerbTest`
+and `MarkerExtractorTest` check text predicates at their real use sites.
+
+The first draft of golden 11 incorrectly expected legacy text to decode quote characters. Its failure
+exposed that premise; the final golden explicitly uses legacy raw text and the separate typed test
+covers the quoted-scalar contract. No reader change was made to satisfy the fixture.
+
+Mutation: make every text equality false. Goldens, typed literal checks, report row highlighting and
+marker predicate tests fail with named assertions; [witness](evidence/tool-agreement-2026-09-21/ta8-a2-mutation.json).
+Full restored suite and strict docs pass. Boolean literals deliberately alias the existing +1/-1
+values, not a new truthiness convention. Counts remain **analyser 7, upstream 8 open**.

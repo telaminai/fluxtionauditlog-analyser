@@ -55,10 +55,10 @@ public final class SeriesExtractor {
      * (spec-graph-artifacts §B). Scans in <b>row (event-sequence) order</b> — exact for a single-logger
      * file. Under <b>LOCF</b> (default), each ref carries its last-known value across records so cross-node
      * formulas plot; the carry rule is: a <b>finite</b> observation <b>updates</b> the carry, an explicit
-     * <b>NaN / non-numeric</b> observation <b>clears</b> it (subsequent points omitted until a finite value
+     * <b>NaN / null</b> observation <b>clears</b> it (subsequent points omitted until a finite value
      * returns — no fabricated continuity through a no-quote period), an <b>absent</b> key leaves it
      * unchanged; a point is produced only on a record that touches ≥1 ref. Under <b>STRICT</b>, every ref
-     * must be present-and-finite in the same record. Non-finite results (missing carry, div-by-zero) are
+     * must be present in the same record (finite for numbers). Text is retained for equality. Non-finite results (missing carry, div-by-zero) are
      * omitted, the existing NaN-as-no-point semantics.
      */
     public static Series extractExpr(LogStore store, FilterState filter, Expr expr, String label,
@@ -69,7 +69,7 @@ public final class SeriesExtractor {
         Set<GraphKey> refs = expr.refs();
         boolean history = !expr.windowFunctions().isEmpty();
         Evaluator eval = expr.newEvaluator();   // ONE per scan — rolling windows reset with the scan (W0)
-        java.util.Map<GraphKey, Double> carry = new java.util.HashMap<>();   // LOCF last-known finite value
+        java.util.Map<GraphKey, Object> carry = new java.util.HashMap<>();   // LOCF last-known finite value
 
         for (int row = 0; row < view.size(); row++) {
             if (!filter.testExceptTime(index, row)) continue;
@@ -79,12 +79,12 @@ public final class SeriesExtractor {
             List<NodeLog> nodeLogs = view.record(row).nodeLogs();
 
             if (policy == Resolve.STRICT) {
-                java.util.Map<GraphKey, Double> vals = new java.util.HashMap<>();
+                java.util.Map<GraphKey, Object> vals = new java.util.HashMap<>();
                 boolean allFinite = true;
                 for (GraphKey k : refs) {
                     KV kv = lastMatching(nodeLogs, k);
-                    var d = kv == null ? java.util.OptionalDouble.empty() : kv.graphValue();
-                    if (d.isPresent() && Double.isFinite(d.getAsDouble())) vals.put(k, d.getAsDouble());
+                    var d = Evaluator.sample(kv);
+                    if (d != null) vals.put(k, d);
                     else { allFinite = false; break; }   // absent or NaN → not a co-occurring numeric record
                 }
                 if (!allFinite || logTime == null) continue;
@@ -96,9 +96,9 @@ public final class SeriesExtractor {
                     KV kv = lastMatching(nodeLogs, k);
                     if (kv == null) continue;             // absent → carry unchanged, no point from this ref
                     touched = true;
-                    var d = kv.graphValue();
-                    if (d.isPresent() && Double.isFinite(d.getAsDouble())) carry.put(k, d.getAsDouble());  // update
-                    else carry.remove(k);                 // explicit NaN / non-numeric → clear the carry
+                    var d = Evaluator.sample(kv);
+                    if (d != null) carry.put(k, d);  // update
+                    else carry.remove(k);                 // explicit NaN / null → clear the carry
                 }
                 if (!touched || logTime == null) continue;
                 double v = eval.eval(logTime, carry);
@@ -115,6 +115,11 @@ public final class SeriesExtractor {
      * resolves. Only a genuinely-absent key (a typo) forces a full scan. Used for accurate action feedback.
      */
     public static Set<String> resolveExisting(LogStore store, Set<String> wantedDisplays) {
+        return resolveExisting(store, wantedDisplays, false);
+    }
+
+    /** Expression refs can be text; raw numeric series still use the default overload. */
+    public static Set<String> resolveExisting(LogStore store, Set<String> wantedDisplays, boolean textAllowed) {
         Set<String> found = new LinkedHashSet<>();
         if (wantedDisplays == null || wantedDisplays.isEmpty()) return found;
         Set<String> pending = new java.util.HashSet<>(wantedDisplays);
@@ -122,7 +127,7 @@ public final class SeriesExtractor {
         for (int row = 0; row < view.size() && !pending.isEmpty(); row++) {
             for (NodeLog nl : view.record(row).nodeLogs()) {
                 for (KV kv : nl.entries()) {
-                    if (kv.key() == null || kv.graphValue().isEmpty()) continue;
+                    if (kv.key() == null || (textAllowed ? Evaluator.sample(kv) == null : kv.graphValue().isEmpty())) continue;
                     String display = nl.instanceId() + "." + kv.key();
                     if (pending.remove(display)) {
                         found.add(display);

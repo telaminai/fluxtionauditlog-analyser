@@ -98,6 +98,12 @@ after review:** the first version reversed the two fixture fingerprints (source 
   stop makes the expected-true echo assertion fail. Full suite green; restored display test green.
   Counts unchanged, 7/8. [Witness](../handoff/evidence/tool-agreement-2026-09-21/ta7-mutation.json).
 - **[TA-8] ☐ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
+  **A2 frozen prediction:** boolean literals use the existing +1/-1 graph convention; text equality
+  distinguishes quoted "true" from boolean true and preserves missing as unknown. Constructed goldens
+  agree across chart/query STRICT/LOCF; text row highlights and marker predicates use the same evaluator.
+  Disabling typed equality makes the text/boolean golden fail. Counts before: analyser 7, upstream 8.
+  **A2 completed:** prediction held. Goldens 11–13, `LiteralFormulaTest`, marker and report tests pass;
+  disabling text equality fails all four surfaces. Full suite and strict docs green. Counts unchanged.
 - **[TA-9] ☐ — analyser half of "Authoritative dispatch metadata (34)"** · _blocked on producer metadata;
   the analyser never infers the hierarchy. `desk-quote-supertype.graphml` is the before case: hierarchy shown as
   unknown, not off-path. With a relationship-carrying fixture: union route drawn; unrelated class adds none;

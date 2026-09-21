@@ -39,7 +39,7 @@ public final class Evaluator {
     }
 
     /** Convenience when the caller holds the pieces loose. */
-    public double eval(long logTime, Map<GraphKey, Double> values) {
+    public double eval(long logTime, Map<GraphKey, ?> values) {
         return root.eval(new EvalContext(logTime, values));
     }
 
@@ -52,8 +52,10 @@ public final class Evaluator {
         return switch (e) {
             case Expr.Num n -> ctx -> n.value();
             case Expr.Ref r -> ctx -> {
-                Double d = ctx.values().get(r.key());
-                return d == null ? Double.NaN : d;
+                Object value = ctx.values().get(r.key());
+                if (value instanceof telamin.fluxtion.audit.analyser.analyser.model.KV kv)
+                    return kv.graphValue().orElse(Double.NaN);
+                return value instanceof Number n ? n.doubleValue() : Double.NaN;
             };
             case Expr.Neg g -> {
                 Node a = compile(g.e());
@@ -74,6 +76,14 @@ public final class Evaluator {
                 };
             }
             case Expr.Cmp c -> {
+                if (c.left() instanceof Expr.Text || c.right() instanceof Expr.Text) {
+                    yield ctx -> {
+                        Object a = textOperand(c.left(), ctx), b = textOperand(c.right(), ctx);
+                        if (a == null || b == null) return Double.NaN;
+                        boolean equal = a instanceof String && b instanceof String && a.equals(b);
+                        return (c.op().equals("==") ? equal : !equal) ? 1.0 : 0.0;
+                    };
+                }
                 Node l = compile(c.left());
                 Node r = compile(c.right());
                 String op = c.op();
@@ -96,7 +106,24 @@ public final class Evaluator {
             // unreachable as a value: the parser rejects a Dur outside a window-arg position, and
             // window nodes read their Dur from the AST, never by evaluating it
             case Expr.Dur d -> ctx -> Double.NaN;
+            case Expr.Text t -> ctx -> Double.NaN;
         };
+    }
+
+    /** Retain scalar type for literal comparisons; null/non-finite observations clear LOCF state. */
+    public static Object sample(telamin.fluxtion.audit.analyser.analyser.model.KV kv) {
+        if (kv == null || kv.isNull()) return null;
+        if (kv.kind() == telamin.fluxtion.audit.analyser.analyser.model.KV.Kind.NUMBER
+                && !kv.isFiniteNumber()) return null;
+        return kv;
+    }
+
+    private static Object textOperand(Expr expr, EvalContext ctx) {
+        if (expr instanceof Expr.Text text) return text.value();
+        Object v = ctx.values().get(((Expr.Ref)expr).key());
+        if (v instanceof telamin.fluxtion.audit.analyser.analyser.model.KV kv)
+            return kv.kind() == telamin.fluxtion.audit.analyser.analyser.model.KV.Kind.TEXT ? kv.rawValue() : sample(kv);
+        return v;
     }
 
     private Node compileCall(Expr.Call c) {

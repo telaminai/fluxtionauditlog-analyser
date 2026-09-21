@@ -20,7 +20,7 @@ import java.util.function.Function;
  *
  * <p>Sources ({@code MarkerSpec.when}): a bare {@code instanceId.key} fires wherever that key was
  * logged (the key-triple source); anything else parses as an {@link Expr} condition and fires where
- * it is truthy (numeric/boolean only — text never enters {@code Expr}). {@code y}: a key/expr, or
+ * it is truthy (numeric results; text equality is a numeric predicate). {@code y}: a key/expr, or
  * {@code series:<label>} to ride a plotted series' value at that moment, or {@code axis} for the
  * rug lane. <b>A dangling series pin degrades loudly</b> (review M2): no points, the note names the
  * missing label — and since specs are shared, the dangle can arrive on another machine.
@@ -76,7 +76,7 @@ public final class MarkerExtractor {
         Evaluator yEval = yExpr == null ? null : yExpr.newEvaluator();
         Set<GraphKey> whenRefs = whenExpr == null ? Set.of() : whenExpr.refs();
         Set<GraphKey> yRefs = yExpr == null ? Set.of() : yExpr.refs();
-        Map<GraphKey, Double> carry = new HashMap<>();   // LOCF, like band extraction — cross-node conditions
+        Map<GraphKey, Object> carry = new HashMap<>();   // LOCF, like band extraction — cross-node conditions
 
         List<MarkerSeries.MarkerPoint> points = new ArrayList<>();
         int skippedNoY = 0;
@@ -155,11 +155,11 @@ public final class MarkerExtractor {
                 "flagged records — unflag to remove; click a tick to open its record");
     }
 
-    private static void updateCarry(Map<GraphKey, Double> carry, List<NodeLog> nodeLogs, GraphKey k) {
+    private static void updateCarry(Map<GraphKey, Object> carry, List<NodeLog> nodeLogs, GraphKey k) {
         KV kv = SeriesExtractor.lastMatching(nodeLogs, k);
         if (kv == null) return;
-        var d = kv.graphValue();
-        if (d.isPresent() && Double.isFinite(d.getAsDouble())) carry.put(k, d.getAsDouble());
+        var d = Evaluator.sample(kv);
+        if (d != null) carry.put(k, d);
         else carry.remove(k);
     }
 

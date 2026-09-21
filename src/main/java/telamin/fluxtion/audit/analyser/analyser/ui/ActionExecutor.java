@@ -344,7 +344,8 @@ public final class ActionExecutor implements RenderExecutor {
 
         // Accurate resolution over the WHOLE log (targeted, early-exit) — a key that only fires late still
         // resolves. Plus a sample of real keys to suggest when something is unresolved.
-        Set<String> found = SeriesExtractor.resolveExisting(s, wanted);
+        Set<String> found = SeriesExtractor.resolveExisting(s, new java.util.LinkedHashSet<>(requested));
+        Set<String> expressionFound = SeriesExtractor.resolveExisting(s, wanted, true);
         List<String> availableSample = SeriesExtractor.discover(s, new FilterState(), DISCOVER_LIMIT)
                 .stream().map(GraphKey::display).toList();
 
@@ -360,7 +361,7 @@ public final class ActionExecutor implements RenderExecutor {
         }
         for (Object[] pe : parsedExprs) {
             Expr e = (Expr) pe[3];
-            List<String> unseen = e.refs().stream().map(GraphKey::display).filter(d -> !found.contains(d)).toList();
+            List<String> unseen = e.refs().stream().map(GraphKey::display).filter(d -> !expressionFound.contains(d)).toList();
             Map<String, Object> echo = new LinkedHashMap<>();
             echo.put("label", pe[0]);
             echo.put("ok", true);

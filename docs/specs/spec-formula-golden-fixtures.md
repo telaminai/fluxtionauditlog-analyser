@@ -69,3 +69,14 @@ easy to produce:
 The TODO rows are the ones most worth adding next — `rate()` normalisation first, since that is the class
 of bug this corpus was created to prevent. Each new fixture is additive and self-documenting; no harness
 change.
+
+## TA-8 A2 — typed literals (constructed regressions)
+
+Fixtures 11–13 run STRICT and LOCF through both extraction and `series`: exact text equality,
+boolean `false` as the established -1 scalar, and text inequality. Null clears carried values.
+`LiteralFormulaTest` separately supplies typed quoted scalars, proving that text `"true"` differs
+from boolean true; the legacy-text goldens deliberately retain their literal quote characters.
+Text supports ==/!= against a ref or another literal, never arithmetic or ordering. Duration strings
+are interpreted as durations only in a window argument. `true`/`false` alias +1/-1; conditional
+comparison results remain 1/0. This does not change the existing boolean plot convention.
+[Mutation witness](../handoff/evidence/tool-agreement-2026-09-21/ta8-a2-mutation.json).

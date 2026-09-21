@@ -72,7 +72,7 @@ public final class SeriesScan {
         boolean history = !expr.windowFunctions().isEmpty();
         Set<GraphKey> refs = expr.refs();
         Evaluator eval = expr.newEvaluator();   // ONE per scan — rolling windows reset with the scan (W0)
-        Map<GraphKey, Double> carry = new HashMap<>();
+        Map<GraphKey, Object> carry = new HashMap<>();
 
         long count = 0;
         double min = Double.POSITIVE_INFINITY, max = Double.NEGATIVE_INFINITY, sum = 0;
@@ -99,12 +99,12 @@ public final class SeriesScan {
             Double v = null;
             if (resolve == SeriesExtractor.Resolve.STRICT) {
                 if (logTime == null) continue;   // STRICT carries nothing, so an untimed row is inert
-                Map<GraphKey, Double> vals = new HashMap<>();
+                Map<GraphKey, Object> vals = new HashMap<>();
                 boolean allFinite = true;
                 for (GraphKey k : refs) {
                     KV kv = SeriesExtractor.lastMatching(nodeLogs, k);
-                    var d = kv == null ? java.util.OptionalDouble.empty() : kv.graphValue();
-                    if (d.isPresent() && Double.isFinite(d.getAsDouble())) vals.put(k, d.getAsDouble());
+                    var d = Evaluator.sample(kv);
+                    if (d != null) vals.put(k, d);
                     else { allFinite = false; break; }
                 }
                 if (allFinite) {
@@ -117,8 +117,8 @@ public final class SeriesScan {
                     KV kv = SeriesExtractor.lastMatching(nodeLogs, k);
                     if (kv == null) continue;
                     touched = true;
-                    var d = kv.graphValue();
-                    if (d.isPresent() && Double.isFinite(d.getAsDouble())) carry.put(k, d.getAsDouble());
+                    var d = Evaluator.sample(kv);
+                    if (d != null) carry.put(k, d);
                     else carry.remove(k);
                 }
                 if (touched && logTime != null) {   // carry updated above either way

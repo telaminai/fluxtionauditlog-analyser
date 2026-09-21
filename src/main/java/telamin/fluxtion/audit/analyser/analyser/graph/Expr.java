@@ -20,7 +20,7 @@ import java.util.Set;
  * an LLM — can fix it in one round. At eval time a missing ref, or division by zero, yields {@code NaN}
  * (the derived point is then omitted — the existing "NaN is no data point" semantics).
  */
-public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Expr.Cmp, Expr.Call, Expr.Dur {
+public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Expr.Cmp, Expr.Call, Expr.Dur, Expr.Text {
 
     /**
      * Compile a per-scan evaluator (spec M28 W0). There is deliberately NO per-record eval shortcut
@@ -79,6 +79,10 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
      * window argument (M28.4); anywhere else is a parse error, enforced by the post-parse walk.
      */
     record Dur(long millis, String literal) implements Expr {
+        @Override public void collectRefs(Set<GraphKey> out) { }
+    }
+
+    record Text(String value) implements Expr {
         @Override public void collectRefs(Set<GraphKey> out) { }
     }
 
@@ -165,7 +169,15 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                 }
                 case Neg g -> rejectStrayDurations(g.e(), false);
                 case Bin b -> { rejectStrayDurations(b.left(), false); rejectStrayDurations(b.right(), false); }
-                case Cmp c -> { rejectStrayDurations(c.left(), false); rejectStrayDurations(c.right(), false); }
+                case Text t -> throw err("text literals are only valid in == or != comparisons against a reference or another text literal");
+                case Cmp c -> {
+                    if (c.left() instanceof Text || c.right() instanceof Text) {
+                        if (!(c.op().equals("==") || c.op().equals("!="))
+                                || !(c.left() instanceof Text || c.left() instanceof Ref)
+                                || !(c.right() instanceof Text || c.right() instanceof Ref))
+                            throw err("text comparisons require == or != and a reference or text literal on each side");
+                    } else { rejectStrayDurations(c.left(), false); rejectStrayDurations(c.right(), false); }
+                }
                 case Call c -> {
                     boolean windowed = WINDOW_FUNCTIONS.contains(c.fn());
                     for (int i = 0; i < c.args().size(); i++) {
@@ -229,10 +241,11 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                 case IDENT -> {
                     if (FUNCTIONS.contains(t.text) && peekAt(1).type == T.LPAREN) return parseCall();
                     next();
+                    if (t.text.equals("true") || t.text.equals("false")) return new Num(t.text.equals("true") ? 1.0 : -1.0);
                     return resolveRef(t);
                 }
                 case REF -> { next(); return resolveRef(t); }   // backtick-quoted ref
-                case STRING -> { next(); return duration(t); }
+                case STRING -> { next(); return new Text(t.text); }
                 case END -> throw err("unexpected end of expression");
                 default -> throw err("unexpected '" + t.text + "' at position " + t.at);
             }
@@ -263,6 +276,10 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
             if (WINDOW_FUNCTIONS.contains(name.text) && !name.text.equals("delta")) {
                 if (n != 2) throw err(name.text + "() takes (value, window), got " + n + " argument(s)");
                 Expr w = args.get(1);
+                if (w instanceof Text text) {
+                    w = duration(new Tok(T.STRING, text.value(), name.at));
+                    args.set(1, w);
+                }
                 boolean count = w instanceof Num num && num.value() == Math.floor(num.value())
                         && num.value() >= 1 && num.value() <= MAX_WINDOW;
                 boolean time = w instanceof Dur;
@@ -369,9 +386,13 @@ public sealed interface Expr permits Expr.Num, Expr.Ref, Expr.Neg, Expr.Bin, Exp
                 out.add(new Tok(T.IDENT, s.substring(i, j), i));
                 i = j;
             } else if (c == '"') {                         // string literal — duration windows ("5m")
-                int j = s.indexOf('"', i + 1);
-                if (j < 0) throw new IllegalArgumentException("unterminated string at position " + i + " in \"" + s + "\"");
-                out.add(new Tok(T.STRING, s.substring(i + 1, j), i));
+                int j = i + 1;
+                while (j < n && s.charAt(j) != '"') {
+                    if (s.charAt(j) == '\\') j++;
+                    j++;
+                }
+                if (j >= n) throw new IllegalArgumentException("unterminated string at position " + i + " in \"" + s + "\"");
+                out.add(new Tok(T.STRING, (String) telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(s.substring(i, j + 1)), i));
                 i = j + 1;
             } else if (c == '`') {                         // backtick-quoted ref (escape hatch for odd keys)
                 int j = s.indexOf('`', i + 1);
