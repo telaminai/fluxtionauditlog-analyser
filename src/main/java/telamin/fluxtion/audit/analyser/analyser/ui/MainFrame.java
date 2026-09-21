@@ -3783,13 +3783,10 @@ public final class MainFrame extends JFrame {
         String producerWarning = producerDiagnostics.isClean() ? ""
                 : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
                         java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
-        // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent.
-        // This was computed and then dropped on the floor — the status bar never carried it, so the one
-        // human surface `context` names for COMPLETE did not exist. Found reviewing the stream-end branch.
-        String wholeNote = loaded.streamEnd().isKnownComplete() ? "  ·  complete" : "";
-        status.setText(loaded.size() + " records · " + range + " · "
-                + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
-                        : displayName(location)) + wholeNote + orderWarning + producerWarning);
+        status.setText(statusText(loaded.size(), range,
+                logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
+                        : displayName(location),
+                loaded.streamEnd().isKnownComplete(), orderWarning, producerWarning));
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
@@ -4095,6 +4092,25 @@ public final class MainFrame extends JFrame {
         };
 
         @Override public String toString() { return label; }
+    }
+
+    /**
+     * The status-bar line, assembled where a test can read it.
+     *
+     * <p><b>Why this is not inline any more.</b> The "complete" note (D-E3) was computed into a local
+     * variable and never concatenated into the text, so the one human surface {@code context}'s own
+     * comment named did not exist. The fix was one word long; re-review then pointed out under rule 8
+     * that nothing would catch it coming back, because rule 4 keeps Swing out of the headless suite.
+     * Extracting the ASSEMBLY rather than the decision is what closes it: a test that only checked
+     * "should the note appear?" would still pass with the note dropped on the floor again, which is
+     * precisely the defect that happened. This method touches no Swing, so it costs the suite nothing.
+     */
+    static String statusText(int records, String range, String location, boolean knownComplete,
+                             String orderWarning, String producerWarning) {
+        // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent.
+        String wholeNote = knownComplete ? "  ·  complete" : "";
+        return records + " records · " + range + " · " + location
+                + wholeNote + orderWarning + producerWarning;
     }
 
     private static String displayName(String location) {

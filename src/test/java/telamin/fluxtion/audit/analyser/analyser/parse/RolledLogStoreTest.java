@@ -103,26 +103,62 @@ class RolledLogStoreTest {
     }
 
     /**
-     * D-E3 for a set. Review found {@link RolledLogStore} taking {@link LogStore}'s default, so a member
-     * that had LOST records reported UNKNOWN for the whole set and nothing surfaced the member's problem.
-     * A set is presented as one log, so it owes one honest answer about that log: the weakest member's.
+     * D-E3 for a set, and the blocker re-review found.
+     *
+     * <p>A marker vouches for the FILE THAT CARRIES IT. Nothing in a rolled set records how many files
+     * there should be, so a set of individually-whole files with one file missing between two of them is
+     * indistinguishable from a set with nothing missing. The first version of this override returned
+     * COMPLETE when every member was COMPLETE, and re-review measured what that costs: members of 10 and
+     * 5 records with the file between them absent reported <b>complete, 15 records</b>. An agent reading
+     * that concludes a node never ran. <b>A set is never COMPLETE.</b>
      */
     @Test
-    void aSetIsWholeOnlyWhenEveryMemberSaysSo() throws IOException {
+    void aSetIsNeverCompleteHoweverWholeItsMembersAre() throws IOException {
         Path a = dir.resolve("s.log.1");
         Path b = dir.resolve("s.log");
         Files.writeString(a, records("A", 100, 110) + marker(2));
         Files.writeString(b, records("B", 200) + marker(1));
         try (RolledLogStore whole = RolledLogStore.open(List.of(a, b), 512)) {
             assertEquals(3, whole.size(), "no marker is a record in any member");
-            assertEquals(StreamEnd.State.COMPLETE, whole.streamEnd().state());
-            assertTrue(whole.sourceDiagnostics().isEmpty());
+            assertEquals(StreamEnd.State.UNKNOWN, whole.streamEnd().state(),
+                    "every member is whole, and that is not evidence about the SET");
+            assertFalse(whole.streamEnd().isKnownComplete());
+            assertEquals(1, whole.sourceDiagnostics().size(),
+                    () -> "say what the members established AND what they did not: "
+                            + whole.sourceDiagnostics());
+            assertTrue(whole.sourceDiagnostics().get(0).contains("unknown"),
+                    () -> whole.sourceDiagnostics().get(0));
         }
+    }
 
+    /**
+     * The measured failure, reconstructed: the middle file of a rolled set was never copied. Each
+     * surviving member is whole and says so, and the hour between them is simply gone.
+     */
+    @Test
+    void aMissingMemberIsIndistinguishableFromNoneMissingAndTheSetSaysSo() throws IOException {
+        Path r1 = dir.resolve("g.log.2");
+        Path r3 = dir.resolve("g.log");
+        Files.writeString(r1, records("A", 100, 110) + marker(2));
+        Files.writeString(r3, records("C", 300, 310, 320) + marker(3));
+        // g.log.1, the middle hour, is absent — nothing in the set can notice
+        try (RolledLogStore gapped = RolledLogStore.open(List.of(r1, r3), 512)) {
+            assertEquals(5, gapped.size());
+            assertEquals(StreamEnd.State.UNKNOWN, gapped.streamEnd().state(),
+                    "this reported COMPLETE with 15 records over a set that had lost an hour");
+            assertFalse(gapped.streamEnd().isKnownComplete());
+        }
+    }
+
+    @Test
+    void aMemberThatLostRecordsStillMakesTheSetSaySoAndNamesTheFile() throws IOException {
+        Path a = dir.resolve("s.log.1");
+        Path b = dir.resolve("s.log");
+        Files.writeString(a, records("A", 100, 110) + marker(2));
         Files.writeString(b, records("B", 200) + marker(4));      // this member lost three
         try (RolledLogStore lossy = RolledLogStore.open(List.of(a, b), 512)) {
             assertEquals(StreamEnd.State.MISSING_RECORDS, lossy.streamEnd().state(),
-                    "the set reported UNKNOWN and the member's loss was invisible");
+                    "loss inside a member IS something a member can establish about itself");
             assertEquals(1, lossy.sourceDiagnostics().size());
             assertTrue(lossy.sourceDiagnostics().get(0).startsWith("s.log "),
                     () -> "the diagnostic must name WHICH member: " + lossy.sourceDiagnostics());

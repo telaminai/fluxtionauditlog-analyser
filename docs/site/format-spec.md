@@ -49,6 +49,35 @@ key. A reader that recognises the marker by looking for the key will delete such
 and then report the file as short. Recognise the marker by what the record contains in full, never by
 what it mentions.
 
+**The recognition rule, precisely.** Take the record's text, split it into lines, and strip each line of
+surrounding whitespace and a leading byte-order mark. Ignore lines that are empty, that begin with `#`
+(the §2 header comment), or that are exactly `eventLogRecord:`. The record is a marker **if and only if**
+every remaining line is one of:
+
+| line | rule |
+|---|---|
+| `streamEnd: <value>` | REQUIRED, exactly once, and `<value>` after unquoting MUST be non-empty |
+| `streamEndRecords: <value>` | OPTIONAL, at most once |
+| `logTime: <value>` | OPTIONAL |
+
+Any other line, a second `streamEnd`, a second `streamEndRecords`, or an empty `streamEnd` value makes
+the record an ordinary record. `<value>` is read to end of line, with a surrounding pair of single or
+double quotes removed first and an unquoted `#` beginning a comment. A `streamEndRecords` that is
+absent, unparseable as a signed 64-bit integer, or negative means **no count**, and the reader reports
+**unverified** rather than guessing. Flow style (`{streamEnd: normal}`) is **not** a marker under this
+rule; a reader MAY accept it, and one that does not is conformant.
+
+An unrecognised `streamEnd` value is **tolerated**: any non-empty value makes a marker. `normal` and
+`stopping` are the defined values; a reader MUST NOT treat a third value as a reason to reject the marker
+or the file. A reader MAY surface the value. Whether the distinction is worth surfacing at all is an open
+question in the design spec, and the analyser currently reads the value without showing it.
+
+**Two things this rule deliberately does not say.** A `PARSE_ERROR` record (§2) counts towards its
+segment like any other record, because it occupies a position a producer wrote to. And nothing here
+applies to a **set** of rolled files: a marker vouches for the file that carries it, so a set of whole
+files is not a whole set, and a reader MUST NOT report one as complete. Nothing in Format 1 records how
+many files a set should hold.
+
 It is **physically a record and semantically a container fact**, and it is a record only because §1
 leaves no position for non-record text. A reader MUST NOT present it as a record: not in a record count,
 a table, a query result, a report, coverage, a series, or the time range. A reader that does present it
@@ -77,13 +106,30 @@ The last row is the point, and it is the common case. **Silence MUST NOT be read
 Every producer that predates this section, and every export the analyser has ever read, lands there and
 MUST keep loading exactly as before. What a reader owes is to say it does not know, not to guess.
 
-**What a reader cannot do, stated so nobody builds on it.** A text container **cannot** detect a writer
-that stopped in the middle of a record. §1 makes `---` a *separator*: a whole file may end with its last
-record and no separator after it, and real producers do exactly that. The absence of a trailing separator
-therefore carries **no information**, and a reader MUST NOT report such a file as truncated, damaged or
-stopped — an earlier draft of this section did, and it reported every export from the reference producer
-as damaged while every conformance fixture stayed green, because all of them happened to end with a
-separator. A run killed at any point carries no marker and is **unknown**, which is the honest answer.
+**What a reader cannot do, and the one condition under which it could.** A text container **cannot**
+detect a writer that stopped in the middle of a record **unless the writer has declared that it closes
+every record**. §1 makes `---` a *separator*: a whole file may end with its last record and no separator
+after it, and real producers do exactly that. The absence of a trailing separator therefore carries **no
+information on its own**, and a reader MUST NOT report such a file as truncated, damaged or stopped. An
+earlier draft of this section did, and it reported every export from the reference producer as damaged
+while every conformance fixture stayed green, because all of them happened to end with a separator. A run
+killed at any point carries no marker and is **unknown**, which is the honest answer.
+
+The condition is worth naming rather than losing. A writer that terminates **every** record with `---`,
+including the last, turns an unclosed tail back into a sound signal, because for that writer the absence
+is no longer ambiguous. Two ways a container could say so are open: a `streamEnd` marker earlier in the
+file already proves its writer emits markers, so a file with a marker **and** an unclosed tail after it is
+a mid-record stop; and a start-of-stream record could declare closed framing for the first run too.
+**Neither is specified here**, and a reader MUST NOT assume either. This paragraph exists so the
+capability is deferred on the record rather than quietly given up, and so that a writer contributing to a
+future revision knows which promise would buy it.
+
+Two signals that look sound and are not, both measured. **A tail that fails to parse** is unreliable: a
+half-written record usually still parses, because a reader recognising any field at all treats the record
+as ordinary — the released reader read one with a single node log of four and no end time as `OK`. **A
+byte count in the marker** cannot help either, since a truncation that loses the tail loses the marker
+with it.
+
 What the count *can* find is loss in the **middle** of a run, which no amount of tail inspection would
 have found.
 

@@ -114,15 +114,21 @@ public final class RolledLogStore implements LogStore {
     }
 
     /**
-     * The set is whole only when every member says it is — {@code spec-audit-stream-end.md} D-E3.
+     * What the set's members say about themselves — {@code spec-audit-stream-end.md} D-E3.
      *
-     * <p>Review found the set taking {@link LogStore}'s default, so a member that had lost records
-     * reported UNKNOWN for the whole set and nothing surfaced the member's problem. A rolled set is
-     * presented as ONE log, so it owes one honest answer about that log: the weakest member's.
+     * <p><b>A set is NEVER COMPLETE.</b> This is the correction re-review made, and it was a blocker. The
+     * first version returned COMPLETE when every member was COMPLETE, which sounds right and is not: a
+     * marker vouches for the FILE THAT CARRIES IT and for nothing else. Nothing in a rolled set records
+     * how many files there should be, so a set whose middle file was never copied, or was deleted, or
+     * never rotated in, is a set of individually whole files with an hour missing between two of them.
+     * Observed on the first version: members of 10 and 5 records, each marked and each complete, with the
+     * file between them absent, reported <b>complete, 15 records</b>. An agent reading that can conclude a
+     * node never ran. It is the exact D-T8 failure this contract exists to prevent, one level up.
      *
-     * <p>COMPLETE requires every member to be COMPLETE. One silent member makes the set UNKNOWN, because
-     * a gap could sit inside it and nothing would say so. A member that lost records makes the set say
-     * so, and {@link #sourceDiagnostics()} names which file.
+     * <p>So: the worst member's state, and UNKNOWN when the worst is COMPLETE. A member that lost records
+     * still makes the set say so, because that is a fact a member CAN establish about itself, and
+     * {@link #sourceDiagnostics()} names which file. Set-level completeness would need set-level
+     * evidence — a manifest, or a marker that names its successor — which Format 1 has no room for.
      */
     @Override
     public StreamEnd streamEnd() {
@@ -131,10 +137,18 @@ public final class RolledLogStore implements LogStore {
             StreamEnd s = m.streamEnd();
             if (worst == null || severity(s.state()) > severity(worst.state())) worst = s;
         }
-        if (worst == null) return StreamEnd.unknown(size());
-        return worst.state() == StreamEnd.State.COMPLETE
-                ? new StreamEnd(StreamEnd.State.COMPLETE, size(), size())
-                : new StreamEnd(worst.state(), worst.declaredRecords(), worst.emittedRecords());
+        if (worst == null || worst.state() == StreamEnd.State.COMPLETE) return StreamEnd.unknown(size());
+        return new StreamEnd(worst.state(), worst.declaredRecords(), worst.emittedRecords(),
+                worst.segment());
+    }
+
+    /** True when every member carries a marker that checks out — worth SAYING, never worth believing. */
+    private boolean everyMemberIsWhole() {
+        if (members.isEmpty()) return false;
+        for (LogStore m : members) {
+            if (m.streamEnd().state() != StreamEnd.State.COMPLETE) return false;
+        }
+        return true;
     }
 
     private static int severity(StreamEnd.State s) {
@@ -147,13 +161,26 @@ public final class RolledLogStore implements LogStore {
         };
     }
 
-    /** Each member's own diagnostic, named by its file so a set of twelve says WHICH one is short. */
+    /**
+     * Each member's own diagnostic, named by its file so a set of twelve says WHICH one is short.
+     *
+     * <p>When every member IS whole, one further statement is added. It is not a warning: it says what
+     * the members established and, in the same breath, what they did not. Without it the set is silently
+     * UNKNOWN and a reader who can see twelve files each marked complete will supply the wrong
+     * conclusion themselves.
+     */
     @Override
     public java.util.List<String> sourceDiagnostics() {
         List<String> out = new ArrayList<>();
         for (int i = 0; i < members.size(); i++) {
             String d = members.get(i).streamEnd().diagnostic(paths.get(i).getFileName().toString());
             if (d != null) out.add(d);
+        }
+        if (everyMemberIsWhole()) {
+            out.add("each of the " + members.size() + " files in this set says it is whole, and each says "
+                    + "so only about itself. Nothing records how many files the set should hold, so a "
+                    + "file that was never rotated in, copied or kept would leave a gap that looks "
+                    + "exactly like this. The set's completeness is unknown.");
         }
         return List.copyOf(out);
     }

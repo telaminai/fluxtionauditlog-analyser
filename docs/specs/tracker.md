@@ -75,6 +75,44 @@ defects. **Nothing below is implemented.**
   was vacuous — a text block used as a `replace` argument has its indentation stripped while the target's does
   not, so it matched nothing and asserted twice over the unmodified log. Mutation caught it: it stayed green
   while three others went red. **Six mutations were run, one per fix, and all six go red.**
+- **[AF-2/AF-3 RE-REVIEW, 2026-09-21] ☑ — one blocker, three smaller findings, all fixed.** _Independent
+  re-review of `02fa62b3`, with the reviewer's own eight mutations and 17 container shapes across three
+  stores._ The reviewer confirmed the withdrawal is complete, found no false positive in the allow-list,
+  no ninth shape where the stores disagree, and no unearned COMPLETE except the one below.
+  1. **BLOCKER — a rolled set reported COMPLETE with a whole member missing.** My fix for the previous
+     round's finding 7 was worse than the defect: members of 10 and 5 records, each marked complete, with
+     the file between them absent, reported **complete, 15 records**. A marker vouches for the file that
+     carries it and nothing records how many files a set should hold. **A set is now never COMPLETE** —
+     new decision D-E5, with the reasoning, because this is the kind of mistake that reads as obviously
+     correct. Guarded by a missing-member test; the old behaviour goes red.
+  2. **Rule 8 — my own status-bar fix had no regression check.** The reviewer's mutation left every test
+     green. Closed by extracting the line's **assembly** into a pure function with its own test. Testing
+     the decision alone would have passed with the note dropped on the floor, which is exactly what had
+     happened. Both mutation shapes now go red.
+  3. A diagnostic reported one run's numbers as the whole file's: *"holds 30 records and 25 were read"*
+     about a 50-record file. Verdicts now name the run and the file total when a file holds more than one
+     run, and say nothing extra when it holds one.
+  4. A byte-order mark defeated the opener check, so a leading marker was indexed as a record. `strip()`
+     treats U+FEFF as a character, not whitespace.
+
+  **Recommendations taken as well as findings.** §1a restates the mid-record limit as *conditional on a
+  producer declaring closed framing*, naming the two routes that would buy the capability back, so it is
+  deferred on the record rather than quietly lost — the reviewer also disproved two candidate signals I
+  had suggested, and both refutations are recorded. §1a gained a precise recognition rule, since the
+  reviewer could not reproduce the recogniser from the prose alone. And the two documentation findings
+  from round one are now **mechanical**: `PublishedSpecExamplesTest` parses every published marker example
+  with the recogniser it documents and checks every emitted state is explained on the page `context`
+  names. Both go red when the original drift is reintroduced.
+
+  **Not taken, and why.** The reviewer suggests committing a captured real Mongoose export as a fixture to
+  pin the real producer's layout. It is the right idea and I have not done it: this repo is public, a real
+  export carries real names, and I have no export here to scrub. Filed as **AF-2a**.
+- **[AF-2a] ☐ — pin the real producer's layout with a captured export.** _From the re-review._ `c19` is
+  constructed, with synthetic headers. A real Mongoose export, scrubbed to `DEMO`/`com.acme` placeholders
+  under rule 1 and committed with its provenance, would pin the actual layout rather than my reading of
+  it. This is the only mechanical check available against the rule-6 breach that caused this round's worst
+  defect — reasoning about another system's writer instead of reading it. The habit cannot be checked; its
+  most expensive consequence can.
 - **[AF-3a] ☐ — follow leaves a half-written record stale in the index.** _Pre-existing, not from this branch;
   found during the AF-3 review fixes._ An ordinary load indexes an unterminated trailing record, which is
   correct — the file may simply end there. If the file then GROWS, `appendFrom` skips it as already-indexed,

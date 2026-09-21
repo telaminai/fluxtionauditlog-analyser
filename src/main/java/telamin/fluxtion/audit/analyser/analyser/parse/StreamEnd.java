@@ -22,7 +22,32 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * UNKNOWN, which is the honest answer. What the marker's count CAN find is loss in the middle, where
  * no amount of tail inspection would have helped.
  */
-public record StreamEnd(State state, long declaredRecords, long emittedRecords) {
+public record StreamEnd(State state, long declaredRecords, long emittedRecords, Segment segment) {
+
+    /**
+     * Which run a verdict is about, when the file holds more than one. Null when the file is a single
+     * run, which is the ordinary case.
+     *
+     * <p>Re-review found the diagnostic reporting a segment's numbers as the whole file's: two runs, the
+     * first marker claiming 30 over 25 records, produced <i>"this log says it holds 30 records and 25
+     * were read"</i> for a file holding 50. Both numbers were true of the run and false of the file, and
+     * nothing said which was meant.
+     *
+     * @param ordinal     1-based position of this run in the file
+     * @param firstRecord global index of the run's first record
+     * @param lastRecord  global index of the run's last record
+     * @param fileRecords records in the whole file, so the sentence can distinguish them
+     */
+    public record Segment(int ordinal, long firstRecord, long lastRecord, long fileRecords) {}
+
+    public StreamEnd(State state, long declaredRecords, long emittedRecords) {
+        this(state, declaredRecords, emittedRecords, null);
+    }
+
+    /** The same verdict, said about a named run rather than about the file. */
+    public StreamEnd inSegment(Segment s) {
+        return new StreamEnd(state, declaredRecords, emittedRecords, s);
+    }
 
     public enum State {
         /** Every marker's count matched the records before it, and a marker is the last thing in the file. */
@@ -76,17 +101,22 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords) 
      * interrupted about it.
      */
     public String diagnostic(String fileName) {
+        // "this log" vs "run 1 of this log (records 0-24), which holds 50 in all" — the numbers below
+        // are the RUN's whenever a run is named, and saying so is the whole point of the distinction.
+        String subject = segment == null ? fileName
+                : "run " + segment.ordinal() + " of " + fileName + " (records " + segment.firstRecord()
+                        + " to " + segment.lastRecord() + ", of " + segment.fileRecords() + " in the file)";
         return switch (state) {
             case COMPLETE, UNKNOWN -> null;
-            case UNVERIFIED -> fileName + " ends with a marker saying the writer finished, but the marker "
+            case UNVERIFIED -> subject + " ends with a marker saying the writer finished, but the marker "
                     + "carries no readable record count. The claim cannot be checked, so it is not evidence.";
-            case MISSING_RECORDS -> fileName + " says it holds " + declaredRecords + " records and "
+            case MISSING_RECORDS -> subject + " declares " + declaredRecords + " records and "
                     + emittedRecords + " were read. " + (declaredRecords - emittedRecords)
                     + " are missing from the middle or the end.";
-            case MORE_THAN_DECLARED -> fileName + " says it holds " + declaredRecords + " records and "
+            case MORE_THAN_DECLARED -> subject + " declares " + declaredRecords + " records and "
                     + emittedRecords + " were read - " + (emittedRecords - declaredRecords)
-                    + " more than the marker declares. The marker is wrong, or it is not the end of "
-                    + "this file. Either way the count is not evidence of a whole file.";
+                    + " more than the marker says. The marker is wrong, or it is not the end of "
+                    + "what it claims to end. Either way the count is not evidence of a whole file.";
         };
     }
 }

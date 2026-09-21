@@ -55,7 +55,7 @@ public record StreamEndMarker(String reason, long records) {
         long records = -1;
         boolean sawCount = false;
         for (String raw : recordText.split("\n")) {
-            String t = raw.strip();
+            String t = strip(raw);
             // Blank lines, the record header comment and the `eventLogRecord:` opener carry no content.
             if (t.isEmpty() || t.charAt(0) == '#' || t.equals("eventLogRecord:")) continue;
             if (t.startsWith(KEY)) {
@@ -69,7 +69,11 @@ public record StreamEndMarker(String reason, long records) {
                 } catch (NumberFormatException ignored) {
                     records = -1;                 // unreadable or overflowing count: no count at all
                 }
-                if (records < 0) records = -1;    // a negative count is no count either
+                // A negative count normalises to the single "no count" value. Re-review's M8 showed this
+                // line is an EQUIVALENT mutant against StreamEnd.declared, which already treats any
+                // negative as unverified — so it is kept for the invariant on this record's own accessor,
+                // not for the verdict, and a test now pins that accessor rather than the verdict.
+                if (records < 0) records = -1;
             } else if (!isAllowedCompanion(t)) {
                 // Anything else at all — an event, a nodeLogs block, a line of someone's toString —
                 // makes this a record. Evidence is never dropped to recognise a container fact.
@@ -78,6 +82,20 @@ public record StreamEndMarker(String reason, long records) {
         }
         return reason == null || reason.isEmpty() ? Optional.empty()
                 : Optional.of(new StreamEndMarker(reason, records));
+    }
+
+    /**
+     * {@link String#strip()} plus a leading byte-order mark.
+     *
+     * <p>{@code strip()} treats U+FEFF as a character, not whitespace, so a UTF-8 BOM at the head of a
+     * file makes the first record's opener read as {@code "﻿eventLogRecord:"}. Re-review found a
+     * BOM'd file whose FIRST record was a marker being indexed as an ordinary record, and the file then
+     * reported one record more than it declared. Rare — a marker is seldom first — and a one-line fix, so
+     * there is no reason to leave it.
+     */
+    private static String strip(String line) {
+        String t = line.strip();
+        return t.isEmpty() || t.charAt(0) != '﻿' ? t : t.substring(1).strip();
     }
 
     /**

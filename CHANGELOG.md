@@ -11,9 +11,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `context` reports `log.streamEnd` as `complete`, `missing_records`, `more_than_declared`, `unverified`
   or `unknown`. A file that makes no claim reads as **unknown**, never as complete, so "this node never
   ran" stays a conclusion you have earned rather than one the file's shape implied. The status bar says
-  *complete* when a file claims it. The marker is never shown as a record, and a rolled set is complete
-  only when every member says it is. See *Analyser assistant ▸ Is the log whole?* and *format
-  specification §1a*.
+  *complete* when a file claims it. The marker is never shown as a record. A **rolled set is never
+  reported as complete**, however many of its files say they are: a marker vouches for the file that
+  carries it, and nothing records how many files a set should hold, so a set with a whole file missing
+  looks exactly like one with nothing missing. A member that lost records still makes the set say so, and
+  names the file. See *Analyser assistant ▸ Is the log whole?* and *format specification §1a*.
 - A record is never removed from a log because of its own contents. An event whose `toString` happens to
   contain a line shaped like the stream-end marker is an ordinary record, and is indexed, counted and
   shown like any other.
@@ -25,6 +27,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   terminate them, and its absence at the end of a file means nothing.
 - The status bar now actually shows *complete* for a log that claims it. The note was computed and then
   never added to the text.
+- A log whose completeness verdict concerns one run of several now says which run, and how many records
+  the whole file holds. It previously reported that run's numbers as though they were the file's.
+- A log file saved with a byte-order mark no longer counts a leading stream-end marker as a record.
 
 ### Documentation
 - The `point-at-the-fault` skill now says how to write up a fault: the symptom from the cited record, the

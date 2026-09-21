@@ -239,6 +239,70 @@ class StreamEndTest {
         assertEquals(1, store.streamEnd().emittedRecords());
     }
 
+    /**
+     * Re-review finding 3. The numbers belong to the RUN, and saying them as though they were the file's
+     * tells a reader the log holds fewer records than it does.
+     */
+    @Test
+    void aMultiRunDiagnosticNamesTheRunRatherThanSpeakingForTheFile() {
+        String bad = file(REC, REC, String.format(MARKER, 3));     // declares 3 over 2
+        String good = file(REC, REC, String.format(MARKER, 2));
+        var store = new HeapLogStore(bad + good);
+        assertEquals(4, store.size());
+        String d = store.sourceDiagnostics().get(0);
+        assertTrue(d.contains("run 1"), () -> "the run must be named: " + d);
+        assertTrue(d.contains("records 0 to 1"), () -> "and the records it covers: " + d);
+        assertTrue(d.contains("of 4 in the file"),
+                () -> "this said 'holds 3 records and 2 were read' about a 4-record file: " + d);
+
+        var seg = store.streamEnd().segment();
+        assertNotNull(seg);
+        assertEquals(1, seg.ordinal());
+        assertEquals(4, seg.fileRecords());
+    }
+
+    @Test
+    void aSingleRunFileNamesNoRunBecauseTheFileIsTheRun() {
+        var store = new HeapLogStore(file(REC, REC, String.format(MARKER, 9)));
+        assertNull(store.streamEnd().segment(), "'run 1 of' is noise when there is only one run");
+        String d = store.sourceDiagnostics().get(0);
+        assertFalse(d.contains("run 1"), d);
+        assertTrue(d.startsWith("this log declares 9"), d);
+    }
+
+    // ---- a byte-order mark -----------------------------------------------------------------------
+
+    /**
+     * Re-review finding 4. {@code String.strip()} treats U+FEFF as a character rather than whitespace, so
+     * a BOM'd file's FIRST record failed the `eventLogRecord:` opener check and a leading marker was
+     * indexed as an ordinary record — the file then reported one record more than it declared.
+     */
+    @Test
+    void aByteOrderMarkDoesNotTurnALeadingMarkerIntoARecord() {
+        String bom = "﻿";
+        var store = new HeapLogStore("---\n" + bom + "eventLogRecord:\n  streamEnd: normal\n"
+                + "  streamEndRecords: 0\n" + file(REC, REC, String.format(MARKER, 2)));
+        assertEquals(2, store.size(), "the BOM'd marker was counted as a third record");
+        assertEquals(StreamEnd.State.COMPLETE, store.streamEnd().state(),
+                "and the file then reported more records than it declared");
+    }
+
+    // ---- the record type's own invariant (re-review M8) --------------------------------------------
+
+    /**
+     * The negative-count clamp is an equivalent mutant against {@link StreamEnd#declared}, which already
+     * treats any negative as unverified. It is kept for the invariant on this accessor, so the invariant
+     * is what gets asserted — an unguarded line that happens to be harmless is still unguarded.
+     */
+    @Test
+    void anyUnusableCountReadsBackAsExactlyMinusOne() {
+        for (String v : new String[]{"banana", "-5", "-1", "99999999999999999999", "", "  "}) {
+            var m = StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: " + v + "\n");
+            assertTrue(m.isPresent(), "an unusable count does not stop it being a marker: " + v);
+            assertEquals(-1, m.get().records(), "records() must normalise '" + v + "' to -1");
+        }
+    }
+
     // ---- all three stores must agree about the same bytes ---------------------------------------
 
     /**

@@ -31,6 +31,10 @@ public final class StreamEndTracker {
     private StreamEnd.State worst = StreamEnd.State.COMPLETE;
     private long worstDeclared = -1;
     private long worstEmitted = -1;
+    /** Which run earned it, so the diagnostic can say the run's numbers are the RUN's (re-review, 3). */
+    private int segments;
+    private int worstOrdinal = -1;
+    private long worstFirstRecord = -1;
 
     /**
      * Whether this record text should be indexed.
@@ -57,15 +61,21 @@ public final class StreamEndTracker {
         worst = StreamEnd.State.COMPLETE;
         worstDeclared = -1;
         worstEmitted = -1;
+        segments = 0;
+        worstOrdinal = -1;
+        worstFirstRecord = -1;
     }
 
     private void closeSegment(long declared) {
         sawMarker = true;
+        segments++;
         StreamEnd verdict = StreamEnd.declared(declared, sinceMarker);
         if (rank(verdict.state()) > rank(worst)) {
             worst = verdict.state();
             worstDeclared = declared;
             worstEmitted = sinceMarker;
+            worstOrdinal = segments;
+            worstFirstRecord = indexedTotal - sinceMarker;
         }
         sinceMarker = 0;
     }
@@ -93,6 +103,11 @@ public final class StreamEndTracker {
         if (!sawMarker || sinceMarker > 0) return StreamEnd.unknown(indexedTotal);
         if (worst == StreamEnd.State.COMPLETE) return new StreamEnd(StreamEnd.State.COMPLETE,
                 worstDeclared < 0 ? indexedTotal : worstDeclared, indexedTotal);
-        return new StreamEnd(worst, worstDeclared, worstEmitted);
+        StreamEnd verdict = new StreamEnd(worst, worstDeclared, worstEmitted);
+        // Only name a run when there is more than one. In a single-run file "run 1 of this log (records
+        // 0 to 24, of 25 in the file)" is noise dressed as precision, and the file IS the run.
+        return segments <= 1 ? verdict
+                : verdict.inSegment(new StreamEnd.Segment(worstOrdinal, worstFirstRecord,
+                        worstFirstRecord + worstEmitted - 1, indexedTotal));
     }
 }

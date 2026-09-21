@@ -151,6 +151,36 @@ It is a container fact wearing a record's clothes, so:
 A reader that cannot suppress it is still conformant — it sees a tolerated unknown field — but the
 analyser, as the reference implementation, suppresses it.
 
+## D-E5 · A marker vouches for its own file, and a set of whole files is not a whole set
+
+Added after re-review, which found this as a blocker in the implementation.
+
+A rolled set is presented as **one** log: one gap-free record index, one count, one verdict. It is
+tempting to compute that verdict the obvious way — every member complete, therefore the set complete —
+and it is wrong. **A marker is written by the process that wrote that file, and it can only speak about
+that file.** Nothing in Format 1 records how many files a set should hold, in what order, or with what
+identifiers. So a set whose middle file was never copied, was deleted, or never rotated in is a set of
+individually-whole files with a hole in the middle, and it is **indistinguishable** from a set with
+nothing missing.
+
+Measured on the implementation before this decision existed: two members of 10 and 5 records, each
+carrying a matching marker, with the file between them absent, reported **complete, 15 records**. An agent
+reading that concludes a node never ran, over a window that is missing an hour. It is the same failure as
+reading silence as success (D-T8), one level up, and the marker made it *more* convincing rather than
+less.
+
+Therefore:
+
+- A set MUST NOT report **complete**, however many of its members do.
+- A set MUST report a member's **loss** — `missing_records`, `more_than_declared`, `unverified` — because
+  that is a fact a member can establish about itself, and it MUST name which file.
+- A set whose members are all whole is **unknown**, and SHOULD say what the members established and what
+  they did not, so that a reader looking at twelve files each marked complete does not supply the missing
+  conclusion themselves.
+
+Set-level completeness would need set-level evidence: a manifest, or a marker naming its successor.
+Neither exists, and neither is proposed here.
+
 ## Acceptance
 
 1. **The five states of D-E3**, each reported distinctly, and the last reported as unknown rather than
@@ -189,12 +219,21 @@ analyser, as the reference implementation, suppresses it.
    re-reading it. Review found both halves of this broken while the acceptance was ticked: `appendFrom`
    framed with no tracker at all, so an appended marker was **indexed as a record** and the state never
    moved off its load-time value.
-9. **A rolled set gives one honest answer about itself.** It is complete only when every member is, one
-   silent member makes the set unknown, and a member that lost records makes the set say so and names
-   which file. Review found the set taking the default and reporting unknown while a member was short.
-10. **The claim reaches a human.** `context` carries the state, and the status bar says "complete". The
-    branch computed that note into a local variable and never put it in the status text, so the surface
-    `context`'s own comment pointed at did not exist.
+9. **A rolled set gives one honest answer about itself, and that answer is never "complete"** (D-E5). A
+   member that lost records makes the set say so and names which file; a set of whole members is unknown
+   and says why. Review found the set taking the default and reporting unknown while a member was short;
+   re-review then found the fix for that reporting **complete over a set with a whole file missing**,
+   which was worse than the defect it replaced.
+10. **The claim reaches a human, and keeps reaching one.** `context` carries the state and the status bar
+    says "complete". The branch computed that note into a local variable and never put it in the status
+    text, so the surface `context`'s own comment pointed at did not exist. Re-review closed it properly
+    under rule 8: the line's **assembly** is now a pure function with its own test, because a test of the
+    decision alone would still pass with the note dropped on the floor, which is the defect that happened.
+11. **The published examples are run, not just read.** Every marker example in the format spec and this
+    spec is parsed by the recogniser it documents, and every state the reader can emit is named on the
+    page `context` points at. Two of the first review's findings were documentation drifting from code,
+    fixed by hand with nothing to stop them returning; rule 8 says that is not closed, and this is the
+    check that closes it.
 
 ## What this does not do
 
@@ -249,3 +288,4 @@ only field is unrecognised.
 | 2026-09-21, first draft | The contract: marker as a record, a count, four states, D-E4 suppression. |
 | same day, after implementation | Payload flattened to scalars; `logTime` dropped on the writer's side after the released-jar check found it widening an old reader's time range. |
 | same day, after review | The branch was rejected. `STOPPED_MID_WRITE` withdrawn as unsound — it called every real export damaged. `UNVERIFIED` and `MORE_THAN_DECLARED` split out of a `MISSING_RECORDS` that had been printing negative gaps. Counting made per-segment so appended runs work. Marker recognition inverted from a key search to an allow-list, after a record was found being deleted by its own `toString`. Rolled sets and follow mode given the rule they never had. |
+| same day, after **re-review** | One blocker: **a rolled set is never COMPLETE** — see D-E5, added below. The mid-record limit restated as *conditional on declared framing* rather than absolute, so the capability is deferred on the record instead of quietly lost. A diagnostic now names the run it is about rather than reporting a run's numbers as the file's. A byte-order mark no longer turns a leading marker into a record. §1a gained a precise recognition rule an adapter author can implement from. |
