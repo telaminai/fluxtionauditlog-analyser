@@ -1,5 +1,9 @@
 # Re-review the tool-agreement response
 
+**Post-review warning:** the integration recipe below is historical and applies only to `02fa62b3`.
+Re-review `51df9ebd` proved it does not compile at `955b90ed`: taking ours drops later MainFrame
+fixes. Do not reuse it against a newer head; regenerate the resolution and gates before integration.
+
 Fetch origin, use a separate worktree and review branch from `origin/feat/tool-agreement`.
 Read ONBOARDING, CLAUDE, the original review `review_tool_agreement_2026_09_21_opus.md`, then
 `response_tool_agreement_2026_09_21.md`. Original reviewed head: `fcaf14ad`; response source/main
@@ -30,7 +34,8 @@ For F4 inspect later endpoint evidence without running a server or client sessio
 Linux display job linked in the response, not a claim that a push ran CI. F6 links exact source sites;
 F7 points to the already-present skip totals in the reviewed report.
 
-Run the original brief's clean, display, package, tools, spotlight, strict-docs, diff and sweep gates.
+Run the original brief's clean, display, package, tools, spotlight, strict-docs, diff and sweep gates. For whitespace, run
+`git diff --check "$(git merge-base HEAD origin/main)"..HEAD` as well as the working diff.
 No-skip display requirement remains. The response's local clean gate is 1,767 tests, 49 headless
 skips; the separate display gate is 50 with none. Report what you run versus read.
 

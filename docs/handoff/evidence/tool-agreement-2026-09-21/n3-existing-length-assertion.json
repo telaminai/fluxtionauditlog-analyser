@@ -1,0 +1,12 @@
+{
+  "playgroundCommit": "d917a7a",
+  "file": "web/src/lib/starter/analyser-bundle.test.ts",
+  "line": 348,
+  "command": "pnpm exec vitest run src/lib/starter/analyser-bundle.test.ts -t \"skills.provenance matches\"",
+  "mutation": "Set manifest provenance to a credential-free HTTPS mirror URL with 381 characters; preserve the revision.",
+  "failure": "AssertionError: expected 381 to be less than or equal to 300",
+  "mutationExit": 1,
+  "restoredExit": 0,
+  "manifestRestoredByteForByte": true,
+  "conclusion": "N3 assertion already exists at the reviewed commit; no playground change required."
+}

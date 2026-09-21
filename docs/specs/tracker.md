@@ -49,6 +49,32 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
+### Re-review intake — 2026-09-21
+
+[Independent re-review](../handoff/rereview_tool_agreement_2026_09_21_opus.md) at `51df9ebd`:
+mergeable after N1's mechanical gate correction. F1–F6 closed (F1/F2/F3 with follow-ups);
+F7 withdrawn. **Frozen N1 prediction before edit:** an exact-path `-whitespace` attribute makes
+merge-base-to-HEAD diff checking pass without changing one evidence byte; removing it restores
+seven failures. Ordinary source files must retain whitespace checking.
+**Frozen N3 prediction:** the already-present length assertion at playground `d917a7a` rejects a
+validly shaped mirror provenance longer than 300 characters; restore the manifest and it passes.
+
+- ☐ **N2:** Follow's snapshot-to-live reload clears flags/selection/filters. Add preservation by
+  verified record identity or notice at the point of use; the FAQ alone is insufficient. Owner:
+  analyser Follow UI. Acceptance: flag an ordinary export, start Follow and either retain the
+  verified flag or warn before it is cleared; exercise both affected and unaffected paths.
+- ☐ **F3 integration gate:** old recipe is valid only at end-marker `02fa62b3`. Regenerate against
+  the actual chosen head before combining branches; at `955b90ed`, preserve `statusText` and
+  member-nested `streamEndFacts` plus later framing corrections, then rerun combined gates.
+  Owner: branch integrator. Do not apply the old “take ours” recipe to newer heads.
+
+N1 prediction held: exact-path attribute passes the branch-range gate, removal restores seven
+failures, ordinary-file whitespace remains rejected, evidence hash unchanged. N3 prediction held:
+reviewed test already has the 300-character assertion; 381 characters fails it and restored input
+passes. [Response and witnesses](../handoff/response_tool_agreement_2026_09_21.md).
+The re-review's N3 omission claim is not supported by the reviewed source. No playground edit.
+Mechanical-response gates: Maven 1,767/0/0/49; strict docs, branch-range diff and sweep pass.
+
 ### Review response — implementation and verification
 
 [Response to F1–F7](../handoff/response_tool_agreement_2026_09_21.md),

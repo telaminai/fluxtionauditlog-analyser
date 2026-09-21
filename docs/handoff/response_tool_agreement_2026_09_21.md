@@ -106,3 +106,39 @@ rule-1 sweep pass. The prior capture report's 9/725 framing claim is explicitly 
 
 [Re-review brief](brief_rereview_tool_agreement_2026_09_21.md) names the transition and integration
 checks. Independent disposition is the reviewer's; the author does not rewrite their verdict.
+
+## Independent re-review and mechanical gate correction
+
+[Re-review at 51df9ebd](rereview_tool_agreement_2026_09_21_opus.md) judges the branch mergeable
+after N1, closes F1–F6 with the stated follow-ups, and withdraws F7. Its text is preserved unchanged.
+
+**N1 corrected.** The earlier `git diff --check` claim checked the working diff, missing whitespace
+inside the already-committed evidence patch. The branch-range check reproduces seven failures.
+An exact-path `.gitattributes` exemption now preserves that patch verbatim without exempting other
+patches or source files. Removing the attribute restores seven failures; an ordinary-file negative
+control still fails. Patch SHA-256 before and after is identical. The prediction held; commands,
+outputs and digest are in [N1 evidence](evidence/tool-agreement-2026-09-21/n1-whitespace-gate.json).
+Future review must check the merge-base-to-HEAD range, not only the worktree diff.
+
+**N2 accepted, open follow-up.** The FAQ is not a warning at the point of use. The tracker now assigns
+analyser Follow UI ownership and acceptance for retaining verified flags or warning before clearing
+them. This mechanical correction changes no Follow behavior.
+
+**N3 not reproduced: the requested assertion already exists.** At reviewed playground `d917a7a`,
+`web/src/lib/starter/analyser-bundle.test.ts:348` asserts
+`expect(SKILLS_PROVENANCE.length).toBeLessThanOrEqual(300)`.
+A 381-character otherwise valid mirror provenance fails exactly that assertion; the restored
+manifest passes. [Witness](evidence/tool-agreement-2026-09-21/n3-existing-length-assertion.json).
+No playground source change was necessary; its worktree is restored byte-for-byte.
+
+**F3 remains an integration gate.** The historical rehearsal is valid at `02fa62b3` only. The
+reviewer established that applying it to `955b90ed` discards later MainFrame changes and does not
+compile. The brief now forbids that reuse. Regenerate and test the resolution against the actual
+chosen head before combining branches; this response does not claim that integration is done.
+
+Counts remain analyser **1 open**, upstream **8 open**. No merge, release or new client trial.
+
+Mechanical-response gates: `mvn -q test` **1,767 / 0 failures / 0 errors / 49 skips**;
+strict docs, working and branch-range whitespace checks, tracked/untracked rule-1 sweeps pass.
+The sandbox attempt again denied 29 socket bindings; the unrestricted rerun above passed. No Java
+or UI source changed, so the independently verified 50-test display result stands; it was not rerun.

@@ -1,0 +1,12 @@
+{
+  "base": "ea865d2d1e6bf082508bdbcbbce3bd44b0ba2332",
+  "head": "d8cf52e7ac0c3c755aead7a4b0e46b25c3222bc1",
+  "command": "git diff --check ea865d2d1e6bf082508bdbcbbce3bd44b0ba2332..HEAD",
+  "beforeExit": 2,
+  "beforeOutput": "docs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch:28: trailing whitespace.\n+ \ndocs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch:49: trailing whitespace.\n+ \ndocs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch:67: trailing whitespace.\n+ \ndocs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch:85: trailing whitespace.\n+ \ndocs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch:87: trailing whitespace.\n+ \ndocs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch:107: trailing whitespace.\n+ \ndocs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch:132: trailing whitespace.\n+ \n",
+  "afterExit": 0,
+  "withoutAttributeExit": 2,
+  "ordinaryFileStillRejected": "src/test/resources/n1-whitespace-control.txt:1: trailing whitespace.\n+ordinary source must still reject trailing spaces  \n",
+  "evidenceSha256BeforeAndAfter": "8e98db2ad37e368a20aec8527bd3ea9067ab68d3123b5496b2c61428c20937a7",
+  "scope": "Exact evidence path only; no patch byte changed."
+}

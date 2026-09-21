@@ -1,0 +1,2 @@
+# Preserve the reviewed integration patch byte-for-byte, including diff context lines.
+docs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch -whitespace
