@@ -96,6 +96,9 @@ public interface LogStore extends AutoCloseable {
         return null;
     }
 
+    /** Pending trailing records, or -1 when this reader does not expose framing status. */
+    default int trailingRecordsPending() { return -1; }
+
     /** True if this store can incrementally append newly-written records (follow/tail mode). */
     default boolean supportsFollow() {
         return false;

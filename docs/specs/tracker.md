@@ -10,7 +10,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
-D3a (build) and D3b (detection). Two counts, reported separately: **analyser 8 open** (13 at baseline), **upstream 8 open**;
+D3a (build) and D3b (detection). Two counts, reported separately: **analyser 7 open** (13 at baseline), **upstream 8 open**;
 D7 is reclassified as capability disclosure. Direction check: re-count each release. **Revised 2026-09-21
 after review:** the first version reversed the two fixture fingerprints (source `4ecd6133…`, stale
 `f6ae6f84…`), and wrongly called feedback 23, 25 and 34 untracked.
@@ -75,8 +75,19 @@ after review:** the first version reversed the two fixture fingerprints (source 
 - **[TA-5b] ☐ — implement and vendor the chosen route (owner named in TA-5a)** · _open until shipped in a starter._
 - **[TA-5c] ☐ — one spot-check session, only after TA-5a and TA-5b ship** · _fresh agent reaches a followed
   log without jar disassembly or a hand-written follower; scored from tool events. The spec's only session._
-- **[TA-6] ☐ — trailing unterminated record shown as pending, pending only** · _constructed growing file:
+- **[TA-6] ☑ — trailing unterminated record shown as pending, pending only** · _constructed growing file:
   pending and excluded from counts until the separator arrives; no accept-on-quiet; append-after-pause witness._
+  **TA-6 prediction frozen before edits, 2026-09-21:** a local follow-capable YAML file with one complete
+  record plus an unterminated second record will expose one trailing pending record and count only one,
+  including at initial open. A quiet poll cannot complete it; fields appended after that poll must appear
+  when a real separator arrives, exactly once. For this file reader, EOF is not a completion delimiter.
+  In-memory static strings retain their existing framing. Disabling terminator enforcement must fail.
+  Before: analyser 8 open; upstream 8 open.
+  **Result:** held. `FollowAppendTest.pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator`
+  covers initial open, quiet poll, late fields, split separator and exactly-once append; the real-frame
+  pending-status test checks context and Follow. Disabling terminator enforcement fails the new test
+  and the existing append control. Restored full suite and strict docs pass. D6 closed: analyser 7,
+  upstream 8 open. [Evidence](../handoff/report_tool_agreement_2026_09_21.md#ta-6--completed).
 - **[TA-7] ☐ — assistant can start Follow via `open {follow: true}`** (no new verb without approval) · _echo
   and toolbar agree; a reader without follow support never echoes Follow as active._
 - **[TA-8] ☐ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._

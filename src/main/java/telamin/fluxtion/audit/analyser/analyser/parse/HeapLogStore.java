@@ -18,12 +18,19 @@ public final class HeapLogStore implements LogStore {
 
     private volatile String file;        // grows in follow/tail mode (append-only); volatile: read off-EDT by readView()
     private final LogIndex index;
+    private volatile boolean trailingPending;
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
 
     public HeapLogStore(String file) {
+        this(file, false);
+    }
+
+    private HeapLogStore(String file, boolean requireTerminator) {
         this.file = (file == null) ? "" : file;
-        this.index = buildIndex(this.file);
+        this.index = new LogIndex();
+        this.trailingPending = RecordFramer.frameWithPending(this.file,
+                raw -> index.add(RecordParser.parse(raw.text(), raw.offset())), requireTerminator);
     }
 
     public static HeapLogStore fromFile(Path path) throws IOException {
@@ -33,7 +40,7 @@ public final class HeapLogStore implements LogStore {
         String text = Files.readString(path, StandardCharsets.UTF_8);
         capture.accept(text.getBytes(StandardCharsets.UTF_8));
         var identity = capture.finish();
-        HeapLogStore s = new HeapLogStore(text);
+        HeapLogStore s = new HeapLogStore(text, true);
         s.readIdentity = identity;
         s.source = path;
         return s;
@@ -50,7 +57,7 @@ public final class HeapLogStore implements LogStore {
 
     @Override
     public boolean supportsFollow() {
-        return true;
+        return source != null;
     }
 
     @Override
@@ -74,18 +81,14 @@ public final class HeapLogStore implements LogStore {
         this.file = full;
         // require a terminator so a record still being written isn't indexed until complete; the
         // first `before` records are byte-identical (append-only) so we skip them and add the rest
-        RecordFramer.frame(full, raw -> {
+        trailingPending = RecordFramer.frameWithPending(full, raw -> {
             if (seen[0]++ < before) return;
             index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
         return index.size() - before;
     }
 
-    private static LogIndex buildIndex(String file) {
-        LogIndex idx = new LogIndex();
-        RecordFramer.frame(file, raw -> idx.add(RecordParser.parse(raw.text(), raw.offset())));
-        return idx;
-    }
+    @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
 
     @Override
     public int size() {

@@ -33,6 +33,34 @@ class FollowAppendTest {
         Files.writeString(p, more, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
     }
 
+    /** TA-6: constructed growing file, including a pause and a split separator. */
+    @Test
+    void pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator() throws Exception {
+        Path p = tempWith("---\n" + rec(1) + "eventLogRecord:\n  logTime: 2\n");
+        HeapLogStore store = HeapLogStore.fromFile(p);
+        assertEquals(1, store.size(), "initial EOF is not proof the writer completed the record");
+        assertEquals(1, store.trailingRecordsPending());
+        try (var rolled = RolledLogStore.open(java.util.List.of(p), 100)) {
+            assertEquals(1, rolled.size());
+            assertEquals(1, rolled.trailingRecordsPending(), "member pending state is not hidden by a rolled container");
+        }
+        assertFalse(new HeapLogStore("eventLogRecord:\n  logTime: 1\n").supportsFollow(),
+                "a static string must not advertise live-file follow");
+        Thread.sleep(1100); // longer than a normal follow poll, still not evidence of completeness
+        assertEquals(0, store.appendFrom(p));
+        assertEquals(1, store.size());
+        assertEquals(1, store.trailingRecordsPending());
+        append(p, "  nodeLogs:\n    - node: {value: 42}\n---");
+        assertEquals(0, store.appendFrom(p), "a separator without its line ending can still change");
+        assertEquals(1, store.trailingRecordsPending());
+        append(p, "\n");
+        assertEquals(1, store.appendFrom(p));
+        assertEquals(2, store.size());
+        assertEquals(0, store.trailingRecordsPending());
+        assertTrue(store.rawText(1).contains("value: 42"), "late fields were not frozen at the quiet poll");
+        assertEquals(0, store.appendFrom(p), "the completed record is indexed exactly once");
+    }
+
     @Test
     void appendsNewlyCompletedRecords() throws IOException {
         Path p = tempWith("---\n" + rec(1) + rec(2));
@@ -59,6 +87,7 @@ class FollowAppendTest {
         append(p, "#00:00:03.000 [t] INFO L\neventLogRecord:\n  logTime: 3\n");
         assertEquals(0, store.appendFrom(p), "un-terminated trailing record is not indexed yet");
         assertEquals(2, store.size());
+        assertEquals(1, store.trailingRecordsPending());
 
         // once its separator arrives it is picked up
         append(p, "---\n");

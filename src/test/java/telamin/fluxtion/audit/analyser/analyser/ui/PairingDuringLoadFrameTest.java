@@ -39,6 +39,36 @@ class PairingDuringLoadFrameTest {
     }
 
     @Test
+    void pendingTrailingRecordIsVisibleInContextAndFollowStatus(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path audit = Files.writeString(tmp.resolve("pending.yaml"), log("rootNode")
+                + "eventLogRecord:\n  logTime: 2000\n");
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            var ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> assertEquals(1, find(render(ex, "context", Map.of()), "trailingRecordsPending")));
+            var follow = MainFrame.class.getDeclaredMethod("setFollowing", boolean.class);
+            follow.setAccessible(true);
+            var status = MainFrame.class.getDeclaredField("status"); status.setAccessible(true);
+            onEdt(() -> {
+                try {
+                    follow.invoke(frame.get(), true);
+                    assertTrue(((javax.swing.JLabel)status.get(frame.get())).getText().contains("1 trailing record pending"));
+                    follow.invoke(frame.get(), false);
+                } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+            });
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void openingCommittedCopiesAnnouncesDisagreementWithoutRefusing(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");

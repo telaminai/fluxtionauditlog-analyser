@@ -1,0 +1,15 @@
+{
+  "mutation": "Publish the unterminated trailing record on a file read or poll",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "doesNotIndexARecordStillBeingWritten",
+      "failure": "un-terminated trailing record is not indexed yet ==> expected: <0> but was: <1>"
+    },
+    {
+      "test": "pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator",
+      "failure": "initial EOF is not proof the writer completed the record ==> expected: <1> but was: <2>"
+    }
+  ],
+  "restored": true
+}

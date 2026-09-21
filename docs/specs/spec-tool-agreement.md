@@ -69,7 +69,7 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D3b | discovery and open say nothing when two copies of one graph disagree | they differ in fingerprint and node set | **analyser** → TA-2 | fixtures | ☑ `GraphmlDiscoveryTest.committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence`; `PairingDuringLoadFrameTest.openingCommittedCopiesAnnouncesDisagreementWithoutRefusing` |
 | D4 | report finding: "WHAT IS WRONG / LIKELY CAUSE" | the flag confirms correct behaviour | **analyser** → existing "Reports as evidence, not automatically defects" (25); TA-3 | §5.6, A9 | ☑ `FindingPresentationTest`, `FindingReportTest`, `ReportRendererTest`, `SessionRecoveryFrameTest.confirmationFlagSurvivesExplicitRecoveryOnlyAgainstTheSameLog` |
 | D5 | windowed `delta` answer omits the flip at record 27 | the flip is present in the whole-log answer | **analyser** → TA-4 | A8 | ☑ `WindowedHistoryTest` (constructed regression, not session replay) |
-| D6 | follow shows the log as current | the newest record is held back until the next one arrives | **analyser** → TA-6 | §3.2 step 5, A7 | ☐ |
+| D6 | follow shows the log as current | the newest record is held back until the next one arrives | **analyser** → TA-6 | §3.2 step 5, A7 | ☑ `FollowAppendTest.pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator`; `PairingDuringLoadFrameTest.pendingTrailingRecordIsVisibleInContextAndFollowStatus` |
 | D7 | `validate`: "XML: valid; 5 nodes, 4 edges" | true: the XML was valid. Three declared classes were missing, which `validate` does not claim to check | — | §3.6 G1–G2 | ⊘ reclassified — not an untrue echo; see the `validate` scope note below |
 | D8 | the build accepts the round-1 `RiskCheck` | the reconciler refuses it three ways, for rules the contract does not state | starter / contract | §3.6 | ☐ |
 | D9 | the authoring contract: the starter generates stubs | **standalone:** runnable since starter 1.0.73 (SG-1). **Hosted template:** still ships no local authoring files | playground → SG-2 | App. B; SG-1 release report | standalone ☑ · hosted ☐ |
@@ -79,7 +79,7 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D13 | `/api/audit/files` reports record counts and times | they are frozen at startup while the queue grows | Mongoose plugins 1.0.43 | §5.3 | ☐ |
 
 **How to count.** Twenty-one findings, D1–D21, with D3 split into D3a and D3b. **Analyser
-responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Current open: analyser 8; upstream 8.** **Upstream: 8 open** — D3a, D8, D9 (hosted),
+responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Current open: analyser 7; upstream 8.** **Upstream: 8 open** — D3a, D8, D9 (hosted),
 D10–D13 and D21; D7 is reclassified. Report the two counts separately. Closing D3b (detection) never closes
 D3a (the build defect). A compound row closes only when every disagreement it names is closed, and records
 its regression test when it does. Track TA items alongside the rows: TA-5, TA-7 and TA-8 carry work with no
@@ -221,6 +221,8 @@ most of an hour before the first measurement.
 their own evidence. Nothing here reopens in-app discovery or runs the application from the analyser.
 
 ### TA-6 · P1 · A trailing unterminated record is shown as pending, never as complete
+
+**Status: ☑ implemented.** [Regression and mutation evidence](../handoff/report_tool_agreement_2026_09_21.md#ta-6--completed).
 
 **Evidence.** The Mongoose export separates records with `\n---\n` and leaves the last one open, so follow
 holds the newest record back and the view is always one behind (§3.2 step 5, A7).

@@ -3799,7 +3799,7 @@ public final class MainFrame extends JFrame {
                         java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
         status.setText(loaded.size() + " records · " + range + " · "
                 + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
-                        : displayName(location)) + orderWarning + producerWarning);
+                        : displayName(location)) + orderWarning + producerWarning + trailingPendingNote());
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
@@ -4062,10 +4062,15 @@ public final class MainFrame extends JFrame {
         }
         if (on) {
             followTimer.start();
-            status.setText("Following " + displayName(followPath) + " — watching for new records…");
+            status.setText("Following " + displayName(followPath) + " — watching for new records…" + trailingPendingNote());
         } else {
             followTimer.stop();
         }
+    }
+
+    private String trailingPendingNote() {
+        int pending = store == null ? 0 : store.trailingRecordsPending();
+        return pending > 0 ? " · " + pending + " trailing record" + (pending == 1 ? "" : "s") + " pending" : "";
     }
 
     /** One tail poll: append any newly-completed records, or reload if the file was rotated/truncated. */
@@ -4088,7 +4093,10 @@ public final class MainFrame extends JFrame {
             openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
             return;
         }
-        if (added == 0) return;
+        if (added == 0) {
+            status.setText("Following " + displayName(followPath) + " · " + store.size() + " records" + trailingPendingNote());
+            return;
+        }
         if (tableModel != null) tableModel.rowsAppended(before);
         Long mx = store.maxLogTime();
         if (mx != null) timeSlider.extendAbsMax(mx);
@@ -4098,7 +4106,7 @@ public final class MainFrame extends JFrame {
         tablePanel.scrollToLast();
         String range = store.minLogTime() == null ? "no timestamps"
                 : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
-        status.setText("Following " + displayName(followPath) + " · " + store.size() + " records · " + range);
+        status.setText("Following " + displayName(followPath) + " · " + store.size() + " records · " + range + trailingPendingNote());
     }
 
     /** Record-density buckets across the log-time range, for the slider histogram. */
@@ -5728,6 +5736,10 @@ public final class MainFrame extends JFrame {
             Map<String, Object> log = facts.logAsMap();
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
+            if (store != null && store.trailingRecordsPending() >= 0) {
+                log.put("trailingRecordsPending", store.trailingRecordsPending());
+                if (store.trailingRecordsPending() > 0) log.put("pendingNote", store.trailingRecordsPending() + " trailing record(s) pending — awaiting complete separator lines");
+            }
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance != null) out.put("provenance", logProvenance);

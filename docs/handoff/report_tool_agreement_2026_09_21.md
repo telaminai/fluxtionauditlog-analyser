@@ -137,3 +137,28 @@ TA-U records all eight upstream rows with owners and template/version scope, D7'
 SG-1/SG-2 separation and the EventLogNode-before-generator-guidance dependency. This records ownership,
 not upstream fixes. Endpoint behavior is read from preserved testimony, not independently re-exercised.
 Counts remain **analyser 8 open; upstream 8 open**.
+
+## TA-6 — completed
+
+Frozen before edits: a follow-capable local YAML file containing one complete record and one unfinished
+record counts one plus one pending, even at initial open. Quiet cannot complete it; later fields must
+survive until the actual separator arrives, exactly once. In-memory static strings retain their framing.
+**Held.** The initial-file path previously accepted EOF while subsequent polls required a terminator.
+Both file paths now require a complete separator line, including its newline. Static strings do not
+advertise file follow. Rolled heap containers carry their members' pending count; readers that do not
+expose framing status return unknown, not an invented zero.
+
+Constructed tests: `FollowAppendTest.pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator`
+(initial open, pause exceeding the poll interval, late fields, split separator, final append exactly once,
+rolled-container disclosure) and `PairingDuringLoadFrameTest.pendingTrailingRecordIsVisibleInContextAndFollowStatus`
+(real frame, context and human Follow status). No preserved session log is claimed.
+
+Mutation: publish the trailing record on a read/poll despite lacking its terminator. The new test fails
+`initial EOF is not proof the writer completed the record ==> expected: <1> but was: <2>`;
+the existing append test fails `expected: <0> but was: <1>`.
+[Witness](evidence/tool-agreement-2026-09-21/ta6-mutation.json). Source restored.
+
+Validation: full headless suite, the targeted real-frame test, updated follow tests and strict docs pass.
+No quiet acceptance, provisional record or delimiter rewriting added. The file framing change is intentional:
+an unterminated heap-loaded file's final record is pending even before Follow is enabled.
+Counts: analyser **8 → 7 open** (D6), upstream **8 → 8 open**.

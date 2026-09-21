@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- Follow-capable YAML files keep unterminated records pending from initial open, disclose the pending
+  count and wait for a complete separator line; a quiet interval never completes a record.
 - Windowed rolling-series queries retain earlier history, so delta changes at the lower bound match
   whole-log results and an existing threshold state is not reported as a new crossing.
 - Confirmation findings use Observation / Assessment across the shared views and PDF exports.

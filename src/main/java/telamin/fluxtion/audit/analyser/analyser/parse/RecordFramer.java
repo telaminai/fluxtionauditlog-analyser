@@ -34,7 +34,12 @@ public final class RecordFramer {
      * still being written isn't indexed until it is complete.
      */
     public static void frame(String file, Consumer<RawRecord> sink, boolean requireTerminator) {
-        if (file == null || file.isEmpty()) return;
+        frameWithPending(file, sink, requireTerminator);
+    }
+
+    /** Returns whether a non-blank unterminated record remains, without publishing that record. */
+    static boolean frameWithPending(String file, Consumer<RawRecord> sink, boolean requireTerminator) {
+        if (file == null || file.isEmpty()) return false;
         int n = file.length();
         int i = 0;
         int recStart = -1;
@@ -43,7 +48,7 @@ public final class RecordFramer {
             int j = i;
             while (j < n && file.charAt(j) != '\n') j++;
             int lineEnd = j;                      // exclusive of '\n'
-            boolean isSep = isSeparator(file, lineStart, lineEnd);
+            boolean isSep = (!requireTerminator || j < n) && isSeparator(file, lineStart, lineEnd);
             boolean isBlank = isBlank(file, lineStart, lineEnd);
             if (isSep) {
                 if (recStart >= 0) {
@@ -56,6 +61,7 @@ public final class RecordFramer {
             i = (j < n) ? j + 1 : n;              // advance past '\n'
         }
         if (recStart >= 0 && !requireTerminator) emit(file, recStart, n, sink);
+        return recStart >= 0 && requireTerminator;
     }
 
     private static void emit(String file, int start, int end, Consumer<RawRecord> sink) {

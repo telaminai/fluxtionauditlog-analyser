@@ -63,6 +63,16 @@ public final class RolledLogStore implements LogStore {
         return new RolledLogStore(members, List.copyOf(orderedFiles), firstRow, merged);
     }
 
+    @Override public int trailingRecordsPending() {
+        int count = 0;
+        for (LogStore member : members) {
+            int pending = member.trailingRecordsPending();
+            if (pending < 0) return -1;
+            count += pending;
+        }
+        return count;
+    }
+
     @Override public List<FileReadIdentity> readIdentities() {
         return members.stream().flatMap(m -> m.readIdentities().stream()).toList();
     }

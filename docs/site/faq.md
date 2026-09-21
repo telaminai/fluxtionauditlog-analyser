@@ -32,6 +32,12 @@ Yes — **File ▸ Follow (tail)** polls an open local file and appends newly-co
 preserving flags and filters; open graphs re-extract as records arrive (a chart showing the whole log grows with
 it, one at the live edge slides, one zoomed into the middle holds). (Heap-loaded local files only; not S3.)
 
+For that file reader, a trailing record without a complete `---` separator line is **pending**, including
+on initial open. Status and `context.log.trailingRecordsPending` disclose it; completed-record counts
+exclude it. Pausing the writer does not complete a record. After the separator and its newline arrive,
+the record appears with all fields written before the separator. Do not add a separator to a live export
+merely to make it appear sooner.
+
 ## Why is a value in a record not graphable?
 
 Only **top-level** numeric or boolean nodeLog keys can be plotted. A number sitting inside a `toString()`
