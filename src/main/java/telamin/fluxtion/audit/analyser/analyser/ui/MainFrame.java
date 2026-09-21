@@ -4111,20 +4111,41 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int fileRecords) {
         Map<String, Object> se = new java.util.LinkedHashMap<>();
         se.put("state", end.state().name().toLowerCase(java.util.Locale.ROOT));
-        se.put("recordsRead", (long) fileRecords);
-        var seg = end.segment();
-        if (seg == null) {
-            if (end.declaredRecords() >= 0) se.put("declaredRecords", end.declaredRecords());
-            return se;
+        se.put("recordsRead", (long) fileRecords);      // ALWAYS the whole log's count
+
+        Map<String, Object> scoped = scopedNumbers(end);
+        if (end.member() != null) {
+            // A rolled set: the numbers came from ONE file and the positions are inside it, so they are
+            // nested under the file that owns them. Re-review B2 found them beside the SET's count with
+            // no file named, reading as "declares 6, read 25" under a missing-records state.
+            Map<String, Object> member = new java.util.LinkedHashMap<>();
+            member.put("file", end.member());
+            member.putAll(scoped);
+            se.put("member", member);
+        } else if (end.segment() != null) {
+            se.put("run", scoped);
+        } else if (end.declaredRecords() >= 0) {
+            se.put("declaredRecords", end.declaredRecords());
         }
-        Map<String, Object> run = new java.util.LinkedHashMap<>();
-        run.put("ordinal", seg.ordinal());
-        run.put("firstRecord", seg.firstRecord());
-        run.put("lastRecord", seg.lastRecord());
-        if (end.declaredRecords() >= 0) run.put("declaredRecords", end.declaredRecords());
-        run.put("recordsRead", end.emittedRecords());
-        se.put("run", run);
         return se;
+    }
+
+    /** A verdict's own numbers, and where they sit, for whatever scope owns them. */
+    private static Map<String, Object> scopedNumbers(
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end) {
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        var seg = end.segment();
+        if (seg != null) {
+            m.put("ordinal", seg.ordinal());
+            // An empty run has no positions to give: its last record is one BEFORE its first.
+            if (!seg.isEmpty()) {
+                m.put("firstRecord", seg.firstRecord());
+                m.put("lastRecord", seg.lastRecord());
+            }
+        }
+        if (end.declaredRecords() >= 0) m.put("declaredRecords", end.declaredRecords());
+        m.put("recordsRead", end.emittedRecords());
+        return m;
     }
 
     /**

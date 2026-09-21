@@ -150,6 +150,28 @@ class RolledLogStoreTest {
         }
     }
 
+    /**
+     * Re-review B2, the third occurrence of one defect class: a member's numbers printed beside the
+     * SET's count, on the machine surface. {@code context} showed {@code recordsRead: 25} (the set) next
+     * to {@code declaredRecords: 6} (one file), with no file named, under a missing-records state — so
+     * an agent read "declared 6, read 25", which looks like MORE than declared.
+     */
+    @Test
+    void aSetsVerdictCarriesTheMemberItCameFromSoTheTwoScopesCannotBePrintedAsOne() throws IOException {
+        Path g1 = dir.resolve("g.log.1");
+        Path g2 = dir.resolve("g.log");
+        Files.writeString(g1, records("A", 100, 110) + marker(2));
+        Files.writeString(g2, records("B", 200, 210, 220) + marker(6));   // declares 6, holds 3
+        try (RolledLogStore set = RolledLogStore.open(List.of(g1, g2), 512)) {
+            assertEquals(5, set.size());
+            StreamEnd end = set.streamEnd();
+            assertEquals(StreamEnd.State.MISSING_RECORDS, end.state());
+            assertEquals("g.log", end.member(), "the numbers belong to a file, and it must be named");
+            assertEquals(6, end.declaredRecords(), "the member's declaration");
+            assertEquals(3, end.emittedRecords(), "the member's records, not the set's 5");
+        }
+    }
+
     @Test
     void aMemberThatLostRecordsStillMakesTheSetSaySoAndNamesTheFile() throws IOException {
         Path a = dir.resolve("s.log.1");

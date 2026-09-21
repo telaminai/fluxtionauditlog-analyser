@@ -50,10 +50,19 @@ class PublishedSpecExamplesTest {
         return raw.stream().map(RawRecord::text).toList();
     }
 
+    /**
+     * Both pages, not just the published one.
+     *
+     * <p>Re-review found this test would NOT have caught round-one finding 8 — the DESIGN spec still
+     * drawing a nested payload after the code went flat — because recognition ran only over
+     * {@code format-spec.md}. A design spec that describes a different marker from the one the code
+     * reads is the same defect wherever it lives.
+     */
     @Test
-    void thePublishedMarkerExampleIsRecognisedAsAMarker() throws IOException {
-        List<String> examples = markerExamples(SPEC);
+    void everyPublishedMarkerExampleIsRecognisedAsAMarker() throws IOException {
+        List<String> examples = new java.util.ArrayList<>(markerExamples(SPEC));
         assertFalse(examples.isEmpty(), "§1a must show a marker; none found in " + SPEC);
+        examples.addAll(markerExamples(DESIGN));
         for (String block : examples) {
             List<String> recs = records(block);
             assertEquals(1, recs.size(), () -> "the example should be one record:\n" + block);
@@ -84,20 +93,41 @@ class PublishedSpecExamplesTest {
     }
 
     /**
-     * Every state the reader can produce is named on the page {@code context}'s own comment points at.
-     * The first review found that pointer naming a page which never mentioned the feature.
+     * Every state the reader can produce has its own ROW in the page's state table.
+     *
+     * <p>The first review found {@code context}'s docs pointer naming a page that never mentioned the
+     * feature. Re-review then found the first version of this check tautological: it searched the whole
+     * page, and "complete" and "unknown" are ordinary English that appear in the surrounding prose, so
+     * only the three compound names were really guarded. Matching a table row fixes that — a state is
+     * explained when it has a line of its own saying what it means, not when its name happens to occur.
      */
     @Test
-    void theHumanFacingPageNamesEveryStateTheReaderCanReport() throws IOException {
+    void theHumanFacingPageGivesEveryStateItsOwnRow() throws IOException {
         String page = Files.readString(ASSISTANT, StandardCharsets.UTF_8);
         assertTrue(page.contains("log.streamEnd"),
                 "the page must name the context key a reader will search for");
         for (StreamEnd.State s : StreamEnd.State.values()) {
-            String wire = s.name().toLowerCase(java.util.Locale.ROOT);
-            assertTrue(page.contains(wire),
-                    () -> "state '" + wire + "' can appear in `context` and is not explained in "
-                            + ASSISTANT + ". A state a reader meets and cannot look up is worse than "
+            String row = "| `" + s.name().toLowerCase(java.util.Locale.ROOT) + "` |";
+            assertTrue(page.contains(row),
+                    () -> "state " + row + " can appear in `context` and has no row in " + ASSISTANT
+                            + "'s state table. A state a reader meets and cannot look up is worse than "
                             + "no state at all.");
         }
+    }
+
+    /**
+     * The recognition rule in §1a is a TABLE, and this test cannot read it.
+     *
+     * <p>Said out loud because re-review's blocker lived exactly there: a reader implemented from the
+     * prose disagreed with the analyser on two shapes, and nothing here saw it. What closes that gap is
+     * not a cleverer test but the fixtures — `c22-marker-syntax.yaml` pins both shapes — so this asserts
+     * the fixtures exist and stay wired, and names the limit for whoever reads this next.
+     */
+    @Test
+    void theRecognitionRulesEdgeCasesArePinnedByFixturesBecauseThisTestCannotReadTheTable() {
+        assertTrue(Files.exists(Path.of("src/test/resources/conformance/c22-marker-syntax.yaml")),
+                "the syntax edges where prose and code once disagreed must stay pinned by a fixture");
+        assertTrue(Files.exists(Path.of("src/test/resources/conformance/c21-real-export.yaml")),
+                "and the real producer's own layout must stay pinned by its own bytes");
     }
 }

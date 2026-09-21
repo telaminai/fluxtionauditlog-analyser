@@ -261,6 +261,22 @@ class StreamEndTest {
         assertEquals(4, seg.fileRecords());
     }
 
+    /**
+     * Re-review finding 3. A marker immediately after another closes a run holding nothing, and
+     * {@code first + emitted - 1} then puts the last record one before the first: "records 25 to 24".
+     */
+    @Test
+    void aRunWithNoRecordsIsNamedAsEmptyRatherThanGivenABackwardsRange() {
+        String body = file(REC, REC, String.format(MARKER, 2));
+        var store = new HeapLogStore(body + "---\n" + String.format(MARKER, 3));
+        assertEquals(2, store.size());
+        assertEquals(StreamEnd.State.MISSING_RECORDS, store.streamEnd().state());
+        String d = store.sourceDiagnostics().get(0);
+        assertTrue(d.contains("holds no records at all"), () -> d);
+        assertFalse(d.matches("(?s).*records 2 to 1.*"), () -> "a backwards range: " + d);
+        assertTrue(store.streamEnd().segment().isEmpty());
+    }
+
     @Test
     void aSingleRunFileNamesNoRunBecauseTheFileIsTheRun() {
         var store = new HeapLogStore(file(REC, REC, String.format(MARKER, 9)));

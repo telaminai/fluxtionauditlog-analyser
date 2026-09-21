@@ -60,12 +60,23 @@ every remaining line is one of:
 | `streamEndRecords: <value>` | OPTIONAL, at most once |
 | `logTime: <value>` | OPTIONAL |
 
+A line matches one of these when it begins with the key, then a colon, then **optional** whitespace.
+Note that this differs from YAML, where `streamEnd:normal` with no space is a plain scalar rather than a
+key: Format 1 accepts it as a key, here and in §2 alike, because §2's reader has always split on the
+first colon of an identifier. A reader that requires the space will disagree with the analyser on a
+record no producer is likely to write, and it should not.
+
 Any other line, a second `streamEnd`, a second `streamEndRecords`, or an empty `streamEnd` value makes
-the record an ordinary record. `<value>` is read to end of line, with a surrounding pair of single or
-double quotes removed first and an unquoted `#` beginning a comment. A `streamEndRecords` that is
-absent, unparseable as a signed 64-bit integer, or negative means **no count**, and the reader reports
-**unverified** rather than guessing. Flow style (`{streamEnd: normal}`) is **not** a marker under this
-rule; a reader MAY accept it, and one that does not is conformant.
+the record an ordinary record. `<value>` is read to end of line, and then:
+
+- a value that **begins** with a single or double quote runs to its matching quote, and anything after
+  the closing quote is discarded — so `"25"  # declared` is the value `25`, and a `#` **inside** the
+  quotes is data, not a comment;
+- otherwise an unquoted `#` begins a comment and the value is what precedes it.
+
+A `streamEndRecords` that is absent, unparseable as a signed 64-bit integer, or negative means **no
+count**, and the reader reports **unverified** rather than guessing. Flow style (`{streamEnd: normal}`)
+is **not** a marker under this rule; a reader MAY accept it, and one that does not is conformant.
 
 An unrecognised `streamEnd` value is **tolerated**: any non-empty value makes a marker. `normal` and
 `stopping` are the defined values; a reader MUST NOT treat a third value as a reason to reject the marker
@@ -76,7 +87,15 @@ question in the design spec, and the analyser currently reads the value without 
 segment like any other record, because it occupies a position a producer wrote to. And nothing here
 applies to a **set** of rolled files: a marker vouches for the file that carries it, so a set of whole
 files is not a whole set, and a reader MUST NOT report one as complete. Nothing in Format 1 records how
-many files a set should hold.
+many files a set should hold, in what order, or under what identity.
+
+That last one is deferred rather than refused, on the same terms as the mid-record limit above. Two
+routes would establish it: a **manifest** naming the set's members, or a marker **naming its
+successor**, so the files form a chain a reader can walk. **Neither is specified here**, and a reader
+MUST NOT infer a set's completeness from its members', from filenames, or from timestamps being
+contiguous. A reader SHOULD say what the members established and that the set's own completeness is
+unknown, so that a person looking at a shelf of whole-looking files does not supply the conclusion
+themselves.
 
 It is **physically a record and semantically a container fact**, and it is a record only because §1
 leaves no position for non-record text. A reader MUST NOT present it as a record: not in a record count,

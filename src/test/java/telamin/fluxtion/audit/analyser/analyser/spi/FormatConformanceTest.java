@@ -461,7 +461,7 @@ class FormatConformanceTest {
                     "c08-lenient-values.yaml", "c09-garbage.yaml", "c11-attribution.yaml",
                     "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
                     "c17-legacy-quotes.yaml", "c18-stream-end.yaml", "c19-export-layout.yaml",
-                    "c20-marker-lookalike.yaml"), names,
+                    "c20-marker-lookalike.yaml", "c21-real-export.yaml", "c22-marker-syntax.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -533,6 +533,51 @@ class FormatConformanceTest {
      * record from the index on all three paths, and the file then reported records missing. Silent,
      * content-controlled data loss — a D-T8 violation — so recognition is an allow-list instead.
      */
+    /**
+     * C21 — a REAL export, kept because everything else here is something a person typed.
+     *
+     * <p>Three review rounds turned on the gap between the layout this project imagined and the layout
+     * its own producer writes. Round one measured it: a byte-exact export of 25 records reported as a
+     * damaged tail, while every hand-written fixture stayed green. `c19` was the corrective and is still
+     * constructed, with invented headers; this is the bytes themselves. It carries details nobody would
+     * have thought to invent — four-space indent, a trailing space after `eventLogRecord:`, an empty
+     * `nodeLogs:` on lifecycle records, no leading separator and no trailing one.
+     */
+    @Test
+    void c21_theRealProducersOwnLayoutReadsAsAnOrdinaryWholeLog() throws IOException {
+        LogStore s = bothPathsAgree("c21-real-export.yaml");
+        assertEquals(25, s.size(), "every record of the real export is read");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                s.streamEnd().state(), "it carries no marker, so it claims nothing");
+        assertTrue(s.sourceDiagnostics().isEmpty(),
+                () -> "the dominant real producer must not look damaged: " + s.sourceDiagnostics());
+        int parseErrors = 0;
+        for (int i = 0; i < s.size(); i++) {
+            if (s.record(i).kind() == telamin.fluxtion.audit.analyser.analyser.model.EventKind.PARSE_ERROR) {
+                parseErrors++;
+            }
+        }
+        assertEquals(0, parseErrors, "four-space indent and trailing spaces are not parse errors");
+        assertEquals("PriceEvent", s.record(24).event());
+        assertEquals(2, s.record(24).nodeLogsCount(), "a real cycle's node logs survive the round trip");
+    }
+
+    /**
+     * C22 — the two shapes where a reader written from §1a's PROSE disagreed with this code.
+     *
+     * <p>Re-review implemented §1a from the published text alone and compared 53 files; these two
+     * differed. Both are now stated in the prose and pinned here, because a normative section exists so
+     * that someone else can implement it and agree.
+     */
+    @Test
+    void c22_theSyntaxEdgesWhereProseAndCodeHadDisagreed() throws IOException {
+        LogStore s = bothPathsAgree("c22-marker-syntax.yaml");
+        assertEquals(1, s.size(), "one record; the marker is not one");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE,
+                s.streamEnd().state(),
+                "a colon with no space is a key, and a quoted count followed by a comment reads as 1");
+    }
+
     @Test
     void c20_aRecordThatMentionsTheMarkerKeyIsStillARecord() throws IOException {
         LogStore s = bothPathsAgree("c20-marker-lookalike.yaml");

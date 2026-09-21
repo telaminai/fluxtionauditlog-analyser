@@ -133,13 +133,18 @@ public final class RolledLogStore implements LogStore {
     @Override
     public StreamEnd streamEnd() {
         StreamEnd worst = null;
-        for (LogStore m : members) {
-            StreamEnd s = m.streamEnd();
-            if (worst == null || severity(s.state()) > severity(worst.state())) worst = s;
+        int worstIndex = -1;
+        for (int i = 0; i < members.size(); i++) {
+            StreamEnd s = members.get(i).streamEnd();
+            if (worst == null || severity(s.state()) > severity(worst.state())) {
+                worst = s;
+                worstIndex = i;
+            }
         }
         if (worst == null || worst.state() == StreamEnd.State.COMPLETE) return StreamEnd.unknown(size());
-        return new StreamEnd(worst.state(), worst.declaredRecords(), worst.emittedRecords(),
-                worst.segment());
+        // The numbers are the MEMBER's; its name travels with them so no surface can print them beside
+        // the set's own count as though they described the same thing (re-review B2).
+        return worst.inMember(paths.get(worstIndex).getFileName().toString());
     }
 
     /** True when every member carries a marker that checks out — worth SAYING, never worth believing. */
@@ -177,10 +182,13 @@ public final class RolledLogStore implements LogStore {
             if (d != null) out.add(d);
         }
         if (everyMemberIsWhole()) {
-            out.add("each of the " + members.size() + " files in this set says it is whole, and each says "
-                    + "so only about itself. Nothing records how many files the set should hold, so a "
-                    + "file that was never rotated in, copied or kept would leave a gap that looks "
-                    + "exactly like this. The set's completeness is unknown.");
+            out.add((members.size() == 1
+                    ? "the single file in this set says it is whole, and it says so only about itself."
+                    : "each of the " + members.size() + " files in this set says it is whole, and each "
+                            + "says so only about itself.")
+                    + " Nothing records how many files the set should hold, so a file that was never "
+                    + "rotated in, copied or kept would leave a gap that looks exactly like this. The "
+                    + "set's completeness is unknown.");
         }
         return List.copyOf(out);
     }

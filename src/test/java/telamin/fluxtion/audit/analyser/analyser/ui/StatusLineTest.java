@@ -56,6 +56,54 @@ class StatusLineTest {
         assertEquals(2L, run.get("recordsRead"));
     }
 
+    /**
+     * Re-review B2. The set's count and one member's declaration were siblings in the same map with no
+     * file named, so {@code declaredRecords: 6} sat beside {@code recordsRead: 25} under a
+     * missing-records state.
+     */
+    @Test
+    void aSetsMemberNumbersAreNestedUnderTheFileThatOwnsThem() {
+        var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3, null, "g.log");
+        var facts = MainFrame.streamEndFacts(end, 25);
+
+        assertEquals(25L, facts.get("recordsRead"), "the top level is always the whole log");
+        assertNull(facts.get("declaredRecords"),
+                "a member's declaration beside the set's count reads as 'declared 6, read 25'");
+
+        @SuppressWarnings("unchecked")
+        var member = (java.util.Map<String, Object>) facts.get("member");
+        assertNotNull(member, "the set must name the file its verdict came from");
+        assertEquals("g.log", member.get("file"));
+        assertEquals(6L, member.get("declaredRecords"));
+        assertEquals(3L, member.get("recordsRead"));
+    }
+
+    /** A member's run positions are inside that member, so they travel inside it too. */
+    @Test
+    void aSetsMemberRunPositionsStayInsideTheMember() {
+        var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3,
+                new StreamEnd.Segment(2, 2, 4, 5), "g.log");
+        @SuppressWarnings("unchecked")
+        var member = (java.util.Map<String, Object>) MainFrame.streamEndFacts(end, 25).get("member");
+        assertEquals("g.log", member.get("file"));
+        assertEquals(2, member.get("ordinal"));
+        assertEquals(2L, member.get("firstRecord"),
+                "records 2 to 4 of g.log, never of the 25-record set the agent is looking at");
+        assertEquals(4L, member.get("lastRecord"));
+    }
+
+    /** Re-review finding 3: an empty run has no positions, and printed "records 25 to 24". */
+    @Test
+    void anEmptyRunGivesNoPositionsRatherThanABackwardsRange() {
+        var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 3, 0,
+                new StreamEnd.Segment(2, 25, 24, 25));
+        @SuppressWarnings("unchecked")
+        var run = (java.util.Map<String, Object>) MainFrame.streamEndFacts(end, 25).get("run");
+        assertNull(run.get("firstRecord"), "an empty run has no first record to point at");
+        assertNull(run.get("lastRecord"), "and certainly not one before its first");
+        assertEquals(0L, run.get("recordsRead"));
+    }
+
     @Test
     void aSingleRunFileCarriesNoRunKeyBecauseTheFileIsTheRun() {
         var facts = MainFrame.streamEndFacts(StreamEnd.declared(9, 2), 2);

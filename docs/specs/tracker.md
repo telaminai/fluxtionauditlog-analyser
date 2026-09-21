@@ -104,15 +104,42 @@ defects. **Nothing below is implemented.**
   with the recogniser it documents and checks every emitted state is explained on the page `context`
   names. Both go red when the original drift is reintroduced.
 
-  **Not taken, and why.** The reviewer suggests committing a captured real Mongoose export as a fixture to
-  pin the real producer's layout. It is the right idea and I have not done it: this repo is public, a real
-  export carries real names, and I have no export here to scrub. Filed as **AF-2a**.
-- **[AF-2a] ☐ — pin the real producer's layout with a captured export.** _From the re-review._ `c19` is
-  constructed, with synthetic headers. A real Mongoose export, scrubbed to `DEMO`/`com.acme` placeholders
-  under rule 1 and committed with its provenance, would pin the actual layout rather than my reading of
-  it. This is the only mechanical check available against the rule-6 breach that caused this round's worst
-  defect — reasoning about another system's writer instead of reading it. The habit cannot be checked; its
-  most expensive consequence can.
+  **Not taken at the time, and wrongly.** I declined to commit a captured real export, saying it would
+  carry real names I could not scrub. Round three showed that premise was false. Closed as **AF-2a**.
+- **[AF-2a] ☑ — the real producer's layout is pinned by its own bytes.** _Filed and closed in round
+  three; **I declined this in round two on a premise that was false.** I said a real export would need
+  scrubbing I could not verify. The reviewer checked one and found no paths, hostnames or sweep terms,
+  only the project's own package names, generic node names and public tickers. They were right: I
+  reasoned about the file instead of reading it, which is the same mistake, in miniature, that caused
+  this branch's worst defect._ `c21-real-export.yaml` is 25 records of a Mongoose export endpoint's
+  output, byte for byte. It carries what nobody would have invented: four-space indent, a trailing space
+  after `eventLogRecord:`, an empty `nodeLogs:` on lifecycle records, no leading separator and no
+  trailing one. It is the file round one measured as a damaged tail. A stated limit is recorded with it:
+  records 2-15 carry a two-line `eventToString` whose continuation sits at column 0, and the reader
+  keeps only the first line in that field. Pre-existing, pinned rather than fixed, so a change is visible.
+- **[AF-2/AF-3 ROUND THREE, 2026-09-21] ☑ — two blockers, both one surface disagreeing with another.**
+  _Reviewer implemented §1a from the published prose alone and compared 53 files against the analyser; 51
+  agreed. 13 of 13 mutations red. Gates confirmed independently._
+  1. **BLOCKER — the prose and the recogniser disagreed on two shapes.** A quoted count followed by a
+     comment (`"25"  # declared`), and a key with no space after its colon (`streamEnd:normal`). §1a is a
+     normative section whose whole purpose is that someone else can implement it and agree, so a
+     disagreement there is a defect in the section. Fixed on the prose side for both, because the code
+     already matched §2's long-standing reader, and pinned by `c22-marker-syntax.yaml`.
+  2. **BLOCKER — a rolled set put one member's numbers beside the SET's count in `context`, unnamed.**
+     Third appearance of this class, after the diagnostic sentence and then `context` for runs. An agent
+     saw `declaredRecords: 6` next to `recordsRead: 25` under a missing-records state, which reads as
+     MORE than declared. A verdict now carries the file it came from, and those numbers nest under it.
+  3. An empty run reported "records 25 to 24", because the last record of a run holding nothing is one
+     before its first. Named as empty instead.
+  4. `PublishedSpecExamplesTest` had gaps: it ran recognition only over the published spec, so it would
+     not have caught round one's design-spec drift, and its state-name check was tautological for
+     "complete" and "unknown" because those are ordinary English on that page. Now it runs over both
+     specs and matches a state's own table ROW. Its remaining limit is stated in the test: it cannot read
+     the recognition TABLE, which is why blocker 1 survived, and fixtures cover that instead.
+  5. §1a now names the route to set completeness (a manifest, or a marker naming its successor), on the
+     same deferred terms as the mid-record limit.
+  6. "each of the 1 files in this set" now reads as a sentence.
+
 - **[AF-3a] ☐ — follow leaves a half-written record stale in the index.** _Pre-existing, not from this branch;
   found during the AF-3 review fixes._ An ordinary load indexes an unterminated trailing record, which is
   correct — the file may simply end there. If the file then GROWS, `appendFrom` skips it as already-indexed,

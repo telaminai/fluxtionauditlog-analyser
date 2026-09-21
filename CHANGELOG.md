@@ -28,7 +28,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - The status bar now actually shows *complete* for a log that claims it. The note was computed and then
   never added to the text.
 - A log whose completeness verdict concerns one run of several now says which run, and how many records
-  the whole file holds. It previously reported that run's numbers as though they were the file's.
+  the whole file holds. It previously reported that run's numbers as though they were the file's. The
+  same applies to a rolled set: a verdict that came from one file names that file, and its numbers sit
+  under it rather than beside the set's own record count.
 - A log file saved with a byte-order mark no longer counts a leading stream-end marker as a record.
 
 ### Documentation

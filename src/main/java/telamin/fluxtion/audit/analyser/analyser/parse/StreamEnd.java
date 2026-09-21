@@ -22,7 +22,8 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * UNKNOWN, which is the honest answer. What the marker's count CAN find is loss in the middle, where
  * no amount of tail inspection would have helped.
  */
-public record StreamEnd(State state, long declaredRecords, long emittedRecords, Segment segment) {
+public record StreamEnd(State state, long declaredRecords, long emittedRecords, Segment segment,
+                        String member) {
 
     /**
      * Which run a verdict is about, when the file holds more than one. Null when the file is a single
@@ -38,15 +39,42 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
      * @param lastRecord  global index of the run's last record
      * @param fileRecords records in the whole file, so the sentence can distinguish them
      */
-    public record Segment(int ordinal, long firstRecord, long lastRecord, long fileRecords) {}
+    public record Segment(int ordinal, long firstRecord, long lastRecord, long fileRecords) {
+        /**
+         * A run with no records at all: two markers in a row, the second declaring a count.
+         *
+         * <p>Re-review found this printing "records 25 to 24", because the last record of an empty run
+         * is one before its first. The arithmetic is right and the sentence is nonsense, so the empty
+         * case is named rather than described by a range.
+         */
+        public boolean isEmpty() {
+            return lastRecord < firstRecord;
+        }
+    }
 
     public StreamEnd(State state, long declaredRecords, long emittedRecords) {
-        this(state, declaredRecords, emittedRecords, null);
+        this(state, declaredRecords, emittedRecords, null, null);
+    }
+
+    public StreamEnd(State state, long declaredRecords, long emittedRecords, Segment segment) {
+        this(state, declaredRecords, emittedRecords, segment, null);
     }
 
     /** The same verdict, said about a named run rather than about the file. */
     public StreamEnd inSegment(Segment s) {
-        return new StreamEnd(state, declaredRecords, emittedRecords, s);
+        return new StreamEnd(state, declaredRecords, emittedRecords, s, member);
+    }
+
+    /**
+     * The same verdict, said about one named FILE of a rolled set.
+     *
+     * <p>A set's verdict comes from a member, and the member's numbers are about that file. Re-review
+     * found them sitting beside the SET's record count in {@code context} with no file named, so an
+     * agent read "declares 6, read 25" under a missing-records state. The member's name travels with
+     * the numbers so the two scopes can never be printed as one.
+     */
+    public StreamEnd inMember(String file) {
+        return new StreamEnd(state, declaredRecords, emittedRecords, segment, file);
     }
 
     public enum State {
@@ -104,8 +132,12 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
         // "this log" vs "run 1 of this log (records 0-24), which holds 50 in all" — the numbers below
         // are the RUN's whenever a run is named, and saying so is the whole point of the distinction.
         String subject = segment == null ? fileName
-                : "run " + segment.ordinal() + " of " + fileName + " (records " + segment.firstRecord()
-                        + " to " + segment.lastRecord() + ", of " + segment.fileRecords() + " in the file)";
+                : segment.isEmpty()
+                        ? "run " + segment.ordinal() + " of " + fileName + " (which holds no records at "
+                                + "all, of " + segment.fileRecords() + " in the file)"
+                        : "run " + segment.ordinal() + " of " + fileName + " (records "
+                                + segment.firstRecord() + " to " + segment.lastRecord() + ", of "
+                                + segment.fileRecords() + " in the file)";
         return switch (state) {
             case COMPLETE, UNKNOWN -> null;
             case UNVERIFIED -> subject + " ends with a marker saying the writer finished, but the marker "
