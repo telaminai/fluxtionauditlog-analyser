@@ -1,0 +1,12 @@
+{
+  "item": "D14",
+  "mutation": "disable file metadata difference detection",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "producerSnapshotDetectsNewReceiptAndEditedSourceWithoutReopening",
+      "message": "rewritten receipt must be disclosed ==> expected: <changed-on-disk> but was: <unchanged-metadata>"
+    }
+  ],
+  "restored": true
+}

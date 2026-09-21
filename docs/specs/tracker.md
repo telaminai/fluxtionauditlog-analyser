@@ -10,7 +10,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
-D3a (build) and D3b (detection). Two counts, reported separately: **analyser 7 open** (13 at baseline), **upstream 8 open**;
+D3a (build) and D3b (detection). Two counts, reported separately: **analyser 1 open** (13 at baseline; D20 producer-blocked), **upstream 8 open**;
 D7 is reclassified as capability disclosure. Direction check: re-count each release. **Revised 2026-09-21
 after review:** the first version reversed the two fixture fingerprints (source `4ecd6133…`, stale
 `f6ae6f84…`), and wrongly called feedback 23, 25 and 34 untracked.
@@ -462,7 +462,7 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   and successful same-path reopen narrow two reported defects. [Review and decisions](../handoff/review_staged_spring_feedback_2026_09_19.md)
   distinguish reproduced, source-confirmed and participant-only evidence; [complete second packet](../handoff/evidence/spring-authoring-feedback-2026-09-19-round2/README.md)
   preserves both reports and supporting files. This is review/triage, not implementation or release approval.
-- ☐ **Staged feedback — evidence correctness first** — alongside existing DX-02, address loaded/on-disk
+- ☑ **Staged feedback — evidence correctness first** — alongside existing DX-02, address loaded/on-disk
   and producer freshness (1/9), final combined-action echo (20), source spotlight geometry and departure
   accounting (2–4), and explicit event-versus-carried-state marker semantics (12/19). Acceptance must
   use the saved logs (new same-record markers: 5/6/8), overwritten snapshots and scrolled source views;
@@ -489,6 +489,20 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   add reports departures and retains survivor numbering, the echo equals painted cutouts, and queued
   callbacks cannot scroll them away. Preserved participant XML is exercised at both reported sizes.
   Removing viewport containment fails the hidden-line assertion. D15 closes: analyser 2, upstream 8.
+  **D14 frozen prediction:** loaded byte size never comes from a new on-disk stat. Separately
+  labelled metadata observations flag overwritten/missing logs, graph files, receipts and source
+  inputs without silently reopening them. Unchanged metadata is not a content-identity claim;
+  producer hash comparisons remain explicitly as of intake. Same-path reopen updates the loaded
+  snapshot, Follow updates its observation, and combined open retains its loading/pending verdict.
+  Tests overwrite files and mutate the metadata comparison; removing detection must fail.
+  Counts before: analyser 2, upstream 8. No new reload verb or automatic artifact selection.
+  **D14 result:** held. `LoadedFileObservationFrameTest` overwrites same-path log/graph snapshots,
+  verifies loaded byte size and explicit reopen, missing-file disclosure and human rendering.
+  `DesignWorkspaceTest.producerSnapshotDetectsNewReceiptAndEditedSourceWithoutReopening` expires
+  old checks without selecting the new receipt. Existing `PairingDuringLoadFrameTest` retains the
+  combined-open pending verdict. Mutations disable metadata comparison and reinstate live size.
+  Metadata observations deliberately do not assert content identity; full recovery hashes remain.
+  D14 closes: analyser 1 (D20 blocked), upstream 8.
 - ☑ **Topology feedback 37 — Show all focus exit** — participant reports depth 1/16 nodes after
   `showAll:true, scaffolding:false`; `pop:"all"` works. Source confirms MCP calls `clearView`, which only
   clears highlights, while the toolbar pops focus first. Align both paths; test nested focus, showAll alone
@@ -2151,3 +2165,13 @@ _(spec-closed-loop O1–O4 all resolved — statuses recorded in the M18 block a
   hierarchy and the separate chart legend/commentary regions. The asset README records the separate
   MCP/picker/tutorial modes not rerun and the historical website/vendor evidence retained unchanged.
   Full Java suite, tool smoke tests and strict docs pass. See the tool-agreement handoff for scope.
+
+### Tool-agreement final gate correction
+
+**Frozen prediction:** the complete display gate caught five recovery assertions because TA-7
+added Follow fields to an otherwise absent log map. Guard those fields with the loaded-store
+boundary; a closed log again has no `context.log`, while Follow remains exposed on open logs.
+`SessionRecoveryFrameTest` should then pass unchanged. This is a regression in this branch,
+not a new baseline row; analyser 1 / upstream 8 remain open.
+
+**Result:** held; all 50 display tests pass without skips. Clean headless gate 1,766 / 0 / 0 / 49 skips.

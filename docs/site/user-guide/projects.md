@@ -279,3 +279,22 @@ Built-in YAML and rolled files calculate the full SHA-256 from the indexing read
 or metadata-only shortcut. Capture and accepted restoration still verify current file bytes. Plugin
 readers that own their I/O retain before/after full-file checks. Thus the indexed-reader optimisation
 removes two extra traversals on native opens, not all hashing costs or verification passes everywhere.
+
+### Files changed outside the analyser
+
+The Project panel and `context.log.freshness` / `context.graphPairing.freshness` separate
+loaded file observations from metadata on disk. The loaded record count, time range and byte size
+do not quietly adopt a newer file's size. Reopen the same log or GraphML path explicitly to replace
+the loaded snapshot. The analyser does not select new evidence just because a file changed.
+
+These observations compare size, modification time and file identity. `unchanged-metadata` is
+**not** proof of identical bytes; a writer preserving all metadata can evade this cheap check.
+Recovery's full SHA-256 verification is unchanged. Unknown observations stay unknown. Follow still
+uses its explicit append/rotation route; a growing pending tail can be reported changed before
+its next complete record is indexed. Exported reports identify the loaded snapshot and its metadata
+observation instead of presenting it as the latest disk contents.
+
+Producer comparisons are **as of intake**. If an observed result, receipt, authoring record or
+Java source changes, the Source header and design input facts expire the old comparison and ask
+you to reopen diagnostics. `open {discover: "diagnostics"}` lists the candidates; it does not
+select a newer result. Context and returning focus to the window refresh these observations.

@@ -46,7 +46,7 @@ public record ProjectModel(List<Section> sections) {
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
-            "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
+            "log.freshness", "graphPairing.freshness", "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
@@ -192,6 +192,9 @@ public record ProjectModel(List<Section> sections) {
                 if (ctx.get("provenanceSource") != null) prov += " (" + ctx.get("provenanceSource") + ")";
             }
             rows.add(new Row(fileName(shown), detail.toString(), shown, prov, Tone.NORMAL, Target.NONE));
+            Map<String,Object> freshness = map(log.get("freshness"));
+            if (!freshness.isEmpty()) rows.add(new Row("File observation",str(freshness.get("state")),
+                    null,str(freshness.get("basis")),"changed-on-disk".equals(freshness.get("state")) ? Tone.WARN : Tone.MUTED,Target.NONE));
             List<Object> files = list(ctx.get("files"));
             if (files.size() > 1) {
                 // members are display names, in load order — the set's directory is the row above
@@ -229,6 +232,9 @@ public record ProjectModel(List<Section> sections) {
                 tone = Tone.WARN;
             }
             rows.add(new Row(str(pair.get("graph")), verdict, str(pair.get("graphPath")), prov, tone, Target.TOPOLOGY));
+            Map<String,Object> freshness = map(pair.get("freshness"));
+            if (!freshness.isEmpty()) rows.add(new Row("File observation",str(freshness.get("state")),
+                    null,str(freshness.get("basis")),"changed-on-disk".equals(freshness.get("state")) ? Tone.WARN : Tone.MUTED,Target.TOPOLOGY));
             // M40 (review F2): the human surface the CHANGELOG and the docs page already promised and
             // this milestone had not built. A processor with no audit logging installed writes nothing
             // at all, so this outranks the pairing verdict above it — pairing a log that will never

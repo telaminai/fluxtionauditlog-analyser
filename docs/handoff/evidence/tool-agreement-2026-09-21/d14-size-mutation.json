@@ -1,0 +1,12 @@
+{
+  "item": "D14",
+  "mutation": "replace loaded byte size with live file stat",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "overwrittenLogAndGraphAreObservedWithoutReplacingTheLoadedSnapshot(Path)",
+      "message": "loaded size must not be a new stat beside old records ==> expected: <112> but was: <224>"
+    }
+  ],
+  "restored": true
+}

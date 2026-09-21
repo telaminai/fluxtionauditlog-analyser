@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Context keeps loaded log sizes separate from on-disk metadata, flags changed graph/log/result inputs, and labels producer hash comparisons as of intake. The Project panel and exported reports carry the qualification.
+
 - Design spotlights settle scrolling before measuring and refuse lines outside their text viewport; adding a distant target reports departed highlights.
 
 - New marker conditions use same-record values by default. Explicit LOCF and older saved definitions retain carried state, disclosed in the legend, echo and PDF notes.

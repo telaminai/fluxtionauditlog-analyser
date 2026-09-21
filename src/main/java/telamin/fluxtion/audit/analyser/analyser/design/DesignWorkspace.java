@@ -120,17 +120,23 @@ public final class DesignWorkspace {
             DesignFiles access = files.get();
             Path path = access.resolve(requested);
             Map<String, Object> receipt = new LinkedHashMap<>(), checks = new LinkedHashMap<>();
+            var observed = new ArrayList<Map<String,Object>>();
+            observed.add(telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(path));
             String resultText = access.read(path);
             ProducerResult envelope = ProducerResult.parse(path.toString(), resultText, Map.of(), Map.of());
             checks.put("checkedAt", java.time.Instant.now().toString());
             // Receipt discovery is bounded to the declared project, never a search up arbitrary parents.
             if (access.project() != null) {
                 try {
-                    receipt = object(Json.parse(access.read(access.resolve(access.project().resolve("target/fluxtion-run.json").toString()))));
+                    Path receiptPath = access.resolve(access.project().resolve("target/fluxtion-run.json").toString());
+                    observed.add(telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(receiptPath));
+                    receipt = object(Json.parse(access.read(receiptPath)));
                     version(receipt.get("schemaVersion"), "receipt schemaVersion");
                 } catch (IOException | IllegalArgumentException e) { receipt = Map.of(); checks.put("receipt", "unavailable: " + e.getMessage()); }
                 try {
-                    String recordText = access.read(access.resolve(access.project().resolve("fluxtion-authoring.json").toString()));
+                    Path recordPath = access.resolve(access.project().resolve("fluxtion-authoring.json").toString());
+                    observed.add(telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(recordPath));
+                    String recordText = access.read(recordPath);
                     var record = object(Json.parse(recordText));
                     Map<String, Object> options = object(object(object(receipt.get("stages")).get(envelope.stage())).get("options"));
                     String sourceRoot = str(options.getOrDefault("sourceRoot", record.get("sourceRoot")));
@@ -138,9 +144,14 @@ public final class DesignWorkspace {
                         Path root = access.directory(access.project().resolve(sourceRoot).normalize());
                         StringBuilder sourceHashes = new StringBuilder();
                         try (var paths = Files.walk(root)) {
-                            var sources = paths.filter(p -> p.toString().endsWith(".java")).sorted().limit(10_001).toList();
+                            var entries = paths.sorted().limit(20_001).toList();
+                            if (entries.size() > 20_000) throw new IOException("source metadata exceeds 20,000 entries");
+                            for (Path entry : entries) if (Files.isDirectory(entry))
+                                observed.add(telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(entry));
+                            var sources = entries.stream().filter(p -> p.toString().endsWith(".java")).toList();
                             if (sources.size() > 10_000) throw new IOException("source hash exceeds 10,000 files; comparison unavailable");
                             for (Path java : sources) {
+                                observed.add(telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(java));
                                 if (sourceHashes.length() > MAX_HASH_INPUT) throw new IOException("source hash input exceeds limit");
                                 sourceHashes.append(root.relativize(java).toString().replace('\\', '/')).append('\0')
                                         .append("sha256:").append(DesignFiles.sha256(access.read(java))).append('\n');
@@ -151,6 +162,7 @@ public final class DesignWorkspace {
                     checks.put("currentRecordHash", "sha256:" + DesignFiles.sha256(recordText));
                 } catch (IOException | IllegalArgumentException e) { checks.put("sourceAndRecord", "unavailable: " + e.getMessage()); }
             }
+            checks.put("observedInputs", List.copyOf(observed));
             ProducerResult result = ProducerResult.parse(path.toString(), resultText, receipt, checks);
             dispatch.accept(new DesignEvents.ResultReadCompleted(result, "", generation));
             return result;

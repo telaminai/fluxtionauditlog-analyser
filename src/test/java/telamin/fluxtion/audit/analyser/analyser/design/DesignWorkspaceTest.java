@@ -18,6 +18,26 @@ class DesignWorkspaceTest {
         workspace = new DesignWorkspace(() -> files, () -> driver.processor().designSession, driver::submit);
     }
     Path xml(String name, String text) throws Exception { return Files.writeString(project.resolve(name), text); }
+    @Test void producerSnapshotDetectsNewReceiptAndEditedSourceWithoutReopening() throws Exception {
+        Path target=Files.createDirectories(project.resolve("target"));
+        Path sources=Files.createDirectories(project.resolve("src/main/java"));
+        Path java=Files.writeString(sources.resolve("Node.java"),"class Node {}\n");
+        Files.writeString(project.resolve("fluxtion-authoring.json"),"{\"sourceRoot\":\"src/main/java\"}");
+        Path receipt=Files.writeString(target.resolve("fluxtion-run.json"),"{\"schemaVersion\":\"1.0\",\"stages\":{\"build\":{\"outcome\":\"ok\",\"compilerRan\":true}}}");
+        Path result=Files.writeString(target.resolve("fluxtion-validation.json"),"{\"contractVersion\":\"1.0\",\"valid\":true,\"diagnosticReport\":{\"diagnosticsVersion\":\"1.0\",\"diagnostics\":[]}}");
+        var loaded=workspace.diagnostics(result.toString());
+        assertEquals("unchanged-metadata",ProducerResult.object(loaded.relationship(null).get("freshness")).get("state"));
+        Files.writeString(receipt,Files.readString(receipt)+"\n ");
+        assertEquals("changed-on-disk",ProducerResult.object(loaded.relationship(null).get("freshness")).get("state"),"rewritten receipt must be disclosed");
+        assertTrue(loaded.description(null).contains("reopen diagnostics"));
+        assertTrue(loaded.description(null).contains("as of intake"));
+        loaded=workspace.diagnostics(result.toString());
+        Files.writeString(java,"class Node { int value; }\n");
+        var inputs=ProducerResult.object(loaded.relationship(null).get("inputChecks"));
+        assertTrue(inputs.get("buildSourceHash").toString().startsWith("stale-check"),"old source match must expire");
+        assertSame(loaded,driver.processor().designSession.result(),"observation does not replace loaded result");
+    }
+
     @Test void refusedDesignNamesExactRootCallWithoutAddingIt() throws Exception {
         Path external = Files.createDirectories(project.resolve("needs root"));
         Path target = Files.writeString(external.resolve("design.xml"), "<beans/>");

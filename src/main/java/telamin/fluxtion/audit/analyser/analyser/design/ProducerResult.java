@@ -59,6 +59,15 @@ public record ProducerResult(String file, String stage, String sourceRoot, Strin
         out.put("build", build);
         Map<String, Object> buildInputs = comparableHashes(build);
         checks.put("buildSourceHash", hashState(str(buildInputs.get("sourceHash")), str(inputChecks.get("currentSourceHash"))));
+        var freshness = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.compare(
+                telamin.fluxtion.audit.analyser.analyser.core.FileObservation.observations(inputChecks.get("observedInputs")));
+        out.put("freshness", freshness);
+        checks.put("scope", "hash comparisons as of intake at " + inputChecks.getOrDefault("checkedAt", "unknown time"));
+        if ("changed-on-disk".equals(freshness.get("state"))) {
+            for (String key : List.of("sourceHash", "recordHash", "buildSourceHash")) checks.put(key,"stale-check — reopen diagnostics");
+            out.put("resultStatus", "loaded result or inputs changed on disk — use open {discover: diagnostics}, then explicitly reopen diagnostics");
+            return out;
+        }
         if (stage.equals("build") && Boolean.FALSE.equals(build.get("compilerRan"))) {
             out.put("resultStatus", "sidecar predates the last attempt");
         } else if (!stageReceipt.isEmpty() && !str(stageReceipt.get("outcome")).equals("ok")) {
@@ -73,7 +82,7 @@ public record ProducerResult(String file, String stage, String sourceRoot, Strin
                 + " · authoring record: " + checks.get("recordHash") + "\n" + state.get("resultStatus")
                 + " · loaded run: unverified";
         Map<String, Object> build = object(state.get("build"));
-        if (!build.isEmpty()) note += "\nLast build: " + str(build.get("outcome")) + " · compiler ran: " + str(build.get("compilerRan"))
+        if (!build.isEmpty()) note += "\nLoaded build (as of intake): " + str(build.get("outcome")) + " · compiler ran: " + str(build.get("compilerRan"))
                 + " · build Java source: " + checks.get("buildSourceHash");
         if (checks.containsKey("checkedAt")) note += "\nInputs read at " + checks.get("checkedAt") + "; reopen diagnostics after a source or build change.";
         return note;

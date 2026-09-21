@@ -324,6 +324,7 @@ public final class MainFrame extends JFrame {
         installFileDrop();
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent e) { onExit(); }
+            @Override public void windowActivated(WindowEvent e) { refreshProjectPanel(); }
         });
     }
 
@@ -1366,7 +1367,7 @@ public final class MainFrame extends JFrame {
         }
         return telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.render(
                 spec, resolution, content,
-                logDisplayLocation == null ? null : new File(logDisplayLocation).getName(),
+                (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
                 TimeFormat.utc(System.currentTimeMillis()));
     }
 
@@ -1531,7 +1532,7 @@ public final class MainFrame extends JFrame {
                 : (record.event() == null ? "Record " + row : record.event() + " · record " + row);
         var evidence = new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Evidence(
                 heading, finding,
-                logDisplayLocation == null ? null : new File(logDisplayLocation).getName(),
+                (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
                 config.selectedEventProcessor,
                 record.logTime() == null ? null : TimeFormat.utc(record.logTime()),
                 record.eventToString(), eventLines, nodeLogLines, pictures,
@@ -2908,17 +2909,23 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    private LogStore observedLogStore;
+    private List<Map<String,Object>> logObservations = List.of();
+    private String snapshotNote() {
+        return "loaded snapshot; log " + logFreshness().get("state") + "; graph "
+                + topologyPanel.fileFreshness().get("state") + " (metadata observation, not content verification)";
+    }
+    private Map<String,Object> logFreshness() {
+        return telamin.fluxtion.audit.analyser.analyser.core.FileObservation.compare(
+                observedLogStore == store ? logObservations : List.of());
+    }
+
     /** Describes the loaded log so the LLM prompt can seed file access (path, shape, byte anchors). */
     private telamin.fluxtion.audit.analyser.analyser.llm.LogFileInfo currentLogFileInfo() {
         if (store == null) return null;
-        long size = -1;
-        if (logLocalPath != null) {
-            try {
-                size = java.nio.file.Files.size(Path.of(logLocalPath));
-            } catch (java.io.IOException | RuntimeException ignore) {
-                // size stays -1 (unknown) — the block degrades gracefully
-            }
-        }
+        long size = observedLogStore == store && !logObservations.isEmpty()
+                && logObservations.stream().allMatch(m -> m.get("sizeBytes") instanceof Number)
+                ? logObservations.stream().mapToLong(m -> ((Number)m.get("sizeBytes")).longValue()).sum() : -1;
         return new telamin.fluxtion.audit.analyser.analyser.llm.LogFileInfo(
                 logDisplayLocation, logLocalPath, size, store.size(), store.minLogTime(), store.maxLogTime());
     }
@@ -3447,6 +3454,7 @@ public final class MainFrame extends JFrame {
                         // owns its I/O, so retain independent full verification around that reader.
                         boolean nativeRead = reader instanceof telamin.fluxtion.audit.analyser.analyser.spi.YamlAuditReader;
                         var before = nativeRead ? null : telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString());
+                        var observation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(path);
                         LogStore s = readerRegistry.open(reader, path, config.memoryThresholdMb);
                         var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                 .validate(s.index());
@@ -3455,7 +3463,7 @@ public final class MainFrame extends JFrame {
                                     List.of(telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString())));
                         if (nativeRead && request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
                             identities = verifyRestoringRead(identities);
-                        return new Object[]{s, report, reader.formatId(), identities};
+                        return new Object[]{s, report, reader.formatId(), identities, observation};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -3467,6 +3475,9 @@ public final class MainFrame extends JFrame {
                             (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId);
                     if (store == out[0]) {
                         loadedLogFormat = (String) out[2];
+                        observedLogStore = store;
+                        logObservations = List.of((Map<String,Object>)out[4]);
+                        refreshProjectPanel();
                         @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[3];
                         loadedLogIdentity = identity;
                     }
@@ -3500,6 +3511,7 @@ public final class MainFrame extends JFrame {
         Background.run(
                 () -> {
                     try {
+                        var observations = files.stream().map(telamin.fluxtion.audit.analyser.analyser.core.FileObservation::capture).toList();
                         var s = telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore.open(
                                 files, config.memoryThresholdMb);
                         var report = set.report().merged(
@@ -3508,7 +3520,7 @@ public final class MainFrame extends JFrame {
                         var identities = readIdentities(s);
                         if (request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
                             identities = verifyRestoringRead(identities);
-                        return new Object[]{s, report, identities};
+                        return new Object[]{s, report, identities, observations};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -3522,6 +3534,9 @@ public final class MainFrame extends JFrame {
                     if (store == out[0]) {
                         @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
                         loadedLogIdentity = identity;
+                        observedLogStore = store;
+                        logObservations = (List<Map<String,Object>>)out[3];
+                        refreshProjectPanel();
                     }
                 },
                 err -> onLoadFailed(opId, "rolled set", request, err));
@@ -4094,7 +4109,9 @@ public final class MainFrame extends JFrame {
         int before = store.size();
         int added;
         try {
+            var observed = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(Path.of(followPath));
             added = store.appendFrom(Path.of(followPath));
+            if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
         } catch (java.io.IOException ex) {
             status.setText("Follow read failed: " + rootMessage(ex));
             return;
@@ -5749,6 +5766,12 @@ public final class MainFrame extends JFrame {
             }
         }
 
+        private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult contextResult(Map<String,Object> out) {
+            if (projectPanel != null) projectPanel.render(ProjectModel.from(out));
+            if (sourcePanel != null) sourcePanel.designNote(designViewNote(sourcePanel.fileView()));
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
+        }
+
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context() {
             Map<String, Object> out = new java.util.LinkedHashMap<>();
 
@@ -5761,8 +5784,11 @@ public final class MainFrame extends JFrame {
             Map<String, Object> log = facts.logAsMap();
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
-            log.put("following", following);
-            log.put("supportsFollow", store != null && store.supportsFollow() && followPath != null && !loadInFlight);
+            if (store != null) {
+                log.put("freshness", logFreshness());
+                log.put("following", following);
+                log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
+            }
             if (store != null && store.trailingRecordsPending() >= 0) {
                 log.put("trailingRecordsPending", store.trailingRecordsPending());
                 if (store.trailingRecordsPending() > 0) log.put("pendingNote", store.trailingRecordsPending() + " trailing record(s) pending — awaiting complete separator lines");
@@ -5815,6 +5841,7 @@ public final class MainFrame extends JFrame {
                 boolean gf = topologyPanel.hasGraph();
                 pair.put("graph", topologyPanel.graphLabel());
                 pair.put("graphSource", topologyPanel.graphSource().name());
+                if (topologyPanel.graphPath() != null) pair.put("freshness", topologyPanel.fileFreshness());
                 if (topologyPanel.graphPath() != null) pair.put("graphPath", topologyPanel.graphPath());   // M37
                 if (declinedSourceGraph != null) {
                     pair.put("sourceGraphOffered", declinedSourceGraph);
@@ -6043,7 +6070,7 @@ public final class MainFrame extends JFrame {
             // "nothing is open" cannot be bootstrapped from the socket at all.
             if (filter == null) {
                 out.put("filter", f);
-                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
+                return contextResult(out);
             }
             if (filter.fromMillis() != null) f.put("from", filter.fromMillis());
             if (filter.toMillis() != null) f.put("to", filter.toMillis());
@@ -6101,7 +6128,7 @@ public final class MainFrame extends JFrame {
                 out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
             }
 
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
+            return contextResult(out);
         }
 
         @Override

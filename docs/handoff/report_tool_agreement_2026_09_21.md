@@ -306,3 +306,31 @@ XML's targets are exercised at both reported window sizes; fit is judged against
 viewport, not assumed from the outer frame size.
 [Mutation](evidence/tool-agreement-2026-09-21/d15-mutation.json) removes viewport containment and
 fails the hidden-line assertion. Counts **3 → 2 / 8**.
+
+## D14 — completed under evidence correctness first
+
+Frozen prediction held. `LoadedFileObservationFrameTest` overwrites a loaded log and graph at
+the same paths. Loaded byte size and record count stay together; new disk metadata is separate.
+Explicit same-path reopen updates both, and a missing graph is disclosed. Its first draft used
+a foreign replacement graph, which the existing pairing rule correctly cleared; the final case
+uses a compatible replacement to isolate freshness. Producer tests rewrite the receipt and
+a Java source; old hash comparisons expire without replacing the explicitly loaded result.
+The existing combined-open pending-verdict display tests also pass.
+
+[Metadata mutation](evidence/tool-agreement-2026-09-21/d14-mutation.json) hides differences and
+fails the rewritten-receipt assertion. [Size mutation](evidence/tool-agreement-2026-09-21/d14-size-mutation.json)
+restores live stat beside cached records and fails the loaded-size assertion.
+
+Limit: this is metadata change detection, labelled `unchanged-metadata`, **not** a claim of unchanged
+content. Deliberate same-size edits preserving modification time and identity evade it. Recovery
+still uses full content verification. Follow remains explicit; a pending append can stay marked
+changed until completed records advance. Project rows, Source header, context and PDF source labels
+carry the qualification. Counts **2 → 1 / 8**; D20 remains producer-blocked.
+
+### Full-gate correction
+
+The complete display suite exposed five unchanged recovery-test failures: TA-7 added Follow fields
+to an empty log map, making a closed log appear present. The prediction was frozen before repair;
+Follow fields now stay inside the loaded-store boundary. All 50 display tests then passed with no
+skips. Clean headless gate: 1,766 tests, zero failures/errors, 49 display skips. Tools smoke: 25 checks
+passed. The earlier green headless runs could not establish the missing display boundary.

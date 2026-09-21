@@ -759,11 +759,17 @@ public final class TopologyPanel extends JPanel {
         return true;
     }
 
+    private java.util.Map<String,Object> graphObservation = java.util.Map.of();
+    public java.util.Map<String,Object> fileFreshness() {
+        return telamin.fluxtion.audit.analyser.analyser.core.FileObservation.compare(
+                loadedFrom == null || graphObservation.isEmpty() ? java.util.List.of() : java.util.List.of(graphObservation));
+    }
     private String loadedGraphSha256;
     public String loadedGraphSha256() { return loadedGraphSha256; }
 
     public void load(Path file) {
         var before = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("topology", file.toString());
+        var observation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(file);
         ProcessorTopology topology = GraphMlParser.parse(file);
         if (topology.isEmpty()) {
             setStatus("Could not read a topology from " + file.getFileName()
@@ -773,6 +779,7 @@ public final class TopologyPanel extends JPanel {
         var after = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("topology", file.toString());
         loadedGraphSha256 = before.sha256() != null && before.sha256().equals(after.sha256()) ? after.sha256() : null;
         loadedFrom = file;
+        graphObservation = observation;
         graphSource = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.OPENED;
         fullTopology = topology;
         focusStack = new FocusStack(topology);
