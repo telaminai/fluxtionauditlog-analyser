@@ -1,6 +1,6 @@
 # Project-starter journey release — 2026-09-21
 
-Status: READY TO RELEASE analyser 1.16.0. Public acquisition completed with documented limitations.
+Status: RELEASED — analyser **1.16.0**, compiler/starter **1.0.72**, public v2 playground.
 
 Target: analyser 1.16.0 and deployed v2 starter journey. Public local-tool publication precedes
 playground deployment. The beta claim is limited to onboarding and the evidence actually checked;
@@ -44,10 +44,10 @@ dependency certification and broader provenance work remain open. No v1 comparat
 - [Process restart result](evidence/release-journey-2026-09-21/process-restart.json), three JVMs.
   Analyser main CI 35543897332, docs 35543897301 and static checks 35543897443 pass.
 
-## Remaining gates
+## Release completion
 
-Final analyser release/assets/docs. The first two attempts remain sealed below; after restored login,
-the owner-authorised fresh attempt completed. No battery or T3–T6 was started.
+No required release action remains. The acquisition limitations below remain explicit; no battery
+or T3–T6 was started. Broader provenance and routing improvements are separate work.
 
 ## Frozen public acquisition spot-check
 
@@ -157,3 +157,23 @@ Clock drift is 0.0056 s. Prior authentication failures remain failures, not retr
 The bounded release claim is public acquisition to independently checked sample output, with the
 above environmental tooling substitution disclosed. Existing static and unattended published-bundle
 gates remain regression protection. The analyser release can now proceed under the owner's instruction.
+
+## Published analyser verification
+
+[Release 1.16.0](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.16.0),
+commit `02dac9d3b36820e6c41c224c1aafbbdd9a3365e1`.
+[Release workflow](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35545989495)
+passed verification, atomic changelog/tag push, jar build, assets and docs dispatch.
+Docs deployment 35546034206 passed; the public release-notes page contains 1.16.0 and session recovery.
+The workflow stamps UTC date 2026-09-20; this operator record uses local date 2026-09-21.
+
+Both independently downloaded jars are 3,855,184 bytes and match the shipped checksum file:
+`0d0821434f977f1a3d0e1ecd7b5a5f92745e6db859e47a3454b9ec254a485e54`.
+The manifest identifies 1.16.0. [Asset result](evidence/release-journey-2026-09-21/published-analyser.json).
+The **downloaded release jar**, not the local build, also passes the three-JVM normal-quit,
+offer-only startup, explicit restore and CLI-isolation smoke:
+[published-jar result](evidence/release-journey-2026-09-21/published-restart.json).
+
+The accepted claim is an available onboarding workflow with independently checked sample output.
+Dependency certification, dependency-jar integrity, vendor shadowing and other open producer/canvas
+findings are not closed by this release. No claim of improved routing versus v1 is made.

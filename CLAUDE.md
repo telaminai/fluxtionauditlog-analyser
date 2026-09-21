@@ -125,8 +125,8 @@ never appear on **the analyser's** action socket — the adopted design *strengt
 server control to a Mongoose-side MCP tool, so the analyser gains no server-mutating code at all;
 and agent fixes arrive as **evidence-linked PRs**, never direct edits.
 
-For the unreleased M66 design-render merge, its independent acceptance and remaining producer-delivery
-boundary, read the live tracker and `docs/handoff/handoff_m66_design_render.md`. The feature adds `source`
+M66 design rendering shipped in 1.16.0 with the starter catalogue and explicit session recovery.
+For its independent acceptance and remaining producer-delivery boundary, read the completed tracker and `docs/handoff/handoff_m66_design_render.md`. The feature adds `source`
 as the sixteenth verb; session decisions stay in the Fluxtion graph, with filesystem and Swing adapters.
 
 ## Build & run

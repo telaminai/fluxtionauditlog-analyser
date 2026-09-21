@@ -1,0 +1,19 @@
+{
+  "version": "1.16.0",
+  "releaseCommit": "02dac9d3b36820e6c41c224c1aafbbdd9a3365e1",
+  "releaseWorkflow": 35545989495,
+  "status": "PASS",
+  "checksums": [
+    {
+      "file": "fluxtion-auditlog-analyser.jar",
+      "sha256": "0d0821434f977f1a3d0e1ecd7b5a5f92745e6db859e47a3454b9ec254a485e54",
+      "bytes": 3855184
+    },
+    {
+      "file": "fluxtion-auditlog-analyser-1.16.0.jar",
+      "sha256": "0d0821434f977f1a3d0e1ecd7b5a5f92745e6db859e47a3454b9ec254a485e54",
+      "bytes": 3855184
+    }
+  ],
+  "manifestVersion": "1.16.0"
+}
