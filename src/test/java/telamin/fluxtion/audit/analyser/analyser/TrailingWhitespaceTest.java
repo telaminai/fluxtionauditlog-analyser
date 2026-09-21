@@ -39,6 +39,8 @@ class TrailingWhitespaceTest {
             "docs/handoff/evidence/spring-authoring-feedback-2026-09-19-round2/src/main/java/com/example/myapp/node/RootNode.java",
             "docs/handoff/evidence/spring-authoring-feedback-2026-09-19/src/main/java/com/example/myapp/node/Child.java",
             "docs/handoff/evidence/spring-authoring-feedback-2026-09-19/src/main/java/com/example/myapp/node/RootNode.java",
+            "docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21/AlertNode.as-generated.java",
+            "docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21/AlertNode.hand-finished.java",
             "/generated/",
             ".diff");
 
@@ -100,6 +102,7 @@ class TrailingWhitespaceTest {
 
     /** Every byte-sensitive fixture, pinned. A missing one is a FAILURE, not a skip. */
     private static final List<String> BYTE_SENSITIVE = List.of(
+            "docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21/AlertNode.hand-finished.java",
             "docs/experience/runs/round-49/expected.txt",
             "docs/experience/runs/round-49/expected.conforming.txt",
             "docs/experience/runs/round-57/m48-11-real-audit.txt",

@@ -49,15 +49,16 @@ adding D21 does not increase the analyser-owned count.
   topology claims, the interface-handler excerpt, dependency-shadowing warnings on both existing pages,
   the new-node audit-scaffolding workaround, and the worked example with the preserved screenshot and
   integrator/supplier checklists. The supplier checklist addresses feedback 35's missing-page request;
-  publication and bootstrap discovery remain pending. Feedback 6/29 and TA-9 remain open. The existing C++
-  equivalence wording is unchanged and needs the owner's preview-status confirmation before merge.
+  publication and bootstrap discovery remain pending. Feedback 6/29 and TA-9 remain open. Owner decision,
+  2026-09-21: label C++ as preview and limit the historical equivalence result to the tested graph and
+  event stream; remove the general supplier-deployment claim. Implemented on the review branch.
   [Verification and claim audit](../handoff/report_vi1_vendor_integration_site_2026_09_21.md).
   Review reply: public status links now point to [dependency shadowing, issue 2](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2)
   and [new-node audit scaffolding, issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3),
   the TA-9 reference is pinned, and the worked example opens with recorded/re-verified benefits.
   The reviewer's 1.0.73 reconciliation-preservation result is attributed, not claimed as a new run.
-  C++ confirmation and owner merge of [PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1)
-  remain pending; no deployment authorized.
+  The C++ wording decision is resolved; owner merge of
+  [PR 1](https://github.com/telaminai/fluxtionauditlog-analyser/pull/1) remains pending. No deployment authorized.
 
 ---
 

@@ -152,14 +152,14 @@ through its root, in the dispatch position the compiler chose.
 
 ## The same description, a different target
 
-Because the processor is generated rather than assembled, one description can be emitted for more than
-one target. A graph built this way has been emitted as both a Java processor and a C++ processor and,
-replaying the same deterministic event stream, the two agreed at **every one of 1,981,480 decision
-points** — identical decisions, identical outputs.
+**C++ is a preview target.** In the previously reported comparison, Java and C++ builds of the
+tested graph replayed the same deterministic event stream and agreed at **1,981,480 decision
+points** — identical decisions and outputs for that run.
 
-That makes the audit log an equivalence proof: two builds of one description can be compared entry for
-entry rather than argued about. A supplier's nodes can reach a C++ deployment without the supplier
-writing C++.
+That result supports equivalence for the tested graph and event stream. It does not establish
+compatibility for arbitrary graphs or supplier components. The vendor-integration experiment
+described here did not test C++; assess a supplier's compatibility separately before using the
+preview target.
 
 ## What this does not remove
 
