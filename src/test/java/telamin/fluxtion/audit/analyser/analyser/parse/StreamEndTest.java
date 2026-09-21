@@ -205,4 +205,17 @@ class StreamEndTest {
         assertEquals(StreamEnd.State.UNKNOWN, cannotTell.streamEnd().state());
         assertEquals(4, cannotTell.streamEnd().emittedRecords());
     }
+
+    /**
+     * The recommended shape: a marker with no logTime at all. §2 keeps an untimed record but leaves it
+     * off the timeline, which is why omitting it makes the marker invisible to an older reader's time
+     * range — measured against released 1.16.0. The new reader must accept it just the same.
+     */
+    @Test
+    void anUntimedMarkerIsStillAMarker() {
+        var store = new HeapLogStore(file(REC, REC,
+                "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 2\n"));
+        assertEquals(2, store.size());
+        assertEquals(StreamEnd.State.COMPLETE, store.streamEnd().state());
+    }
 }

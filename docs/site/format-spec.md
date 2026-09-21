@@ -65,9 +65,18 @@ The fourth row is the point, and it is the common case. **Silence MUST NOT be re
 Every producer that predates this section, and every export the analyser has ever read, lands there and
 MUST keep loading exactly as before. What a reader owes is to say it does not know, not to guess.
 
-**Compatibility.** A reader written before this section sees one extra record carrying unknown fields,
-which §2 already requires it to tolerate. Nothing about Format 1 changes for a file that carries no
-marker.
+**A writer SHOULD omit `logTime` from the marker**, and MUST NOT give it a time later than the last
+record's. This is the one place the marker can affect an older reader, and it is avoidable. Measured
+against the released 1.16.0 reader, which has no §1a support: a marker timed after the last record moved
+that reader's `maxLogTime` from 1001 to 1002, widening its time range and every axis drawn from it. The
+same file with the marker untimed — or reusing the last record's time — left the range untouched. An
+untimed record is already defined by §2 as kept but off the timeline, so this needs no new rule.
+
+**Compatibility, measured rather than asserted.** A reader written before this section sees one extra
+record carrying unknown fields, which §2 already requires it to tolerate. Verified against released
+1.16.0: a marked file loaded with **3 records, zero parse errors**, every record `OK`, against 2 records
+for the same file unmarked. With the marker untimed, the two files differ only by that extra record.
+Nothing about Format 1 changes for a file that carries no marker.
 
 ## 2. The record
 

@@ -1,6 +1,6 @@
 # Audit stream end — saying whether a text audit file is whole (Design Spec)
 
-_Status: **PROPOSED 2026-09-21, not reviewed, not implemented.** Step 1 of release 1 in the
+_Status: **PROPOSED 2026-09-21; analyser half IMPLEMENTED on `feat/audit-format-end-marker`, not yet reviewed.** Step 1 of release 1 in the
 [Mongoose audit format proposal](../proposals/mongoose-audit-format/README.md): the contract both the
 writer and the reader implement, so it comes before either. Owner decision 1, taken 2026-09-21: the
 analyser learns to report incompleteness. Amends the published
@@ -53,12 +53,18 @@ therefore degrades gracefully in every existing reader.
 ```yaml
 ---
 eventLogRecord:
-  logTime: 1789993421904
-  streamEnd:
-    reason: normal        # normal | stopping
-    records: 25           # records written before this marker
+  streamEnd: normal        # normal | stopping
+  streamEndRecords: 25     # records written before this marker
 ---
 ```
+
+**Flat scalars, corrected during implementation.** This spec first drew the payload as a nested mapping.
+`RecordParser` switches on top-level SCALAR keys, so a nested payload would have needed new parser
+machinery for a two-field value, and `c02-unknown-fields` pins that scalar and mapping unknowns are alike
+tolerated — so the flat pair buys identical compatibility for materially less code.
+
+**No `logTime`, also corrected during implementation.** Running the compatibility check against released
+1.16.0 showed a timed marker widening that reader's time range. §1a now says a writer SHOULD omit it.
 
 **Compatibility, stated rather than hoped.** An older analyser, or any third-party reader, sees one extra
 record with an unrecognised field and no `event` or `nodeLogs`. That is already-tolerated behaviour, not a
@@ -116,9 +122,13 @@ analyser, as the reference implementation, suppresses it.
    than the file holds.
 5. **Existing fixtures are unchanged in behaviour.** All fifteen conformance fixtures, which carry no
    marker, produce exactly today's results through both the built-in path and the SPI path.
-6. **Forward compatibility is demonstrated, not assumed.** A file containing a marker is read by the
-   current shipped analyser — the one without this feature — and produces one extra tolerated record and
-   no parse error. Run it against the released jar, not against a branch with the feature disabled.
+6. **Forward compatibility is demonstrated, not assumed. DONE, and it found something.** Verified
+   against released **1.16.0**, which contains no stream-end class: a marked file loads with 3 records,
+   zero parse errors, every record `OK`, against 2 for the same file unmarked. **But the marker's own
+   `logTime` extended that reader's `maxLogTime` from 1001 to 1002** — the compatibility paragraph had
+   said only "one extra record", which understated it. An untimed marker, or one reusing the last
+   record's time, leaves the range identical. §1a now says a writer SHOULD omit `logTime`. This is why
+   the check had to be run rather than reasoned about.
 7. **The marker is absent from every counting surface** per D-E4: table, `read`, report, coverage,
    series, record count, `context`, and the time range.
 8. **Follow mode** sees the marker arrive and switches the file from unknown to complete without
@@ -139,7 +149,11 @@ analyser, as the reference implementation, suppresses it.
 2. **Should the count be of records, or of bytes, or both?** Records is what a reader can check cheaply.
    Bytes would also catch a truncated-but-boundary-aligned copy, at the cost of coupling the marker to
    the encoding.
-3. **Does the marker belong in `format-spec.md` §1 (container) or §2 (record)?** It is physically a
+3. **ANSWERED by §1a: the container.** It is described in §1a, beside the framing rules, because that is
+   where a reader looks for facts about the file. Left here because the reasoning is worth keeping:
+   physically a record, semantically a container fact, and the reader's obligations are container
+   obligations.
+4. **Does the marker belong in `format-spec.md` §1 (container) or §2 (record)?** (superseded by 3) It is physically a
    record and semantically a container fact. The spec should say which, because that decides where an
    adapter author looks for it.
 4. **Is a mismatch an error or a warning?** This spec says report; it does not say refuse. A file with a
