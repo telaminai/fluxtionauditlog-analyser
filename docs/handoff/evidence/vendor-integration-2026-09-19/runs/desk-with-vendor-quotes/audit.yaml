@@ -1,0 +1,1111 @@
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604210
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000000301001800@4cc7cd8f, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604210
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604210
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604211
+---
+eventLogRecord: 
+    eventTime: 1789853604211
+    logTime: 1789853604211
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: processor-agent
+    nodeLogs: 
+        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000000301001800@4cc7cd8f, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604212
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604212
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+        - rejects: { registeredMessageSink: rejects}
+    endTime: 1789853604213
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604213
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+        - executions: { registeredMessageSink: executions}
+    endTime: 1789853604213
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604213
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604213
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604213
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604214
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604214
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604214
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604214
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeOrders: { registeredMessageSink: hedgeOrders}
+    endTime: 1789853604214
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604214
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604214
+---
+eventLogRecord: 
+    eventTime: 1789853604218
+    logTime: 1789853604218
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Start
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604218
+---
+eventLogRecord: 
+    eventTime: 1789853604218
+    logTime: 1789853604218
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: StartComplete
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604218
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604218
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853604218
+---
+eventLogRecord: 
+    eventTime: 1789853604237
+    logTime: 1789853604237
+    groupingId: null
+    event: ProductDefinition
+    eventToString: ProductDefinition[symbol=AAPL, exchange=NASDAQ, type=EQUITY, multiplier=1.0, lotSize=100.0, hedgeThreshold=500.0]
+    thread: processor-agent
+    nodeLogs: 
+        - productCatalog: { thread: processor-agent, method: onProductDefinition, symbol: AAPL, exchange: NASDAQ, type: EQUITY, multiplier: 1.0, lotSize: 100.0, hedgeThreshold: 500.0}
+    endTime: 1789853604240
+---
+eventLogRecord: 
+    eventTime: 1789853604241
+    logTime: 1789853604241
+    groupingId: null
+    event: ProductDefinition
+    eventToString: ProductDefinition[symbol=MSFT, exchange=NASDAQ, type=EQUITY, multiplier=1.0, lotSize=100.0, hedgeThreshold=500.0]
+    thread: processor-agent
+    nodeLogs: 
+        - productCatalog: { thread: processor-agent, method: onProductDefinition, symbol: MSFT, exchange: NASDAQ, type: EQUITY, multiplier: 1.0, lotSize: 100.0, hedgeThreshold: 500.0}
+    endTime: 1789853604241
+---
+eventLogRecord: 
+    eventTime: 1789853604241
+    logTime: 1789853604241
+    groupingId: null
+    event: ProductDefinition
+    eventToString: ProductDefinition[symbol=ESZ6, exchange=CME, type=FUTURE, multiplier=50.0, lotSize=1.0, hedgeThreshold=10.0]
+    thread: processor-agent
+    nodeLogs: 
+        - productCatalog: { thread: processor-agent, method: onProductDefinition, symbol: ESZ6, exchange: CME, type: FUTURE, multiplier: 50.0, lotSize: 1.0, hedgeThreshold: 10.0}
+    endTime: 1789853604241
+---
+eventLogRecord: 
+    eventTime: 1789853604241
+    logTime: 1789853604241
+    groupingId: null
+    event: ProductDefinition
+    eventToString: ProductDefinition[symbol=EURUSD, exchange=FXALL, type=FX, multiplier=1.0, lotSize=100000.0, hedgeThreshold=1000000.0]
+    thread: processor-agent
+    nodeLogs: 
+        - productCatalog: { thread: processor-agent, method: onProductDefinition, symbol: EURUSD, exchange: FXALL, type: FX, multiplier: 1.0, lotSize: 100000.0, hedgeThreshold: 1000000.0}
+    endTime: 1789853604241
+---
+eventLogRecord: 
+    eventTime: 1789853604241
+    logTime: 1789853604241
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=AAPL, bid=189.9, ask=190.1]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: AAPL, price: 190.0, volatility: 0.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: AAPL, bid: 189.9, ask: 190.1, mid: 190.0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, totalPnl: 0.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604244
+---
+eventLogRecord: 
+    eventTime: 1789853604244
+    logTime: 1789853604244
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=ESZ6, bid=5000.0, ask=5000.5]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: ESZ6, price: 5000.25, volatility: 0.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: ESZ6, bid: 5000.0, ask: 5000.5, mid: 5000.25}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, totalPnl: 0.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604244
+---
+eventLogRecord: 
+    eventTime: 1789853604244
+    logTime: 1789853604244
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=EURUSD, bid=1.085, ask=1.0852]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: EURUSD, price: 1.0851, volatility: 0.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: EURUSD, bid: 1.085, ask: 1.0852, mid: 1.0851}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, totalPnl: 0.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604244
+---
+eventLogRecord: 
+    eventTime: 1789853604244
+    logTime: 1789853604244
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C1, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=100.0, limitPrice=190.1]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C1, book: CLIENT_EQ, symbol: AAPL, decision: REJECT, reason: EXCHANGE_CLOSED}
+    endTime: 1789853604247
+---
+eventLogRecord: 
+    eventTime: 1789853604247
+    logTime: 1789853604247
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C2, client=alpha, book=CLIENT_EQ, symbol=TSLA, side=BUY, quantity=100.0, limitPrice=250.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C2, book: CLIENT_EQ, symbol: TSLA, decision: REJECT, reason: UNKNOWN_PRODUCT}
+    endTime: 1789853604247
+---
+eventLogRecord: 
+    eventTime: 1789853604247
+    logTime: 1789853604247
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C2b, client=alpha, book=CLIENT_EQ, symbol=MSFT, side=BUY, quantity=100.0, limitPrice=411.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C2b, book: CLIENT_EQ, symbol: MSFT, decision: REJECT, reason: EXCHANGE_CLOSED}
+    endTime: 1789853604247
+---
+eventLogRecord: 
+    eventTime: 1789853604247
+    logTime: 1789853604247
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=NASDAQ, open=true]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: NASDAQ, open: true}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 0.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+    endTime: 1789853604248
+---
+eventLogRecord: 
+    eventTime: 1789853604248
+    logTime: 1789853604248
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=CME, open=true]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: CME, open: true}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 0.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+    endTime: 1789853604248
+---
+eventLogRecord: 
+    eventTime: 1789853604248
+    logTime: 1789853604248
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=FXALL, open=true]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: FXALL, open: true}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 0.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+    endTime: 1789853604248
+---
+eventLogRecord: 
+    eventTime: 1789853604248
+    logTime: 1789853604248
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C3, client=alpha, book=CLIENT_EQ, symbol=MSFT, side=BUY, quantity=100.0, limitPrice=411.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C3, book: CLIENT_EQ, symbol: MSFT, decision: REJECT, reason: NO_PRICE}
+    endTime: 1789853604248
+---
+eventLogRecord: 
+    eventTime: 1789853604248
+    logTime: 1789853604248
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C3b, client=alpha, book=CLIENT_EQ, symbol=MSFT, side=BUY, quantity=0.0, limitPrice=411.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C3b, book: CLIENT_EQ, symbol: MSFT, decision: REJECT, reason: NO_PRICE}
+    endTime: 1789853604249
+---
+eventLogRecord: 
+    eventTime: 1789853604249
+    logTime: 1789853604249
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=MSFT, bid=410.0, ask=410.2]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: MSFT, price: 410.1, volatility: 0.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: MSFT, bid: 410.0, ask: 410.2, mid: 410.1}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, totalPnl: 0.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604249
+---
+eventLogRecord: 
+    eventTime: 1789853604249
+    logTime: 1789853604249
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C4, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=0.0, limitPrice=190.1]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C4, book: CLIENT_EQ, symbol: AAPL, decision: REJECT, reason: BAD_QUANTITY}
+    endTime: 1789853604249
+---
+eventLogRecord: 
+    eventTime: 1789853604249
+    logTime: 1789853604249
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C4b, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=0.0, limitPrice=100.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C4b, book: CLIENT_EQ, symbol: AAPL, decision: REJECT, reason: BAD_QUANTITY}
+    endTime: 1789853604249
+---
+eventLogRecord: 
+    eventTime: 1789853604249
+    logTime: 1789853604249
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C5, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=200.0, limitPrice=190.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C5, book: CLIENT_EQ, symbol: AAPL, decision: REJECT, reason: LIMIT_NOT_MARKETABLE}
+    endTime: 1789853604249
+---
+eventLogRecord: 
+    eventTime: 1789853604249
+    logTime: 1789853604249
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C6, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=200.0, limitPrice=190.1]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C6, book: CLIENT_EQ, symbol: AAPL, decision: ACCEPT, execPrice: 190.1, deskQty: -200.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: AAPL, position: -200.0, net: -200.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: 20.0, totalPnl: 20.0}
+    endTime: 1789853604251
+---
+eventLogRecord: 
+    eventTime: 1789853604251
+    logTime: 1789853604251
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C7, client=beta, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=250.0, limitPrice=190.5]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C7, book: CLIENT_EQ, symbol: AAPL, decision: ACCEPT, execPrice: 190.1, deskQty: -250.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: AAPL, position: -450.0, net: -450.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -450.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: 45.0, totalPnl: 45.0}
+    endTime: 1789853604251
+---
+eventLogRecord: 
+    eventTime: 1789853604251
+    logTime: 1789853604251
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=AAPL, bid=190.4, ask=190.6]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: AAPL, price: 190.5, volatility: 6.446025638902851E-4}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: AAPL, bid: 190.4, ask: 190.6, mid: 190.5}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -180.0, totalPnl: -180.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604251
+---
+eventLogRecord: 
+    eventTime: 1789853604251
+    logTime: 1789853604251
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C8, client=beta, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=150.0, limitPrice=190.6]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C8, book: CLIENT_EQ, symbol: AAPL, decision: ACCEPT, execPrice: 190.6, deskQty: -150.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: AAPL, position: -600.0, net: -600.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, hedgeId_AAPL: H1, hedge_AAPL: 600.0, hedgeLimit_AAPL: 190.6, exposure_AAPL: 0.0, working_AAPL: 600.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 1}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -165.0, totalPnl: -165.0}
+    endTime: 1789853604252
+---
+eventLogRecord: 
+    eventTime: 1789853604252
+    logTime: 1789853604252
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C9, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=100.0, limitPrice=190.6]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C9, book: CLIENT_EQ, symbol: AAPL, decision: ACCEPT, execPrice: 190.6, deskQty: -100.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: AAPL, position: -700.0, net: -700.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 600.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -155.0, totalPnl: -155.0}
+    endTime: 1789853604252
+---
+eventLogRecord: 
+    eventTime: 1789853604252
+    logTime: 1789853604252
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H1, symbol=AAPL, quantity=400.0, price=190.58]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H1, symbol: AAPL, quantity: 400.0, price: 190.58}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: AAPL, position: 400.0, net: -300.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 200.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -155.0, pnl_HEDGE: -32.0, totalPnl: -187.0}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: 1789853604253
+    logTime: 1789853604253
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C10, client=gamma, book=CLIENT_EQ, symbol=AAPL, side=SELL, quantity=300.0, limitPrice=190.4]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C10, book: CLIENT_EQ, symbol: AAPL, decision: ACCEPT, execPrice: 190.4, deskQty: 300.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: AAPL, position: -400.0, net: 0.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 200.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -125.0, pnl_HEDGE: -32.0, totalPnl: -157.0}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: 1789853604253
+    logTime: 1789853604253
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H1, symbol=AAPL, quantity=200.0, price=190.6]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H1, symbol: AAPL, quantity: 200.0, price: 190.6}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: AAPL, position: 600.0, net: 200.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -125.0, pnl_HEDGE: -52.0, totalPnl: -177.0}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604253
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: hedgingOff, value: null}
+    thread: processor-agent
+    eventFilter: hedgingOff
+    nodeLogs: 
+        - hedger: { thread: processor-agent, method: onSignalHedgingOff, enabled: false}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: 1789853604253
+    logTime: 1789853604253
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C11, client=alpha, book=CLIENT_EQ, symbol=MSFT, side=SELL, quantity=800.0, limitPrice=410.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C11, book: CLIENT_EQ, symbol: MSFT, decision: ACCEPT, execPrice: 410.0, deskQty: 800.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: MSFT, position: 800.0, net: 800.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: false, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 800.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -45.0, pnl_HEDGE: -52.0, totalPnl: -97.0}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: 1789853604253
+    logTime: 1789853604253
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=MSFT, bid=409.0, ask=409.2]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: MSFT, price: 409.1, volatility: 5.972908419368947E-4}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: MSFT, bid: 409.0, ask: 409.2, mid: 409.1}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -845.0, pnl_HEDGE: -52.0, totalPnl: -897.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604253
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: hedgingOn, value: null}
+    thread: processor-agent
+    eventFilter: hedgingOn
+    nodeLogs: 
+        - hedger: { thread: processor-agent, method: onSignalHedgingOn, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, hedgeId_MSFT: H2, hedge_MSFT: -800.0, hedgeLimit_MSFT: 409.0, exposure_MSFT: 0.0, working_MSFT: -800.0, ordersSent: 1}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: 1789853604253
+    logTime: 1789853604253
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H2, symbol=MSFT, quantity=-800.0, price=409.0]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H2, symbol: MSFT, quantity: -800.0, price: 409.0}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: MSFT, position: -800.0, net: 0.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -845.0, pnl_HEDGE: -132.0, totalPnl: -977.0}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604253
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: haltTrading, value: null}
+    thread: processor-agent
+    eventFilter: haltTrading
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onSignalHaltTrading, halted: true}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: 1789853604253
+    logTime: 1789853604253
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C12, client=beta, book=CLIENT_EQ, symbol=MSFT, side=BUY, quantity=100.0, limitPrice=409.2]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C12, book: CLIENT_EQ, symbol: MSFT, decision: REJECT, reason: HALTED}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604253
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: resumeTrading, value: null}
+    thread: processor-agent
+    eventFilter: resumeTrading
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onSignalResumeTrading, halted: false}
+    endTime: 1789853604253
+---
+eventLogRecord: 
+    eventTime: 1789853604253
+    logTime: 1789853604253
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C13, client=beta, book=CLIENT_EQ, symbol=MSFT, side=BUY, quantity=100.0, limitPrice=409.2]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C13, book: CLIENT_EQ, symbol: MSFT, decision: ACCEPT, execPrice: 409.2, deskQty: -100.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: MSFT, position: 700.0, net: -100.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -835.0, pnl_HEDGE: -132.0, totalPnl: -967.0}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: 1789853604254
+    logTime: 1789853604254
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C14, client=delta, book=CLIENT_FUT, symbol=ESZ6, side=SELL, quantity=8.0, limitPrice=5000.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C14, book: CLIENT_FUT, symbol: ESZ6, decision: ACCEPT, execPrice: 5000.0, deskQty: 8.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_FUT, symbol: ESZ6, position: 8.0, net: 8.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 8.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -835.0, pnl_CLIENT_FUT: 100.0, pnl_HEDGE: -132.0, totalPnl: -867.0}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: 1789853604254
+    logTime: 1789853604254
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C15, client=delta, book=CLIENT_FUT, symbol=ESZ6, side=SELL, quantity=7.0, limitPrice=5000.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C15, book: CLIENT_FUT, symbol: ESZ6, decision: ACCEPT, execPrice: 5000.0, deskQty: 7.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_FUT, symbol: ESZ6, position: 15.0, net: 15.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, hedgeId_ESZ6: H3, hedge_ESZ6: -15.0, hedgeLimit_ESZ6: 5000.0, exposure_ESZ6: 0.0, working_ESZ6: -15.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 1}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -835.0, pnl_CLIENT_FUT: 187.5, pnl_HEDGE: -132.0, totalPnl: -779.5}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: 1789853604254
+    logTime: 1789853604254
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=ESZ6, bid=4990.0, ask=4990.5]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: ESZ6, price: 4990.25, volatility: 4.898734548838847E-4}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: ESZ6, bid: 4990.0, ask: 4990.5, mid: 4990.25}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -835.0, pnl_CLIENT_FUT: -7312.5, pnl_HEDGE: -132.0, totalPnl: -8279.5}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: 1789853604254
+    logTime: 1789853604254
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H3, symbol=ESZ6, quantity=-15.0, price=4999.75]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H3, symbol: ESZ6, quantity: -15.0, price: 4999.75}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: ESZ6, position: -15.0, net: 0.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 0.0, working_EURUSD: 0.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -835.0, pnl_CLIENT_FUT: -7312.5, pnl_HEDGE: 6993.0, totalPnl: -1154.5}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: 1789853604254
+    logTime: 1789853604254
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C16, client=epsilon, book=CLIENT_FX, symbol=EURUSD, side=SELL, quantity=1250000.0, limitPrice=1.085]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C16, book: CLIENT_FX, symbol: EURUSD, decision: ACCEPT, execPrice: 1.085, deskQty: 1250000.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_FX, symbol: EURUSD, position: 1250000.0, net: 1250000.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, hedgeId_EURUSD: H4, hedge_EURUSD: -1200000.0, hedgeLimit_EURUSD: 1.085, exposure_EURUSD: 50000.0, working_EURUSD: -1200000.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 1}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -835.0, pnl_CLIENT_FUT: -7312.5, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 6993.0, totalPnl: -1029.5}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: 1789853604254
+    logTime: 1789853604254
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H4, symbol=EURUSD, quantity=-1200000.0, price=1.085]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H4, symbol: EURUSD, quantity: -1200000.0, price: 1.085}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: EURUSD, position: -1200000.0, net: 50000.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 200.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -835.0, pnl_CLIENT_FUT: -7312.5, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 6873.0, totalPnl: -1149.5}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604254
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: hedgingOff, value: null}
+    thread: processor-agent
+    eventFilter: hedgingOff
+    nodeLogs: 
+        - hedger: { thread: processor-agent, method: onSignalHedgingOff, enabled: false}
+    endTime: 1789853604254
+---
+eventLogRecord: 
+    eventTime: 1789853604254
+    logTime: 1789853604254
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C17, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=SELL, quantity=700.0, limitPrice=190.4]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C17, book: CLIENT_EQ, symbol: AAPL, decision: ACCEPT, execPrice: 190.4, deskQty: 700.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: AAPL, position: 300.0, net: 900.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: false, exposure_AAPL: 900.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -765.0, pnl_CLIENT_FUT: -7312.5, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 6873.0, totalPnl: -1079.5}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C17b, client=beta, book=CLIENT_EQ, symbol=MSFT, side=SELL, quantity=700.0, limitPrice=409.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C17b, book: CLIENT_EQ, symbol: MSFT, decision: ACCEPT, execPrice: 409.0, deskQty: 700.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: MSFT, position: 1400.0, net: 600.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: false, exposure_AAPL: 900.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 600.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -695.0, pnl_CLIENT_FUT: -7312.5, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 6873.0, totalPnl: -1009.5}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=NASDAQ, open=false]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: NASDAQ, open: false}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: false, exposure_AAPL: 900.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 600.0, working_MSFT: 0.0, ordersSent: 0}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604255
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: hedgingOn, value: null}
+    thread: processor-agent
+    eventFilter: hedgingOn
+    nodeLogs: 
+        - hedger: { thread: processor-agent, method: onSignalHedgingOn, enabled: true, exposure_AAPL: 900.0, working_AAPL: 0.0, exposure_ESZ6: 0.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 600.0, working_MSFT: 0.0, ordersSent: 0}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C18, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=100.0, limitPrice=190.6]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C18, book: CLIENT_EQ, symbol: AAPL, decision: REJECT, reason: EXCHANGE_CLOSED}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604255
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: haltTrading, value: null}
+    thread: processor-agent
+    eventFilter: haltTrading
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onSignalHaltTrading, halted: true}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C18b, client=alpha, book=CLIENT_EQ, symbol=AAPL, side=BUY, quantity=100.0, limitPrice=191.2]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C18b, book: CLIENT_EQ, symbol: AAPL, decision: REJECT, reason: HALTED}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C18c, client=alpha, book=CLIENT_EQ, symbol=TSLA, side=BUY, quantity=100.0, limitPrice=250.0]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C18c, book: CLIENT_EQ, symbol: TSLA, decision: REJECT, reason: UNKNOWN_PRODUCT}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853604255
+    groupingId: null
+    event: Signal
+    eventToString: Signal: {filterString: resumeTrading, value: null}
+    thread: processor-agent
+    eventFilter: resumeTrading
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onSignalResumeTrading, halted: false}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C19, client=delta, book=CLIENT_FUT, symbol=ESZ6, side=BUY, quantity=3.0, limitPrice=4990.5]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C19, book: CLIENT_FUT, symbol: ESZ6, decision: ACCEPT, execPrice: 4990.5, deskQty: -3.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_FUT, symbol: ESZ6, position: 12.0, net: -3.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 900.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 600.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -695.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 6873.0, totalPnl: -972.0}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=AAPL, bid=191.0, ask=191.2]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: AAPL, price: 191.1, volatility: 9.928660069988408E-4}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: AAPL, bid: 191.0, ask: 191.2, mid: 191.1}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -515.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 7233.0, totalPnl: -432.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=NASDAQ, open=true]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: NASDAQ, open: true}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, hedgeId_AAPL: H5, hedge_AAPL: -900.0, hedgeLimit_AAPL: 191.0, exposure_AAPL: 0.0, working_AAPL: -900.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, hedgeId_MSFT: H6, hedge_MSFT: -600.0, hedgeLimit_MSFT: 409.0, exposure_MSFT: 0.0, working_MSFT: -600.0, ordersSent: 2}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H5, symbol=AAPL, quantity=-500.0, price=191.0]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H5, symbol: AAPL, quantity: -500.0, price: 191.0}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: AAPL, position: 100.0, net: 400.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: 0.0, working_AAPL: -400.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: -600.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -515.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 7183.0, totalPnl: -482.0}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604255
+    logTime: 1789853604255
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H9, symbol=AAPL, quantity=-100.0, price=191.0]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H9, symbol: AAPL, quantity: -100.0, price: 191.0}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: AAPL, position: 0.0, net: 300.0}
+        - hedger: { unknownFill: true}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: -400.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: -600.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -515.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 7173.0, totalPnl: -492.0}
+    endTime: 1789853604255
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H5, symbol=AAPL, quantity=-400.0, price=191.0]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H5, symbol: AAPL, quantity: -400.0, price: 191.0}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: AAPL, position: -400.0, net: -100.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: -600.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -515.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 7133.0, totalPnl: -532.0}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H6, symbol=MSFT, quantity=-600.0, price=409.0]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H6, symbol: MSFT, quantity: -600.0, price: 409.0}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: MSFT, position: -1400.0, net: 0.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -515.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 7073.0, totalPnl: -592.0}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: ClientOrder
+    eventToString: ClientOrder[orderId=C20, client=beta, book=CLIENT_EQ, symbol=MSFT, side=BUY, quantity=100.0, limitPrice=409.2]
+    thread: processor-agent
+    nodeLogs: 
+        - orderGateway: { thread: processor-agent, method: onClientOrder, orderId: C20, book: CLIENT_EQ, symbol: MSFT, decision: ACCEPT, execPrice: 409.2, deskQty: -100.0}
+        - positionKeeper: { source: CLIENT, book: CLIENT_EQ, symbol: MSFT, position: 1300.0, net: -100.0}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: -100.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: -505.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 7073.0, totalPnl: -582.0}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: ProductDefinition
+    eventToString: ProductDefinition[symbol=MSFT, exchange=NASDAQ, type=EQUITY, multiplier=1.0, lotSize=100.0, hedgeThreshold=100.0]
+    thread: processor-agent
+    nodeLogs: 
+        - productCatalog: { thread: processor-agent, method: onProductDefinition, symbol: MSFT, exchange: NASDAQ, type: EQUITY, multiplier: 1.0, lotSize: 100.0, hedgeThreshold: 100.0}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: MarketPrice
+    eventToString: MarketPrice[symbol=MSFT, bid=409.5, ask=409.7]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: MSFT, price: 409.6, volatility: 6.519023048688292E-4}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - priceBook: { thread: processor-agent, method: onMarketPrice, symbol: MSFT, bid: 409.5, ask: 409.7, mid: 409.6}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: 145.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 6373.0, totalPnl: -632.0}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=CME, open=false]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: CME, open: false}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, hedgeId_MSFT: H7, hedge_MSFT: 100.0, hedgeLimit_MSFT: 409.7, exposure_MSFT: 0.0, working_MSFT: 100.0, ordersSent: 1}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: HedgeFill
+    eventToString: HedgeFill[hedgeOrderId=H7, symbol=MSFT, quantity=100.0, price=409.7]
+    thread: processor-agent
+    nodeLogs: 
+        - hedgeFills: { thread: processor-agent, method: onHedgeFill, hedgeOrderId: H7, symbol: MSFT, quantity: 100.0, price: 409.7}
+        - positionKeeper: { source: HEDGE, book: HEDGE, symbol: MSFT, position: -1300.0, net: 0.0}
+        - hedger: { unknownFill: false}
+        - positionKeeper: { thread: processor-agent, method: onPositionKeeper}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+        - pnlCalculator: { thread: processor-agent, method: onPnlCalculator, pnl_CLIENT_EQ: 145.0, pnl_CLIENT_FUT: -7275.0, pnl_CLIENT_FX: 125.0, pnl_HEDGE: 6363.0, totalPnl: -642.0}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=FXALL, open=false]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: FXALL, open: false}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+    endTime: 1789853604256
+---
+eventLogRecord: 
+    eventTime: 1789853604256
+    logTime: 1789853604256
+    groupingId: null
+    event: ExchangeStatus
+    eventToString: ExchangeStatus[exchange=NASDAQ, open=false]
+    thread: processor-agent
+    nodeLogs: 
+        - marketSession: { thread: processor-agent, method: onExchangeStatus, exchange: NASDAQ, open: false}
+        - hedger: { thread: processor-agent, method: onHedger, enabled: true, exposure_AAPL: -100.0, working_AAPL: 0.0, exposure_ESZ6: -3.0, working_ESZ6: 0.0, exposure_EURUSD: 50000.0, working_EURUSD: 0.0, exposure_MSFT: 0.0, working_MSFT: 0.0, ordersSent: 0}
+    endTime: 1789853604256

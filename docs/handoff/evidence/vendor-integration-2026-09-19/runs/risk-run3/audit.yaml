@@ -1,0 +1,348 @@
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606871
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@8597a06, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606871
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606872
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606872
+---
+eventLogRecord: 
+    eventTime: 1789853606872
+    logTime: 1789853606872
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: processor-agent
+    nodeLogs: 
+        - child: { action: initialise, processedCount: 0, lastProcessedPrice: 0.0, paused: false}
+    endTime: 1789853606873
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606873
+    groupingId: null
+    event: EventLogControlEvent
+    eventToString: EventLogConfig{level=null, logRecordProcessor=com.example.myapp.MongooseMain$$Lambda/0x0000007001001800@8597a06, sourceId=null, groupId=null}
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606873
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606873
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606873
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606874
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+        - riskAlerts: { registeredMessageSink: riskAlerts}
+    endTime: 1789853606874
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606874
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606874
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606874
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606874
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606874
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606874
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606876
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606876
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606876
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606876
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606876
+---
+eventLogRecord: 
+    eventTime: 1789853606880
+    logTime: 1789853606880
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Start
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606880
+---
+eventLogRecord: 
+    eventTime: 1789853606880
+    logTime: 1789853606880
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: StartComplete
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606880
+---
+eventLogRecord: 
+    eventTime: -1
+    logTime: 1789853606880
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: @Override
+public void registerService(com.telamin.fluxtion.runtime.service.Service<?> arg0)
+    thread: processor-agent
+    nodeLogs: 
+    endTime: 1789853606880
+---
+eventLogRecord: 
+    eventTime: 1789853606895
+    logTime: 1789853606895
+    groupingId: null
+    event: RiskPosition
+    eventToString: RiskPosition[symbol=AAPL, quantity=1000.0, multiplier=1.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmePositionFeed: { thread: processor-agent, method: onPosition, symbol: AAPL, quantity: 1000.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853606897
+---
+eventLogRecord: 
+    eventTime: 1789853606897
+    logTime: 1789853606897
+    groupingId: null
+    event: RiskQuote
+    eventToString: RiskQuote[symbol=AAPL, price=190.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: AAPL, price: 190.0, volatility: 0.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 0.0}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 0.0, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853606898
+---
+eventLogRecord: 
+    eventTime: 1789853606898
+    logTime: 1789853606898
+    groupingId: null
+    event: RiskQuote
+    eventToString: RiskQuote[symbol=AAPL, price=191.9]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: AAPL, price: 191.9, volatility: 0.0024494897427831813}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 1093.3527718948553}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 1093.3527718948553, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853606898
+---
+eventLogRecord: 
+    eventTime: 1789853606898
+    logTime: 1789853606898
+    groupingId: null
+    event: RiskPosition
+    eventToString: RiskPosition[symbol=ESZ6, quantity=20.0, multiplier=50.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmePositionFeed: { thread: processor-agent, method: onPosition, symbol: ESZ6, quantity: 20.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 1093.3527718948553}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 1093.3527718948553, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853606898
+---
+eventLogRecord: 
+    eventTime: 1789853606898
+    logTime: 1789853606898
+    groupingId: null
+    event: RiskQuote
+    eventToString: RiskQuote[symbol=ESZ6, price=5000.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: ESZ6, price: 5000.0, volatility: 0.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 1093.3527718948553}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 1093.3527718948553, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853606898
+---
+eventLogRecord: 
+    eventTime: 1789853606898
+    logTime: 1789853606898
+    groupingId: null
+    event: RiskQuote
+    eventToString: RiskQuote[symbol=ESZ6, price=4950.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: ESZ6, price: 4950.0, volatility: 0.0024494897427831813}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 29296.042823377567}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 29296.042823377567, varLimit: 20000.0, breached: true}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: true, alert: true}
+    endTime: 1789853606900
+---
+eventLogRecord: 
+    eventTime: 1789853606900
+    logTime: 1789853606900
+    groupingId: null
+    event: RiskQuote
+    eventToString: RiskQuote[symbol=AAPL, price=188.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: AAPL, price: 188.0, volatility: 0.005515584002522783}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 30614.588748777896}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 30614.588748777896, varLimit: 20000.0, breached: true}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: true, alert: false}
+    endTime: 1789853606900
+---
+eventLogRecord: 
+    eventTime: 1789853606900
+    logTime: 1789853606900
+    groupingId: null
+    event: RiskQuote
+    eventToString: RiskQuote[symbol=ESZ6, price=5040.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: ESZ6, price: 5040.0, volatility: 0.005047247838555331}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 61580.98699859287}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 61580.98699859287, varLimit: 20000.0, breached: true}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: true, alert: false}
+    endTime: 1789853606900
+---
+eventLogRecord: 
+    eventTime: 1789853606900
+    logTime: 1789853606900
+    groupingId: null
+    event: RiskPosition
+    eventToString: RiskPosition[symbol=ESZ6, quantity=2.0, multiplier=50.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmePositionFeed: { thread: processor-agent, method: onPosition, symbol: ESZ6, quantity: 2.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 8328.807527424951}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 8328.807527424951, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: true}
+    endTime: 1789853606900
+---
+eventLogRecord: 
+    eventTime: 1789853606900
+    logTime: 1789853606900
+    groupingId: null
+    event: RiskQuote
+    eventToString: RiskQuote[symbol=AAPL, price=188.5]
+    thread: processor-agent
+    nodeLogs: 
+        - acmeQuoteFeed: { thread: processor-agent, method: onQuote, symbol: AAPL, price: 188.5, volatility: 0.005387092634866188}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 8278.884982979484}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 8278.884982979484, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853606900
+---
+eventLogRecord: 
+    eventTime: 1789853606900
+    logTime: 1789853606900
+    groupingId: null
+    event: RiskPosition
+    eventToString: RiskPosition[symbol=ESZ6, quantity=0.0, multiplier=50.0]
+    thread: processor-agent
+    nodeLogs: 
+        - acmePositionFeed: { thread: processor-agent, method: onPosition, symbol: ESZ6, quantity: 0.0}
+        - acmeVarCalculator: { thread: processor-agent, method: calculate, totalVar: 2361.976152849715}
+        - acmeRiskEngine: { thread: processor-agent, method: evaluate, totalVar: 2361.976152849715, varLimit: 20000.0, breached: false}
+        - riskLimitGuard: { thread: processor-agent, method: onRiskLimitGuard, breached: false, alert: false}
+    endTime: 1789853606900

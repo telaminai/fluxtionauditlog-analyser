@@ -1,0 +1,96 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfluxtion.apiKeyFile=/private/tmp/fluxtion-spring-demo/project/unused-key.properties -Dfluxtion.apiKey=MISSING_KEY -Dfluxtion.suppressApiKeyWarning=true
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: booting server loading config from reader
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: successfully loaded config from reader
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer bootServer
+INFO: booting fluxtion server
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.counters.MongooseCountersService, serviceName=com.telamin.mongoose.service.counters.MongooseCountersService, instance=com.telamin.mongoose.internal.NoOpCountersService@45afc369)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.counters.MongooseLatencyService, serviceName=com.telamin.mongoose.service.counters.MongooseLatencyService, instance=com.telamin.mongoose.internal.NoOpLatencyService@3e77a1ed)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.audit.MongooseAuditCaptureService, serviceName=com.telamin.mongoose.service.audit.MongooseAuditCaptureService, instance=com.telamin.mongoose.internal.NoOpAuditCaptureService@6a396c1e)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.audit.MongooseAuditIntrospectionService, serviceName=com.telamin.mongoose.service.audit.MongooseAuditIntrospectionService, instance=com.telamin.mongoose.internal.NoOpAuditIntrospectionService@314c508a)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.health.MongooseHealthService, serviceName=com.telamin.mongoose.service.health.MongooseHealthService, instance=com.telamin.mongoose.internal.DefaultMongooseHealth@64d7f7e0)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.introspection.MongooseIntrospectionService, serviceName=com.telamin.mongoose.service.introspection.MongooseIntrospectionService, instance=com.telamin.mongoose.internal.DefaultMongooseIntrospection@5d20e46)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.servercontrol.MongooseServerController, serviceName=com.telamin.mongoose.service.servercontrol.MongooseServerController, instance=com.telamin.mongoose.MongooseServer@77e4c80f)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.mongoose.service.pool.ObjectPoolsRegistry, serviceName=com.telamin.mongoose.pool.ObjectPoolsRegistry, instance=com.telamin.mongoose.service.pool.impl.GlobalObjectPool@57d5872c)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerWorkerService
+INFO: registerWorkerService:ServiceAgent[agentGroup=feeds-agent, idleStrategy=null, exportedService=Service(serviceClass=interface com.telamin.fluxtion.runtime.input.NamedFeed, serviceName=desk, instance=com.telamin.mongoose.connector.file.FileEventSource@2f0a87b3), delegate=com.telamin.mongoose.connector.file.FileEventSource@2f0a87b3] agentGroup:feeds-agent idleStrategy:SleepingMillisIdleStrategy{alias=sleep-ms, sleepPeriodMs=1}
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.ComposingServiceAgent registerServer
+INFO: registerServer toCallStartupCompleteList size:1
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.fluxtion.runtime.output.MessageSink, serviceName=hedgeOrders, instance=com.telamin.mongoose.connector.file.FileMessageSink@4ae82894)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.fluxtion.runtime.output.MessageSink, serviceName=executions, instance=com.telamin.mongoose.connector.file.FileMessageSink@5a4041cc)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.fluxtion.runtime.output.MessageSink, serviceName=rejects, instance=com.telamin.mongoose.connector.file.FileMessageSink@15b3e5b)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager init
+INFO: init
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start flowManager
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start agent hosted services
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager lambda$start$3
+INFO: starting composing service agent feeds-agent
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: waiting for agent hosted services to start
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.ComposingServiceAgent onStart
+INFO: onStart toStartList size:1
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.MongooseServer registerService
+INFO: registerService:Service(serviceClass=interface com.telamin.fluxtion.runtime.input.NamedFeed, serviceName=desk, instance=com.telamin.mongoose.connector.file.FileEventSource@2f0a87b3)
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.connector.file.FileEventSource start
+INFO: start FileEventSource desk file:data/desk-day.csv
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.connector.file.FileEventSource start
+INFO: tail:true once:false, commitRead:false latestRead:false readStrategy:EARLIEST
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.connector.file.FileEventSource onStart
+INFO: agent onStart FileEventSource desk file:data/desk-day.csv
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: start event processor agent workers
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager lambda$start$5
+INFO: starting composing event processor agent processor-agent
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: waiting for event processor agents to start
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent onStart
+INFO: onStart processor-agent
+updating event log config:EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=null}
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.service.extension.AbstractEventSourceService registerSubscriber
+INFO: registerSubscriber for broadcast receive com.example.myapp.generated.MyProcessor@204b8851
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.service.extension.AbstractEventSourceService subscribe
+INFO: adding subscription for service 'desk' to 'com.example.myapp.generated.MyProcessor@204b8851'
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent registerSubscriber
+INFO: registerSubscriber:com.example.myapp.generated.MyProcessor@204b8851 processor-agent
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent subscribe
+INFO: subscribe subscriptionKey:EventSubscriptionKey[eventSourceKey=EventSourceKey[sourceName=desk], callBackType=com.telamin.mongoose.service.CallBackType$OnEventCallBack@76b10754] subscriber:com.example.myapp.generated.MyProcessor@204b8851
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.ComposingEventProcessorAgent subscribe
+INFO: added new subscribe subscriptionKey:EventSubscriptionKey[eventSourceKey=EventSourceKey[sourceName=desk], callBackType=com.telamin.mongoose.service.CallBackType$OnEventCallBack@76b10754] subscriber:com.example.myapp.generated.MyProcessor@204b8851
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.EventQueueToEventProcessorAgent registerProcessor
+INFO: registerProcessor: com.example.myapp.generated.MyProcessor@204b8851
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.EventQueueToEventProcessorAgent registerProcessor
+INFO: listener count:1
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.EventQueueToEventProcessorAgent onStart
+INFO: start
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: calling startup complete on services
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.internal.LifecycleManager start
+INFO: calling startup complete on agent hosted services
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.dutycycle.ComposingServiceAgent startComplete
+INFO: startComplete toCallStartupCompleteList size:1
+Mongoose server started from config/desk-config.yml, audit -> evidence/desk-with-vendor-quotes/audit.yaml
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.connector.file.FileEventSource startComplete
+INFO: startComplete FileEventSource desk file:data/desk-day.csv
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.connector.file.FileEventSource connectReader
+INFO: Found previous offset, trying to skip to file offset 0
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.connector.file.FileEventSource connectReader
+INFO: Skipped to offset 0
+Sept 19, 2026 10:33:24 PM com.telamin.mongoose.connector.file.FileEventSource connectReader
+INFO: Opened data/desk-day.csv for reading
+stopping Mongoose server...

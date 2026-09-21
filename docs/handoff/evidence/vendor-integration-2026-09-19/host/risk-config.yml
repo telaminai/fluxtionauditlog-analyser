@@ -1,0 +1,34 @@
+# Mongoose server descriptor for the vendor risk component (vendor/PREDICTIONS.md). Boots via MongooseMain (MongooseServer.bootServer).
+# Shape taken from the "Fluxtion Spring in Mongoose" starter template; admin console and
+# performance monitoring are left out to keep this host minimal.
+
+eventHandlers:
+  - agentName: processor-agent
+    eventHandlers:
+      myProcessor:
+        # Supplier<DataFlow> — loads the AOT-generated MyProcessor and routes its audit log to a file.
+        eventHandlerBuilder: !!com.example.myapp.builder.MyProcessorSupplier {}
+
+agentThreads:
+  - agentName: processor-agent
+    idleStrategy: !!org.agrona.concurrent.SleepingMillisIdleStrategy {}
+
+  - agentName: feeds-agent
+    idleStrategy: !!org.agrona.concurrent.SleepingMillisIdleStrategy {}
+
+# ONE feed carries trades and prices, so file order is dispatch order.
+# To run new data: append lines to data/risk-day.csv. To re-run from the start: ./run-server.sh --clean
+eventFeeds:
+  - name: risk
+    instance: !!com.telamin.mongoose.connector.file.FileEventSource
+      filename: data/risk-day.csv
+      readStrategy: EARLIEST
+    broadcast: true
+    agentName: feeds-agent
+    valueMapper: !!com.example.myapp.mapper.CsvToMarketEvent {}
+
+# Outbound sinks.
+eventSinks:
+  - name: riskAlerts
+    instance: !!com.telamin.mongoose.connector.file.FileMessageSink
+      filename: evidence/risk-sinks/riskAlerts.txt
