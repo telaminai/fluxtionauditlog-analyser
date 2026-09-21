@@ -474,6 +474,7 @@ public final class ActionExecutor implements RenderExecutor {
             // "scheduled", not true: the walk lands after this call returns (debounce + off-EDT); `series` is
             // the way to READ a fresh value, the chart is what lags. false = nothing in this call re-extracts.
             applied.put("refreshed", panel.extractionRequests() > requestsBefore ? "scheduled" : Boolean.FALSE);
+            applied.put("scope", panel.scopeFacts());
             if (p.containsKey("guides")) applied.put("guides", panel.guides().size());
             if (p.containsKey("markers")) {
                 applied.put("markers", panel.markerSpecs().size());

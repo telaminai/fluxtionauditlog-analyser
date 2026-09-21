@@ -100,6 +100,9 @@ public final class GraphPanel extends JPanel {
         onMutation.run();
     }
     private final JLabel captionLabel = new JLabel();   // shows the caption under the plot (when set)
+    private final JLabel scopeLabel = new JLabel();
+    private boolean extractionFailed;
+
     private Long pinnedFrom, pinnedTo;     // non-null → pinned to this window; null → follows the filter
     private final JToggleButton pinButton = new JToggleButton("📌");
     private Runnable onPinChanged = () -> { };   // notifies GraphTabs to refresh the tab's pin indicator
@@ -160,7 +163,11 @@ public final class GraphPanel extends JPanel {
         captionLabel.setForeground(UiTheme.mutedForeground());
         captionLabel.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
         captionLabel.setVisible(false);
-        add(captionLabel, BorderLayout.SOUTH);
+        var footer = new JPanel(); footer.setLayout(new javax.swing.BoxLayout(footer, javax.swing.BoxLayout.Y_AXIS));
+        scopeLabel.setFont(scopeLabel.getFont().deriveFont(11f));
+        scopeLabel.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
+        footer.add(scopeLabel); footer.add(captionLabel);
+        add(footer, BorderLayout.SOUTH);
 
         buildSeriesPanel();
 
@@ -591,6 +598,7 @@ public final class GraphPanel extends JPanel {
         this.pinnedFrom = this.pinnedTo = null;   // a fresh log starts following the filter
         pinButton.setSelected(false);
         chart.clear();
+        updateScopeLabel();
         // seed the change-detection baseline so the first filter event is classified correctly
         this.lastDims = filter.dimensions() == null ? null : new java.util.HashSet<>(filter.dimensions());
         this.lastText = filter.text();
@@ -832,6 +840,33 @@ public final class GraphPanel extends JPanel {
     public Long pinnedFrom() { return pinnedFrom; }
     public Long pinnedTo() { return pinnedTo; }
 
+    /** Same scope on the chart and action socket. Pending work never claims its old points are current. */
+    public java.util.Map<String,Object> scopeFacts() {
+        var facts = new java.util.LinkedHashMap<String,Object>();
+        facts.put("name", graphName()); facts.put("pinned", isPinned());
+        if (pinnedFrom != null) facts.put("pinFrom", pinnedFrom);
+        if (pinnedTo != null) facts.put("pinTo", pinnedTo);
+        facts.put("groupMode", filter == null ? "DIMENSION" : filter.groupMode().name());
+        facts.put("dimensionFilter", filter == null || filter.dimensions() == null ? "all" : List.copyOf(filter.dimensions()));
+        facts.put("textFilter", filter == null ? "" : filter.text());
+        boolean pending = extracting || pendingReason != null || dirty;
+        facts.put("extraction", pending ? "pending" : extractionFailed ? "failed" : "complete");
+        if (!pending && !extractionFailed) facts.putAll(chart.windowScope());
+        return facts;
+    }
+
+    private void updateScopeLabel() {
+        String window = isPinned() ? "Pinned " + pinnedFrom + " → " + pinnedTo : "Follows time filter";
+        String events = filter == null || filter.dimensions() == null ? "all" : filter.dimensions().toString();
+        String text = filter == null || filter.text().isEmpty() ? "none" : filter.text();
+        String summary = window + " · " + (filter == null ? "DIMENSION" : filter.groupMode().name()) + ": " + events + " · text: " + text;
+        if (extracting || pendingReason != null || dirty) summary += " · extraction pending";
+        else if (extractionFailed) summary += " · extraction failed; plotted data may be old";
+        scopeLabel.setText(summary); scopeLabel.setToolTipText(summary);
+    }
+
+    String scopeText() { return scopeLabel.getText(); }
+
     /** Notify the owner (GraphTabs) when the pin state changes, so it can refresh the tab's 📌 indicator. */
     public void setOnPinChanged(Runnable r) { this.onPinChanged = r == null ? () -> { } : r; }
 
@@ -843,6 +878,7 @@ public final class GraphPanel extends JPanel {
         applyWindow();
         onPinChanged.run();
         mutated();
+        updateScopeLabel();
     }
 
     public void unpin() {
@@ -872,6 +908,7 @@ public final class GraphPanel extends JPanel {
         lastFrom = filter.fromMillis();
         lastTo = filter.toMillis();
         chart.setViewWindow(lastFrom, lastTo);
+        updateScopeLabel();
     }
 
     /**
@@ -898,6 +935,7 @@ public final class GraphPanel extends JPanel {
         extractionRequests++;
         pendingReason = merge(pendingReason, reason);
         extractDebounce.restart();
+        updateScopeLabel();
     }
 
     /** DEFINITION wins (D-F7): a definition change landing as DATA would hold a window that no longer means anything. */
@@ -916,6 +954,7 @@ public final class GraphPanel extends JPanel {
 
     private void finishExtraction() {
         extracting = false;
+        updateScopeLabel();
         if (dirty) { dirty = false; startExtraction(); }
     }
 
@@ -958,7 +997,8 @@ public final class GraphPanel extends JPanel {
             lastDims = dims == null ? null : new java.util.HashSet<>(dims);
             lastText = filter.text();
             lastGroupMode = filter.groupMode();
-            scheduleExtract(ExtractReason.DEFINITION);   // re-parse (off-EDT), coalesced
+            scheduleExtract(ExtractReason.DEFINITION);
+            updateScopeLabel();   // re-parse (off-EDT), coalesced
         } else if (!isPinned()) {
             // time-only change → just window the cached series (cheap); a PINNED graph ignores it and
             // holds its fixed window (evidence that survives the investigation moving on).
@@ -1005,6 +1045,8 @@ public final class GraphPanel extends JPanel {
         seriesChanged();   // keep the Series list in step with any add/remove of keys or formulas
         if (store == null || filter == null || (activeKeys.isEmpty() && activeExprs.isEmpty())) {
             chart.clear();
+            extractionFailed = false;
+            updateScopeLabel();
             return;
         }
         final LogStore s = store;
@@ -1018,6 +1060,8 @@ public final class GraphPanel extends JPanel {
                          List<telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries> markers,
                          List<String> markerNotes) { }
         extracting = true;
+        extractionFailed = false;
+        updateScopeLabel();
         try {
             extractionRunner.run(
                 () -> {
@@ -1080,13 +1124,15 @@ public final class GraphPanel extends JPanel {
                         finishExtraction();
                     }
                 },
-                err -> finishExtraction());   // best-effort as before — but the in-flight flag must clear
+                err -> { extractionFailed = true; finishExtraction(); });   // best-effort as before — but the in-flight flag must clear
         } catch (java.util.concurrent.RejectedExecutionException rejected) {
             // impl review F3: a SYNCHRONOUS throw from the runner (a rejected submission at shutdown) would
             // otherwise leave `extracting` set forever and every later request would only mark `dirty`.
             // Narrowed to the one real producer (pass-5 nit): a synchronous test runner whose LANDING throws
             // has already run finishExtraction() in its finally, and must not have `extracting` cleared again.
             extracting = false;
+            extractionFailed = true;
+            updateScopeLabel();
             throw rejected;
         }
     }

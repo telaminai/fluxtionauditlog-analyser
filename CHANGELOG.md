@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Saved chart pins now state their scope and explain windows outside the new log’s series; context, graph echoes and report captions carry filters and extraction status.
+
 - Hidden Project spotlight sections reveal before measurement; marker-only targets give an explicit unsupported-target refusal. Design-root refusals name the exact opt-in call, and PDF flag glyphs use readable text.
 
 - Formulas accept `true`/`false` literals and typed text equality/inequality, shared by charts, series queries, markers and report row highlights.

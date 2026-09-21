@@ -217,6 +217,15 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   **D18 result:** held. `ChartAxisWindowTest` passes for separate scales, empty sides, pin/filter,
   refresh, guides/markers and saved-definition restore. Removing the window partition fails the
   independent left-range assertion. D18 closes; other 41–43 requests remain open.
+  **D17 frozen prediction:** restoring a saved pin against disjoint new log times preserves the pin
+  but states why the plot is empty, with pin bounds and separate event/text filters visible below the
+  chart and in context. Pending extraction is distinguished from completed emptiness. Clearing the pin
+  restores data when filters allow it. A mutation removing the disjoint-window reason fails the test.
+  Constructed regression through actual saved-definition restore; counts before: analyser 5, upstream 8.
+  **D17 result:** held. `GraphWindowScopeTest` restores the saved definition against disjoint new
+  data, checks the separate filters, clearing the pin and pending/failed extraction. Removing the
+  disjoint-window check fails its named assertion. Scope appears below the chart, in context/echo
+  and PDF captions. D17 closes: analyser 4, upstream 8 remain open.
 - ◧ **Cold-start measurement proposal preserved/reviewed** — [instrument intake](../handoff/evidence/coldstart-proposal-2026-09-20/REVIEW.md)
   keeps all four operator/subject files verbatim and records independent scorer probes. Adopt pre-action
   attribution, imitation and pristine-baseline recording, but treat static hits as leads and journal fields

@@ -1,0 +1,12 @@
+{
+  "item": "D17",
+  "mutation": "disable disjoint window detection",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "restoredPinExplainsEmptyWindowAndFiltersWithoutChangingThePin",
+      "message": "disjoint saved pin must explain emptiness ==> expected: <window-outside-data> but was: <no-series-samples-in-window>"
+    }
+  ],
+  "restored": true
+}

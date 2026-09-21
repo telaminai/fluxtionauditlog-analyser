@@ -187,12 +187,14 @@ public final class ChartPanel extends JPanel {
     }
 
     public void setSeries(List<Series> s) {
+        dataRevision++;
         series.clear();
         series.addAll(s);
         resetView();
     }
 
     public void clear() {
+        dataRevision++;
         series.clear();
         vx0 = Double.NaN;
         repaint();
@@ -300,6 +302,35 @@ public final class ChartPanel extends JPanel {
      */
     public double[] viewX() {
         return Double.isNaN(vx0) ? null : new double[]{vx0, vx1};
+    }
+
+    private long dataRevision;
+    private long scopeRevision = -1;
+    private double scopeX0, scopeX1;
+    private java.util.Map<String,Object> cachedScope;
+
+    /** Facts about the last extracted series and actual display window; cached until either changes. */
+    public java.util.Map<String,Object> windowScope() {
+        if (cachedScope != null && scopeRevision == dataRevision
+                && Double.compare(scopeX0, vx0) == 0 && Double.compare(scopeX1, vx1) == 0) return cachedScope;
+        long finite = 0, visible = 0;
+        long lo = Long.MAX_VALUE, hi = Long.MIN_VALUE;
+        for (Series s : series) for (int i = 0; i < s.size(); i++) {
+            if (!Double.isFinite(s.y(i))) continue;
+            finite++; lo = Math.min(lo, s.x(i)); hi = Math.max(hi, s.x(i));
+            if (s.x(i) >= vx0 && s.x(i) <= vx1) visible++;
+        }
+        var out = new java.util.LinkedHashMap<String,Object>();
+        out.put("finiteSeriesPoints", finite); out.put("pointsInWindow", visible);
+        if (!Double.isNaN(vx0)) out.put("window", java.util.Map.of("from", vx0, "to", vx1));
+        if (finite > 0) out.put("dataExtent", java.util.Map.of("from", lo, "to", hi));
+        String reason = finite == 0 ? "no-finite-series-points"
+                : visible == 0 && (vx1 < lo || vx0 > hi) ? "window-outside-data"
+                : visible == 0 ? "no-series-samples-in-window" : "none";
+        out.put("emptyReason", reason);
+        scopeRevision = dataRevision; scopeX0 = vx0; scopeX1 = vx1;
+        cachedScope = java.util.Collections.unmodifiableMap(out);
+        return cachedScope;
     }
 
     /** The plotted series, for tests in this package — the cache every view operation reads. */
@@ -520,6 +551,15 @@ public final class ChartPanel extends JPanel {
             paintExplanation(g, dark);
             g.dispose();
             return;
+        }
+
+        String emptyReason = (String) windowScope().get("emptyReason");
+        if ("window-outside-data".equals(emptyReason)) {
+            g.setColor(text);
+            g.drawString("Window is outside the series data. Check the pin and filters below.", plotX + 8, plotY + 18);
+        } else if ("no-series-samples-in-window".equals(emptyReason)) {
+            g.setColor(text);
+            g.drawString("No series samples in this window; a connecting line may cross it.", plotX + 8, plotY + 18);
         }
 
         // subtle gridlines with evenly-spaced Y value labels

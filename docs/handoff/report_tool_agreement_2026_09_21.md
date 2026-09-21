@@ -275,3 +275,12 @@ and markers. Constructed regression, not participant replay. Moving a series to 
 the current window. [Mutation](evidence/tool-agreement-2026-09-21/d18-mutation.json) disables partitioning
 only in the window path: the left-axis numerical assertion fails. Counts **6 → 5 / 8**.
 Other 41–43 concerns remain open, including series lifecycle and target-name compatibility.
+
+## D17 — completed under Chart feedback 41–43
+
+Frozen prediction held. `GraphWindowScopeTest` restores an actual saved chart definition on a
+constructed disjoint log, retains the deliberate pin, explains emptiness, distinguishes filters,
+and checks pending/failed extraction without stale counts. Same-log and cleared-pin controls
+show data. The scope is visible below the plot, in `context.graphScopes`/graph echo and PDF captions.
+[Mutation](evidence/tool-agreement-2026-09-21/d17-mutation.json) removes only disjoint-window detection
+and fails `disjoint saved pin must explain emptiness`. Counts **5 → 4 / 8**.

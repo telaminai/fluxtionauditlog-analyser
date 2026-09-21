@@ -1336,7 +1336,7 @@ public final class MainFrame extends JFrame {
                     yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
                             null, null,
                             new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
-                                    "Trend · " + s.ref(), null, paintOf(panel)),
+                                    "Trend · " + s.ref(), panel.scopeText(), paintOf(panel)),
                             mk.table().rows().isEmpty() ? null : mk.table());
                 }
                 case TOPOLOGY ->
@@ -1522,8 +1522,8 @@ public final class MainFrame extends JFrame {
             }
             pictures.add(new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
                     "Trend · " + graphName,
-                    marker == null ? null
-                            : "The dashed rule marks record " + row + " — the cycle this finding is about.",
+                    panel.scopeText() + (marker == null ? ""
+                            : ". The dashed rule marks record " + row + " — the cycle this finding is about."),
                     plot));
         }
 
@@ -6092,7 +6092,10 @@ public final class MainFrame extends JFrame {
 
 
             List<String> graphs = graphTabs.graphNames();
-            if (!graphs.isEmpty()) out.put("graphs", graphs);
+            if (!graphs.isEmpty()) {
+                out.put("graphs", graphs);
+                out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
+            }
 
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
         }

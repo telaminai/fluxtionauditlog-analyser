@@ -215,3 +215,16 @@ using the standard PDF fonts.
 Windowing, pinning and saved-chart restore fit each vertical axis to its own series in the visible
 time range. A right-axis series never changes the left-axis scale; a side with no finite points uses
 a neutral 0–1 range. Guides and markers do not widen either scale.
+
+### When a saved chart is empty
+
+The line below each chart states its pinned bounds (or that it follows the time filter),
+the dimension grouping/selection, and the text filter. A saved pin is retained when the chart
+is restored on another log. If its window is outside the extracted series, the plot says so;
+an empty window is not evidence that the application produced no data. Clear the pin with the
+pin button or `graph {name: "…", from: null, to: null}`; dimension and text filters remain in force.
+
+`context.graphScopes` and the graph action’s `scope` echo expose the same bounds, filters,
+extraction state, finite series sample counts and empty reason. Pending or failed extraction
+does not report the previous sample counts as current. Counts are series samples, not records
+or markers. Report chart captions carry the scope so it survives PDF export.
