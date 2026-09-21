@@ -25,7 +25,7 @@ defects. **Nothing below is implemented.**
   four states; all fifteen existing fixtures unchanged in behaviour through both paths; **forward
   compatibility demonstrated against the released jar**, not a branch with the feature off._ Public site
   page, so it deploys (owner decision 4).
-- **[AF-3] ◧ — the analyser reports incompleteness** · _owner decision 1. Four states reported distinctly,
+- **[AF-3] ☑ — the analyser reports incompleteness** · _owner decision 1. Four states reported distinctly,
   the unknown one **not** rendered as complete; a mid-record stop still shows every complete record before
   it; the marker absent from table, `read`, report, coverage, series, record count, `context` and the time
   range._
@@ -35,9 +35,12 @@ defects. **Nothing below is implemented.**
   records a file holds. Two spec corrections found by building it: the marker is **flat scalars**, not a nested
   mapping, because `RecordParser` switches on top-level scalars and a nested payload would need new parser
   machinery for no compatibility gain; and the framer only withholds an unterminated tail in **follow** mode, so
-  an ordinary load needed an explicit callback rather than inheriting the behaviour. **Still open in AF-3:** the
-  `read` verb, reports, coverage and series have not been checked for marker leakage — the marker never enters
-  the index so they should be clean by construction, but D-E4 asks for the assertion, not the inference.
+  an ordinary load needed an explicit callback rather than inheriting the behaviour. **AF-3 closed:** `StreamEndMarkerNeverLeaksTest`
+  asserts D-E4 across read, summaries (what report tables reduce over), the timeline, coverage's inputs and
+  series. **All seven fail when the filter is removed**, which is the point — and the mutation earned its keep:
+  the first series assertion stayed GREEN under it, because a marker has no node logs and a value series can
+  only plot keys it finds. It guarded nothing and was replaced by a marker that carries the charted key, which
+  is the case where "clean by construction" stops being true.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository. `asCharSequence()` + `\n---\n` per
   record, the marker, config validation refusing unknown values by name. **Byte-identical to a known-good
   export** modulo the marker; per-node entry parity, not a record count._
