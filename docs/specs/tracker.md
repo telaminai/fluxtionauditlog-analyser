@@ -8,6 +8,25 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
+### Review response — frozen predictions before fixes
+
+Review `cac590a3` (F1–F7), feature reviewed at `fcaf14ad`.
+- **F1/F3 prediction:** ordinary heap, mapped and rolled opens will expose every record in a
+  separator-between-records export, including its final EOF record. EOF without a separator is
+  disclosed, never treated as proof of damage or completion. Explicit Follow starts a fresh live
+  read when the ordinary snapshot included an EOF record; only the live read withholds its tail.
+  A quiet poll and partial separator cannot publish it; its completed separator publishes it once.
+  Reinstating strict ordinary-open framing must fail the export regression. Latest end-marker
+  branch `02fa62b3` has already withdrawn STOPPED_MID_WRITE; integration must preserve UNKNOWN.
+- **F2 prediction:** incorporating main's skill bytes plus the Mongoose correction, then pinning
+  to a commit containing all three, passes canonical hash tests. Re-vendoring must use that same pin.
+- **F4 prediction:** corrected D12 cause and qualified, unreproduced D13 remain identical in the
+  canonical skill and runbook, and parity/hash checks pass. No endpoint retest is claimed.
+- **F5:** seek a CI display run with zero skips; local focus success alone does not close it.
+- **F6/F7:** add exact mutation file/method anchors. The original final report already states
+  49 headless skips in both its Full-gate correction and Final handoff; retain and link that evidence.
+
+
 **Implementation pass complete, review pending:** `feat/tool-agreement`, source head `7df316c8`.
 [Author report](../handoff/report_tool_agreement_2026_09_21.md) and
 [review brief](../handoff/brief_review_tool_agreement_2026_09_21.md). Analyser **13 → 1 open** (D20
