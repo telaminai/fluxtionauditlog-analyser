@@ -37,7 +37,7 @@
     "RE-PINNED 2026-09-17 (M64.8 + M64.9, one edit): THE SELECTION GREW BY ONE. `common` gains point-at-the-fault - the shape of a fault-finding runbook that ends by spotlighting the evidence it matched - so every template now selects it; additive, same contract, and a generator that copies `common` needs no change. guided-start changed by one line: the spotlight target that lights the Topology tab's verdict line is `topology:verdict` (it was `coverage`, which misnamed what it lights). Bundles generated from an earlier revision keep their own pinned bytes; the playground must re-vendor to pick these up.",
     "RE-PINNED 2026-09-21: point-at-the-fault gains a write-up section - the symptom evidenced by the cited record, the cause by the fix diff and before/after copies of the changed sources, source-only claims labelled, a pack that stands alone - after blind second readers of A3 reports could verify the symptom but not a code-level cause. Same contract, same selection; only the revision and this one hash moved. The playground must re-vendor to pick it up. (The revision is the description-length fix, one commit after the section itself.)",
     "RE-PINNED 2026-09-21 (second time): point-at-the-fault is routed to by the bundle and says what a fixer must keep (evidence first, no regeneration for a body change, no data edits, read an edge-triggered flag); add-a-node asks authors to log the state behind a decision. Tested on Haiku A3 before release (3 of 3 loaded the skill, kept evidence, fixed byte-identically). Same contract, same selection; the revision and two hashes moved. The playground must re-vendor.",
-    "Integration response: both main skills retained; Mongoose guidance corrected. Re-pin after the combined bytes are committed, before publication."
+    "RE-PINNED after tool-agreement review: combined main point-at-the-fault/add-a-node and corrected Mongoose guidance; this revision contains every selected byte."
   ],
   "common": [
     "common/load-audit-log/SKILL.md",
@@ -70,5 +70,14 @@
       ]
     }
   },
-  "status": "DRAFT"
+  "revision": "41b7765082f413f0d3051285cae5578f6a8d633d",
+  "sha256": {
+    "common/load-audit-log/SKILL.md": "1fa42762aed0cb8f0f004e42cccdfb4e7111388a4d6e55b3d3a43369dab14d59",
+    "common/guided-start/SKILL.md": "fdead498fa56b4df27d360f070de5357f833c16dd9cb8e0eef4ad3a5690c2d47",
+    "common/point-at-the-fault/SKILL.md": "5c02e6d1d9a205fb5ab43613248a9c7bdbb924cb4175826582c865af6067f2f5",
+    "mongoose/run-mongoose-server/SKILL.md": "a6bb125c749002c3f3c91e44d4deb4e17a53b691f2199cc946f6d1674ae146c1",
+    "embedded/run-embedded/SKILL.md": "d98ddd4dc536feb2772150a4855fd13c4abb02f73927cd39c83742978c7b7014",
+    "spring/add-a-node/SKILL.md": "7e29fea52b9a81a9b45025b4c7ae7e3680c21ae2063c82a2490620ff7d6fa8e6",
+    "common/replay-a-run/SKILL.md": "548646b354f2c76ae41bdb3c737faa131032341a19a9a7872ec591421a1091d4"
+  }
 }
