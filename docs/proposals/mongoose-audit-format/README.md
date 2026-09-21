@@ -1,14 +1,15 @@
 # Reading Mongoose audit output without an export step
 
-_Status: **PROPOSAL, 2026-09-21. Not implemented, not reviewed, not owner-approved.** One required slice —
-Mongoose writes a directly readable **text** audit file — plus a dependent socket fix and an optional
-renderer move. Filed in the holding pen because the work lands in Mongoose, the playground,
-mongoose-plugins and this repository. Companion:
+_Status: **PROPOSAL, 2026-09-21. Not implemented, not reviewed, not owner-approved.** **Two releases.** Release 1 is text —
+Mongoose writes a directly readable audit file, plus the dependent socket fix — and **touches no fluxtion
+code**: Mongoose, the playground, mongoose-plugins and this repository. Release 2 batches the binary
+stale-logger fix and the renderer move into one `fluxtion-runtime` release, once text is stable. Filed in
+the holding pen because most of the work lands outside this repository. Companion:
 [trust structure](../../specs/spec-trust-structure.md) (D-T8, D-T9),
 [tool agreement](../../specs/spec-tool-agreement.md),
 [source adapters](../../specs/spec-source-adapters.md)._
 
-## Revision history — this document has been wrong three times
+## Revision history — six revisions, three of them corrections of error
 
 Kept in full, because the corrections are the most useful thing in it and two of them were mine.
 
@@ -19,6 +20,7 @@ Kept in full, because the corrections are the most useful thing in it and two of
 | 3 | The renderer move and the socket folded in as slices. | owner |
 | 4 | Claimed the format is a deployment property, settable at runtime. **Wrong in the half that mattered.** | author, from a bad search |
 | **5** | **Ordering reversed back to text first. The runtime swap does not yield a working binary processor. The repository list was wrong. The socket hypothesis is refuted and replaced by an observed root cause.** | independent session, by running a live server |
+| **6** | **Sequenced into two releases (owner).** Text ships now touching no fluxtion code; the runtime fix and the renderer move batch into one later release. The renderer's demotion is partly reversed: it is a poor standalone release and a cheap passenger on one already happening. | owner |
 
 **Revision 4's error, stated plainly.** It said the record format is a deployment property because
 `EventLogControlEvent` carries a `LogRecord` and `EventLogManager` swaps it live. The event does carry it
@@ -110,9 +112,55 @@ Revision 4 claimed two repositories and nothing elsewhere. That was wrong in thr
 | **fluxtion** *(public runtime)* | None for text. **For binary**, the stale-logger fix above |
 | **fluxtion-compiler** *(closed)* | None for text. **For binary via a build-time choice**, a format on `FluxtionSpringConfig` |
 
+## Delivery — two releases, in this order *(owner sequencing, revision 6)*
+
+The slices do not ship one at a time. They fall into two groups divided by whether they need a
+`fluxtion-runtime` release, and that division is the whole plan.
+
+### Release 1 — text, now. **No fluxtion code is touched.**
+
+Slices 1 and 2. Four repositories: **mongoose**, **fluxtion-web**, **mongoose-plugins**, and **this one**.
+
+It touches no fluxtion code because it never changes the record type: only the sink is swapped, which is
+the half that works, and the text is `asCharSequence()`, which already exists. The stale-logger defect is
+never reached, so the runtime needs nothing and the closed compiler needs nothing.
+
+**One scoping detail.** The runtime ships two `LogRecordListener` implementations — `JULLogRecordListener`
+and `BinaryLogWriter` — and **no text file writer**. So Mongoose writes a small one: call
+`asCharSequence()`, terminate the record, write to the stream. **It belongs in Mongoose, not the runtime**,
+which owns the file lifecycle and the configuration anyway. Putting it in the runtime would pull a release
+into release 1 for no benefit, which is the thing this sequencing exists to avoid.
+
+### Release 2 — binary and the renderer, together, once text is stable.
+
+Slices 3 and 4, in **one** `fluxtion-runtime` release.
+
+**They are logically coupled, not merely convenient to batch.** The renderer only matters once binary
+exists, and binary only works once the stale-logger fix ships. Releasing them separately means two slow
+releases for work that is useless apart.
+
+**This partly reverses revision 4's demotion of the renderer, and the reasoning is worth keeping.** The
+objection was that it ties a specification to a deliberately slow release cadence. That is true of the
+renderer **as a standalone release** and false of it **as a passenger on a release already happening**.
+Once the logger fix requires a runtime release regardless, the renderer costs almost nothing more.
+
+**Two things to settle before release 2, because it is expensive and a second one will not come soon.**
+
+1. **Check the stale-logger fix against log-level changes, not only format swaps.** Both go through
+   `updateLogRecord`. If a traced-only node keeps a stale logger on a level change as well, that is a live
+   defect today, independent of this proposal, and it should ride the same release. **Unverified** — nobody
+   has tested a level change through that path.
+2. **Price the closed-compiler route even if the runtime fix is taken.** A build-time format on
+   `FluxtionSpringConfig` means a processor *starts* binary and never swaps, avoiding the swap path rather
+   than repairing it. That may be more robust, and it needs no public release.
+
 ## The slices
 
-### Slice 1 — Mongoose writes a text audit file *(required)*
+### Slice 1 — Mongoose writes a text audit file *(release 1, required)*
+
+**Slice 3 is binary**, described under *The format is a deployment property* above: it needs the
+stale-logger fix or a build-time choice, and rides release 2 with slice 4.
+
 
 Sink swap only, which is the half that works. Requirements:
 
@@ -130,7 +178,7 @@ Sink swap only, which is the half that works. Requirements:
 processed; a clean end and a kill mid-run each produce a file the analyser reads correctly, the second
 reporting incompleteness.
 
-### Slice 2 — fix `/ws/audit-tail/{processor}` *(dependent on slice 1, not independent)*
+### Slice 2 — fix `/ws/audit-tail/{processor}` *(release 1; dependent on slice 1, not independent)*
 
 Revision 3 hypothesised a missing producer, from a checkout predating the route. **Refuted.** In the tested
 build, svc-admin-web 1.0.43, the route exists with producer `WebAdminService$AuditTailState`: its own queue
@@ -151,7 +199,7 @@ listener. A file backend removes its source, so the fix and the backend change m
 **Acceptance.** A client connected before the run receives records appended during it; one connected
 mid-run receives subsequent records; **the count delivered equals the count exported for the same window.**
 
-### Slice 3 — move the record renderer into the runtime *(optional, and the case is stronger than revision 4 allowed)*
+### Slice 4 — move the record renderer into the runtime *(rides release 2)*
 
 Revision 4 demoted this by arguing a live view can simply choose text. That misses three cases:
 
@@ -160,8 +208,9 @@ Revision 4 demoted this by arguing a live view can simply choose text. That miss
 - **A binary production deployment having an incident is exactly when a live view is wanted.**
 - Chronicle plus binary crashes, so that combination is not an alternative.
 
-Still optional, and still weighed against the public runtime's deliberately slow release cadence. If taken,
-the shape is settled: move the analyser's private `RecordTextRenderer` beside `BinaryLogReader` rather than
+**Revision 6 changes its standing.** It remains unnecessary for the friction fix, but the cadence
+objection no longer applies once release 2 is happening for the logger fix. It rides that release. The
+shape is settled: move the analyser's private `RecordTextRenderer` beside `BinaryLogReader` rather than
 writing a second one.
 
 ## Implementation risk
