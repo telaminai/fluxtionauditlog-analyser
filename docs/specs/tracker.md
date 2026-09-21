@@ -27,6 +27,16 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
   standalone Spring, the only template with a verified local authoring route._
 - **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _none exists yet._
+- **[BETA-8] ◧ — the journey on Haiku (2026-09-21)** · _A2 and A3 hold on a model two generations smaller._
+  A2 ×3: full success 3/3 (92–123 s; two runs edited shipped data, one undisclosed). A3 without routing: fix
+  3/3, but 0/6 runs (with or without the `Skill` tool) loaded `point-at-the-fault`, 0/3 kept deliberate
+  before-fix evidence, and needless regenerations spent the paid generator. With the bundle's routing line
+  plus the fixer block in the skill (v2, re-pinned and re-vendored): 3/3 loaded the skill, kept evidence,
+  fixed byte-identically, no regeneration; 2/3 still made an unrequested watcher change, which the next
+  wording should target. A shorter v3 that dropped the "read an edge-triggered flag" rule regressed to 1/3
+  correct and was not released. **Instrument gap:** the two-half reader question is scoped to the report's
+  stated fault, so a confident report of the wrong fault passed it — A3 scoring must also check the fix
+  removes the planted defect. n=3 per arm. Evidence: `.local-evidence/coldstart-v2-2026-09-20/haiku-series-2026-09-21-SUMMARY.md`.
 - **[BETA-7] ☑ — the A3 report instrument asks two halves, and the client skill teaches the shape** · _a blind second
   reader agrees the cited record proves the SYMPTOM and the pack SUPPORTS the cause._ 2026-09-21: two readers answered
   *partly* to the single question (a record cannot prove a claim about code); with `point-at-the-fault`'s new

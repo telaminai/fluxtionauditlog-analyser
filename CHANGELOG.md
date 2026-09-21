@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Documentation
+- `point-at-the-fault` now opens with what to do when fixing a fault — keep the broken run's export,
+  rebuild rather than regenerate for a body change, never edit shipped data, and no running analyser is
+  needed — and `add-a-node` asks authors to log the state behind a decision. Skills index re-pinned.
 - The `point-at-the-fault` skill now says how to write up a fault: the symptom from the cited record, the
   cause from the fix diff plus before/after copies of the changed sources, so a reader without the session can
   check both. Skills index `m19-skills/2` re-pinned; the playground must re-vendor.
