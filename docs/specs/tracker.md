@@ -17,8 +17,8 @@ incorrectly are baselined in the spec (D1–D13). Direction check: re-count that
   negative control still fails._
 - **[TA-2] ☐ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
   and node counts reported; source copy ranks first against a round-3 log; works with no log open._
-- **[TA-3] ☐ — `flag {kind: confirmation}` with neutral labels** · _existing flags unchanged; Observation /
-  Assessment in table, callout, report and PDF; kind survives restore._
+- **[TA-3] ☐ — `flag {kind: confirmation}` with neutral labels (closes feedback 25)** · _existing flags
+  unchanged; Observation / Assessment in table, callout, report and PDF; kind survives restore._
 - **[TA-4] ☐ — window edges never silently change a rolling answer** · _A8 reproduction returns the flip, or
   an explicit edge note._
 - **[TA-5] ☐ — live Mongoose evidence without reverse-engineering** · _audit-evidence section in the vendored
@@ -28,6 +28,13 @@ incorrectly are baselined in the spec (D1–D13). Direction check: re-count that
   hint; any quiet-period acceptance is marked._
 - **[TA-7] ☐ — assistant can start Follow** · _echo and toolbar agree._
 - **[TA-8] ☐ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
+- **[TA-9] ☐ — draw every route an event takes through a supertype (feedback 34, previously untracked)** ·
+  _`desk-quote-supertype.graphml` + a MarketPrice record: `acmeQuoteFeed` and downstream shown on the route,
+  not "not on this path"; single-match records unchanged._
+- **[TA-B] ☐ — category B of the 2026-09-19/20 feedback counted in the baseline (D14–D20)** · _built under their
+  existing items below ("evidence correctness first", "Feedback 38/39 and recurring 6", "Chart feedback
+  41–43", "Topology feedback 37"); proposed: raise "evidence correctness first" from P1 to P0 alongside
+  TA-1–TA-4, since it is the same slice B gate._
 - **[TA-U] ☐ — upstream asks recorded with owners** · _D3, D7–D13 and the template items carried into
   `docs/proposals/upstream-asks.md`; stub-shape fix sequenced before "always use the generator"._
 

@@ -1,7 +1,8 @@
 # Tool agreement — the tools that describe an application must not contradict it, or each other
 
-**Status:** proposed 2026-09-21 · **Builds:** the analyser work items TA-1…TA-8 · **Also records:** the
-upstream asks the same evidence raised, so they are owned rather than lost.
+**Status:** proposed 2026-09-21 · **Builds:** the analyser work items TA-1…TA-9 · **Counts:** the open
+category B items of the 2026-09-19/20 feedback (D14–D20), which are built under their existing tracker
+items · **Also records:** the upstream asks the same evidence raised, so they are owned rather than lost.
 
 ## Why this spec exists
 
@@ -41,6 +42,8 @@ the source.
 | [`fixtures/MarketProcessor.src-round3.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml) | `d56fc497…e324a03d8` | the generated graph for the running build: 23 nodes, `sourceFingerprint` `f6ae6f84…` |
 | [`fixtures/MarketProcessor.target-stale.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.target-stale.graphml) | `b057121f…782b77f766` | the copy in `target/classes` and the jar: 20 nodes, `sourceFingerprint` `4ecd6134…`, missing `MarketCloseEvent`, `eodReport`, `eodReportPublisher` |
 
+| [`fixtures/desk-quote-supertype.graphml`](../handoff/evidence/unguided-session-2026-09-21/fixtures/desk-quote-supertype.graphml) | `2b5b9ecf…78353b6b3781c` | TA-9's fixture: the 2026-09-20 principal-desk baseline sealed in the path-audit experiment. `MarketPrice → priceBook` and `Quote → acmeQuoteFeed` are separate event nodes; at runtime one `MarketPrice` (which `implements com.acmerisk.api.Quote`) dispatches to both |
+
 Citations below are **report § / appendix row**. Every analyser item's acceptance uses these fixtures;
 no new LLM session is needed to build or verify any of it.
 
@@ -60,7 +63,7 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D7 | `validate`: "XML: valid; 5 nodes, 4 edges" | all three declared classes were missing | starter | §3.6 G1–G2 |
 | D8 | the build accepts the round-1 `RiskCheck` | the reconciler refuses it three ways, for rules the contract does not state | starter / contract | §3.6 |
 | D9 | the authoring contract: the starter generates stubs | nothing in the project can run it | starter | App. B |
-| D10 | generated stubs are the recommended shape | they lack `EventLogNode`, so they cannot audit — the template's own convention | starter | §3.6 G4 |
+| D10 | generated stubs are the recommended shape | they lack `EventLogNode`, so they cannot audit — the template's own convention. **This is feedback #6**, tracked ◧ under "Feedback 38/39 and recurring 6", and found again here | starter | §3.6 G4 |
 | D11 | `SinkBinding.valueType = java.lang.String` | the generated processor declares `java.lang.Object` | compiler | §5.8 |
 | D12 | `/ws/audit-tail` accepts connections | it delivers no records (starts at `toEnd()`) | Mongoose plugins 1.0.43 | §3.2, §5.2 |
 | D13 | `/api/audit/files` reports record counts and times | they are frozen at startup while the queue grows | Mongoose plugins 1.0.43 | §5.3 |
@@ -139,6 +142,9 @@ callout, the report, and the PDF.
 **Acceptance.** Existing reports and flags render unchanged. A confirmation flag renders the neutral labels
 on all four surfaces. The kind survives save and restore.
 
+**Closes feedback #25** (2026-09-20: "every finding is headed WHAT IS WRONG; validation needs an evidence
+tone"), which had no tracker entry until now.
+
 ### TA-4 · P0 · Window edges must not change the answer silently
 
 **Evidence.** `series {expr: "delta(…)", filter: {from, to}}` omitted the flip at record 27. The first
@@ -194,6 +200,25 @@ still stop it.
 
 **Acceptance.** The agent path starts follow on a growing fixture file. The echo and the toolbar agree.
 
+### TA-9 · P1 · Draw the route that actually runs when dispatch goes through a supertype
+
+**Evidence.** Feedback #34 (2026-09-20) reported that supertype dispatch is not drawn. It had no tracker
+entry. The path-audit experiment the same day measured its consequence. `MarketPrice` implements the vendor's
+`com.acmerisk.api.Quote`, so one `MarketPrice` event dispatches down **both** `MarketPrice → priceBook` and
+`Quote → acmeQuoteFeed`. The graph shows them as unrelated event types. That polymorphism is **how a vendor
+component is integrated**, so the missing route is the integration itself. Anything keyed on the event's own
+class sees half of what runs; a per-event-type path check built on it false-positived on legitimate vendor
+dispatch until it walked the class hierarchy.
+
+**Required.** When a logged event's class, superclasses or interfaces match more than one graph event node,
+the topology for that record shows every route the event can take. Coverage and "not on this path" shading
+use the same union. Where the class hierarchy is unavailable, say so rather than showing one route as the
+whole path.
+
+**Acceptance.** Using `fixtures/desk-quote-supertype.graphml` and a `MarketPrice` record, `acmeQuoteFeed` and
+its downstream nodes are shown as on the route, not shaded "not on this path". A record whose class matches
+one event node is unchanged.
+
 ### TA-8 · P2 · Ergonomics raised by the same session
 
 | Item | Required | Route |
@@ -208,6 +233,31 @@ still stop it.
 
 ---
 
+## Carried forward — the same failure, reported on 2026-09-19/20
+
+Category B of the September authoring feedback was titled *"the canvas says something untrue — the LLM then
+repeats it with confidence."* This spec covers the same failure, found again by an independent session. Two
+lists would drift, so the open category B items are **counted in this baseline** and **built under their
+existing tracker items**. Their acceptance lives there; this table does not duplicate it.
+
+| # | What a tool says | Feedback | Where it is built | Status 2026-09-21 |
+|---|---|---|---|---|
+| D14 | a graph, log or receipt is current when it is stale; a combined action echoes pre-load state | #1, #9, #20 | "Staged feedback — evidence correctness first" | ☐ |
+| D15 | spotlight `ok` when lit in the wrong place, with negative bounds, or with `add:true` dropping targets | #2–4, #39 | same item; #39 under "Feedback 38/39 and recurring 6" | ☐ / ◧ |
+| D16 | marker counts that do not match the data: carried state evaluated as if it were an event | #12, #19 | "Staged feedback — evidence correctness first" | ☐ |
+| D17 | an empty plot, with no explanation, after a pinned window survives a log change | #41 | "Chart feedback 41–43 intake" | ☐ |
+| D18 | left-axis values contaminated by right-axis values under windowing | #42 | "Chart feedback 41–43 intake" | ☐ |
+| D19 | `showAll: true` reports the full graph while a focus is still active | #37 | "Topology feedback 37" | ☐ |
+| D20 | the graph shows one route for an event that dispatches down two | #34 | **TA-9** (previously untracked) | ☐ |
+
+**Priority change proposed:** "Staged feedback — evidence correctness first" is filed as P1. It is the same
+launch gate as TA-1 to TA-4 (slice B, truthful echoes), so it should be **P0 alongside them**.
+
+Not carried: #29 and #30 (dependency integrity) were deliberately excluded by the 2026-09-21 release
+decision. They remain slice A and are not a truthful-echo item.
+
+---
+
 ## Not the analyser's to build — recorded so they are owned
 
 Carry these into [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.md) with an owner each.
@@ -219,7 +269,9 @@ Carry these into [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.
 - **Reconciler versus build (D8):** document the three conventions — reference field named after its
   bean, sink as a field rather than a bean, no literal constructor arguments — in the authoring contract,
   or make the build enforce them. Today a project can be valid to the build and permanently outside what
-  the authoring tool will touch.
+  the authoring tool will touch. Add feedback **#23** (2026-09-20, untracked): `parentUpdateCallback` is
+  documented without a type, and the error does not say what is expected. Same failure: the rule exists
+  in the tool but not in the contract.
 - **Stub generation (D9, D10):** publish a released `fluxtion-starter-core` matching the pinned
   coordinate, ship a project script (`./author.sh validate|regenerate|link`), and make generated stubs
   match the template (`EventLogNode`, comment-contract comments, imports, formatting). D10 was filed on
