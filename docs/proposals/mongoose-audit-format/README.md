@@ -7,9 +7,16 @@ after repeated friction reading Mongoose audit logs. Companion:
 [tool agreement](../../specs/spec-tool-agreement.md),
 [source adapters](../../specs/spec-source-adapters.md)._
 
-_**Revision, 2026-09-21.** An independent session tested the one claim in the first draft that could be
+_**Revision 1, 2026-09-21.** An independent session tested the one claim in the first draft that could be
 tested, and three premises were wrong or incomplete. Their corrections are folded in below and marked
-**OBSERVED**. The recommendation is unchanged; one of its stated reasons was false and has been removed._
+**OBSERVED**. One stated reason was false and has been removed._
+
+_**Revision 2, 2026-09-21 — the ordering is reversed: binary first, then text.** The owner asked where a
+shared module would live and pointed out that the analyser's text parser is lenient. Both questions have
+answers that change the plan. There is no new module: `fluxtion-runtime` already holds the writer, the
+reader and the round-trip tests, and both consumers already depend on it. And leniency makes text the
+riskier format to introduce first, not the safer one. See **Where the code lives** and **Why binary goes
+first**._
 
 ## The friction, stated precisely
 
@@ -54,6 +61,94 @@ option B "reuses a config field that exists and currently has one legal value". 
 from treating a javadoc as a statement about behaviour. It makes option B slightly larger and adds a
 requirement it did not have.
 
+## Where the code lives — no new module is needed
+
+Both repositories already depend on **`fluxtion-runtime`**, and everything required is already inside it.
+Verified in both POMs: the analyser declares it (it arrived with the session processor, bringing agrona
+transitively) and Mongoose declares it.
+
+| Piece | Where it already is |
+|---|---|
+| The text form | `LogRecord.asCharSequence()` |
+| The binary writer, already a `LogRecordListener` | `audit/BinaryLogWriter` |
+| The binary reader and decoder | `audit/BinaryLogReader`, `audit/BinaryRecordDecoder` |
+| Round-trip and text-versus-binary tests | runtime `BinaryLogFileRoundTripTest`, `BinaryRecordRoundTripTest`, `BinaryVersusTextRecordTest` |
+
+So writer and reader are a matched pair in one module, round-trip tested there, with both consumers
+downstream. No new artifact, no new coordinate, no version coupling to negotiate. The analyser already
+made the corresponding call deliberately: it first shipped a second decoder written from the
+specification and the owner reversed it, on the reasoning that *"two implementations only prove a format
+when something forces them to agree"* — nothing did, because both were written from the same reading of
+the same document. **One tested implementation, in the shared module, is the standing decision.** Any new
+code here follows it.
+
+## Why binary goes first — the leniency argument
+
+The first draft recommended text first, because it needs no decoder and is easy to check by eye. That
+reason survives and is now outweighed.
+
+**The analyser's text parser is deliberately lenient.** Its record parser ignores an unknown top-level
+scalar and keeps it in `rawText`. That is correct for a reader meeting other people's files. It is
+dangerous for accepting a writer we control, because a text writer emitting something subtly
+non-conformant produces a file that opens, parses and displays, with fields quietly missing and no error
+anywhere. That is the exact failure shape D-T8 and D-T9 exist to prevent.
+
+**The conformance suite does not close that gap.** Read its own header: each fixture runs twice, through
+the built-in text path and through the SPI path, and the two must agree record for record. It is a
+**reader** conformance suite. Nothing in it asserts that a given writer emits conformant text, so a new
+text writer would have no gate, and the lenient reader would hide its mistakes.
+
+**Binary has the opposite property, and it is already shipped.** Frames are length-prefixed with an
+interned dictionary, so damage is structural rather than plausible. The analyser's binary reader already
+reports, as source diagnostics, that a tail did not form a whole record — *"a process that stopped
+mid-write, or a damaged tail. Every record before them is here; the one they belong to is not"* — plus
+dictionary redefinition and unresolved ids, the latter shown as *"unknown, not empty"*. **Open question 2
+is therefore already answered for binary, in shipped code**, and unanswered for text.
+
+**And binary needs less new code.** `BinaryLogWriter` already *is* a `LogRecordListener`. Text would need
+a new adapter class to call `asCharSequence()` and write it.
+
+## What binary actually costs, per repository
+
+| Repository | Change needed |
+|---|---|
+| **fluxtion-runtime** | **None.** Writer, reader, decoder and round-trip tests all exist. |
+| **Analyser** | **None.** It already reads the binary format in core, with filters, series, coverage and reports working unchanged. |
+| **Mongoose** | Select `BinaryLogWriter` as the live listener instead of the capture service's no-op, own the output stream's lifecycle, and validate `backend`/`format` and refuse unknown values by name. |
+| **Generator / templates** | The processor must be **built** to emit binary records. See the constraint below. |
+
+**The constraint, and it is the one real obstacle.** `BinaryLogWriter.processLogRecord` throws
+`IllegalArgumentException` unless the record is a `BinaryLogRecord`, and the record type is an
+`EventLogManager` **build input**: `binaryRecord` is applied at `init()`, set by
+`EventProcessorConfig.addLowLatencyEventLog(level, BINARY)`. So selecting binary is not purely a
+server-side configuration change — a hosted AOT processor has to have been generated with it. Checked:
+the shipped bundle template emits no such call, so it produces text records today.
+
+**A documentation discrepancy worth reporting upstream, and the same class as the `backend` one.**
+`EventLogManager` states that *"the runtime swap through `EventLogControlEvent` still works and is still
+the way to change format on a running processor"*. `EventLogControlEvent` carries no format field that I
+could find. Either the mechanism is elsewhere or the comment is stale. **Unverified** — worth resolving
+before anyone plans on switching a running processor's format, because the answer decides whether this is
+a build-time choice only.
+
+## On exporting text from binary — the web-admin question
+
+The owner asked whether the Mongoose web admin could simply render text from the binary writer. The
+capability exists and is proven, but not where it is callable.
+
+`asCharSequence()` is on `LogRecord`, not on the writer. The binary-to-text conversion lives in the
+analyser as `RecordTextRenderer`, a **private** class inside `BinaryAuditReader`, implementing the
+runtime's `BinaryLogReader.Visitor`. It works: it is how the analyser turns a binary file into the record
+text the rest of its pipeline consumes.
+
+So the shape is right and the placement is wrong for reuse. Under the one-implementation rule above, the
+answer is **not** for the web admin to write a second renderer. It is to **move the renderer into the
+runtime beside `BinaryLogReader`**, where both consumers can call it. Then the server stores binary and
+can still serve text on request, and the analyser loses nothing.
+
+That is a runtime change rather than a web-admin change, and it should be proposed as its own slice
+rather than folded into this one.
+
 ## The options
 
 ### Option A — a Chronicle reader plugin for the analyser
@@ -80,10 +175,11 @@ directly. Per Q5 below, the encoding is a **format** field and `backend` keeps m
 mechanism:
 
 - `backend: chronicle` — unchanged default, unchanged behaviour.
-- `backend: file`, `format: text` — the YAML the analyser has always read. Maximally debuggable,
-  greppable, diffable, and the format most people already have fixtures in.
-- `backend: file`, `format: binary` — a `BinaryLogWriter` onto a file. The analyser reads it in core
-  today. Compact, with a normative specification and a conformance suite already in place.
+- `backend: file`, `format: binary` — **ship this first.** `BinaryLogWriter` is already the listener
+  interface, the analyser reads it in core today, damage is structural rather than silent, and the
+  truncation diagnostics are already written.
+- `backend: file`, `format: text` — second, and gated on a writer conformance check rather than on
+  reading the output. Debuggable, greppable, diffable, and the format most fixtures are already in.
 
 **Requirements, three of which come from the measured findings.**
 
@@ -124,9 +220,17 @@ fixture and runbook keeps paying it. It is the option that looks cheapest today 
 
 ## Recommendation
 
-**Option B, text first, binary immediately after.** It is the smallest change that removes the friction, it
-needs no new dependency on either side, and both halves already exist. Ship text first because it needs no
-decoder at all and is the easiest thing to verify by eye.
+**Option B, binary first, text second.** It is the smallest change that removes the friction, it needs no
+new dependency on either side, and both halves already exist in the shared runtime.
+
+**The ordering reversed in revision 2, and the reason is worth keeping.** The first draft chose text first
+because it needs no decoder and reads by eye. Under a lenient parser that is a liability rather than a
+virtue: a non-conformant text file opens and displays with fields quietly missing, and no gate exists that
+would catch it. Binary needs less new code, fails structurally instead of silently, and already reports a
+mid-write stop honestly. Readability helps one person debugging once; leniency hurts every user silently.
+
+**Text remains worth shipping**, second, with its acceptance a round-trip against the conformance fixtures
+rather than an inspection of the output.
 
 **Option A is worth building later, as a plugin, and for a different reason than convenience.** Reading an
 existing queue in place is a capability option B cannot provide: a captured queue from a server that has
@@ -152,8 +256,10 @@ exists and not that it parses. A file that opens cleanly is the exact shape this
 1. **Rotation.** *Proposed: none.* The local-development file is bounded by the run. That avoids colliding
    with the analyser's rolled-set ordering rules, which would otherwise read a rolled file as an ordering
    fault. Revisit only if the backend is ever intended for production.
-2. **Truncation.** *Proposed: per requirements 2 and 3 above* — terminate per record, explicit end marker,
-   and the analyser carries a fixture for each case: a clean end, and a process killed mid-run.
+2. **Truncation.** *Answered for binary, already shipped:* the reader reports an unreadable tail as a
+   source diagnostic naming a stop mid-write, and shows unresolved names as unknown rather than empty.
+   *Proposed for text, per requirements 2 and 3 above* — terminate per record, explicit end marker. Either
+   way the analyser carries a fixture for each case: a clean end, and a process killed mid-run.
 3. **Hot-path cost.** *Open.* Nothing has been measured. It should be measured rather than assumed, and the
    configuration documentation should say which backend is for which purpose.
 4. **The existing export.** *Proposed: keep it, for Chronicle only.* It should not become a second route to
@@ -179,8 +285,11 @@ and under this project's own adoption threshold a single observation is a hypoth
 
 **Read in source:** the Mongoose capture service's write path and its no-op listener, the boot and
 configurator listener wiring, the audit capture config and its `backend` field with its call sites; the
-runtime's binary writer, reader, record and decoder class surfaces; the analyser's reader SPI, its two
-shipped readers and their imports, and the conformance tests.
+runtime's binary writer, reader, record and decoder class surfaces, `EventLogManager`'s `binaryRecord`
+build input and `EventLogControlEvent`'s fields; both POMs' `fluxtion-runtime` dependencies; the
+analyser's reader SPI, its two shipped readers and their imports, its record parser's leniency branch,
+its binary reader's source diagnostics and private text renderer, and the conformance suite's own
+statement of what it covers.
 
 **Run:** the text-backend test described above, by an independent session, with sealed predictions.
 Its three confirmations were re-verified here against source and against the raw evidence files rather
@@ -188,4 +297,8 @@ than accepted from the report: `getBackend()` has no call sites, `ws-tail.log` r
 `export.yaml` terminates mid-record with no trailing byte.
 
 **Not run:** nothing was benchmarked. Chronicle's own API was not read in detail, and no file-backend
-implementation exists to measure. The hot-path cost in Q3 is unmeasured and is marked as such.
+implementation exists to measure. The hot-path cost in Q3 is unmeasured and is marked as such. No binary
+audit file was produced from a Mongoose server, because no template emits binary records today; the
+binary claims here rest on the runtime's own round-trip tests and the analyser's shipped reader, not on
+an end-to-end run. **One question is explicitly unresolved:** whether a running processor's record format
+can be switched at all, where `EventLogManager`'s comment and `EventLogControlEvent`'s fields disagree.
