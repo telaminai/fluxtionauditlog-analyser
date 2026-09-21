@@ -5,12 +5,11 @@ import java.util.Optional;
 /**
  * The stream-end marker as it appears in a text container — {@code spec-audit-stream-end.md} D-E1.
  *
- * <p>Two flat scalars on an ordinary {@code eventLogRecord}:
+ * <p>Two flat scalars on an otherwise empty {@code eventLogRecord}:
  *
  * <pre>
  * ---
  * eventLogRecord:
- *   logTime: 1789993421904
  *   streamEnd: normal
  *   streamEndRecords: 25
  * ---
@@ -22,43 +21,75 @@ import java.util.Optional;
  * {@code c02-unknown-fields} pins that scalar and mapping unknowns are alike tolerated — so the flat
  * pair buys the same compatibility for materially less code.
  *
- * <p><b>Recognised here, not in {@link LogRecord}.</b> The marker is a container fact, and it must never
- * reach the index, a count or the table (D-E4). Detecting it at the store boundary keeps it out of the
- * hot record type entirely: no field, no builder change, nothing to remember to filter downstream.
+ * <p><b>Recognised here, not in {@link telamin.fluxtion.audit.analyser.analyser.model.LogRecord}.</b> The
+ * marker is a container fact, and it must never reach the index, a count or the table (D-E4). Detecting
+ * it at the store boundary keeps it out of the hot record type entirely: no field, no builder change,
+ * nothing to remember to filter downstream.
+ *
+ * <p><b>Why recognition is an allow-list, corrected in review.</b> The first version asked only whether
+ * any line of the record trimmed to something starting with {@code streamEnd:}. {@link RecordParser} is
+ * indentation-insensitive, so nothing stopped that line from being the CONTENT of a multiline
+ * {@code eventToString} — and a record whose event's {@code toString} happened to contain
+ * {@code "streamEnd: normal"} was then dropped from the index on all three paths, and its absence
+ * reported as missing records. That is silent, content-controlled data loss: a D-T8 violation, and
+ * reachable by an ordinary producer without malice. The rule below is therefore the other way round:
+ * a record is a marker only when EVERY line in it is one this marker is allowed to carry. A record that
+ * holds anything else is a record, and is indexed, however much it also mentions {@code streamEnd}.
  */
 public record StreamEndMarker(String reason, long records) {
 
     /** Cheap reject before any scanning: the overwhelming majority of records are not markers. */
     private static final String KEY = "streamEnd:";
+    private static final String COUNT_KEY = "streamEndRecords:";
 
     /**
      * The marker carried by one record's text, or empty when it is an ordinary record.
      *
-     * <p>A record that carries {@code streamEnd} but no readable count yields {@code records = -1},
-     * which {@link StreamEnd#declared} then reports as a mismatch rather than silently accepting. A
-     * marker that cannot say how much it wrote is not evidence of completeness.
+     * <p>A marker that carries no readable count yields {@code records = -1}, which
+     * {@link StreamEnd#declared} reports as {@link StreamEnd.State#UNVERIFIED}: a marker that cannot say
+     * how much it wrote is not evidence of completeness.
      */
     public static Optional<StreamEndMarker> of(String recordText) {
         if (recordText == null || recordText.indexOf(KEY) < 0) return Optional.empty();
         String reason = null;
         long records = -1;
-        for (String line : recordText.split("\n")) {
-            String t = line.trim();
+        boolean sawCount = false;
+        for (String raw : recordText.split("\n")) {
+            String t = raw.strip();
+            // Blank lines, the record header comment and the `eventLogRecord:` opener carry no content.
+            if (t.isEmpty() || t.charAt(0) == '#' || t.equals("eventLogRecord:")) continue;
             if (t.startsWith(KEY)) {
+                if (reason != null) return Optional.empty();       // two of them: not a marker
                 reason = value(t.substring(KEY.length()));
-            } else if (t.startsWith("streamEndRecords:")) {
-                String v = value(t.substring("streamEndRecords:".length()));
+            } else if (t.startsWith(COUNT_KEY)) {
+                if (sawCount) return Optional.empty();
+                sawCount = true;
                 try {
-                    records = Long.parseLong(v);
+                    records = Long.parseLong(value(t.substring(COUNT_KEY.length())));
                 } catch (NumberFormatException ignored) {
-                    records = -1;                 // unreadable count: treated as no count at all
+                    records = -1;                 // unreadable or overflowing count: no count at all
                 }
+                if (records < 0) records = -1;    // a negative count is no count either
+            } else if (!isAllowedCompanion(t)) {
+                // Anything else at all — an event, a nodeLogs block, a line of someone's toString —
+                // makes this a record. Evidence is never dropped to recognise a container fact.
+                return Optional.empty();
             }
         }
-        // `streamEnd` inside nodeLogs or a quoted value is not a marker: the key must be top level,
-        // which for this format means it parsed to a non-empty reason.
         return reason == null || reason.isEmpty() ? Optional.empty()
                 : Optional.of(new StreamEndMarker(reason, records));
+    }
+
+    /**
+     * The only other line a marker may carry: its own {@code logTime}.
+     *
+     * <p>§1a says a writer SHOULD omit it and MUST NOT set it later than the last record, because that is
+     * the one way the marker can change an older reader's behaviour — measured against released 1.16.0,
+     * a timed marker widened that reader's time range. Tolerated here because a file already written
+     * that way must still be read correctly.
+     */
+    private static boolean isAllowedCompanion(String trimmedLine) {
+        return trimmedLine.startsWith("logTime:");
     }
 
     /**

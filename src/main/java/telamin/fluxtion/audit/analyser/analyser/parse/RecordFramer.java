@@ -32,23 +32,15 @@ public final class RecordFramer {
      * Streams record slices to {@code sink}. When {@code requireTerminator} is true, a trailing record
      * that has no closing {@code ---} yet is <b>not</b> emitted — used by follow/tail mode so a record
      * still being written isn't indexed until it is complete.
+     *
+     * <p><b>A missing trailing separator is not a defect.</b> §1 makes {@code ---} a SEPARATOR: a whole
+     * file may end with its last record and no separator after it, and Mongoose's audit export does,
+     * writing {@code \n---\n} only between records. An earlier version of the stream-end work reported
+     * such a file as stopped mid-write, which made every real export look damaged. {@code
+     * requireTerminator} is a LIVE-READ heuristic — on the next poll the rest of the record will be
+     * there — and never a completeness verdict. See {@link StreamEnd}.
      */
     public static void frame(String file, Consumer<RawRecord> sink, boolean requireTerminator) {
-        frame(file, sink, requireTerminator, null);
-    }
-
-    /**
-     * As {@link #frame(String, Consumer, boolean)}, and additionally reports a trailing record that
-     * never closed with a {@code ---} separator.
-     *
-     * <p>{@code onUnterminatedTail} receives the character length of that tail. It fires whether or not
-     * the tail is emitted, which is the point: in an ordinary load the tail IS emitted
-     * ({@code requireTerminator == false}), so nothing downstream could otherwise tell a file that
-     * stopped mid-record from one that ended cleanly. Follow mode withholds the tail instead, and still
-     * needs to know it is there. See {@code spec-audit-stream-end.md} D-E3.
-     */
-    public static void frame(String file, Consumer<RawRecord> sink, boolean requireTerminator,
-                             java.util.function.IntConsumer onUnterminatedTail) {
         if (file == null || file.isEmpty()) return;
         int n = file.length();
         int i = 0;
@@ -70,10 +62,7 @@ public final class RecordFramer {
             }
             i = (j < n) ? j + 1 : n;              // advance past '\n'
         }
-        if (recStart >= 0) {
-            if (onUnterminatedTail != null) onUnterminatedTail.accept(n - recStart);
-            if (!requireTerminator) emit(file, recStart, n, sink);
-        }
+        if (recStart >= 0 && !requireTerminator) emit(file, recStart, n, sink);
     }
 
     private static void emit(String file, int start, int end, Consumer<RawRecord> sink) {

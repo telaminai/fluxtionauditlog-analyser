@@ -97,13 +97,14 @@ A log file can be cut short. A server killed mid-write, a partial copy, a transf
 file still opens, and the records in it are still real. What changes is whether you can treat *absence*
 as evidence.
 
-`context` reports this under `log.streamEnd`, and it has four answers:
+`context` reports this under `log.streamEnd`, and it has five answers:
 
 | state | what it means |
 |---|---|
 | `complete` | the file says it finished, and the count it declares matches what was read |
-| `missing_records` | the file says it finished and claims more records than it holds |
-| `stopped_mid_write` | the last record never closed — a writer that stopped, or a damaged tail |
+| `missing_records` | the file claims more records than it holds: records were lost |
+| `more_than_declared` | the file holds more records than its marker claims — the marker is wrong, or it is not the end |
+| `unverified` | the file says it finished but carries no readable count, so nothing backs the claim |
 | `unknown` | the file makes no claim either way |
 
 **`unknown` is the ordinary answer, and it is not a fault.** Nothing that writes audit logs today emits a
@@ -111,8 +112,16 @@ completeness claim, so almost every file you open will say `unknown`. It is repo
 because "I cannot tell" and "it is whole" are different answers, and only one of them lets you say a node
 never ran.
 
-When a file does claim completeness, the status bar says **complete** beside the record count. The two
-unhappy states appear as a source diagnostic, the same place a cut binary tail is reported.
+**What `unknown` covers, and why there is no "truncated" answer.** A text log is a sequence of records
+*separated* by `---`, so a whole file may simply end after its last record with nothing following it —
+and the usual writers do end that way. The absence of anything after the last record is therefore not a
+sign of damage, and the analyser will not call it one. A server killed mid-record wrote no marker, so its
+file reads as `unknown`. That is the honest answer: the records in it are still real, and what you cannot
+do is treat a missing node as proof it never ran. A count in a marker *can* catch records lost from the
+middle of a run, which is the case nothing else would find.
+
+When a file does claim completeness, the status bar says **complete** beside the record count. The states
+with something to report appear as a source diagnostic, the same place a cut binary tail is reported.
 
 The marker a writer emits to make this claim is defined in the
 [format specification §1a](../format-spec.md). It is never shown as a record: it is a fact about the

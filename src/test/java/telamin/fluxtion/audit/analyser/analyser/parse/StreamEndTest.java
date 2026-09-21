@@ -1,12 +1,16 @@
 package telamin.fluxtion.audit.analyser.analyser.parse;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import telamin.fluxtion.audit.analyser.analyser.index.LogIndex;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,12 +19,15 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>The state that matters most is {@link StreamEnd.State#UNKNOWN}. Every file the analyser has ever
  * read carries no marker, and reading that silence as "complete" is the failure this whole contract
- * exists to prevent (D-T8). Several tests below exist only to pin that it stays unknown.
+ * exists to prevent (D-T8). Several tests below exist only to pin that it stays unknown — including the
+ * one that was got wrong first time: a file whose last record has no closing separator is ORDINARY, and
+ * saying otherwise reported every real export as damaged.
  */
 class StreamEndTest {
 
     private static final String REC =
             "eventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n    - book: { mid: 1.0}\n";
+    private static final String MARKER = "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: %d\n";
 
     private static String file(String... records) {
         StringBuilder sb = new StringBuilder();
@@ -28,7 +35,7 @@ class StreamEndTest {
         return sb.append("---\n").toString();
     }
 
-    // ---- the marker itself -------------------------------------------------------------------
+    // ---- what a marker is, and what it is not --------------------------------------------------
 
     @Test
     void anOrdinaryRecordCarriesNoMarker() {
@@ -37,10 +44,17 @@ class StreamEndTest {
 
     @Test
     void aMarkerIsReadWithItsReasonAndCount() {
-        var m = StreamEndMarker.of("eventLogRecord:\n  logTime: 9\n  streamEnd: normal\n  streamEndRecords: 25\n")
+        var m = StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 25\n")
                 .orElseThrow();
         assertEquals("normal", m.reason());
         assertEquals(25, m.records());
+    }
+
+    @Test
+    void aMarkerMayCarryItsOwnLogTimeBecauseFilesAlreadyWrittenThatWayMustStillRead() {
+        var m = StreamEndMarker.of("eventLogRecord:\n  logTime: 9\n  streamEnd: normal\n  streamEndRecords: 3\n")
+                .orElseThrow();
+        assertEquals(3, m.records());
     }
 
     @Test
@@ -51,24 +65,51 @@ class StreamEndTest {
         assertEquals(3, m.records());
     }
 
+    /**
+     * The defect this allow-list exists for. {@link RecordParser} ignores indentation, so a line inside a
+     * multiline value is indistinguishable from a top-level key by shape alone. Searching for the key
+     * therefore let a producer's own {@code toString} delete its record from the index — silently, and
+     * without malice. Every case below must be a RECORD, not a marker.
+     */
     @Test
-    void aMarkerWithNoReadableCountIsNotEvidenceOfCompleteness() {
+    void aRecordIsNeverAMarkerBecauseOfItsOwnContent() {
+        assertTrue(StreamEndMarker.of("eventLogRecord:\n  event: Order\n  eventToString: |\n"
+                + "    Order{\n    streamEnd: normal\n    }\n").isEmpty(), "a multiline toString");
+        assertTrue(StreamEndMarker.of("eventLogRecord:\n  event: Tick\n"
+                + "  nodeLogs:\n    - book: { note: \"streamEnd: normal\"}\n").isEmpty(), "a node-log value");
+        assertTrue(StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 2\n"
+                + "  nodeLogs:\n    - book: { mid: 1.0}\n").isEmpty(),
+                "a record carrying node logs is evidence, whatever else it says");
+        assertTrue(StreamEndMarker.of("eventLogRecord:\n  event: Tick\n  streamEnd: normal\n").isEmpty(),
+                "a record that also names an event is a record");
+    }
+
+    @Test
+    void aMarkerIsRecognisedThroughItsHeaderCommentAndBlankLines() {
+        assertTrue(StreamEndMarker.of("#00:00:01.000 [t] INFO L\n\neventLogRecord:\n"
+                + "  streamEnd: stopping\n  streamEndRecords: 7\n").isPresent());
+    }
+
+    // ---- the counts, including the ones that used to print nonsense ----------------------------
+
+    @Test
+    void aMarkerWithNoReadableCountIsUnverifiedRatherThanMissingRecords() {
         var m = StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: banana\n")
                 .orElseThrow();
         assertEquals(-1, m.records());
-        // and -1 can never equal a real emitted count, so it degrades to MISSING_RECORDS, not COMPLETE
-        assertEquals(StreamEnd.State.MISSING_RECORDS, StreamEnd.declared(m.records(), 4).state());
+        StreamEnd e = StreamEnd.declared(m.records(), 4);
+        assertEquals(StreamEnd.State.UNVERIFIED, e.state(),
+                "this reported MISSING_RECORDS and printed 'holds -1 records ... -5 are missing'");
+        assertFalse(e.isKnownComplete(), "an unbacked claim is still not evidence");
     }
 
     @Test
-    void theWordAppearingInsideAValueIsNotAMarker() {
-        assertTrue(StreamEndMarker.of(
-                "eventLogRecord:\n  event: Tick\n  eventToString: \"streamEnd: not really\"\n").isEmpty()
-                || StreamEndMarker.of(
-                "eventLogRecord:\n  event: Tick\n  eventToString: \"x\"\n").isEmpty());
+    void anOverflowingCountIsNoCountAtAll() {
+        var m = StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n"
+                + "  streamEndRecords: 99999999999999999999\n").orElseThrow();
+        assertEquals(-1, m.records(), "Long.parseLong overflows; -1 means no readable count");
+        assertEquals(StreamEnd.State.UNVERIFIED, StreamEnd.declared(m.records(), 26).state());
     }
-
-    // ---- the four states ---------------------------------------------------------------------
 
     @Test
     void aMarkerWhoseCountMatchesIsComplete() {
@@ -79,18 +120,20 @@ class StreamEndTest {
     }
 
     @Test
-    void aMarkerClaimingMoreRecordsThanWereReadNamesBothNumbers() {
+    void aMarkerClaimingMoreRecordsThanWereReadNamesBothNumbersAndAPositiveGap() {
         StreamEnd e = StreamEnd.declared(25, 20);
         assertEquals(StreamEnd.State.MISSING_RECORDS, e.state());
         String d = e.diagnostic("x.yaml");
-        assertTrue(d.contains("25") && d.contains("20"), d);
+        assertTrue(d.contains("25") && d.contains("20") && d.contains("5 are missing"), d);
+        assertFalse(d.contains("-"), "a gap is never negative: " + d);
     }
 
     @Test
-    void aStopMidWriteNamesTheUnreadCharacters() {
-        StreamEnd e = StreamEnd.stoppedMidWrite(7, 143);
-        assertEquals(StreamEnd.State.STOPPED_MID_WRITE, e.state());
-        assertTrue(e.diagnostic("x.yaml").contains("143"));
+    void aMarkerClaimingFewerRecordsThanPrecedeItIsItsOwnState() {
+        StreamEnd e = StreamEnd.declared(20, 25);
+        assertEquals(StreamEnd.State.MORE_THAN_DECLARED, e.state(),
+                "this reported MISSING_RECORDS and printed '-5 are missing'");
+        assertTrue(e.diagnostic("x.yaml").contains("5 more"), e.diagnostic("x.yaml"));
     }
 
     @Test
@@ -98,57 +141,35 @@ class StreamEndTest {
         StreamEnd e = StreamEnd.unknown(9);
         assertEquals(StreamEnd.State.UNKNOWN, e.state());
         assertFalse(e.isKnownComplete(), "silence is not a completeness claim");
+        assertNull(e.diagnostic("x.yaml"), "every existing file is here; a warning on each would be noise");
+    }
+
+    // ---- framing: a missing trailing separator is not a defect ----------------------------------
+
+    @Test
+    void aFileEndingWithoutASeparatorIsWholeAndOrdinary() {
+        // the shape Mongoose's export writes: "\n---\n" BETWEEN records, nothing after the last
+        String export = REC.strip() + "\n---\n" + REC.strip() + "\n---\n" + REC.strip();
+        var store = new HeapLogStore(export);
+        assertEquals(3, store.size(), "every record is read");
+        assertEquals(StreamEnd.State.UNKNOWN, store.streamEnd().state(),
+                "this reported STOPPED_MID_WRITE, which made every real export look damaged");
+        assertTrue(store.sourceDiagnostics().isEmpty(), () -> store.sourceDiagnostics().toString());
     }
 
     @Test
-    void unknownSaysNothingInTheDiagnosticList() {
-        // Every existing file is UNKNOWN. A diagnostic on each would be noise, not information;
-        // the state still reaches context and the human surface.
-        assertNull(StreamEnd.unknown(9).diagnostic("x.yaml"));
-    }
-
-    // ---- the framer's half: seeing a tail that never closed ------------------------------------
-
-    @Test
-    void aClosedFileReportsNoUnterminatedTail() {
-        AtomicInteger tail = new AtomicInteger(-1);
+    void followModeWithholdsAnUnclosedTailBecauseTheRestIsStillComing() {
         List<RawRecord> out = new ArrayList<>();
-        RecordFramer.frame(file(REC, REC), out::add, false, tail::set);
-        assertEquals(2, out.size());
-        assertEquals(-1, tail.get(), "nothing should have fired");
+        String growing = "---\n" + REC + "---\n" + REC.substring(0, 20);
+        RecordFramer.frame(growing, out::add, true);
+        assertEquals(1, out.size(), "a record still being written isn't indexed until it is complete");
+
+        out.clear();
+        RecordFramer.frame(growing, out::add, false);
+        assertEquals(2, out.size(), "an ordinary load reads it: the file may simply end there");
     }
 
-    @Test
-    void aTailThatNeverClosedIsReportedAndStillRead() {
-        AtomicInteger tail = new AtomicInteger(-1);
-        List<RawRecord> out = new ArrayList<>();
-        String cut = "---\n" + REC + "---\n" + REC.substring(0, 20);   // stops mid-record
-        RecordFramer.frame(cut, out::add, false, tail::set);
-        assertEquals(2, out.size(), "an ordinary load still emits the partial record");
-        assertEquals(20, tail.get());
-    }
-
-    @Test
-    void followModeWithholdsTheTailAndStillReportsIt() {
-        AtomicInteger tail = new AtomicInteger(-1);
-        List<RawRecord> out = new ArrayList<>();
-        String cut = "---\n" + REC + "---\n" + REC.substring(0, 20);
-        RecordFramer.frame(cut, out::add, true, tail::set);
-        assertEquals(1, out.size(), "follow mode does not index a half-written record");
-        assertEquals(20, tail.get(), "but it must still know the tail is there");
-    }
-
-    @Test
-    void theCallbackIsOptionalSoExistingCallersAreUnchanged() {
-        List<RawRecord> out = new ArrayList<>();
-        RecordFramer.frame("---\n" + REC + "---\n" + REC.substring(0, 20), out::add, false);
-        assertEquals(2, out.size());
-    }
-
-    // ---- the store: the four states end to end, and the marker never becomes a record -----------
-
-    private static final String MARKER =
-            "eventLogRecord:\n  logTime: 2000\n  streamEnd: normal\n  streamEndRecords: %d\n";
+    // ---- the states end to end, through the store ----------------------------------------------
 
     @Test
     void anOrdinaryFileWithNoMarkerLoadsUnknownAndKeepsEveryRecord() {
@@ -176,24 +197,125 @@ class StreamEndTest {
     }
 
     @Test
-    void aFileCutMidRecordReportsTheStopAndStillShowsEveryWholeRecordBeforeIt() {
-        // acceptance 2: losing good records to report a bad tail is worse than the defect being fixed
-        String cut = "---\n" + REC + "---\n" + REC + "---\n" + REC.substring(0, 18);
-        var store = new HeapLogStore(cut);
-        assertEquals(3, store.size(), "two whole records plus the partial one, all still readable");
-        assertEquals(StreamEnd.State.STOPPED_MID_WRITE, store.streamEnd().state());
-        assertEquals(1, store.sourceDiagnostics().size());
+    void aRecordThatMerelyMentionsTheKeyIsCountedAndShown() {
+        String lookalike = "eventLogRecord:\n  logTime: 1001\n  event: Order\n"
+                + "  eventToString: |\n    Order{\n    streamEnd: normal\n    }\n"
+                + "  nodeLogs:\n    - book: { mid: 2.0}\n";
+        var store = new HeapLogStore(file(REC, lookalike, String.format(MARKER, 2)));
+        assertEquals(2, store.size(), "the lookalike is evidence and was silently dropped before");
+        assertEquals(StreamEnd.State.COMPLETE, store.streamEnd().state());
+        assertEquals("Order", store.record(1).event());
+    }
+
+    // ---- segments: a marker counts the records since the previous one ---------------------------
+
+    @Test
+    void twoWholeRunsAppendedIntoOneFileAreComplete() {
+        // Mongoose's Chronicle export is cumulative across boots, so this shape is real. A whole-file
+        // count would read the second marker as claiming 2 in a 4-record file and report 2 missing.
+        String run = file(REC, REC, String.format(MARKER, 2));
+        var store = new HeapLogStore(run + run);
+        assertEquals(4, store.size());
+        assertEquals(StreamEnd.State.COMPLETE, store.streamEnd().state(),
+                "each marker covers the records since the previous one");
     }
 
     @Test
-    void aCutOutranksAMarkerBecauseAFileCannotBothFinishAndBeCutOff() {
-        String cut = "---\n" + REC + "---\n" + String.format(MARKER, 1) + "---\n" + REC.substring(0, 18);
-        assertEquals(StreamEnd.State.STOPPED_MID_WRITE, new HeapLogStore(cut).streamEnd().state());
+    void aRunFollowedByAnUnfinishedOneIsUnknown() {
+        String run = file(REC, REC, String.format(MARKER, 2));
+        var store = new HeapLogStore(run + file(REC));
+        assertEquals(3, store.size());
+        assertEquals(StreamEnd.State.UNKNOWN, store.streamEnd().state(),
+                "a declared end that is not the end says nothing about what followed it");
     }
+
+    @Test
+    void oneBadSegmentAmongGoodOnesIsTheVerdict() {
+        String good = file(REC, REC, String.format(MARKER, 2));
+        String short_ = file(REC, String.format(MARKER, 5));
+        var store = new HeapLogStore(good + short_);
+        assertEquals(StreamEnd.State.MISSING_RECORDS, store.streamEnd().state());
+        assertEquals(5, store.streamEnd().declaredRecords(), "the numbers are the offending segment's");
+        assertEquals(1, store.streamEnd().emittedRecords());
+    }
+
+    // ---- all three stores must agree about the same bytes ---------------------------------------
+
+    /**
+     * The divergence review found: the heap framer could see an unterminated tail and the other two could
+     * not, so the same file reported differently depending only on whether it opened small or large.
+     * The signal is gone; this pins that no new one creeps back in.
+     */
+    @Test
+    void theHeapAndMappedStoresAgreeAboutEveryShape(@TempDir Path dir) throws IOException {
+        record Shape(String name, String text) {}
+        List<Shape> shapes = List.of(
+                new Shape("closed, no marker", file(REC, REC)),
+                new Shape("export layout", REC.strip() + "\n---\n" + REC.strip()),
+                new Shape("marker matching", file(REC, REC, String.format(MARKER, 2))),
+                new Shape("marker short", file(REC, REC, String.format(MARKER, 9))),
+                new Shape("marker over", file(REC, REC, String.format(MARKER, 1))),
+                new Shape("marker uncounted", file(REC, "eventLogRecord:\n  streamEnd: normal\n")),
+                new Shape("two runs", file(REC, String.format(MARKER, 1)) + file(REC, String.format(MARKER, 1))),
+                new Shape("run then tail", file(REC, String.format(MARKER, 1)) + file(REC)));
+        for (Shape s : shapes) {
+            Path p = dir.resolve(s.name().replace(' ', '-').replace(',', '_') + ".yaml");
+            Files.writeString(p, s.text(), StandardCharsets.UTF_8);
+            try (LogStore heap = HeapLogStore.fromFile(p); LogStore mapped = new MappedLogStore(p)) {
+                assertEquals(heap.size(), mapped.size(), () -> "record count differs for " + s.name());
+                assertEquals(heap.streamEnd().state(), mapped.streamEnd().state(),
+                        () -> "state differs for " + s.name());
+                assertEquals(heap.sourceDiagnostics(), mapped.sourceDiagnostics(),
+                        () -> "diagnostics differ for " + s.name());
+            }
+        }
+    }
+
+    // ---- follow mode ----------------------------------------------------------------------------
+
+    /**
+     * Acceptance 8. Review found both halves broken: {@code appendFrom} framed without a tracker, so an
+     * appended marker was indexed AS A RECORD and the state never moved off its load-time value.
+     */
+    @Test
+    void followSeesTheMarkerArriveAndSwitchesTheFileToComplete(@TempDir Path dir) throws IOException {
+        Path p = dir.resolve("growing.yaml");
+        Files.writeString(p, file(REC, REC), StandardCharsets.UTF_8);
+        HeapLogStore store = HeapLogStore.fromFile(p);
+        assertEquals(2, store.size());
+        assertEquals(StreamEnd.State.UNKNOWN, store.streamEnd().state());
+
+        Files.writeString(p, file(REC, REC, String.format(MARKER, 2)), StandardCharsets.UTF_8);
+        int added = store.appendFrom(p);
+
+        assertEquals(0, added, "the marker is not a record, so nothing was added to the index");
+        assertEquals(2, store.size(), "the marker leaked into the index as a third row");
+        assertEquals(StreamEnd.State.COMPLETE, store.streamEnd().state(),
+                "the state stayed UNKNOWN for ever, whatever arrived");
+        for (int i = 0; i < store.size(); i++) {
+            assertFalse(store.rawText(i).contains("streamEnd"), "row " + i + " is the marker");
+        }
+    }
+
+    @Test
+    void followKeepsIndexingOrdinaryRecordsAfterAMarkerHasBeenSeen(@TempDir Path dir) throws IOException {
+        Path p = dir.resolve("restarted.yaml");
+        Files.writeString(p, file(REC, String.format(MARKER, 1)), StandardCharsets.UTF_8);
+        HeapLogStore store = HeapLogStore.fromFile(p);
+        assertEquals(StreamEnd.State.COMPLETE, store.streamEnd().state());
+
+        Files.writeString(p, file(REC, String.format(MARKER, 1)) + file(REC), StandardCharsets.UTF_8);
+        assertEquals(1, store.appendFrom(p), "the next run's first record is an ordinary record");
+        assertEquals(2, store.size());
+        assertEquals(StreamEnd.State.UNKNOWN, store.streamEnd().state(),
+                "a file that carried on past its declared end is no longer a complete file");
+    }
+
+    // ---- the default for anything that cannot tell -----------------------------------------------
 
     @Test
     void theDefaultForAnyStoreThatCannotTellIsUnknown() {
-        // a reader plugin over someone else's container, a rolled set: silence, not a claim
+        // a reader plugin over someone else's container: silence, not a claim
         LogStore cannotTell = new LogStore() {
             public int size() { return 4; }
             public LogIndex index() { return null; }

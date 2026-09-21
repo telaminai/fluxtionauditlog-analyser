@@ -26,7 +26,14 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class StreamEndMarkerNeverLeaksTest {
 
-    /** Two real records, then a marker. Every count below is therefore 2, never 3. */
+    /**
+     * Two real records, then a marker. Every count below is therefore 2, never 3.
+     *
+     * <p>The marker keeps a {@code logTime} later than either record, which §1a says a writer SHOULD not
+     * write. That is deliberate here: it is the one field whose leak is measurable downstream, so a
+     * marker that cannot reach the timeline has to be proved against the worst-behaved legal marker
+     * rather than the recommended one.
+     */
     private static final String LOG = """
             ---
             eventLogRecord:
@@ -77,32 +84,43 @@ class StreamEndMarkerNeverLeaksTest {
     // ---- series -----------------------------------------------------------------------------
 
     /**
-     * A marker that ALSO carries node logs must still not plot.
+     * The marker contributes no point, and the record that merely MENTIONS it contributes one.
      *
-     * <p>The obvious version of this test — a plain marker produces no series point — passes whether or
-     * not the filter exists, because a marker has no node logs and a value series can only plot keys it
-     * finds. Mutating the filter proved it: that assertion stayed green while six others went red. So it
-     * guarded nothing and is replaced by this, where the marker carries the very key being plotted. A
-     * sloppy or hostile writer producing such a record is exactly the case where "clean by construction"
-     * stops being true, and it is the only series assertion here that fails when the filter is removed.
+     * <p><b>Why the obvious assertion is not enough, twice over.</b> "A plain marker produces no series
+     * point" passes whether or not the filter exists, because a marker has no node logs and a value
+     * series can only plot keys it finds — mutating the filter proved it, that assertion stayed green
+     * while six others went red. An earlier attempt fixed this by giving the marker the charted key, but
+     * recognition has since been tightened: a record carrying node logs is a RECORD, so that case can no
+     * longer exist. What is load-bearing now is the other direction. A lookalike record must still plot,
+     * because the version of recognition that would have dropped it from the series also dropped it from
+     * the index — the series was simply where the loss became visible as a missing point.
      */
     @Test
-    void aMarkerCarryingTheChartedKeyStillNeverPlots() {
-        String hostile = LOG.replace("""
-                  logTime: 9999
-                  streamEnd: normal""", """
-                  logTime: 9999
-                  streamEnd: normal
-                  nodeLogs:
-                    - book: { mid: 999.0}""");
-        HeapLogStore s = new HeapLogStore(hostile);
-        assertEquals(2, s.size(), "a marker is not a record however much it carries");
+    void theMarkerPlotsNothingAndALookalikeRecordStillPlots() {
+        HeapLogStore plain = store();
+        Series clean = SeriesExtractor.extract(plain, new FilterState(), new GraphKey("book", "mid"));
+        assertEquals(2, clean.size(), "two records, two points; the marker is neither");
+        assertTrue(clean.maxX() <= 1001, "nor may the marker's logTime stretch the axis");
+
+        // Built by concatenation, not by replacing into LOG. The first version of this test used a text
+        // block as the search argument, whose incidental indentation is stripped while LOG's is not, so
+        // the replace matched nothing and the test asserted twice over the unmodified log. Mutating the
+        // allow-list away is what showed it: this test stayed green while three others went red.
+        String withLookalike = "---\n"
+                + "eventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n    - book: { mid: 17.1}\n"
+                + "---\n"
+                + "eventLogRecord:\n  logTime: 1001\n  event: Shutdown\n"
+                + "  eventToString: |\n    Shutdown{\n    streamEnd: normal\n    }\n"
+                + "  nodeLogs:\n    - book: { mid: 17.3}\n"
+                + "---\n"
+                + "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 2\n"
+                + "---\n";
+        assertTrue(withLookalike.contains("event: Shutdown"), "the lookalike must actually be in the log");
+        HeapLogStore s = new HeapLogStore(withLookalike);
+        assertEquals(2, s.size(), "the lookalike is a record: a toString must not delete its own point");
         Series series = SeriesExtractor.extract(s, new FilterState(), new GraphKey("book", "mid"));
-        assertEquals(2, series.size(), "the marker's value must not become a point");
-        for (int i = 0; i < series.size(); i++) {
-            assertTrue(series.y(i) < 100.0, "999.0 came from the marker and must not be plotted");
-        }
-        assertTrue(series.maxX() <= 1001, "nor may its logTime stretch the axis");
+        assertEquals(2, series.size(), "both points are plotted");
+        assertEquals(StreamEnd.State.COMPLETE, s.streamEnd().state(), "and the real marker still counts");
     }
 
     // ---- summaries, which is what the report tables reduce over -------------------------------

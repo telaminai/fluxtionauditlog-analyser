@@ -12,8 +12,3 @@ eventLogRecord:
   event: Tick
   nodeLogs:
     - book: { mid: 17.2}
----
-eventLogRecord:
-  streamEnd: normal
-  streamEndRecords: 2
----

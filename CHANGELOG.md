@@ -8,11 +8,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 - **A log can say whether it is whole** — audit format 1.1 §1a adds an optional stream-end marker, and
-  `context` reports `log.streamEnd` as `complete`, `missing_records`, `stopped_mid_write` or `unknown`.
-  A file that makes no claim reads as **unknown**, never as complete, so "this node never ran" stays a
-  conclusion you have earned rather than one the file's shape implied. The status bar says *complete*
-  when a file claims it; a cut tail is now reported the way a cut binary tail already was. The marker is
-  never shown as a record. See *Analyser assistant ▸ Is the log whole?* and *format specification §1a*.
+  `context` reports `log.streamEnd` as `complete`, `missing_records`, `more_than_declared`, `unverified`
+  or `unknown`. A file that makes no claim reads as **unknown**, never as complete, so "this node never
+  ran" stays a conclusion you have earned rather than one the file's shape implied. The status bar says
+  *complete* when a file claims it. The marker is never shown as a record, and a rolled set is complete
+  only when every member says it is. See *Analyser assistant ▸ Is the log whole?* and *format
+  specification §1a*.
+- A record is never removed from a log because of its own contents. An event whose `toString` happens to
+  contain a line shaped like the stream-end marker is an ordinary record, and is indexed, counted and
+  shown like any other.
+
+### Fixed
+- A text log that ends after its last record, with no trailing `---`, is read as the whole, ordinary file
+  it is. An unreleased version of the stream-end work reported it as a writer that stopped mid-record,
+  which described every export written by a Mongoose server. `---` separates records; it does not
+  terminate them, and its absence at the end of a file means nothing.
+- The status bar now actually shows *complete* for a log that claims it. The note was computed and then
+  never added to the text.
 
 ### Documentation
 - The `point-at-the-fault` skill now says how to write up a fault: the symptom from the cited record, the

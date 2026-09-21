@@ -19,7 +19,13 @@ public final class HeapLogStore implements LogStore {
     private volatile String file;        // grows in follow/tail mode (append-only); volatile: read off-EDT by readView()
     private final LogIndex index;
     /** D-E3: whether this file says it is whole. Never null; UNKNOWN for every producer that is silent. */
-    private StreamEnd streamEnd = StreamEnd.unknown(0);
+    private volatile StreamEnd streamEnd = StreamEnd.unknown(0);
+    /**
+     * Kept across appends so follow uses the same rule the initial load did. Review found the marker
+     * leaking into the index in follow mode and the state never moving off its load-time value, because
+     * {@link #appendFrom} framed without a tracker at all.
+     */
+    private final StreamEndTracker tracker = new StreamEndTracker();
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
 
@@ -74,12 +80,22 @@ public final class HeapLogStore implements LogStore {
         // could throw meanwhile (impl review F2).
         this.readIdentity = null; // follow changes the indexed view; no stale opening digest may describe it
         this.file = full;
-        // require a terminator so a record still being written isn't indexed until complete; the
-        // first `before` records are byte-identical (append-only) so we skip them and add the rest
+        // Require a terminator so a record still being written isn't indexed until complete; the first
+        // `before` records are byte-identical (append-only) so we skip them and add the rest.
+        //
+        // The tracker is RESET and re-run over the whole file rather than continued from where the load
+        // left it. This pass already walks every record — the skip below is what makes it cheap, not the
+        // framing — so re-running costs one marker test per record and keeps the follow state derived
+        // from the same rule, in the same order, as a fresh load of the same bytes. Review found both
+        // halves of this broken: an appended marker was indexed as a record, and streamEnd kept its
+        // load-time value for ever.
+        tracker.reset();
         RecordFramer.frame(full, raw -> {
-            if (seen[0]++ < before) return;
+            if (!tracker.accept(raw.text())) return;      // a marker is never a record, in follow either
+            if (seen[0]++ < before) return;               // already indexed, and byte-identical
             index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
+        this.streamEnd = tracker.resolve();
         return index.size() - before;
     }
 
@@ -94,10 +110,9 @@ public final class HeapLogStore implements LogStore {
      */
     private LogIndex buildIndex(String file) {
         LogIndex idx = new LogIndex();
-        StreamEndTracker tracker = new StreamEndTracker();
         RecordFramer.frame(file, raw -> {
             if (tracker.accept(raw.text())) idx.add(RecordParser.parse(raw.text(), raw.offset()));
-        }, false, tracker::unterminatedTail);
+        }, false);
         this.streamEnd = tracker.resolve();
         return idx;
     }

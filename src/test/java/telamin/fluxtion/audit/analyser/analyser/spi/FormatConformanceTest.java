@@ -460,7 +460,8 @@ class FormatConformanceTest {
                     "c05-untimed.yaml", "c06-out-of-order.yaml", "c07-duplicate-instance.yaml",
                     "c08-lenient-values.yaml", "c09-garbage.yaml", "c11-attribution.yaml",
                     "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
-                    "c17-legacy-quotes.yaml", "c18-stream-end.yaml"), names,
+                    "c17-legacy-quotes.yaml", "c18-stream-end.yaml", "c19-export-layout.yaml",
+                    "c20-marker-lookalike.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -502,6 +503,43 @@ class FormatConformanceTest {
                 s.streamEnd().state(), "the marker's count matches what was read");
         assertEquals(Long.valueOf(1001), s.maxLogTime(),
                 "the marker's own logTime must not extend the timeline");
+    }
+
+    /**
+     * C19 — a whole file may end without a trailing separator, and this is the common case.
+     *
+     * <p>§1 makes {@code ---} a separator, not a terminator, and Mongoose's audit export writes
+     * {@code \n---\n} only BETWEEN records. The first version of the stream-end work treated an unclosed
+     * trailing record as a writer that stopped mid-record, so every real export was reported as damaged
+     * while all fifteen existing fixtures — each of which happens to end with a separator — stayed green.
+     * That is what this fixture is for: the suite could not see the dominant real shape.
+     */
+    @Test
+    void c19_aFileThatEndsWithoutASeparatorIsWholeAndOrdinary() throws IOException {
+        LogStore s = bothPathsAgree("c19-export-layout.yaml");
+        assertEquals(2, s.size(), "both records are read; the last one is not withheld or flagged");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                s.streamEnd().state(), "nothing in this file claims completeness either way");
+        assertTrue(s.sourceDiagnostics().isEmpty(),
+                () -> "an ordinary export must not be reported as damaged: " + s.sourceDiagnostics());
+    }
+
+    /**
+     * C20 — a producer's own text must never be able to delete a record.
+     *
+     * <p>{@link telamin.fluxtion.audit.analyser.analyser.parse.RecordParser} is indentation-insensitive,
+     * so a line inside a multiline {@code eventToString} looks exactly like a top-level key. Recognising
+     * the marker by searching for that key therefore let an ordinary {@code toString} remove its own
+     * record from the index on all three paths, and the file then reported records missing. Silent,
+     * content-controlled data loss — a D-T8 violation — so recognition is an allow-list instead.
+     */
+    @Test
+    void c20_aRecordThatMentionsTheMarkerKeyIsStillARecord() throws IOException {
+        LogStore s = bothPathsAgree("c20-marker-lookalike.yaml");
+        assertEquals(2, s.size(), "both lookalikes are records; only the real marker is suppressed");
+        assertEquals("ShutdownRequest", s.record(0).event(), "the multiline toString kept its record");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE,
+                s.streamEnd().state(), "and the real marker still counts two");
     }
 
     /** A file with no marker is UNKNOWN — the state of every fixture here, and of every existing log. */

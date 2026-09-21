@@ -9,15 +9,28 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * never become a record in ANY of them, and the conformance suite asserts the built-in and SPI paths
  * agree record for record — so a filter present in one and missing in another is a test failure, and
  * worse, a real difference in what two readers of the same file report. Putting the rule in one place
- * makes that divergence impossible rather than merely unlikely.
+ * makes that divergence impossible rather than merely unlikely. Review found the one signal that was
+ * NOT shared — an unterminated tail, seen only by the heap framer — making the same file report
+ * differently depending on whether it opened small or large. That signal is gone; see {@link StreamEnd}.
+ *
+ * <p><b>A marker counts the records since the previous marker.</b> Review asked what happens when two
+ * whole runs are appended into one file, which is the shape Mongoose's cumulative export already
+ * produces across boots: each run carries its own marker, and a whole-file count would read the second
+ * marker as claiming 25 records in a 50-record file. Segments answer it — each marker is checked against
+ * the records it actually covers, so two whole runs are COMPLETE, which is what they are.
  *
  * <p>Not thread-safe; a store indexes on one thread.
  */
 public final class StreamEndTracker {
 
-    private StreamEndMarker marker;
-    private long unterminatedTailChars;
-    private int indexed;
+    private int indexedTotal;
+    private int sinceMarker;
+    private boolean sawMarker;
+
+    /** The worst verdict any segment produced, and the numbers that earned it. */
+    private StreamEnd.State worst = StreamEnd.State.COMPLETE;
+    private long worstDeclared = -1;
+    private long worstEmitted = -1;
 
     /**
      * Whether this record text should be indexed.
@@ -28,29 +41,58 @@ public final class StreamEndTracker {
     public boolean accept(String recordText) {
         var m = StreamEndMarker.of(recordText);
         if (m.isPresent()) {
-            marker = m.get();
+            closeSegment(m.get().records());
             return false;
         }
-        indexed++;
+        indexedTotal++;
+        sinceMarker++;
         return true;
     }
 
-    /** The framer's report that a trailing record never closed with a separator. */
-    public void unterminatedTail(long chars) {
-        this.unterminatedTailChars = chars;
+    /** Re-run from the start. Follow re-frames the whole file, so the tracker must too. */
+    public void reset() {
+        indexedTotal = 0;
+        sinceMarker = 0;
+        sawMarker = false;
+        worst = StreamEnd.State.COMPLETE;
+        worstDeclared = -1;
+        worstEmitted = -1;
+    }
+
+    private void closeSegment(long declared) {
+        sawMarker = true;
+        StreamEnd verdict = StreamEnd.declared(declared, sinceMarker);
+        if (rank(verdict.state()) > rank(worst)) {
+            worst = verdict.state();
+            worstDeclared = declared;
+            worstEmitted = sinceMarker;
+        }
+        sinceMarker = 0;
+    }
+
+    /** MISSING beats MORE beats UNVERIFIED beats COMPLETE: the most actionable segment is the verdict. */
+    private static int rank(StreamEnd.State s) {
+        return switch (s) {
+            case COMPLETE -> 0;
+            case UNVERIFIED -> 1;
+            case MORE_THAN_DECLARED -> 2;
+            case MISSING_RECORDS -> 3;
+            case UNKNOWN -> 0;
+        };
     }
 
     /**
-     * The file's state, in precedence order.
+     * The file's state.
      *
-     * <p>A stop mid-write outranks a marker: a file cannot both have finished and have been cut off, and
-     * if both appear the cut is the later fact — the marker then describes a run that did not end the way
-     * it claims. With neither, the answer is UNKNOWN, which is the ordinary case for every producer that
-     * is silent and must never be reported as complete (D-T8).
+     * <p>With no marker the answer is UNKNOWN, the ordinary case for every producer that is silent, and
+     * it must never be reported as complete (D-T8). Records AFTER the last marker are also UNKNOWN: a
+     * declared end that is not the end of the file says nothing about what followed it, and that is the
+     * live shape of a cumulative export whose current run has not finished.
      */
     public StreamEnd resolve() {
-        if (unterminatedTailChars > 0) return StreamEnd.stoppedMidWrite(indexed, unterminatedTailChars);
-        if (marker != null) return StreamEnd.declared(marker.records(), indexed);
-        return StreamEnd.unknown(indexed);
+        if (!sawMarker || sinceMarker > 0) return StreamEnd.unknown(indexedTotal);
+        if (worst == StreamEnd.State.COMPLETE) return new StreamEnd(StreamEnd.State.COMPLETE,
+                worstDeclared < 0 ? indexedTotal : worstDeclared, indexedTotal);
+        return new StreamEnd(worst, worstDeclared, worstEmitted);
     }
 }

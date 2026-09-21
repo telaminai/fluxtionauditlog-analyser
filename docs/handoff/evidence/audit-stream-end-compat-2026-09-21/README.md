@@ -18,6 +18,12 @@ marked-same-time.yaml  records=3 parseErrors=0  minLogTime=1000 maxLogTime=1001 
 marked-untimed.yaml    records=3 parseErrors=0  minLogTime=1000 maxLogTime=1001  kinds=[OK OK OK]
 ```
 
+**Still current after the review revision (2026-09-21).** The §1a example marker was changed to the
+untimed shape, which is the row measured best here: `marked-untimed.yaml` loads in the old reader with
+three records and a time range identical to the unmarked file. Nothing about this check needed re-running,
+because the shape the spec now recommends is the shape it already measured. The review's other changes
+are reader-side and cannot affect a reader that predates the feature.
+
 ## What it shows
 
 **The claim holds.** A marked file loads in the old reader with no parse error; every record is `OK`. The

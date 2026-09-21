@@ -98,6 +98,50 @@ class RolledLogStoreTest {
         mapped.close();
     }
 
+    private static String marker(long records) {
+        return "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: " + records + "\n---\n";
+    }
+
+    /**
+     * D-E3 for a set. Review found {@link RolledLogStore} taking {@link LogStore}'s default, so a member
+     * that had LOST records reported UNKNOWN for the whole set and nothing surfaced the member's problem.
+     * A set is presented as one log, so it owes one honest answer about that log: the weakest member's.
+     */
+    @Test
+    void aSetIsWholeOnlyWhenEveryMemberSaysSo() throws IOException {
+        Path a = dir.resolve("s.log.1");
+        Path b = dir.resolve("s.log");
+        Files.writeString(a, records("A", 100, 110) + marker(2));
+        Files.writeString(b, records("B", 200) + marker(1));
+        try (RolledLogStore whole = RolledLogStore.open(List.of(a, b), 512)) {
+            assertEquals(3, whole.size(), "no marker is a record in any member");
+            assertEquals(StreamEnd.State.COMPLETE, whole.streamEnd().state());
+            assertTrue(whole.sourceDiagnostics().isEmpty());
+        }
+
+        Files.writeString(b, records("B", 200) + marker(4));      // this member lost three
+        try (RolledLogStore lossy = RolledLogStore.open(List.of(a, b), 512)) {
+            assertEquals(StreamEnd.State.MISSING_RECORDS, lossy.streamEnd().state(),
+                    "the set reported UNKNOWN and the member's loss was invisible");
+            assertEquals(1, lossy.sourceDiagnostics().size());
+            assertTrue(lossy.sourceDiagnostics().get(0).startsWith("s.log "),
+                    () -> "the diagnostic must name WHICH member: " + lossy.sourceDiagnostics());
+        }
+    }
+
+    @Test
+    void oneSilentMemberMakesTheSetUnknownHoweverCompleteTheOthersAre() throws IOException {
+        Path a = dir.resolve("q.log.1");
+        Path b = dir.resolve("q.log");
+        Files.writeString(a, records("A", 100, 110) + marker(2));
+        Files.writeString(b, records("B", 200));                  // no marker: says nothing
+        try (RolledLogStore set = RolledLogStore.open(List.of(a, b), 512)) {
+            assertEquals(StreamEnd.State.UNKNOWN, set.streamEnd().state(),
+                    "a gap could sit inside the silent member and nothing would say so");
+            assertFalse(set.streamEnd().isKnownComplete());
+        }
+    }
+
     @Test
     void recordIndexAnchorsNeedNoFileAndKeepWorking() throws IOException {
         RolledLogStore store = RolledLogStore.open(threeFiles(), 512);

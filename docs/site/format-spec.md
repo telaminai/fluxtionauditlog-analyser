@@ -1,6 +1,6 @@
 # Audit record format — specification
 
-**Format 1 · status: published, open.** *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2.* This page is the normative description of the record format
+**Format 1 · status: published, open.** *Revision 1.1, 2026-09-21: §1a adds an optional stream-end marker. Additive — a file without one is unchanged, and a reader without §1a tolerates one as unknown fields under §2. Revised the same day, before release, after review: the "stopped mid-write" state is withdrawn as unsound, a marker counts per segment, and a marker is recognised by the record's whole contents rather than by a key it mentions. §1a says what each correction cost.* This page is the normative description of the record format
 the analyser reads. It exists so that anything that can describe a run — a Fluxtion processor, a
 Mongoose server, a workflow engine, a translator over someone else's trace — can emit records the
 analyser understands, and know *what the analyser will do with them*. The [Log format](log-format.md)
@@ -36,11 +36,18 @@ A container MAY end with a **stream-end marker**: a record carrying `streamEnd` 
 ```yaml
 ---
 eventLogRecord:
-  logTime: 1789993421904
   streamEnd: normal        # normal | stopping
-  streamEndRecords: 25     # records written before this marker
+  streamEndRecords: 25     # records written since the previous marker, or since the start
 ---
 ```
+
+A marker record carries **nothing else** but, optionally, its own `logTime`. A record that also names an
+`event`, carries `nodeLogs`, or holds any other key is a **record**, whatever it says about `streamEnd` —
+and a reader MUST index and count it. This is not pedantry about shape: audit records carry a producer's
+own `toString` output, which may contain any text at all, including a line that reads exactly like this
+key. A reader that recognises the marker by looking for the key will delete such a record from its index
+and then report the file as short. Recognise the marker by what the record contains in full, never by
+what it mentions.
 
 It is **physically a record and semantically a container fact**, and it is a record only because §1
 leaves no position for non-record text. A reader MUST NOT present it as a record: not in a record count,
@@ -52,18 +59,33 @@ A writer SHOULD emit the marker only when it believes it finished. A writer that
 MAY omit `streamEndRecords`; a reader MUST then treat the completeness claim as unverified rather than
 proven, because a marker that cannot say how much it wrote is not evidence.
 
-**Four states, and a reader SHOULD distinguish them:**
+**A marker counts the records since the previous marker**, or since the start of the container if it is
+the first. Two whole runs appended into one file — which is what a cumulative export produces across
+restarts — are therefore two segments, each checked against its own marker, and the file is complete.
+
+**Five states, and a reader SHOULD distinguish them:**
 
 | the container | the reader reports |
 |---|---|
-| marker present, count matches the records read | **complete**, and verified |
-| marker present, count does not match | **records missing**, naming both numbers |
-| text after the last separator that never closed | **stopped mid-write**, naming the unread bytes |
-| ends cleanly, no marker | **unknown whether complete** |
+| every marker's count matches its segment, and a marker is last | **complete**, and verified |
+| a marker claims more records than its segment holds | **records missing**, naming both numbers |
+| a marker claims fewer records than precede it | **more records than declared** — the marker is wrong, or it is not an end |
+| a marker carries no readable count | **unverified**: an end is claimed and nothing backs it |
+| no marker, or records after the last one | **unknown whether complete** |
 
-The fourth row is the point, and it is the common case. **Silence MUST NOT be read as completeness.**
+The last row is the point, and it is the common case. **Silence MUST NOT be read as completeness.**
 Every producer that predates this section, and every export the analyser has ever read, lands there and
 MUST keep loading exactly as before. What a reader owes is to say it does not know, not to guess.
+
+**What a reader cannot do, stated so nobody builds on it.** A text container **cannot** detect a writer
+that stopped in the middle of a record. §1 makes `---` a *separator*: a whole file may end with its last
+record and no separator after it, and real producers do exactly that. The absence of a trailing separator
+therefore carries **no information**, and a reader MUST NOT report such a file as truncated, damaged or
+stopped — an earlier draft of this section did, and it reported every export from the reference producer
+as damaged while every conformance fixture stayed green, because all of them happened to end with a
+separator. A run killed at any point carries no marker and is **unknown**, which is the honest answer.
+What the count *can* find is loss in the **middle** of a run, which no amount of tail inspection would
+have found.
 
 **A writer SHOULD omit `logTime` from the marker**, and MUST NOT give it a time later than the last
 record's. This is the one place the marker can affect an older reader, and it is avoidable. Measured

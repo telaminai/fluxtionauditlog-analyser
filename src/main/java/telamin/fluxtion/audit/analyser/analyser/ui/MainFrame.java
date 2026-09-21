@@ -3783,11 +3783,13 @@ public final class MainFrame extends JFrame {
         String producerWarning = producerDiagnostics.isClean() ? ""
                 : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
                         java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
-        // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent
+        // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent.
+        // This was computed and then dropped on the floor — the status bar never carried it, so the one
+        // human surface `context` names for COMPLETE did not exist. Found reviewing the stream-end branch.
         String wholeNote = loaded.streamEnd().isKnownComplete() ? "  ·  complete" : "";
         status.setText(loaded.size() + " records · " + range + " · "
                 + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
-                        : displayName(location)) + orderWarning + producerWarning);
+                        : displayName(location)) + wholeNote + orderWarning + producerWarning);
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
@@ -5684,8 +5686,9 @@ public final class MainFrame extends JFrame {
             // spec-audit-stream-end D-E3: whether the FILE says it is whole. Always present when a log is
             // open, including "unknown" — an agent that cannot tell complete from unverified will read
             // silence as success, which is the failure the whole contract exists to prevent (D-T8).
-            // Human surface: the status bar (complete) and the existing source-diagnostic line (the two
-            // bad states). Docs: user-guide/log-sources.md and site/format-spec.md §1a.
+            // Human surface: the status bar ("· complete") and the existing source-diagnostic line (the
+            // states that have something to report). Docs: user-guide/assistant.md ▸ "Is this log whole?"
+            // and site/format-spec.md §1a. The pointer said log-sources.md, which never mentioned it.
             if (!log.isEmpty() && store != null) {
                 var end = store.streamEnd();
                 Map<String, Object> se = new java.util.LinkedHashMap<>();

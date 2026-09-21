@@ -113,6 +113,51 @@ public final class RolledLogStore implements LogStore {
         return merged.maxLogTime();
     }
 
+    /**
+     * The set is whole only when every member says it is — {@code spec-audit-stream-end.md} D-E3.
+     *
+     * <p>Review found the set taking {@link LogStore}'s default, so a member that had lost records
+     * reported UNKNOWN for the whole set and nothing surfaced the member's problem. A rolled set is
+     * presented as ONE log, so it owes one honest answer about that log: the weakest member's.
+     *
+     * <p>COMPLETE requires every member to be COMPLETE. One silent member makes the set UNKNOWN, because
+     * a gap could sit inside it and nothing would say so. A member that lost records makes the set say
+     * so, and {@link #sourceDiagnostics()} names which file.
+     */
+    @Override
+    public StreamEnd streamEnd() {
+        StreamEnd worst = null;
+        for (LogStore m : members) {
+            StreamEnd s = m.streamEnd();
+            if (worst == null || severity(s.state()) > severity(worst.state())) worst = s;
+        }
+        if (worst == null) return StreamEnd.unknown(size());
+        return worst.state() == StreamEnd.State.COMPLETE
+                ? new StreamEnd(StreamEnd.State.COMPLETE, size(), size())
+                : new StreamEnd(worst.state(), worst.declaredRecords(), worst.emittedRecords());
+    }
+
+    private static int severity(StreamEnd.State s) {
+        return switch (s) {
+            case COMPLETE -> 0;
+            case UNKNOWN -> 1;
+            case UNVERIFIED -> 2;
+            case MORE_THAN_DECLARED -> 3;
+            case MISSING_RECORDS -> 4;
+        };
+    }
+
+    /** Each member's own diagnostic, named by its file so a set of twelve says WHICH one is short. */
+    @Override
+    public java.util.List<String> sourceDiagnostics() {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < members.size(); i++) {
+            String d = members.get(i).streamEnd().diagnostic(paths.get(i).getFileName().toString());
+            if (d != null) out.add(d);
+        }
+        return List.copyOf(out);
+    }
+
     @Override
     public void close() {
         for (LogStore m : members) {
