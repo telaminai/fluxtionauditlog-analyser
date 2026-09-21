@@ -377,21 +377,24 @@ public final class ChartPanel extends JPanel {
         double lo = from != null ? from : gx0;
         double hi = to != null ? to : gx1;
         if (hi <= lo) hi = lo + 1;
-        double gy0 = Double.POSITIVE_INFINITY, gy1 = Double.NEGATIVE_INFINITY;
+        double ly0 = Double.POSITIVE_INFINITY, ly1 = Double.NEGATIVE_INFINITY;
+        double gr0 = Double.POSITIVE_INFINITY, gr1 = Double.NEGATIVE_INFINITY;
         for (Series s : series) {
             for (int i = 0; i < s.size(); i++) {
                 double y = s.y(i);
                 if (Double.isFinite(y) && s.x(i) >= lo && s.x(i) <= hi) {
-                    gy0 = Math.min(gy0, y);
-                    gy1 = Math.max(gy1, y);
+                    if (axes.isRight(s.label())) {
+                        gr0 = Math.min(gr0, y); gr1 = Math.max(gr1, y);
+                    } else {
+                        ly0 = Math.min(ly0, y); ly1 = Math.max(ly1, y);
+                    }
                 }
             }
         }
-        if (gy0 == Double.POSITIVE_INFINITY) { gy0 = 0; gy1 = 1; }   // no points in window
-        else if (!(gy1 > gy0)) { gy0 -= 1; gy1 += 1; }
-        double padY = (gy1 - gy0) * 0.05;
         vx0 = lo; vx1 = hi;
-        vy0 = gy0 - padY; vy1 = gy1 + padY;
+        double[] left = padded(ly0, ly1), right = padded(gr0, gr1);
+        vy0 = left[0]; vy1 = left[1];
+        ry0 = right[0]; ry1 = right[1];
         repaint();
     }
 

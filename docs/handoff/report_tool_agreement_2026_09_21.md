@@ -257,3 +257,21 @@ recaptured, nor the historical owner-witnessed website preview/vendor evidence.
 Full Java suite and strict docs pass. Completed release-execution section moved to the completed
 tracker; partial sections retained. This housekeeping was requested first but was missed initially;
 it is now corrected without changing its recorded release evidence.
+
+## D19 — completed under Topology feedback 37
+
+Frozen prediction held. `TopologyShowAllTest.showAllExitsNestedFocusWithEitherScaffoldingChoice`
+checks nested contexts, false as a negative control, both scaffolding settings, resulting echo,
+selection, shading and breadcrumb. Constructed navigation on the committed demo graph, not session
+replay. The first assertion incorrectly read a nested ActionResult envelope; corrected to the actual
+payload. [Mutation](evidence/tool-agreement-2026-09-21/d19-mutation.json) restores only the old executor
+call and fails `showAll must exit every context`, actual depth 2 versus expected 0. Counts **7 → 6 / 8**.
+
+## D18 — completed under Chart feedback 41–43
+
+Frozen prediction held. `ChartAxisWindowTest` tests independent magnitudes and empty sides, then
+uses the real GraphPanel pin, filter, refresh and GraphTabs saved-definition restoration with guides
+and markers. Constructed regression, not participant replay. Moving a series to an axis also reapplies
+the current window. [Mutation](evidence/tool-agreement-2026-09-21/d18-mutation.json) disables partitioning
+only in the window path: the left-axis numerical assertion fails. Counts **6 → 5 / 8**.
+Other 41–43 concerns remain open, including series lifecycle and target-name compatibility.

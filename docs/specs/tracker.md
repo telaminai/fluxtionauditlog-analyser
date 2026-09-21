@@ -209,6 +209,14 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   series removal/replace semantics (UI removal already exists); 43: colon-name targeting incompatibility
   reproduced in the parser. Pin-clear null/schema mismatch is included. No product fix claimed; exact
   staged UI interaction remains unverified. Restore acceptance inherits 41; wider chart fixes stay separate.
+  **D18 frozen prediction:** window fitting must partition left/right series exactly as whole-data fitting
+  does. Constructed 10–20 versus 1,000,000–1,250,000 ranges stay separate through pin, filter, refresh and
+  saved-definition restore; an empty side falls back to 0–1 without borrowing the other's scale.
+  Guides and markers do not contaminate either range. Reverting window partitioning fails the regression.
+  Counts before: analyser 7, upstream 8 (D19 verification in progress).
+  **D18 result:** held. `ChartAxisWindowTest` passes for separate scales, empty sides, pin/filter,
+  refresh, guides/markers and saved-definition restore. Removing the window partition fails the
+  independent left-range assertion. D18 closes; other 41–43 requests remain open.
 - ◧ **Cold-start measurement proposal preserved/reviewed** — [instrument intake](../handoff/evidence/coldstart-proposal-2026-09-20/REVIEW.md)
   keeps all four operator/subject files verbatim and records independent scorer probes. Adopt pre-action
   attribution, imitation and pristine-baseline recording, but treat static hits as leads and journal fields
@@ -451,10 +459,17 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   use the saved logs (new same-record markers: 5/6/8), overwritten snapshots and scrolled source views;
   preserve Follow and decide saved-marker compatibility explicitly. Proposed priority: P1 correctness;
   combined echo P2. Keep original feedback numbers separate from DX and compiler F/G identifiers.
-- ☐ **Topology feedback 37 — Show all focus exit** — participant reports depth 1/16 nodes after
+- ☑ **Topology feedback 37 — Show all focus exit** — participant reports depth 1/16 nodes after
   `showAll:true, scaffolding:false`; `pop:"all"` works. Source confirms MCP calls `clearView`, which only
   clears highlights, while the toolbar pops focus first. Align both paths; test nested focus, showAll alone
-  and with both scaffolding values, selection/shading/breadcrumbs and echo/context. No runtime repro or fix yet.
+  and with both scaffolding values, selection/shading/breadcrumbs and echo/context.
+  **D19 frozen prediction:** with two nested focus contexts, `showAll` alone and combined with either
+  scaffolding value will return depth zero, no selection or cycle shading, and the full visible graph;
+  its echo will equal the panel state. `showAll:false` leaves the context in place. Reverting only the
+  executor call to `clearView` will fail the regression. Constructed regression on the committed demo
+  graph, not a replay of the participant session. Counts before: analyser 7, upstream 8.
+  **Result:** held. `TopologyShowAllTest` passes; old executor call fails with depth 2 instead of 0.
+  The first test draft used the wrong ActionResult envelope; corrected before mutation. D19 closes.
 - ☐ **Topology callout placement (extension of feedback 14)** — participant reports six captions covering non-target
   nodes. Inspected the existing six-target screenshot; geometry currently scores lit cut-outs/other captions,
   not all visible nodes. Feed occupied node bounds to placement and specify crowded-viewport fallback;

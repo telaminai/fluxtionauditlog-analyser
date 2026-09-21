@@ -1030,7 +1030,7 @@ public final class ActionExecutor implements RenderExecutor {
         if (app != null) app.showTab("Topology");
 
         if (params.containsKey("scaffolding")) topology.setScaffoldingVisible(bool(params.get("scaffolding")));
-        if (params.containsKey("showAll") && bool(params.get("showAll"))) topology.clearView();
+        if (params.containsKey("showAll") && bool(params.get("showAll"))) topology.showAll();
 
         // Tracking is set BEFORE anything that could follow, so one call can turn it off AND select
         // without the selection dragging the source pane along on its way out. Ordering is the whole

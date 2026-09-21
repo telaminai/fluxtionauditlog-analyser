@@ -1,0 +1,14 @@
+[
+  {
+    "item": "D18",
+    "mutation": "if (axes.isRight(s.label())) { -> if (false) {",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "windowUsesEachAxisAndAnEmptySideDoesNotBorrowValues",
+        "failure": "left window must exclude right-axis values ==> array contents differ at index [0], expected: <9.5> but was: <-62489.5>"
+      }
+    ],
+    "restored": true
+  }
+]

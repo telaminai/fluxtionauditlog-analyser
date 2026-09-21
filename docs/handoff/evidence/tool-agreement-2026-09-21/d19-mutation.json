@@ -1,0 +1,14 @@
+[
+  {
+    "item": "D19",
+    "mutation": "bool(params.get(\"showAll\"))) topology.showAll(); -> bool(params.get(\"showAll\"))) topology.clearView();",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "showAllExitsNestedFocusWithEitherScaffoldingChoice",
+        "failure": "showAll must exit every context ==> expected: <0> but was: <2>"
+      }
+    ],
+    "restored": true
+  }
+]

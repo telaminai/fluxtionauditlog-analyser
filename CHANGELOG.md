@@ -15,6 +15,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - Assistants can start/stop the existing Follow control with standalone `open {follow: true|false}`; unsupported or still-loading readers refuse.
 
 ### Fixed
+- Topology Show all exits every focus through both the toolbar and MCP, including calls that change
+  scaffolding visibility. Chart windows keep left/right scales separate through pin/filter/restore.
 - Chart legends reserve space beside the plot; explanations and note text sit below it. Nearby note
   pins combine into numbered ranges above the plot, and exported charts include the legend.
 - Follow-capable YAML files keep unterminated records pending from initial open, disclose the pending

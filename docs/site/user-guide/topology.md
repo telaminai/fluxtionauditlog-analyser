@@ -330,3 +330,7 @@ do not exclude a second route through a supertype. An unlogged node is not shade
 on that basis. The topology context and coverage echo carry the same qualification;
 coverage report notes and exported cycle legends retain it. A complete invocation trace can still
 prove that a node did not run. The analyser does not infer missing inheritance or add edges.
+
+The toolbar's **Show all** and `topology {"showAll": true}` perform the same operation: leave every
+nested focus, clear selection and cycle shading, and return to the full graph. Combining the call
+with `scaffolding: false` still exits focus while hiding framework nodes as a view choice.

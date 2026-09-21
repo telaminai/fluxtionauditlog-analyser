@@ -211,3 +211,7 @@ A series can also be started from the graph of the processor itself — right-cl
 Marker labels are not yet individual series spotlight targets. The assistant receives an explicit
 refusal and can spotlight the graph plot instead. Exported PDFs spell the flag glyph as `flag` when
 using the standard PDF fonts.
+
+Windowing, pinning and saved-chart restore fit each vertical axis to its own series in the visible
+time range. A right-axis series never changes the left-axis scale; a side with no finite points uses
+a neutral 0–1 range. Guides and markers do not widen either scale.

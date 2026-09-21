@@ -302,7 +302,7 @@ public final class TopologyPanel extends JPanel {
      * This is the filter's exit. Clicking empty canvas clears only dimming/selection and stays inside
      * the current context — filter and dimming never share an exit gesture (M27).
      */
-    private void showAll() {
+    public void showAll() {
         focusStack.popToFull();
         clearHighlights();
         refreshCrumbs();

@@ -808,6 +808,7 @@ public final class GraphPanel extends JPanel {
     /** Which series are measured against the right-hand scale. */
     public void setAxes(telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes) {
         chart.setAxes(axes);
+        applyWindow();
         mutated();
     }
 
