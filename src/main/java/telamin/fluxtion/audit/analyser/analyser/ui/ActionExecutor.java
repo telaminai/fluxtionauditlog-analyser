@@ -127,6 +127,12 @@ public final class ActionExecutor implements RenderExecutor {
         // requiring one first would make them useless
         switch (action) {
             case "open" -> {
+                if (params.containsKey("follow")) {
+                    if (params.size() != 1 || !(params.get("follow") instanceof Boolean))
+                        return ActionResult.error("use open {follow: true|false} alone, after the log has finished opening");
+                    return app == null ? ActionResult.error("Follow is not enabled here; not following")
+                            : onEdt(() -> app.follow((Boolean) params.get("follow")));
+                }
                 if (isCanvasWrite(params)) return onEdt(() -> doOpenCanvas(params));   // M48.7: needs no log, opens no file
                 if (params.get("analysis") != null) return doOpenAnalysis(params);   // M38.4: off the EDT, see method
                 return doOpen(params);

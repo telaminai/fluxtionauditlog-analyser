@@ -5026,6 +5026,16 @@ public final class MainFrame extends JFrame {
      */
     private final class AppControlAdapter implements telamin.fluxtion.audit.analyser.analyser.llm.AppControl {
 
+        @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult follow(boolean on) {
+            if (on && loadInFlight)
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Follow was not started: a log is still opening; wait for context.graphPairing.loading to clear");
+            if (on && (store == null || !store.supportsFollow() || followPath == null))
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Not following: this reader cannot follow. Open a heap-loaded local file; the Follow toolbar control shows availability.");
+            setFollowing(on);
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", Map.of("following", following));
+        }
+
+
         @Override public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openDesign(String path) {
             return openDesign(path, () -> true);
         }
@@ -5736,6 +5746,8 @@ public final class MainFrame extends JFrame {
             Map<String, Object> log = facts.logAsMap();
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
+            log.put("following", following);
+            log.put("supportsFollow", store != null && store.supportsFollow() && followPath != null && !loadInFlight);
             if (store != null && store.trailingRecordsPending() >= 0) {
                 log.put("trailingRecordsPending", store.trailingRecordsPending());
                 if (store.trailingRecordsPending() > 0) log.put("pendingNote", store.trailingRecordsPending() + " trailing record(s) pending — awaiting complete separator lines");

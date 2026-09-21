@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Assistants can start/stop the existing Follow control with standalone `open {follow: true|false}`; unsupported or still-loading readers refuse.
+
 ### Fixed
 - Follow-capable YAML files keep unterminated records pending from initial open, disclose the pending
   count and wait for a complete separator line; a quiet interval never completes a record.

@@ -1,0 +1,11 @@
+{
+  "mutation": "Stop instead of starting Follow through the assistant adapter",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "assistantFollowEchoAndHumanControlsAgree(Path)",
+      "failure": "expected: <true> but was: <false>"
+    }
+  ],
+  "restored": true
+}

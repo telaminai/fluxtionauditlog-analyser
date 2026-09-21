@@ -245,6 +245,7 @@ public final class PromptBuilder {
                 + "  open   {log | logs[], graphml?, processor?, format?, provenance?, design?, diagnostics?} -> open an audit log and/or a\n"
                 + "          processor graph; {discover: \"graphml\"} lists candidate graphs and opens nothing;\n"
                 + "          {project} applies a project (a session boundary: log and graph close); {analysis, bind?}\n"
+                + "          {follow: true|false} starts/stops Follow on a loaded supported reader; use alone after loading.\n"
                 + "          {restore: last} explicitly accepts the offered session; {restore: dismiss} declines it. Use alone.\n"
                 + "          recalls a saved analysis; {close: log|graph|all|project|handoff} closes.\n"
                 + "          THE SHARED CANVAS, which you and the person both see (read it in context.handoff):\n"

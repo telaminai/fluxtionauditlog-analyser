@@ -162,3 +162,17 @@ Validation: full headless suite, the targeted real-frame test, updated follow te
 No quiet acceptance, provisional record or delimiter rewriting added. The file framing change is intentional:
 an unterminated heap-loaded file's final record is pending even before Follow is enabled.
 Counts: analyser **8 → 7 open** (D6), upstream **8 → 8 open**.
+
+## TA-7 — completed
+
+Frozen prediction: standalone Follow changes the actual timer and both human controls; a person can
+stop it, unsupported readers refuse, and mixed operations cannot silently follow the previous log.
+**Held.** `PairingDuringLoadFrameTest.assistantFollowEchoAndHumanControlsAgree` drives the real frame
+on constructed local files, including an in-flight open and a rolled-reader negative control.
+`context.log.following` and `supportsFollow` mirror toolbar/menu state; documented in the FAQ.
+
+Mutation: force the adapter to stop instead of starting. The echo assertion fails
+`expected: <true> but was: <false>`; [witness](evidence/tool-agreement-2026-09-21/ta7-mutation.json).
+The first witness collector rejected the test's `(Path)` suffix; the collector was corrected and the
+mutation repeated. Both executions failed the intended assertion. Restored display test and full
+headless suite pass; strict docs pass. No new verb. Counts unchanged: **analyser 7, upstream 8 open**.

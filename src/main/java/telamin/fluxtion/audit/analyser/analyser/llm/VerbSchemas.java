@@ -235,6 +235,7 @@ public final class VerbSchemas {
                         + "things of the SHARED CANVAS in force — the session's posture and the authoring mode "
                         + "selector's record (posture / record below; read them back in context.handoff).",
                 props(
+                        p("follow", bool(), "Start or stop Follow on the loaded log. Use alone after opening completes; unsupported readers refuse. Echo and toolbar show actual state."),
                         p("restore", enumStr("last", "dismiss"), "Accept this project's explicit last-session offer. Use alone; verifies saved inputs and reports partial refusals in context.restoration. Never runs the application."),
                         p("log", string(), "path to an audit log, or an s3:// URI"),
                         p("design", string(), "Session XML design under an authorised source root; read-only. Relationship to a loaded run is unverified."),

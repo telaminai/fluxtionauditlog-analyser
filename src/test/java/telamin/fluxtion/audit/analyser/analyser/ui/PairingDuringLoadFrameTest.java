@@ -38,6 +38,56 @@ class PairingDuringLoadFrameTest {
                 + "<jGraph:Style properties=\"NODE\"/></jGraph:ShapeNode></data></node>\n</graph></graphml>\n";
     }
 
+    /** Constructed file and rolled-reader negative control, driven through the real open verb. */
+    @Test
+    void assistantFollowEchoAndHumanControlsAgree(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path audit = Files.writeString(tmp.resolve("follow.yaml"), log("rootNode"));
+        Path other = Files.writeString(tmp.resolve("other.yaml"), log("rootNode"));
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            var ex = executorOf(frame.get());
+            var field = MainFrame.class.getDeclaredField("followButton"); field.setAccessible(true);
+            var button = (javax.swing.JToggleButton)field.get(frame.get());
+            onEdt(() -> {
+                assertFalse(ex.render("open", Map.of("follow", true)).ok());
+                render(ex, "open", Map.of("log", audit.toString()));
+                assertFalse(ex.render("open", Map.of("follow", true)).ok(), "pending open cannot follow the old reader");
+            });
+            awaitLoaded(ex);
+            onEdt(() -> {
+                assertEquals(true, find(render(ex, "open", Map.of("follow", true)), "following"));
+                assertTrue(button.isSelected());
+                assertTrue(menuItem(frame.get(), "followMenuItem").isSelected());
+                assertEquals(true, find(render(ex, "context", Map.of()), "following"));
+                assertFalse(ex.render("open", Map.of("follow", "true")).ok());
+                assertFalse(ex.render("open", Map.of("follow", false, "posture", "research")).ok());
+                assertTrue(button.isSelected(), "mixed call must not partially apply");
+                button.doClick(); // person can still stop it
+                assertEquals(false, find(render(ex, "context", Map.of()), "following"));
+                render(ex, "open", Map.of("follow", true));
+                assertEquals(false, find(render(ex, "open", Map.of("follow", false)), "following"));
+                assertFalse(button.isSelected());
+                render(ex, "open", Map.of("logs", List.of(audit.toString(), other.toString())));
+            });
+            awaitLoaded(ex);
+            onEdt(() -> {
+                var refusal = ex.render("open", Map.of("follow", true));
+                assertFalse(refusal.ok());
+                assertTrue(refusal.error().contains("Not following"));
+                assertFalse(button.isSelected());
+                assertEquals(false, find(render(ex, "context", Map.of()), "following"));
+                assertEquals(false, find(render(ex, "context", Map.of()), "supportsFollow"));
+            });
+        } finally {
+            if (frame.get() != null) onEdt(() -> { try { executorOf(frame.get()).render("open", Map.of("follow", false)); } catch (Exception e) { throw new RuntimeException(e); } frame.get().dispose(); });
+            System.setProperty("user.home", home);
+        }
+    }
+
     @Test
     void pendingTrailingRecordIsVisibleInContextAndFollowStatus(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");

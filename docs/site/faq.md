@@ -104,3 +104,8 @@ link always point at the latest. The app shows a **what's new** note the first t
 | **Alt+Left** (or ⌘/Ctrl+`[`) | Source view: back to the previous file |
 | **Ctrl/⌘-click** | Source view: navigate to the identifier under the cursor |
 | **Enter** (search box) | Remember the search term |
+
+An assistant can use `open {follow: true}` after a local log finishes loading, or
+`open {follow: false}` to stop. Use this parameter alone. Unsupported readers refuse;
+`context.log.following` and `supportsFollow` mirror the Follow toolbar/menu state.
+The person can stop Follow using either control.

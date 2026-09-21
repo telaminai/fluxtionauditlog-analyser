@@ -88,8 +88,15 @@ after review:** the first version reversed the two fixture fingerprints (source 
   pending-status test checks context and Follow. Disabling terminator enforcement fails the new test
   and the existing append control. Restored full suite and strict docs pass. D6 closed: analyser 7,
   upstream 8 open. [Evidence](../handoff/report_tool_agreement_2026_09_21.md#ta-6--completed).
-- **[TA-7] ☐ — assistant can start Follow via `open {follow: true}`** (no new verb without approval) · _echo
+- **[TA-7] ☑ — assistant can start Follow via `open {follow: true}`** (no new verb without approval) · _echo
   and toolbar agree; a reader without follow support never echoes Follow as active._
+  **Frozen prediction:** standalone `open {follow: true}` on a loaded local file starts the actual timer
+  and selects both human controls; false stops it. A rolled reader and an in-flight open refuse start.
+  Mixed open operations refuse rather than silently attaching to the previous file. Forcing the adapter
+  to stop instead of start fails the real-frame echo/control test. Counts before: analyser 7, upstream 8.
+  **Result:** held. `PairingDuringLoadFrameTest.assistantFollowEchoAndHumanControlsAgree` passes; forcing
+  stop makes the expected-true echo assertion fail. Full suite green; restored display test green.
+  Counts unchanged, 7/8. [Witness](../handoff/evidence/tool-agreement-2026-09-21/ta7-mutation.json).
 - **[TA-8] ☐ — ergonomics A2–A5, A10–A12** · _routed per the spec's table._
 - **[TA-9] ☐ — analyser half of "Authoritative dispatch metadata (34)"** · _blocked on producer metadata;
   the analyser never infers the hierarchy. `desk-quote-supertype.graphml` is the before case: hierarchy shown as

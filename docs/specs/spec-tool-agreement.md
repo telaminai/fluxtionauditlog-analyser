@@ -239,6 +239,9 @@ follower that accepts on quiet fails the append-after-pause case.
 
 ### TA-7 · P1 · The assistant can turn Follow on
 
+**Status: ☑ implemented.** Standalone `open {follow: true|false}` after the log finishes opening;
+mixed operations refuse. [Regression and mutation](../handoff/report_tool_agreement_2026_09_21.md#ta-7--completed).
+
 **Evidence.** No verb starts Follow; the person had to click it (A6, §5.7).
 
 **Required.** Use the existing `open` surface: `open {follow: true}`. The verb surface is pinned, so a new
