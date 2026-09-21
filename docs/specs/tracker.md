@@ -49,6 +49,16 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
+### Released — 2026-09-21
+
+PR #4 landed on main by fast-forward at `d1bb7a1a` (no squash or rebase, so the `41b77650` pin stays an
+ancestor); CI 35619600124 and the docs deploy pass. **v1.17.0** released from it (Release run
+35620337212; changelog stamp `fdc9c042`; jar, versioned jar, SHA256SUMS). Playground re-vendored onto
+fluxtion-web main as `89366ff`, carrying `d917a7a` forward with provenance `local@41b77650` (git archive of
+`d1bb7a1a`; the unauthenticated GitHub API was rate-limited); 544 pass / 5 skip, build passes. A fresh
+public `analyser-bundle` download serves it: `run-mongoose-server` differs from the vendored bytes only by
+the three bundle substitutions, with no `TODO(bundle)` left. TA-5b/5c stay open.
+
 ### Re-review intake — 2026-09-21
 
 [Independent re-review](../handoff/rereview_tool_agreement_2026_09_21_opus.md) at `51df9ebd`:
