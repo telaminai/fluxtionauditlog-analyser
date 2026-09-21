@@ -47,8 +47,9 @@ public final class MappedLogStore implements LogStore {
                 if (held[2] != null) offer(tracker, index, (long) held[0], (int) held[1], (String) held[2], false);
                 held[0] = offset; held[1] = length; held[2] = text;
             });
-            if (held[2] != null) offer(tracker, index, (long) held[0], (int) held[1], (String) held[2], eof);
-            includesEofRecord = eof;
+            boolean lastIndexed = held[2] == null
+                    || offer(tracker, index, (long) held[0], (int) held[1], (String) held[2], eof);
+            includesEofRecord = eof && lastIndexed;
         }
         this.streamEnd = tracker.resolve();
         this.readIdentity = capture.finish();
@@ -56,11 +57,19 @@ public final class MappedLogStore implements LogStore {
     }
 
     /** @see HeapLogStore#offer — an unterminated final item is never a marker (§1a). */
-    private static void offer(StreamEndTracker tracker, LogIndex index, long offset, int length,
-                              String text, boolean unterminated) {
-        if (unterminated) tracker.acceptRecord();            // a record, but never a marker (§1a)
-        else if (!tracker.accept(text)) return;              // the marker itself: not a record
+    private static boolean offer(StreamEndTracker tracker, LogIndex index, long offset, int length,
+                                 String text, boolean unterminated) {
+        if (unterminated) {
+            if (StreamEndMarker.of(text).isPresent()) {      // §1a rule 1, see HeapLogStore#offer
+                tracker.unterminatedMarker();
+                return false;
+            }
+            tracker.acceptRecord();
+        } else if (!tracker.accept(text)) {
+            return false;
+        }
         index.add(RecordParser.parse(text, offset, length));
+        return true;
     }
 
     @Override

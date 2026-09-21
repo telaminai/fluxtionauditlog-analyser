@@ -122,6 +122,40 @@ class StreamEndTest {
         assertFalse(store.streamEnd().isKnownComplete());
     }
 
+    /**
+     * §1a's whitespace rule — space, tab, CR, LF, and nothing else. Round six found it pinned NOWHERE,
+     * and the README claiming otherwise; the only reason a non-breaking space behaved was that Java's
+     * {@code strip()} happens not to treat it as whitespace. Three different notions of whitespace were
+     * in use, and five of the resulting disagreements claimed completeness a conforming reader would not.
+     */
+    @Test
+    void onlyAsciiWhitespaceSurroundsAKeyOrAValue() {
+        for (String ws : new String[]{"\u00a0", "\f", "\u000b", "\u2003", "\u3000"}) {
+            assertTrue(StreamEndMarker.of("eventLogRecord:\n" + ws
+                            + "streamEnd: normal\n  streamEndRecords: 1\n").isEmpty(),
+                    "U+" + Integer.toHexString(ws.charAt(0)) + " before a key is content, not whitespace");
+            var counted = StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n"
+                    + "  streamEndRecords: 3" + ws + "\n");
+            assertTrue(counted.isPresent());
+            assertEquals(-1, counted.get().records(),
+                    "U+" + Integer.toHexString(ws.charAt(0)) + " in a count is not a digit and not space");
+        }
+        for (String ws : new String[]{" ", "\t"}) {
+            assertTrue(StreamEndMarker.of("eventLogRecord:\n" + ws
+                    + "streamEnd: normal\n  streamEndRecords: 1\n").isPresent(), "ASCII space is space");
+        }
+    }
+
+    /** §1a: the value is stripped AFTER extraction, quoted or not, so a quoted count may be padded. */
+    @Test
+    void aQuotedCountIsStrippedLikeAnyOther() {
+        for (String v : new String[]{"\" 3\"", "\"3 \"", "\"\t3\"", "' 3'"}) {
+            var m = StreamEndMarker.of("eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: "
+                    + v + "\n").orElseThrow();
+            assertEquals(3, m.records(), "the published text strips before applying the digit rule: " + v);
+        }
+    }
+
     @Test
     void aMarkerWhoseCountMatchesIsComplete() {
         StreamEnd e = StreamEnd.declared(25, 25);
@@ -304,6 +338,21 @@ class StreamEndTest {
         assertTrue(d.contains("holds no records at all"), () -> d);
         assertFalse(d.matches("(?s).*records 2 to 1.*"), () -> "a backwards range: " + d);
         assertTrue(store.streamEnd().segment().isEmpty());
+    }
+
+    /**
+     * Round six S-5: the "and N other runs" clause was dropped by a mutation and nothing failed. Every
+     * failing run reaches `context`, but a person reading the sentence must be told there are more.
+     */
+    @Test
+    void theSentenceSaysHowManyOtherRunsAlsoFailed() {
+        String bad1 = file(REC, REC, REC, String.format(MARKER, 5));
+        String bad2 = file(REC, REC, String.format(MARKER, 9));
+        var store = new HeapLogStore(bad1 + bad2);
+        assertEquals(2, store.streamEnd().runs().size());
+        String d = store.completenessDiagnostics().get(0);
+        assertTrue(d.contains("1 other run"), () -> "a reader must know there are more: " + d);
+        assertTrue(d.contains("`context` lists them"), () -> d);
     }
 
     @Test

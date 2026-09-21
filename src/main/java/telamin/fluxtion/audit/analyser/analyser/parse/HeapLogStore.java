@@ -62,9 +62,10 @@ public final class HeapLogStore implements LogStore {
             if (!held.isEmpty()) offer(held.poll(), false);
             held.add(raw);
         }, requireTerminator);
-        if (!held.isEmpty()) offer(held.poll(), eof && !requireTerminator);
+        boolean lastIndexed = held.isEmpty() || offer(held.poll(), eof && !requireTerminator);
         this.trailingPending = eof && requireTerminator;
-        this.includesEofRecord = eof && !requireTerminator;
+        // A held-back marker is not a trailing RECORD, so this snapshot has no EOF record to reload for.
+        this.includesEofRecord = eof && !requireTerminator && lastIndexed;
         this.streamEnd = tracker.resolve();
         if (trailingPending) streamEnd = pendingOverride(streamEnd, index.size());
     }
@@ -79,10 +80,21 @@ public final class HeapLogStore implements LogStore {
      *                     "the marker is wrong, 12 were read", and a finished-but-unterminated marker
      *                     made follow and a fresh load of identical bytes disagree for ever.
      */
-    private void offer(RawRecord raw, boolean unterminated) {
-        if (unterminated) tracker.acceptRecord();            // a record, but never a marker (§1a)
-        else if (!tracker.accept(raw.text())) return;        // the marker itself: not a record
+    private boolean offer(RawRecord raw, boolean unterminated) {
+        if (unterminated) {
+            // §1a rule 1: an unterminated final item is never a claim. If it LOOKS like a marker it is
+            // held back and explained rather than indexed — round six asked for that, because otherwise
+            // the first real export with a marker shows an unexplained empty row and says nothing.
+            if (StreamEndMarker.of(raw.text()).isPresent()) {
+                tracker.unterminatedMarker();
+                return false;
+            }
+            tracker.acceptRecord();                          // an ordinary record, but never a marker
+        } else if (!tracker.accept(raw.text())) {
+            return false;                                    // the marker itself: not a record
+        }
         index.add(RecordParser.parse(raw.text(), raw.offset()));
+        return true;
     }
 
     /**

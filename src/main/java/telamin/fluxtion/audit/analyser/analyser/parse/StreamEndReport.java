@@ -43,6 +43,13 @@ public final class StreamEndReport {
         if (end.state() == StreamEnd.State.COMPLETE) return null;
         // D-E7: an unknown FILE may still contain a run that proved it lost records. Silence about the
         // file is right; silence about the proof is not.
+        if (end.state() == StreamEnd.State.UNTERMINATED_MARKER) {
+            return logName + " ends with a stream-end marker that has no closing --- separator, so its "
+                    + "claim is unfinished and completeness is unknown. A writer MUST terminate its "
+                    + "marker (format specification 1a): until it does, a file that has finished and one "
+                    + "still being written are the same bytes. The marker is not shown as a record."
+                    + (end.runs().isEmpty() ? "" : " " + runsSentence(end.runs()));
+        }
         if (end.state() == StreamEnd.State.UNKNOWN) {
             return end.runs().isEmpty() ? null : logName + " does not say whether it is whole - it carries "
                     + "records after its last marker. " + runsSentence(end.runs()) + " That much is proven "
@@ -116,6 +123,26 @@ public final class StreamEndReport {
                                 + " of " + of + " in that file)");
     }
 
+    /**
+     * Row positions, in the ONE numbering every verb accepts — the open log's — with the file's own
+     * pair beside them when they differ.
+     *
+     * <p>A-6 fixed this for a run and round six found the same numbers unshifted two keys away, under
+     * identical names. The conversion lives here and nowhere else, so a third surface cannot get it
+     * wrong by omission; an empty run has no positions to give and gets none.
+     */
+    private static void putRows(Map<String, Object> scope, long first, long last, boolean empty,
+                                long shift, StreamEnd.Member member) {
+        if (empty) return;
+        scope.put("firstRecord", first + shift);
+        scope.put("lastRecord", last + shift);
+        if (member != null) {
+            scope.put("inFile", member.file());
+            scope.put("firstRecordInFile", first);
+            scope.put("lastRecordInFile", last);
+        }
+    }
+
     /** How far a member's own row numbers sit into the whole log; zero for a single file. */
     private static long rowShift(StreamEnd end) {
         return end.member() == null ? 0 : end.member().firstRowInLog();
@@ -158,10 +185,10 @@ public final class StreamEndReport {
                 Map<String, Object> one = new LinkedHashMap<>();
                 one.put("ordinal", r.ordinal());
                 one.put("state", r.state().name().toLowerCase(Locale.ROOT));
-                if (!r.isEmpty()) {
-                    one.put("firstRecord", r.firstRecord());
-                    one.put("lastRecord", r.lastRecord());
-                }
+                // Round six S-3: these were the MEMBER's own row numbers, sitting in the same payload,
+                // under the same key names, as `member.run`'s set rows — with no file named. Following
+                // them landed in a different file's run, which was whole. One conversion point now.
+                putRows(one, r.firstRecord(), r.lastRecord(), r.isEmpty(), rowShift(end), end.member());
                 if (r.declaredRecords() >= 0) one.put("declaredRecords", r.declaredRecords());
                 one.put("recordsRead", r.emittedRecords());
                 bad.add(one);
@@ -180,17 +207,7 @@ public final class StreamEndReport {
         }
         Map<String, Object> run = new LinkedHashMap<>();
         run.put("ordinal", seg.ordinal());
-        if (!seg.isEmpty()) {                        // an empty run has no positions to give
-            // A-6: `firstRecord`/`lastRecord` are ALWAYS indexes into the open log, because that is what
-            // `read` and `goto` take. Inside a set the member-local pair is kept beside them, labelled.
-            long shift = rowShift(end);
-            run.put("firstRecord", seg.firstRecord() + shift);
-            run.put("lastRecord", seg.lastRecord() + shift);
-            if (shift != 0) {
-                run.put("firstRecordInFile", seg.firstRecord());
-                run.put("lastRecordInFile", seg.lastRecord());
-            }
-        }
+        putRows(run, seg.firstRecord(), seg.lastRecord(), seg.isEmpty(), rowShift(end), end.member());
         if (end.declaredRecords() >= 0) run.put("declaredRecords", end.declaredRecords());
         run.put("recordsRead", end.emittedRecords());
         scope.put("run", run);

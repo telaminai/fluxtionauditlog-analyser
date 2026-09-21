@@ -75,7 +75,10 @@ public interface LogStore extends AutoCloseable {
 
     /** True when {@link #completenessDiagnostics()} states a limit rather than reporting a fault. */
     default boolean completenessIsNote() {
-        return streamEnd().state() == StreamEnd.State.UNKNOWN;
+        // Round six S-1: this was state == UNKNOWN alone, so a proven loss followed by one more record
+        // became a NOTE and lost its warning, while the same loss without that record warned. §1a says
+        // the failed run MUST still be reported; a run that is reported without a warning is not.
+        return streamEnd().state() == StreamEnd.State.UNKNOWN && streamEnd().runs().isEmpty();
     }
 
     /**

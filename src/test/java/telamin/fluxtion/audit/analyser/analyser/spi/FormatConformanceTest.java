@@ -71,8 +71,16 @@ class FormatConformanceTest {
         @Override public boolean canOpen(Path source) { return true; }
         @Override public TimeBase timeBase() { return TimeBase.wallClockMillisUtc(); }
         @Override public Capabilities capabilities() { return new Capabilities(false, false, true, ordering); }
+        /**
+         * §1a rule 1 is the PLUGIN's duty, and this reader is a plugin.
+         *
+         * <p>It handed an unterminated final marker over as an ordinary item, so the SPI path called the
+         * file complete while the built-in reader said the claim was unfinished. The store above cannot
+         * fix that — a plugin yields items one at a time, and nothing above it can see where the
+         * container ended. Withholding it here is what every plugin over a text container must do.
+         */
         @Override public void read(Path source, Consumer<String> out) throws IOException {
-            RecordFramer.frame(Files.readString(source), raw -> out.accept(raw.text()));
+            RecordFramer.frameForPlugin(Files.readString(source), raw -> out.accept(raw.text()));
         }
     }
 
@@ -117,6 +125,25 @@ class FormatConformanceTest {
         }
         assertEquals(a.index().minLogTime(), b.index().minLogTime(), name + ": timeline start");
         assertEquals(a.index().maxLogTime(), b.index().maxLogTime(), name + ": timeline end");
+        // Round six S-4: this compared records and never compared what the two paths SAY about the
+        // container, so the reference plugin read six files as complete where the built-in reader said
+        // the claim was unfinished and nothing failed. Completeness is part of "the two paths agree".
+        // Neither path may ever claim more than the other. That is the safety property, and it is exact.
+        assertEquals(a.streamEnd().isKnownComplete(), b.streamEnd().isKnownComplete(),
+                name + ": one path claims completeness and the other does not");
+        // States may differ in PRECISION in exactly one way, and only in the safe direction. The
+        // built-in reader sees the bytes and can say "unterminated marker"; a plugin yields items one at
+        // a time and, having withheld that item under §1a rule 1, can only report "unknown" — it has no
+        // way to say WHY. That is an SPI gap, filed as AF-10, not a licence to disagree: every other
+        // combination fails here.
+        boolean plugInIsLessPrecise =
+                a.streamEnd().state() == telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNTERMINATED_MARKER
+                        && b.streamEnd().state() == telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN;
+        if (!plugInIsLessPrecise) {
+            assertEquals(a.streamEnd().state(), b.streamEnd().state(), name + ": completeness state");
+            assertEquals(a.completenessDiagnostics(), b.completenessDiagnostics(),
+                    name + ": what each path says about completeness");
+        }
         return a;
     }
 
@@ -462,7 +489,7 @@ class FormatConformanceTest {
                     "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
                     "c17-legacy-quotes.yaml", "c18-stream-end.yaml", "c19-export-layout.yaml",
                     "c20-marker-lookalike.yaml", "c21-real-export.yaml", "c22-marker-syntax.yaml",
-                    "c23-marker-values.yaml"), names,
+                    "c23-marker-values.yaml", "c24-unterminated-marker.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -621,6 +648,33 @@ class FormatConformanceTest {
                 s.streamEnd().state(), "a record follows the last marker");
         assertEquals(1, s.streamEnd().runs().size(),
                 "and the negative count is still reported as an unverified run");
+    }
+
+    /**
+     * C24 — §1a rule 1, and the reason it has to be a FIXTURE rather than a unit test.
+     *
+     * <p>A marker with no closing separator is not a claim. The file is the exact shape the Mongoose
+     * exporter produces today with a marker appended: separators between documents and nothing after the
+     * last. Round six found the SPI path reading six such files as COMPLETE where the built-in reader
+     * said the claim was unfinished — a plugin hands items over one at a time, so applying the rule is
+     * the PLUGIN's duty and nothing above it can do the job. {@code bothPathsAgree} is what makes that
+     * checkable, and this fixture is what makes it fail when a plugin forgets.
+     */
+    @Test
+    void c24_anUnterminatedMarkerIsNotAClaimOnEitherPath() throws IOException {
+        LogStore s = bothPathsAgree("c24-unterminated-marker.yaml");
+        assertEquals(2, s.size(), "the marker is held back, not shown as an unexplained empty row");
+        // The plugin path withholds it too — the count matches above — but cannot say why (AF-10).
+        assertFalse(viaSpi("c24-unterminated-marker.yaml").streamEnd().isKnownComplete(),
+                "what must never differ is whether completeness is claimed");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNTERMINATED_MARKER,
+                s.streamEnd().state());
+        assertFalse(s.streamEnd().isKnownComplete(), "an unfinished claim is not a claim");
+        assertEquals(1, s.completenessDiagnostics().size());
+        assertTrue(s.completenessDiagnostics().get(0).contains("no closing ---"),
+                s.completenessDiagnostics().get(0));
+        assertTrue(s.completenessDiagnostics().get(0).contains("writer MUST terminate"),
+                () -> "it must name whose job it is: " + s.completenessDiagnostics().get(0));
     }
 
     @Test

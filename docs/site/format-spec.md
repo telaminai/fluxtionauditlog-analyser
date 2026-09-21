@@ -27,6 +27,9 @@ The key words MUST, SHOULD and MAY are used as in RFC 2119.
   filter, `read`, report quoting — works on that text, so it MUST be complete: a record with no text
   form is not a record.
 - Records are consumed **in container order**. The analyser never re-sorts.
+- A **reader plugin** that hands over an unterminated final item MUST apply §1a's termination rule
+  itself, because the analyser cannot see where a plugin's items ended. A plugin over a text container
+  should withhold such an item exactly as the built-in reader does.
 
 ### 1a. Saying the file is whole (Format 1.1, additive)
 
@@ -50,8 +53,15 @@ is wrong"**, a fabricated verdict about a file that was simply still being writt
 a live reader and a fresh read of identical bytes disagree for ever about whether the file was complete.
 
 The terminator is what makes the claim atomic: until it is there, nothing has been claimed. An
-unterminated final record is an ordinary record in a static read and a *pending* record in a live read. It
-is never evidence about completeness in either.
+unterminated final record that does not look like a marker is an ordinary record in a static read and a
+*pending* record in a live read. One that DOES look like a marker is neither: a reader SHOULD hold it back
+and report **unterminated marker**, rather than showing an empty row nothing explains.
+
+**The price, stated plainly.** A file whose writer has genuinely finished reads as **unknown** until that
+writer emits one more separator. That is the cost of removing the ambiguity, and it is paid by producers
+rather than readers. It is one line in a producer: write the separator after the marker as well as
+between records. A trailing separator has always been legal under §1, and every existing reader accepts
+one, including released 1.17.0.
 
 A marker record carries **nothing else** but, optionally, its own `logTime`. A record that also names an
 `event`, carries `nodeLogs`, or holds any other key is a **record**, whatever it says about `streamEnd` —
@@ -146,6 +156,7 @@ restarts — are therefore two segments, each checked against its own marker, an
 | a marker claims fewer records than precede it | **more records than declared** — the marker is wrong, or it is not an end |
 | a marker carries no readable count | **unverified**: an end is claimed and nothing backs it |
 | no marker, or records after the last one | **unknown whether complete** |
+| ends with a marker that has no closing `---` | **unterminated marker** — the claim is unfinished; the marker is not shown as a record |
 
 **Precedence, when more than one row applies.** Records after the last marker make the FILE unknown:
 nothing vouches for the tail. But a run that already failed its own count has already proved it, and a

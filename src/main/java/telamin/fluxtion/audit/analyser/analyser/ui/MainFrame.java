@@ -3295,8 +3295,8 @@ public final class MainFrame extends JFrame {
      * human, and a modal in the load path is the defect M35.7 closed.
      */
     /** The completeness state the follow tick last told a person about (round five A-2). */
-    private telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State followStreamEndState =
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN;
+    private telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd followStreamEnd =
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.unknown(0);
     private telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerDiagnostics =
             telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.clean();
 
@@ -4145,9 +4145,9 @@ public final class MainFrame extends JFrame {
         // so `context.streamEnd` said "missing_records" to an agent while the person watching the file
         // was shown nothing at all. The completeness state is re-read on every tick and the human
         // surfaces are refreshed when it moves, whether or not any record came with it.
-        var endState = store.streamEnd().state();
-        if (followNeedsDiagnosticRefresh(followStreamEndState, endState, added)) {
-            followStreamEndState = endState;
+        var end = store.streamEnd();
+        if (followNeedsDiagnosticRefresh(followStreamEnd, end, added)) {
+            followStreamEnd = end;
             producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                     .of(store.index(), store::rawText, store.sourceDiagnostics(),
                             store.completenessDiagnostics(), store.completenessIsNote());
@@ -4199,9 +4199,14 @@ public final class MainFrame extends JFrame {
      * <p>Kept pure so it is testable: rule 4 keeps the tick itself out of the headless suite.
      */
     static boolean followNeedsDiagnosticRefresh(
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State before,
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State after, int added) {
-        return added > 0 || before != after;
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd before,
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd after, int added) {
+        // Round six S-2: comparing only the STATE missed a verdict that gained a failing run while
+        // staying UNKNOWN — a live read learning that an earlier run lost records. The store reported
+        // it, `context` listed it, and the tooltip stayed empty. Compare what is reported, not a label.
+        return added > 0
+                || before.state() != after.state()
+                || !before.runs().equals(after.runs());
     }
 
     /**

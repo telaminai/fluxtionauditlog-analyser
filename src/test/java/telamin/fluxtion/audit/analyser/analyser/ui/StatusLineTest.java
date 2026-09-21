@@ -134,6 +134,45 @@ class StatusLineTest {
         }
     }
 
+    // ---- what makes a follow tick refresh the human surfaces --------------------------------------
+
+    /**
+     * Round six S-2. The predicate compared only the STATE, so a live read that learned an earlier run
+     * had lost records — state UNKNOWN before and after, runs 0 then 1 — refreshed nothing. The store
+     * reported the loss and `context` listed it while the tooltip stayed empty: the exact split between
+     * an agent's surface and a person's that this contract exists to prevent.
+     */
+    @Test
+    void aVerdictThatGainsAFailingRunRefreshesEvenWithNoNewRecords() {
+        var before = StreamEnd.unknown(3);
+        var after = StreamEnd.unknown(3).withRuns(java.util.List.of(
+                new StreamEnd.Run(1, 0, 2, StreamEnd.State.MISSING_RECORDS, 5, 3)));
+
+        assertEquals(before.state(), after.state(), "the state is identical — that was the trap");
+        assertTrue(MainFrame.followNeedsDiagnosticRefresh(before, after, 0),
+                "a proven loss arrived and nobody was told");
+    }
+
+    @Test
+    void anUnchangedVerdictWithNoNewRecordsRefreshesNothing() {
+        var same = StreamEnd.unknown(3);
+        assertFalse(MainFrame.followNeedsDiagnosticRefresh(same, same, 0),
+                "a quiet tick must not rebuild diagnostics on every poll");
+    }
+
+    @Test
+    void newRecordsAlwaysRefresh() {
+        assertTrue(MainFrame.followNeedsDiagnosticRefresh(
+                StreamEnd.unknown(3), StreamEnd.unknown(4), 1));
+    }
+
+    @Test
+    void theArrivalOfAMarkerRefreshes() {
+        assertTrue(MainFrame.followNeedsDiagnosticRefresh(
+                StreamEnd.unknown(3), StreamEnd.declared(3, 3), 0),
+                "the last thing a writer does is emit its marker, and it adds no records");
+    }
+
     @Test
     void theNoteNeverDisplacesWhatWasAlreadyThere() {
         String line = MainFrame.statusText(25, "10:00 → 10:05 UTC", "DEMO  (demo.yaml)", true,

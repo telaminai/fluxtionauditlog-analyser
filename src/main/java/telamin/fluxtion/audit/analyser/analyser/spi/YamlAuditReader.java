@@ -57,11 +57,20 @@ public final class YamlAuditReader implements AuditLogReader {
         return new Capabilities(true, true, true);
     }
 
+    /**
+     * The generic path — used only if someone routes a text file through {@code SpiLogStore}; the
+     * registry sends text files to the thresholded Heap/Mapped stores instead.
+     *
+     * <p><b>§1a rule 1 is the PLUGIN's duty, not the store's.</b> A plugin hands items over one at a
+     * time, so nothing above it can tell where the container ended or whether the last item closed.
+     * Round six found this reader handing over an unterminated final marker as an ordinary item, so the
+     * SPI path read six files as complete where the built-in reader said the claim was unfinished — and
+     * that breaks the conformance suite's promise that the two paths agree. An unterminated final item
+     * is withheld here, exactly as {@code requireTerminator} withholds it in the built-in framer.
+     */
     @Override
     public void read(Path source, Consumer<String> recordText) throws IOException {
-        // the generic path — used only if someone routes a text file through SpiLogStore; the
-        // registry sends text files to the thresholded Heap/Mapped stores instead
-        RecordFramer.frame(Files.readString(source, StandardCharsets.UTF_8),
+        RecordFramer.frameForPlugin(Files.readString(source, StandardCharsets.UTF_8),
                 raw -> recordText.accept(raw.text()));
     }
 }

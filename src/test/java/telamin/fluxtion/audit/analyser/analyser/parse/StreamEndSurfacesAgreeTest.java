@@ -147,6 +147,28 @@ class StreamEndSurfacesAgreeTest {
         }
     }
 
+    /**
+     * Round six S-1. A proven loss followed by one more record was classed as a plain STATEMENT and lost
+     * its warning, while the identical loss without that record warned. §1a says the failed run MUST be
+     * reported, and a report nobody is shown is not one.
+     */
+    @Test
+    void aProvenLossIsNeverDowngradedToAPlainStatement() throws IOException {
+        Path p = Files.createTempFile("note", ".yaml");
+        Files.writeString(p, file(3, 9), StandardCharsets.UTF_8);          // declares 9, holds 3
+        try (LogStore closed = HeapLogStore.fromFile(p)) {
+            assertFalse(closed.completenessIsNote(), "a loss on its own is a fault");
+        }
+        // the same loss, with one more record after the marker: the FILE becomes unknown, the loss stands
+        Files.writeString(p, file(3, 9) + String.format(REC, 2000) , StandardCharsets.UTF_8);
+        try (LogStore open = HeapLogStore.fromFile(p)) {
+            assertEquals(StreamEnd.State.UNKNOWN, open.streamEnd().state());
+            assertEquals(1, open.streamEnd().runs().size(), "the proof survives");
+            assertFalse(open.completenessIsNote(),
+                    "and it must still be a fault: this became a note and stopped warning");
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> asMap(Object o) {
         assertNotNull(o, "expected a nested scope");

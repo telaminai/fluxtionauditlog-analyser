@@ -29,6 +29,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - A log read through a reader plugin, or followed as it grows, shows its completeness verdict to the
   person at the screen as well as to an assistant.
 - A log file saved with a byte-order mark reads its stream-end marker correctly.
+- A file that ends with a stream-end marker its writer never terminated is reported as exactly that,
+  and the unfinished marker is not shown as a record. Producers must write the separator after their
+  marker; until they do, completeness is unknown rather than guessed at.
 - Inside a rolled set, a verdict about one run reports the rows `read` and `goto` accept — the whole
   set's numbering — with that file's own numbering kept beside it.
 

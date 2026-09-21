@@ -71,6 +71,31 @@ public final class RecordFramer {
         return recStart >= 0;
     }
 
+    /**
+     * Frame a text container for a reader PLUGIN — everything except an unterminated final marker.
+     *
+     * <p>§1a rule 1 says a stream-end marker only counts once its {@code ---} is there, and applying
+     * that is the plugin's job: a plugin yields items one at a time, so nothing above it can see where
+     * the container ended. Round six found the reference reader handing an unterminated marker over as
+     * an ordinary item, and the SPI path then called six files complete where the built-in reader said
+     * the claim was unfinished.
+     *
+     * <p>The rule is narrow on purpose. An unterminated final item that is NOT marker-shaped is an
+     * ordinary record and is emitted — the commonest real export ends exactly that way, and withholding
+     * it would lose a record. Only a final item that would otherwise be read as a completeness claim is
+     * held back. Plugin authors should call this rather than re-deriving it.
+     */
+    public static void frameForPlugin(String file, Consumer<RawRecord> sink) {
+        java.util.ArrayDeque<RawRecord> held = new java.util.ArrayDeque<>(1);
+        boolean eof = frameWithPending(file, raw -> {
+            if (!held.isEmpty()) sink.accept(held.poll());
+            held.add(raw);
+        }, false);
+        if (held.isEmpty()) return;
+        RawRecord last = held.poll();
+        if (!(eof && StreamEndMarker.of(last.text()).isPresent())) sink.accept(last);
+    }
+
     private static void emit(String file, int start, int end, Consumer<RawRecord> sink) {
         // trim a single trailing newline/whitespace run but keep the record's own content intact
         int e = end;

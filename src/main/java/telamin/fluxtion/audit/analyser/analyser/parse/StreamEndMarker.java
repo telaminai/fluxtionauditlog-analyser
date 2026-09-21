@@ -99,8 +99,30 @@ public record StreamEndMarker(String reason, long records) {
      * there is no reason to leave it.
      */
     private static String strip(String line) {
-        String t = line.strip();
-        return t.isEmpty() || t.charAt(0) != '﻿' ? t : t.substring(1).strip();
+        String t = asciiStrip(line);
+        return t.isEmpty() || t.charAt(0) != '﻿' ? t : asciiStrip(t.substring(1));
+    }
+
+    /**
+     * §1a whitespace: space, tab, CR and LF. Nothing else.
+     *
+     * <p><b>The one helper, used for lines, values and counts alike.</b> Round six measured what three
+     * different notions of whitespace cost: lines used {@link String#strip()}, which removes every
+     * Unicode space, so a form feed or an em space before {@code streamEnd} made a marker the published
+     * text says is not one — and the file read COMPLETE where a conforming reader said unknown. Values
+     * used {@link String#trim()}, which removes every character below U+0021, so a count of {@code 3\f}
+     * was accepted. Five of the ten disagreements went in the unsafe direction: claiming completeness a
+     * conforming reader would not claim. There is now one definition and one function.
+     */
+    private static String asciiStrip(String s) {
+        int a = 0, b = s.length();
+        while (a < b && isSpace(s.charAt(a))) a++;
+        while (b > a && isSpace(s.charAt(b - 1))) b--;
+        return s.substring(a, b);
+    }
+
+    private static boolean isSpace(char c) {
+        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
     }
 
     /**
@@ -134,13 +156,15 @@ public record StreamEndMarker(String reason, long records) {
      * also keeps a {@code #} INSIDE quotes, where it is data rather than a comment.
      */
     private static String value(String rest) {
-        String v = rest.trim();
+        String v = asciiStrip(rest);
         if (v.length() >= 2 && (v.charAt(0) == '"' || v.charAt(0) == '\'')) {
             int close = v.indexOf(v.charAt(0), 1);
-            if (close > 0) return v.substring(1, close);
+            // §1a: the value is stripped AFTER it is extracted, quoted or not — so `"3 "` is the count 3
+            // and agrees with the published text, which round six found it did not.
+            if (close > 0) return asciiStrip(v.substring(1, close));
         }
         int hash = v.indexOf('#');
-        if (hash >= 0) v = v.substring(0, hash).trim();
-        return v;
+        if (hash >= 0) v = v.substring(0, hash);
+        return asciiStrip(v);
     }
 }

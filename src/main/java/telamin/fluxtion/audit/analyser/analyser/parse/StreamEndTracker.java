@@ -37,6 +37,8 @@ public final class StreamEndTracker {
     private long worstFirstRecord = -1;
     /** Every run that did not match its marker, in file order — D-E6, round five A-3. */
     private final java.util.List<StreamEnd.Run> badRuns = new java.util.ArrayList<>();
+    /** §1a rule 1: the file's last item was a marker with no closing separator. */
+    private boolean unterminatedMarker;
 
     /**
      * Whether this record text should be indexed.
@@ -80,6 +82,18 @@ public final class StreamEndTracker {
         worstOrdinal = -1;
         worstFirstRecord = -1;
         badRuns.clear();
+        unterminatedMarker = false;
+    }
+
+    /**
+     * The final item looked like a marker but had no closing {@code ---}.
+     *
+     * <p>It is neither indexed nor counted: it is not a record, and it is not yet a claim. The file's
+     * verdict becomes {@link StreamEnd.State#UNTERMINATED_MARKER} so a reader is told what is wrong and
+     * whose job it is to fix it, rather than meeting an unexplained empty row in the table.
+     */
+    public void unterminatedMarker() {
+        this.unterminatedMarker = true;
     }
 
     private void closeSegment(long declared) {
@@ -110,6 +124,8 @@ public final class StreamEndTracker {
             case MORE_THAN_DECLARED -> 2;
             case MISSING_RECORDS -> 3;
             case UNKNOWN -> 0;
+            // Never produced per segment: the tail's ambiguity is decided for the whole file in resolve().
+            case UNTERMINATED_MARKER -> 0;
         };
     }
 
@@ -122,6 +138,10 @@ public final class StreamEndTracker {
      * live shape of a cumulative export whose current run has not finished.
      */
     public StreamEnd resolve() {
+        // The tail is ambiguous, so nothing after it can be trusted; this outranks every other verdict.
+        if (unterminatedMarker) {
+            return new StreamEnd(StreamEnd.State.UNTERMINATED_MARKER, -1, indexedTotal).withRuns(badRuns);
+        }
         if (!sawMarker) return StreamEnd.unknown(indexedTotal);
         // D-E7, round five A-4: records after the last marker leave the FILE unknown — nothing vouches
         // for the tail. But a run that already proved it lost records proved it, and dropping that

@@ -117,7 +117,17 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
         /** A marker is present but carries no readable count, so it asserts an end it cannot show (§1a). */
         UNVERIFIED,
         /** No marker, or records after the last one. The file may or may not be whole. */
-        UNKNOWN
+        UNKNOWN,
+        /**
+         * The file ends with a stream-end marker that has no closing {@code ---} (§1a rule 1).
+         *
+         * <p>Its writer has not finished making the claim, or has finished writing and not terminated
+         * it — at the byte level those are the same file. Either way completeness is unknown, and
+         * unlike plain UNKNOWN there is something to say and someone to say it to: the producer must
+         * terminate its marker. Round six asked for this rather than letting the half-written marker
+         * become a phantom record in the table with nothing explaining it.
+         */
+        UNTERMINATED_MARKER
     }
 
     /** The state of every file written by a producer that does not emit markers. */

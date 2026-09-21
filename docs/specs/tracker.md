@@ -174,15 +174,38 @@ defects. **Nothing below is implemented.**
   and that is the same question AF-8 asks about what a scalar line may contain. **AF-8 is filed on
   `fix/follow-stale-partial-record`; these two should be decided together.**
 
-- **[AF-3a] ☐ — follow leaves a half-written record stale in the index.** _Pre-existing, not from this branch;
-  found during the AF-3 review fixes._ An ordinary load indexes an unterminated trailing record, which is
-  correct — the file may simply end there. If the file then GROWS, `appendFrom` skips it as already-indexed,
-  so the truncated text stays in the index for ever and the rest of that record is never read. Needs the
-  store to remember that its last row was unterminated and re-parse it on the next append. Small, real, and
-  separate from the stream-end contract.
-- **[AF-4] ☐ — mongoose writes the text file** · _not this repository. `asCharSequence()` + `\n---\n` per
-  record, the marker, config validation refusing unknown values by name. **Byte-identical to a known-good
-  export** modulo the marker; per-node entry parity, not a record count._
+- **[AF-10] ☐ — a reader plugin can apply §1a rule 1 but cannot report that it did.** _Round six S-4._
+  A plugin yields items one at a time, so applying the termination rule is its job: `frameForPlugin`
+  does it, and the reference reader and the conformance pass-through reader both use it. What the SPI
+  has no way to express is **why** an item was withheld, so the plugin path reports `unknown` where the
+  built-in reader reports `unterminated_marker`. The safety property holds exactly — neither path ever
+  claims completeness the other does not, and `bothPathsAgree` asserts that — but the plugin path is
+  less precise, and a person reading a plugin-sourced log is not told their producer must terminate its
+  marker. Closing it means a way for a reader to hand back a container fact, which is a change to the
+  SPI and belongs in its own slice.
+
+- **[AF-3a] ⊘ — WITHDRAWN: main fixed it through TA-6, and my fix was wrong.** _Round six L-2: this branch
+  still listed it open._ `HeapLogStore.appendFrom` on main refuses to append when the snapshot includes an
+  EOF record and reloads as a live read, so an indexed slot is never rewritten and M65 D-F0 holds by
+  construction. My attempt rewrote the slot in place: a walker holding a `readView()` across the append
+  threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
+  index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
+  must not be merged; its own entry records the detail.
+- **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ Two changes, and the second is
+  in a different class from the first, which round six had to point out to me.
+  1. **The marker writer.** `asCharSequence()` per record, then the marker. Config validation refuses
+     unknown values by name. Per-node entry parity, not a record count.
+  2. **THE EXPORTER MUST TERMINATE ITS LAST DOCUMENT.** `WebAdminService.handleAuditExport` writes
+     `if (!first) w.write("\n---\n"); w.write(yaml);` and **nothing after the last document**. The
+     separator belongs to the export formatter, not to whatever writes the marker, so a marker writer
+     cannot satisfy §1a rule 1 on its own: under today's exporter its marker is always the last,
+     unterminated document, and the analyser reports `unterminated_marker` and ignores the claim.
+     **The fix is one line: write `\n---\n` after the last document as well as between them.** A
+     trailing separator has always been legal under §1 and released 1.17.0 reads it. Filed upstream as
+     **UP-MON-01**.
+  **The old acceptance was impossible and is withdrawn.** It said "byte-identical to a known-good export
+  modulo the marker". §1a rule 1 makes that unachievable, because the known-good export has no trailing
+  separator. The acceptance is now: byte-identical modulo the marker AND the final separator.
 - **[AF-5] ◧ — the audit-tail thread fix, immediate and standalone** · _not this repository; owner decision
   3. Create the tailer and call `toEnd()` on the reading thread. Repairs live tailing for every existing
   Chronicle deployment and waits for nothing here. A second defect behind it discards unflushed reads, so

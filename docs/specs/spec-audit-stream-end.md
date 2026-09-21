@@ -181,6 +181,29 @@ Therefore:
 Set-level completeness would need set-level evidence: a manifest, or a marker naming its successor.
 Neither exists, and neither is proposed here.
 
+## D-E8 · The writer must terminate its marker, and that is a change to the exporter
+
+Added after round six, which read the producer rather than reasoning about it — the discipline this
+document exists to enforce and twice failed to follow.
+
+§1a rule 1 requires a marker to be followed by `---`. The reason is in the published text. What was not
+written down anywhere is **who has to change**, and it is not who I assumed.
+
+`WebAdminService.handleAuditExport` writes the separator BETWEEN documents and nothing after the last.
+That separator belongs to the export formatter, not to whatever writes the marker. So AF-4's marker
+writer **cannot satisfy rule 1 on its own**: under today's exporter its marker is always the last,
+unterminated document, the analyser reports `unterminated_marker`, and the completeness claim is ignored.
+The feature would ship and do nothing.
+
+The ask is one line, filed as **UP-MON-01** in [upstream asks](../proposals/upstream-asks.md), and AF-4
+now carries it as a second, separately-owned change. The old AF-4 acceptance — "byte-identical to a
+known-good export modulo the marker" — was made impossible by rule 1 and is withdrawn: the known-good
+export has no trailing separator.
+
+**The price, recorded because it is a real cost.** A file whose writer has genuinely finished reads as
+unknown until that writer emits one more separator. Rule 1 buys the removal of an ambiguity no reader can
+resolve, and producers pay for it.
+
 ## Acceptance
 
 1. **The five states of D-E3**, each reported distinctly, and the last reported as unknown rather than

@@ -232,6 +232,33 @@ class RolledLogStoreTest {
         }
     }
 
+    /**
+     * Round six S-3. {@code failingRuns} carried the member's own row numbers while {@code member.run}
+     * carried the set's, in the same payload, under the same key names, with no file named. Following
+     * the wrong pair landed in run 1, which was whole.
+     */
+    @Test
+    void everyRowNumberInThePayloadUsesTheSameNumbering() throws IOException {
+        Path a = dir.resolve("p.log.1");
+        Path b = dir.resolve("p.log");
+        Files.writeString(a, records("A", 100, 110) + marker(2));               // set rows 0-1
+        Files.writeString(b, records("B", 200, 210) + marker(2)
+                + records("C", 300, 310, 320) + marker(9));                     // rows 2-3, then 4-6
+        try (RolledLogStore set = RolledLogStore.open(List.of(a, b), 512)) {
+            var facts = StreamEndReport.facts(set.streamEnd(), set.size());
+            var run = (java.util.Map<?, ?>) ((java.util.Map<?, ?>) facts.get("member")).get("run");
+            @SuppressWarnings("unchecked")
+            var failing = (List<java.util.Map<String, Object>>) facts.get("failingRuns");
+
+            assertEquals(1, failing.size());
+            assertEquals(run.get("firstRecord"), failing.get(0).get("firstRecord"),
+                    "two keys, one numbering - these disagreed, and one of them was unusable");
+            assertEquals(4L, failing.get(0).get("firstRecord"), "and it is the SET's numbering");
+            assertEquals("p.log", failing.get(0).get("inFile"), "every row pair names its file");
+            assertEquals("C", set.record(4).event(), "which is where the failing run really starts");
+        }
+    }
+
     @Test
     void recordIndexAnchorsNeedNoFileAndKeepWorking() throws IOException {
         RolledLogStore store = RolledLogStore.open(threeFiles(), 512);

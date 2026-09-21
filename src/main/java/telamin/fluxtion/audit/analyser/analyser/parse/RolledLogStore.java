@@ -184,6 +184,9 @@ public final class RolledLogStore implements LogStore {
             case UNVERIFIED -> 2;
             case MORE_THAN_DECLARED -> 3;
             case MISSING_RECORDS -> 4;
+            // §1a rule 1: an ambiguous tail outranks a member that merely says nothing, and sits below a
+            // member that proved it lost records.
+            case UNTERMINATED_MARKER -> 2;
         };
     }
 

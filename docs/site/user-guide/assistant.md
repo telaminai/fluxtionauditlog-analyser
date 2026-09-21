@@ -107,6 +107,7 @@ as evidence.
 | `more_than_declared` | the file holds more records than its marker claims — the marker is wrong, or it is not the end |
 | `unverified` | the file says it finished but carries no readable count, so nothing backs the claim |
 | `unknown` | the file makes no claim either way |
+| `unterminated_marker` | the file ends with a completeness claim its writer never finished: the marker has no closing `---` |
 
 **`unknown` is the ordinary answer, and it is not a fault.** Nothing that writes audit logs today emits a
 completeness claim, so almost every file you open will say `unknown`. It is reported rather than hidden

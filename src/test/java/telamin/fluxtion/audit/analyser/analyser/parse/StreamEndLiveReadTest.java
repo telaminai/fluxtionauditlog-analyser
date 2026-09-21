@@ -70,12 +70,14 @@ class StreamEndLiveReadTest {
         HeapLogStore ordinary = HeapLogStore.fromFile(p);
         HeapLogStore live = ordinary.forFollow();
 
-        assertEquals(StreamEnd.State.UNKNOWN, ordinary.streamEnd().state(),
-                "an unterminated final record claims nothing: a writer may be halfway through it");
-        assertEquals(StreamEnd.State.UNKNOWN, live.streamEnd().state(),
-                "and a live read of the same bytes must not disagree with a fresh one");
-        assertEquals(4, ordinary.size(), "statically it is an ordinary record, kept as evidence");
+        assertEquals(StreamEnd.State.UNTERMINATED_MARKER, ordinary.streamEnd().state(),
+                "an unterminated final marker claims nothing: a writer may be halfway through it");
+        assertFalse(ordinary.streamEnd().isKnownComplete());
+        assertEquals(3, ordinary.size(),
+                "and it is held back, not shown as an empty row with nothing explaining it");
         assertEquals(3, live.size(), "live, it is pending and not yet indexed");
+        assertFalse(live.streamEnd().isKnownComplete(),
+                "a live read of the same bytes must not claim more than a fresh one");
     }
 
     @Test
@@ -94,8 +96,8 @@ class StreamEndLiveReadTest {
     void theMappedReaderAgreesAboutTerminationToo() throws IOException {
         Path open = write(records(3) + unterminated(3));
         try (MappedLogStore m = new MappedLogStore(open)) {
-            assertEquals(StreamEnd.State.UNKNOWN, m.streamEnd().state());
-            assertEquals(4, m.size());
+            assertEquals(StreamEnd.State.UNTERMINATED_MARKER, m.streamEnd().state());
+            assertEquals(3, m.size());
         }
         Path closed = dir.resolve("closed.yaml");
         Files.writeString(closed, records(3) + terminated(3), StandardCharsets.UTF_8);
@@ -117,18 +119,21 @@ class StreamEndLiveReadTest {
         Path p = write(records(12) + "---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 1");
         HeapLogStore s = HeapLogStore.fromFile(p);
 
-        assertEquals(StreamEnd.State.UNKNOWN, s.streamEnd().state(),
+        assertEquals(StreamEnd.State.UNTERMINATED_MARKER, s.streamEnd().state(),
                 "'declares 1 record and 12 were read' was a fabrication about a live file");
-        assertTrue(s.completenessDiagnostics().isEmpty(),
-                () -> "and it must say nothing at all: " + s.completenessDiagnostics());
-        assertEquals(13, s.size(), "the half-written text is kept as an ordinary record, not discarded");
+        assertFalse(s.streamEnd().isKnownComplete());
+        assertEquals(12, s.size(), "the half-written marker is held back, not shown as an empty row");
+        // It says what is wrong and whose job it is, rather than inventing a count or staying silent.
+        String said = s.completenessDiagnostics().get(0);
+        assertTrue(said.contains("no closing ---") && said.contains("writer MUST terminate"), said);
+        assertFalse(said.contains("declares 1 record"), () -> "no invented verdict: " + said);
     }
 
     @Test
     void aPartiallyWrittenKeyIsNotAMarkerEither() throws IOException {
         Path p = write(records(3) + "---\neventLogRecord:\n  streamEnd: norm");
         HeapLogStore s = HeapLogStore.fromFile(p);
-        assertEquals(StreamEnd.State.UNKNOWN, s.streamEnd().state(),
+        assertEquals(StreamEnd.State.UNTERMINATED_MARKER, s.streamEnd().state(),
                 "this reported UNVERIFIED — an end claimed by a writer that had claimed nothing");
     }
 

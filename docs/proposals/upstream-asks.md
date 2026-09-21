@@ -68,6 +68,37 @@ either is filed.
 
 ---
 
+## MON-U · Mongoose audit export — 2026-09-21
+
+Status: **recorded, not implemented**. One ask, one line, and it gates
+[the stream-end contract](../specs/spec-audit-stream-end.md) reaching a real producer.
+
+### UP-MON-01 ☐ The audit export must terminate its last document
+
+**Where.** `telaminai/mongoose-plugins`, `svc-admin-web`,
+`WebAdminService.handleAuditExport`. The YAML branch of its loop writes
+`if (!first) w.write("\n---\n");` then `w.write(yaml);`, and nothing after the last document. Read on
+`origin/main` at `df12155`, not inferred.
+
+**The ask.** Also write `\n---\n` after the last document.
+
+**Why it is not optional.** Format 1.1 §1a requires a stream-end marker to be followed by its `---`
+separator, because at the byte level a marker a writer has finished and one it is halfway through
+writing are the same bytes — a half-written count of `1` out of an intended `12` otherwise reads as a
+confident "the marker is wrong, 12 were read". The separator is what makes the claim atomic.
+
+**The consequence of not doing it.** The separator belongs to the exporter, not to whatever writes the
+marker, so a marker writer cannot satisfy the rule alone: its marker is always the last, unterminated
+document. The analyser then reports `unterminated_marker`, ignores the completeness claim, and says the
+producer must terminate it. The feature simply does not work.
+
+**Cost and risk.** One line. A trailing separator has always been legal under §1 — the separator
+separates records and blank text after the last one is skipped — and every existing reader accepts it,
+including released 1.17.0, verified. No reader needs to change.
+
+**Acceptance.** An export with a marker reads as `complete` in the analyser, and an export without one
+reads exactly as it does today.
+
 ## TA-U · Tool-agreement upstream intake — 2026-09-21
 
 Status: **recorded, not implemented or independently reproduced here**. Source:
