@@ -27,8 +27,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   scaffolding visibility. Chart windows keep left/right scales separate through pin/filter/restore.
 - Chart legends reserve space beside the plot; explanations and note text sit below it. Nearby note
   pins combine into numbered ranges above the plot, and exported charts include the legend.
-- Follow-capable YAML files keep unterminated records pending from initial open, disclose the pending
-  count and wait for a complete separator line; a quiet interval never completes a record.
+- Ordinary YAML opens include the final EOF record, consistent across heap and mapped stores.
+  Explicit Follow reopens an EOF snapshot as a live read and withholds its tail until a complete
+  separator arrives; a quiet interval never completes it. Missing separators do not prove damage.
 - Windowed rolling-series queries retain earlier history, so delta changes at the lower bound match
   whole-log results and an existing threshold state is not reported as a new crossing.
 - Confirmation findings use Observation / Assessment across the shared views and PDF exports.
@@ -43,6 +44,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   recorded conversation echoes for pending tails, unknown hierarchy and the chart layout.
 - Canonical Mongoose guidance documents snapshot audit export, the observed 1.0.43 tail/listing limits,
   and the live-reader delivery boundary; no polling command or completed starter update is implied.
+- `point-at-the-fault` now opens with what to do when fixing a fault — keep the broken run's export,
+  rebuild rather than regenerate for a body change, never edit shipped data, and no running analyser is
+  needed — and `add-a-node` asks authors to log the state behind a decision. Skills index re-pinned.
+- The `point-at-the-fault` skill now says how to write up a fault: the symptom from the cited record, the
+  cause from the fix diff plus before/after copies of the changed sources, so a reader without the session can
+  check both. Skills index `m19-skills/2` re-pinned; the playground must re-vendor.
 - Qualify C++ as a preview target and limit the reported Java/C++ equivalence to the tested graph
   and event stream; the vendor experiment does not establish general supplier compatibility.
 - Add a vendor-integration worked example and supplier checklist, qualify composition and topology

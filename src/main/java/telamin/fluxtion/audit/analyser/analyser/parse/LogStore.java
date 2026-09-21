@@ -96,6 +96,10 @@ public interface LogStore extends AutoCloseable {
         return null;
     }
 
+    /** EOF records included by an ordinary snapshot, or -1 if framing is not exposed.
+     * A missing final separator is legal Format 1, not evidence of truncation or completeness. */
+    default int trailingRecordsIncluded() { return -1; }
+
     /** Pending trailing records, or -1 when this reader does not expose framing status. */
     default int trailingRecordsPending() { return -1; }
 

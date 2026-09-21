@@ -1,6 +1,6 @@
 ---
 name: point-at-the-fault
-description: Check an open audit log for one class of fault and finish by pointing at the evidence on screen. Use when a person asks whether their log shows a particular fault (a limit reached, a value gone NaN, a node that stopped logging), or asks you to write a runbook that checks for one.
+description: Use when asked what is wrong with this application, to find and fix a fault, or to show which record proves it. Keep the broken run's evidence, fix, then report the symptom from a cited record and the cause from the diff. Also checks an audit log for one fault class and points at the evidence.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -12,6 +12,27 @@ that quotes what it matched on. *"Here is what I found"* becomes *"here it is"* 
 tool learns where that kind of fault shows up at the same moment they learn they have one.
 
 This skill is the **shape**. Copy it for your own fault class; the worked example at the end is one.
+
+## If you are fixing a fault — read this first
+
+**You do not need the analyser running.** The exported audit file is the evidence: read it, cite its
+records by file and line, and carry on. The `analyser_*` steps further down are for pointing at the record
+on screen when an analyser is connected; without one, skip them rather than stopping.
+
+1. **Keep the broken run's evidence before you change anything.** Run the project as you found it, export,
+   and copy the export aside (for example `evidence/before.yaml`). Rebuilding, restarting or re-exporting
+   overwrites it, and deleting `audit/` destroys it. A report whose "before" record no longer exists
+   proves nothing.
+2. **A change inside a method body needs a rebuild, not a regeneration.** Regenerate only when the graph
+   changes — a node, a bean or a reference in the design.
+3. **Never edit shipped data or input files** to make a result appear. If the data does not exercise the
+   fault, say so.
+4. **Read a flag before calling it wrong.** A value that is `false` on the events after a threshold was
+   crossed may be edge-triggered — true only on the event where it changed. Check what the node's source
+   says it means.
+
+Then fix the cause, run again, and write it up as described in **Writing it up** below: the symptom from a
+cited record, the cause from the diff, and a pack that stands alone.
 
 ## The two rules that make it safe
 
@@ -119,6 +140,30 @@ analyser_series {"expr": "riskMonitor.liveOrders", "crossings": {"above": 99}}
 > — its maximum was 6. Nothing to show you.
 
 No spotlight. That sentence **is** the result.
+
+## Writing it up — the symptom from the record, the cause from the change
+
+A report is read by someone who has **only what you hand them**: not your session, not your context, often
+not the source. A record proves what the system **did**. It cannot prove what the code **says**. So a report
+that says *"this record proves the fault"* makes two claims, and each needs its own evidence:
+
+1. **The symptom — cite the record.** File and line, or `recordIndex`, and the values quoted from it:
+   *"in record N, `a.x` is 12 while `b.y` is 15 for the same event"*. Say what a correct record would
+   show and how you know — from the inputs the record itself carries where possible, so the reader can
+   redo the arithmetic.
+2. **The cause — cite the change.** The cause is a claim about code, so its evidence is **the diff of your
+   fix, in the report**, not a description of it — plus the matching record from a run of the fixed build,
+   showing the symptom gone.
+3. **Label what comes from the source.** Anything the log cannot show — which node reads which, a rule
+   that fires only once — mark as *from the source*, so the reader knows what they can check in the log
+   and what they are taking from the code.
+4. **Make the pack stand alone.** It holds everything you cite: the report, the diff, the logs — and
+   **copies of the source files you changed, before and after**, plus any file whose behaviour you cite
+   *from the source*, so the reader can check the diff against the code rather than take it from you. If
+   one export holds more than one run, say where each run starts and which build produced it.
+
+A reader who can verify the symptom in the log and the cause in the diff does not need to trust you. That
+is the point of the report.
 
 ## If you are tempted to
 

@@ -46,7 +46,7 @@ public record ProjectModel(List<Section> sections) {
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
-            "log.freshness", "graphPairing.freshness", "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
+            "log.tailNote", "log.pendingNote", "log.freshness", "graphPairing.freshness", "graphPairing.graph", "graphPairing.graphSource", "graphPairing.graphPath", "graphPairing.applies",
             "graphPairing.declaredByGraph", "graphPairing.loggedNodes", "graphPairing.verdict",
             "graphPairing.sourceGraphOffered", "graphPairing.sourceGraphNote",
             "graphPairing.auditLogging", "graphPairing.auditLoggingNote",
@@ -192,6 +192,9 @@ public record ProjectModel(List<Section> sections) {
                 if (ctx.get("provenanceSource") != null) prov += " (" + ctx.get("provenanceSource") + ")";
             }
             rows.add(new Row(fileName(shown), detail.toString(), shown, prov, Tone.NORMAL, Target.NONE));
+            for (String framingKey : List.of("tailNote", "pendingNote"))
+                if (log.get(framingKey) != null) rows.add(new Row("Record framing",str(log.get(framingKey)),
+                        null,null,Tone.MUTED,Target.NONE));
             Map<String,Object> freshness = map(log.get("freshness"));
             if (!freshness.isEmpty()) rows.add(new Row("File observation",str(freshness.get("state")),
                     null,str(freshness.get("basis")),"changed-on-disk".equals(freshness.get("state")) ? Tone.WARN : Tone.MUTED,Target.NONE));

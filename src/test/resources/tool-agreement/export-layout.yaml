@@ -1,0 +1,174 @@
+eventLogRecord:
+  logTime: 1000
+  event: Tick
+  nodeLogs:
+    - total: {value: 0}
+  endTime: 1001
+---
+eventLogRecord:
+  logTime: 1001
+  event: Tick
+  nodeLogs:
+    - total: {value: 1}
+  endTime: 1002
+---
+eventLogRecord:
+  logTime: 1002
+  event: Tick
+  nodeLogs:
+    - total: {value: 2}
+  endTime: 1003
+---
+eventLogRecord:
+  logTime: 1003
+  event: Tick
+  nodeLogs:
+    - total: {value: 3}
+  endTime: 1004
+---
+eventLogRecord:
+  logTime: 1004
+  event: Tick
+  nodeLogs:
+    - total: {value: 4}
+  endTime: 1005
+---
+eventLogRecord:
+  logTime: 1005
+  event: Tick
+  nodeLogs:
+    - total: {value: 5}
+  endTime: 1006
+---
+eventLogRecord:
+  logTime: 1006
+  event: Tick
+  nodeLogs:
+    - total: {value: 6}
+  endTime: 1007
+---
+eventLogRecord:
+  logTime: 1007
+  event: Tick
+  nodeLogs:
+    - total: {value: 7}
+  endTime: 1008
+---
+eventLogRecord:
+  logTime: 1008
+  event: Tick
+  nodeLogs:
+    - total: {value: 8}
+  endTime: 1009
+---
+eventLogRecord:
+  logTime: 1009
+  event: Tick
+  nodeLogs:
+    - total: {value: 9}
+  endTime: 1010
+---
+eventLogRecord:
+  logTime: 1010
+  event: Tick
+  nodeLogs:
+    - total: {value: 10}
+  endTime: 1011
+---
+eventLogRecord:
+  logTime: 1011
+  event: Tick
+  nodeLogs:
+    - total: {value: 11}
+  endTime: 1012
+---
+eventLogRecord:
+  logTime: 1012
+  event: Tick
+  nodeLogs:
+    - total: {value: 12}
+  endTime: 1013
+---
+eventLogRecord:
+  logTime: 1013
+  event: Tick
+  nodeLogs:
+    - total: {value: 13}
+  endTime: 1014
+---
+eventLogRecord:
+  logTime: 1014
+  event: Tick
+  nodeLogs:
+    - total: {value: 14}
+  endTime: 1015
+---
+eventLogRecord:
+  logTime: 1015
+  event: Tick
+  nodeLogs:
+    - total: {value: 15}
+  endTime: 1016
+---
+eventLogRecord:
+  logTime: 1016
+  event: Tick
+  nodeLogs:
+    - total: {value: 16}
+  endTime: 1017
+---
+eventLogRecord:
+  logTime: 1017
+  event: Tick
+  nodeLogs:
+    - total: {value: 17}
+  endTime: 1018
+---
+eventLogRecord:
+  logTime: 1018
+  event: Tick
+  nodeLogs:
+    - total: {value: 18}
+  endTime: 1019
+---
+eventLogRecord:
+  logTime: 1019
+  event: Tick
+  nodeLogs:
+    - total: {value: 19}
+  endTime: 1020
+---
+eventLogRecord:
+  logTime: 1020
+  event: Tick
+  nodeLogs:
+    - total: {value: 20}
+  endTime: 1021
+---
+eventLogRecord:
+  logTime: 1021
+  event: Tick
+  nodeLogs:
+    - total: {value: 21}
+  endTime: 1022
+---
+eventLogRecord:
+  logTime: 1022
+  event: Tick
+  nodeLogs:
+    - total: {value: 22}
+  endTime: 1023
+---
+eventLogRecord:
+  logTime: 1023
+  event: Tick
+  nodeLogs:
+    - total: {value: 23}
+  endTime: 1024
+---
+eventLogRecord:
+  logTime: 1024
+  event: Tick
+  nodeLogs:
+    - total: {value: 24}
+  endTime: 1025

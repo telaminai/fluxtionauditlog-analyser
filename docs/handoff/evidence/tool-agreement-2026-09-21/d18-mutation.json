@@ -9,6 +9,8 @@
         "failure": "left window must exclude right-axis values ==> array contents differ at index [0], expected: <9.5> but was: <-62489.5>"
       }
     ],
-    "restored": true
+    "restored": true,
+    "sourceRevision": "fcaf14ad",
+    "sourceSite": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ChartPanel.java:417; setViewWindow axis partition, second occurrence of if (axes.isRight(s.label())), not the fit-all path"
   }
 ]

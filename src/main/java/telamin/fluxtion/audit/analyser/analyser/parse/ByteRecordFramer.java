@@ -31,6 +31,10 @@ public final class ByteRecordFramer {
     }
 
     static void frame(InputStream in, Sink sink) throws IOException {
+        frameWithEof(in, sink);
+    }
+
+    static boolean frameWithEof(InputStream in, Sink sink) throws IOException {
         byte[] buf = new byte[1 << 16];
         long pos = 0;                       // byte offset of the next byte to read
         long lineStart = 0;                 // byte offset of the current line's first byte
@@ -55,6 +59,7 @@ public final class ByteRecordFramer {
             recStart = processLine(line, lineStart, recStart, rec, sink);
         }
         if (recStart >= 0) emit(recStart, rec, sink);
+        return recStart >= 0;
     }
 
     private static long processLine(ByteArrayOutputStream line, long lineStart, long recStart,

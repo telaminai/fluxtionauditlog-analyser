@@ -62,6 +62,12 @@ Do not read a method-name-only line as "this node is fine". That line comes from
 which is a separate setting, and with tracing off a node that logs no value **may not appear at all** — so
 its absence means *"said nothing"*, not *"did not run"*.
 
+**Log the state behind a decision, not only this event's outcome.** A node that reacts once — on a
+crossing, a first match, a limit — should log the state that explains why it did or did not react
+(`auditLog.info("breached", breached)` alongside the value), or name the rule in its key
+(`crossedThisEvent`). A bare `false` on the events after a crossing reads as a bug to whoever debugs the
+log next.
+
 ## Prove it ran — do not assume
 
 A green build proves nothing about whether your node executed. Run the project, export the audit log, and

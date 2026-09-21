@@ -63,6 +63,16 @@ public final class RolledLogStore implements LogStore {
         return new RolledLogStore(members, List.copyOf(orderedFiles), firstRow, merged);
     }
 
+    @Override public int trailingRecordsIncluded() {
+        int count = 0;
+        for (LogStore member : members) {
+            int included = member.trailingRecordsIncluded();
+            if (included < 0) return -1;
+            count += included;
+        }
+        return count;
+    }
+
     @Override public int trailingRecordsPending() {
         int count = 0;
         for (LogStore member : members) {

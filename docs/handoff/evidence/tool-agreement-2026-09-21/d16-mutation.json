@@ -8,5 +8,7 @@
       "message": "trades: same-record markers must match logged events ==> expected: <5> but was: <11>"
     }
   ],
-  "restored": true
+  "restored": true,
+  "sourceRevision": "fcaf14ad",
+  "sourceSite": "src/main/java/telamin/fluxtion/audit/analyser/analyser/graph/MarkerExtractor.java:90; STRICT condition evaluation: remove carry.clear(), not SeriesScan or SeriesExtractor"
 }

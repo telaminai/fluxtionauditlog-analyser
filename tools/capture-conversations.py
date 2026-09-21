@@ -191,7 +191,7 @@ def main():
     t.you("The quote service looked wrong at 09:00 today. Use the fluxtion-analyser tools: what happened, and mark "
           "the records I should look at.")
     t.context(["log", "graphPairing.graph", "graphPairing.applies", "showing"])
-    t.prose("Nine complete records and one pending tail; the graph declares the logged nodes. Silence still does not prove non-execution. The "
+    t.prose("Ten records in the snapshot, including the EOF record without a closing separator; completeness remains unknown. The graph declares the logged nodes. Silence still does not prove non-execution. The "
             "agent starts wide, then narrows.")
     t.call("aggregate", {"groupBy": "dimension"})
     t.call("read", {"recordIndex": 7}, show=["records", "record", "event", "logTime", "nodeLogs"])
@@ -199,7 +199,7 @@ def main():
     t.agent("At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live "
             "orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged "
             "both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. "
-            "I have not treated the pending trailing record as complete.",
+            "The final EOF record is included; a missing closing separator does not establish whether the file is whole.",
             cites=["breachedOn", "ord-2", "riskMonitor"])
     cd.act(ep, "goto", {"recordIndex": 7, "reveal": True})
     t.shot("conv-what-happened.png", "The two flagged records, the note in the detail pane — the agent's answer as things you can click")

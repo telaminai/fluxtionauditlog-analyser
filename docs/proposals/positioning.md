@@ -400,8 +400,10 @@ What matters for the headline, in the language of that schedule:
   counterexample the method section already names.
 - **Slice B (truthful echoes)** is what makes the claim survive the tool that presents it. A headline about
   evidence is measured against the analyser's own output.
-- **Slice C (zero-intervention cold start)** is the claim behind every number quoted above, and it is a
-  programme rather than a checkbox. **The beta date is whatever slice C says it is.**
+- **Slice C (zero-intervention cold start)** is no longer a battery. It was retired and replaced by
+  verification tiers, and public acquisition to independently checked output was measured on 2026-09-21. The
+  beta's blockers are now its own short list (beta proposal §7), and the first of them — how a tester gets a
+  generation key — is a customer journey that has not been run.
 
 Slice A is small and unlocks the strongest sentence on the page. Given what is being claimed, "true under
 adversarial test" is the only kind of claim worth making.

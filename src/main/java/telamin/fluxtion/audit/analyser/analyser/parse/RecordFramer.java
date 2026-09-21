@@ -37,7 +37,7 @@ public final class RecordFramer {
         frameWithPending(file, sink, requireTerminator);
     }
 
-    /** Returns whether a non-blank unterminated record remains, without publishing that record. */
+    /** Returns whether EOF follows non-blank record text. Emission is controlled separately by requireTerminator. */
     static boolean frameWithPending(String file, Consumer<RawRecord> sink, boolean requireTerminator) {
         if (file == null || file.isEmpty()) return false;
         int n = file.length();
@@ -61,7 +61,7 @@ public final class RecordFramer {
             i = (j < n) ? j + 1 : n;              // advance past '\n'
         }
         if (recStart >= 0 && !requireTerminator) emit(file, recStart, n, sink);
-        return recStart >= 0 && requireTerminator;
+        return recStart >= 0;
     }
 
     private static void emit(String file, int start, int end, Consumer<RawRecord> sink) {

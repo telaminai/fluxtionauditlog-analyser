@@ -101,6 +101,13 @@ class PairingDuringLoadFrameTest {
             var ex = executorOf(frame.get());
             onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
             awaitLoaded(ex);
+            onEdt(() -> {
+                var ctx = render(ex, "context", Map.of());
+                assertEquals(0, find(ctx, "trailingRecordsPending"));
+                assertEquals(1, find(ctx, "trailingRecordsIncluded"));
+                render(ex, "open", Map.of("follow", true));
+            });
+            awaitLoaded(ex);
             onEdt(() -> assertEquals(1, find(render(ex, "context", Map.of()), "trailingRecordsPending")));
             var follow = MainFrame.class.getDeclaredMethod("setFollowing", boolean.class);
             follow.setAccessible(true);

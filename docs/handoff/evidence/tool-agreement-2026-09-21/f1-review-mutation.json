@@ -1,0 +1,11 @@
+{
+  "mutation": "HeapLogStore.fromFile: new HeapLogStore(text, false) -> true",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "exportLayoutAndShippedDemoKeepTheirFinalRecordInBothBackends(Path)",
+      "message": "ordinary export must include its EOF record: class telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore ==> expected: <25> but was: <24>"
+    }
+  ],
+  "restored": true
+}

@@ -2913,7 +2913,8 @@ public final class MainFrame extends JFrame {
     private List<Map<String,Object>> logObservations = List.of();
     private String snapshotNote() {
         return "loaded snapshot; log " + logFreshness().get("state") + "; graph "
-                + topologyPanel.fileFreshness().get("state") + " (metadata observation, not content verification)";
+                + topologyPanel.fileFreshness().get("state") + " (metadata observation, not content verification)"
+                + trailingPendingNote();
     }
     private Map<String,Object> logFreshness() {
         return telamin.fluxtion.audit.analyser.analyser.core.FileObservation.compare(
@@ -3437,6 +3438,7 @@ public final class MainFrame extends JFrame {
      * opened during the load was judged against the previous log.
      */
     private void loadFile(Path path, String format, OpenRequest request, long opId) {
+        final boolean liveRead = following;
         status.setText("Loading " + path + " …");
         setBusy(true);
         Background.run(
@@ -3456,6 +3458,8 @@ public final class MainFrame extends JFrame {
                         var before = nativeRead ? null : telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString());
                         var observation = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(path);
                         LogStore s = readerRegistry.open(reader, path, config.memoryThresholdMb);
+                        if (liveRead && s instanceof telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore heap)
+                            s = heap.forFollow();
                         var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                 .validate(s.index());
                         var identities = nativeRead ? readIdentities(s)
@@ -4084,13 +4088,19 @@ public final class MainFrame extends JFrame {
             status.setText("Follow is available for heap-loaded local files (below the memory threshold).");
             on = false;
         }
+        boolean entering = on && !following;
         following = on;
         if (followButton != null && followButton.isSelected() != on) followButton.setSelected(on);
         if (followMenuItem != null && followMenuItem.isSelected() != on) followMenuItem.setSelected(on);
         if (followTimer == null) {
             followTimer = new Timer(FOLLOW_POLL_MS, e -> pollFollow());
         }
-        if (on) {
+        if (entering && store.trailingRecordsIncluded() > 0) {
+            // A live read has different framing from a snapshot. Reopen through the session gate,
+            // so old async work and record-bound views cannot leak into the new live index.
+            followTimer.stop();
+            openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
+        } else if (on) {
             followTimer.start();
             status.setText("Following " + displayName(followPath) + " — watching for new records…" + trailingPendingNote());
         } else {
@@ -4100,7 +4110,9 @@ public final class MainFrame extends JFrame {
 
     private String trailingPendingNote() {
         int pending = store == null ? 0 : store.trailingRecordsPending();
-        return pending > 0 ? " · " + pending + " trailing record" + (pending == 1 ? "" : "s") + " pending" : "";
+        if (pending > 0) return " · " + pending + " trailing record" + (pending == 1 ? "" : "s") + " pending";
+        int included = store == null ? 0 : store.trailingRecordsIncluded();
+        return included > 0 ? " · EOF record included (no closing separator; completeness unknown)" : "";
     }
 
     /** One tail poll: append any newly-completed records, or reload if the file was rotated/truncated. */
@@ -5788,6 +5800,11 @@ public final class MainFrame extends JFrame {
                 log.put("freshness", logFreshness());
                 log.put("following", following);
                 log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
+            }
+            if (store != null && store.trailingRecordsIncluded() >= 0) {
+                log.put("trailingRecordsIncluded", store.trailingRecordsIncluded());
+                if (store.trailingRecordsIncluded() > 0) log.put("tailNote",
+                        "EOF record included without a closing separator (legal Format 1); completeness unknown. Follow reopens as a live read.");
             }
             if (store != null && store.trailingRecordsPending() >= 0) {
                 log.put("trailingRecordsPending", store.trailingRecordsPending());

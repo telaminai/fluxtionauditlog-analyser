@@ -37,12 +37,17 @@ class FollowAppendTest {
     @Test
     void pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator() throws Exception {
         Path p = tempWith("---\n" + rec(1) + "eventLogRecord:\n  logTime: 2\n");
-        HeapLogStore store = HeapLogStore.fromFile(p);
+        HeapLogStore snapshot = HeapLogStore.fromFile(p);
+        assertEquals(2, snapshot.size(), "ordinary snapshot includes EOF record");
+        var oldView = snapshot.readView();
+        HeapLogStore store = snapshot.forFollow();
+        assertEquals(2, oldView.size(), "starting live read never mutates a snapshot walker");
         assertEquals(1, store.size(), "initial EOF is not proof the writer completed the record");
         assertEquals(1, store.trailingRecordsPending());
         try (var rolled = RolledLogStore.open(java.util.List.of(p), 100)) {
-            assertEquals(1, rolled.size());
-            assertEquals(1, rolled.trailingRecordsPending(), "member pending state is not hidden by a rolled container");
+            assertEquals(2, rolled.size());
+            assertEquals(0, rolled.trailingRecordsPending());
+            assertEquals(1, rolled.trailingRecordsIncluded(), "rolled snapshots keep the export tail");
         }
         assertFalse(new HeapLogStore("eventLogRecord:\n  logTime: 1\n").supportsFollow(),
                 "a static string must not advertise live-file follow");

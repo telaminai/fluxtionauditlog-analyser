@@ -19,6 +19,7 @@ public final class HeapLogStore implements LogStore {
     private volatile String file;        // grows in follow/tail mode (append-only); volatile: read off-EDT by readView()
     private final LogIndex index;
     private volatile boolean trailingPending;
+    private final boolean includesEofRecord;
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
 
@@ -29,8 +30,10 @@ public final class HeapLogStore implements LogStore {
     private HeapLogStore(String file, boolean requireTerminator) {
         this.file = (file == null) ? "" : file;
         this.index = new LogIndex();
-        this.trailingPending = RecordFramer.frameWithPending(this.file,
+        boolean eof = RecordFramer.frameWithPending(this.file,
                 raw -> index.add(RecordParser.parse(raw.text(), raw.offset())), requireTerminator);
+        this.trailingPending = eof && requireTerminator;
+        this.includesEofRecord = eof && !requireTerminator;
     }
 
     public static HeapLogStore fromFile(Path path) throws IOException {
@@ -40,11 +43,22 @@ public final class HeapLogStore implements LogStore {
         String text = Files.readString(path, StandardCharsets.UTF_8);
         capture.accept(text.getBytes(StandardCharsets.UTF_8));
         var identity = capture.finish();
-        HeapLogStore s = new HeapLogStore(text, true);
+        HeapLogStore s = new HeapLogStore(text, false);
         s.readIdentity = identity;
         s.source = path;
         return s;
     }
+
+    /** New live-read view, never mutate the ordinary snapshot or its outstanding walkers. */
+    public HeapLogStore forFollow() {
+        if (!includesEofRecord) return this;
+        HeapLogStore live = new HeapLogStore(file, true);
+        live.source = source;
+        live.readIdentity = readIdentity;
+        return live;
+    }
+
+    @Override public int trailingRecordsIncluded() { return includesEofRecord ? 1 : 0; }
 
     @Override public java.util.List<FileReadIdentity> readIdentities() {
         return readIdentity == null ? java.util.List.of() : java.util.List.of(readIdentity);
@@ -64,6 +78,9 @@ public final class HeapLogStore implements LogStore {
     public int appendFrom(Path path) throws IOException {
         Path p = path != null ? path : source;
         if (p == null) return -1;
+        // A snapshot may include an EOF record. It cannot safely become an append-only index:
+        // later fields would change an existing row. The adapter reloads it as an explicit live read.
+        if (includesEofRecord) return -1;
         String full = Files.readString(p, StandardCharsets.UTF_8);
         if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
         if (full.length() == file.length()) return 0;    // no growth

@@ -32,8 +32,11 @@ Yes — **File ▸ Follow (tail)** polls an open local file and appends newly-co
 preserving flags and filters; open graphs re-extract as records arrive (a chart showing the whole log grows with
 it, one at the live edge slides, one zoomed into the middle holds). (Heap-loaded local files only; not S3.)
 
-For that file reader, a trailing record without a complete `---` separator line is **pending**, including
-on initial open. Status and `context.log.trailingRecordsPending` disclose it; completed-record counts
+For an ordinary open, the final EOF record is included even without a closing `---` separator,
+as Format 1 permits. Status, Project and `context.log.tailNote` disclose that completeness is unknown.
+Starting Follow reopens that snapshot as a live read (clearing record-bound flags and selection through
+the normal reload boundary). Its trailing record is then **pending** until a complete separator arrives.
+Status and `context.log.trailingRecordsPending` disclose it; live-read counts
 exclude it. Pausing the writer does not complete a record. After the separator and its newline arrive,
 the record appears with all fields written before the separator. Do not add a separator to a live export
 merely to make it appear sooner.

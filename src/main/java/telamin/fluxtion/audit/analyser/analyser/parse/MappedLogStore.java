@@ -26,6 +26,7 @@ public final class MappedLogStore implements LogStore {
     private final LogIndex index;
     private final Path path;
     private final FileReadIdentity readIdentity;
+    private final boolean includesEofRecord;
     private final Map<Integer, LogRecord> cache = new LinkedHashMap<>(CACHE, 0.75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<Integer, LogRecord> e) {
             return size() > CACHE;
@@ -37,7 +38,7 @@ public final class MappedLogStore implements LogStore {
         this.index = new LogIndex();
         var capture = FileReadIdentity.begin(path);
         try (var in = capture.open()) {
-            ByteRecordFramer.frame(in, (offset, length, text) -> index.add(RecordParser.parse(text, offset, length)));
+            includesEofRecord = ByteRecordFramer.frameWithEof(in, (offset, length, text) -> index.add(RecordParser.parse(text, offset, length)));
         }
         this.readIdentity = capture.finish();
         this.channel = FileChannel.open(path, StandardOpenOption.READ);
@@ -49,6 +50,9 @@ public final class MappedLogStore implements LogStore {
     }
 
     @Override public java.util.List<FileReadIdentity> readIdentities() { return java.util.List.of(readIdentity); }
+
+    @Override public int trailingRecordsIncluded() { return includesEofRecord ? 1 : 0; }
+    @Override public int trailingRecordsPending() { return 0; }
 
     @Override public int size() { return index.size(); }
     @Override public LogIndex index() { return index; }

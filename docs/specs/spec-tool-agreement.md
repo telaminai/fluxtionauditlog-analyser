@@ -75,8 +75,8 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D9 | the authoring contract: the starter generates stubs | **standalone:** runnable since starter 1.0.73 (SG-1). **Hosted template:** still ships no local authoring files | playground → SG-2 | App. B; SG-1 release report | standalone ☑ · hosted ☐ |
 | D10 | generated stubs are the recommended shape | they lack `EventLogNode`, so they cannot audit — the template's own convention. Feedback #6, tracked ◧ under "Feedback 38/39 and recurring 6"; found again here | starter | §3.6 G4 | ☐ |
 | D11 | `SinkBinding.valueType = java.lang.String` | the generated processor declares `java.lang.Object` | compiler | §5.8 | ☐ |
-| D12 | `/ws/audit-tail` accepts connections | it delivers no records (starts at `toEnd()`) | Mongoose plugins 1.0.43 | §3.2, §5.2 | ☐ |
-| D13 | `/api/audit/files` reports record counts and times | they are frozen at startup while the queue grows | Mongoose plugins 1.0.43 | §5.3 | ☐ |
+| D12 | `/ws/audit-tail` accepts connections | no records delivered; later 1.0.43 endpoint evidence finds cross-thread tailer access throwing `ThreadingIllegalStateException` (AFMT review) | Mongoose plugins 1.0.43 | §3.2, §5.2 | ☐ |
+| D13 | `/api/audit/files` reports record counts and times | original session reported startup values; later endpoint test did not reproduce (listing/export counts agreed); unresolved observation | Mongoose plugins 1.0.43 | §5.3 | ☐ |
 
 **How to count.** Twenty-one findings, D1–D21, with D3 split into D3a and D3b. **Analyser
 responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Current open: analyser 1; upstream 8.** **Upstream: 8 open** — D3a, D8, D9 (hosted),
@@ -227,7 +227,13 @@ their own evidence. Nothing here reopens in-app discovery or runs the applicatio
 **Evidence.** The Mongoose export separates records with `\n---\n` and leaves the last one open, so follow
 holds the newest record back and the view is always one behind (§3.2 step 5, A7).
 
-**Required.** Follow the binary reader's rule (`spec-binary-audit-reader.md`): a record that may be partial
+**Ordinary opens (review F1/F3 correction).** Format 1 permits EOF without a final separator.
+Heap, mapped and rolled snapshot opens include that record and disclose the missing separator without
+claiming damage or completeness. Follow on an included EOF snapshot explicitly reopens it as a live
+read, clearing record-bound state through the normal reload boundary; stopping Follow does not publish
+a pending tail. Reopen with Follow off for a new ordinary snapshot. No quiet-time promotion.
+
+**Required in Follow only.** Follow the binary reader's rule (`spec-binary-audit-reader.md`): a record that may be partial
 is never presented as complete. The status shows **"1 trailing record pending"**. **Pending only in this
 delivery:** a quiet interval does not establish completeness, because a valid prefix can still gain fields
 after a pause, so no record is accepted on quiet. Any provisional display is a later, separate decision
