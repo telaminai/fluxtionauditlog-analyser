@@ -37,6 +37,10 @@ incorrectly are baselined in the spec (D1–D13). Direction check: re-count that
   TA-1–TA-4, since it is the same slice B gate._
 - **[TA-U] ☐ — upstream asks recorded with owners** · _D3, D7–D13 and the template items carried into
   `docs/proposals/upstream-asks.md`; stub-shape fix sequenced before "always use the generator"._
+- **[VI-1] ☐ — vendor integration on the site** — [proposal](../proposals/vendor-integration-doc/site-proposal.md)
+  from the [evidence record](../proposals/vendor-integration-doc/README.md) · _claim audit of
+  `composing-a-system.md` resolved (3 sentences contradicted by the measured record); `nodeBeans` warning ships
+  while feedback 29 is open; worked-example page added; `mkdocs build --strict` passes; owner review._
 
 ---
 
