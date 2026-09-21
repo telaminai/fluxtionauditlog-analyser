@@ -64,7 +64,10 @@ A line matches one of these when it begins with the key, then a colon, then **op
 Note that this differs from YAML, where `streamEnd:normal` with no space is a plain scalar rather than a
 key: Format 1 accepts it as a key, here and in §2 alike, because §2's reader has always split on the
 first colon of an identifier. A reader that requires the space will disagree with the analyser on a
-record no producer is likely to write, and it should not.
+record no producer is likely to write, and it should not. A reader built on a **YAML library** will
+disagree here, because that library reads `streamEnd:normal` as a plain scalar rather than a key: such a
+reader sees no marker and reports **unknown**, which is the conservative answer and therefore safe. A
+reader that wants to agree exactly should split the line itself rather than delegate it.
 
 Any other line, a second `streamEnd`, a second `streamEndRecords`, or an empty `streamEnd` value makes
 the record an ordinary record. `<value>` is read to end of line, and then:

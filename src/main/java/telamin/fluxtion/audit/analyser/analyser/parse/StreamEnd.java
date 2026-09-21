@@ -23,7 +23,7 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * no amount of tail inspection would have helped.
  */
 public record StreamEnd(State state, long declaredRecords, long emittedRecords, Segment segment,
-                        String member) {
+                        Member member) {
 
     /**
      * Which run a verdict is about, when the file holds more than one. Null when the file is a single
@@ -52,6 +52,16 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
         }
     }
 
+    /**
+     * One file of a rolled set, and how many records THAT file holds.
+     *
+     * <p>Re-review found a member's numbers sitting beside the SET's record count in {@code context}
+     * with no file named, so an agent read "declares 6, read 25" under a missing-records state. Round
+     * four then found the same thing one level down: a run's numbers presented as the member's, with the
+     * member's own count missing entirely. Every scope now states its own count beside its own numbers.
+     */
+    public record Member(String file, long fileRecords) {}
+
     public StreamEnd(State state, long declaredRecords, long emittedRecords) {
         this(state, declaredRecords, emittedRecords, null, null);
     }
@@ -65,16 +75,9 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
         return new StreamEnd(state, declaredRecords, emittedRecords, s, member);
     }
 
-    /**
-     * The same verdict, said about one named FILE of a rolled set.
-     *
-     * <p>A set's verdict comes from a member, and the member's numbers are about that file. Re-review
-     * found them sitting beside the SET's record count in {@code context} with no file named, so an
-     * agent read "declares 6, read 25" under a missing-records state. The member's name travels with
-     * the numbers so the two scopes can never be printed as one.
-     */
-    public StreamEnd inMember(String file) {
-        return new StreamEnd(state, declaredRecords, emittedRecords, segment, file);
+    /** The same verdict, said about one named FILE of a rolled set, with that file's own count. */
+    public StreamEnd inMember(String file, long fileRecords) {
+        return new StreamEnd(state, declaredRecords, emittedRecords, segment, new Member(file, fileRecords));
     }
 
     public enum State {
@@ -128,27 +131,8 @@ public record StreamEnd(State state, long declaredRecords, long emittedRecords, 
      * {@code context} and the status bar, where a reader is asking about this file rather than being
      * interrupted about it.
      */
-    public String diagnostic(String fileName) {
-        // "this log" vs "run 1 of this log (records 0-24), which holds 50 in all" — the numbers below
-        // are the RUN's whenever a run is named, and saying so is the whole point of the distinction.
-        String subject = segment == null ? fileName
-                : segment.isEmpty()
-                        ? "run " + segment.ordinal() + " of " + fileName + " (which holds no records at "
-                                + "all, of " + segment.fileRecords() + " in the file)"
-                        : "run " + segment.ordinal() + " of " + fileName + " (records "
-                                + segment.firstRecord() + " to " + segment.lastRecord() + ", of "
-                                + segment.fileRecords() + " in the file)";
-        return switch (state) {
-            case COMPLETE, UNKNOWN -> null;
-            case UNVERIFIED -> subject + " ends with a marker saying the writer finished, but the marker "
-                    + "carries no readable record count. The claim cannot be checked, so it is not evidence.";
-            case MISSING_RECORDS -> subject + " declares " + declaredRecords + " records and "
-                    + emittedRecords + " were read. " + (declaredRecords - emittedRecords)
-                    + " are missing from the middle or the end.";
-            case MORE_THAN_DECLARED -> subject + " declares " + declaredRecords + " records and "
-                    + emittedRecords + " were read - " + (emittedRecords - declaredRecords)
-                    + " more than the marker says. The marker is wrong, or it is not the end of "
-                    + "what it claims to end. Either way the count is not evidence of a whole file.";
-        };
+    public String diagnostic(String logName) {
+        return StreamEndReport.sentence(this, logName);
     }
+
 }

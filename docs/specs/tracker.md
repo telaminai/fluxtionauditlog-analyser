@@ -140,6 +140,40 @@ defects. **Nothing below is implemented.**
      same deferred terms as the mid-record limit.
   6. "each of the 1 files in this set" now reads as a sentence.
 
+- **[AF-2/AF-3 ROUND FOUR, 2026-09-21] ☑ — the structural fix, finally.** _Reviewer re-ran the
+  prose-only §1a reader over 61 files: **0 disagreements**, so §1a is implementable from the text. 18 of
+  19 mutations red; the one green was theirs and is now red._ Verdict was merge-after-one-gate-fix.
+  1. **GATE — `git diff --check` failed**, 50 trailing-whitespace hits, all in `c21`, all REAL producer
+     output. Exempted in `.gitattributes` rather than stripped: stripping would falsify the one fixture
+     whose purpose is to be the producer's own bytes. **I had reported that gate clean, and it was not
+     — I ran it against a commit range that did not yet contain the file.**
+  2. **The recurring defect, at last addressed structurally.** Two MORE instances found: a set's run
+     numbers flattened into the member (with the member's own count missing entirely), and the SPI path
+     reporting a verdict to an agent that it never showed a person. That makes **five**, each previously
+     fixed where it was spotted. New `StreamEndReport` is the one place a verdict becomes either
+     surface: scopes nest (set ⊃ member ⊃ run), every scope states its own record count beside its own
+     numbers, and `StreamEndSurfacesAgreeTest` opens one bad file four ways — heap, mapped, SPI, rolled —
+     and asserts the sentence and the map agree. The reviewer's own mutation X6, which was green against
+     every test in the suite, is now red.
+  3. `c22` grew from two rules to five: unreadable count, duplicate key, empty value, no-space colon,
+     quoted-count-then-comment. The recognition table is now pinned by fixtures an outside adapter author
+     runs, which is what let round three's blocker through.
+  4. §1a gained the unbalanced-quote fallback and a note on what a YAML-library reader will do.
+  5. Wording: "declares 1 record", "1 record is missing", "the single file in this set".
+
+- **[AF-9] ☐ — no real Mongoose export is classified as an exported call (§5).** _Found by the round-four
+  reviewer while checking `c21`'s stated limit; **pre-existing, and true of the released reader too.**_
+  A real export writes `eventToString` for an `ExportFunctionAuditEvent` as TWO lines — `@Override` then
+  the Java signature — with the continuation at column 0. `RecordParser` reads a scalar to end of line,
+  so it keeps `@Override` and drops the signature. §5 classifies a record as an exported call by
+  recognising a method signature in that field, so **all 14 such records in `c21` have `callback` and
+  `declaringType` null**, and their dimension falls back to the event class rather than the method name.
+  Confirmed against released 1.16.0 as well, so it is not from this branch. The consequence is that the
+  callback dimension, which §5 exists to provide, is empty for every real Mongoose export. Pinned by
+  `c21` so a fix is visible; not fixed here because it changes how the parser folds continuation lines,
+  and that is the same question AF-8 asks about what a scalar line may contain. **AF-8 is filed on
+  `fix/follow-stale-partial-record`; these two should be decided together.**
+
 - **[AF-3a] ☐ — follow leaves a half-written record stale in the index.** _Pre-existing, not from this branch;
   found during the AF-3 review fixes._ An ordinary load indexes an unterminated trailing record, which is
   correct — the file may simply end there. If the file then GROWS, `appendFrom` skips it as already-indexed,

@@ -91,9 +91,23 @@ public final class SpiLogStore implements LogStore {
         return streamEnd;
     }
 
+    /**
+     * The reader's own findings, AND what the container said about its own completeness.
+     *
+     * <p>Round four found the second half missing here and present in every other store. A plugin-read
+     * log whose marker declared 12 records over 10 told an agent, through {@code context}, that records
+     * were missing, and told the person at the screen nothing at all. Same file, same verdict, one
+     * surface silent — which is the defect this whole contract exists to prevent, arriving by omission
+     * rather than by a wrong number. No test noticed, because no test compared the two surfaces.
+     */
     @Override
     public List<String> sourceDiagnostics() {
-        return List.copyOf(sourceDiagnostics);
+        String whole = telamin.fluxtion.audit.analyser.analyser.parse.StreamEndReport
+                .sentence(streamEnd, "this log");
+        if (whole == null) return List.copyOf(sourceDiagnostics);
+        List<String> out = new java.util.ArrayList<>(sourceDiagnostics);
+        out.add(whole);
+        return List.copyOf(out);
     }
 
     /** The reader that produced this store — the capability flags live on it (D-P4). */

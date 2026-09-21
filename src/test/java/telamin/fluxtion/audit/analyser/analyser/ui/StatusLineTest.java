@@ -63,7 +63,8 @@ class StatusLineTest {
      */
     @Test
     void aSetsMemberNumbersAreNestedUnderTheFileThatOwnsThem() {
-        var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3, null, "g.log");
+        var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3, null,
+                new StreamEnd.Member("g.log", 3));
         var facts = MainFrame.streamEndFacts(end, 25);
 
         assertEquals(25L, facts.get("recordsRead"), "the top level is always the whole log");
@@ -74,22 +75,29 @@ class StatusLineTest {
         var member = (java.util.Map<String, Object>) facts.get("member");
         assertNotNull(member, "the set must name the file its verdict came from");
         assertEquals("g.log", member.get("file"));
+        assertEquals(3L, member.get("recordsRead"), "the member states its OWN count");
         assertEquals(6L, member.get("declaredRecords"));
-        assertEquals(3L, member.get("recordsRead"));
     }
 
     /** A member's run positions are inside that member, so they travel inside it too. */
     @Test
     void aSetsMemberRunPositionsStayInsideTheMember() {
         var end = new StreamEnd(StreamEnd.State.MISSING_RECORDS, 6, 3,
-                new StreamEnd.Segment(2, 2, 4, 5), "g.log");
+                new StreamEnd.Segment(2, 2, 4, 5), new StreamEnd.Member("g.log", 5));
         @SuppressWarnings("unchecked")
         var member = (java.util.Map<String, Object>) MainFrame.streamEndFacts(end, 25).get("member");
         assertEquals("g.log", member.get("file"));
-        assertEquals(2, member.get("ordinal"));
-        assertEquals(2L, member.get("firstRecord"),
+        assertEquals(5L, member.get("recordsRead"), "the member's own count, not the run's 3");
+        // Round four: the run's numbers used to be FLATTENED into the member, so `recordsRead: 3` read
+        // as g.log's count while g.log held 5, and the member's own count was absent entirely.
+        @SuppressWarnings("unchecked")
+        var run = (java.util.Map<String, Object>) member.get("run");
+        assertNotNull(run, "a run inside a member is its own scope");
+        assertEquals(2, run.get("ordinal"));
+        assertEquals(2L, run.get("firstRecord"),
                 "records 2 to 4 of g.log, never of the 25-record set the agent is looking at");
-        assertEquals(4L, member.get("lastRecord"));
+        assertEquals(4L, run.get("lastRecord"));
+        assertEquals(3L, run.get("recordsRead"), "the run's count, labelled as the run's");
     }
 
     /** Re-review finding 3: an empty run has no positions, and printed "records 25 to 24". */

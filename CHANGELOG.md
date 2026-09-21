@@ -30,7 +30,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - A log whose completeness verdict concerns one run of several now says which run, and how many records
   the whole file holds. It previously reported that run's numbers as though they were the file's. The
   same applies to a rolled set: a verdict that came from one file names that file, and its numbers sit
-  under it rather than beside the set's own record count.
+  under it rather than beside the set's own record count, and a run inside one of those files nests
+  again, so every number sits with the thing it counts. A log read through a reader plugin now shows its
+  completeness verdict to a person as well as to an agent; it previously told only the agent.
 - A log file saved with a byte-order mark no longer counts a leading stream-end marker as a record.
 
 ### Documentation

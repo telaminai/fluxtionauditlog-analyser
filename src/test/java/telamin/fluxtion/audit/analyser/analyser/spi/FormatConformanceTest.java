@@ -570,12 +570,24 @@ class FormatConformanceTest {
      * that someone else can implement it and agree.
      */
     @Test
-    void c22_theSyntaxEdgesWhereProseAndCodeHadDisagreed() throws IOException {
+    void c22_everyRuleInTheRecognitionTable() throws IOException {
         LogStore s = bothPathsAgree("c22-marker-syntax.yaml");
-        assertEquals(1, s.size(), "one record; the marker is not one");
-        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE,
-                s.streamEnd().state(),
-                "a colon with no space is a key, and a quoted count followed by a comment reads as 1");
+        // Two real records, plus the two marker LOOKALIKES the table disqualifies, which are records.
+        assertEquals(4, s.size(),
+                "a duplicate key and an empty value are not markers, so both are ordinary records");
+        assertEquals("Tick", s.record(0).event());
+        assertEquals("Tick", s.record(1).event());
+        assertNull(s.record(2).event(), "the duplicate-streamEnd record, kept as evidence");
+        assertNull(s.record(3).event(), "the empty-value record, kept as evidence");
+
+        // Run 1 is closed by a marker whose count is unreadable: an end claimed with nothing behind it.
+        // Run 2's marker has no space after the colon and a quoted count followed by a comment, and
+        // declares 3 over the 3 records that precede it. The weakest verdict is the file's.
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNVERIFIED,
+                s.streamEnd().state(), "an unreadable count is unverified, never missing-records");
+        assertEquals(1, s.sourceDiagnostics().size());
+        assertTrue(s.sourceDiagnostics().get(0).contains("no readable record count"),
+                s.sourceDiagnostics().get(0));
     }
 
     @Test

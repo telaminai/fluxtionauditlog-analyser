@@ -166,7 +166,8 @@ class RolledLogStoreTest {
             assertEquals(5, set.size());
             StreamEnd end = set.streamEnd();
             assertEquals(StreamEnd.State.MISSING_RECORDS, end.state());
-            assertEquals("g.log", end.member(), "the numbers belong to a file, and it must be named");
+            assertEquals("g.log", end.member().file(), "the numbers belong to a file, and it must be named");
+            assertEquals(3, end.member().fileRecords(), "and the file states its OWN record count");
             assertEquals(6, end.declaredRecords(), "the member's declaration");
             assertEquals(3, end.emittedRecords(), "the member's records, not the set's 5");
         }

@@ -1,0 +1,7 @@
+# The real-producer conformance fixture is exempt from whitespace checking.
+#
+# `c21-real-export.yaml` is the byte-for-byte output of a Mongoose audit export, and Mongoose writes
+# `eventLogRecord: ` and `nodeLogs: ` WITH a trailing space. Stripping them would make `git diff --check`
+# pass and would falsify the one fixture whose entire purpose is to be the producer's own bytes rather
+# than someone's idea of them. Every other fixture in that directory is hand-written and stays checked.
+src/test/resources/conformance/c21-real-export.yaml -whitespace

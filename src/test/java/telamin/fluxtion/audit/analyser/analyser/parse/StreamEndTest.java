@@ -124,7 +124,8 @@ class StreamEndTest {
         StreamEnd e = StreamEnd.declared(25, 20);
         assertEquals(StreamEnd.State.MISSING_RECORDS, e.state());
         String d = e.diagnostic("x.yaml");
-        assertTrue(d.contains("25") && d.contains("20") && d.contains("5 are missing"), d);
+        assertTrue(d.contains("25 records") && d.contains("20 were read")
+                && d.contains("5 records are missing"), d);
         assertFalse(d.contains("-"), "a gap is never negative: " + d);
     }
 
@@ -133,7 +134,7 @@ class StreamEndTest {
         StreamEnd e = StreamEnd.declared(20, 25);
         assertEquals(StreamEnd.State.MORE_THAN_DECLARED, e.state(),
                 "this reported MISSING_RECORDS and printed '-5 are missing'");
-        assertTrue(e.diagnostic("x.yaml").contains("5 more"), e.diagnostic("x.yaml"));
+        assertTrue(e.diagnostic("x.yaml").contains("5 records more"), e.diagnostic("x.yaml"));
     }
 
     @Test

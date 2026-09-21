@@ -144,7 +144,8 @@ public final class RolledLogStore implements LogStore {
         if (worst == null || worst.state() == StreamEnd.State.COMPLETE) return StreamEnd.unknown(size());
         // The numbers are the MEMBER's; its name travels with them so no surface can print them beside
         // the set's own count as though they described the same thing (re-review B2).
-        return worst.inMember(paths.get(worstIndex).getFileName().toString());
+        return worst.inMember(paths.get(worstIndex).getFileName().toString(),
+                members.get(worstIndex).size());
     }
 
     /** True when every member carries a marker that checks out — worth SAYING, never worth believing. */
@@ -184,8 +185,8 @@ public final class RolledLogStore implements LogStore {
         if (everyMemberIsWhole()) {
             out.add((members.size() == 1
                     ? "the single file in this set says it is whole, and it says so only about itself."
-                    : "each of the " + members.size() + " files in this set says it is whole, and each "
-                            + "says so only about itself.")
+                    : "each of the " + StreamEndReport.plural(members.size(), "file")
+                            + " in this set says it is whole, and each says so only about itself.")
                     + " Nothing records how many files the set should hold, so a file that was never "
                     + "rotated in, copied or kept would leave a gap that looks exactly like this. The "
                     + "set's completeness is unknown.");

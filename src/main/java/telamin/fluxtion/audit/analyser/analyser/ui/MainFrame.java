@@ -4107,45 +4107,17 @@ public final class MainFrame extends JFrame {
      * labelled, and the top level keeps only what is true of the file. A single-run file has no
      * {@code run} key, because the file is the run and a nested duplicate would be noise.
      */
+    /**
+     * What `context` says about completeness — rendered by the one thing that renders it.
+     *
+     * <p>This used to build the map here and leave the sentence to be built somewhere else, which is how
+     * the two surfaces disagreed five times across three review rounds. Both now come from
+     * {@link telamin.fluxtion.audit.analyser.analyser.parse.StreamEndReport}, so a number cannot appear
+     * in one and not the other, or appear in both under different scopes.
+     */
     static Map<String, Object> streamEndFacts(
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int fileRecords) {
-        Map<String, Object> se = new java.util.LinkedHashMap<>();
-        se.put("state", end.state().name().toLowerCase(java.util.Locale.ROOT));
-        se.put("recordsRead", (long) fileRecords);      // ALWAYS the whole log's count
-
-        Map<String, Object> scoped = scopedNumbers(end);
-        if (end.member() != null) {
-            // A rolled set: the numbers came from ONE file and the positions are inside it, so they are
-            // nested under the file that owns them. Re-review B2 found them beside the SET's count with
-            // no file named, reading as "declares 6, read 25" under a missing-records state.
-            Map<String, Object> member = new java.util.LinkedHashMap<>();
-            member.put("file", end.member());
-            member.putAll(scoped);
-            se.put("member", member);
-        } else if (end.segment() != null) {
-            se.put("run", scoped);
-        } else if (end.declaredRecords() >= 0) {
-            se.put("declaredRecords", end.declaredRecords());
-        }
-        return se;
-    }
-
-    /** A verdict's own numbers, and where they sit, for whatever scope owns them. */
-    private static Map<String, Object> scopedNumbers(
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end) {
-        Map<String, Object> m = new java.util.LinkedHashMap<>();
-        var seg = end.segment();
-        if (seg != null) {
-            m.put("ordinal", seg.ordinal());
-            // An empty run has no positions to give: its last record is one BEFORE its first.
-            if (!seg.isEmpty()) {
-                m.put("firstRecord", seg.firstRecord());
-                m.put("lastRecord", seg.lastRecord());
-            }
-        }
-        if (end.declaredRecords() >= 0) m.put("declaredRecords", end.declaredRecords());
-        m.put("recordsRead", end.emittedRecords());
-        return m;
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int logRecords) {
+        return telamin.fluxtion.audit.analyser.analyser.parse.StreamEndReport.facts(end, logRecords);
     }
 
     /**
