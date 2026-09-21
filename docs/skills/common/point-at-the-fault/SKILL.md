@@ -1,6 +1,6 @@
 ---
 name: point-at-the-fault
-description: Check an open audit log for one class of fault and finish by pointing at the evidence on screen. Use when a person asks whether their log shows a particular fault (a limit reached, a value gone NaN, a node that stopped logging), or asks you to write a runbook that checks for one.
+description: Check an open audit log for one class of fault and finish by pointing at the evidence on screen. Use when a person asks whether their log shows a particular fault (a limit reached, a value gone NaN, a node that stopped logging), or asks you to write a runbook that checks for one — or asks for a report showing which record proves a fault you found or fixed.
 x-analyser-min-version: 1.12.0
 ---
 
@@ -119,6 +119,28 @@ analyser_series {"expr": "riskMonitor.liveOrders", "crossings": {"above": 99}}
 > — its maximum was 6. Nothing to show you.
 
 No spotlight. That sentence **is** the result.
+
+## Writing it up — the symptom from the record, the cause from the change
+
+A report is read by someone who has **only what you hand them**: not your session, not your context, often
+not the source. A record proves what the system **did**. It cannot prove what the code **says**. So a report
+that says *"this record proves the fault"* makes two claims, and each needs its own evidence:
+
+1. **The symptom — cite the record.** File and line, or `recordIndex`, and the values quoted from it:
+   *"in record N, `a.x` is 12 while `b.y` is 15 for the same event"*. Say what a correct record would
+   show and how you know — from the inputs the record itself carries where possible, so the reader can
+   redo the arithmetic.
+2. **The cause — cite the change.** The cause is a claim about code, so its evidence is **the diff of your
+   fix, in the report**, not a description of it — plus the matching record from a run of the fixed build,
+   showing the symptom gone.
+3. **Label what comes from the source.** Anything the log cannot show — which node reads which, a rule
+   that fires only once — mark as *from the source*, so the reader knows what they can check in the log
+   and what they are taking from the code.
+4. **Make the pack stand alone.** It holds everything you cite: the report, the diff, the logs. If one
+   export holds more than one run, say where each run starts and which build produced it.
+
+A reader who can verify the symptom in the log and the cause in the diff does not need to trust you. That
+is the point of the report.
 
 ## If you are tempted to
 
