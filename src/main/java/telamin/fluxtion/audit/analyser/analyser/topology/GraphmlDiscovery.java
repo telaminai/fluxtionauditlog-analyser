@@ -134,12 +134,11 @@ public final class GraphmlDiscovery {
                 notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
                 return new Candidate(file, 0, null);
             }
-            // the same authored-vs-scaffolding split coverage uses — a graph is judged
-            // on the nodes someone wrote, not on the dispatcher plumbing
-            Set<String> declared = Scaffolding.authoredNodes(topology);
+            // Pairing is a fact about all declared ids, not the view's scaffolding choice.
+            Set<String> declared = GraphPairing.declaredNodeIds(topology);
             GraphPairing pairing = loggedIds == null || loggedIds.isEmpty()
                     ? null : GraphPairing.of(declared, loggedIds);
-            return new Candidate(file, declared.size(), pairing);
+            return new Candidate(file, Scaffolding.authoredNodes(topology).size(), pairing);
         } catch (RuntimeException | IOException e) {
             notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
             return new Candidate(file, 0, null);

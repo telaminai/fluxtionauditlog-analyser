@@ -1,6 +1,6 @@
 # Tool agreement — the tools that describe an application must not contradict it, or each other
 
-**Status:** proposed 2026-09-21 · **Builds:** the analyser work items TA-1…TA-9 · **Counts:** the open
+**Status:** implementation in progress 2026-09-21 · **Builds:** the analyser work items TA-1…TA-9 · **Counts:** the open
 category B items of the 2026-09-19/20 feedback (D14–D20), which are built under their existing tracker
 items · **Also records:** the upstream asks the same evidence raised, so they are owned rather than lost,
 and the subsequent starter comment-emission finding D21. Baseline: 21 rows; D21 is upstream-owned.
@@ -63,8 +63,8 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 
 | # | What a tool says | What is true | Owner | Evidence | Status |
 |---|---|---|---|---|---|
-| D1 | pairing: "declares 2 of 3 node(s)… probably from a different build" | the graphml declares `output`; it is a framework `SinkPublisher` | **analyser** → TA-1 | §5.6, A1 | ☐ |
-| D2 | the three pairing call sites compute "declared" three different ways | one question should have one answer | **analyser** → TA-1 | code, below | ☐ |
+| D1 | pairing: "declares 2 of 3 node(s)… probably from a different build" | the graphml declares `output`; it is a framework `SinkPublisher` | **analyser** → TA-1 | §5.6, A1 | ☑ `GraphPairingTest.frameworkLoggerIsDeclaredInTheCommittedGraph` |
+| D2 | the three pairing call sites compute "declared" three different ways | one question should have one answer | **analyser** → TA-1 | code, below | ☑ `PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession` |
 | D3a | the jar ships a graph with fingerprint `f6ae6f84…` (20 nodes) | the running processor includes `eodReportPublisher` (R1 proves it ran); only the source copy `4ecd6133…` (23 nodes) declares it | build → upstream | §5.5, §3.6 R1, fixtures | ☐ |
 | D3b | discovery and open say nothing when two copies of one graph disagree | they differ in fingerprint and node set | **analyser** → TA-2 | fixtures | ☐ |
 | D4 | report finding: "WHAT IS WRONG / LIKELY CAUSE" | the flag confirms correct behaviour | **analyser** → existing "Reports as evidence, not automatically defects" (25); TA-3 | §5.6, A9 | ☐ |
@@ -90,6 +90,10 @@ row of their own, so a zero analyser count is not completion of this spec.
 ## Analyser work items
 
 ### TA-1 · P0 · One declared set for pairing, and it includes framework nodes that log
+
+**Status: ☑ implemented.** Current open counts: analyser **11** (baseline 13), upstream **8**.
+[Tests and mutation witness](../handoff/report_tool_agreement_2026_09_21.md). The table below records the
+pre-fix cause; all producers now use `GraphPairing.declaredNodeIds`, including the session input boundary.
 
 **Root cause, verified against the code and the fixture.** The fixture's `output` node carries a label with
 `id:output` and `fluxtion.kind = EVENT_HANDLER`, class `SinkPublisher`, so `GraphMlParser` reads it

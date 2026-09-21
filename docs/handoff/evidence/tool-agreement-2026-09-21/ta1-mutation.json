@@ -1,0 +1,16 @@
+{
+  "mutation": "GraphPairing.declaredNodeIds returns Scaffolding.authoredNodes(topology)",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "frameworkLoggerIsDeclaredInTheCommittedGraph",
+      "failure": "expected: <23> but was: <8>"
+    },
+    {
+      "test": "committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(Path)",
+      "failure": "session includes the framework logger ==> expected: <3> but was: <2>"
+    }
+  ],
+  "restored": true,
+  "instrumentNote": "Initial witness collector expected an unparameterized testcase name; checked the same saved Surefire results using method name before the parameter suffix. No rerun or result replacement."
+}

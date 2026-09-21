@@ -72,7 +72,7 @@ public class OpenGraph implements EventLogSource {
         return source;
     }
 
-    /** The authored node ids the graph declares — raw, so a verdict is computed and not handed over. */
+    /** All node ids the graph declares (including framework nodes) — raw, so a verdict is computed and not handed over. */
     public java.util.Set<String> declaredNodeIds() {
         return declaredNodeIds;
     }

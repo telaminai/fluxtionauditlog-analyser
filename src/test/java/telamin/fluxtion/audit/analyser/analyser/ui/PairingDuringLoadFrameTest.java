@@ -38,6 +38,49 @@ class PairingDuringLoadFrameTest {
                 + "<jGraph:Style properties=\"NODE\"/></jGraph:ShapeNode></data></node>\n</graph></graphml>\n";
     }
 
+    /** TA-1: the producer graph is committed; the three-node audit record is constructed. */
+    @Test
+    void committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        Path audit = Files.writeString(tmp.resolve("constructed.yaml"), log("rootNode")
+                .replace("    - rootNode: { v: 1}", "    - rootNode: { v: 1}\n    - riskCheck: { v: 1}\n    - output: { v: 1}"));
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graph.toAbsolutePath().toString())));
+            var context = awaitVerdict(ex);
+            assertEquals(3, context.get("declaredByGraph"), "session includes the framework logger");
+            assertEquals(Boolean.TRUE, context.get("applies"));
+            var discovered = telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
+                    List.of(graph.getParent().toString()), java.util.Set.of("rootNode", "riskCheck", "output"))
+                    .candidates().stream().filter(c -> c.file().equals(graph)).findFirst().orElseThrow().pairing();
+            var sessionField = MainFrame.class.getDeclaredField("session");
+            sessionField.setAccessible(true);
+            var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
+            var storeField = MainFrame.class.getDeclaredField("store");
+            storeField.setAccessible(true);
+            var judge = MainFrame.class.getDeclaredMethod("pairingAgainst", telamin.fluxtion.audit.analyser.analyser.parse.LogStore.class);
+            judge.setAccessible(true);
+            onEdt(() -> {
+                try {
+                    assertEquals(discovered, judge.invoke(frame.get(), storeField.get(frame.get())), "frame/discovery parity");
+                    assertEquals(discovered, session.processor().pairing.verdict(), "session/discovery parity");
+                } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+            });
+            assertEquals(3, discovered.matched());
+            assertFalse(discovered.reason().contains("different build"));
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
     @Test
     void aGraphOpenedWhileTheNextLogLoads_contextSaysPending_thenJudgesTheNewPair(@TempDir Path tmp) throws Exception {
         pendingThenJudged(tmp, false);

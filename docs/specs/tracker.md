@@ -10,12 +10,12 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
-D3a (build) and D3b (detection). Two counts, reported separately: **analyser 13 open**, **upstream 8 open**;
+D3a (build) and D3b (detection). Two counts, reported separately: **analyser 11 open** (13 at baseline), **upstream 8 open**;
 D7 is reclassified as capability disclosure. Direction check: re-count each release. **Revised 2026-09-21
 after review:** the first version reversed the two fixture fingerprints (source `4ecd6133…`, stale
 `f6ae6f84…`), and wrongly called feedback 23, 25 and 34 untracked.
 
-- **[TA-1] ☐ — one declared set for pairing, including framework nodes that log** · _src-round3 fixture pairs
+- **[TA-1] ☑ — one declared set for pairing, including framework nodes that log** · _src-round3 fixture pairs
   cleanly (no "different build"); all three call sites return identical verdicts; the M35.1 foreign-graph
   negative control still fails; mutation witness._
   **Prediction frozen before TA-1 edits, 2026-09-21:** on the committed 23-node graph, the constructed
@@ -23,6 +23,12 @@ after review:** the first version reversed the two fixture fingerprints (source 
   session paths after unifying the declared set. Restoring either UI/discovery authored-only call
   will fail the equality regression; the existing foreign-graph control will remain rejected.
   Baseline before: analyser 13 open; upstream 8 open.
+  **Result:** prediction held. `GraphPairingTest.frameworkLoggerIsDeclaredInTheCommittedGraph` and
+  `PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession` use the
+  committed graph and constructed log. Shared declared-set mutation fails with 23→8 declared nodes and
+  3→2 matched loggers; restored tests pass. Existing foreign-graph controls still reject.
+  [Witness and validation](../handoff/report_tool_agreement_2026_09_21.md). D1/D2 closed; analyser 11 open,
+  upstream 8 open. Discovery retains its separately labelled authored-node count.
 - **[TA-2] ☐ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
   and node counts reported; source copy ranks first against a round-3 log; works with no log open; negative
   control: byte-identical copies reported as agreeing._

@@ -3933,7 +3933,8 @@ public final class MainFrame extends JFrame {
             for (var nodeLog : log.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
         }
         var p = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
-                topologyPanel.authoredNodeIds(), logged);
+                telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
+                        topologyPanel.fullTopology()), logged);
         if (log.size() > PAIRING_SAMPLE) {
             // review F1: the numbers describe the SAMPLE, and the sentence must say so — "the N node(s)
             // this log writes" is a whole-log claim this method never checked
@@ -4826,7 +4827,8 @@ public final class MainFrame extends JFrame {
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved(
                 open, graphFile == null ? null : graphFile.toString(),
                 topologyPanel.graphSource() == null ? null : topologyPanel.graphSource().name(),
-                open ? topologyPanel.authoredNodeIds() : java.util.Set.of(), types));
+                open ? telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
+                        topologyPanel.fullTopology()) : java.util.Set.of(), types));
     }
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */

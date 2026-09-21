@@ -51,6 +51,14 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
      */
     public static final double KEEP_ABOVE = 0.5;
 
+    /** All declared ids, independent of scaffolding visibility (TA-1). Also used at the session input boundary. */
+    public static Set<String> declaredNodeIds(ProcessorTopology topology) {
+        if (topology == null) return Set.of();
+        java.util.Set<String> ids = new java.util.LinkedHashSet<>();
+        for (var node : topology.nodes()) ids.add(node.id());
+        return java.util.Collections.unmodifiableSet(ids);
+    }
+
     public static GraphPairing of(Set<String> declared, Set<String> logged) {
         if (declared == null || declared.isEmpty()) {
             return new GraphPairing(logged == null ? 0 : logged.size(), 0, false,

@@ -12,6 +12,22 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class GraphPairingTest {
 
+    /** TA-1: committed producer graph; logged ids are a constructed regression case. */
+    @Test
+    void frameworkLoggerIsDeclaredInTheCommittedGraph() throws Exception {
+        var path = java.nio.file.Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        var graph = GraphMlParser.parse(path);
+        var logged = Set.of("rootNode", "riskCheck", "output");
+        var pairing = GraphPairing.of(GraphPairing.declaredNodeIds(graph), logged);
+        assertEquals(23, GraphPairing.declaredNodeIds(graph).size());
+        assertEquals(3, pairing.matched(), "framework logger is a declared fact, even when hidden");
+        assertEquals(pairing.logged(), pairing.matched());
+        assertTrue(pairing.applies());
+        var discovered = GraphmlDiscovery.scan(java.util.List.of(path.getParent().toString()), logged)
+                .candidates().stream().filter(c -> c.file().equals(path)).findFirst().orElseThrow();
+        assertEquals(pairing, discovered.pairing(), "discovery uses the same declared set");
+    }
+
     @Test
     void aDifferentSystemIsClosed_theDefectM35ExistsToPrevent() {
         // the M35.1 report's reproduction, as data: a market-maker log against a supermarket graph

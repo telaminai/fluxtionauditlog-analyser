@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+- Graph/log pairing includes every declared node, including framework nodes that log, consistently
+  across discovery, the topology view and session state. Hiding scaffolding no longer changes the verdict.
+
 ### Documentation
 - Qualify C++ as a preview target and limit the reported Java/C++ equivalence to the tested graph
   and event stream; the vendor experiment does not establish general supplier compatibility.
