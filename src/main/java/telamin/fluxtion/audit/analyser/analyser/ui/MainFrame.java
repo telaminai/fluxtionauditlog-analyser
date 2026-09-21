@@ -4095,6 +4095,39 @@ public final class MainFrame extends JFrame {
     }
 
     /**
+     * What `context` says about the file's completeness — {@code spec-audit-stream-end.md} D-E3.
+     *
+     * <p><b>{@code recordsRead} is always the FILE's count.</b> Re-review found the diagnostic sentence
+     * reporting one run's numbers as the whole file's, and this map had the same defect, unfixed, on the
+     * surface that matters more: a person reads the sentence and may notice it is odd, while an agent
+     * reads this and calculates with it. For a two-run file whose first run declared 3 over 2 records,
+     * this said {@code recordsRead: 2} about a file holding 4.
+     *
+     * <p>So a verdict about one run of several puts ITS numbers inside {@code run}, where they are
+     * labelled, and the top level keeps only what is true of the file. A single-run file has no
+     * {@code run} key, because the file is the run and a nested duplicate would be noise.
+     */
+    static Map<String, Object> streamEndFacts(
+            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int fileRecords) {
+        Map<String, Object> se = new java.util.LinkedHashMap<>();
+        se.put("state", end.state().name().toLowerCase(java.util.Locale.ROOT));
+        se.put("recordsRead", (long) fileRecords);
+        var seg = end.segment();
+        if (seg == null) {
+            if (end.declaredRecords() >= 0) se.put("declaredRecords", end.declaredRecords());
+            return se;
+        }
+        Map<String, Object> run = new java.util.LinkedHashMap<>();
+        run.put("ordinal", seg.ordinal());
+        run.put("firstRecord", seg.firstRecord());
+        run.put("lastRecord", seg.lastRecord());
+        if (end.declaredRecords() >= 0) run.put("declaredRecords", end.declaredRecords());
+        run.put("recordsRead", end.emittedRecords());
+        se.put("run", run);
+        return se;
+    }
+
+    /**
      * The status-bar line, assembled where a test can read it.
      *
      * <p><b>Why this is not inline any more.</b> The "complete" note (D-E3) was computed into a local
@@ -5706,12 +5739,7 @@ public final class MainFrame extends JFrame {
             // states that have something to report). Docs: user-guide/assistant.md ▸ "Is this log whole?"
             // and site/format-spec.md §1a. The pointer said log-sources.md, which never mentioned it.
             if (!log.isEmpty() && store != null) {
-                var end = store.streamEnd();
-                Map<String, Object> se = new java.util.LinkedHashMap<>();
-                se.put("state", end.state().name().toLowerCase(java.util.Locale.ROOT));
-                if (end.declaredRecords() >= 0) se.put("declaredRecords", end.declaredRecords());
-                se.put("recordsRead", end.emittedRecords());
-                log.put("streamEnd", se);
+                log.put("streamEnd", streamEndFacts(store.streamEnd(), store.size()));
             }
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""

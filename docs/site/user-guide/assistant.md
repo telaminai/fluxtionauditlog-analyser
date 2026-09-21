@@ -120,8 +120,18 @@ file reads as `unknown`. That is the honest answer: the records in it are still 
 do is treat a missing node as proof it never ran. A count in a marker *can* catch records lost from the
 middle of a run, which is the case nothing else would find.
 
+`recordsRead` is always the number of records in the **file**. When a file holds more than one run, and
+the verdict concerns one of them, that run's own numbers sit under a `run` key beside it, with the run's
+position and the records it covers. Nothing about a single run is ever reported as though it were the
+file, which is a mistake worth naming because an agent calculates with these numbers.
+
 When a file does claim completeness, the status bar says **complete** beside the record count. The states
 with something to report appear as a source diagnostic, the same place a cut binary tail is reported.
+
+**A rolled set is never reported as complete**, however many of its files say they are. A marker is
+written by the process that wrote that one file, and nothing records how many files a set should hold, so
+a set whose middle file was never copied looks exactly like a set with nothing missing. A file that lost
+records still makes the set say so, and names the file. Everything else about a set is `unknown`.
 
 The marker a writer emits to make this claim is defined in the
 [format specification §1a](../format-spec.md). It is never shown as a record: it is a fact about the
