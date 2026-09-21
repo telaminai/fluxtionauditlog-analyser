@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -50,7 +52,36 @@ public final class GraphmlDiscovery {
      * @param nodes   how many authored nodes it declares, or 0 when it did not parse
      * @param pairing its verdict against the log, or null when there is no log to judge against
      */
-    public record Candidate(Path file, int nodes, GraphPairing pairing) {
+    public record Candidate(Path file, int nodes, GraphPairing pairing, Set<String> declaredIds,
+                            String fingerprint, String processorClass, String modifiedTime,
+                            Set<String> loggedButNotDeclared, boolean readable) {
+        public Candidate {
+            declaredIds = Set.copyOf(declaredIds);
+            loggedButNotDeclared = Set.copyOf(loggedButNotDeclared);
+        }
+
+        private Candidate(Path file, int nodes, GraphPairing pairing) {
+            this(file, nodes, pairing, Set.of(), null, null, null, Set.of(), false);
+        }
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("path", file.toString());
+            out.put("readable", readable);
+            out.put("authoredNodes", nodes);
+            out.put("graphNodes", readable ? declaredIds.size() : null);
+            out.put("sourceFingerprint", fingerprint);
+            out.put("processorClass", processorClass);
+            out.put("modifiedTime", modifiedTime);
+            if (pairing != null) {
+                out.put("appliesToOpenLog", pairing.applies());
+                out.put("declaredByGraph", pairing.matched());
+                out.put("loggedNodes", pairing.logged());
+                out.put("loggedButNotDeclared", loggedButNotDeclared.stream().sorted().toList());
+                out.put("verdict", pairing.reason());
+            }
+            return out;
+        }
 
         /** Best first: fits, then how much of the log it explains, then the bigger graph. */
         static final Comparator<Candidate> RANK = Comparator
@@ -60,8 +91,12 @@ public final class GraphmlDiscovery {
                 .thenComparing(c -> c.file.toString());
 
         public String describe() {
-            String base = file.getFileName() + " · " + nodes + " node(s)";
-            return pairing == null ? base : base + " · " + pairing.reason();
+            String base = file + " · " + (readable ? declaredIds.size() : "unknown") + " node(s)"
+                    + " · fingerprint " + (fingerprint == null ? "unknown" : fingerprint)
+                    + " · modified " + (modifiedTime == null ? "unknown" : modifiedTime);
+            return pairing == null ? base : base + " · " + pairing.reason()
+                    + (loggedButNotDeclared.isEmpty() ? "" : " · not declared: "
+                    + String.join(", ", loggedButNotDeclared.stream().sorted().toList()));
         }
     }
 
@@ -71,6 +106,67 @@ public final class GraphmlDiscovery {
             candidates = List.copyOf(candidates);
             notes = List.copyOf(notes);
         }
+
+        public List<CopyGroup> copyGroups() { return compareCopies(candidates); }
+    }
+
+    /** Comparison is about these files, never an assertion of which build is right. */
+    public record CopyGroup(List<Candidate> copies, String agreement) {
+        public CopyGroup { copies = List.copyOf(copies); }
+        public Map<String, Object> toMap() {
+            return Map.of("agreement", agreement, "copies", copies.stream().map(Candidate::toMap).toList());
+        }
+        public String describe() {
+            return "Graph copies " + agreement + ": " + String.join("; ", copies.stream()
+                    .map(Candidate::describe).toList());
+        }
+    }
+
+    public static List<CopyGroup> compareCopies(List<Candidate> candidates) {
+        List<List<Candidate>> groups = new ArrayList<>();
+        for (Candidate candidate : candidates) {
+            List<Candidate> group = new ArrayList<>();
+            group.add(candidate);
+            // Merge connected groups: either the declared processor or the basename may link copies.
+            for (var iterator = groups.iterator(); iterator.hasNext();) {
+                var existing = iterator.next();
+                if (existing.stream().anyMatch(c -> sameGraph(c, candidate))) {
+                    group.addAll(existing);
+                    iterator.remove();
+                }
+            }
+            groups.add(group);
+        }
+        List<CopyGroup> out = new ArrayList<>();
+        for (var group : groups) {
+            if (group.size() < 2) continue;
+            var valid = group.stream().filter(Candidate::readable).toList();
+            boolean disagree = valid.stream().anyMatch(a -> valid.stream().anyMatch(b ->
+                    !a.declaredIds().equals(b.declaredIds())
+                    || (a.fingerprint() != null && b.fingerprint() != null
+                        && !a.fingerprint().equals(b.fingerprint()))));
+            boolean unknown = valid.size() != group.size()
+                    || valid.stream().anyMatch(c -> c.fingerprint() == null);
+            out.add(new CopyGroup(group, disagree ? "disagree" : unknown ? "unknown" : "agree"));
+        }
+        return List.copyOf(out);
+    }
+
+    private static boolean sameGraph(Candidate a, Candidate b) {
+        return a.file().getFileName().equals(b.file().getFileName())
+                || (a.processorClass() != null && a.processorClass().equals(b.processorClass()));
+    }
+
+    /** Include the actually loaded graph, even when it lies outside the configured search roots. */
+    public static Result compareOpened(Path file, ProcessorTopology loaded, List<String> roots) {
+        var scan = scan(roots, Set.of());
+        List<Candidate> copies = new ArrayList<>(scan.candidates());
+        copies.removeIf(c -> c.file().toAbsolutePath().normalize().equals(file.toAbsolutePath().normalize()));
+        String modified = null;
+        try { modified = Files.getLastModifiedTime(file).toInstant().toString(); }
+        catch (IOException ignored) { /* unknown, rather than an invented timestamp */ }
+        copies.add(candidate(file, loaded, Set.of(), modified));
+        return new Result(copies, scan.truncated(), scan.notes());
     }
 
     /**
@@ -134,14 +230,27 @@ public final class GraphmlDiscovery {
                 notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
                 return new Candidate(file, 0, null);
             }
-            // Pairing is a fact about all declared ids, not the view's scaffolding choice.
-            Set<String> declared = GraphPairing.declaredNodeIds(topology);
-            GraphPairing pairing = loggedIds == null || loggedIds.isEmpty()
-                    ? null : GraphPairing.of(declared, loggedIds);
-            return new Candidate(file, Scaffolding.authoredNodes(topology).size(), pairing);
+            return candidate(file, topology, loggedIds, Files.getLastModifiedTime(file).toInstant().toString());
         } catch (RuntimeException | IOException e) {
             notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
             return new Candidate(file, 0, null);
         }
     }
+    private static Candidate candidate(Path file, ProcessorTopology topology, Set<String> loggedIds,
+                                       String modifiedTime) {
+        Set<String> declared = GraphPairing.declaredNodeIds(topology);
+        GraphPairing pairing = loggedIds == null || loggedIds.isEmpty()
+                ? null : GraphPairing.of(declared, loggedIds);
+        Set<String> missing = new LinkedHashSet<>(loggedIds == null ? Set.of() : loggedIds);
+        missing.removeAll(declared);
+        var facts = topology.vocabulary().graphFacts();
+        return new Candidate(file, Scaffolding.authoredNodes(topology).size(), pairing, declared,
+                nonBlank(facts.get("fluxtion.sourceFingerprint")), nonBlank(facts.get("fluxtion.processorClass")),
+                modifiedTime, missing, true);
+    }
+
+    private static String nonBlank(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
 }

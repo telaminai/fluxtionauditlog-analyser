@@ -644,6 +644,7 @@ public final class TopologyPanel extends JPanel {
         loadedFrom = null;
         graphSource = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
         pairingPart = null;
+        copyComparisonPart = null;
         fullTopology = telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.empty();
         focusStack = new FocusStack(fullTopology);
         selection.clear();
@@ -742,6 +743,7 @@ public final class TopologyPanel extends JPanel {
                 g.nodes(), g.edges());
         loadedFrom = null;                       // it came from the log, not a file the user can point at
         graphSource = candidate;
+        copyComparisonPart = null;
         focusStack = new FocusStack(fullTopology);
         selection.clear();
         scope = TopologyFocus.Scope.NODE;
@@ -887,6 +889,7 @@ public final class TopologyPanel extends JPanel {
         StringBuilder sb = new StringBuilder(statusBase == null ? " " : statusBase);
         appendPart(sb, stepPart);
         appendPart(sb, scopePart);
+        appendPart(sb, copyComparisonPart);
         appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
         if (!orderMeaningful) {
             appendPart(sb, "⚠ ARRIVAL ORDER, NOT DISPATCH ORDER — this source declares no order "
@@ -922,6 +925,12 @@ public final class TopologyPanel extends JPanel {
         renderStatus();
     }
 
+    public void setCopyComparisonNote(String note) {
+        copyComparisonPart = note;
+        renderStatus();
+    }
+
+    private String copyComparisonPart;
     private String pairingPart;
 
     private static void appendPart(StringBuilder sb, String part) {

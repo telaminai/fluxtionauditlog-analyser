@@ -1,0 +1,19 @@
+{
+  "mutation": "Disable GraphmlDiscovery copy disagreement verdict",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "openingCommittedCopiesAnnouncesDisagreementWithoutRefusing(Path)",
+      "failure": "expected: <disagree> but was: <agree>"
+    },
+    {
+      "test": "declaredProcessorGroupsRenamedCopiesAndNodeSetsAreCompared(Path)",
+      "failure": "expected: <disagree> but was: <agree>"
+    },
+    {
+      "test": "committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence(Path)",
+      "failure": "expected: <disagree> but was: <agree>"
+    }
+  ],
+  "restored": true
+}

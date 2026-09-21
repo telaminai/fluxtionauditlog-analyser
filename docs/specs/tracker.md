@@ -10,7 +10,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
-D3a (build) and D3b (detection). Two counts, reported separately: **analyser 11 open** (13 at baseline), **upstream 8 open**;
+D3a (build) and D3b (detection). Two counts, reported separately: **analyser 10 open** (13 at baseline), **upstream 8 open**;
 D7 is reclassified as capability disclosure. Direction check: re-count each release. **Revised 2026-09-21
 after review:** the first version reversed the two fixture fingerprints (source `4ecd6133…`, stale
 `f6ae6f84…`), and wrongly called feedback 23, 25 and 34 untracked.
@@ -29,9 +29,22 @@ after review:** the first version reversed the two fixture fingerprints (source 
   3→2 matched loggers; restored tests pass. Existing foreign-graph controls still reject.
   [Witness and validation](../handoff/report_tool_agreement_2026_09_21.md). D1/D2 closed; analyser 11 open,
   upstream 8 open. Discovery retains its separately labelled authored-node count.
-- **[TA-2] ☐ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
+- **[TA-2] ☑ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
   and node counts reported; source copy ranks first against a round-3 log; works with no log open; negative
   control: byte-identical copies reported as agreeing._
+  **Prediction frozen before TA-2 edits, 2026-09-21:** copying the two committed MarketProcessor
+  fixtures under the same basename in separate directories will report a fingerprint/node-set
+  disagreement without a log; the round-3 logger will rank the 23-node copy first and name
+  `eodReportPublisher` missing from the 20-node copy. Identical copies will agree. Opening either
+  copy will announce the disagreement without refusing it. Disabling copy comparison must fail the
+  regression. Before: analyser 11 open; upstream 8 open.
+  **Result:** held. `GraphmlDiscoveryTest.committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence`
+  and `PairingDuringLoadFrameTest.openingCommittedCopiesAnnouncesDisagreementWithoutRefusing` pass.
+  Identical copies agree; absent fingerprints are unknown; constructed processor metadata and node-id
+  changes are covered separately. Disabling the disagreement verdict fails three tests with
+  expected disagree / actual agree. Restored full headless and pairing-frame suites pass; strict docs pass.
+  [Evidence](../handoff/report_tool_agreement_2026_09_21.md#ta-2--completed). D3b closed; D3a unchanged.
+  After: analyser 10 open; upstream 8 open.
 - **[TA-3] ☐ — `flag {kind: confirmation}` with neutral labels** — built under the existing "Reports as
   evidence, not automatically defects" (25), not a parallel item · _on constructed inputs: existing flags
   unchanged; Observation / Assessment in table, callout, report and PDF; kind survives restore._

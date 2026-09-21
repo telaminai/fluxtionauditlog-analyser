@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Fixed
+- Graph discovery reports disagreeing copies with fingerprints, node counts and missing logged ids.
+  Opening a graph also checks configured roots and its directory, announcing conflicts without refusing it.
 - Graph/log pairing includes every declared node, including framework nodes that log, consistently
   across discovery, the topology view and session state. Hiding scaffolding no longer changes the verdict.
 

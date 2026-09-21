@@ -38,6 +38,54 @@ class PairingDuringLoadFrameTest {
                 + "<jGraph:Style properties=\"NODE\"/></jGraph:ShapeNode></data></node>\n</graph></graphml>\n";
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void openingCommittedCopiesAnnouncesDisagreementWithoutRefusing(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path fixtures = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures");
+        Path source = Files.createDirectories(tmp.resolve("source")).resolve("MarketProcessor.graphml");
+        Path stale = Files.createDirectories(tmp.resolve("classes")).resolve("MarketProcessor.graphml");
+        Files.copy(fixtures.resolve("MarketProcessor.src-round3.graphml"), source);
+        Files.copy(fixtures.resolve("MarketProcessor.target-stale.graphml"), stale);
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            var configField = MainFrame.class.getDeclaredField("config");
+            configField.setAccessible(true);
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) configField.get(frame.get());
+            config.sourceRoots.add(tmp.toString());
+            var ex = executorOf(frame.get());
+            for (Path path : List.of(source, stale)) {
+                AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+                onEdt(() -> echo.set(render(ex, "open", Map.of("graphml", path.toString()))));
+                assertEquals(true, echo.get().get("ok"));
+                AtomicReference<Map<String, Object>> pair = new AtomicReference<>();
+                long deadline = System.nanoTime() + 10_000_000_000L;
+                do {
+                    onEdt(() -> pair.set(pairing(ex)));
+                    if ("complete".equals(((Map<?, ?>) pair.get().get("copyComparison")).get("state"))) break;
+                    Thread.sleep(20);
+                } while (System.nanoTime() < deadline);
+                var comparison = (Map<String, Object>) pair.get().get("copyComparison");
+                assertEquals("complete", comparison.get("state"));
+                var groups = (List<Map<String, Object>>) comparison.get("groups");
+                assertEquals("disagree", groups.get(0).get("agreement"));
+                assertEquals(path.toString(), pair.get().get("graphPath"));
+                var panelField = MainFrame.class.getDeclaredField("topologyPanel");
+                panelField.setAccessible(true);
+                var panel = (TopologyPanel) panelField.get(frame.get());
+                onEdt(() -> assertTrue(((javax.swing.JLabel) panel.statusComponent()).getText().contains("Graph copies disagree")));
+            }
+            onEdt(() -> render(ex, "open", Map.of("close", "graph")));
+            onEdt(() -> assertFalse(pairing(ex).containsKey("copyComparison")));
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
     /** TA-1: the producer graph is committed; the three-node audit record is constructed. */
     @Test
     void committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(@TempDir Path tmp) throws Exception {

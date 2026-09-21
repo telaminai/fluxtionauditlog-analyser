@@ -66,7 +66,7 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D1 | pairing: "declares 2 of 3 node(s)… probably from a different build" | the graphml declares `output`; it is a framework `SinkPublisher` | **analyser** → TA-1 | §5.6, A1 | ☑ `GraphPairingTest.frameworkLoggerIsDeclaredInTheCommittedGraph` |
 | D2 | the three pairing call sites compute "declared" three different ways | one question should have one answer | **analyser** → TA-1 | code, below | ☑ `PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession` |
 | D3a | the jar ships a graph with fingerprint `f6ae6f84…` (20 nodes) | the running processor includes `eodReportPublisher` (R1 proves it ran); only the source copy `4ecd6133…` (23 nodes) declares it | build → upstream | §5.5, §3.6 R1, fixtures | ☐ |
-| D3b | discovery and open say nothing when two copies of one graph disagree | they differ in fingerprint and node set | **analyser** → TA-2 | fixtures | ☐ |
+| D3b | discovery and open say nothing when two copies of one graph disagree | they differ in fingerprint and node set | **analyser** → TA-2 | fixtures | ☑ `GraphmlDiscoveryTest.committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence`; `PairingDuringLoadFrameTest.openingCommittedCopiesAnnouncesDisagreementWithoutRefusing` |
 | D4 | report finding: "WHAT IS WRONG / LIKELY CAUSE" | the flag confirms correct behaviour | **analyser** → existing "Reports as evidence, not automatically defects" (25); TA-3 | §5.6, A9 | ☐ |
 | D5 | windowed `delta` answer omits the flip at record 27 | the flip is present in the whole-log answer | **analyser** → TA-4 | A8 | ☐ |
 | D6 | follow shows the log as current | the newest record is held back until the next one arrives | **analyser** → TA-6 | §3.2 step 5, A7 | ☐ |
@@ -79,7 +79,7 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D13 | `/api/audit/files` reports record counts and times | they are frozen at startup while the queue grows | Mongoose plugins 1.0.43 | §5.3 | ☐ |
 
 **How to count.** Twenty-one findings, D1–D21, with D3 split into D3a and D3b. **Analyser
-responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Upstream: 8 open** — D3a, D8, D9 (hosted),
+responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Current open: analyser 10; upstream 8.** **Upstream: 8 open** — D3a, D8, D9 (hosted),
 D10–D13 and D21; D7 is reclassified. Report the two counts separately. Closing D3b (detection) never closes
 D3a (the build defect). A compound row closes only when every disagreement it names is closed, and records
 its regression test when it does. Track TA items alongside the rows: TA-5, TA-7 and TA-8 carry work with no
@@ -91,7 +91,7 @@ row of their own, so a zero analyser count is not completion of this spec.
 
 ### TA-1 · P0 · One declared set for pairing, and it includes framework nodes that log
 
-**Status: ☑ implemented.** Current open counts: analyser **11** (baseline 13), upstream **8**.
+**Status: ☑ implemented.** At closure: analyser **11** (baseline 13), upstream **8**.
 [Tests and mutation witness](../handoff/report_tool_agreement_2026_09_21.md). The table below records the
 pre-fix cause; all producers now use `GraphPairing.declaredNodeIds`, including the session input boundary.
 
@@ -127,6 +127,9 @@ question, and they would drift."
 4. The tests use the committed fixture, not a hand-built graph.
 
 ### TA-2 · P0 · Say so when two copies of the same graph disagree
+
+**Status: ☑ implemented.** [Tests and mutation witness](../handoff/report_tool_agreement_2026_09_21.md#ta-2--completed).
+D3b closes detection only; D3a remains upstream-owned and open.
 
 **Evidence.** One project held two `MarketProcessor.graphml` files: the source copy (23 nodes, `4ecd6133…`)
 and the `target/classes` copy, which is also what the jar ships (20 nodes, `f6ae6f84…`). Resources are
@@ -293,6 +296,7 @@ existing tracker items**. Their acceptance lives there; this table does not dupl
 
 **Priority change proposed:** "Staged feedback — evidence correctness first" is filed as P1. It is the same
 launch gate as TA-1 to TA-4 (slice B, truthful echoes), so it should be **P0 alongside them**.
+**Owner decision, 2026-09-21:** keep its existing **P1** priority for this pass.
 
 Not carried: #29 and #30 (dependency integrity) were deliberately excluded by the 2026-09-21 release
 decision. They remain slice A and are not a truthful-echo item.

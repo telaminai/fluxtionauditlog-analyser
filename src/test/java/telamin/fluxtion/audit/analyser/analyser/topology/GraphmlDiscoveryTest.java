@@ -13,6 +13,62 @@ import static org.junit.jupiter.api.Assertions.*;
 /** M35.4 — discovery OFFERS and never selects; the ranking is checkable and the bounds are honest. */
 class GraphmlDiscoveryTest {
 
+    private static final Path EVIDENCE = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures");
+
+    private static Path fixture(Path root, String directory, String source) throws Exception {
+        Path target = Files.createDirectories(root.resolve(directory)).resolve("MarketProcessor.graphml");
+        return Files.copy(EVIDENCE.resolve(source), target);
+    }
+
+    @Test
+    void committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence(@TempDir Path root) throws Exception {
+        Path current = fixture(root, "source", "MarketProcessor.src-round3.graphml");
+        Path stale = fixture(root, "classes", "MarketProcessor.target-stale.graphml");
+        var noLog = GraphmlDiscovery.scan(List.of(root.toString()), Set.of());
+        assertEquals(1, noLog.copyGroups().size());
+        assertEquals("disagree", noLog.copyGroups().get(0).agreement());
+        assertTrue(noLog.candidates().stream().allMatch(c -> c.pairing() == null));
+        var result = GraphmlDiscovery.scan(List.of(root.toString()), Set.of("rootNode", "eodReportPublisher"));
+        assertEquals(current, result.candidates().get(0).file());
+        var source = result.candidates().get(0);
+        var older = result.candidates().stream().filter(c -> c.file().equals(stale)).findFirst().orElseThrow();
+        assertEquals(23, source.toMap().get("graphNodes"));
+        assertEquals(20, older.toMap().get("graphNodes"));
+        assertEquals("4ecd613398d340719081dfe71143287e96bb3ae7284819687853a0679914c9d9", source.fingerprint());
+        assertEquals("f6ae6f84383bd1c7f063f61db2cea505a26a4291226f02ff1124f654513dc576", older.fingerprint());
+        assertNotNull(source.modifiedTime());
+        assertNotNull(older.modifiedTime());
+        assertEquals(Set.of("eodReportPublisher"), older.loggedButNotDeclared());
+        assertTrue(older.describe().contains("eodReportPublisher"));
+        assertEquals("disagree", result.copyGroups().get(0).toMap().get("agreement"));
+    }
+
+    @Test
+    void identicalCommittedCopiesAgreeAndMissingMetadataIsUnknown(@TempDir Path root) throws Exception {
+        fixture(root, "a", "MarketProcessor.src-round3.graphml");
+        fixture(root, "b", "MarketProcessor.src-round3.graphml");
+        assertEquals("agree", GraphmlDiscovery.scan(List.of(root.toString()), Set.of()).copyGroups().get(0).agreement());
+        // Constructed metadata-absence case; it is not a replay of the reported session.
+        for (var file : List.of(root.resolve("a/MarketProcessor.graphml"), root.resolve("b/MarketProcessor.graphml"))) {
+            Files.writeString(file, Files.readString(file).replaceAll("<data key=\"fluxtion.sourceFingerprint\">[^<]+</data>", ""));
+        }
+        assertEquals("unknown", GraphmlDiscovery.scan(List.of(root.toString()), Set.of()).copyGroups().get(0).agreement());
+    }
+
+    @Test
+    void declaredProcessorGroupsRenamedCopiesAndNodeSetsAreCompared(@TempDir Path root) throws Exception {
+        // Constructed metadata variants of the committed graph: the producer packet has no processorClass.
+        String original = Files.readString(EVIDENCE.resolve("MarketProcessor.src-round3.graphml"));
+        String withClass = original.replace("<graph edgedefault=\"directed\">", "<graph edgedefault=\"directed\">"
+                + "<data key=\"fluxtion.processorClass\">example.MarketProcessor</data>");
+        Files.writeString(root.resolve("one.graphml"), withClass);
+        Files.writeString(root.resolve("two.graphml"), withClass);
+        assertEquals("agree", GraphmlDiscovery.scan(List.of(root.toString()), Set.of()).copyGroups().get(0).agreement());
+        // Equal counts and fingerprints cannot conceal a different node id.
+        Files.writeString(root.resolve("two.graphml"), withClass.replace("eodReportPublisher", "otherPublisher"));
+        assertEquals("disagree", GraphmlDiscovery.scan(List.of(root.toString()), Set.of()).copyGroups().get(0).agreement());
+    }
+
     /** A minimal Fluxtion-shaped graphml with the given node ids. */
     private static String graphml(String... ids) {
         StringBuilder sb = new StringBuilder("""

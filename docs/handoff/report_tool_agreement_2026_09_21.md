@@ -33,3 +33,37 @@ mvn -q '-Dtest=PairingDuringLoadFrameTest#committedGraphPairsIdenticallyThroughF
 
 Counts: analyser **13 → 11 open** (D1/D2 closed); upstream **8 → 8 open**.
 No runtime behavior was changed or newly asserted. No client sessions ran.
+
+## TA-2 — completed
+
+Frozen before implementation in the tracker: the committed copies, renamed to their original common
+basename in separate directories, will disagree without a log; a round-3 logger will rank the 23-node
+copy first and name `eodReportPublisher` missing from the 20-node copy; identical copies agree; opening
+either copy announces the disagreement without refusing. Disabling the comparison must fail.
+**Held.** Counts: analyser **11 → 10 open** (D3b closed), upstream **8 → 8 open** (D3a still open).
+
+Tests in `GraphmlDiscoveryTest`:
+- `committedCopiesDisagreeWithoutALogAndRankByLoggedEvidence`: committed fixtures, exact fingerprints,
+  counts, modification times, missing logger and ranking; no recovered log is claimed.
+- `identicalCommittedCopiesAgreeAndMissingMetadataIsUnknown`: identical-copy negative control;
+  additionally a labelled constructed metadata-absence variant stays unknown.
+- `declaredProcessorGroupsRenamedCopiesAndNodeSetsAreCompared`: constructed metadata variants of the
+  committed graph (the packet contains no processor-class key); equal counts/fingerprints cannot mask
+  a changed node id. Only declared metadata is used; no class execution or hierarchy inference.
+
+`PairingDuringLoadFrameTest.openingCommittedCopiesAnnouncesDisagreementWithoutRefusing` opens each
+committed copy with no log, awaits the background comparison, checks context and the visible status,
+and verifies close clears it. Every entry point uses the topology-load callback. A result is discarded
+if a different topology has since loaded. The immediate open echo says pending; it never claims a
+comparison already finished. Scan scope is configured roots plus the opened directory; it is bounded,
+reports incomplete scans and does not choose a correct copy. Reopen/discover refreshes file observations.
+
+Mutation: disable the disagreement verdict. These three tests failed with
+`expected: <disagree> but was: <agree>`: the ranked fixture test, node-set/processor test and real-frame
+open test. [Saved witness](evidence/tool-agreement-2026-09-21/ta2-mutation.json).
+The first sandboxed attempt aborted in macOS windowing and produced no valid witness; it was repeated
+outside the sandbox. A test-author error using `close` instead of `open {close}` was corrected before
+acceptance. Neither error is presented as a product failure or mutation witness.
+
+Restored validation: `mvn -q test`; all `PairingDuringLoadFrameTest` cases with display enabled;
+`mkdocs build --strict`. All pass. No new LLM sessions, no producer fix, no release or main push.

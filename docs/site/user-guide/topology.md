@@ -62,6 +62,18 @@ source in your build output. Three ways in:
   log**: node count, and how many of the log's nodes that graph declares. Nothing opens until you
   pick one — a graph chosen for you is a graph nobody checked.
 
+Discovery also compares copies sharing a filename or a declared processor class. It lists each file's
+full path, total and authored node counts, source fingerprint, modification time, and fit against the log,
+including logged ids missing from the graph. Different fingerprints or node sets produce a **disagree**
+warning even with no log open; missing fingerprint metadata leaves agreement **unknown**. The analyser
+does not choose which build is correct.
+
+Opening a graph starts a bounded background comparison in the configured source roots and its own
+directory. The Topology status line says when copies disagree; `context.graphPairing.copyComparison`
+provides the details. The open echo reports the check as pending, not as a completed comparison.
+No warning blocks the chosen graph. Files outside those roots have not been compared, and truncated
+or failed scans are reported. Reopen or use discovery to check again after a build changes the files.
+
 Whatever was open when you quit is reopened next time, alongside the log — as are the zoom, pan,
 orientation, spacing and label size. (**Settings ▸ History ▸ Reset topology view** puts those back.)
 

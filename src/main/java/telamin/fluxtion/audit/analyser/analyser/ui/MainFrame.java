@@ -258,7 +258,7 @@ public final class MainFrame extends JFrame {
         // node tooltips pick up the class javadoc when a source root reaches the class
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // one place remembers a loaded topology, whichever entry point loaded it
-        topologyPanel.onTopologyLoaded(f -> { rememberGraphml(f); refreshProjectPanel(); });
+        topologyPanel.onTopologyLoaded(f -> { rememberGraphml(f); compareGraphCopies(f); refreshProjectPanel(); });
         // the topology gets its own source viewer, sharing this service — so navigating from the graph
         // keeps the graph on screen instead of switching to the sibling Source tab
         topologyPanel.bindSource(sourceService);
@@ -3910,7 +3910,8 @@ public final class MainFrame extends JFrame {
         Object picked = JOptionPane.showInputDialog(this,
                 (store == null ? "No log is open, so these are unranked.\n\n"
                         : "Ranked against the open log \u2014 best fit first.\n\n")
-                        + "Pick a topology to open:",
+                        + String.join("\n", result.copyGroups().stream().map(g -> g.describe()).toList())
+                        + "\nPick a topology to open:",
                 "Find GraphML in source roots", JOptionPane.QUESTION_MESSAGE, null,
                 options, options[0]);
         if (picked == null) return;                       // offered, declined — nothing loaded
@@ -3989,6 +3990,45 @@ public final class MainFrame extends JFrame {
                     : "\u26a0 DOES NOT FIT THIS LOG \u2014 " + lastPairing.reason());
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
+    }
+
+    // File observations only: no automatic selection or session transition follows a copy comparison.
+    private telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology comparedGraph;
+    private Map<String, Object> copyComparison = Map.of();
+
+    private Map<String, Object> graphCopyComparison() {
+        return comparedGraph == topologyPanel.fullTopology() ? copyComparison
+                : Map.of("state", "unavailable", "note", "no file-copy comparison for this graph");
+    }
+
+    private void compareGraphCopies(Path file) {
+        var loaded = topologyPanel.fullTopology();
+        comparedGraph = loaded;
+        java.util.List<String> roots = new java.util.ArrayList<>(config.sourceRoots);
+        String parent = file.toAbsolutePath().normalize().getParent().toString();
+        if (!roots.contains(parent)) roots.add(parent);
+        var searchRoots = List.copyOf(roots);
+        copyComparison = Map.of("state", "pending", "roots", searchRoots);
+        topologyPanel.setCopyComparisonNote("Checking graph copies in configured roots and opened directory…");
+        Background.run(() -> telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery
+                .compareOpened(file, loaded, searchRoots), result -> {
+            // A late filesystem observation must not qualify a different graph, even at the same path.
+            if (topologyPanel.fullTopology() != loaded) return;
+            var groups = result.copyGroups().stream().filter(g -> g.copies().stream().anyMatch(c ->
+                    c.file().toAbsolutePath().normalize().equals(file.toAbsolutePath().normalize()))).toList();
+            copyComparison = Map.of("state", "complete", "roots", searchRoots,
+                    "groups", groups.stream().map(g -> g.toMap()).toList(),
+                    "truncated", result.truncated(), "warnings", result.notes());
+            String note = groups.isEmpty() ? "No other graph copy found in scanned roots"
+                    : String.join("; ", groups.stream().map(g -> "Graph copies " + g.agreement()
+                        + " (" + g.copies().size() + ") — see context or Find GraphML for file details").toList());
+            if (result.truncated() || !result.notes().isEmpty()) note += " — scan incomplete; see discovery warnings";
+            topologyPanel.setCopyComparisonNote(note);
+        }, error -> {
+            if (topologyPanel.fullTopology() != loaded) return;
+            copyComparison = Map.of("state", "unavailable", "note", "graph-copy scan failed: " + error.getMessage());
+            topologyPanel.setCopyComparisonNote("Graph-copy comparison unavailable");
+        });
     }
 
     /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
@@ -5112,20 +5152,12 @@ public final class MainFrame extends JFrame {
             var result = discoverGraphs0();
             java.util.List<Map<String, Object>> found = new java.util.ArrayList<>();
             for (var c : result.candidates()) {
-                Map<String, Object> m = new java.util.LinkedHashMap<>();
-                m.put("path", c.file().toString());
-                // M46 A3: the count is of AUTHORED nodes, and the key says so — see the open echo
-                m.put("authoredNodes", c.nodes());
-                if (c.pairing() != null) {
-                    m.put("appliesToOpenLog", c.pairing().applies());
-                    m.put("declaredByGraph", c.pairing().matched());
-                    m.put("loggedNodes", c.pairing().logged());
-                }
-                found.add(m);
+                found.add(c.toMap());
             }
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("roots", java.util.List.copyOf(config.sourceRoots));
             echo.put("candidates", found);
+            echo.put("copyGroups", result.copyGroups().stream().map(g -> g.toMap()).toList());
             echo.put("ranked", store != null);
             if (store == null) {
                 echo.put("note", "no log is open, so these are listed but NOT ranked — there is "
@@ -5351,6 +5383,7 @@ public final class MainFrame extends JFrame {
             // and corroborated a wrong verdict. Two facts, two names; no key left that means either.
             echo.put("graphNodes", topologyPanel.graphNodeCount());
             echo.put("authoredNodes", topologyPanel.authoredNodeIds().size());
+            echo.put("copyComparison", graphCopyComparison());
             if (loadInFlight) {
                 // A log is still loading (openLog returns before its load lands). Judging now would
                 // compare this graph with the PREVIOUS log, or with none — the 2026-09-16 session
@@ -5761,6 +5794,7 @@ public final class MainFrame extends JFrame {
                 // hides them from that check — and from anyone reading this method to learn the shape.
                 pair.put("auditLogging", audit.verdict().name().toLowerCase(java.util.Locale.ROOT));
                 if (audit.message() != null) pair.put("auditLoggingNote", audit.message());
+                if (gf) pair.put("copyComparison", graphCopyComparison());
                 out.put("graphPairing", pair);
                 // M44.3 D-A4: a load that has not landed is reportable — today a hung load looked idle
                 String inFlight = session == null ? null : session.processor().operationGate.inFlightWhat();

@@ -248,8 +248,9 @@ public final class VerbSchemas {
                                 + "\"yaml\"; omit to let readers claim the file by content"),
                         p("discover", enumStr("graphml", "diagnostics"), "diagnostics lists candidate producer results under the authorised project's target/ without loading one. graphml lists the .graphml files under the "
                                 + "configured source roots, RANKED against the open log (M35.4) — "
-                                + "each with its node count and how many of the log's nodes it "
-                                + "declares. Opens NOTHING: pick one and pass it as 'graphml'. "
+                                + "each with total/authored node counts, fingerprint, modification time and missing logged ids. "
+                                + "copyGroups report agree/disagree/unknown for copies sharing a basename or declared processor class, "
+                                + "even without a log; no copy is declared correct. Opens NOTHING: pick one and pass it as 'graphml'. "
                                 + "Auto-selecting would be the convenience that reintroduces the "
                                 + "defect M35 exists to prevent"),
                         p("provenance", string(), "WHERE this log came from — free text, declared "
