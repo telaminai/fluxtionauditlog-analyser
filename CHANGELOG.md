@@ -7,6 +7,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Documentation
+- The `point-at-the-fault` skill now says how to write up a fault: the symptom from the cited record, the
+  cause from the fix diff plus before/after copies of the changed sources, so a reader without the session can
+  check both. Skills index `m19-skills/2` re-pinned; the playground must re-vendor.
 - Qualify C++ as a preview target and limit the reported Java/C++ equivalence to the tested graph
   and event stream; the vendor experiment does not establish general supplier compatibility.
 - Add a vendor-integration worked example and supplier checklist, qualify composition and topology
