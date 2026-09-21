@@ -1,10 +1,11 @@
 # Proposal: spotlight Java source beside the topology
 
-**Status: revised proposal, not implemented.** Revised 2026-09-21 in response to
+**Status: READY FOR HANDOFF at review `3665e237`; S-1/S-2 clarified below before implementation. Not implemented.** Revised 2026-09-21 in response to
 [the first review](../handoff/review_source_spotlight_proposal_2026_09_21.md) and
 [the revised-proposal review](../handoff/review_source_spotlight_revised_2026_09_21_claude.md).
 [Disposition of SR-1–SR-10](../handoff/response_source_spotlight_revised_2026_09_21.md);
-[round-four lookup correction](../handoff/response_source_spotlight_r4_2026_09_21.md).
+[round-four lookup correction](../handoff/response_source_spotlight_r4_2026_09_21.md);
+[accepted review and S-1/S-2 response](../handoff/response_source_spotlight_handoff_2026_09_21.md).
 Owner: analyser source navigation and spotlight UI. This extends M64 and the existing source-view
 contracts; it does not add application execution or code analysis by the analyser.
 
@@ -97,17 +98,45 @@ this proposal. When `add: true` is used, the restriction also includes already-l
 
 ## Preparation stage and lifetime binding (SR-1 / SR-2)
 
-Add a **frame-owned `prepareJavaSpotlights` stage** between the successful existing pure
-`SpotlightTarget.precheck` and the first `SpotlightTarget.resolveAll` call. Keep the shared Surface
-interface and resolveAll's non-Java behavior unchanged. Preparation receives the parsed requests,
-retained lit targets, source configuration and current tab state. It returns either a refusal without
-view changes or an immutable batch plan: bound Java documents/anchors and one destination.
+Add a frame-owned preparation protocol with **EDT capture → background read → EDT apply**.
+The existing `ActionExecutor.render` wraps spotlight in `onEdt(doSpotlight)`; Java-bearing requests
+must take a new orchestration path outside that whole-call EDT wrapper. Non-Java requests and clear
+keep their current synchronous behavior, with clear also invalidating pending Java preparations.
+The shared Surface interface and non-Java resolveAll behavior remain unchanged.
 
-Preparation is read-only with respect to the UI: it neither opens a pane nor navigates, scrolls,
-changes selection, clears spotlights or publishes bindings. Include retained Java bindings in the
-one-document check. A failure on the second Java request leaves the entire view and lit set unchanged.
-Check that the source configuration/view state used to prepare is still current before applying a
-plan; a superseded plan is refused, not applied to a different selection.
+1. **Capture on the EDT:** parse/precheck the whole request, including row bounds and retained lit
+   targets. Snapshot source configuration/resolver generation, selected processor, destination
+   inputs and the current project/log/view state, and allocate a preparation ticket. Capture is
+   read-only apart from that ticket: no pane opening, navigation, scroll, selection or lit-set change.
+2. **Read off the EDT:** use `Background` to resolve/read all requested Java documents through the
+   captured SourceService configuration and build the immutable batch plan. All root reads, source
+   jar discovery/warming, archive opens, decoding, hashing and any selected-processor model parsing
+   happen here. No worker may read mutable Swing state or publish a viewer/model/registry update.
+   Cache results belong to the captured resolver generation; stale workers cannot overwrite caches
+   belonging to a replacement configuration or publish an older prepared model.
+3. **Apply on the EDT:** check the ticket and captured generations, re-run input precheck against
+   current state, then perform reveals/resolveAll and the existing success/refusal handling with the
+   prepared adapter. No I/O or source parsing is repeated here. Complete the caller's result only
+   after final geometry/echo is determined, never with an early “lit” while preparation is pending.
+
+The non-EDT request thread may wait for this completion; the EDT must never wait/join on the worker.
+UI callers use the asynchronous entry point and receive the result on the EDT. An accidental call to
+an interface that would synchronously wait from the EDT must refuse rather than freeze the canvas.
+A failed read or superseded ticket returns an error and publishes no new bindings.
+
+**Both reveal entrances matter:** `ActionExecutor.doSpotlight` reveals `records:row` through doGoto
+before calling MainFrame, so Java preparation must complete **before that loop too**, not merely
+between MainFrame's precheck and resolveAll. Factor the capture/precheck from the executor's reveal
+phase; pass the accepted plan into MainFrame's existing precheck-to-resolveAll insertion point.
+A mixed batch whose Java lookup fails must not first relax a record filter or move the selection.
+
+A new Java request supersedes the previous ticket. Clear (even with no currently lit target), click
+or Escape dismissal, relevant configuration/processor changes, project/log changes and user changes
+to the captured view/destination invalidate pending work. Apply its own reveals only after ticket
+acceptance; internal layout events are coalesced as specified below, not treated as new user actions.
+A second-target lookup failure leaves the entire view/lit set unchanged. Late callbacks never restore
+a cleared spotlight. Preparation stages retained Java bindings for the one-document check without
+rebinding them. Cache-only reads are not permission to modify the accepted presentation state.
 
 Invoke resolveAll with a **per-call Surface adapter**: delegate existing families to the existing
 surface, but reveal/measure Java targets using the prepared plan. Do not make this adapter resolve
@@ -154,10 +183,22 @@ disclosed origin before transferring a line number or claim from another source 
 
 The public **fresh reread route is a new Java spotlight request itself**, including repeating the
 same target. Its frame preparation calls a proposed `SourceService.freshDocumentForSpotlight(fqn)`
-once per distinct FQN in that batch, invalidates lookup hits/misses and returns an origin-bearing
-snapshot. It performs no navigation. The prepared snapshot is then rendered directly; measurement
+once per distinct FQN in that batch **on the background worker**, invalidates lookup hits/misses
+and returns an origin-bearing snapshot. It performs no navigation. The prepared snapshot is then rendered directly; measurement
 of an existing Lit binding never calls this reread entry point. No extra MCP verb, source-verb flag
 or automatic polling is introduced. The method is new implementation work, not an existing API.
+
+### Selected-processor model freshness (S-2)
+
+If the requested FQN is the captured selected processor, the worker builds an EventProcessorModel
+from the **same prepared source text**. After ticket/configuration/selection checks, when that snapshot
+is actually installed in the viewer, install this model as SourceService.selectedModel with its
+origin/revision. Do not just clear the cache and let a later EDT caller reread a potentially different
+file. Model and processor-pane source must describe the same accepted snapshot. A parse failure
+refuses preparation; a superseded or read-failed plan never replaces the selected model. A later
+visibility-only refusal may leave a revealed document; its installed model must still match it.
+Rereading a non-selected class does not update selectedModel. Existing permissive mapping rules are
+not strengthened here; node-target inference remains deferred.
 
 ### Source identity must survive lookup (SR-10)
 
@@ -294,9 +335,10 @@ for scroll position/extent changes and notifications for wrap/font/layout, docum
 mode and pane visibility changes. MainFrame subscribes once per live viewer, including the embedded
 viewer when created, and unsubscribes on disposal; do not accumulate listeners per reveal.
 
-On the EDT, coalesce viewport/layout notifications into one pending remeasurement. During the
-prepare/reveal/apply sequence, defer those callbacks until the batch commits or refuses so they
-cannot discard provisional bindings or publish intermediate coordinates. Remeasure without revealing
+On the EDT, coalesce viewport/layout notifications into one pending remeasurement. During only the
+EDT reveal/apply phase, defer those callbacks until that phase commits or refuses so they cannot
+discard provisional bindings or publish intermediate coordinates. While background reads are pending,
+normal viewport remeasurement continues and user view changes invalidate the preparation ticket. Remeasure without revealing
 or scrolling again, remove invalid registry entries, then repaint. Before echo/context returns,
 flush any pending measurement needed for the current layout; do not report a previous scroll position.
 Document identity/revision changes invalidate affected Java bindings before publishing new text.
@@ -397,7 +439,19 @@ relevant behavior disabled. Distinguish constructed fixtures from preserved sess
    selection, while unchanged `source {fqn}` refuses ambiguity. For jar-only source, spotlight succeeds
    and that verb still refuses. Inspect the first-match disclosure on both surfaces. No network
    acquisition or executable component is needed.
-8. **Refusals, echo and limits:** malformed FQN/line grammar, missing documents and unavailable panes
+8. **Threading and supersession:** instrument the real Java spotlight entrance with a latch-blocked
+   missing/archive source read, including first discovery on an unwarmed resolver. Assert reads run
+   off the EDT and an EDT sentinel/UI event completes while the read is blocked. Repeat a miss to
+   exercise invalidation, not just a warm-cache success. Clear or change configuration while blocked,
+   release the worker, and require a refusal with no reveal/binding resurrection. A mixed
+   records-row/invalid-Java batch must leave filter/selection unchanged. Running preparation on the
+   EDT or dropping the ticket check must fail separate assertions; no timing-only benchmark suffices.
+9. **Selected-model freshness:** load a processor model, change a field's declared type in its source,
+   and request a Java spotlight for that processor. The displayed snapshot/revision and subsequent
+   fqnForInstance result must both reflect the new text. Supersede a blocked reread and prove neither
+   the model nor view is replaced. A non-selected-class reread leaves the selected model unchanged.
+   Disable accepted-snapshot model replacement and show the stale-type assertion fail.
+10. **Refusals, echo and limits:** malformed FQN/line grammar, missing documents and unavailable panes
    never fall back to a whole pane or offset zero. Both surfaces retain the unverified source/run
    qualification and document label. Six-target limit, incompatible-surface batch refusal, caption
    attribution, clear, view-changing verbs and no persistence remain intact.
@@ -418,6 +472,11 @@ wrapped-row aggregation, `partial`, identity/registry and preparation ordering. 
 first reveal, split panes, viewport listeners, screenshot alignment and dismissal require the
 non-skipping display job as well. The developer also captures and inspects the side-by-side result
 under an isolated home. Report headless and display totals separately, with the CI job and exact head.
+
+Optional implementation note: the ticket and binding-lifetime decisions may be modelled through
+SessionProcessor events/effects, consistent with its designated-thread discipline. This is not a
+requirement to create a second binding registry: retain one authoritative lifetime state and keep
+Swing geometry as an adapter. Either representation must satisfy the same headless transition tests.
 
 The handoff includes all mutation witnesses and anything not verified. This remains a proposal for
 re-review; no implementation, non-skipping display result or acceptance closure is claimed here.
