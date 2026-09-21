@@ -479,6 +479,16 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   record anchors and config/share round trips; `GraphEchoWarningsTest` verifies new-call default,
   explicit LOCF and invalid-mode refusal. `MarkerLegendTest` checks visible mode and PDF notes.
   Removing per-record clearing yields 11 instead of 5 and fails. D16 closes: analyser 3, upstream 8.
+  **D15 frozen prediction:** synchronous design reveal cancels queued earlier scrolls, then measures
+  the actual text viewport. A set spanning beyond it refuses; nearby bean/line targets share one
+  geometry path and remain aligned after the EDT drains. Adding a distant line reports the old
+  target in wentOut; a surviving status target keeps its number. Every successful echo is positive
+  and within the screenshot. Mutating the viewport check must make the real-frame regression fail.
+  Constructed tall XML plus the committed participant XML; counts before: analyser 3, upstream 8.
+  **D15 result:** held. `DesignSpotlightFrameTest` drives a real window: conflicting lines refuse,
+  add reports departures and retains survivor numbering, the echo equals painted cutouts, and queued
+  callbacks cannot scroll them away. Preserved participant XML is exercised at both reported sizes.
+  Removing viewport containment fails the hidden-line assertion. D15 closes: analyser 2, upstream 8.
 - ☑ **Topology feedback 37 — Show all focus exit** — participant reports depth 1/16 nodes after
   `showAll:true, scaffolding:false`; `pop:"all"` works. Source confirms MCP calls `clearView`, which only
   clears highlights, while the toolbar pops focus first. Align both paths; test nested focus, showAll alone
@@ -505,8 +515,8 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   dirty memory over it. Empty focus must not ambiguously mean deletion.
 - ◧ **Feedback 38/39 and recurring 6** — design/diagnostics recovery and explicit omissions (38) are
   implemented through `7eceff5`, with real-frame close/reopen and new-frame relaunch witnesses; actual OS-process
-  restart remains unverified. Still open: compare spotlight echo and painted bounds after
-  settled layout (39), retaining tests for earlier mispaint. Compiler/starter owner: repeat EndOfDayReporter
+  restart remains unverified. Spotlight echo/paint after settled layout (39) now closes under D15
+  with `DesignSpotlightFrameTest` and its viewport mutation. Compiler/starter owner: repeat EndOfDayReporter
   audit-scaffolding case and define new-owned-node policy; absence of values is not absence of execution.
 - ☐ **Feature request 40 (intake alias P1) — saved focus captions** — assess explicit ordered commentary associated with a focus,
   preserving transient spotlight defaults. Attribute text; bind structural claims to model/code identity where

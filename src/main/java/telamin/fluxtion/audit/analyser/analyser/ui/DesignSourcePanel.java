@@ -19,6 +19,7 @@ final class DesignSourcePanel extends JPanel {
     private Consumer<String> showNode = id -> { }, showRecords = id -> { };
     private Consumer<Map<String, Object>> navigate = p -> { };
     private boolean rendering;
+    private long navigation;
     record Anchor(String bean, int line, String label) { @Override public String toString() { return label + " · " + line; } }
     DesignSourcePanel() {
         super(new BorderLayout());
@@ -59,7 +60,8 @@ final class DesignSourcePanel extends JPanel {
                     index.addElement(new Anchor(null, entry.line(), property + ": " + (entry.attr("bean").isEmpty() ? entry.value().trim() : entry.attr("bean"))));
             }
             status.setText(view.file() + "\n" + note);
-            SwingUtilities.invokeLater(() -> scroll(view.line()));
+            long ticket = ++navigation;
+            SwingUtilities.invokeLater(() -> { if (ticket == navigation) scroll(view.line()); });
         } finally { rendering = false; }
     }
     void note(String note) { status.setText((file == null ? "" : file + "\n") + note); }
@@ -71,6 +73,12 @@ final class DesignSourcePanel extends JPanel {
     }
     void setWrap(boolean on) { text.setWrap(on); refresh(); }
     void clear() { document=null; file=null; text.setText(""); index.clear(); status.setText("No session design open."); }
+    /** Settle this reveal now; a previous render must not scroll it away after the echo. */
+    void revealLine(int line) {
+        navigation++;
+        validate();
+        scroll(line);
+    }
     void scroll(int line) {
         int off = DesignDocument.offset(text.getText(), line, 1);
         text.setCaretPosition(off);
@@ -84,6 +92,7 @@ final class DesignSourcePanel extends JPanel {
             if (r == null) return Optional.empty();
             Rectangle at = r.getBounds(); at.width = Math.max(20, text.getVisibleRect().width);
             at.x = text.getVisibleRect().x;
+            if (at.isEmpty() || !text.getVisibleRect().contains(at)) return Optional.empty();
             return Optional.of(SwingUtilities.convertRectangle(text, at, this));
         } catch (javax.swing.text.BadLocationException e) { return Optional.empty(); }
     }

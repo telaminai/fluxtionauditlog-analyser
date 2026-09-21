@@ -500,6 +500,7 @@ public final class SourcePanel extends JPanel {
         backStack.clear(); backButton.setEnabled(false);
     }
     public JComponent designComponent() { return designPane; }
+    public void revealDesignLine(int line) { designPane.revealLine(line); }
     public Optional<Rectangle> designBounds(String file, Integer line) {
         if (mode != Mode.DESIGN || !Objects.equals(designPane.file(), file)) return Optional.empty();
         return line == null ? Optional.of(designPane.getVisibleRect()) : designPane.lineBounds(line);

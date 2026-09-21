@@ -295,3 +295,14 @@ without a mode deliberately retain LOCF. Config and share round trips preserve e
 [Mutation](evidence/tool-agreement-2026-09-21/d16-mutation.json) disables same-record clearing:
 expected 5 buys, actual 11. Counts **4 → 3 / 8**. Bare-key occurrence, payload anchors and explicit
 series-pinned y sampling retain their old meaning.
+
+## D15 — completed under evidence correctness first / feedback 39
+
+Frozen prediction held. `DesignSpotlightFrameTest` uses a constructed tall XML and the committed
+participant XML in real windows. It verifies viewport refusal, retained numbering, explicit
+departures on add, positive screenshot coordinates, and echo equality with painted cutouts.
+The EDT is drained to check deferred callbacks cannot undo a successful reveal. The preserved
+XML's targets are exercised at both reported window sizes; fit is judged against the actual
+viewport, not assumed from the outer frame size.
+[Mutation](evidence/tool-agreement-2026-09-21/d15-mutation.json) removes viewport containment and
+fails the hidden-line assertion. Counts **3 → 2 / 8**.

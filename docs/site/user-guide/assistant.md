@@ -113,6 +113,11 @@ and what the guidance it is given asks of it.)
 
 One thing lit — here, the demo's one real finding, a node the graph declares that never wrote audit output:
 
+Design-line and bean targets are measured after scrolling settles and must fit inside the XML
+text viewport. A set that cannot fit together is refused. With `add: true`, targets scrolled
+away appear in `wentOut`, and surviving highlights retain their numbers. Successful bounds
+refer to the painted cut-outs in the default screenshot, with positive dimensions.
+
 ![A spotlight in the light theme: the window dimmed, one topology node cut out, and the assistant's caption pointing at it](../assets/spotlight.png)
 
 ![The same spotlight in the dark theme](../assets/spotlight-dark.png)

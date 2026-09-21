@@ -1,0 +1,12 @@
+{
+  "item": "D15",
+  "mutation": "remove source viewport containment check",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "sourceViewportRefusesHiddenLinesAndAddReportsDepartures(Path)",
+      "message": "a line above the viewport must not be measurable in its header ==> expected: <true> but was: <false>"
+    }
+  ],
+  "restored": true
+}

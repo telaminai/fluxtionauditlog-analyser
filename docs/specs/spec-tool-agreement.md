@@ -79,7 +79,7 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D13 | `/api/audit/files` reports record counts and times | they are frozen at startup while the queue grows | Mongoose plugins 1.0.43 | §5.3 | ☐ |
 
 **How to count.** Twenty-one findings, D1–D21, with D3 split into D3a and D3b. **Analyser
-responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Current open: analyser 3; upstream 8.** **Upstream: 8 open** — D3a, D8, D9 (hosted),
+responsibilities: 13** — D1, D2, D3b, D4, D5, D6 and D14–D20. **Current open: analyser 2; upstream 8.** **Upstream: 8 open** — D3a, D8, D9 (hosted),
 D10–D13 and D21; D7 is reclassified. Report the two counts separately. Closing D3b (detection) never closes
 D3a (the build defect). A compound row closes only when every disagreement it names is closed, and records
 its regression test when it does. Track TA items alongside the rows: TA-5, TA-7 and TA-8 carry work with no
@@ -305,7 +305,7 @@ existing tracker items**. Their acceptance lives there; this table does not dupl
 | # | What a tool says | Feedback | Where it is built | Status 2026-09-21 |
 |---|---|---|---|---|
 | D14 | a graph, log or receipt is current when it is stale; a combined action echoes pre-load state | #1, #9, #20 | "Staged feedback — evidence correctness first" | ☐ |
-| D15 | spotlight `ok` when lit in the wrong place, with negative bounds, or with `add:true` dropping targets | #2–4, #39 | same item; #39 under "Feedback 38/39 and recurring 6" | ☐ / ◧ |
+| D15 | spotlight `ok` when lit in the wrong place, with negative bounds, or with `add:true` dropping targets | #2–4, #39 | same item; #39 under "Feedback 38/39 and recurring 6" | ☑ `DesignSpotlightFrameTest` |
 | D16 | marker counts that do not match the data: carried state evaluated as if it were an event | #12, #19 | "Staged feedback — evidence correctness first" | ☑ `MarkerResolutionTest`, `GraphEchoWarningsTest`, `MarkerLegendTest` |
 | D17 | an empty plot, with no explanation, after a pinned window survives a log change | #41 | "Chart feedback 41–43 intake" | ☑ `GraphWindowScopeTest` |
 | D18 | left-axis values contaminated by right-axis values under windowing | #42 | "Chart feedback 41–43 intake" | ☑ `ChartAxisWindowTest` |

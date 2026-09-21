@@ -2091,6 +2091,8 @@ public final class MainFrame extends JFrame {
                     if (doc != null && line != null) {
                         sourcePanel.showFile(telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.view(doc, line, t.family() == SpotlightTarget.Family.DESIGN_BEAN ? t.argument() : null), designNote(), false);
                         selectSideTab("source");
+                        validate();
+                        sourcePanel.revealDesignLine(line);
                     }
                 }
                 case PROJECT, PROJECT_ROW -> {
@@ -2435,7 +2437,9 @@ public final class MainFrame extends JFrame {
     /** A rectangle in {@code c}'s coordinates, as the overlay sees it; empty for null or no area. */
     private java.util.Optional<java.awt.Rectangle> inOverlay(java.awt.Component c, java.awt.Rectangle r) {
         if (c == null || r == null || r.isEmpty() || !c.isShowing()) return java.util.Optional.empty();
-        return java.util.Optional.of(SwingUtilities.convertRectangle(c, r, spotlight));
+        java.awt.Rectangle visible = SwingUtilities.convertRectangle(c, r, spotlight)
+                .intersection(new java.awt.Rectangle(0, 0, spotlight.getWidth(), spotlight.getHeight()));
+        return visible.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(visible);
     }
 
     /** The part of a component that is actually on screen — a scrolled-away target is not "here". */
