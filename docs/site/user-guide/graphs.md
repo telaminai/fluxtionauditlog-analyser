@@ -139,12 +139,18 @@ each tick carries its finding note on hover and clicks through to its record, th
 them, and unflagging is how a tick is removed (the rug derives from the flags; it is never persisted
 or shared).
 
-`when` decides where a marker fires, and the two forms differ in a way that matters: a **bare key**
-(`orderTracker.orderId`) fires only on records where that key was actually logged — one marker per
-event. A **condition** (`orderTracker.live > 0`) is evaluated against carried-forward values, so once
-true it stays true on every following record until the value changes — a state, not an event, and
-usually hundreds of markers where you expected a handful. Marking *occurrences*, use the bare key;
-marking *a regime*, consider a [condition band](#thresholds-and-condition-bands) instead.
+`when` decides where a marker fires. A **bare key** (`orderTracker.orderId`) fires only on
+records where that key was logged. New marker conditions default to `resolve: "STRICT"`:
+`orderTracker.live > 0` tests values in that record, without borrowing a previous record's value.
+Choose `resolve: "LOCF"` explicitly to evaluate carried state on each record instead. Those counts
+are states, not event counts; the legend, tooltip and PDF notes say so. For a regime, consider a
+[condition band](#thresholds-and-condition-bands).
+
+Older saved markers with no `resolve` keep **LOCF**; opening a project does not silently change
+its evidence. Replace their marker definitions with `resolve: "STRICT"` to opt into same-record
+conditions. The graph echo states each accepted marker's resolution. `y` expressions use the same
+resolution, while `y: "series:<label>"` deliberately samples the plotted series at or before the
+marker time in either mode. Bare-key occurrence and payload anchoring are unchanged.
 
 ## Two scales
 

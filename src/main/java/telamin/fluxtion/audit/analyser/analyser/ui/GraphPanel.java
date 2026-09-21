@@ -280,7 +280,9 @@ public final class GraphPanel extends JPanel {
      * silently absent row is the failure D-M2's loud-degrade rule exists to prevent.
      */
     static String markerLegendText(telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries ms) {
-        return ms.label() + "  (" + ms.points().size() + ")";
+        String mode = ms.note() != null && ms.note().startsWith("LOCF:") ? " · carried state"
+                : ms.note() != null && ms.note().startsWith("STRICT:") ? " · same record" : "";
+        return ms.label() + "  (" + ms.points().size() + ")" + mode;
     }
 
     /** Remove one marker series by label — the SPEC goes, and the points follow on re-extraction. */

@@ -284,3 +284,14 @@ and checks pending/failed extraction without stale counts. Same-log and cleared-
 show data. The scope is visible below the plot, in `context.graphScopes`/graph echo and PDF captions.
 [Mutation](evidence/tool-agreement-2026-09-21/d17-mutation.json) removes only disjoint-window detection
 and fails `disjoint saved pin must explain emptiness`. Counts **5 → 4 / 8**.
+
+## D16 — completed under evidence correctness first
+
+Frozen prediction held. `MarkerResolutionTest` reads the committed standalone and two hosted logs:
+STRICT produces 5 buy / 6 sell / 8 price markers, with real record anchors. Existing saved markers
+without a mode deliberately retain LOCF. Config and share round trips preserve explicit resolution.
+`GraphEchoWarningsTest` checks the new MCP default, explicit LOCF and invalid-mode refusal;
+`MarkerLegendTest` checks the human label and PDF note. No source fixture was edited.
+[Mutation](evidence/tool-agreement-2026-09-21/d16-mutation.json) disables same-record clearing:
+expected 5 buys, actual 11. Counts **4 → 3 / 8**. Bare-key occurrence, payload anchors and explicit
+series-pinned y sampling retain their old meaning.

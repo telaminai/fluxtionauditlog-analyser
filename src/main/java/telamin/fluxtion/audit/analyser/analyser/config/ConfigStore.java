@@ -478,6 +478,7 @@ public final class ConfigStore {
                 put(p, k + ".when", mk.get(j).when());
                 put(p, k + ".y", mk.get(j).y());
                 put(p, k + ".payload", mk.get(j).payload());
+                put(p, k + ".resolve", mk.get(j).resolve());
                 if (mk.get(j).isExternal()) {                     // M32.8: the CSV source persists as
                     put(p, k + ".ext.path", mk.get(j).extPath()); // its DEFINITION, never its points
                     put(p, k + ".ext.time", mk.get(j).extTime());
@@ -590,7 +591,7 @@ public final class ConfigStore {
                         p.getProperty(k + ".ext.zone"), p.getProperty(k + ".ext.value"),
                         p.getProperty(k + ".ext.payload"),
                         longOrNull(p.getProperty(k + ".ext.offset")) == null
-                                ? 0L : longOrNull(p.getProperty(k + ".ext.offset"))));
+                                ? 0L : longOrNull(p.getProperty(k + ".ext.offset")), p.getProperty(k + ".resolve")));
             }
             out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right,
                     guides, bands, ext, mk));

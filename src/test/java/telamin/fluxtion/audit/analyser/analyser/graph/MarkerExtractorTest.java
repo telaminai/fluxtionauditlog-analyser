@@ -74,7 +74,7 @@ class MarkerExtractorTest {
         assertEquals(17.2, p.y(), 1e-9);
         assertEquals("ORD-1", p.payload(), "the order id rides as display cargo");
         assertEquals(1, p.recordIndex(), "the marker is a signpost to the record (D-M2)");
-        assertNull(m.note());
+        assertTrue(m.note().contains("key occurrence"));
     }
 
     @Test

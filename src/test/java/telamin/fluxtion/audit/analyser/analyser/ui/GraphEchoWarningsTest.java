@@ -31,6 +31,19 @@ class GraphEchoWarningsTest {
         return (List<String>) r.payload().get("warnings");
     }
 
+    @Test void newMarkersDefaultToSameRecordButCanExplicitlyCarryState() {
+        var tabs = new GraphTabs(); var ex = executor(tabs);
+        var result = ex.render("graph", Map.of("newTab",true,"name","modes","series",List.of("bidMakerOrder.price"),
+                "markers",List.of(Map.of("label","event","when","bidMakerOrder.price > 0"),
+                        Map.of("label","state","when","bidMakerOrder.price > 0","resolve","LOCF"))));
+        assertTrue(result.ok());
+        assertEquals(List.of("STRICT","LOCF"),tabs.graphNamed("modes").markerSpecs().stream().map(m -> m.resolve()).toList());
+        assertEquals(List.of(Map.of("label","event","resolve","STRICT"),Map.of("label","state","resolve","LOCF")),result.payload().get("markerResolution"));
+        var bad=ex.render("graph",Map.of("name","modes","markers",List.of(Map.of("label","bad","when","n.x > 0","resolve","guess"))));
+        assertTrue(warnings(bad).stream().anyMatch(w -> w.contains("resolve must be STRICT or LOCF")));
+        assertTrue(tabs.graphNamed("modes").markerSpecs().isEmpty());
+    }
+
     @Test
     void rightAxisNamingAnAbsentSeriesIsWarnedAboutNotSilent() {
         var r = executor(new GraphTabs()).render("graph", Map.of(

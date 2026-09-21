@@ -468,6 +468,17 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   use the saved logs (new same-record markers: 5/6/8), overwritten snapshots and scrolled source views;
   preserve Follow and decide saved-marker compatibility explicitly. Proposed priority: P1 correctness;
   combined echo P2. Keep original feedback numbers separate from DX and compiler F/G identifiers.
+  **D16 frozen prediction / compatibility decision:** new MCP marker conditions default to STRICT
+  same-record values; explicit LOCF retains carried-state evaluation. Saved definitions with no
+  resolution retain LOCF, are labelled as carried state, and are never silently reinterpreted.
+  The preserved standalone and hosted logs produce 5 buy, 6 sell and 8 bare-price markers in STRICT;
+  LOCF retains the independently recorded extra fires. Mode survives profile/config round trips;
+  source record anchors remain correct. Disabling per-record clearing must fail those counts.
+  Counts before: analyser 4, upstream 8. This fixes 12/19 under this existing item.
+  **D16 result:** held. `MarkerResolutionTest` verifies 5/6/8 against all three preserved logs,
+  record anchors and config/share round trips; `GraphEchoWarningsTest` verifies new-call default,
+  explicit LOCF and invalid-mode refusal. `MarkerLegendTest` checks visible mode and PDF notes.
+  Removing per-record clearing yields 11 instead of 5 and fails. D16 closes: analyser 3, upstream 8.
 - ☑ **Topology feedback 37 — Show all focus exit** — participant reports depth 1/16 nodes after
   `showAll:true, scaffolding:false`; `pop:"all"` works. Source confirms MCP calls `clearView`, which only
   clears highlights, while the toolbar pops focus first. Align both paths; test nested focus, showAll alone

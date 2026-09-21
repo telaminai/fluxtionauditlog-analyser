@@ -25,6 +25,12 @@ class MarkerLegendTest {
         return new MarkerSeries(label, glyph, pts, null);
     }
 
+    @Test void resolutionIsVisibleBesideCounts() {
+        var state=new telamin.fluxtion.audit.analyser.analyser.graph.MarkerSeries("state","circle",java.util.List.of(),"LOCF: carried state, not event counts");
+        assertTrue(GraphPanel.markerLegendText(state).contains("carried state"));
+        assertTrue(telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.markersTable(java.util.List.of(state)).notes().getFirst().contains("not event counts"));
+    }
+
     @Test
     void aRowNamesTheSeriesAndHowManyEventsItHas() {
         assertEquals("order live  (166)", GraphPanel.markerLegendText(series("order live", "triangleUp", 166)));

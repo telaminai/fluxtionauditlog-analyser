@@ -1,0 +1,12 @@
+{
+  "item": "D16",
+  "mutation": "retain carry in STRICT marker evaluation",
+  "exit": 1,
+  "failures": [
+    {
+      "test": "preservedLogsCountEventsWithoutCarryingTradesIntoPriceRecords",
+      "message": "trades: same-record markers must match logged events ==> expected: <5> but was: <11>"
+    }
+  ],
+  "restored": true
+}

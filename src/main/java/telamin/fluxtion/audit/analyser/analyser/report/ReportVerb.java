@@ -546,7 +546,10 @@ public final class ReportVerb {
         List<List<String>> rows = new ArrayList<>();
         List<String> notes = new ArrayList<>();
         int total = 0;
-        for (var ms : series) total += ms.points().size();
+        for (var ms : series) {
+            total += ms.points().size();
+            if (ms.note() != null && !ms.note().isBlank()) notes.add(ms.label() + ": " + ms.note());
+        }
         outer:
         for (var ms : series) {
             for (var pt : ms.points()) {

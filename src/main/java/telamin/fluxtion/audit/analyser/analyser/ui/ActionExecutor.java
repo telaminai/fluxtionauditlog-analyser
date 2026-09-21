@@ -478,6 +478,7 @@ public final class ActionExecutor implements RenderExecutor {
             if (p.containsKey("guides")) applied.put("guides", panel.guides().size());
             if (p.containsKey("markers")) {
                 applied.put("markers", panel.markerSpecs().size());
+                applied.put("markerResolution", panel.markerSpecs().stream().map(m -> Map.of("label", m.label(), "resolve", m.isExternal() ? "external" : m.resolve())).toList());
                 // extraction is async in the reExtract pipeline; notes surface on the panel and in the
                 // NEXT call's echo — the counts here confirm what was ACCEPTED
             }
@@ -1211,9 +1212,15 @@ public final class ActionExecutor implements RenderExecutor {
                     warnings.add("marker '" + label + "' when '" + when + "' does not parse: " + ex.getMessage());
                     continue;
                 }
+                String resolve = asText(m.get("resolve"));
+                resolve = resolve == null ? "STRICT" : resolve.toUpperCase(java.util.Locale.ROOT);
+                if (!resolve.equals("STRICT") && !resolve.equals("LOCF")) {
+                    warnings.add("marker '" + label + "': resolve must be STRICT or LOCF — skipped");
+                    continue;
+                }
                 specs.add(new telamin.fluxtion.audit.analyser.analyser.config.GraphSpec.MarkerSpec(
                         label, glyph == null ? "circle" : glyph, when,
-                        asText(m.get("y")), asText(m.get("payload"))));
+                        asText(m.get("y")), asText(m.get("payload")), resolve));
             }
             panel.setMarkers(specs);
         }

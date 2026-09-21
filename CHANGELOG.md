@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- New marker conditions use same-record values by default. Explicit LOCF and older saved definitions retain carried state, disclosed in the legend, echo and PDF notes.
+
 - Saved chart pins now state their scope and explain windows outside the new log’s series; context, graph echoes and report captions carry filters and extraction status.
 
 - Hidden Project spotlight sections reveal before measurement; marker-only targets give an explicit unsupported-target refusal. Design-root refusals name the exact opt-in call, and PDF flag glyphs use readable text.

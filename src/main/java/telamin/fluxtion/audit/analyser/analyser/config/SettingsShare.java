@@ -345,7 +345,7 @@ public final class SettingsShare {
                     }
                     fixedMarkers.add(new GraphSpec.MarkerSpec(mk.label(), mk.glyph(), mk.when(),
                             mk.y(), mk.payload(), path, mk.extTime(), mk.extTimeFormat(),
-                            mk.extZone(), mk.extValue(), mk.extPayload(), mk.extOffsetMillis()));
+                            mk.extZone(), mk.extValue(), mk.extPayload(), mk.extOffsetMillis(), mk.resolve()));
                 }
                 graphs.set(gi, new GraphSpec(spec.name(), spec.series(), spec.exprs(), spec.from(),
                         spec.to(), spec.note(), spec.explanation(), spec.notes(), spec.rightAxis(),

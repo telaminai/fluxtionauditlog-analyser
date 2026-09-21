@@ -70,7 +70,22 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
      */
     public record MarkerSpec(String label, String glyph, String when, String y, String payload,
                              String extPath, String extTime, String extTimeFormat, String extZone,
-                             String extValue, String extPayload, long extOffsetMillis) {
+                             String extValue, String extPayload, long extOffsetMillis, String resolve) {
+        public MarkerSpec {
+            resolve = resolve == null || resolve.isBlank() ? "LOCF" : resolve.toUpperCase(java.util.Locale.ROOT);
+            if (!resolve.equals("LOCF") && !resolve.equals("STRICT"))
+                throw new IllegalArgumentException("marker resolve must be STRICT or LOCF");
+        }
+        /** Older persisted definitions deliberately keep their carried-state interpretation. */
+        public MarkerSpec(String label, String glyph, String when, String y, String payload,
+                          String extPath, String extTime, String extTimeFormat, String extZone,
+                          String extValue, String extPayload, long extOffsetMillis) {
+            this(label, glyph, when, y, payload, extPath, extTime, extTimeFormat, extZone,
+                    extValue, extPayload, extOffsetMillis, "LOCF");
+        }
+        public MarkerSpec(String label, String glyph, String when, String y, String payload, String resolve) {
+            this(label, glyph, when, y, payload, null, null, null, null, null, null, 0L, resolve);
+        }
 
         /** The log-sourced form (pre-M32.8 shape). */
         public MarkerSpec(String label, String glyph, String when, String y, String payload) {

@@ -492,6 +492,9 @@ public final class VerbSchemas {
                 p("payload", string(), "an \"instanceId.key\" whose logged text rides each point — "
                         + "shown on hover and in exports, NEVER computable (the record is the "
                         + "queryable form)"),
+                p("resolve", enumStr("STRICT", "LOCF"), "default STRICT: when/y expressions use this record's values. "
+                        + "LOCF carries values and counts states, not events. Older saved markers retain LOCF. "
+                        + "series:<label> y deliberately samples the plotted series at or before this time in either mode"),
                 p("external", markerExternalObject(), "M32.8: source the markers from a CSV instead "
                         + "of the log — the M29 loader plus a payload column. Points are NOT records "
                         + "(no click-through), the clock is declared, the chart is stamped, and reads "

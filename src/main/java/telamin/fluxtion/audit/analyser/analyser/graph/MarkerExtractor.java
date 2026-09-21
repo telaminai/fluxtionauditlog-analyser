@@ -15,8 +15,8 @@ import java.util.function.Function;
 
 /**
  * Extracts a {@link MarkerSeries} from the log (spec-marker-series M32.2) — the same record walk,
- * the same filter, the same last-occurrence rule as every series, so a marker can never disagree
- * with a plotted series about what a record contained.
+ * the same filter and last-occurrence rule as series. STRICT uses only values in this record;
+ * LOCF explicitly evaluates carried state. Older saved definitions retain LOCF.
  *
  * <p>Sources ({@code MarkerSpec.when}): a bare {@code instanceId.key} fires wherever that key was
  * logged (the key-triple source); anything else parses as an {@link Expr} condition and fires where
@@ -87,6 +87,7 @@ public final class MarkerExtractor {
             Long logTime = index.logTime(row);
             if (logTime == null) continue;
             List<NodeLog> nodeLogs = view.record(row).nodeLogs();
+            if ("STRICT".equals(spec.resolve())) carry.clear();
 
             // update the LOCF carry from every touched ref (same rule as bands/series)
             for (GraphKey k : whenRefs) updateCarry(carry, nodeLogs, k);
@@ -119,8 +120,9 @@ public final class MarkerExtractor {
             }
             points.add(new MarkerSeries.MarkerPoint(logTime, y, payload, row));
         }
-        String note = skippedNoY > 0
-                ? skippedNoY + " marker(s) skipped — fired but had no finite y at that moment" : null;
+        String note = (whenKey != null ? "key occurrence; y resolution " + spec.resolve()
+                : "STRICT".equals(spec.resolve()) ? "STRICT: same-record values" : "LOCF: carried state, not event counts")
+                + (skippedNoY > 0 ? "; " + skippedNoY + " marker(s) skipped — fired but had no finite y at that moment" : "");
         // a marker that rides a series must ride its SCALE too (D12) — the chart resolves which axis
         return new MarkerSeries(spec.label(), glyph, List.copyOf(points), note,
                 pinned == null ? null : pinned.label());
