@@ -1,0 +1,21 @@
+{
+  "run": 35610006347,
+  "job": 106366458199,
+  "url": "https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35610006347/job/106366458199",
+  "featureHead": "b66330489ded7d3d1b582f8b4cacf62132d0d77d",
+  "suites": [
+    "PairingDuringLoadFrameTest tests=\"9\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "AsyncOpenInterleavingFrameTest tests=\"12\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "SpotlightFrameTest tests=\"4\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "WestColumnStartsCollapsedFrameTest tests=\"3\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "MenuScreenshotFrameTest tests=\"1\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "PersonAtTheScreenFrameTest tests=\"3\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "NamedGraphAndMenuSpotlightFrameTest tests=\"6\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "SessionRecoveryFrameTest tests=\"9\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "TemplateCatalogueFrameTest tests=\"1\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "DesignSpotlightFrameTest tests=\"1\" errors=\"0\" skipped=\"0\" failures=\"0\"",
+    "LoadedFileObservationFrameTest tests=\"1\" errors=\"0\" skipped=\"0\" failures=\"0\""
+  ],
+  "totalTests": 50,
+  "skips": 0
+}

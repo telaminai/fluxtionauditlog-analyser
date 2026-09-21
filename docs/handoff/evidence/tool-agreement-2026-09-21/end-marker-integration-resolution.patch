@@ -1,0 +1,186 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 4382ff00..291b72ee 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -38,6 +38,25 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
+   Opening a graph also checks configured roots and its directory, announcing conflicts without refusing it.
+ - Graph/log pairing includes every declared node, including framework nodes that log, consistently
+   across discovery, the topology view and session state. Hiding scaffolding no longer changes the verdict.
++### Added
++- **A log can say whether it is whole** — audit format 1.1 §1a adds an optional stream-end marker, and
++  `context` reports `log.streamEnd` as `complete`, `missing_records`, `more_than_declared`, `unverified`
++  or `unknown`. A file that makes no claim reads as **unknown**, never as complete, so "this node never
++  ran" stays a conclusion you have earned rather than one the file's shape implied. The status bar says
++  *complete* when a file claims it. The marker is never shown as a record, and a rolled set is complete
++  only when every member says it is. See *Analyser assistant ▸ Is the log whole?* and *format
++  specification §1a*.
++- A record is never removed from a log because of its own contents. An event whose `toString` happens to
++  contain a line shaped like the stream-end marker is an ordinary record, and is indexed, counted and
++  shown like any other.
++
++### Fixed
++- A text log that ends after its last record, with no trailing `---`, is read as the whole, ordinary file
++  it is. An unreleased version of the stream-end work reported it as a writer that stopped mid-record,
++  which described every export written by a Mongoose server. `---` separates records; it does not
++  terminate them, and its absence at the end of a file means nothing.
++- The status bar now actually shows *complete* for a log that claims it. The note was computed and then
++  never added to the text.
+ 
+ ### Documentation
+ - Refresh demo, chart, topology, conversation and Spring guide screenshots; update the guides and
+diff --git a/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java b/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java
+index fc558eb1..85662bd1 100644
+--- a/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java
++++ b/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java
+@@ -20,6 +20,14 @@ public final class HeapLogStore implements LogStore {
+     private final LogIndex index;
+     private volatile boolean trailingPending;
+     private final boolean includesEofRecord;
++    /** D-E3: whether this file says it is whole. Never null; UNKNOWN for every producer that is silent. */
++    private volatile StreamEnd streamEnd = StreamEnd.unknown(0);
++    /**
++     * Kept across appends so follow uses the same rule the initial load did. Review found the marker
++     * leaking into the index in follow mode and the state never moving off its load-time value, because
++     * {@link #appendFrom} framed without a tracker at all.
++     */
++    private final StreamEndTracker tracker = new StreamEndTracker();
+     private FileReadIdentity readIdentity;
+     private Path source;                  // set when built from a file, so follow can re-read it
+ 
+@@ -30,10 +38,15 @@ public final class HeapLogStore implements LogStore {
+     private HeapLogStore(String file, boolean requireTerminator) {
+         this.file = (file == null) ? "" : file;
+         this.index = new LogIndex();
+-        boolean eof = RecordFramer.frameWithPending(this.file,
+-                raw -> index.add(RecordParser.parse(raw.text(), raw.offset())), requireTerminator);
++        boolean[] lastWasRecord = {false};
++        boolean eof = RecordFramer.frameWithPending(this.file, raw -> {
++            lastWasRecord[0] = tracker.accept(raw.text());
++            if (lastWasRecord[0]) index.add(RecordParser.parse(raw.text(), raw.offset()));
++        }, requireTerminator);
+         this.trailingPending = eof && requireTerminator;
+-        this.includesEofRecord = eof && !requireTerminator;
++        this.includesEofRecord = eof && !requireTerminator && lastWasRecord[0];
++        this.streamEnd = tracker.resolve();
++        if (trailingPending && streamEnd.isKnownComplete()) streamEnd = StreamEnd.unknown(index.size());
+     }
+ 
+     public static HeapLogStore fromFile(Path path) throws IOException {
+@@ -96,17 +109,30 @@ public final class HeapLogStore implements LogStore {
+         // could throw meanwhile (impl review F2).
+         this.readIdentity = null; // follow changes the indexed view; no stale opening digest may describe it
+         this.file = full;
+-        // require a terminator so a record still being written isn't indexed until complete; the
+-        // first `before` records are byte-identical (append-only) so we skip them and add the rest
++        tracker.reset();
+         trailingPending = RecordFramer.frameWithPending(full, raw -> {
++            if (!tracker.accept(raw.text())) return;
+             if (seen[0]++ < before) return;
+             index.add(RecordParser.parse(raw.text(), raw.offset()));
+         }, true);
++        this.streamEnd = tracker.resolve();
++        if (trailingPending && streamEnd.isKnownComplete()) streamEnd = StreamEnd.unknown(index.size());
+         return index.size() - before;
+     }
+ 
+     @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
+ 
++    @Override
++    public StreamEnd streamEnd() {
++        return streamEnd;
++    }
++
++    @Override
++    public java.util.List<String> sourceDiagnostics() {
++        String d = streamEnd.diagnostic("this log");
++        return d == null ? java.util.List.of() : java.util.List.of(d);
++    }
++
+     @Override
+     public int size() {
+         return index.size();
+diff --git a/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/MappedLogStore.java b/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/MappedLogStore.java
+index 8a6b0630..4749d776 100644
+--- a/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/MappedLogStore.java
++++ b/src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/MappedLogStore.java
+@@ -24,6 +24,7 @@ public final class MappedLogStore implements LogStore {
+ 
+     private final FileChannel channel;
+     private final LogIndex index;
++    private final StreamEnd streamEnd;
+     private final Path path;
+     private final FileReadIdentity readIdentity;
+     private final boolean includesEofRecord;
+@@ -37,13 +38,31 @@ public final class MappedLogStore implements LogStore {
+         this.path = path;
+         this.index = new LogIndex();
+         var capture = FileReadIdentity.begin(path);
++        StreamEndTracker tracker = new StreamEndTracker();
+         try (var in = capture.open()) {
+-            includesEofRecord = ByteRecordFramer.frameWithEof(in, (offset, length, text) -> index.add(RecordParser.parse(text, offset, length)));
++            boolean[] lastWasRecord = {false};
++            boolean eof = ByteRecordFramer.frameWithEof(in, (offset, length, text) -> {
++                lastWasRecord[0] = tracker.accept(text);
++                if (lastWasRecord[0]) index.add(RecordParser.parse(text, offset, length));
++            });
++            includesEofRecord = eof && lastWasRecord[0];
+         }
++        this.streamEnd = tracker.resolve();
+         this.readIdentity = capture.finish();
+         this.channel = FileChannel.open(path, StandardOpenOption.READ);
+     }
+ 
++    @Override
++    public StreamEnd streamEnd() {
++        return streamEnd;
++    }
++
++    @Override
++    public java.util.List<String> sourceDiagnostics() {
++        String d = streamEnd.diagnostic("this log");
++        return d == null ? java.util.List.of() : java.util.List.of(d);
++    }
++
+     @Override
+     public String localFile() {
+         return path == null ? null : path.toString();
+diff --git a/src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java b/src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java
+index 2ac4077d..6ab22a53 100644
+--- a/src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java
++++ b/src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java
+@@ -3831,9 +3831,13 @@ public final class MainFrame extends JFrame {
+         String producerWarning = producerDiagnostics.isClean() ? ""
+                 : "  ·  ⚠ " + producerDiagnostics.findings().get(0).kind().name().toLowerCase(
+                         java.util.Locale.ROOT).replace('_', ' ') + " — ask 'context', or hover";
++        // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent.
++        // This was computed and then dropped on the floor — the status bar never carried it, so the one
++        // human surface `context` names for COMPLETE did not exist. Found reviewing the stream-end branch.
++        String wholeNote = loaded.streamEnd().isKnownComplete() ? "  ·  complete" : "";
+         status.setText(loaded.size() + " records · " + range + " · "
+                 + (logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
+-                        : displayName(location)) + orderWarning + producerWarning + trailingPendingNote());
++                        : displayName(location)) + wholeNote + orderWarning + producerWarning + trailingPendingNote());
+         // the full sentence, where there is room for it — the status bar has none
+         status.setToolTipText(producerDiagnostics.isClean() ? null
+                 : String.join("\n\n", producerDiagnostics.messages()));
+@@ -5810,6 +5814,20 @@ public final class MainFrame extends JFrame {
+                 log.put("trailingRecordsPending", store.trailingRecordsPending());
+                 if (store.trailingRecordsPending() > 0) log.put("pendingNote", store.trailingRecordsPending() + " trailing record(s) pending — awaiting complete separator lines");
+             }
++            // spec-audit-stream-end D-E3: whether the FILE says it is whole. Always present when a log is
++            // open, including "unknown" — an agent that cannot tell complete from unverified will read
++            // silence as success, which is the failure the whole contract exists to prevent (D-T8).
++            // Human surface: the status bar ("· complete") and the existing source-diagnostic line (the
++            // states that have something to report). Docs: user-guide/assistant.md ▸ "Is this log whole?"
++            // and site/format-spec.md §1a. The pointer said log-sources.md, which never mentioned it.
++            if (!log.isEmpty() && store != null) {
++                var end = store.streamEnd();
++                Map<String, Object> se = new java.util.LinkedHashMap<>();
++                se.put("state", end.state().name().toLowerCase(java.util.Locale.ROOT));
++                if (end.declaredRecords() >= 0) se.put("declaredRecords", end.declaredRecords());
++                se.put("recordsRead", end.emittedRecords());
++                log.put("streamEnd", se);
++            }
+             if (!log.isEmpty()) out.put("log", log);
+             // §E: absent means absent. No key at all rather than a null an agent might read as ""
+             if (logProvenance != null) out.put("provenance", logProvenance);

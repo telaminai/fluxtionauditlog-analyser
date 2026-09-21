@@ -49,6 +49,19 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
+### Review response — implementation and verification
+
+[Response to F1–F7](../handoff/response_tool_agreement_2026_09_21.md),
+[re-review brief](../handoff/brief_rereview_tool_agreement_2026_09_21.md), draft PR 4.
+F1 fixed with export-layout regression and 25→24 mutation; ordinary EOF records retained, live
+Follow stays pending-only. F3 agrees with corrected end-marker branch `02fa62b3`; disposable combined
+clean gate 1,806/0/0/49, resolution patch preserved. Main `ea865d2d` integrated, all skill bytes pinned
+at `41b77650` by `b6633048`; playground re-vendor `d917a7a` pushed, undeployed (543 pass / 5 skip; build passes). D12 corrected;
+D13 explicitly not reproduced later. F5 CI Linux/Xvfb 50/50, zero skips (run 35610006347).
+F6 exact mutation anchors added; F7's 49 headless skips were already recorded, now cross-linked.
+Response clean gate 1,767/0/0/49, Mac display 50/0/0/0. Counts remain analyser 1 / upstream 8.
+29 affected demo/conversation captures refreshed. Await independent re-review; no release claimed.
+
 ### Review response — frozen predictions before fixes
 
 Review `cac590a3` (F1–F7), feature reviewed at `fcaf14ad`.
@@ -68,7 +81,7 @@ Review `cac590a3` (F1–F7), feature reviewed at `fcaf14ad`.
   49 headless skips in both its Full-gate correction and Final handoff; retain and link that evidence.
 
 
-**Implementation pass complete, review pending:** `feat/tool-agreement`, source head `7df316c8`.
+**Initial implementation pass (superseded by review response above):** `feat/tool-agreement`, source head `7df316c8`.
 [Author report](../handoff/report_tool_agreement_2026_09_21.md) and
 [review brief](../handoff/brief_review_tool_agreement_2026_09_21.md). Analyser **13 → 1 open** (D20
 producer-blocked); upstream **8 → 8 open**. TA-5b/5c remain open. Final clean gate 1,766 tests

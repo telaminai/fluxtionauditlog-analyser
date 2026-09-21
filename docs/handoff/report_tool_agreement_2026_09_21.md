@@ -3,6 +3,11 @@
 Branch: `feat/tool-agreement`, based on `08954d43`. Implementation pass complete; independent review pending. No release claimed.
 The owner kept the existing evidence-correctness work at P1 for this pass.
 
+**Review correction:** the original TA-6 ordinary-open framing and 9/725-record capture claims below
+were wrong. [F1–F7 response](response_tool_agreement_2026_09_21.md) supersedes them, preserves valid
+EOF records on snapshots, and records the later main integration and CI evidence. Earlier sections
+remain the historical author account; they are not independent acceptance.
+
 ## TA-1 — completed
 
 Frozen prediction (tracker, committed before implementation): the committed 23-node graph paired with

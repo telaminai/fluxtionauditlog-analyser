@@ -1,0 +1,20 @@
+{
+  "feature": "b66330489ded7d3d1b582f8b4cacf62132d0d77d",
+  "endMarker": "02fa62b3",
+  "disposableWorktree": "/private/tmp/ta-end-marker-integration",
+  "conflicts": [
+    "CHANGELOG.md",
+    "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java",
+    "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/MappedLogStore.java",
+    "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"
+  ],
+  "focusedGate": "ExportEofRecordTest,FollowAppendTest,StreamEndTest,StreamEndMarkerNeverLeaksTest,FormatConformanceTest",
+  "cleanGate": {
+    "tests": 1806,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 49
+  },
+  "actualFeatureMerged": false,
+  "resolution": "After merging in a disposable worktree, take ours for the four conflicted files then apply the adjacent resolution patch. Other files auto-merge. Neither feature branch was modified by the rehearsal."
+}

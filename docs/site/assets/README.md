@@ -83,7 +83,9 @@ The tool-agreement branch refreshes the full 24-image demo suite, the five conve
 (and their recorded echoes), and four Spring project/design/validation shots. Old topology pictures
 claimed off-path without complete dispatch metadata; old chart pictures put commentary and legends
 over data. Both now show the changed UI. Demo files with an unterminated final record now show that
-record as pending; counts in the conversations were corrected rather than editing fixture evidence.
+record as pending in the initial implementation. Review F1 established that this was wrong for
+ordinary opens. The review-response capture run restores 10/726 snapshot records and qualifies the
+included EOF record as completeness unknown; no fixture evidence was edited.
 
 All three capture runs were repeated on source head `7df316c8`, after the file-observation,
 chart-scope and source-spotlight changes; all 33 refreshed images were inspected. Existing topology
@@ -96,3 +98,6 @@ Not recaptured in this pass: the MCP dialogs, template-picker and bundle tutoria
 separate capture modes require their own fixtures. The owner-witnessed website Spring preview and
 vendor topology picture are historical evidence, not screenshots of the new analyser. The vendor
 evidence image is deliberately retained unchanged.
+
+Review-response refresh at `b6633048`: main/demo 24 plus conversation 5 assets and real echoes were
+regenerated and visually inspected. The four Spring design-only captures remain from `7df316c8`.

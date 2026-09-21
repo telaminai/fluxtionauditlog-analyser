@@ -20,10 +20,10 @@ The client discovers one tool per verb — `analyser_context`, `analyser_aggrega
       "log": {
         "path": "…/analyser/src/test/resources/topology/demo-quote-audit.yaml",
         "openedFrom": "…/analyser/src/test/resources/topology/demo-quote-audit.yaml",
-        "records": 9,
+        "records": 10,
         "sizeBytes": 4053,
         "from": 1767258000090,
-        "to": 1767258000330,
+        "to": 1767258000360,
         "openedBy": "the command line that started this analyser",
         "freshness": {
           "reload": "explicitly reopen the same path; no automatic replacement",
@@ -39,22 +39,23 @@ The client discovers one tool per verb — `analyser_context`, `analyser_aggrega
         },
         "following": false,
         "supportsFollow": true,
-        "trailingRecordsPending": 1,
-        "pendingNote": "1 trailing record(s) pending — awaiting complete separator lines"
+        "trailingRecordsIncluded": 1,
+        "tailNote": "EOF record included without a closing separator (legal Format 1); completeness unknown. Follow reopens as a…",
+        "trailingRecordsPending": 0
       },
       "graphPairing": {
         "graph": "demo-quote-processor.graphml",
         "applies": true
       },
       "showing": {
-        "visible": 9,
-        "total": 9
+        "visible": 10,
+        "total": 10
       }
     }
     ```
 
 
-Nine complete records and one pending tail; the graph declares the logged nodes. Silence still does not prove non-execution. The agent starts wide, then narrows.
+Ten records in the snapshot, including the EOF record without a closing separator; completeness remains unknown. The graph declares the logged nodes. Silence still does not prove non-execution. The agent starts wide, then narrows.
 
 
 ??? example "→ `analyser_aggregate`"
@@ -63,7 +64,7 @@ Nine complete records and one pending tail; the graph declares the logged nodes.
     ← {
       "metric": "count",
       "groupBy": "dimension",
-      "total": 9,
+      "total": 10,
       "buckets": [
         {
           "key": "OrderUpdateEvent",
@@ -74,13 +75,13 @@ Nine complete records and one pending tail; the graph declares the logged nodes.
           "count": 3
         },
         {
-          "key": "RiskBreachEvent",
-          "count": 1
+          "key": "ExportFunctionAuditEvent",
+          "count": 2
         },
         "… (+1 more)"
       ],
       "population": {
-        "records": 9,
+        "records": 10,
         "filter": {
           "dimensions": [],
           "from": null,
@@ -116,7 +117,7 @@ Nine complete records and one pending tail; the graph declares the logged nodes.
           "logTime": 1767258000300,
           "text": "eventLogRecord: \n    eventTime: 1767258000290\n    logTime: 1767258000300\n    groupingId: null\n    event: Ri…"
         },
-        "… (+1 more)"
+        "… (+2 more)"
       ]
     }
     ```
@@ -136,7 +137,7 @@ Nine complete records and one pending tail; the graph declares the logged nodes.
     ```
 
 
-> **Agent:** At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. I have not treated the pending trailing record as complete.
+> **Agent:** At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. The final EOF record is included; a missing closing separator does not establish whether the file is whole.
 
 
 ![The two flagged records, the note in the detail pane — the agent's answer as things you can click](assets/conv-what-happened.png)
@@ -384,7 +385,7 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
     → analyser_context {}
     ← {
       "log": {
-        "records": 9
+        "records": 10
       },
       "provenance": "DEMO quote service · uat",
       "provenanceSource": "project environment 'uat' — the log is under logs/uat",
@@ -403,7 +404,7 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
       "covered": 5,
       "uncovered": 0,
       "ratio": 1.0,
-      "recordsScanned": 9,
+      "recordsScanned": 10,
       "excludedNote": "excluded 5 declared item(s) that can never write audit output: 3 event class(es), 1 exported service(s), 1 …"
     }
     ```
@@ -441,11 +442,11 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
         "graphNodes": 18,
         "authoredNodes": 10,
         "copyComparison": {
-          "state": "pending",
           "roots": [
             "…/analyser/examples/fixture-generator/src/main/java",
             "…/analyser/src/test/resources/topology"
-          ]
+          ],
+          "state": "pending"
         },
         "pairing": "no log is open — nothing to check this graph against"
       }

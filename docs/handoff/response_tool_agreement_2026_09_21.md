@@ -4,7 +4,7 @@ Review: [Opus at cac590a3](review_tool_agreement_2026_09_21_opus.md), feature `f
 Predictions were frozen in tracker commit `a5173933` before these corrections. No release or merge
 into main is authorized or performed. The original review is preserved verbatim.
 
-## F1 — corrected; F3 — shared rule, integration check pending
+## F1 — corrected; F3 — shared rule and integration rehearsal passed
 
 The review is right. I incorrectly made the live framing rule apply to ordinary opens, and then
 changed screenshots to match that regression. Published Format 1 permits an EOF record with no
@@ -32,14 +32,33 @@ not counted as a witness. A sandbox-only full run denied 29 socket bindings; the
 run passed, 1,767 tests, zero failures/errors, 49 display skips.
 
 The end-marker branch's newer `02fa62b3` already removed STOPPED_MID_WRITE and preserves UNKNOWN for
-unmarked exports. This response follows that same rule. Its stream marker is not implemented here.
+unmarked exports. This response follows that same rule. Its stream marker is not implemented here. A disposable merge of `b6633048` with `02fa62b3`
+conflicted in CHANGELOG, HeapLogStore, MappedLogStore and MainFrame. The preserved
+[resolution patch](evidence/tool-agreement-2026-09-21/end-marker-integration-resolution.patch)
+and [rehearsal record](evidence/tool-agreement-2026-09-21/end-marker-integration.json) keep ordinary
+EOF records, exclude marker envelopes before indexing, and resolve unmarked exports as UNKNOWN.
+The combined focused gate and clean suite passed: **1,806 tests, 0 failures/errors, 49 skips**.
+Neither feature branch was changed by that rehearsal. This is a tested integration recipe, not a
+claim that the eventual main integration has happened.
 
 ## F2 — integration and canonical pin
 
 Merged main `ea865d2d` into this feature branch, preserving both main skill changes and the Mongoose
-change. The index is temporarily DRAFT only while creating the combined source commit, then will be
-re-pinned in a separate ordinary commit. No draft index will be handed over as the final result.
-Playground re-vendoring is prepared on its own branch, not deployed.
+change. The combined source commit is `41b77650`; index commit `b6633048` pins every selected path to its
+full SHA with verified digests. CanonicalSkillsTest passes. The temporary DRAFT existed only in the
+source commit, not the final published index.
+
+Playground branch `fix/tool-agreement-skill-vendor`, commit `d917a7a`, fetched the immutable public index at `b6633048`,
+which resolves the skill bytes to `41b77650`. Its manifest honestly records the explicit mirror URL;
+it does not claim main already serves it. The two main skill files are byte-identical to playground
+main; only Mongoose guidance changes. No deployment is claimed. Merge the analyser response first;
+then review/merge the companion vendoring branch. TA-5b's actual text-file route remains separate.
+
+Playground validation: 543 tests passed, five skipped; all 37 files pass, production build passes.
+The bundle test previously asserted canonical-only provenance. It now checks the consumer's existing
+safe mirror grammar too, and exact manifest provenance/revision equality; no runtime retrieval rule
+changed. A sandbox attempt denied the local HTTPS fixture server; the unrestricted rerun passed.
+The companion tracker records this scope and its undeployed status.
 
 ## F4 — corrected, without another endpoint trial
 
@@ -50,10 +69,14 @@ stays open as unresolved, so upstream counts remain 8. Canonical skill/runbook p
 The later owner decision is text-file delivery first; the earlier Chronicle-first decision is
 explicitly superseded, without claiming that the new route has shipped.
 
-## F5 — CI confirmation pending
+## F5 — confirmed on CI
 
-The reviewer's environmental skip is accepted as a limit on that run. A draft PR will trigger the
-existing Linux/Xvfb display job; its no-skip assertion is retained. Local success is not a substitute.
+The reviewer's environmental skip is accepted as a limit on that run. Local display checks passed
+50/50 with no skips. More importantly, draft [PR 4](https://github.com/telaminai/fluxtionauditlog-analyser/pull/4)
+ran the existing Linux/Xvfb job on response head `b6633048`: **50 tests, zero failures/errors/skips**.
+[CI job](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35610006347/job/106366458199)
+and [per-suite record](evidence/tool-agreement-2026-09-21/review-response-ci-display.json).
+Build, loop-bench and static jobs also passed. The no-skip gate was not weakened.
 
 ## F6 — corrected witness anchors
 
@@ -72,3 +95,14 @@ The response repeats the count above. It does not conflate headless skips with t
 Analyser open rows **1 → 1** (D20 producer-blocked); upstream **8 → 8**. F1 is a regression in the
 D6 implementation, not a newly invented baseline row. TA-5b delivery and TA-5c post-shipment client
 spot-check stay open. No client sessions, paid generation or upstream runtime edits ran here.
+
+## Final documentation and re-review
+
+Rebuilt the jar, reran tool smoke and packaged spotlight checks, and regenerated all 24 demo assets
+plus five conversation captures/echoes. All 29 were inspected. Ordinary screenshots again show
+10/726 records, with the included EOF record qualified; raw demo/evidence inputs were not edited.
+Spring's four design-only images were unchanged by framing and retained. Strict docs and the exact
+rule-1 sweep pass. The prior capture report's 9/725 framing claim is explicitly superseded here.
+
+[Re-review brief](brief_rereview_tool_agreement_2026_09_21.md) names the transition and integration
+checks. Independent disposition is the reviewer's; the author does not rewrite their verdict.
