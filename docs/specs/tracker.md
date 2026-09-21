@@ -18,6 +18,11 @@ after review:** the first version reversed the two fixture fingerprints (source 
 - **[TA-1] ☐ — one declared set for pairing, including framework nodes that log** · _src-round3 fixture pairs
   cleanly (no "different build"); all three call sites return identical verdicts; the M35.1 foreign-graph
   negative control still fails; mutation witness._
+  **Prediction frozen before TA-1 edits, 2026-09-21:** on the committed 23-node graph, the constructed
+  logged set `{rootNode, riskCheck, output}` will produce 3/3 matches through the UI, discovery and
+  session paths after unifying the declared set. Restoring either UI/discovery authored-only call
+  will fail the equality regression; the existing foreign-graph control will remain rejected.
+  Baseline before: analyser 13 open; upstream 8 open.
 - **[TA-2] ☐ — announce disagreeing copies of the same graph** · _both fixtures under one root: fingerprints
   and node counts reported; source copy ranks first against a round-3 log; works with no log open; negative
   control: byte-identical copies reported as agreeing._
@@ -45,6 +50,7 @@ after review:** the first version reversed the two fixture fingerprints (source 
   existing items below ("evidence correctness first", "Feedback 38/39 and recurring 6", "Chart feedback
   41–43", "Topology feedback 37"); proposed: raise "evidence correctness first" from P1 to P0 alongside
   TA-1–TA-4, since it is the same slice B gate._
+  **Owner decision, 2026-09-21:** keep evidence correctness first at P1 for this pass; do not reorder it.
 - **[TA-U] ☐ — upstream asks recorded with owners** · _D3a, D8–D13, D21 and the template items carried into
   `docs/proposals/upstream-asks.md`, scoped to the affected template and version (standalone authoring shipped
   in 1.0.73; hosted is SG-2); D7 reclassified; stub-shape fix sequenced before "always use the generator"._
