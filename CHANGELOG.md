@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-09-21
+
 - Context keeps loaded log sizes separate from on-disk metadata, flags changed graph/log/result inputs, and labels producer hash comparisons as of intake. The Project panel and exported reports carry the qualification.
 
 - Design spotlights settle scrolling before measuring and refuse lines outside their text viewport; adding a distant target reports departed highlights.
