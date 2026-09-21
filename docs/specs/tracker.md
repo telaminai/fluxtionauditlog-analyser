@@ -104,6 +104,15 @@ after review:** the first version reversed the two fixture fingerprints (source 
   Disabling typed equality makes the text/boolean golden fail. Counts before: analyser 7, upstream 8.
   **A2 completed:** prediction held. Goldens 11–13, `LiteralFormulaTest`, marker and report tests pass;
   disabling text equality fails all four surfaces. Full suite and strict docs green. Counts unchanged.
+  **A3/A4/A5/A10 frozen predictions:** a marker-label spotlight refuses explicitly as not targetable;
+  a hidden Project row reveals through its existing rail control before measurement; a readable design
+  outside roots names a single JSON `source_root` add call for its real parent, without granting access;
+  PDF flag glyphs fall back to text. Disabling each behavior fails its dedicated regression.
+  All inputs constructed. Counts before: analyser 7, upstream 8.
+  **A3/A4/A5/A10 completed:** predictions held. Named real-frame tests cover marker refusal and hidden
+  Project reveal; `DesignWorkspaceTest.refusedDesignNamesExactRootCallWithoutAddingIt` and
+  `FindingReportTest.pdfFlagGlyphHasReadableTextFallback` cover the other boundaries. Each disabled
+  behavior fails its assertion; restored full suite and display cases pass. Counts unchanged.
 - **[TA-9] ☐ — analyser half of "Authoritative dispatch metadata (34)"** · _blocked on producer metadata;
   the analyser never infers the hierarchy. `desk-quote-supertype.graphml` is the before case: hierarchy shown as
   unknown, not off-path. With a relationship-carrying fixture: union route drawn; unrelated class adds none;
@@ -2109,3 +2118,10 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
 
 _(spec-closed-loop O1–O4 all resolved — statuses recorded in the M18 block above; O5 in Decisions.)_
+
+### Tool-agreement documentation capture refresh — 2026-09-21
+
+- ☐ Owner requested screenshot audit. Inspected topology-step-through and graph-bands: topology still
+  labels untraced branches off-path; graph overlays still cover data. Regenerate the affected native
+  screenshots after the chart layout settles, audit Spring guide captures separately, and record
+  images actually refreshed versus retained historical evidence. Use only isolated demo profiles.

@@ -308,6 +308,11 @@ public final class GraphPanel extends JPanel {
      * How many legend entries {@code label} could mean — so a refusal can say "two series are called that"
      * rather than "there is no such series", which would be false.
      */
+    public boolean hasMarkerLabel(String label) {
+        return markerSpecs.stream().anyMatch(m -> label.equals(m.label()))
+                || legendMarkers.stream().anyMatch(m -> label.equals(m.label()));
+    }
+
     public int seriesLegendMatches(String label) {
         List<String> texts = new ArrayList<>();
         for (java.awt.Component c : legendLabels.getComponents()) {

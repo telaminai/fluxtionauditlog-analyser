@@ -96,6 +96,15 @@ class FindingReportTest {
      * file rather than a typographic limitation, which is exactly how it shipped in the first draft.
      */
     @Test
+    void pdfFlagGlyphHasReadableTextFallback() {
+        PdfDoc doc = new PdfDoc();
+        doc.text("⚑ flags / ⚐", 10, 10, PdfDoc.Face.HELVETICA, 9, Color.BLACK);
+        String out = body(doc.toBytes());
+        assertTrue(out.contains("flag flags / flag"), out);
+        assertFalse(out.contains("?"));
+    }
+
+    @Test
     void typographicPunctuationIsTransliteratedNotReplacedWithQuestionMarks() {
         PdfDoc doc = new PdfDoc();
         doc.text("evidence — the “claim” it rests on… 100 → 200", 10, 10,

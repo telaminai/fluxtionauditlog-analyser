@@ -354,7 +354,7 @@ public final class MainFrame extends JFrame {
             }
         });
         projectPanel.setVisible(!config.projectPanelCollapsed);
-        rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
+        projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
             projectPanel.setVisible(showing);
             config.projectPanelCollapsed = !showing;
             saveConfigQuietly();
@@ -499,6 +499,7 @@ public final class MainFrame extends JFrame {
     }
 
     private ProjectPanel projectPanel;
+    private JToggleButton projectRailToggle;
     private JSplitPane westSplit;            // Event types over Project, inside the west column
     private JSplitPane westOuter;            // the west column beside the records — the user drags this
     private AppControlAdapter actionControl;
@@ -2092,6 +2093,15 @@ public final class MainFrame extends JFrame {
                         selectSideTab("source");
                     }
                 }
+                case PROJECT, PROJECT_ROW -> {
+                    if (projectPanel != null && !projectPanel.isVisible() && projectRailToggle != null)
+                        projectRailToggle.doClick();
+                    validate();
+                    if (projectPanel != null && t.family() == SpotlightTarget.Family.PROJECT_ROW) {
+                        var bounds = projectPanel.sectionBounds(projectSectionTitle(t.argument()));
+                        if (bounds != null) projectPanel.scrollRectToVisible(bounds);
+                    }
+                }
                 case TAB -> selectSideTab(t.argument());
                 case GRAPH, GRAPH_NOTE, GRAPH_SERIES -> {
                     selectSideTab("graph");
@@ -2220,6 +2230,7 @@ public final class MainFrame extends JFrame {
                             // labelled with the legend's own suffix). Lighting the first would be a guess.
                             : matches > 1 ? matches + " series on " + chartWord(t) + " are labelled '" + t.argument()
                             + "' — a spotlight cannot tell which you mean. Redraw the graph with distinct labels"
+                            : g.hasMarkerLabel(t.argument()) ? "markers are not targetable by series spotlights; spotlight the graph plot instead"
                             : "'" + t.name() + "' is not on " + chartWord(t) + alsoOn(t);
                 }
                 case GRAPH, GRAPH_NOTE -> {

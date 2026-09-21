@@ -1,0 +1,50 @@
+[
+  {
+    "item": "A3",
+    "mutation": "g.hasMarkerLabel(t.argument()) ? \"markers are not targetable -> false ? \"markers are not targetable",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "markerSpotlightRefusalNamesTheUnsupportedTarget(Path)",
+        "failure": "{ok=false, error='graph:Markers:series:breaches' is not on graph 'Markers'} ==> expected: <true> but was: <false>"
+      }
+    ],
+    "restored": true
+  },
+  {
+    "item": "A4",
+    "mutation": "                        projectRailToggle.doClick(); ->                         ; // reveal disabled",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "hiddenProjectRowIsRevealedBeforeSpotlighting(Path)",
+        "failure": "spotlight {target=project:roots} \u2192 {ok=false, error=the Project panel is hidden or has no such section \u2014 its rail toggle shows it} ==> expected: <true> but was: <false>"
+      }
+    ],
+    "restored": true
+  },
+  {
+    "item": "A5",
+    "mutation": "if (readableCandidates.size() == 1) -> if (false)",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "refusedDesignNamesExactRootCallWithoutAddingIt",
+        "failure": "file unavailable or outside authorised roots: /var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/junit18196508401830009225/needs root/design.xml ==> expected: <true> but was: <false>"
+      }
+    ],
+    "restored": true
+  },
+  {
+    "item": "A10",
+    "mutation": "case '\u2691', '\u2690' -> sb.append(\"flag\"); -> case '\u2691', '\u2690' -> sb.append(\"?\");",
+    "exit": 1,
+    "failures": [
+      {
+        "test": "pdfFlagGlyphHasReadableTextFallback",
+        "failure": "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [ 7 0 R ] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>\nendobj\n4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n7 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 8 0 R >>\nendobj\n8 0 obj\n<< /Length 51 >>\nstream\nBT\n0 0 0 rg\n/F3 9 Tf\n10 782 Td\n(? flags / ?) Tj\nET\n\nendstream\nendobj\nxref\n0 9\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000117 00000 n \n0000000212 00000 n \n0000000312 00000 n \n0000000409 00000 n \n0000000511 00000 n \n0000000667 00000 n \ntrailer\n<< /Size 9 /Root 1 0 R >>\nstartxref\n768\n%%EOF ==> expected: <true> but was: <false>"
+      }
+    ],
+    "restored": true
+  }
+]

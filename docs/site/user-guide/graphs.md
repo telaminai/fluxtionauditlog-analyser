@@ -207,3 +207,7 @@ and can be shared, see [Sharing setups](sharing-setups.md).
 
 A series can also be started from the graph of the processor itself — right-click a node in
 [Topology & step-through](topology.md) and pick one of the values it logged.
+
+Marker labels are not yet individual series spotlight targets. The assistant receives an explicit
+refusal and can spotlight the graph plot instead. Exported PDFs spell the flag glyph as `flag` when
+using the standard PDF fonts.

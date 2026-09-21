@@ -286,10 +286,10 @@ different packages are not conflated, and that missing metadata stays explicitly
 | Item | Required | Route |
 |---|---|---|
 | A2 ☑ | formulas accept boolean and string literals (`== true`, `== "true"`) | goldens 11–13, `LiteralFormulaTest`, report/marker regressions; [witness](../handoff/evidence/tool-agreement-2026-09-21/ta8-a2-mutation.json) |
-| A3 | marker series are spotlight targets, or the error says markers are not targetable | `spec-spotlight.md` |
-| A4 | a spotlight on a hidden Project section reveals it, as other targets are revealed | `spec-spotlight.md` |
-| A5 | `open {design}` outside the roots: the error names the one `source_root` call that fixes it | here; the starter-profile half is upstream |
-| A10 | PDF flag glyph renders, or falls back to text | here |
+| A3 ☑ | marker series are spotlight targets, or the error says markers are not targetable | `spec-spotlight.md` |
+| A4 ☑ | a spotlight on a hidden Project section reveals it, as other targets are revealed | `spec-spotlight.md` |
+| A5 ☑ | `open {design}` outside the roots: the error names the one `source_root` call that fixes it | here; the starter-profile half is upstream |
+| A10 ☑ | PDF flag glyph renders, or falls back to text | here |
 | A11 | chart explanation box can be positioned, or is drawn below the plot | here |
 | A12 | chart notes avoid collisions; legend sits outside the plot | here |
 

@@ -316,6 +316,7 @@ public final class PdfDoc {
                 case '•' -> sb.append('·');                      // bullet → middot (WinAnsi)
                 case ' ', ' ', ' ' -> sb.append(' ');       // non-breaking / thin spaces
                 case '→' -> sb.append("->");                          // rightwards arrow
+                case '⚑', '⚐' -> sb.append("flag");
                 case '✓', '✔' -> sb.append('v');                 // check marks
                 default -> sb.append(c > 0xFF ? '?' : c);
             }

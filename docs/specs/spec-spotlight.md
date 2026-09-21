@@ -394,3 +394,10 @@ frame resize); a target that can no longer be measured puts the spotlight out.
 - [x] The guidance at every entrance — `SpotlightGuidanceIsAtEveryEntranceTest` (5).
 - [x] Dark theme **seen**: `spotlight-dark.png` and `spotlight-findings-dark.png`, generated and read. (Open note of
       the first report, closed.)
+
+### TA-8 target disclosure and reveal
+
+A Project section hidden by the rail toggle is revealed through that toggle before measuring its
+spotlight. `NamedGraphAndMenuSpotlightFrameTest.hiddenProjectRowIsRevealedBeforeSpotlighting` pins this.
+Marker labels are not currently series spotlight targets: the refusal names that limit and suggests
+lighting the plot, rather than claiming the marker is absent. The companion marker-refusal test pins it.

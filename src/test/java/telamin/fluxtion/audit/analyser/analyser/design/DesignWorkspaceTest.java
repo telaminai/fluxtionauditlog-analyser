@@ -18,6 +18,18 @@ class DesignWorkspaceTest {
         workspace = new DesignWorkspace(() -> files, () -> driver.processor().designSession, driver::submit);
     }
     Path xml(String name, String text) throws Exception { return Files.writeString(project.resolve(name), text); }
+    @Test void refusedDesignNamesExactRootCallWithoutAddingIt() throws Exception {
+        Path external = Files.createDirectories(project.resolve("needs root"));
+        Path target = Files.writeString(external.resolve("design.xml"), "<beans/>");
+        var restricted = new DesignFiles(List.of(), project);
+        String msg = assertThrows(java.io.IOException.class, () -> restricted.resolve(target.toString())).getMessage();
+        String call = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(Map.of("add", List.of(external.toRealPath().toString())));
+        assertTrue(msg.contains("source_root " + call), msg);
+        assertTrue(restricted.roots().isEmpty());
+        assertEquals(target.toRealPath(), new DesignFiles(List.of(external.toString()), project).resolve(target.toString()));
+        assertFalse(assertThrows(java.io.IOException.class, () -> restricted.resolve(external.resolve("absent.xml").toString()))
+                .getMessage().contains("source_root"), "missing files must not promise a root will fix them");
+    }
     @Test void aGlanceAtBDoesNotChangeSessionAAndEveryCallRereads() throws Exception {
         Path a = xml("a.xml", "<beans><bean id='x'/></beans>");
         Path b = xml("b.xml", "<beans>\n\n<bean id='x'/></beans>");

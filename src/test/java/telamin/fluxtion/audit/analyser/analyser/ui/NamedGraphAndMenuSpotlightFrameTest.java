@@ -96,6 +96,41 @@ class NamedGraphAndMenuSpotlightFrameTest {
     }
 
     @Test
+    void hiddenProjectRowIsRevealedBeforeSpotlighting(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        var previous = flatLafLikeTheApp();
+        try (Frame f = new Frame(tmp)) {
+            show(f, Files.createDirectories(tmp.resolve("exchange")));
+            onEdt(() -> {
+                var toggle = (javax.swing.JToggleButton) field(f.frame, "projectRailToggle");
+                if (toggle.isSelected()) toggle.doClick();
+                assertFalse(((ProjectPanel)field(f.frame, "projectPanel")).isVisible());
+                var answer = render(f.ex, "spotlight", Map.of("target", "project:roots"));
+                assertEquals(true, answer.get("ok"));
+                assertTrue(toggle.isSelected());
+                assertTrue(((ProjectPanel)field(f.frame, "projectPanel")).isVisible());
+                assertEquals("project:roots", lit(f).getFirst().get("target"));
+            });
+        } finally { SwingUtilities.invokeAndWait(() -> { try { javax.swing.UIManager.setLookAndFeel(previous); } catch (Exception e) { throw new RuntimeException(e); } }); }
+    }
+
+    @Test
+    void markerSpotlightRefusalNamesTheUnsupportedTarget(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (Frame f = new Frame(tmp)) {
+            show(f, Files.createDirectories(tmp.resolve("exchange")));
+            onEdt(() -> render(f.ex, "open", Map.of("log", Path.of(SERIES_LOG).toAbsolutePath().toString())));
+            awaitLoaded(f);
+            onEdt(() -> {
+                render(f.ex, "graph", Map.of("name", "Markers", "markers", List.of(Map.of("label", "breaches", "when", "quotePublisher.spread > 0", "y", "axis"))));
+                var answer = attempt(f, "spotlight", Map.of("target", "graph:Markers:series:breaches"));
+                assertEquals(false, answer.get("ok"));
+                assertTrue(answer.toString().contains("markers are not targetable"), answer.toString());
+            });
+        }
+    }
+
+    @Test
     void aGraphTargetThatNamesItsChart_selectsThatChart_andTheSelectedChartRefusalNamesWhereItIs(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         javax.swing.LookAndFeel previous = flatLafLikeTheApp();

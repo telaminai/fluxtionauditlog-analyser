@@ -209,3 +209,20 @@ Mutation: make every text equality false. Goldens, typed literal checks, report 
 marker predicate tests fail with named assertions; [witness](evidence/tool-agreement-2026-09-21/ta8-a2-mutation.json).
 Full restored suite and strict docs pass. Boolean literals deliberately alias the existing +1/-1
 values, not a new truthiness convention. Counts remain **analyser 7, upstream 8 open**.
+
+## TA-8 A3, A4, A5 and A10 — completed
+
+Frozen predictions all held, on constructed inputs:
+
+- A3: `NamedGraphAndMenuSpotlightFrameTest.markerSpotlightRefusalNamesTheUnsupportedTarget` sees an
+  explicit "markers are not targetable" refusal, not a false missing-series message.
+- A4: `hiddenProjectRowIsRevealedBeforeSpotlighting` drives the existing Project rail control, then
+  obtains the named spotlight. No new Project-panel action is introduced.
+- A5: `DesignWorkspaceTest.refusedDesignNamesExactRootCallWithoutAddingIt` checks the exact JSON call
+  against a real path containing spaces, unchanged roots, and no false repair promise for a missing file.
+- A10: `FindingReportTest.pdfFlagGlyphHasReadableTextFallback` reads the actual PDF bytes.
+
+[Four independent mutations](evidence/tool-agreement-2026-09-21/ta8-small-mutations.json) remove each
+behavior and fail its named assertion. Restored full headless gate, both real-frame cases and strict
+docs pass. Counts remain **analyser 7, upstream 8 open**. The owner also requested a screenshot audit;
+old topology and chart pictures are confirmed stale and will be refreshed after the remaining layout work.

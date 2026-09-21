@@ -38,15 +38,24 @@ public final class DesignFiles {
             for (Path root : roots) candidates.add(root.resolve(path));
         }
         Set<Path> matches = new LinkedHashSet<>();
+        Set<Path> readableCandidates = new LinkedHashSet<>();
         for (Path candidate : candidates) {
             if (!Files.isRegularFile(candidate)) continue;
             Path real = candidate.toRealPath();
+            readableCandidates.add(real);
             for (Path root : roots) {
                 if (Files.isDirectory(root) && real.startsWith(root.toRealPath())) matches.add(real);
             }
         }
         if (matches.size() > 1) throw new IOException("ambiguous file under authorised roots: " + matches);
-        if (matches.isEmpty()) throw new IOException("file unavailable or outside authorised roots: " + requested);
+        if (matches.isEmpty()) {
+            if (readableCandidates.size() == 1) {
+                Path parent = readableCandidates.iterator().next().getParent();
+                String call = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(Map.of("add", List.of(parent.toString())));
+                throw new IOException("file outside authorised roots: " + requested + "; to authorise its parent, call source_root " + call + ", then retry open {design}. No root was added.");
+            }
+            throw new IOException("file unavailable or outside authorised roots: " + requested);
+        }
         return matches.iterator().next();
     }
 

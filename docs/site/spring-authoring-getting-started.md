@@ -236,3 +236,7 @@ choose **Restore last session** explicitly; changed or missing inputs may be wit
 A restored canvas does not restore an LLM conversation. Start the new client in the project,
 ask it to reread `PROJECT.md` and current results, then call `analyser_context` before continuing.
 For examples of the conversation, see [Design and “what if?” questions](spring-authoring-conversations.md).
+
+If `open {design: ...}` refuses an existing file outside the configured source roots, the refusal
+includes the exact `source_root {"add": ["..."]}` call for its real parent directory. Review that
+directory before granting access, then retry the design open; the refusal itself changes no roots.
