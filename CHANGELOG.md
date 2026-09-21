@@ -7,6 +7,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 ### Documentation
+- Qualify C++ as a preview target and limit the reported Java/C++ equivalence to the tested graph
+  and event stream; the vendor experiment does not establish general supplier compatibility.
 - Add a vendor-integration worked example and supplier checklist, qualify composition and topology
   claims, and document the open dependency-shadowing and new-node audit-scaffolding gaps.
 - Add a guided Spring authoring path with real project/design/validation screenshots, a client prompt,

@@ -25,10 +25,10 @@ by this report; only a branch push and PR. Main and other sessions' IDE edits re
 | Wiring mistakes become build failures | Qualified: typed checks catch several mistakes, but dependency shadowing can silently remove the supplier while the build succeeds. Warning included. |
 | Supplier needs no knowledge of the graph | Kept the separation, added public nodes/wiring constructors, stable names, getters/setters and interface-typed handlers. |
 | Topology is an account of everything that ran | Qualified: audit names nodes that logged; topology can omit the supertype route. TA-9 linked on both pages. |
-| Java/C++ equivalence and deployment claim | **Owner to confirm before merge.** Entire C++ section preserved byte-for-byte. This experiment did not exercise C++; the shipped target was a preview. Confirm whether the existing quantitative equivalence, “equivalence proof” and supplier-deployment wording remain appropriate. |
+| Java/C++ equivalence and deployment claim | **Owner decision resolved, 2026-09-21.** Label C++ as preview; retain the historical comparison scoped to the tested graph and event stream. Remove the broad equivalence-proof and supplier-deployment claims. State that the vendor experiment did not test C++. |
 
-The C++ row is the only claim left for owner confirmation. Its existing number has not been independently
-re-run or supplied with invented vendor evidence. All newly stated numerical computation results link to
+No claim-audit row remains awaiting a wording decision. The C++ comparison's existing number has not been
+independently re-run or supplied with invented vendor evidence. All newly stated numerical computation results link to
 the preserved vendor evidence. No new assurance mechanism is proposed.
 
 ## Verification and limits
@@ -40,14 +40,21 @@ the preserved vendor evidence. No new assurance mechanism is proposed.
   complete output below. This rechecks recorded logs, not a new application generation/run.
 - Screenshot copied unchanged; SHA-256 `7ce4b441cec7566cda37cc8491c04d487c0c92ba7796470edcf840903e1fe0f7`.
   Read the image for public-data safety; labels show the fictional component and sample application.
-- Compared the old/new C++ section byte-for-byte and inspected generated HTML warning boxes.
+- The initial change preserved the C++ section byte-for-byte pending the owner's decision; the later
+  approved qualification scopes the claim as recorded above. Inspected generated HTML warning boxes.
 - Full host validation and the exported-service harness were not re-run: those harnesses are not in
   this evidence packet. The page omits the historical host numeric totals. Setter/dispatch excerpts
   are explicitly attributed to the original record; the dispatch excerpt is not presented as compilable
   Java. Original before/after receipts are also absent; their unchanged hashes remain attributed
   historical observations, not independently rechecked receipt evidence.
 - `SpecLinksResolveTest`, strict docs build, rule-1 sweep and staged diff whitespace check: PASS.
-- No key use, fresh client session, source change, merge or push to main.
+- No key use, fresh client session, production-source change, merge or push to main.
+
+After the owner-approved C++ qualification, the full test gate found the preserved reviewer source's
+trailing-space line. Added those exact source paths to `TrailingWhitespaceTest`'s existing evidence
+exemptions and pinned the hand-finished snapshot in its byte-sensitive fixture check. The evidence
+bytes remain unchanged; there is no production-source change. The initial failure was a fixture
+registration omission, not a C++ or runtime failure.
 
 ## Independent calculation output
 
@@ -95,8 +102,8 @@ statement of the integration's value. Implemented in the same PR:
   and audit-writing body survived regeneration and a subsequent handler declaration. The reviewer
   compiled the result but did not run key-gated generation or witness a runtime audit value. The guide
   keeps that distinction. The [scratch evidence is preserved](evidence/stub-reconcile-1.0.73-2026-09-21/README.md); no independent rerun is claimed.
-- Historical host totals remain omitted. The C++ section remains unchanged; owner confirmation and
-  merge are still pending.
+- Historical host totals remain omitted. The owner subsequently chose the preview qualification
+  recorded in the claim table. Merge remains pending.
 
 The reviewer also reported repeated/interleaved comment-contract text in generated stubs. That is
 recorded as upstream-owned tool-agreement D21 with a regression acceptance requirement. The
