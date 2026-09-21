@@ -174,12 +174,58 @@ defects. **Nothing below is implemented.**
   and that is the same question AF-8 asks about what a scalar line may contain. **AF-8 is filed on
   `fix/follow-stale-partial-record`; these two should be decided together.**
 
-- **[AF-3a] ☐ — follow leaves a half-written record stale in the index.** _Pre-existing, not from this branch;
+- **[AF-8] ☐ — OWNER DECISION NEEDED: does a record scalar support a trailing `#` comment?**
+  _Found 2026-09-21 while checking the vendor-integration pages for the same defect class. Not from the
+  stream-end branch; it is in **released, published** `format-spec.md` §2._ **§2's normative example is
+  annotated with trailing `#` comments on almost every line, and the reference parser does not treat `#`
+  as a comment on a value line.** Measured on a file written in exactly the shape that example teaches:
+
+  ```
+  kind       = OK
+  logTime    = null                  <- every record falls off the timeline
+  event      = [ExportFunctionAuditEvent      # event class or trigger type]
+  groupingId = [null                     # optional correlation id]
+  ```
+
+  Loaded as a file, `minLogTime` and `maxLogTime` are both **null** and every record reports `OK`. The
+  time filter, the graph axis, coverage windows and the time-order check all read that one field, so the
+  failure is total and completely silent, and the thing teaching the shape is the specification's own
+  example. §2's field table never says whether a trailing comment is allowed.
+
+  **Scope, measured rather than assumed.** No shipped artefact is affected: not `sample.yml`, not the
+  demo asset, not any conformance fixture. The exposure is an adapter author copying the example, which
+  is the audience §2 exists for.
+
+  **An inconsistency I introduced.** §1a's recognition rule (stream-end branch) says an unquoted `#`
+  begins a comment, because the marker recogniser strips them. So the format now states one rule for
+  `streamEnd` values and has different, undeclared behaviour for every other scalar in the same record.
+  I made an existing inconsistency normative without noticing it was one.
+
+  **Why this is an owner decision and not a fix.** The two answers are different products:
+  (a) comments ARE supported — `RecordParser` changes, and so does how every released reader reads every
+  value, for every producer that has ever written a `#` inside one; or
+  (b) comments are NOT supported — §2's example is de-annotated, the field table says so, and §1a's
+  comment rule for markers is removed as the odd one out.
+  **Not started, and nothing done on either path.** Whichever is chosen, the guard is the same and it
+  already exists in miniature: extend `PublishedSpecExamplesTest` to parse **every** published
+  `eventLogRecord` example, not only the marker ones. That test is what would have caught this, scoped
+  one notch too narrowly.
+
+- **[AF-3a] ☑ — follow no longer leaves a half-written record stale in the index.** _Pre-existing, not from this branch;
   found during the AF-3 review fixes._ An ordinary load indexes an unterminated trailing record, which is
   correct — the file may simply end there. If the file then GROWS, `appendFrom` skips it as already-indexed,
   so the truncated text stays in the index for ever and the rest of that record is never read. Needs the
   store to remember that its last row was unterminated and re-parse it on the next append. Small, real, and
   separate from the stream-end contract.
+  **DONE 2026-09-21** on `fix/follow-stale-partial-record`, stacked on the review branch because the fix
+  is in the very method that branch rewrote. Measured before: a row kept `event: Ti` and no node logs
+  while the file on disk held `event: Tick` and one. The store now remembers that its last row came from
+  text that had not closed, and re-reads it instead of skipping it. It is dropped **only once its
+  replacement is in hand**, so a record that is still half-written keeps its row rather than vanishing
+  from under a reader, and the index never shrinks. `LogIndex.dropLast()` recomputes the time range,
+  because a truncated number is still a number — `9000` cut to `900` had entered the range as a real
+  time. Two mutations red; a third (the node-log maximum) is unreachable and the test says why instead of
+  pretending otherwise.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository. `asCharSequence()` + `\n---\n` per
   record, the marker, config validation refusing unknown values by name. **Byte-identical to a known-good
   export** modulo the marker; per-node entry parity, not a record count._

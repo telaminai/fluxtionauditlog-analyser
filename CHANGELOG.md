@@ -21,6 +21,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   shown like any other.
 
 ### Fixed
+- A record that was still being written when a log was opened is now re-read once the writer finishes
+  it. While following a growing file, such a record kept its truncated text for ever: an event could
+  stay named `Ti` with no node logs while the file on disk held `Tick` and one. A truncated timestamp
+  is also no longer left in the log's time range after the real one arrives.
 - A text log that ends after its last record, with no trailing `---`, is read as the whole, ordinary file
   it is. An unreleased version of the stream-end work reported it as a writer that stopped mid-record,
   which described every export written by a Mongoose server. `---` separates records; it does not
