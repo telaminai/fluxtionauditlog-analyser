@@ -1,7 +1,9 @@
 # Reading Mongoose audit output without an export step
 
-_Status: **PROPOSAL, 2026-09-21. Not implemented, not reviewed, not owner-approved.** Filed in the holding
-pen because the preferred option's work lands in Mongoose and the runtime, not here. Raised by the owner
+_Status: **PROPOSAL, 2026-09-21. Not implemented, not reviewed, not owner-approved.** Three dependent
+slices: Mongoose writes a directly readable audit file, the record renderer moves into the shared runtime,
+and the broken audit-tail socket is fixed. Filed in the holding pen because all three land in Mongoose and
+the runtime, not here. Raised by the owner
 after repeated friction reading Mongoose audit logs. Companion:
 [trust structure](../../specs/spec-trust-structure.md) (D-T8, D-T9),
 [tool agreement](../../specs/spec-tool-agreement.md),
@@ -10,6 +12,12 @@ after repeated friction reading Mongoose audit logs. Companion:
 _**Revision 1, 2026-09-21.** An independent session tested the one claim in the first draft that could be
 tested, and three premises were wrong or incomplete. Their corrections are folded in below and marked
 **OBSERVED**. One stated reason was false and has been removed._
+
+_**Revision 3, 2026-09-21.** At the owner's request the renderer move and the broken `/ws/audit-tail`
+socket are raised here rather than filed separately, because they form one dependency chain with the
+format change. A likely cause for the socket is offered from source, with the questions that would
+confirm or refute it left for whoever can reach the running server. See **Three slices, one dependency
+chain**._
 
 _**Revision 2, 2026-09-21 — the ordering is reversed: binary first, then text.** The owner asked where a
 shared module would live and pointed out that the analyser's text parser is lenient. Both questions have
@@ -131,23 +139,90 @@ could find. Either the mechanism is elsewhere or the comment is stale. **Unverif
 before anyone plans on switching a running processor's format, because the answer decides whether this is
 a build-time choice only.
 
-## On exporting text from binary — the web-admin question
+## Three slices, one dependency chain
 
-The owner asked whether the Mongoose web admin could simply render text from the binary writer. The
-capability exists and is proven, but not where it is callable.
+The owner asked for the renderer move and the broken socket to be raised here rather than filed apart.
+They belong here, because they are not three independent pieces of work. Each one is the prerequisite for
+the next, and doing them in the wrong order means writing something twice.
+
+```
+Slice 1  Mongoose writes binary          → the analyser opens the file directly
+   ↓     (needs nothing new in the runtime or the analyser)
+Slice 2  Move the renderer to the runtime → binary can be rendered as text by anyone
+   ↓     (needs slice 1 to be worth doing; unblocks slice 3)
+Slice 3  Fix /ws/audit-tail               → live records reach a browser, and the same
+         (needs slice 2 if the store is binary)   renderer serves the REST export
+```
+
+The ordering matters for one concrete reason: **if slice 3 is attempted before slice 2, the web admin
+needs its own binary-to-text conversion**, which is the second implementation the standing rule exists to
+prevent.
+
+### Slice 2 — move the record renderer into the runtime
+
+The owner asked whether the web admin could simply render text from the binary writer. The capability
+exists and is proven, but not where it is callable.
 
 `asCharSequence()` is on `LogRecord`, not on the writer. The binary-to-text conversion lives in the
-analyser as `RecordTextRenderer`, a **private** class inside `BinaryAuditReader`, implementing the
+analyser as `RecordTextRenderer`, a **private** class inside `BinaryAuditReader` implementing the
 runtime's `BinaryLogReader.Visitor`. It works: it is how the analyser turns a binary file into the record
-text the rest of its pipeline consumes.
+text the rest of its pipeline consumes, so filters, series, coverage and reports all work unchanged.
 
-So the shape is right and the placement is wrong for reuse. Under the one-implementation rule above, the
-answer is **not** for the web admin to write a second renderer. It is to **move the renderer into the
-runtime beside `BinaryLogReader`**, where both consumers can call it. Then the server stores binary and
-can still serve text on request, and the analyser loses nothing.
+So the shape is right and the placement is wrong for reuse. Under the one-implementation rule, the answer
+is **not** a second renderer in the web admin. It is to **move it into the runtime beside
+`BinaryLogReader`**, where every consumer can call it.
 
-That is a runtime change rather than a web-admin change, and it should be proposed as its own slice
-rather than folded into this one.
+**What this buys.** The server can store binary and still serve text on request, so the REST export keeps
+working unchanged. The web admin gets a supported way to show records. The analyser loses nothing: it
+calls the moved class instead of its own private one. And there stays exactly one implementation of the
+conversion, tested once.
+
+**Acceptance.** The analyser's existing binary fixtures render identically before and after the move,
+byte for byte. The runtime carries the renderer's tests. No second renderer exists anywhere; assert it by
+searching for a duplicate visitor implementation.
+
+### Slice 3 — fix `/ws/audit-tail/{processor}`
+
+**Observed:** the socket reports a healthy connection and delivers zero messages, including for two rows
+appended after the client connected, both confirmed processed by the export.
+
+**A likely cause, read in source and offered as a hypothesis rather than a diagnosis.** In the
+mongoose-plugins checkout available here, `3f5fd03` dated 2026-09-14:
+
+- The **consumer half exists and is specified.** `web/replay/eventlog-parser.js:136-139` documents the
+  contract — *"Frame from `/ws/audit-tail/{processor}` is a JSON array of one or more record objects"* —
+  and `parseFrame` implements it.
+- **Nothing opens that socket.** The only two `new WebSocket(...)` calls in `app.js` are `/ws/monitor`
+  (line 4295) and `/ws/logs` (line 4373).
+- **No producer exists for it.** `/ws/logs` is fed by `LogTail` and `/ws/monitor` by `MonitoringSampler`;
+  there is no equivalent class for the audit tail, and `audit-tail` appears nowhere in the Java sources.
+
+That fits the observation exactly: a connection is accepted and nothing ever publishes to it. **Caveat:
+this checkout may be older than the server that was tested**, so this is where the hypothesis needs
+confirming rather than believing.
+
+**What the fix looks like, if the hypothesis holds.** A producer class in the shape of the two that
+already work, publishing frames in the contract the client parser already specifies, and a client that
+opens the socket. With slice 2 done, it renders from whatever the store holds rather than assuming text.
+
+**Acceptance.** A client connected before the run receives records appended during it; a client connected
+mid-run receives subsequent records; the count delivered equals the count exported for the same window.
+The last of those is the one that matters, because it is the assertion that would have failed today.
+
+### Open questions for whoever confirms this against the running server
+
+Recorded here rather than guessed, because they decide the shape of slice 3:
+
+1. **Does `/ws/audit-tail/{processor}` exist server-side in the tested build**, and if so which class
+   serves it? If it does exist, this hypothesis is wrong and the cause is elsewhere.
+2. **Does the connection complete a WebSocket upgrade**, or does the client see a socket that opened
+   against a route that does not exist? The evidence records `socket open` without distinguishing these.
+3. **Is the `{processor}` path segment matched against anything**, and what happens for an unknown
+   processor name? A silent empty stream for a misspelled name is the same defect class as `backend`.
+4. **Is the frame contract in `eventlog-parser.js` the intended one**, or has it moved? The fix should
+   satisfy the documented contract or change it deliberately.
+5. **Was audit capture enabled in the tested run**, and is the tail sourced from the capture service or
+   from the live listener? If it is sourced from the capture service, slice 1 changes what it reads.
 
 ## The options
 
@@ -240,6 +315,10 @@ justifies a plugin's dependency cost. It should not be the answer to local devel
 **Option C only if B is refused**, and then as a request-response endpoint, recorded as a decision rather
 than reached as a default.
 
+**The slices ship in order: binary writing, then the renderer move, then the socket.** Slice 1 stands
+alone and delivers the friction fix by itself. Slices 2 and 3 are worth doing on their own merits, and
+doing them in this order means the conversion is written once.
+
 ## Implementation risk, from earlier work in this project
 
 **The capture service installs its own do-nothing listener.**
@@ -269,8 +348,6 @@ exists and not that it parses. A file that opens cleanly is the exact shape this
 
 ## Recorded separately, not this proposal's scope
 
-- **The `/ws/audit-tail/{processor}` socket is a Mongoose defect** whatever option is chosen. It reports a
-  healthy connection and delivers nothing.
 - **Port 8181 is hard-coded in seven places** in the demo bundle's scripts and documentation. Hosted test
   runs only worked by editing `listenPort` in `config/server-config.yml`. The scripts should read the port
   from that config or from the server registry.
@@ -283,7 +360,10 @@ and under this project's own adoption threshold a single observation is a hypoth
 
 ## What was read, what was run, and what was not
 
-**Read in source:** the Mongoose capture service's write path and its no-op listener, the boot and
+**Read in source:** the web admin's `/ws/logs` and `/ws/monitor` producers and their two client call
+sites, the documented `/ws/audit-tail` frame contract in `eventlog-parser.js` and the absence of any
+server-side handler for it in the checkout available here; the Mongoose capture service's write path and
+its no-op listener, the boot and
 configurator listener wiring, the audit capture config and its `backend` field with its call sites; the
 runtime's binary writer, reader, record and decoder class surfaces, `EventLogManager`'s `binaryRecord`
 build input and `EventLogControlEvent`'s fields; both POMs' `fluxtion-runtime` dependencies; the
