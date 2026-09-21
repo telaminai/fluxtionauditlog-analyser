@@ -1,6 +1,6 @@
 ---
 name: point-at-the-fault
-description: Check an open audit log for one class of fault and finish by pointing at the evidence on screen. Use when a person asks whether their log shows a particular fault (a limit reached, a value gone NaN, a node that stopped logging), or asks you to write a runbook that checks for one — or asks for a report showing which record proves a fault you found or fixed.
+description: Check an audit log for one class of fault and point at the evidence, or write up a fault you found or fixed so a reader can check it. Use when asked whether a log shows a fault (a limit reached, a value gone NaN, a node that stopped logging), for a runbook that checks one, or a report proving one.
 x-analyser-min-version: 1.12.0
 ---
 
