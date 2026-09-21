@@ -1,5 +1,9 @@
 # Cold-start task battery — give verbatim, in order, one at a time
 
+> **Retired 2026-09-20 by owner decision.** This battery is kept for the record. It was replaced by
+> [verification tiers](../../../handoff/report_starter_verification_tiers_2026_09_20.md), and public acquisition
+> was measured on 2026-09-21 ([release report](../../../handoff/report_release_journey_2026_09_21.md)). Do not run it.
+
 > **Scope.** This battery governs the **slice-C cold-start runs**, whose subject is an LLM with no prior
 > exposure and whose purpose is to measure routing in the v2 starter. **It is not the beta script.** The beta
 > uses [`PROMPTS-BETA.md`](PROMPTS-BETA.md) and borrows only this file's intervention rules and the `from:`

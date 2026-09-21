@@ -6,6 +6,24 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Beta — [proposal](../proposals/beta-testing/README.md), sixth draft (2026-09-21)
+
+Rewritten after the public release: the battery is retired, acquisition is measured, the journal is replaced by
+observed tool events, and the fifth draft's slices A–D become a short blocker list (proposal §7).
+
+- **[BETA-6] ◧ — sixth draft written; one review round before any approach** · _owner decisions in §15._
+- **[BETA-B1] ☐ — A2 needs a generation key, and the customer key journey is untested** · _A2 is a graph change;
+  the bundle README and the SG-1 report both put regeneration behind a key, and both release reports say customer
+  credential acquisition is not established. Resolve before A2: test the key journey, or provision revocable keys,
+  or redesign A2._
+- **[BETA-B2] ☐ — new-node stubs must audit before the beta** · _feedback 6 / issue 3; otherwise A2 measures the
+  product, not the tester (§11 carve-out)._
+- **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
+  standalone Spring, the only template with a verified local authoring route._
+- **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _none exists yet._
+
+---
+
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
@@ -275,10 +293,12 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   Playground implementation `4b41631`; analyser static checks accompany the report.
   Static corpus/command checks every commit; unattended empty-cache customer-download preflight on
   production publication; one acquisition-only spot-check when routing paths change, not per release.
-  A defect is not closed without its cheap regression check. The remaining initial beta client trial
-  is public acquisition only, after the public ZIP carries v2 and preflight passes. Current public
-  ZIP lacks PROJECT.md and v2 runbooks; do not schedule a client against it. Publication/CI activation
-  remain open until the feature branches are merged and the public target passes.
+  A defect is not closed without its cheap regression check. **Public acquisition measured
+  2026-09-21:** a fresh client reached independently checked sample output on the third attempt (the first two
+  stopped on client authentication, not the product) — [release report](../handoff/report_release_journey_2026_09_21.md).
+  Limits recorded there: a longer discovery route than documented, the wrapper bootstrap failing in the
+  client sandbox, and 84 of 87 tool batches without a source pointer. Publication is done (starter 1.0.72,
+  then 1.0.73), and production CI runs the unattended customer-bundle and standalone Spring preflights.
 - ◧ **Choice-neutral comments — local implementation verified** — the starter jar owns the canonical
   resource; playground `47b9952` vendors artifact/resource provenance and consumes it for fresh Spring node
   comments. Java reads the packaged resource. Direct emitted-text parity and a browser-wording mutation
@@ -434,6 +454,11 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   listener, accurate feed/reset/completion instructions, and consistent auditing for new owned classes (6).
   A fresh client should follow generated docs without source bundling or invented timing. Existing classes
   must not be re-parented; trace-only evidence remains distinct from missing execution.
+  **First measured witness, 2026-09-21:** both public acquisition attempts that reached the website probed
+  guessed routes and scraped its JavaScript; the passing one used the catalogue JSON and the site's encoder, not
+  the documented `template=analyser-bundle` shortcut ([release report](../handoff/report_release_journey_2026_09_21.md)).
+  That is this item's "short entry point" ask, observed. New-owned-class auditing (6) was re-observed on public
+  1.0.73 ([issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3)).
 - ☐ **Staged feedback — next chart capabilities** — record-order x-axis (17) before same-record entity
   grouping (11), with record identity, filtering, selection, marker/note/export consistency and cardinality
   limits. The full-speed hosted fixture must be useful without pacing the application or logging a new
