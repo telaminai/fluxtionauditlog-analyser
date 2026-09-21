@@ -126,41 +126,6 @@ public final class LogIndex {
         size++;
     }
 
-    /**
-     * Drop the most recently added row — AF-3a, and the ONLY reason this exists.
-     *
-     * <p>An ordinary load indexes a trailing record that has no closing separator, which is right: §1
-     * makes the separator optional at the end, so the file may simply stop there. But if the file then
-     * GROWS, that record was half-written after all, and {@code HeapLogStore.appendFrom} skips it as
-     * already-indexed. Its truncated text then stays in the index for ever, and the rest of the record is
-     * never read. Measured: a row kept {@code event: Ti} and zero node logs while the file on disk held
-     * {@code event: Tick} and one.
-     *
-     * <p><b>Not a general-purpose remove.</b> Rows are only ever appended, and this undoes exactly the
-     * last append so it can be redone against fuller text. The per-dimension count is decremented; the
-     * time range and the node-log maximum are RECOMPUTED, because a maximum cannot be undone by
-     * subtraction. That recompute is O(size), which matches what the caller already pays: follow re-frames
-     * the whole file on every append. Interned dictionary values are left alone — an unreferenced value
-     * costs a slot and changes no answer.
-     */
-    public synchronized void dropLast() {
-        if (size == 0) return;
-        size--;
-        int d = dimId[size];
-        if (d >= 0 && d < dimCount.length && dimCount[d] > 0) dimCount[d]--;
-        minLog = Long.MAX_VALUE;
-        maxLog = Long.MIN_VALUE;
-        maxNodeLogs = 0;
-        for (int i = 0; i < size; i++) {
-            long lt = logTime[i];
-            if (lt != NO_TIME) {
-                if (lt < minLog) minLog = lt;
-                if (lt > maxLog) maxLog = lt;
-            }
-            if (nodeLogsCount[i] > maxNodeLogs) maxNodeLogs = nodeLogsCount[i];
-        }
-    }
-
     private void ensure(int n) {
         if (n <= offset.length) return;
         int cap = Math.max(n, offset.length * 2);

@@ -26,12 +26,6 @@ public final class HeapLogStore implements LogStore {
      * {@link #appendFrom} framed without a tracker at all.
      */
     private final StreamEndTracker tracker = new StreamEndTracker();
-    /**
-     * AF-3a: the last indexed row came from text that had not closed with a separator, so if the file
-     * grows it must be re-read rather than skipped. Says nothing about completeness — see
-     * {@link #buildIndex}.
-     */
-    private boolean staleLastRow;
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
 
@@ -95,30 +89,12 @@ public final class HeapLogStore implements LogStore {
         // from the same rule, in the same order, as a fresh load of the same bytes. Review found both
         // halves of this broken: an appended marker was indexed as a record, and streamEnd kept its
         // load-time value for ever.
-        //
-        // AF-3a: the last indexed row may have been half-written when it was indexed. A load emits an
-        // unterminated trailing record — correctly, since §1 lets a whole file end without a separator —
-        // but if the file GROWS, that record was being written after all, and skipping it as
-        // already-indexed freezes its truncated text in the index for ever. Measured before the fix: a row
-        // kept `event: Ti` and no node logs while the file held `event: Tick` and one.
-        //
-        // So that row is RE-READ rather than skipped. It is dropped only once its replacement is in hand,
-        // which is why the new records are collected before any of them is added: if the record is STILL
-        // half-written, this pass withholds it, `tail` comes back empty, and the stale row is left exactly
-        // where it is. The index never shrinks, and no row ever vanishes from under a reader.
-        final int keep = staleLastRow && before > 0 ? before - 1 : before;
-        final java.util.List<LogRecord> tail = new java.util.ArrayList<>();
         tracker.reset();
         RecordFramer.frame(full, raw -> {
             if (!tracker.accept(raw.text())) return;      // a marker is never a record, in follow either
-            if (seen[0]++ < keep) return;                 // already indexed, and byte-identical
-            tail.add(RecordParser.parse(raw.text(), raw.offset()));
+            if (seen[0]++ < before) return;               // already indexed, and byte-identical
+            index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
-        if (keep < before && !tail.isEmpty()) {
-            index.dropLast();                             // replaced, not removed: `tail` holds it whole
-            staleLastRow = false;
-        }
-        for (LogRecord r : tail) index.add(r);
         this.streamEnd = tracker.resolve();
         return index.size() - before;
     }
@@ -138,26 +114,7 @@ public final class HeapLogStore implements LogStore {
             if (tracker.accept(raw.text())) idx.add(RecordParser.parse(raw.text(), raw.offset()));
         }, false);
         this.streamEnd = tracker.resolve();
-        // AF-3a: was the last row indexed from text that had not closed yet? Answered from the file
-        // itself rather than by asking the framer, deliberately. The framer used to report an unclosed
-        // tail and that report was read as a completeness verdict, which made every real export look
-        // damaged; the signal is gone and should stay gone. THIS question is a different one, local to
-        // follow, and it has nothing to say about whether the file is whole: a closed file that ends
-        // without a separator is whole, and simply never grows.
-        this.staleLastRow = idx.size() > 0 && !endsWithSeparator(file);
         return idx;
-    }
-
-    /** True when the text's last non-blank line is a {@code ---} separator, so nothing is left open. */
-    private static boolean endsWithSeparator(String text) {
-        int end = text.length();
-        while (end > 0) {
-            int lineStart = text.lastIndexOf('\n', end - 1) + 1;
-            String line = text.substring(lineStart, end).strip();
-            if (!line.isEmpty()) return line.equals("---");
-            end = lineStart == 0 ? 0 : lineStart - 1;
-        }
-        return false;
     }
 
     @Override

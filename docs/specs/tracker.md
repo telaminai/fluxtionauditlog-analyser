@@ -211,21 +211,29 @@ defects. **Nothing below is implemented.**
   `eventLogRecord` example, not only the marker ones. That test is what would have caught this, scoped
   one notch too narrowly.
 
-- **[AF-3a] ☑ — follow no longer leaves a half-written record stale in the index.** _Pre-existing, not from this branch;
-  found during the AF-3 review fixes._ An ordinary load indexes an unterminated trailing record, which is
-  correct — the file may simply end there. If the file then GROWS, `appendFrom` skips it as already-indexed,
-  so the truncated text stays in the index for ever and the rest of that record is never read. Needs the
-  store to remember that its last row was unterminated and re-parse it on the next append. Small, real, and
-  separate from the stream-end contract.
-  **DONE 2026-09-21** on `fix/follow-stale-partial-record`, stacked on the review branch because the fix
-  is in the very method that branch rewrote. Measured before: a row kept `event: Ti` and no node logs
-  while the file on disk held `event: Tick` and one. The store now remembers that its last row came from
-  text that had not closed, and re-reads it instead of skipping it. It is dropped **only once its
-  replacement is in hand**, so a record that is still half-written keeps its row rather than vanishing
-  from under a reader, and the index never shrinks. `LogIndex.dropLast()` recomputes the time range,
-  because a truncated number is still a number — `9000` cut to `900` had entered the range as a real
-  time. Two mutations red; a third (the node-log maximum) is unreachable and the test says why instead of
-  pretending otherwise.
+- **[AF-3a] ⊘ — WITHDRAWN. Fixed on main by TA-6, by a safer mechanism than mine.** _My attempt is
+  `fix/follow-stale-partial-record`; it is not merged and must not be._ The defect was real and measured:
+  a record indexed while still being written kept `event: Ti` and no node logs for ever, while the file
+  held `Tick` and one. I fixed it by re-reading that row in place — dropping it from the index once its
+  replacement was in hand.
+  **Round five proved that wrong, and I had asked the reviewer to check the exact thing that failed.** My
+  commit said I believed M65 D-F0 was preserved. It is not. Reproduced: a walker that takes a `readView()`
+  before the append and reads row 1 after it throws
+  `StringIndexOutOfBoundsException: Range [90, 171) out of bounds for length 133`, because `rowSpans()`
+  shares the live span arrays and the repair rewrites an indexed slot in place with a longer length. Two
+  further defects followed from the same design: a marker caught half-written leaves a phantom row for
+  ever (the replacement is not a record, so nothing is dropped), and the index is observably **not**
+  monotonic, because the drop and the add take the lock separately — the comment claiming otherwise was
+  false.
+  **Main solves it by refusing the append.** `HeapLogStore.appendFrom` on main returns `-1` when the
+  snapshot includes an EOF record, with the reason in its own words: *"It cannot safely become an
+  append-only index: later fields would change an existing row. The adapter reloads it as an explicit live
+  read."* That is the same hazard, avoided by construction rather than managed. An indexed slot is never
+  rewritten, so D-F0 holds without needing to be argued. `forFollow()` then reloads as a live read and
+  `trailingRecordsPending` surfaces the one-record-behind state my branch left silent.
+  **The lesson is the one this branch keeps teaching.** I built a mechanism to manage a hazard that a
+  better design removes, and asserted an invariant I had not tested. The invariant was checkable in
+  fifteen lines, and I wrote "I believe it is preserved" instead of writing the check.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository. `asCharSequence()` + `\n---\n` per
   record, the marker, config validation refusing unknown values by name. **Byte-identical to a known-good
   export** modulo the marker; per-node entry parity, not a record count._
