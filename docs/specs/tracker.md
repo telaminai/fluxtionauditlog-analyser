@@ -307,7 +307,7 @@ are what makes the instrument argue against itself in front of a stranger.
 
 ---
 
-## Java source spotlight — ready for implementation
+## Java source spotlight — implementation in progress
 
 [Proposal](../proposals/source-spotlight.md), [round-four response](../handoff/response_source_spotlight_r4_2026_09_21.md).
 Based on released main `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
@@ -317,7 +317,24 @@ Implementation needs preparation, lifetime bindings, viewport hooks and both CI 
 All linked proposal reviews/responses ship together. [Review 3665e237](../handoff/review_source_spotlight_r4_response_2026_09_21_claude.md)
 is READY FOR HANDOFF. [S-1/S-2 response](../handoff/response_source_spotlight_handoff_2026_09_21.md)
 specifies off-EDT reads, guarded EDT apply and selected-model replacement from the rendered snapshot.
-Implementation remains to do; no feature or release claimed. Existing evidence-correctness priority and completed work are unchanged.
+Implementation on `feat/java-source-spotlight`, starting at `48aa78f5`; no release claimed.
+Frozen predictions before source edits:
+- Source snapshots retain root/archive origin and rendered-text hash. Refresh sees a newly added
+  entry in an already-known jar after a cached miss, while a new jar needs resolver recreation.
+  Disabling negative-cache invalidation must fail the repeat-request assertion.
+- Explicit Java targets prepare without UI effects; a failing mixed record/Java batch leaves
+  selection/filter intact. A blocked archive read runs off EDT, and clear/configuration changes
+  prevent its late completion from publishing. Disabling tickets must resurrect a target in the
+  controlled interleaving test; moving the read onto EDT must fail the thread assertion.
+- Updating the selected processor installs the model parsed from exactly the rendered snapshot;
+  disabling installation produces the previous field-type mapping.
+- Graph plus Java line stay visible in either target order. Java bands clip and disclose partial;
+  design bands retain containment refusal. Raw-caret, unclipped-band and first-wrapped-row-only
+  mutations each fail their own geometry assertion.
+- Viewport notifications remeasure or extinguish active bindings; disabling the listener leaves
+  stale bounds and fails the display check. Removed/replaced/cleared bindings never reappear.
+Validation and mutation results will be recorded against these predictions in the implementation
+handoff, alongside any mismatch or unverified acceptance. Existing evidence-correctness priority and completed work are unchanged.
 
 ---
 
