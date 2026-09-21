@@ -1,0 +1,78 @@
+{
+  "source": "owner-supplied reviewer workspace, 2026-09-21",
+  "copy": "byte-identical selected files; README renamed reviewer-report.md",
+  "files": [
+    {
+      "source_relative_path": "README.md",
+      "preserved_path": "reviewer-report.md",
+      "sha256": "c12dd8b650c5ef7d6c5309bb74d7fab0e2dbd4ad870faaef139f445909d8e8f4",
+      "bytes": 3559
+    },
+    {
+      "source_relative_path": "AlertNode.as-generated.java",
+      "preserved_path": "AlertNode.as-generated.java",
+      "sha256": "defc7025450e42256b7ff8f61134779446f1a3eb880f7901e087a97341dc1ef3",
+      "bytes": 3076
+    },
+    {
+      "source_relative_path": "AlertNode.hand-finished.java",
+      "preserved_path": "AlertNode.hand-finished.java",
+      "sha256": "dadd5f01447c605d32f341dbb0949bb530e029c41b1138976768ab16ef1e7cfe",
+      "bytes": 4905
+    },
+    {
+      "source_relative_path": "setup.log",
+      "preserved_path": "setup.log",
+      "sha256": "019c9abdaca8aea8ae3021536aeecbc1827847e547f381762d1f2f8a3b33f433",
+      "bytes": 6
+    },
+    {
+      "source_relative_path": "regen1.log",
+      "preserved_path": "regen1.log",
+      "sha256": "bacdf52656de9caa03aab89a5b1c84bf3b90503047014bc470f873c42cbe8bd7",
+      "bytes": 1170
+    },
+    {
+      "source_relative_path": "regen2.log",
+      "preserved_path": "regen2.log",
+      "sha256": "bacdf52656de9caa03aab89a5b1c84bf3b90503047014bc470f873c42cbe8bd7",
+      "bytes": 1170
+    },
+    {
+      "source_relative_path": "regen3.log",
+      "preserved_path": "regen3.log",
+      "sha256": "bacdf52656de9caa03aab89a5b1c84bf3b90503047014bc470f873c42cbe8bd7",
+      "bytes": 1170
+    },
+    {
+      "source_relative_path": "regen4.log",
+      "preserved_path": "regen4.log",
+      "sha256": "fd393d71ef24454d48042d94521f1b687da3f9e1dc27b37ee633c1ffae3c68c9",
+      "bytes": 1203
+    },
+    {
+      "source_relative_path": "javac.log",
+      "preserved_path": "javac.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source_relative_path": "public-template-fluxtion-spring.zip",
+      "preserved_path": "public-template-fluxtion-spring.zip",
+      "sha256": "4ec5ef4cc96f6f193220288346bcfce7fa38ea605e8143bb22c8798374492a9c",
+      "bytes": 31121
+    },
+    {
+      "source_relative_path": "project/src/main/fluxtion/designer/application-context.xml",
+      "preserved_path": "project/src/main/fluxtion/designer/application-context.xml",
+      "sha256": "182120eae39c1ea42ab49133eb78859b9f5aca8195d95be2c23199f764fa78f6",
+      "bytes": 4135
+    },
+    {
+      "source_relative_path": "project/fluxtion-authoring.json",
+      "preserved_path": "project/fluxtion-authoring.json",
+      "sha256": "f04b9430df195b2fe8c1319c122fb11f9bf62a444302e3a8fa0ae6c8a231e324",
+      "bytes": 5960
+    }
+  ]
+}

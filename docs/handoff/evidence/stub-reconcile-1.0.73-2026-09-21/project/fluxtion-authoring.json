@@ -1,0 +1,146 @@
+{
+  "schemaVersion" : "1.0",
+  "starterVersion" : "1.0.73",
+  "templateMode" : "spring-aot",
+  "xml" : "src/main/fluxtion/designer/application-context.xml",
+  "sourceRoot" : "src/main/java",
+  "reconcileExisting" : true,
+  "generateDeregistration" : false,
+  "ownership" : {
+    "com.example.myapp.node.AlertNode" : {
+      "field:riskEngine" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.RiskEngine riskEngine",
+        "ownedAnnotations" : { }
+      },
+      "onAlertNode()" : {
+        "state" : "owned",
+        "signature" : "public boolean onAlertNode()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+        },
+        "stubBodyHash" : "sha256:50df28fd6a356b6426b0071ac1b66a5546f439c66842fed5f92ee8e864c2c98c"
+      },
+      "onNewsEvent(com.example.myapp.event.NewsEvent)" : {
+        "state" : "owned",
+        "signature" : "public boolean onNewsEvent(com.example.myapp.event.NewsEvent)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+        },
+        "stubBodyHash" : "sha256:50df28fd6a356b6426b0071ac1b66a5546f439c66842fed5f92ee8e864c2c98c"
+      }
+    },
+    "com.example.myapp.node.MarketDataNode" : {
+      "onNewsEvent(com.example.myapp.event.NewsEvent)" : {
+        "state" : "owned",
+        "signature" : "public boolean onNewsEvent(com.example.myapp.event.NewsEvent)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+        },
+        "stubBodyHash" : "sha256:1ea00b0b4a1a3a5cf7cd29b36729b83362e044d11abf087c90d7ee3c2f094fe7"
+      },
+      "onOrderEvent(com.example.myapp.event.OrderEvent)" : {
+        "state" : "owned",
+        "signature" : "public boolean onOrderEvent(com.example.myapp.event.OrderEvent)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+        },
+        "stubBodyHash" : "sha256:ad23e0b7aa4ce489f47f671e777613db5006212606338c49049bde98bf875743"
+      },
+      "onPriceTick(com.example.myapp.event.PriceTick)" : {
+        "state" : "owned",
+        "signature" : "public boolean onPriceTick(com.example.myapp.event.PriceTick)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+        },
+        "stubBodyHash" : "sha256:6cc8d57ab8df20305c6b52a63b9c13e1bfc8a91470a2c979ab800a9a57485f20"
+      }
+    },
+    "com.example.myapp.node.OrderGate" : {
+      "field:marketDataNode" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.MarketDataNode marketDataNode",
+        "ownedAnnotations" : { }
+      },
+      "field:riskEngine" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.RiskEngine riskEngine",
+        "ownedAnnotations" : { }
+      },
+      "onOrderEvent(com.example.myapp.event.OrderEvent)" : {
+        "state" : "owned",
+        "signature" : "public boolean onOrderEvent(com.example.myapp.event.OrderEvent)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+        },
+        "stubBodyHash" : "sha256:3167f95c83f96c491a9010b3883dfcb00db4e7c34cd60f7d120c4d4b387f05b8"
+      },
+      "onOrderGate()" : {
+        "state" : "owned",
+        "signature" : "public boolean onOrderGate()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+        },
+        "stubBodyHash" : "sha256:e697fa86bafcdb707caf2d4726936b1fc97382310b770be931f1f78edb2ce2cb"
+      }
+    },
+    "com.example.myapp.node.RiskEngine" : {
+      "field:sentimentCalc" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.SentimentCalc sentimentCalc",
+        "ownedAnnotations" : { }
+      },
+      "field:volatilityCalc" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.VolatilityCalc volatilityCalc",
+        "ownedAnnotations" : { }
+      },
+      "onRiskEngine()" : {
+        "state" : "owned",
+        "signature" : "public boolean onRiskEngine()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+        },
+        "stubBodyHash" : "sha256:8b06ceeea7db9dea5051428d35be98cde20e70bd80eca15b33272d72c6c66fac"
+      }
+    },
+    "com.example.myapp.node.SentimentCalc" : {
+      "field:marketDataNode" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.MarketDataNode marketDataNode",
+        "ownedAnnotations" : { }
+      },
+      "onNewsEvent(com.example.myapp.event.NewsEvent)" : {
+        "state" : "owned",
+        "signature" : "public boolean onNewsEvent(com.example.myapp.event.NewsEvent)",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnEventHandler" : { }
+        },
+        "stubBodyHash" : "sha256:3167f95c83f96c491a9010b3883dfcb00db4e7c34cd60f7d120c4d4b387f05b8"
+      },
+      "onSentimentCalc()" : {
+        "state" : "owned",
+        "signature" : "public boolean onSentimentCalc()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+        },
+        "stubBodyHash" : "sha256:e697fa86bafcdb707caf2d4726936b1fc97382310b770be931f1f78edb2ce2cb"
+      }
+    },
+    "com.example.myapp.node.VolatilityCalc" : {
+      "field:marketDataNode" : {
+        "state" : "owned",
+        "signature" : "final private com.example.myapp.node.MarketDataNode marketDataNode",
+        "ownedAnnotations" : { }
+      },
+      "onVolatilityCalc()" : {
+        "state" : "owned",
+        "signature" : "public boolean onVolatilityCalc()",
+        "ownedAnnotations" : {
+          "com.telamin.fluxtion.runtime.annotations.OnTrigger" : { }
+        },
+        "stubBodyHash" : "sha256:e697fa86bafcdb707caf2d4726936b1fc97382310b770be931f1f78edb2ce2cb"
+      }
+    }
+  }
+}
