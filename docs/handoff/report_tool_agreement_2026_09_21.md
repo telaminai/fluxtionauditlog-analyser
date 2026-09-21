@@ -1,6 +1,6 @@
 # Tool agreement implementation — 2026-09-21
 
-Branch: `feat/tool-agreement`, based on `08954d43`. Work in progress; no release claimed.
+Branch: `feat/tool-agreement`, based on `08954d43`. Implementation pass complete; independent review pending. No release claimed.
 The owner kept the existing evidence-correctness work at P1 for this pass.
 
 ## TA-1 — completed
@@ -334,3 +334,26 @@ to an empty log map, making a closed log appear present. The prediction was froz
 Follow fields now stay inside the loaded-store boundary. All 50 display tests then passed with no
 skips. Clean headless gate: 1,766 tests, zero failures/errors, 49 display skips. Tools smoke: 25 checks
 passed. The earlier green headless runs could not establish the missing display boundary.
+
+## Final handoff
+
+[Independent review brief](brief_review_tool_agreement_2026_09_21.md) records the attacks, commands,
+mutation requirements and report destination. Source head tested: `7df316c8`; the handoff/capture
+commit adds documentation only. Final open counts: **analyser 1 (D20), upstream 8**. TA-5b/5c and
+producer-backed TA-9 remain open; closing baseline rows is not completion of those deliveries.
+
+Final gates: clean Java 1,766 tests, zero failures/errors, 49 display skips; separate display
+50 tests, zero failures/errors/skips; package passes; tools smoke 25 checks pass; packaged M64
+spotlight verifier reports all checks passed. Strict docs and the rule-1 sweep pass.
+
+Repeated all three capture runs after the final source changes: 24 main-suite assets (including
+the ringed menu derivative), five conversations with their real echoes, four Spring design/validation
+screens. All 33 refreshed images were inspected. They show the new file-observation qualifications,
+producer intake wording, chart scope footer and topology unknown state. Existing topology callout
+crowding is still visible and is not claimed fixed by source-target geometry work. Other capture
+limits remain as listed in the asset README. No new client or application-generation session ran.
+
+`origin/main` had advanced to `9c10de82` at the integration inspection. This branch deliberately
+has not incorporated those concurrent changes; no combined-main test is claimed. The review brief
+calls out tracker/skill-index integration and the later Mongoose audit-format decisions. Review and
+integration precede any merge or publication.

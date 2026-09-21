@@ -8,6 +8,14 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
+**Implementation pass complete, review pending:** `feat/tool-agreement`, source head `7df316c8`.
+[Author report](../handoff/report_tool_agreement_2026_09_21.md) and
+[review brief](../handoff/brief_review_tool_agreement_2026_09_21.md). Analyser **13 → 1 open** (D20
+producer-blocked); upstream **8 → 8 open**. TA-5b/5c remain open. Final clean gate 1,766 tests
+(49 display skips); separate display gate 50/50 with no skips. Packaged spotlight, tools smoke
+and strict docs pass. All 33 affected main/conversation/Spring captures refreshed and inspected.
+Concurrent main integration and independent review remain outstanding; not merged or released.
+
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
 D3a (build) and D3b (detection). Two counts, reported separately: **analyser 1 open** (13 at baseline; D20 producer-blocked), **upstream 8 open**;

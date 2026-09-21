@@ -85,6 +85,10 @@ claimed off-path without complete dispatch metadata; old chart pictures put comm
 over data. Both now show the changed UI. Demo files with an unterminated final record now show that
 record as pending; counts in the conversations were corrected rather than editing fixture evidence.
 
+All three capture runs were repeated on source head `7df316c8`, after the file-observation,
+chart-scope and source-spotlight changes; all 33 refreshed images were inspected. Existing topology
+callout crowding remains visible and is not claimed fixed in this pass.
+
 Spring captures use the preserved public project copy with the released 1.0.73 keyless validator.
 They establish design/validation rendering, not a new setup/generation or client trial.
 

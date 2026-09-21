@@ -25,6 +25,18 @@ The client discovers one tool per verb — `analyser_context`, `analyser_aggrega
         "from": 1767258000090,
         "to": 1767258000330,
         "openedBy": "the command line that started this analyser",
+        "freshness": {
+          "reload": "explicitly reopen the same path; no automatic replacement",
+          "members": [
+            {
+              "loaded": "{…}",
+              "onDisk": "{…}",
+              "state": "unchanged-metadata"
+            }
+          ],
+          "state": "unchanged-metadata",
+          "basis": "size, modification time and file identity; unchanged metadata does not prove identical bytes"
+        },
         "following": false,
         "supportsFollow": true,
         "trailingRecordsPending": 1,
@@ -429,11 +441,11 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
         "graphNodes": 18,
         "authoredNodes": 10,
         "copyComparison": {
+          "state": "pending",
           "roots": [
             "…/analyser/examples/fixture-generator/src/main/java",
             "…/analyser/src/test/resources/topology"
-          ],
-          "state": "pending"
+          ]
         },
         "pairing": "no log is open — nothing to check this graph against"
       }
@@ -449,10 +461,6 @@ The deploy itself happens **outside the analyser**: the agent reads `ops/restart
         "auditLogging": "not_enabled",
         "auditLoggingNote": "This processor was built WITHOUT audit logging: EventLogManager is not on the graph, so it will write no au…",
         "graph": "demo-quote-processor-noaudit.graphml"
-      },
-      "log": {
-        "following": false,
-        "supportsFollow": false
       }
     }
     ```
