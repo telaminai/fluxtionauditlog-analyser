@@ -47,6 +47,18 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 
 ---
 
+## Java source spotlight — proposal awaiting final review
+
+[Proposal](../proposals/source-spotlight.md), [round-four response](../handoff/response_source_spotlight_r4_2026_09_21.md).
+Based on released main `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
+SourceService first-match lookup and repeat-spotlight reread are explicit; the source-glance verb
+remains unchanged. Java clips with partial disclosure; design keeps released containment refusal.
+Implementation needs preparation, lifetime bindings, viewport hooks and both CI frame lists updated.
+All linked proposal reviews/responses ship together. Await final contract review; no implementation
+or release claimed. Existing evidence-correctness priority and completed work are unchanged.
+
+---
+
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
 ### Released — 2026-09-21
