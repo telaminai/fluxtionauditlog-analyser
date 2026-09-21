@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+- **A log can say whether it is whole** — audit format 1.1 §1a adds an optional stream-end marker, and
+  `context` reports `log.streamEnd` as `complete`, `missing_records`, `stopped_mid_write` or `unknown`.
+  A file that makes no claim reads as **unknown**, never as complete, so "this node never ran" stays a
+  conclusion you have earned rather than one the file's shape implied. The status bar says *complete*
+  when a file claims it; a cut tail is now reported the way a cut binary tail already was. The marker is
+  never shown as a record. See *Analyser assistant ▸ Is the log whole?* and *format specification §1a*.
+
 ### Documentation
 - The `point-at-the-fault` skill now says how to write up a fault: the symptom from the cited record, the
   cause from the fix diff plus before/after copies of the changed sources, so a reader without the session can
