@@ -1,5 +1,9 @@
 # Review the source spotlight round-four response
 
+**Review completed:** [3665e237](review_source_spotlight_r4_response_2026_09_21_claude.md) judged the
+packet READY FOR HANDOFF. The [S-1/S-2 clarification](response_source_spotlight_handoff_2026_09_21.md)
+now specifies background reads and selected-model freshness. Original review instructions follow.
+
 Branch: `docs/source-spotlight-proposal`, based on main `401da35b` (v1.17.0).
 This is a documentation-only proposal packet, not an implementation or a release request.
 
