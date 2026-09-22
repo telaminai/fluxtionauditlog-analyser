@@ -41,6 +41,68 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
   removes the planted defect. n=3 per arm. Evidence: `.local-evidence/coldstart-v2-2026-09-20/haiku-series-2026-09-21-SUMMARY.md`.
 ---
 
+## Product discovery — the notebook for event-driven applications (2026-09-22)
+
+From a single session review (22 Sept): one session built a library-free WebSocket market-data feed, deployed it across
+three repositories, drove it over the admin REST and proved a subscribe/unsubscribe toggle from a pinned plot. The framing
+that came out of it is the clearest category anchor this product has found — **cells, kernel, canvas**. The builder DAG and
+node Java are the cells, Turing-complete authoring, compiled. The deterministic processor running in the server is the
+kernel. The analyser is the rendered canvas, drivable by a person or an assistant. The tagline says why it matters; this
+says what it is, to an audience that has never heard of deterministic dispatch.
+
+**The comparison is winnable on the incumbent's own ground.** A Python kernel's state is hidden and order-dependent, and
+reproducibility is the criticism notebooks attract most. Here the kernel is deterministic and the canvas renders the
+kernel's own record, so the same events through the same classes reproduce exactly. The session's sharper line is worth
+keeping verbatim: telemetry is evidence **about** a system; the audit log is evidence **from** it.
+
+**The risk is in the word.** Notebook reads as exploratory, disposable and not-for-production, and the claim here is the
+opposite — what you explore with IS the production artefact. Lead with what a notebook cannot do, and never let the
+analyser be described as a scratchpad.
+
+**Three gaps stand between the framing and the fact.** None needs a new engine; each assembles parts that exist.
+
+- [ND-1] ☐ **Iteration — the cycle is a redeploy, not a cell run.** A notebook's defining move is change, run, see, change
+  again, without restarting the kernel. The owner's development-mode proposal (2026-09-21) is exactly that: the runbook
+  starts the process under JVMTI, the assistant edits a body, redefines the class, fires data through, and the before and
+  after logs are compared on the canvas. **Judge it as a category move, not a developer convenience** — without it the
+  notebook claim is aspiration. The boundary is the ownership rule that already exists, bodies hot-swap and declarations
+  regenerate, which happens to be exactly what the JVM permits. Development mode only: a native image is closed-world.
+  One log per code version, rather than one log spanning a swap, keeps the comparison honest without needing the log
+  writer's cooperation, and gives the clean re-initialised second run for free. **No analyser change — runbook and skill
+  only:** `source` already re-reads on every call (M66), and `open {follow: true}` shipped in 1.17.0.
+- [ND-2] ☐ **The document — every component exists, and there is no wrapper.** A notebook is one file you hand someone.
+  Today the project profile carries pointers and policy, saved chart definitions carry the views, investigation reports
+  carry the narrative and its typed sections, and the audit log carries the run — yet nobody can hand a colleague one
+  artefact that opens to the same view, the same evidence and the same story. Scope before building: what travels by
+  pointer and what by value (M38.1's rule is pointers, never contents), and what a recipient sees when an input has moved
+  or is missing.
+- [ND-3] ☐ **Re-execute the document — "run all cells" is nearly assembled.** M33.7 stores a report's call so it re-issues
+  exactly; saved chart definitions are declared before input (1.16.0); replay exists as a skill. Pointing those three at a
+  new log gives *re-run this document against this run*, which is what makes the artefact live rather than a screenshot.
+  M66's relationship states say what to show when the new run does not match what the document was written against.
+
+**Sequencing.** ND-1 first, because it is the cheapest and it is what earns the claim. ND-2 and ND-3 are one design
+conversation, not two. None of this displaces the beta blockers or the evidence-correctness work — for this framing above
+all others, an instrument that lies is worse than a slow loop.
+
+**Two analyser defects found in the same session, filed here because that is where they were seen.**
+
+- [WS-1] ☐ **Follow shows stale content after the log file is replaced.** A restart rewrites the audit log as a new inode
+  and live-tail silently held the old content until the operator noticed through `context`. Same class as DX-02: the
+  instrument reporting confidently and wrongly, rather than failing. The detection already exists — `context` computes the
+  file identity and flags changed-on-disk inputs — so only the action is missing: reopen, or raise a banner that says the
+  file underneath was replaced. Prioritise with DX-02/DX-03.
+- [WS-2] ☐ **A non-canonical profile resolves the project root as the settings directory.** The root came out as the
+  `.analyser/` directory rather than the repository, so every runbook and skill pointer resolved `exists: false`. That
+  breaks the mechanism the whole authoring story depends on. Resolve the root from the settings file's parent's parent, or
+  record it explicitly in the settings.
+
+_Status of the source: self-authored by the session that did the work, confirming rather than falsifying, and n=1 — its own
+neutrality section says exactly that. A strong internal data point, not outside evidence; the falsification attempts it
+proposes (unsubscribe mid-burst, reconnect mid-unsubscribe) would be worth more than another successful run._
+**Before any of that review is published or quoted, the kernel line must lose the strategy class it names — the prefix is
+one of rule 1's four sweep terms.**
+
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
 ### Released — 2026-09-21
