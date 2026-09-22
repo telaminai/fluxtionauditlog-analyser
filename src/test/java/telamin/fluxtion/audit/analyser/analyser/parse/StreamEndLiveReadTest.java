@@ -155,6 +155,34 @@ class StreamEndLiveReadTest {
     }
 
     /**
+     * The SAME guard on the append path, which the constructor test above does not reach.
+     *
+     * <p>Round six reported I4 — the pending override inside {@code appendFrom} — as still green, and I
+     * claimed in a commit message that I had closed it. I had not: the test above exercises the
+     * constructor only. A file that gains its marker AND a half-written record in one growth reaches the
+     * override here and nowhere else, and that is the ordinary shape of a writer finishing one run and
+     * starting the next.
+     */
+    @Test
+    void aMarkerAndAPendingRecordArrivingTogetherIsNotAComplete(@TempDir Path other) throws IOException {
+        Path p = other.resolve("growing.yaml");
+        Files.writeString(p, records(2) + "---\n", StandardCharsets.UTF_8);   // both records closed
+        HeapLogStore live = HeapLogStore.fromFile(p).forFollow();
+        assertEquals(2, live.size());
+        assertEquals(StreamEnd.State.UNKNOWN, live.streamEnd().state(), "no marker yet");
+
+        // one growth brings the marker for run 1 AND the first, half-written record of run 2
+        Files.writeString(p, records(2) + terminated(2) + records(1).stripTrailing(),
+                StandardCharsets.UTF_8);   // grows past the closing separator with a marker and a partial
+        assertEquals(0, live.appendFrom(p), "the marker is not a record and the next one is not whole");
+
+        assertEquals(1, live.trailingRecordsPending());
+        assertNotEquals(StreamEnd.State.COMPLETE, live.streamEnd().state(),
+                "a file with a record in flight is not finished, whatever the marker just said");
+        assertEquals(StreamEnd.State.UNKNOWN, live.streamEnd().state());
+    }
+
+    /**
      * Guard I1/I2: a terminated marker at the end of a file is not a dangling EOF record, so following
      * such a file is not refused. Dropping the guard made {@code appendFrom} return -1 for a file that
      * had simply finished.
