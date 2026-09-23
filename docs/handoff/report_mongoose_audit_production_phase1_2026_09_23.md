@@ -62,7 +62,7 @@ verification is theirs.
 
 ## 2 · MA-5 — capture fans out and restores · DONE
 
-`4e3dba7`, then `35f9a13` for MA-5.4. Core.
+`4e3dba7`, `35f9a13` for MA-5.4, then `2c4192e` for the listing freeze. Core.
 
 The class comment promised both behaviours and the code did neither. Capture now composes in front of
 **the server's configured listener**, handed to it at `attach` through a new overload that defaults to
@@ -93,7 +93,7 @@ Core suite: **214 tests, 0 failures**, 9 skipped.
 
 ## 3 · Analyser MA-0, MA-6 reader half, MA-8 · SUBSTANCE DONE, THREE CLAUSES OPEN
 
-`cb97f8ad`, `bce830c4`, then `d13006a7` for the round-2 fixes.
+`cb97f8ad`, `bce830c4`, `d13006a7` for round 2, then `a3c7e4e4` for round 3.
 
 **MA-0** fires immediately before the early return that made every empty log silent. It is a **finding
 beside an unchanged state**, never a seventh state. Keyed on `size() == 0` only. Damage findings are
