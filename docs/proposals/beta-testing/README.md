@@ -252,7 +252,7 @@ The fifth draft's slices A–D are replaced by the table below. Each blocker nam
 
 | # | Blocker | Evidence |
 |---|---|---|
-| **B4** | Jar A (convention mismatch), jar B, and the spec-derived check: **built and locally checked**, source commit `b05f6e2`, now reviewable at [source branch](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) (`3a89391`). Implemented but unreviewed/unapproved; binary publication and integrated beta run remain open; see M67.1 | §3 |
+| **B4** | Jar A (convention mismatch), jar B, and the spec-derived check: **built and locally checked**, source commit `b05f6e2`, now reviewable at [source branch](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) (`3a89391`). Independently source-reviewed by G (`e559c424`), including the oracle; binary publication and integrated beta run remain open; see M67.1 | §3 |
 
 **Blocks act 7 and any public claim beyond onboarding**
 

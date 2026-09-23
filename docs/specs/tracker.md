@@ -260,9 +260,9 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
   standalone Spring, the only template with a verified local authoring route._ **That recommendation rests on SG-2
   being open; closing it in the Spring-side block widens the choice.** The dry run itself stays with the beta.
-- **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _implemented but unreviewed/unapproved; source is now available to reviewers._ **Build these in
+- **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _implemented and independently source-reviewed; publication/integration remain open._ **Build these in
   the same collection as M67.1's catalogue jars — same artefact type, same repository, one decision (Spring-side block ▸ 4).**
-  G18 access resolved: [source branch](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`; clean clone and placeholder-source controls pass. This does not approve the jars or publish binaries.
+  G18 access resolved: [source branch](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`; clean clone and placeholder-source controls pass. G's re-review `e559c424` now closes source/oracle review; binaries are not published.
 - **[BETA-8] ◧ — the journey on Haiku (2026-09-21)** · _A2 and A3 hold on a model two generations smaller._
   A2 ×3: full success 3/3 (92–123 s; two runs edited shipped data, one undisclosed). A3 without routing: fix
   3/3, but 0/6 runs (with or without the `Skill` tool) loaded `point-at-the-fault`, 0/3 kept deliberate
@@ -340,13 +340,16 @@ one of rule 1's four sweep terms.**
 ## Spring-side work block — assembled 2026-09-23, to be done as ONE piece of work
 
 **Review-response checkpoint 2026-09-23:** `fix/spring-side-review-response` carries
-compiler `8db49c4c` (source `6e69b231`) and playground `9e2c112`; shared catalogue
+compiler `a4bf2077` (source `6e69b231`, reviewed at `8db49c4c`) and playground `9e2c112`; shared catalogue
 source branch `feat/spring-side-work-block` is available at `3a89391`.
-G18 access, G17 gate, G19 evidence scope and G20 named type keys are answered. H1 and
+Reviewer G independently closed G17–G20 at `e559c424`, including the catalogue source/oracle
+review. G21 remains an accepted P4 playground gate follow-up: missing test jars must
+refuse a full-evidence gate or prominently report incomplete evidence; both supplied
+must execute the callback probe with no skips, with a guard-disabled negative control. H1 and
 M1–M6 have executable corrections and seen-red controls, awaiting independent re-review.
 [Response and exact gate commands](../handoff/response_spring_side_reviews_2026_09_23.md).
 The original implementation handoff is historical; its filtered counts are superseded.
-**Still open:** jar approval, carrying-tool publication, matching browser pin/deployment,
+**Still open:** carrying-tool publication, matching browser pin/deployment,
 G14 on the real public download, catalogue public binary resolution/integration and D-X9's
 previously owner-built provenance. Low review follow-ups and runtime metadata escaping
 remain open. No analyser code changed and no analyser server ran.
@@ -1405,7 +1408,7 @@ call the LLM is waiting on; would be M64.14, the tour its first user.
   zero-multiplier controls are seen red, with green baseline/restoration. Repeated builds
   match bytes; unknown catalogue version and altered jars are refused. These are direct
   callback/packaging checks, not generated-dispatch or receipt-integrity evidence.
-  D-X7's remote was unavailable at intake; G18 now provides the [source repository](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`. Implemented but unreviewed/unapproved; binaries are not published.
+  D-X7's remote was unavailable at intake; G18 now provides the [source repository](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`. Independently source-reviewed by G at `e559c424`; binary publication/integration remain open.
   Public resolution, owner-built provenance and the tour remain open. [Evidence](../handoff/evidence/spring-side-2026-09-23/jars/summary.json).
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
@@ -2022,7 +2025,7 @@ files (playground owner).
    rests on SG-2, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
    fewer efforts than the numbering implies.** BETA-B2 new-node stubs must audit before A2 measures
    the product rather than the tester; BETA-B3 the template decision plus a dry run of A1–A2 by someone other than the
-   author; BETA-B4 the shared jars and spec-derived check, now implemented but awaiting approval (G18 source access is available). BETA-B1's key journey passed with a
+   author; BETA-B4 the shared jars and spec-derived check, now implemented and source-reviewed (G18 closed; binary publication/integration remain open). BETA-B1's key journey passed with a
    key present and the owner has settled acquisition for now; BETA-8's Haiku series says the routing line plus the fixer
    block is what makes the fault workflow reproducible, and names the A3 scoring gap to close.
 2. ☐ **Finish the tool agreement** — TA-5b implement and vendor the chosen follow route, then TA-5c its one spot-check
