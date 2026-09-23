@@ -72,8 +72,8 @@ This table is the direction check. Re-count it each release. The spec succeeds w
 | D6 | follow shows the log as current | the newest record is held back until the next one arrives | **analyser** → TA-6 | §3.2 step 5, A7 | ☑ `FollowAppendTest.pendingTailSurvivesQuietAndLaterFieldsUntilACompleteSeparator`; `PairingDuringLoadFrameTest.pendingTrailingRecordIsVisibleInContextAndFollowStatus` |
 | D7 | `validate`: "XML: valid; 5 nodes, 4 edges" | true: the XML was valid. Three declared classes were missing, which `validate` does not claim to check | — | §3.6 G1–G2 | ⊘ reclassified — not an untrue echo; see the `validate` scope note below |
 | D8 | the build accepts the round-1 `RiskCheck` | the reconciler refuses it three ways, for rules the contract does not state | starter / contract | §3.6 | ☐ |
-| D9 | the authoring contract: the starter generates stubs | **standalone:** runnable since starter 1.0.73 (SG-1). **Hosted template:** still ships no local authoring files | playground → SG-2 | App. B; SG-1 release report | standalone ☑ · hosted ☐ |
-| D10 | generated stubs are the recommended shape | they lack `EventLogNode`, so they cannot audit — the template's own convention. Feedback #6, tracked ◧ under "Feedback 38/39 and recurring 6"; found again here | starter | §3.6 G4 | ☐ |
+| D9 | the authoring contract: the starter generates stubs | **standalone:** runnable since starter 1.0.73 (SG-1). **Hosted template:** still ships no local authoring files | playground → SG-2 | App. B; SG-1 release report | standalone ☑ · hosted ☐ publication/review; actual branch archives verified under SG-2 |
+| D10 | generated stubs are the recommended shape | they lack `EventLogNode`, so they cannot audit — the template's own convention. Feedback #6, tracked ◧ under "Feedback 38/39 and recurring 6"; found again here | starter | §3.6 G4 | ☐ publication/review; BETA-B2 branch implementation and audit-manager controls verified |
 | D11 | `SinkBinding.valueType = java.lang.String` | the generated processor declares `java.lang.Object` | compiler | §5.8 | ☐ |
 | D12 | `/ws/audit-tail` accepts connections | no records delivered; later 1.0.43 endpoint evidence finds cross-thread tailer access throwing `ThreadingIllegalStateException` (AFMT review) | Mongoose plugins 1.0.43 | §3.2, §5.2 | ☐ |
 | D13 | `/api/audit/files` reports record counts and times | original session reported startup values; later endpoint test did not reproduce (listing/export counts agreed); unresolved observation | Mongoose plugins 1.0.43 | §5.3 | ☐ |
@@ -329,7 +329,7 @@ decision. They remain slice A and are not a truthful-echo item.
 
 | # | What a tool emits | What is wrong | Owner | Status / evidence |
 |---|---|---|---|---|
-| D21 | starter 1.0.73 repeats comment-contract text and inserts it between Java modifiers and annotations | the generated explanation is duplicated within the declaration rather than attached once to its member | **starter/compiler**, upstream | ☐ — [preserved reviewer packet](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md), especially `AlertNode.as-generated.java` |
+| D21 | starter 1.0.73 repeats comment-contract text and inserts it between Java modifiers and annotations | the generated explanation is duplicated within the declaration rather than attached once to its member | **starter/compiler**, upstream | ☐ — branch implementation `a962d01c` answers this with fresh/added-member comment and CRLF tests plus mutation controls; independent review/publication remain open. [Preserved reviewer packet](../handoff/evidence/stub-reconcile-1.0.73-2026-09-21/README.md), especially `AlertNode.as-generated.java` |
 
 The saved source directly shows the formatting defect. The reviewer reports that this source compiled;
 this intake did not independently rerun generation or compilation. It is not a runtime finding and does
