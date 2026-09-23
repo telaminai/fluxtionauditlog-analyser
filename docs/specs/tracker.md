@@ -101,16 +101,22 @@ still to do.
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
 - **[MA-6] ☐ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
   contradiction: D-MA0b keeps MA-0 at zero records only, so this check lives here._ Reader half in this
-  repo; **writer half in MA-2 — the writer refuses to count or mark such a record**, which is what
-  actually prevents vouching. A warning beside `complete` does not. **This unblocks MA-2 without waiting
+  repo; **writer half in MA-2 — the writer WRITES the record, COUNTS it, and WITHHOLDS the marker**, so
+  the file reads `unknown` plus the reader finding. (The earlier "refuses to count or mark" had three
+  readings and two broke an invariant: write-but-don't-count reads `more_than_declared`, and
+  don't-write-don't-count hides a produced record under `complete`.) **This unblocks MA-2 without waiting
   on AFMT-3.**
 - **[MA-7] ☐ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
-  finding in this spec. An event `toString()` carrying a line that is exactly `---` plus marker lines
-  breaks the framing BEFORE §1a recognition runs, so the allow-list cannot defend it. Reproduced twice
+  finding in this spec. An event `toString()` carrying a line that **trims to** `---` — space, tab or CR,
+  matching the framers' own predicate, **not** an exact match — plus marker lines breaks the framing
+  BEFORE §1a recognition runs, so the allow-list cannot defend it. Reproduced twice
   independently: 3 real records read as 4 or 5, a forged marker recognised, and `missing_records`
   reported on a file that lost nothing. **Live on the SHIPPED 1.0.44 exporter** — `YamlContainerWriter`
-  writes record text as-is — so a **separate tracker entry for the existing exporter is required**; the
-  writer-side fix chosen for MA-2 cannot reach it. Payloads come from event `toString()`, routinely
+  writes record text as-is. **TWO fixes, both decided:** the writer **ESCAPES** (never refuses — refusing
+  changes the count or hides a record, so only escaping satisfies V1), **and a producer-side escape is
+  MANDATORY for anything through the shipped 1.0.44 exporter**, filed as
+  [mongoose-plugins#39](https://github.com/telaminai/mongoose-plugins/issues/39) since the writer-side
+  fix cannot reach bytes already shipped. Payloads come from event `toString()`, routinely
   user-controlled. Not previously recorded anywhere.
 - **[MA-8] ☐ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
   sibling._ A node at `WARN` runs but reads as never logged, and the control record naming its
@@ -120,8 +126,10 @@ still to do.
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
   one reads `complete` with no finding. **Cause NOT established.** **The tracker repro is stale** — it
   targets `volumeTotal`, absent from today's bundle, so re-running it wrongly looks clean.
-- **[MA-2] ☐ — the text writer and the marker** · text half needs **MA-6** only; **Chronicle half** waits
-  on **OD-5**. Lifecycle ANSWERED from a booted spike: marker after `server.stop()` returns, a new file
+- **[MA-2] ☐ — the text writer and the marker** · text half needs **MA-5, MA-6 and MA-7**; **Chronicle
+  half** waits on **OD-5**. **The MA-5 dependency was found by running:** capture REPLACES the configured
+  listener, and OD-4 makes the text writer that listener, so with the bundle's shipped capture on the
+  writer got 4 startup records, none of the 8 business events, and the file read `complete, 4 of 4`. Lifecycle ANSWERED from a booted spike: marker after `server.stop()` returns, a new file
   per start, no roll, counts records RECEIVED, flush a user-configurable property defaulting to
   per-record in the developer bundle. Measured: writing the marker *before* the processors stopped lost
   39 and 20 records while the file still read `complete`. `backend` is

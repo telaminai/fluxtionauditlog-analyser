@@ -1,6 +1,6 @@
 # Mongoose produces an audit log the analyser can trust (Design Spec)
 
-_Status: **PROPOSED 2026-09-23, not started.** Four reviews, all CHANGES REQUIRED, all answered; review
+_Status: **PROPOSED 2026-09-23, not started.** Five reviews, all CHANGES REQUIRED, all answered; review
 files and evidence are in [`docs/handoff/`](../handoff/). Rewritten at rounds 3 and 4 rather than patched
 — this document shipped **six** add-without-remove defects, so each revision replaces the text it
 supersedes in the same edit, and there is deliberately **no appendix**._
@@ -71,7 +71,7 @@ is the **missing empty-log finding**, which is MA-0.
 ```
 MA-0  (analyser: an empty log is a finding)      ← THIS repo; smallest; closes a live gap
 MA-1  (a processor that cannot audit says so)    ← independent
-MA-5  (capture must fan out, and restore)        ← independent; a live silent-discard path
+MA-5  (capture must fan out, and restore)        ← startable now, but ON THE TEXT WRITER'S CRITICAL PATH
 MA-6  (a document without eventLogRecord: )      ← independent; unblocks MA-2 without AFMT-3
 MA-7  (framing injection — a payload forges a marker) ← GATES MA-2; V1
 MA-8  (coverage qualifies a per-node level)      ← THIS repo; MA-0 sibling
@@ -294,8 +294,6 @@ writes the record text as-is — and MA-2's writer, wherever it lives. Payloads 
 **Not recorded anywhere before this**: no tracker item, no spec, nothing on escaping, injection or
 framing.
 
-### D-MA7 · Fix at the writer, and file the shipped exporter separately
-
 ### The predicate is the READER's, not "a line that is exactly `---`"
 
 Both framers split on any line that, **after trimming space, tab and CR**, is `---`. So `  ---`,
@@ -317,7 +315,8 @@ that is the stated price of V1.** An earlier "refuses or escapes" is withdrawn.
   a patched exporter release. A writer fix cannot reach bytes already shipped, the reader cannot tell a
   real marker from a forged one, and **neither side can prove no forged-`complete` payload exists**. On
   V3, not knowing whether an attack exists is a finding, never a clearance — so this is decided **as if
-  the answer were yes**, and **a tracker entry for the existing exporter is required**, outside this spec.
+  the answer were yes**. **FILED** for the existing exporter as
+  [mongoose-plugins#39](https://github.com/telaminai/mongoose-plugins/issues/39), outside this spec.
 
 **Recorded as open:** no payload making a log read `complete` falsely has been constructed; neither side
 tried to prove none exists. The decision above stands in spite of it, not because of it.
@@ -360,7 +359,9 @@ with the answer sitting in the file.
    silence outside that window is plain uncovered.
 5. **What is parsed:** key on the record's `event` being `EventLogControlEvent` and parse
    `sourceId`/`level` — **the runtime's `toString` format is not a contract**, so the fixture is pinned
-   to the runtime version. Say whether `groupId`, which also targets nodes, is in scope.
+   to the runtime version. **`groupId` IS in scope**, treated exactly as `sourceId`: it targets nodes and
+   produces the same silence. Where the log alone does not let a `groupId` be mapped to its nodes, the
+   annotation is made **at the group level**, naming the limitation rather than dropping it.
 6. A conformance fixture. *(The admin endpoint is global-only, so this is reachable from Java alone —
    which does not make it rare in hand-tuned deployments.)*
 
@@ -442,8 +443,12 @@ ordinary record. A per-node count cannot travel in the marker without a format c
 **That configuration needs a home, and had none.** The bundle boots from YAML (`bootServer(reader)`)
 while `bootServer(config, listener)` is programmatic, so nothing named how YAML turns the text writer
 on, where its directory goes, or where the owner-decided flush property lives — **a user-configurable
-property with no configuration key is not configurable**. Name the block: `auditText: {enabled,
-directory, flush}`, and state its interaction with `auditCapture` (the MA-5 dependency above).
+property with no configuration key is not configurable**.
+
+**Decided: the block is `auditText: {enabled, directory, flush}`**, a sibling of `auditCapture`.
+`flush` defaults to per-record in the developer bundle (D-MA2c). **Its interaction with `auditCapture`
+is the MA-5 dependency**: with both enabled and capture still replacing the listener, the text writer
+sees only pre-registration records, so Mongoose warns loudly until MA-5 lands.
 
 ### Acceptance MA-2
 
@@ -459,6 +464,9 @@ directory, flush}`, and state its interaction with `auditCapture` (the MA-5 depe
    `unterminated_marker`; after the marker's separator is flushed → `complete`, correctly.
    **"Stop under load" asserts against a producer-side emitted count, not the file** — the file is
    self-consistent in the failure case.
+   **V2 is asserted here**, at the bare-marker-header cut, with Follow driven through the real store:
+   the stream-end **state and every finding** agree between a live tail and a cold open, and the record
+   count differs only by the one pending last document.
 4. **Parity, in ONE process.** One record sequence goes to both writers; the text file must equal the
    export **plus the marker plus `---\n`**. Measured: Chronicle round-trips each record exactly and the
    framing reproduces byte for byte. *("The same run" is impossible — a run has one backend, and a
@@ -468,6 +476,9 @@ directory, flush}`, and state its interaction with `auditCapture` (the MA-5 depe
    that trims to `---`** (MA-7's writer half).
 6. An unknown `backend` is refused by name (D-MA2e).
 7. Verified against the **published** analyser jar.
+8. **With `auditText` and a still-replacing `auditCapture` both enabled, Mongoose warns loudly** —
+   asserted, not assumed. Until MA-5 lands this is the only thing standing between a developer and a
+   `complete` file holding none of their events (F1).
 
 ### OD-5 — OPEN · Does the Chronicle backend get a marker?
 
@@ -583,7 +594,7 @@ that none exists is unproved.
 
 ## How this spec got here
 
-Four reviews, all CHANGES REQUIRED, all answered. Two lessons are worth more than the findings.
+Five reviews, all CHANGES REQUIRED, all answered. Two lessons are worth more than the findings.
 
 1. **An edge case was treated as central.** `customHandler` drove three reframings and a proposed
    generated artefact before anyone asked how often it is used. The check that settled it — downloading
