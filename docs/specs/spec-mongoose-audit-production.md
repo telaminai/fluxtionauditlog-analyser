@@ -46,10 +46,24 @@ inverted, and it would be this project's worst regression.
 
 ## MA-1 · A `DefaultEventProcessor` graph has no `EventLogManager`, so no node can log
 
-**Where, read not inferred.** `fluxtion-runtime` `1.0.15`, `com.telamin.fluxtion.runtime.DefaultEventProcessor`.
-Its declared auditors are `NodeNameAuditor nodeNameLookup` and `Clock clock`. There is **no**
-`EventLogManager` field, so `getAuditorById("eventLogger")` throws `NoSuchFieldException` and a node's
-`auditLog` has nothing to publish through.
+**What this class is.** `DefaultEventProcessor` is **hand-written in the shape of a generated processor**
+— its javadoc header still carries the generator's template fields (`generation time : Not available`) —
+and its job is to host a single `ObjectEventHandlerNode`, the `allEventHandler`, so that handler code
+which is not a Fluxtion-generated graph can run inside the runtime. It is the wrapper path, not the
+compiled-graph path. That matters for how much MA-1 can deliver; see D-MA1b.
+
+**Where, read not inferred.** `fluxtion-runtime` `1.0.15` sources,
+`com.telamin.fluxtion.runtime.DefaultEventProcessor`. Its declared auditors are
+`NodeNameAuditor nodeNameLookup` and `Clock clock` (lines 65, 97-100). There is **no** `EventLogManager`
+field, so `getAuditorById("eventLogger")` throws `NoSuchFieldException` and a node's `auditLog` has
+nothing to publish through.
+
+**The class expects one to exist.** `getLastAuditLogRecord()` (line 399) does
+`this.getClass().getField(EventLogManager.NODE_NAME).get(this)` and catches `Throwable`, returning `""`.
+It is written for a generated subclass that declares an `eventLogger` field, and in this hand-written one
+that field never exists — so the method silently returns empty for every caller. **That is evidence this
+is an omission in a hand-maintained file rather than a considered decision that auditing is meaningless
+here**, and it is the strongest single argument for MA-1.
 
 Mongoose reaches that class through `EventProcessorConfig.getEventHandler()`, which wraps a
 `customHandler` in `ConfigAwareEventProcessor extends DefaultEventProcessor`
@@ -85,6 +99,27 @@ this finding said the fix belonged in Mongoose core. **That was wrong** and is c
 `UP-FLX-51` proposes defaulting the record to `NONE`, which would remove most of that cost and make
 "always on" cheap. **These two asks should be decided together.**
 
+### D-MA1b · What MA-1 can and cannot deliver — it is NOT per-node coverage
+
+`initialiseAuditor` (line 291) registers a **fixed list of four nodes**: `callbackDispatcher`,
+`subscriptionManager`, `context` and `allEventHandler`. An `EventLogManager` installed here would
+therefore audit those four and **nothing else**. Any node the handler constructs or references
+internally is invisible to the runtime on this path, because the list is hard-coded rather than
+discovered.
+
+So MA-1 buys **the handler's own log lines**, not the per-node topology an AOT-built processor gives. The
+analyser's coverage denominator becomes four, not the user's real node count.
+
+**This is worth stating plainly because it limits the claim.** MA-1 turns "this processor can never log"
+into "this processor logs at handler granularity". It does **not** make "absence is evidence" work at
+node level on the wrapper path — for that, the processor has to be a real generated graph. An earlier
+draft of this spec implied otherwise.
+
+**OD-2 — owner decision.** Given that, is MA-1 worth doing at all, or is the right answer to tell users
+that auditing requires an AOT-built processor and make the wrapper path **say so** rather than silently
+emit nothing? A third option: keep MA-1 *and* have the analyser report the wrapper path explicitly, so a
+four-node denominator is not mistaken for a complete topology.
+
 ### Acceptance MA-1
 
 1. A processor added via `EventProcessorConfig.builder().customHandler(...)`, audit level INFO, writes
@@ -93,7 +128,8 @@ this finding said the fix belonged in Mongoose core. **That was wrong** and is c
 3. `POST …/audit/level` demonstrably changes what is written — a level below the call suppresses it, a
    level at or above emits it. The endpoint returning 200 is not acceptance; the bytes are.
 4. The analyser loads that export with a **non-empty coverage denominator** and `NO_NODE_LOGS` does not
-   fire.
+   fire — understanding that the denominator is the four registered nodes, not the user's topology
+   (D-MA1b). An acceptance that reads a four-node denominator as full coverage would be wrong.
 5. A regression check that fails if the auditor stops being installed — per CLAUDE.md rule 8, the finding
    is not closed until the check that would catch it next time exists.
 

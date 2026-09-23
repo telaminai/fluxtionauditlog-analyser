@@ -37,21 +37,27 @@ eventLogRecord:
    wrong verdict for a file whose marker honestly says "I wrote nothing"? I argue the writer's claim is
    true-but-useless and the harm is that it *looks* like a healthy log. If you think `complete` is
    defensible, the spec's central argument is wrong and I want to know.
-2. **D-MA1 — that the fix belongs in `fluxtion-runtime`, not Mongoose.** I said the opposite to the owner
+2. **D-MA1b — how much MA-1 actually buys.** `initialiseAuditor` registers a hard-coded list of four
+   nodes, so an `EventLogManager` here audits the handler plus three infrastructure nodes and nothing
+   else. MA-1 does NOT make "absence is evidence" work at node level on the wrapper path. **OD-2** asks
+   whether MA-1 is then worth doing at all, versus making the wrapper path say out loud that auditing
+   needs an AOT-built processor. This was added after the owner asked what `DefaultEventProcessor`
+   actually is; an earlier draft implied MA-1 delivered per-node coverage, which was wrong.
+3. **D-MA1 — that the fix belongs in `fluxtion-runtime`, not Mongoose.** I said the opposite to the owner
    earlier today and corrected it after reading `DefaultEventProcessor`'s declared fields. Check I have
    that right: is there a supported way for Mongoose to install an `EventLogManager` on a graph it did
    not build, which would keep the change out of the framework?
-3. **OD-1, the owner decision I framed** — always-on versus opt-in for the auditor. Check the framing is
+4. **OD-1, the owner decision I framed** — always-on versus opt-in for the auditor. Check the framing is
    honest, particularly that I have not stacked it. `UP-FLX-51` measures ~120 ns/event for a manager
    recording nothing and proposes a fix that would make always-on cheap; I claim the two should be
    decided together. Is that right, or is it a way of avoiding the cost question?
-4. **D-MA2, per-node entry parity rather than a record count.** The argument is that a record count passes
+5. **D-MA2, per-node entry parity rather than a record count.** The argument is that a record count passes
    while every record is empty, which is exactly the MA-1 failure. Is parity checkable at the writer, or
    does it need the reader?
-5. **Acceptance MA-1.3** — that the level endpoint must be shown to change the bytes, not to return 200.
+6. **Acceptance MA-1.3** — that the level endpoint must be shown to change the bytes, not to return 200.
    And MA-2.3, that a killed run must never read `complete`. Are these the right acceptances, and are any
    of them unfalsifiable as written?
-6. **Scope.** MA-3 is much smaller than the other two and arguably belongs in its own issue rather than
+7. **Scope.** MA-3 is much smaller than the other two and arguably belongs in its own issue rather than
    this spec. And the per-node `NONE` corruption is excluded because I could not find its description —
    only a reference at `tracker.md:131`. If you know where it is recorded, that changes AF-7's gate and
    possibly this spec's scope.
