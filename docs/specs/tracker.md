@@ -340,7 +340,7 @@ one of rule 1's four sweep terms.**
 ## Spring-side work block — assembled 2026-09-23, to be done as ONE piece of work
 
 **Review-response checkpoint 2026-09-23:** `fix/spring-side-review-response` carries
-compiler `af7352bf` (implementation `a156010b`, prior source independently reviewed) and playground `454a313`; shared catalogue
+compiler `a37ff17b` (docs intake; tested head `af7352bf`, implementation `a156010b`) and playground `454a313`; shared catalogue
 source branch `feat/spring-side-work-block` is available at `3a89391`.
 Reviewer G independently closed G17–G20 at `e559c424`, including the catalogue source/oracle
 review. G21 remains an accepted P4 playground gate follow-up: missing test jars must
@@ -350,11 +350,22 @@ M1/M2/M4 and Java H1 are independently confirmed; M3's original protections hold
 R1–R3 now have an explicit input allow-list and three seen-red regressions. The browser
 addendum confirms H1/M5/M6 on the prior head. Its N1 is now guarded in both emitters
 with the real tokenizer and a guard-removal witness each; N2 narrows the unregistered
-node claim. New corrections are implemented, pending independent re-review. Runtime
+node claim. The owner-supplied re-review now independently closes R1–R3/N1/N2.
+Compiler and playground are ready for owner approval. G separately corroborates gates
+and current tokenizer identity at `c8594b5f`, without claiming those closures. Runtime
 value escaping remains upstream at mongoose-plugins#39. See the existing response for
 the exact allow-list, its limitations, predictions, commits and regression witnesses.
 [Response and exact gate commands](../handoff/response_spring_side_reviews_2026_09_23.md).
 The original implementation handoff is historical; its filtered counts are superseded.
+**New accepted, non-blocking follow-ups:** P1 (Low, starter: unresolved/external POM
+roots currently throw; conservatively retain types when coverage is unknown), NF1
+(Low, both generators: blank/edge-space filter representation), G22 (P3 in G's report,
+generator/runtime: make value transformation visible) and G23 (P3, test-gate owner:
+verify the oracle against the declared supported analyser version). Canonical owners
+and red-control acceptance remain in compiler `design/spring-authoring/TRACKER.md`
+under “Independent re-review intake — required corrections hold”; this is an index,
+not a duplicate implementation queue. None of these follow-ups is implemented here.
+
 **Still open:** carrying-tool publication, matching browser pin/deployment,
 G14 on the real public download, catalogue public binary resolution/integration and D-X9's
 previously owner-built provenance. Low review follow-ups and runtime metadata escaping

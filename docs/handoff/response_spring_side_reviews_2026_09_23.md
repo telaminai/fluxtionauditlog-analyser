@@ -282,11 +282,11 @@ Catalogue source stays at `3a89391`; its independent approval remains recorded.
 
 | New finding | Implemented acceptance / witness | Disposition |
 |---|---|---|
-| R1 | `unrelatedDataSymlinkDoesNotAffectReconciliation`; re-adding the whole project fails “data symlink must not affect plan or apply”. | Implemented; author verified, awaiting re-review. |
-| R2 | `runtimeOutputsDoNotInvalidatePlan`; audit, logs and sink writes between plan/apply succeed; broad-inventory mutation fails “runtime output must not invalidate apply”. | Implemented; author verified, awaiting re-review. |
-| R3 | `auditExportDoesNotRetainWithdrawnType`; broad-inventory mutation fails “audit export must not retain withdrawn type”. | Implemented; author verified, awaiting re-review. |
-| N1 | Java `filterValuesAreSingleEntriesInRealTokenizer` and browser `compiles browser nodes and observes their actual runtime audit records`; each sanitizer-removal mutation fails “parsed callback entries”. | Interim generated-field correction implemented and witnessed; durable runtime escaping remains open. |
-| N2 | Probe now asserts only that unregistered callbacks complete without throwing. The vacuous empty-record check is removed. | Misleading claim corrected; audit-off generated processor deliberately not claimed. |
+| R1 | `unrelatedDataSymlinkDoesNotAffectReconciliation`; re-adding the whole project fails “data symlink must not affect plan or apply”. | Independently CLOSED by the owner-supplied re-review. |
+| R2 | `runtimeOutputsDoNotInvalidatePlan`; audit, logs and sink writes between plan/apply succeed; broad-inventory mutation fails “runtime output must not invalidate apply”. | Independently CLOSED by the owner-supplied re-review. |
+| R3 | `auditExportDoesNotRetainWithdrawnType`; broad-inventory mutation fails “audit export must not retain withdrawn type”. | Independently CLOSED by the owner-supplied re-review. |
+| N1 | Java `filterValuesAreSingleEntriesInRealTokenizer` and browser `compiles browser nodes and observes their actual runtime audit records`; each sanitizer-removal mutation fails “parsed callback entries”. | Interim generated-field correction independently confirmed; durable runtime escaping remains open. |
+| N2 | Probe now asserts only that unregistered callbacks complete without throwing. The vacuous empty-record check is removed. | Claim correction independently confirmed; audit-off generated processor deliberately not claimed. |
 
 The seven hosted controls were rerun too, including both M5 transform/hash-order
 controls: green baseline, named red failures and restored green. All five fresh
@@ -304,3 +304,38 @@ has no `.venv`; rerunning the same docs with the installed primary-checkout exec
 passed. Both outputs are retained privately. No full analyser suite was rerun for
 these three documentation files. The exact rule-one sweep over tracked and untracked
 files and `git diff --check` are clean. No reviewer file changed.
+
+## Independent re-review intake — approval readiness
+
+The owner-supplied re-review of compiler `af7352bf` / playground `454a313` closes
+**R1–R3, N1 and N2** independently. It reproduces the gates and all 12 Java + 8
+callback + 7 hosted controls. Its 45-input tokenizer probe and original 39-test attack
+harness are reviewer evidence; this intake did not rerun them. Two classpath-layout
+cases in that harness remain the previously deferred Lows. The compiler and playground
+changes are ready for owner approval; this does not authorise publication or close G14.
+
+Reviewer G's separate report is compiler commit `c8594b5f`,
+`design/spring-authoring/review-2026-09-23-spring-side-response2-G.md`. It reproduces the
+gates and compares all four pinned tokenizer/model hashes with then-current analyser
+main, finding them identical. G explicitly does not close the other reviewer's findings.
+The commit was actually pushed onto the compiler response branch, not the named review
+branch. It is preserved unchanged; no reviewer file was edited.
+
+Accepted non-blocking follow-ups, still **OPEN**:
+
+| ID | Owner / next acceptance |
+|---|---|
+| P1 (Low) | Starter/reconciler: exercise a build-helper root using the build-directory property and an external resource root. Identify build outputs; where input coverage is unknown, conservatively retain/demote types with a diagnostic instead of unsafe deletion. Test both cases and removal of that protection. The current refusal contract remains until changed explicitly. |
+| NF1 (Low) | Both generators: choose and document blank/edge-space handling, then test whitespace-only, CR/LF-only, padded and ordinary filters through the real tokenizer, with a red control per emitter. |
+| G22 (P3 in G's report, non-blocking) | Generator/runtime audit owners: make transformation observable for colliding original filter values; preserve intended parser entries and fail a control that removes the indication. Original length alone is not sufficient for equal-length collisions. Coordinate with runtime escaping #39. |
+| G23 (P3 in G's report, non-blocking) | Cross-repository test-gate owner: verify vendored source provenance and compatibility with the declared supported analyser reference. A deliberately advanced parser with an unchanged oracle must fail. Checking only the original immutable pin does not detect later compatibility drift. Unavailable source means unverified, not green. |
+
+These are recorded at the existing compiler tracker entry, not as a second queue.
+G17–G20 stay closed; G21 and older deferred Lows stay open. Runtime escaping, carrying
+release/deployment before G14, catalogue binary integration and D-X9 provenance remain
+separate dependencies. This intake changes documentation only; no application test,
+new client session, merge, rebase, release, deployment or key use. Reviewer worktrees
+were left untouched; G reports its own worktrees cleaned.
+
+Compiler status-intake commit: `a37ff17b`, on top of G's unchanged report. Playground
+remains `454a313`; no source or test changes were needed to record these reviews.
