@@ -1846,7 +1846,11 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-09-21, after two releases._ Shipped since the 2026-09-19 refresh: **1.16.0** (2026-09-20 — M66 design
+_Refreshed 2026-09-21; preamble updated 2026-09-23 for two further releases._ **Shipped since that refresh:**
+**1.18.0** (2026-09-23 — audit format 1.1 §1a, a log can say whether it is whole and an unclaimed one reads as
+`unknown`) and **1.19.0** (the same day — revision-bound Java source spotlights). Neither closes an item below, so the
+sequence is unchanged: 1.18.0 delivered the completeness half of the denominator claim, while the membership half
+remains open as DX-02. Shipped since the 2026-09-19 refresh: **1.16.0** (2026-09-20 — M66 design
 render; the project-starter journey with explicit session recovery, project landing and the full template catalogue) and
 **1.17.0** (2026-09-21 — the tool-agreement block TA-1…TA-8: pairing over every declared node, disagreeing graph copies
 announced, confirmation findings, window-edge stability, pending EOF records, Follow through `open {follow}`, and the
@@ -2130,7 +2134,8 @@ name in different packages emit uncompilable code with no diagnostic; a componen
   force. The verb-ness of M48.7 was two lines of wiring; everything of substance (`CanvasHandoff`'s typed,
   attributed, fail-closed state, `context.handoff`, the Project-panel row) is unchanged. Unreleased, so this was
   the cheapest it would ever be; after a release it would have been a compatibility decision. The surface is
-  FIFTEEN: the fourteen, plus `spotlight` (M64) — the one concept no existing verb named. One consequence is
+  FIFTEEN: the fourteen, plus `spotlight` (M64) — the one concept no existing verb named. **(True when written; the
+  surface became SIXTEEN in 1.16.0, when M66 added `source`. This decision is about `handoff` and stands as recorded.)** One consequence is
   stated rather than hidden: `open`'s other forms name what they ignored, but a canvas write is REFUSED when
   combined with anything else, because shared state may not be half applied.
   _Superseded, kept for the record:_ ~~`handoff` is the fifteenth verb (owner, 2026-09-17: "keep the 15th verb,
