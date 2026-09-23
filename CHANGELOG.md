@@ -8,7 +8,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 - Java spotlight echoes omit `partial` when no line band is measurable, rather than describing an invisible line as partly visible. Line numbers follow the editor, including its final empty line after a trailing newline.
 
-- Spotlight explicit Java documents and logical lines beside topology. Source reads prepare off the UI thread, expire after ten seconds, and disclose origin, text revision, first-match lookup and unverified relationship to the run. Wrapped Java lines light their visible portion with a `partial` qualification.
+- Spotlight explicit Java documents and logical lines beside topology. Ask an assistant for a Java spotlight to use this feature; opening a log does not activate it automatically. The source pane label and assistant echo disclose what is highlighted. Source reads prepare off the UI thread, expire after ten seconds, and disclose origin, text revision, first-match lookup and unverified relationship to the run. Wrapped Java lines light their visible portion with a `partial` qualification.
 - Source viewport changes now remeasure or extinguish Java and design spotlights. Design lines keep the released wholly-visible refusal rule; Java captions go out when their bound source revision changes.
 
 ## [1.18.0] - 2026-09-23

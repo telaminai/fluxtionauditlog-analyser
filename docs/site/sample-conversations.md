@@ -26,22 +26,26 @@ The client discovers one tool per verb — `analyser_context`, `analyser_aggrega
         "to": 1767258000360,
         "openedBy": "the command line that started this analyser",
         "freshness": {
-          "reload": "explicitly reopen the same path; no automatic replacement",
+          "basis": "size, modification time and file identity; unchanged metadata does not prove identical bytes",
+          "state": "unchanged-metadata",
           "members": [
             {
-              "loaded": "{…}",
+              "state": "unchanged-metadata",
               "onDisk": "{…}",
-              "state": "unchanged-metadata"
+              "loaded": "{…}"
             }
           ],
-          "state": "unchanged-metadata",
-          "basis": "size, modification time and file identity; unchanged metadata does not prove identical bytes"
+          "reload": "explicitly reopen the same path; no automatic replacement"
         },
         "following": false,
         "supportsFollow": true,
         "trailingRecordsIncluded": 1,
         "tailNote": "EOF record included without a closing separator (legal Format 1); completeness unknown. Follow reopens as a…",
-        "trailingRecordsPending": 0
+        "trailingRecordsPending": 0,
+        "streamEnd": {
+          "state": "unknown",
+          "recordsRead": 10
+        }
       },
       "graphPairing": {
         "graph": "demo-quote-processor.graphml",

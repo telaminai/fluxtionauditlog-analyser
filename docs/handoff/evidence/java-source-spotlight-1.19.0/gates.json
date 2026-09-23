@@ -1,0 +1,189 @@
+{
+  "sourceRevision": "d3b98982",
+  "base": "f91919eb",
+  "sourceTree": "c2b1904ae1d7774c4fb8c4fca0b9b5839fd73a8c",
+  "reviewedSourceTreeUnchanged": true,
+  "trackerMainPreservedByteForByteOutsideFeature": true,
+  "headless": {
+    "tests": 1876,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 62
+  },
+  "display": {
+    "suites": {
+      "PairingDuringLoadFrameTest": {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "AsyncOpenInterleavingFrameTest": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "SpotlightFrameTest": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "WestColumnStartsCollapsedFrameTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "MenuScreenshotFrameTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "PersonAtTheScreenFrameTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "NamedGraphAndMenuSpotlightFrameTest": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "SessionRecoveryFrameTest": {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "TemplateCatalogueFrameTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "DesignSpotlightFrameTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "JavaSourceSpotlightFrameTest": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "LoadedFileObservationFrameTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "totals": {
+      "tests": 63,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "mutations": {
+    "witnesses": 13,
+    "allBaselineGreen": true,
+    "allSeenRed": true,
+    "allRestored": true
+  },
+  "tools": "passed",
+  "strictDocs": "passed",
+  "builtJarPreflight": [
+    {
+      "name": "package",
+      "command": [
+        "mvn",
+        "-q",
+        "package",
+        "-DskipTests"
+      ],
+      "exitCode": 0,
+      "seconds": 29.02,
+      "log": "/private/tmp/java-spotlight-1.19-package.log"
+    },
+    {
+      "name": "agent-api",
+      "command": [
+        "python3",
+        "tools/verify-m46-agent-api.py"
+      ],
+      "exitCode": 0,
+      "seconds": 27.4,
+      "log": "/private/tmp/java-spotlight-1.19-agent-api.log"
+    },
+    {
+      "name": "handoff",
+      "command": [
+        "python3",
+        "tools/verify-m48-handoff.py"
+      ],
+      "exitCode": 0,
+      "seconds": 14.11,
+      "log": "/private/tmp/java-spotlight-1.19-handoff.log"
+    },
+    {
+      "name": "spotlight",
+      "command": [
+        "python3",
+        "tools/verify-m64-spotlight.py"
+      ],
+      "exitCode": 0,
+      "seconds": 75.66,
+      "log": "/private/tmp/java-spotlight-1.19-spotlight.log"
+    },
+    {
+      "name": "restart",
+      "command": [
+        "python3",
+        "tools/verify-session-restart.py"
+      ],
+      "exitCode": 1,
+      "seconds": 43.97,
+      "log": "/private/tmp/java-spotlight-1.19-restart.log"
+    },
+    {
+      "name": "restart-canonical",
+      "command": "python3 tools/verify-session-restart.py --output /private/tmp/java-spotlight-1.19-restart-canonical",
+      "exitCode": 0,
+      "checks": {
+        "status": "PASS",
+        "independentJvms": 3,
+        "checks": [
+          "normal quit persists session",
+          "relaunch offers without opening inputs",
+          "explicit restore reloads log/topology/design/diagnostics/selection/focus",
+          "CLI input does not grant restore permission",
+          "dismiss keeps CLI input and refuses restore"
+        ],
+        "scope": "Shipped Main startup and window-close path; isolated home; no model client"
+      },
+      "initialFailure": "default macOS temp root uses /var alias; CLI preserves passed path while checker compares /private/var resolved spelling; restore offer present"
+    },
+    {
+      "name": "conversations",
+      "command": "python3 tools/capture-conversations.py",
+      "exitCode": 0,
+      "nativeScreenshots": 5,
+      "fourScreenshotsByteIdentical": true,
+      "fifthScreenshot": "reviewed: only worktree path changed; restored previous image",
+      "transcript": "updated from generated output with 1.18.0 streamEnd facts"
+    }
+  ],
+  "reviewerPrePushConfirmation": "owner instructed proceeding without another round on 2026-09-23",
+  "mainPush": "not performed",
+  "release": "not performed",
+  "sweep": "tracked/untracked clean",
+  "authorEmailAudit": "new commits all personal address; full-history distribution checked locally"
+}
