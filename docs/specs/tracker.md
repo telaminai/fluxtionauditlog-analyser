@@ -99,21 +99,35 @@ still to do.
   `ChronicleAuditCaptureService`'s comment promises to compose in front of the existing listener and
   restore it; the code sets `previousListener = null` and, on stop, installs a no-op. `DataFlow` has no
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
-- **[AFMT-3 gates MA-2]** — per-node `NONE` corrupts the next record, reproduced on today's bundle
-  (`riskCheck`/`rootNode`). A marked file holding a corrupt record reads `complete` **with no finding**,
-  so a marker would vouch for corruption. **The tracker repro below is stale** — it targets `volumeTotal`,
-  absent from today's bundle, so re-running it wrongly looks clean.
-- **[MA-2] ☐ — the text backend and the marker** · **BLOCKED** on AFMT-3; its Chronicle half also on OD-5. `backend` is
+- **[MA-6] ☐ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
+  contradiction: D-MA0b keeps MA-0 at zero records only, so this check lives here._ Reader half in this
+  repo; **writer half in MA-2 — the writer refuses to count or mark such a record**, which is what
+  actually prevents vouching. A warning beside `complete` does not. **This unblocks MA-2 without waiting
+  on AFMT-3.**
+- **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
+  corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
+  one reads `complete` with no finding. **Cause NOT established.** **The tracker repro is stale** — it
+  targets `volumeTotal`, absent from today's bundle, so re-running it wrongly looks clean.
+- **[MA-2] ☐ — the text writer and the marker** · text half needs **MA-6** only; **Chronicle half** waits
+  on **OD-5**. Lifecycle ANSWERED from a booted spike: marker after `server.stop()` returns, a new file
+  per start, no roll, counts records RECEIVED, flush a user-configurable property defaulting to
+  per-record in the developer bundle. Measured: writing the marker *before* the processors stopped lost
+  39 and 20 records while the file still read `complete`. `backend` is
   read by nothing today (`getBackend()` has no caller), so `backend: text` is silently ignored — the
   switch OD-4 depends on does nothing. The text writer owns its own separators; the marker's lifecycle
   (when, which thread, restart, roll, retention) is five decisions; `svc-admin-web` must become
   backend-aware or refuse by name.
-- **[MA-4] ☐ — the developer journey** · **GATED on MA-2**, since OD-4 makes text the developer default
+- **[MA-4] ☐ — the developer journey** · **GATED on MA-2's text half**. **OD-4 DECIDED: the developer
+  text backend is the server's CONFIGURED LISTENER** (`bootServer(config, listener)`), not the capture
+  service — no `backend` switch, no `svc-admin-web` change, measured working end to end. Cost stated: it
+  is invisible to `audit.start`/`stop`, `liveSinks` and the admin file list, which is acceptable for a
+  journey whose point is opening the file. Since OD-4 makes text the developer default
   and text *is* MA-2. Mongoose audit-logs by default; the gap is persistence in a form the analyser can
   open.
 - **[MA-3] ☐ → moved to [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38).**
-- **[OD-5] ☐ — OWNER DECISION: does the Chronicle backend get a marker?** Blocks only MA-2's **Chronicle
-  half**; the text writer the developer journey depends on can proceed. An export-time marker is
+- **[OD-5] ☐ — OWNER DECISION: does the Chronicle backend get a marker?** Four options in the spec;
+  **(c) an export-time marker is REJECTED BY NAME** — it always reads `complete`, the manufactured marker
+  the skill forbids. Blocks only MA-2's **Chronicle half**; the text writer the developer journey depends on can proceed. An export-time marker is
   **rejected by name** — it would always read `complete`, the manufactured marker the skill forbids.
   Running the text writer as a second destination needs no Chronicle change once MA-5 lands. OD-2 (refuse) and OD-4 (text
   for developers) are taken; **OD-1 and OD-3 are moot**.
