@@ -174,7 +174,9 @@ M64's vocabulary; nothing new is needed for beats 1, 2, 5, 6.
   Spring AOT template plus a first run — stays available if this reading was wrong.)_
 - **D-X9 · The first three jars:** a limit check (the tour's extension), a notifier sink, a feed adapter — and one
   of them a jar the owner actually built before, in a placeholder package, so "you already have jars like this" is
-  literally true on stage.
+  literally true on stage. **2026-09-23:** owner selected the feed adapter but has no existing
+  artifact to hand. Building a new adapter is authorised; it must be labelled new. Reusing an
+  owner-built artifact remains a tracked D-X9 follow-up, not fulfilled by the new example.
 - **D-X10 · Timing:** the tour **waits for M66**. Beat 3 lights the declaration on first publication; the honest
   "here is the file" form is for rehearsal only. M67.3/.4 may be built and rehearsed against the branch before M66
   merges, but the skill is not pinned and the page is not published until beat 3 is lit.
