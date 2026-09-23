@@ -56,6 +56,22 @@ class CoveragePerNodeLevelTest {
                 """.formatted(logTime);
     }
 
+    private static CoverageService.Result assess(String yaml, boolean filtered,
+                                                 telamin.fluxtion.audit.analyser.analyser.filter.FilterState f) {
+        ProcessorTopology topology =
+                GraphMlParser.parse(resource("/topology/demo-quote-processor-noaudit.graphml"));
+        HeapLogStore store = new HeapLogStore(yaml);
+        return CoverageService.assess(store, filtered, f,
+                new CoverageService.Input(topology, Scaffolding.authoredNodes(topology), null));
+    }
+
+    /** A filter admitting only records in [from, to]. */
+    private static telamin.fluxtion.audit.analyser.analyser.filter.FilterState window(long from, long to) {
+        var f = new telamin.fluxtion.audit.analyser.analyser.filter.FilterState();
+        f.setTimeRange(from, to);
+        return f;
+    }
+
     private static CoverageService.Result assess(String yaml) {
         ProcessorTopology topology =
                 GraphMlParser.parse(resource("/topology/demo-quote-processor-noaudit.graphml"));
@@ -170,5 +186,121 @@ class CoveragePerNodeLevelTest {
 
         assertTrue(String.valueOf(r.echo().get("levelAnnotationsNote")).contains("still counted as uncovered"),
                 "the echo must say these are not excuses: " + r.echo().get("levelAnnotationsNote"));
+    }
+
+    // ------------------------------------------------------------------ filtered scope
+
+    /**
+     * MA-8.3 — a filter that hides the control record must NOT drop the annotation.
+     *
+     * <p>A level change is configuration state, not an event you happen to be looking at. Every earlier
+     * test ran unfiltered, which is why "drop all annotations when filtered" survived the whole suite.
+     */
+    @Test
+    void aFilterHidingTheControlRecordStillAnnotates() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+        String yaml = control(1000, node, "WARN") + plainRecord(1001) + plainRecord(1002);
+
+        CoverageService.Result filtered = assess(yaml, true, window(1001, 1002));
+        assertEquals("current filter", filtered.echo().get("scope"), "precondition: the filter is on");
+        assertTrue(annotations(filtered).containsKey(node),
+                "MA-8.3: the control record is outside the filter, but the level still applies to it. "
+                        + "annotations=" + annotations(filtered));
+    }
+
+    /**
+     * MA-8.4, scope END — a change that has not happened yet cannot explain earlier silence.
+     */
+    @Test
+    void aChangeAfterTheScopeDoesNotExplainSilenceBeforeIt() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+        String yaml = plainRecord(1000) + plainRecord(1001) + control(5000, node, "WARN");
+
+        CoverageService.Result filtered = assess(yaml, true, window(1000, 1001));
+        assertFalse(annotations(filtered).containsKey(node),
+                "the WARN was set at 5000, after everything in view — it explains nothing here: "
+                        + annotations(filtered));
+    }
+
+    /**
+     * MA-8.4, scope START — a window that CLOSED before the scope began explains nothing in it.
+     *
+     * <p>Clipping only the end left this annotated "WARN between 1001 and 1007" for a filter entirely
+     * after the restore — a window the scope never overlapped.
+     */
+    @Test
+    void aWindowThatClosedBeforeTheScopeDoesNotExplainSilenceInIt() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+        String yaml = control(1001, node, "WARN") + plainRecord(1002)
+                + control(1007, node, "INFO") + plainRecord(3000) + plainRecord(3001);
+
+        CoverageService.Result filtered = assess(yaml, true, window(3000, 3001));
+        assertFalse(annotations(filtered).containsKey(node),
+                "the WARN window closed at 1007, long before this scope began: " + annotations(filtered));
+    }
+
+    /** LOW — one group's change must not close another group's window. */
+    @Test
+    void oneGroupsChangeDoesNotCloseAnothersWindow() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+        String groupControl = """
+                eventLogRecord:
+                  logTime: 1000
+                  event: EventLogControlEvent
+                  eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=alpha}
+                  nodeLogs:
+                ---
+                eventLogRecord:
+                  logTime: 1005
+                  event: EventLogControlEvent
+                  eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=beta}
+                  nodeLogs:
+                ---
+                """;
+
+        CoverageService.Result r = assess(groupControl + plainRecord(1006));
+        assertTrue(annotations(r).containsKey(node),
+                "alpha's WARN window is still open — beta's change must not close it: " + annotations(r));
+        assertTrue(annotations(r).get(node).contains("alpha"), "and it names the group");
+    }
+
+    /** LOW — a lookalike event name is not a control event. */
+    @Test
+    void aLookalikeEventNameIsNotAControlEvent() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+        String fake = """
+                eventLogRecord:
+                  logTime: 1000
+                  event: FakeEventLogControlEventX
+                  eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=%s, groupId=null}
+                  nodeLogs:
+                ---
+                """.formatted(node);
+
+        assertFalse(annotations(assess(fake + plainRecord(1001))).containsKey(node),
+                "contains() accepted this; the simple name must match exactly");
+    }
+
+    /** LOW — a fully-qualified control event name is still recognised. */
+    @Test
+    void aFullyQualifiedControlEventNameIsRecognised() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+        String qualified = """
+                eventLogRecord:
+                  logTime: 1000
+                  event: com.telamin.fluxtion.runtime.audit.EventLogControlEvent
+                  eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=%s, groupId=null}
+                  nodeLogs:
+                ---
+                """.formatted(node);
+
+        assertTrue(annotations(assess(qualified + plainRecord(1001))).containsKey(node),
+                "the qualified name is the same event");
     }
 }

@@ -236,4 +236,37 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
         assertTrue(d.findings().stream().noneMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
                 "a comment before the record is legal and must not be reported: " + d.messages());
     }
+
+    // ---------------------------------------------------------------- BOM
+
+    private static final String BOM = "\uFEFF";
+
+    /**
+     * REGRESSION, caught by review. MA-6 first shipped using {@code trim()}, which keeps U+FEFF, so a
+     * healthy UTF-8 file with a byte-order mark was flagged as having no record key on record 1. The
+     * substring check it replaced had passed it.
+     *
+     * <p>It now uses {@code StreamEndMarker.strip} — the one that already handled this — rather than a
+     * second notion of whitespace. A duplicated framing rule drifting from the original is a failure
+     * this project has made often enough to name.
+     */
+    @Test
+    void aHealthyFileWithAByteOrderMarkIsNotFlagged() {
+        LogIndex idx = indexOf(record("Tick", 1));
+        ProducerDiagnostics d = diagnose(idx,
+                texts(BOM + "eventLogRecord:\n  nodeLogs:\n    - a: { v: 1}\n"));
+
+        assertTrue(d.findings().stream().noneMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
+                "a BOM is not a missing record key: " + d.messages());
+    }
+
+    /** And the check still works THROUGH a BOM: a headerless document is still named. */
+    @Test
+    void aHeaderlessDocumentBehindAByteOrderMarkIsStillNamed() {
+        LogIndex idx = indexOf(record("?", 0));
+        ProducerDiagnostics d = diagnose(idx, texts(BOM + "mainonRiskCheck195.3"));
+
+        assertTrue(d.findings().stream().anyMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
+                "the BOM must not become a way to hide a corrupt document: " + d.messages());
+    }
 }

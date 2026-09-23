@@ -50,7 +50,11 @@ public final class YamlAuditReader implements AuditLogReader {
                 // anyway, so an empty file of some other type is not claimed.
                 if (n <= 0) return hasAuditLogExtension(source);
                 String text = new String(head, 0, n, StandardCharsets.UTF_8);
-                if (text.isBlank()) return hasAuditLogExtension(source);
+                // A BOM-only file is empty too: isBlank() treats U+FEFF as a character, so a file
+                // holding nothing but a byte-order mark would otherwise be refused by every reader.
+                if (text.isBlank() || text.replace("﻿", "").isBlank()) {
+                    return hasAuditLogExtension(source);
+                }
                 return text.contains("eventLogRecord:");
             }
         } catch (IOException e) {
