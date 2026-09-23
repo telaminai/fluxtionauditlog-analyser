@@ -2,7 +2,7 @@
 
 **Status:** SHIPPED — M64.1–.9 in analyser 1.14.0 (2026-09-17), M64.10/.11/.12 in 1.15.0 (2026-09-18: a target may name its
 chart — `graph:<name>:…` — or reach a menu item — `menu:<Menu>:<item>`; the guidance says a call REPLACES unless `add: true`).
-M64.13 (menu follow-ups from the M64.11 review) remains open. Java source spotlight is implemented on `feat/java-source-spotlight-current`, pending independent review. History: ON MAIN 2026-09-17 (M64.1–.7; reviewed in two
+M64.13 (menu follow-ups from the M64.11 review) remains open. Java source spotlight is implemented on `feat/java-source-spotlight-current`, independent review at `0fbbdace`: MERGE; owner merge pending. History: ON MAIN 2026-09-17 (M64.1–.7; reviewed in two
 rounds and a two-reader re-review — record in `docs/handoff/completed/`, SHA map beside it); M64.8/.9/.10 then gated the 1.14.0
 release and shipped in it. Originally: implemented on branch `fix/m46-agent-api-closure`
 (`docs/handoff/completed/report_m64_spotlight.txt`); **extended the same day by D-SP6 and D-SP7** (owner direction: several
@@ -406,7 +406,8 @@ lighting the plot, rather than claiming the marker is absent. The companion mark
 
 The [reviewed source spotlight proposal](../proposals/source-spotlight.md) defines this extension and
 its acceptance/mutation checks. `source:java:<fqn>` means the visible Java text viewport;
-`source:java:<fqn>:line:<n>` means one logical line including wrapped rows. No node alias is added.
+`source:java:<fqn>:line:<n>` means one logical editor line including wrapped rows and the final empty
+line after a trailing newline. No node alias is added.
 
 Java resolves through the viewer's first-match roots/local-sources-jar policy, while `source {fqn}`
 retains its root-only duplicate refusal. Each accepted Java anchor carries its rendered-text revision,
@@ -415,7 +416,8 @@ policy. A batch prepares before any reveal (including record-row reveal); its wo
 and a superseded or ten-second-expired plan cannot publish later. The accepted selected-processor
 model is parsed from the same displayed snapshot.
 
-Java bands clip to their viewport and disclose `partial`; design bands retain v1.17.0's containment
+Java bands clip to their viewport and disclose `partial` only when a band is measurable; when none
+is measurable the qualification is omitted and remeasurement extinguishes the target. Design bands retain v1.17.0's containment
 refusal. Both viewers now notify remeasurement on viewport changes. Java bindings are transient,
 revision-bound, and removed when their document or surface stops being visible.
 

@@ -100,7 +100,7 @@ mvn -q test -Dtest=JavaSourceSpotlightFrameTest#graphAndJavaUseOneVisibleDestina
 The screenshot path is a generated output and is replaced by that command. Frame construction uses an
 isolated `user.home`. The example is a constructed one-node graph, not a claim about a running processor.
 
-## Boundaries and remaining review
+## Boundaries and review status
 
 - No new LLM sessions, paid generation, application execution, publication or release.
 - A third-party client's timeout shorter than ten seconds cannot be inferred from a disconnected HTTP
@@ -109,5 +109,7 @@ isolated `user.home`. The example is a constructed one-node graph, not a claim a
   terminal/ticket checks prohibit view/model/binding publication. Newly installed source jars still need
   resolver recreation, deliberately preserving the existing discovery contract.
 - Node shorthand, method/overload targets, saved tours and general callout-overlap work remain out of scope.
-- Independent review still owes its own gate runs and attack of the prepared-plan, first-match disclosure,
-  lifecycle and geometry boundaries. Do not interpret this author report as that review.
+- Independent review completed at `0fbbdace`: [report](review_java_source_spotlight_2026_09_23_claude.md),
+  verdict **MERGE**. It reran all gates and twelve mutations. The three low findings are answered in
+  [the follow-up response](response_java_source_spotlight_2026_09_23.md); its changes are author-verified
+  separately and were not present in the reviewed commit. Owner merge/release remains pending.

@@ -24,6 +24,13 @@ class JavaSpotlightPlanTest {
             var bad=SpotlightTarget.requests(Map.of("targets",List.of("source:java:demo.Outer",invalid)));
             assertThrows(IllegalArgumentException.class,()->JavaSpotlightPlan.read(lookup,bad.requests(),List.of()));
         }
+        // Line numbering follows Swing: one empty editor line after a trailing newline, not two.
+        var finalEmpty=SpotlightTarget.requests(Map.of("target","source:java:demo.Outer:line:3"));
+        assertEquals(1,JavaSpotlightPlan.read(lookup,finalEmpty.requests(),List.of()).targets().size());
+        var pastEnd=SpotlightTarget.requests(Map.of("target","source:java:demo.Outer:line:4"));
+        assertThrows(IllegalArgumentException.class,()->JavaSpotlightPlan.read(lookup,pastEnd.requests(),List.of()));
+        Files.writeString(file,"package demo;\npublic class Outer { class Inner {} }");
+        assertThrows(IllegalArgumentException.class,()->JavaSpotlightPlan.read(lookup,finalEmpty.requests(),List.of()),"no phantom line without a trailing newline");
         Path other=Files.writeString(tmp.resolve("demo/Other.java"),"package demo; class Other {}\n");
         var different=SpotlightTarget.requests(Map.of("targets",List.of("source:java:demo.Outer","source:java:demo.Other")));
         assertThrows(IllegalArgumentException.class,()->JavaSpotlightPlan.read(lookup,different.requests(),List.of()));

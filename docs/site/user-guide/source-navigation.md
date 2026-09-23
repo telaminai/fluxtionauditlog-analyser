@@ -57,7 +57,8 @@ processor or a node class.
 ## Point at Java beside the graph
 
 An assistant can light a named Java document with `source:java:<fqn>`, or a one-based logical line with
-`source:java:<fqn>:line:<n>`. Read the actual source before choosing a line number. There is no implicit
+`source:java:<fqn>:line:<n>`. Line numbers follow the editor: a trailing newline creates one final empty line that can also be
+anchored. Read the actual source before choosing a line number. There is no implicit
 current-file target or node-to-source inference.
 
 For example, after inspecting `com.acme.Node`, send one `spotlight` call:
@@ -99,7 +100,8 @@ cannot light a target. The built-in bridge allows sixty seconds; a client with a
 may give up earlier.
 
 A Java line band spans all wrapped rows and clips to the visible text viewport. `partial: true` says
-some of that logical line is outside the viewport. The whole-document target lights only the visible
+some of a measurable logical line is outside the viewport. If no band can be measured, `partial` is
+omitted; remeasurement puts that target out. The whole-document target lights only the visible
 text viewport, not its controls. Design XML keeps its different released rule: a line/declaration band
 must be wholly visible, while `source:design` means the whole design panel.
 

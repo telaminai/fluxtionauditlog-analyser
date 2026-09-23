@@ -2691,7 +2691,8 @@ public final class MainFrame extends JFrame {
                 one.put("anchor", binding.line() == null ? "document" : "line");
                 if (binding.line() != null) {
                     one.put("line", binding.line());
-                    one.put("partial", binding.viewer().javaBounds(binding.anchor(), binding.line()).map(SourcePanel.JavaBand::partial).orElse(true));
+                    binding.viewer().javaBounds(binding.anchor(), binding.line())
+                            .ifPresent(band -> one.put("partial", band.partial()));
                 }
             }
             if (withBounds) {

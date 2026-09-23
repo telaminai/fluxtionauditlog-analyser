@@ -15,3 +15,6 @@ Constructed regression fixtures; no participant session, paid generation or runt
 The [implementation report](../../report_java_source_spotlight_2026_09_23.md) records the predictions,
 outcomes and limitations. The script's `--only` option repeats one mutation. Run it alone in a disposable
 worktree with a display; it temporarily edits source. Rebuild afterward before using the application.
+
+Review follow-ups preserve the original record above. `baseline-guard-witness.json` records the Python
+checker rejecting a disabled baseline gate. `review-followup-mutations.json` records thirteen new green-baseline/red-mutation pairs; none of these results are retroactively added to the original witness runs.
