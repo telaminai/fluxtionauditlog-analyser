@@ -68,12 +68,33 @@ either is filed.
 
 ---
 
-## MON-U · Mongoose audit export — 2026-09-21
+## MON-U · Mongoose audit — 2026-09-21, updated 2026-09-23
 
-Status: **recorded, not implemented**. One ask, one line, and it gates
-[the stream-end contract](../specs/spec-audit-stream-end.md) reaching a real producer.
+Two items. **UP-MON-01 is implemented and reviewed**, on an unmerged branch, not yet released.
+**UP-MON-02 is newly found and not started**, and it matters more than its size suggests: it decides
+whether the analyser's central claim can be used on a processor at all.
 
-### UP-MON-01 ☐ The audit export must terminate its last document
+### UP-MON-01 ◐ The audit export must terminate its last document
+
+**Status, 2026-09-23: DONE on `telaminai/mongoose-plugins` branch `fix/audit-tail-thread-safety`**
+(tip `beadf70`, base `df12155`). Not merged, not released. Five rounds of independent review; no
+findings outstanding. The framing rule is extracted as `WebAdminService.YamlContainerWriter` rather than
+left inline, and driven by `YamlContainerWriterTest`.
+
+**Acceptance met, against the PUBLISHED analyser jar** — 1.18.0, sha256
+`5a8c2a4f070ad06a7804894391b5660d3fe160c14d6f382ddf2ddff3f79a2f02`, 3,914,217 bytes, downloaded from the
+release rather than built locally — reading an export produced by a **booted `MongooseServer`**:
+
+| Export | `log.streamEnd` | `records` |
+| --- | --- | --- |
+| with marker, exporter change in place | `{"state": "complete", "recordsRead": 40, "declaredRecords": 40}` | 40 |
+| with marker, final separator removed | `{"state": "unterminated_marker", "recordsRead": 40}` | 40 |
+| no marker | `{"state": "unknown", "recordsRead": 40}` | 40 |
+
+The middle row is the evidence that the one line is load-bearing. `records` is 40 in every row, so the
+marker is not counted as a record by a reader released before the exporter existed.
+
+The detail below is the ask as originally written, and is kept as the record of what was asked for.
 
 **Where.** `telaminai/mongoose-plugins`, `svc-admin-web`,
 `WebAdminService.handleAuditExport`. The YAML branch of its loop writes
@@ -94,10 +115,53 @@ producer must terminate it. The feature simply does not work.
 
 **Cost and risk.** One line. A trailing separator has always been legal under §1 — the separator
 separates records and blank text after the last one is skipped — and every existing reader accepts it,
-including released 1.17.0, verified. No reader needs to change.
+including released 1.17.0, verified — and 1.18.0, verified against a running producer's bytes. No reader
+needs to change.
 
 **Acceptance.** An export with a marker reads as `complete` in the analyser, and an export without one
 reads exactly as it does today.
+
+---
+
+### UP-MON-02 ☐ A `customHandler` processor emits NO audit records, so absence cannot be read
+
+**Where.** `telaminai/mongoose` core, the DataFlow built for a processor added as
+`EventProcessorConfig.builder().customHandler(...)`. Measured against `mongoose-1.0.29`.
+
+**The symptom.** A real handler, on a real agent thread, in a booted `MongooseServer` with
+`PerformanceMonitoringConfig.auditCapture` enabled, calling `auditLog.info(...)` on every event at level
+DEBUG, produces **zero** audit records. The sink is created and reports `isLive`, and the queue directory
+holds only `metadata.cq4t` — no data file is ever written.
+
+**The cause, read rather than inferred.** That DataFlow contains no `EventLogManager` auditor:
+`getAuditorById("eventLogger")` throws `NoSuchFieldException`. Unpacking all 170 classes of
+`mongoose-1.0.29` finds **no reference to `EventLogManager`, `addAuditor` or `EventLogControlEvent`** —
+nothing ever installs one. `POST /api/processors/{group}/{name}/audit/level` returns **200** and changes
+nothing, because there is no auditor for the level to reach.
+
+**Scope — this is NOT all processors.** An AOT-built processor does log. The conformance fixture
+`src/test/resources/conformance/c21-real-export.yaml`, a preserved real export, holds **25 records of
+which 7 carry node entries and 18 are empty** — counted, not assumed. The defect is specific to the
+DataFlow-for-`customHandler` construction path.
+
+**Why it matters more than its size.** The analyser's central claim is that **absence is evidence** — a
+node that never logged is a finding. On a processor built this way, absence means nothing at all, because
+nothing could ever have logged. Coverage, the audit-readiness verdict and every "this node never fired"
+conclusion are unusable on such a processor, and nothing at the analyser's end can tell the difference
+between "this node is silent" and "this whole processor cannot speak".
+
+**The likely fix, which the analyser already names.** `ProducerDiagnostics.NO_NODE_LOGS` reports that the
+`EventLogManager` auditor was never installed and names **`addEventAudit()`** as the missing call. The
+product already points at the cause and the remedy; what is missing is the call in the builder for this
+path.
+
+**Acceptance.** A processor added via `customHandler`, with the audit level at INFO, writes records
+carrying `nodeLogs` entries into its Chronicle sink, and its export loads in the analyser with a
+non-empty coverage denominator.
+
+**Evidence.** `AuditRunningServerAcceptanceTest.aCustomHandlerProcessorsAuditLogProducesNothing` on
+`fix/audit-tail-thread-safety` asserts the behaviour **as it is**, so the day it changes somebody is
+told. It does not assert that the behaviour is correct.
 
 ## TA-U · Tool-agreement upstream intake — 2026-09-21
 
