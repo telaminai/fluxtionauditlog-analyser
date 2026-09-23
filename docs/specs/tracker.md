@@ -339,14 +339,17 @@ one of rule 1's four sweep terms.**
 
 ## Spring-side work block — assembled 2026-09-23, to be done as ONE piece of work
 
-**Implementation checkpoint 2026-09-23:** compiler `a962d01c`, playground `21346be`, on
-`feat/spring-side-work-block`; local shared catalogue `b05f6e2`. BETA-B2, SG-2/F9/F11,
-G12/G5, formatting and G7 are implemented for independent review. Final gates: 86 builder +
-61 starter tests, 560 playground tests, five downloaded-project script paths; follow-up controls
-have 13 named seen-red witnesses and green baseline/restoration. [Review handoff](../handoff/report_spring_side_work_block_2026_09_23.md).
-**Still open:** carrying-tool publication, matching browser pin/deployment, G14 on the real public
-download, catalogue public resolution/integration and D-X9's previously owner-built provenance.
-No analyser code changed and no analyser server ran. These are branch results, not release claims.
+**Review-response checkpoint 2026-09-23:** `fix/spring-side-review-response` carries
+compiler `8db49c4c` (source `6e69b231`) and playground `9e2c112`; shared catalogue
+source branch `feat/spring-side-work-block` is available at `3a89391`.
+G18 access, G17 gate, G19 evidence scope and G20 named type keys are answered. H1 and
+M1–M6 have executable corrections and seen-red controls, awaiting independent re-review.
+[Response and exact gate commands](../handoff/response_spring_side_reviews_2026_09_23.md).
+The original implementation handoff is historical; its filtered counts are superseded.
+**Still open:** jar approval, carrying-tool publication, matching browser pin/deployment,
+G14 on the real public download, catalogue public binary resolution/integration and D-X9's
+previously owner-built provenance. Low review follow-ups and runtime metadata escaping
+remain open. No analyser code changed and no analyser server ran.
 
 <!-- branch-archive-evidence -->
 **G19 scope of the five generated-project checks and round trips:** these checks run
@@ -355,17 +358,16 @@ published **1.0.73**, which contains none of this work. They are branch evidence
 not evidence of what a user receives. G14 remains open for a carrying public release.
 <!-- end-branch-archive-evidence -->
 
-**Review intake:** both reports read. G's access/gate/scope/key findings are being
-addressed; the second review's H1/M1–M6 require correction before publication.
-Neither report is silently overridden by the other. The complete current Java gate is
-`JAVA_HOME=/path/to/jdk-21 ./mvnw -q -o -pl fluxtion-starter-core -am clean package`:
-263 builder tests (one existing packaged-jar-only skip), 62 starter tests, no failures/errors,
-measured before review-response source changes. Source-driven coverage check rejects the
-four suites omitted by the old filter. Historical stage counts below are not this gate.
-Playground `pnpm test` needs both FLUXTION_STARTER_TEST_JAR and FLUXTION_RUNTIME_TEST_JAR:
-with only the starter jar, 559 pass and the runtime callback probe skips; with both,
-560 pass and none skip (independently repeated in this response).
-
+**Both reviews addressed without overriding either verdict.** Final Java command:
+`JAVA_HOME=/path/to/jdk-21 bash tools/spring-authoring/run-local-gates.sh` runs the entire
+starter module and dependencies: **264 builder (one existing packaged-jar-only skip),
+71 starter (zero skips), zero failures/errors**; coverage guard and jar check pass.
+Playground `pnpm test` with both `FLUXTION_STARTER_TEST_JAR` and
+`FLUXTION_RUNTIME_TEST_JAR` as in the response: **563 passed, zero skipped**; build passes,
+type check retains four existing errors/six warnings. The earlier 559-plus-one-skip run
+omitted the runtime jar; its callback probe now runs. All five generated-project script
+paths pass, with the G19 scope below the checkpoint applying to every one. Hosted exports
+include wrong-expectation controls and clean stop; the pristine keyless bundle also passes.
 
 Owner's instruction, 2026-09-23: complete the Spring-side blockers together rather than as separate queue items,
 because they share owners, repositories and artefacts. **This section is an index, not a second home** — each item's
@@ -2020,7 +2022,7 @@ files (playground owner).
    rests on SG-2, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
    fewer efforts than the numbering implies.** BETA-B2 new-node stubs must audit before A2 measures
    the product rather than the tester; BETA-B3 the template decision plus a dry run of A1–A2 by someone other than the
-   author; BETA-B4 the three jars and the spec-derived check, none of which exists yet. BETA-B1's key journey passed with a
+   author; BETA-B4 the shared jars and spec-derived check, now implemented but awaiting approval (G18 source access is available). BETA-B1's key journey passed with a
    key present and the owner has settled acquisition for now; BETA-8's Haiku series says the routing line plus the fixer
    block is what makes the fault workflow reproducible, and names the A3 scoring gap to close.
 2. ☐ **Finish the tool agreement** — TA-5b implement and vendor the chosen follow route, then TA-5c its one spot-check

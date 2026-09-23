@@ -1,5 +1,10 @@
 # Spring-side work block — author handoff
 
+> Superseded for current status/counts by [the response to both independent reviews](response_spring_side_reviews_2026_09_23.md).
+> The catalogue now has a source remote; binary publication remains open. Earlier
+> playground counts require both test jars, and the old Java filter is not the current gate.
+
+
 Scope: the existing **Spring-side work block — assembled 2026-09-23** in the tracker.
 All implementation uses `feat/spring-side-work-block`; the analyser contains evidence/status only.
 No merge, rebase, force push, artifact publication, deployment, owner-key use or new client trial.
