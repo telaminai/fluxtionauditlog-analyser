@@ -154,9 +154,14 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 - **[BETA-B2] ☐ — new-node stubs must audit before the beta** · _feedback 6 / issue 3; otherwise A2 measures the
   product, not the tester (§11 carve-out)._ **Owned by the starter (compiler + playground), not the analyser — done as
   part of the [Spring-side work block](#spring-side-work-block--assembled-2026-09-23-to-be-done-as-one-piece-of-work).** Implementation intake 2026-09-23:
-  isolated `feat/spring-side-work-block` branches created; owner audit policy requested before
-  either emitter changes. Policy, implementation and acceptance remain open. No trial, key use,
-  publication or analyser code change has occurred.
+  **Policy settled; implemented on the feature branches, not published.** Owner chose INFO callback
+  facts: event name/current filter, trigger fired and lifecycle phase, including unfinished nodes;
+  retain existing superclasses using runtime logger injection. No inferred business-state dump.
+  Both emitters are covered by real audit-manager tests. Clean Java gate: 84 builder + 51 starter;
+  playground: 551 tests; no failures or skips. Five Java and three browser mutations reject missing
+  facts/disabled protection, with green baselines and restored green. Canonical policy is compiler
+  Spec 3 B4; playground commit `ec2b1f8`. Publication and independent review remain open; authors
+  still supply the values behind their decisions. No owner key, publication or analyser code change.
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
   standalone Spring, the only template with a verified local authoring route._ **That recommendation rests on SG-2
   being open; closing it in the Spring-side block widens the choice.** The dry run itself stays with the beta.
