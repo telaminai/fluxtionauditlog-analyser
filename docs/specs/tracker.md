@@ -282,9 +282,28 @@ those seams, so the order below groups by what a single change set can close.
   repeat it from a real download through its own `setup.sh`, with the frozen prompt, so the two runs are comparable.
   The witnessed browser preview of the design view is still outstanding.
 
+**Order inside the block, because the fan-out is uneven.** Do not work it top to bottom. Two items unblock other
+people and two unblock nobody, and a session handed a list will naturally start with the concrete reproducible
+defects rather than the policy work.
+
+1. **The new-node stub policy (BETA-B2).** Nothing in the beta can be judged until it lands, because the central task
+   measures the tester rather than the product without it.
+2. **SG-2, the hosted download.** It decides whether the template choice is made on merit or by elimination, and it is
+   what makes the guided path true for every route rather than one.
+3. **The jars**, built once for both BETA-B4 and M67.1.
+4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
+5. **G14**, the acceptance run from a real download, once the rest is in.
+
+**One decision is the owner's and must be settled before the work starts, not invented during it: what does a newly
+generated node log?** Too much costs allocation and dispatch time in a runtime that sells zero allocation, and fills
+the record with noise; too little leaves the gap the observed trial found, where a node had nothing to say about its
+own decision. The decision belongs in the compiler's Spec 3 B-series alongside the other generated-member rules, and
+the implementing session records it there rather than here.
+
 **Not in this block:** the analyser's own instrument defects (DX-02 to DX-05, WS-1, WS-2). They are analyser work and
 they gate the beta's invite-the-attack step for a different reason — a tester must not be invited to find a hole we
-already know about.
+already know about. Run them alongside rather than after: they are small, they belong to different owners, and they
+are what makes the instrument argue against itself in front of a stranger.
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
