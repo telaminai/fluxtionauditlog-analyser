@@ -1,6 +1,10 @@
 # Mongoose produces an audit log the analyser can trust (Design Spec)
 
-_Status: **PROPOSED 2026-09-23, not started.** One spec for the whole producer side, replacing the
+_Status: **PROPOSED 2026-09-23, not started. Reviewed twice (both CHANGES REQUIRED, both answered) and
+rescoped three times** — most recently 2026-09-23, when the owner confirmed `customHandler` is an edge
+case, which turned MA-1 from "install an auditor" into "say you cannot audit" and made OD-3 moot.
+Open owner decisions: **none blocking** — OD-1 (opt-in), OD-2 (option ii) and OD-4 (text for developers,
+Chronicle deployed) are taken; OD-3 is moot.** One spec for the whole producer side, replacing the
 scattered record of it: tracker AF-4, `UP-MON-02` in [upstream asks](../proposals/upstream-asks.md), and
 [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). The reader half shipped in
 analyser **1.18.0** and the exporter half in `mongoose-plugins` **1.0.44**; this is what remains.
@@ -109,6 +113,238 @@ properly. Pointing them at the real thing is the better product answer, not the 
    naming the reason and the remedy (use an AOT-built processor), rather than silent success.
 2. `POST …/audit/level` for such a processor **does not return 200** as though it had worked.
 3. A regression check for each, since both failures are currently silent.
+
+**The superseded analysis** — how the auditor would have been installed, the coverage cap, and the three
+reframings it took to get here — is kept in the appendix at the end rather than inline. It is no longer
+load-bearing, and at 250 lines it was half this document for an item that is now three acceptances.
+
+
+## MA-2 · The marker writer — blocked on MA-0, not on MA-1
+
+Mongoose writes the text audit file directly, ending with a stream-end marker, so a reader can tell a
+whole log from a truncated one. This is tracker AF-4 item 1. **Blocked on MA-0** — an empty log must be
+reported as such before a marker starts labelling empty logs `complete`.
+
+### D-MA2 · Per-node entry parity, not a record count
+
+The marker declares what was written. §1a's count is over **records**, but the thing worth checking is
+that each record's node entries survived — a record count alone passes while every record is empty.
+
+**Parity CANNOT travel in the marker, and review corrected this.** §1a's recognition rule admits only
+`streamEnd`, `streamEndRecords` and `logTime`; **any other key makes the document an ordinary record**.
+A per-node count would therefore need a format change — the stream-end spec's own open question 2 already
+records that a second count is one. So parity is an **acceptance-time comparison** — the handler's ground
+truth against the reader's parse — not something the writer declares or a runtime reader can check.
+Stated explicitly because an implementer would otherwise try to put it in the marker.
+
+### D-MA3 · Config validation refuses unknown values by name
+
+A `streamEnd` value the writer does not recognise is refused at configuration time, naming the value and
+the accepted set, rather than written and left for a reader to interpret.
+
+### D-MA4 · The separator is not this writer's job
+
+Settled and shipped: it belongs to the export formatter, done in `1.0.44`. A marker writer that tries to
+terminate its own document is writing someone else's byte.
+
+### Acceptance MA-2
+
+1. An export carrying a marker reads **`complete`** in the released analyser, with `declaredRecords`
+   equal to `recordsRead` **and `recordsRead > 0`, those records carrying node entries**. The bare
+   version of this acceptance passes on an empty log, which is the case MA-0 exists for.
+2. An export **without** one reads exactly as it does today.
+3. A run killed **before the marker's terminating separator is flushed** reads `unterminated_marker` or
+   `unknown` — never `complete`. Scoped deliberately: killed before any record → `unknown`; mid-record →
+   `unknown`; mid-marker → `unterminated_marker`; **after the separator is flushed → `complete`, which is
+   correct**. An unscoped "never `complete`" is false for the one case where `complete` is right.
+4. **Byte-identical to a known-good export modulo the marker and the final separator.** The original
+   acceptance said "modulo the marker" alone; §1a rule 1 makes that impossible, because a known-good
+   export has no trailing separator. Recorded because the withdrawn version is still quoted in places.
+5. Verified against the **published** analyser jar, by digest, not a local build.
+
+## MA-4 · Default-off and undocumented — added 2026-09-23, and the spec was incomplete without it
+
+Asked by the owner: *does Mongoose log with text in the developer download by default?*
+
+**First, a correction to an earlier answer in this spec, because the owner was right to push back.**
+Mongoose **does** audit-log by default. `MongooseServer` installs its own `LogRecordListener` at boot —
+a static lambda routing records to its `java.util.logging` logger — and passes it to
+`DataFlow.setAuditLogProcessor` for every processor. Core's own code uses `auditLog` (for example
+`BatchDtoHandler`). So a developer running an example **does** see audit output, and examples can rely
+on it. An earlier draft of this section said capture was "off entirely", which conflated **logging**
+with **persistence**. They are different, and only the second is off.
+
+**What is actually missing is a file the analyser can open.**
+
+| | State today | Fixed by |
+| --- | --- | --- |
+| Audit records reaching a listener | **ON by default** — `MongooseServer`'s JUL listener — **but only while persistence is OFF**, see MA-5 | already works |
+| A processor built from a `customHandler` | produces **nothing** for that listener to receive | MA-1 |
+| `AuditCaptureConfig.enabled` — persistence | **`false`**; without it nothing is retained | nothing in this spec |
+| What persistence writes when on | a **Chronicle binary queue** at `./audit`; the record text is the excerpt payload, the container is not text | MA-2 |
+| How analyser-readable text is obtained | only `GET /api/audit/file/{id}/export?format=yaml`, which needs `svc-admin-web` — not core | MA-2 |
+| Developer examples | **no example in mongoose CORE** enables persistence — but the **playground's `analyser-bundle` template, which IS the developer download, ships `auditCapture: enabled: true`**. Scope corrected after review. | partly decided already |
+| Core documentation | `auditCapture` appears in no `docs/*.md`; it does appear once in `design-doc/backpressure-and-slow-consumer-handling.md` | nothing in this spec |
+
+**Persistence REPLACES logging; it does not add to it.** The table above first presented the two as
+additive. They are alternatives — see MA-5, which review found and I confirmed in the source.
+
+**So the developer journey breaks at persistence, not at logging.** Records go to the console, where they
+cannot be opened, compared, or reasoned about by the analyser — and the moment the process exits they are
+gone. That is the gap, and it is narrower and more fixable than the earlier draft implied.
+
+**This is the "ships and does nothing" failure again**, in a new place. UP-MON-01 was worth doing only
+because something would eventually write a marker; MA-1 and MA-2 are worth doing only if a developer
+can reach the result. A capability that is off by default, undocumented, and requires a separate plugin
+to read is one almost nobody will find.
+
+### D-MA5 · Making it work is not the same as making it reachable, and the spec must say which it is doing
+
+MA-1 and MA-2 make audit logging **possible and trustworthy**. They do not make it **on**, **discoverable**
+or **documented**. Those are a product decision, not a consequence.
+
+**OD-4 — DECIDED 2026-09-23: TEXT as the developer default, CHRONICLE when deployed.** The developer
+download writes analyser-readable text directly, so a new user can open their audit log without the
+export endpoint, a plugin, or knowing `auditCapture` exists. Deployed configurations keep Chronicle,
+which is what the throughput path needs.
+
+**This makes MA-2 load-bearing for the developer journey**, not merely for completeness claims: text as
+the default *is* MA-2, Mongoose writing the text file directly. Until MA-2 ships the developer default
+cannot change, so **MA-4 is gated on MA-2** rather than just improved by it.
+
+**Still open under OD-4:** whether core's own examples match the playground's persistence setting, and
+where `auditCapture` is documented.
+
+The original framing, kept for the record:
+
+- **Default persistence on?** Partly decided already: the developer download ships it **on**, as
+  Chronicle, relying on `svc-admin-web`'s export. The live question is **text versus Chronicle** by
+  default, and whether core's own examples should match the playground. Recording costs — `UP-FLX-51` measured ~120 ns/event for a manager recording nothing —
+  so "on for everyone" is a real choice, not a free one. "On in the developer/example configuration,
+  off in production defaults" is the obvious middle and should be considered explicitly.
+- **Text or Chronicle by default?** MA-2 makes direct text possible. Text is readable by the analyser
+  with no plugin; Chronicle is faster and needs the export endpoint.
+- **Documented where?** `auditCapture` is absent from core's docs entirely. At minimum one page, and
+  one example config that turns it on.
+
+### Acceptance MA-4
+
+A developer who downloads Mongoose and follows the getting-started path **ends up with an audit log they
+can open in the analyser**, without knowing that `auditCapture` exists. If that journey still requires
+prior knowledge, MA-1 and MA-2 have not delivered a user-visible capability.
+
+## MA-5 · Capture REPLACES the console listener, and stopping it discards audit entirely
+
+**Found by review, confirmed in the source.** `ChronicleAuditCaptureService` carries a comment promising
+behaviour its code does not implement:
+
+> *"Compose the capture listener IN FRONT of whatever listener mongoose already installed … we wrap our
+> listener with a delegate that fans to the previous one if present. The previous listener is what we'll
+> restore in stopRecording."*
+
+The code immediately below sets `this.previousListener = null` and calls
+`setAuditLogProcessor(captureListener)`. So:
+
+- **MA-5a — capture replaces the console listener.** Turning persistence on silently stops audit records
+  reaching the console. Observed on a template run: 5 records at startup, then none, while events flowed
+  to Chronicle.
+- **MA-5b — `stopRecording()` installs a no-op**, not the previous listener, because the previous
+  listener was never kept. After capture is stopped — through the admin API, say — audit output goes to
+  **neither the console nor a file** until the server restarts.
+
+**MA-5b is this spec's own defect class**: a live processor, auditing apparently on, output silently
+discarded. It is the same shape as the audit-tail socket that connected, reported healthy and delivered
+nothing.
+
+**The fix is what the comment already describes:** keep the previous listener, fan out to it while
+capturing, restore it on stop. Small, and it removes a silent-discard path.
+
+### Acceptance MA-5
+
+1. With capture on, a record reaches **both** the Chronicle queue and the previously installed listener.
+2. After `stopRecording()`, records reach the listener that was installed before capture started — not a
+   no-op, and without a restart.
+3. A regression check for each, since both failures are silent.
+
+## MA-3 · MOVED to `mongoose-plugins#38`
+
+Review is right that it belongs there: it shares no code and no ordering with the rest of this spec. The
+acceptance below stays as the pointer; the work is tracked in the issue.
+
+### The pointer
+
+[mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). Independent of MA-1 and
+MA-2 and much smaller; included so the producer side has one list.
+
+The ceiling is guarded at unit level by `AuditTailTickTest`, where a **failing send** is the condition. A
+live test was written and failed on its own premise: a JDK websocket client that stops calling `request()`
+applies flow control in its listener, not on the wire, so the server's sends kept succeeding and the batch
+never grew.
+
+### Acceptance MA-3
+
+A client that completes the upgrade and then stops reading **at TCP level** drives the pending batch to
+`MAX_PENDING`; the server logs `client fell behind`, sends the `err` frame and closes the session.
+
+## Out of scope, explicitly
+
+- ~~The per-node `NONE` corruption~~ — **WRONG, and moved in-scope as a dependency.** I wrote that its
+  description could not be found. It is **AFMT-3**, in `docs/specs/tracker.md` (under *Audit format*) and
+  in `docs/proposals/mongoose-audit-format/README.md` §§102-106 and 267-271, **with a repro**
+  (`…/audit-format-review-2026-09-21/rev5/LevelTest3.java`): after
+  `EventLogControlEvent(sourceId, null, NONE)` the next record keeps its values but loses its header,
+  keys and newlines, for every node. Cause undiagnosed. It is a **dependency** of this spec, not adjacent
+  to it: MA-1.3 drives levels through the same control event, and OD-1's `NONE` default touches the same
+  path. See the Ordering block.
+- **AF-6, the coupled analyser documents.** Blocked on MA-2 shipping, by design: until a marker is
+  written, the statement that Mongoose does not write analyser-readable text directly is still true.
+- **Binary audit encoding**, `spec-binary-audit-encoding.md`.
+
+## Ordering
+
+**The ordering block lives once, at the top of this spec**, under *"The measurement, and the argument I
+built on it — WITHDRAWN after review"*. A second copy stood here and still carried the **withdrawn**
+ordering — MA-2 blocked on MA-1, no MA-0, no MA-5, MA-3 in scope — so an implementer skimming to the end
+would have got exactly the ordering this spec retracted. Deleted rather than duplicated: two copies of an
+ordering is how the stale one survives.
+
+The only downstream item not in that block: **AF-6**, the coupled analyser documents, blocked on MA-2
+shipping and tracked in the tracker rather than here.
+
+## What is verified, and what is only read
+
+**Review, 2026-09-23.** Two rounds, both CHANGES REQUIRED, both now answered. The first review
+(`review_mongoose_audit_production_2026_09_23_claude.md`) **overturned this spec's central argument** —
+`complete` is a true container claim, and MA-1 does not close the empty-log hole. The second
+(`..._r2_...`) found MA-5. Both are committed beside this spec; the first sat unread in the reviewer's
+worktree for a round because **my brief told them to leave it uncommitted**, which is the wrong
+instruction for a handoff review and is corrected in the brief.
+
+**Verified by running, 2026-09-23:** the empty-but-claimed-complete measurement against the published
+1.18.0 jar (sha256 `5a8c2a4f070ad06a7804894391b5660d3fe160c14d6f382ddf2ddff3f79a2f02`); the zero-record
+emission on a booted `MongooseServer`; the `getAuditorById` failure; the c21 counts of 25/7/18.
+
+**Read, not run:** `DefaultEventProcessor`'s declared fields (via `javap` on
+`fluxtion-runtime-1.0.15.jar`); `EventProcessorConfig.getEventHandler()` and `ConfigAwareEventProcessor`
+source on `develop` `17a03b4`.
+
+**Verified by running after review:** that a correctly audited processor at a quiet level writes an
+effectively empty log — the same handler gave **5 records at DEBUG and 1 at WARN**, which is what
+withdrew the ordering constraint. AFMT-3's existence and location. MA-5a/MA-5b in the source.
+
+**Not established:** the per-event cost of an
+`EventLogManager` after `UP-FLX-51`; whether any AOT path in Mongoose is also affected; **AFMT-3's
+cause**, which is now a dependency rather than out of scope.
+
+---
+
+## Appendix · The superseded MA-1 analysis
+
+**Kept, not deleted.** None of this is load-bearing any more: MA-1 is a refusal, not an installation. It
+is retained because three rounds of reframing happened here, the reasoning is the record of why the
+answer is (ii), and the (b) spike is what makes (ii) a choice rather than a concession.
+
+**Read it only if** you are revisiting whether an auditor should be installed on the wrapper path.
 
 ### The original finding, kept as the record of why
 
@@ -349,7 +585,7 @@ Available under either: have the analyser report the wrapper path explicitly, so
 coverage claim is not read as a clean one**. (Not "a four-node denominator" — there is none on this
 path; see D-MA1b.)
 
-### Acceptance MA-1
+### Acceptance MA-1 — SUPERSEDED (the live one is in MA-1 above)
 
 1. A processor added via `EventProcessorConfig.builder().customHandler(...)`, audit level INFO, writes
    records **carrying `nodeLogs` entries** into its Chronicle sink.
@@ -362,220 +598,3 @@ path; see D-MA1b.)
    vacuously on an empty log.
 5. A regression check that fails if the auditor stops being installed — per CLAUDE.md rule 8, the finding
    is not closed until the check that would catch it next time exists.
-
-## MA-2 · The marker writer — blocked on MA-0, not on MA-1
-
-Mongoose writes the text audit file directly, ending with a stream-end marker, so a reader can tell a
-whole log from a truncated one. This is tracker AF-4 item 1. **Blocked on MA-0** — an empty log must be
-reported as such before a marker starts labelling empty logs `complete`.
-
-### D-MA2 · Per-node entry parity, not a record count
-
-The marker declares what was written. §1a's count is over **records**, but the thing worth checking is
-that each record's node entries survived — a record count alone passes while every record is empty.
-
-**Parity CANNOT travel in the marker, and review corrected this.** §1a's recognition rule admits only
-`streamEnd`, `streamEndRecords` and `logTime`; **any other key makes the document an ordinary record**.
-A per-node count would therefore need a format change — the stream-end spec's own open question 2 already
-records that a second count is one. So parity is an **acceptance-time comparison** — the handler's ground
-truth against the reader's parse — not something the writer declares or a runtime reader can check.
-Stated explicitly because an implementer would otherwise try to put it in the marker.
-
-### D-MA3 · Config validation refuses unknown values by name
-
-A `streamEnd` value the writer does not recognise is refused at configuration time, naming the value and
-the accepted set, rather than written and left for a reader to interpret.
-
-### D-MA4 · The separator is not this writer's job
-
-Settled and shipped: it belongs to the export formatter, done in `1.0.44`. A marker writer that tries to
-terminate its own document is writing someone else's byte.
-
-### Acceptance MA-2
-
-1. An export carrying a marker reads **`complete`** in the released analyser, with `declaredRecords`
-   equal to `recordsRead` **and `recordsRead > 0`, those records carrying node entries**. The bare
-   version of this acceptance passes on an empty log, which is the case MA-0 exists for.
-2. An export **without** one reads exactly as it does today.
-3. A run killed **before the marker's terminating separator is flushed** reads `unterminated_marker` or
-   `unknown` — never `complete`. Scoped deliberately: killed before any record → `unknown`; mid-record →
-   `unknown`; mid-marker → `unterminated_marker`; **after the separator is flushed → `complete`, which is
-   correct**. An unscoped "never `complete`" is false for the one case where `complete` is right.
-4. **Byte-identical to a known-good export modulo the marker and the final separator.** The original
-   acceptance said "modulo the marker" alone; §1a rule 1 makes that impossible, because a known-good
-   export has no trailing separator. Recorded because the withdrawn version is still quoted in places.
-5. Verified against the **published** analyser jar, by digest, not a local build.
-
-## MA-4 · Default-off and undocumented — added 2026-09-23, and the spec was incomplete without it
-
-Asked by the owner: *does Mongoose log with text in the developer download by default?*
-
-**First, a correction to an earlier answer in this spec, because the owner was right to push back.**
-Mongoose **does** audit-log by default. `MongooseServer` installs its own `LogRecordListener` at boot —
-a static lambda routing records to its `java.util.logging` logger — and passes it to
-`DataFlow.setAuditLogProcessor` for every processor. Core's own code uses `auditLog` (for example
-`BatchDtoHandler`). So a developer running an example **does** see audit output, and examples can rely
-on it. An earlier draft of this section said capture was "off entirely", which conflated **logging**
-with **persistence**. They are different, and only the second is off.
-
-**What is actually missing is a file the analyser can open.**
-
-| | State today | Fixed by |
-| --- | --- | --- |
-| Audit records reaching a listener | **ON by default** — `MongooseServer`'s JUL listener — **but only while persistence is OFF**, see MA-5 | already works |
-| A processor built from a `customHandler` | produces **nothing** for that listener to receive | MA-1 |
-| `AuditCaptureConfig.enabled` — persistence | **`false`**; without it nothing is retained | nothing in this spec |
-| What persistence writes when on | a **Chronicle binary queue** at `./audit`; the record text is the excerpt payload, the container is not text | MA-2 |
-| How analyser-readable text is obtained | only `GET /api/audit/file/{id}/export?format=yaml`, which needs `svc-admin-web` — not core | MA-2 |
-| Developer examples | **no example in mongoose CORE** enables persistence — but the **playground's `analyser-bundle` template, which IS the developer download, ships `auditCapture: enabled: true`**. Scope corrected after review. | partly decided already |
-| Core documentation | `auditCapture` appears in no `docs/*.md`; it does appear once in `design-doc/backpressure-and-slow-consumer-handling.md` | nothing in this spec |
-
-**Persistence REPLACES logging; it does not add to it.** The table above first presented the two as
-additive. They are alternatives — see MA-5, which review found and I confirmed in the source.
-
-**So the developer journey breaks at persistence, not at logging.** Records go to the console, where they
-cannot be opened, compared, or reasoned about by the analyser — and the moment the process exits they are
-gone. That is the gap, and it is narrower and more fixable than the earlier draft implied.
-
-**This is the "ships and does nothing" failure again**, in a new place. UP-MON-01 was worth doing only
-because something would eventually write a marker; MA-1 and MA-2 are worth doing only if a developer
-can reach the result. A capability that is off by default, undocumented, and requires a separate plugin
-to read is one almost nobody will find.
-
-## MA-5 · Capture REPLACES the console listener, and stopping it discards audit entirely
-
-**Found by review, confirmed in the source.** `ChronicleAuditCaptureService` carries a comment promising
-behaviour its code does not implement:
-
-> *"Compose the capture listener IN FRONT of whatever listener mongoose already installed … we wrap our
-> listener with a delegate that fans to the previous one if present. The previous listener is what we'll
-> restore in stopRecording."*
-
-The code immediately below sets `this.previousListener = null` and calls
-`setAuditLogProcessor(captureListener)`. So:
-
-- **MA-5a — capture replaces the console listener.** Turning persistence on silently stops audit records
-  reaching the console. Observed on a template run: 5 records at startup, then none, while events flowed
-  to Chronicle.
-- **MA-5b — `stopRecording()` installs a no-op**, not the previous listener, because the previous
-  listener was never kept. After capture is stopped — through the admin API, say — audit output goes to
-  **neither the console nor a file** until the server restarts.
-
-**MA-5b is this spec's own defect class**: a live processor, auditing apparently on, output silently
-discarded. It is the same shape as the audit-tail socket that connected, reported healthy and delivered
-nothing.
-
-**The fix is what the comment already describes:** keep the previous listener, fan out to it while
-capturing, restore it on stop. Small, and it removes a silent-discard path.
-
-### Acceptance MA-5
-
-1. With capture on, a record reaches **both** the Chronicle queue and the previously installed listener.
-2. After `stopRecording()`, records reach the listener that was installed before capture started — not a
-   no-op, and without a restart.
-3. A regression check for each, since both failures are silent.
-
-### D-MA5 · Making it work is not the same as making it reachable, and the spec must say which it is doing
-
-MA-1 and MA-2 make audit logging **possible and trustworthy**. They do not make it **on**, **discoverable**
-or **documented**. Those are a product decision, not a consequence.
-
-**OD-4 — DECIDED 2026-09-23: TEXT as the developer default, CHRONICLE when deployed.** The developer
-download writes analyser-readable text directly, so a new user can open their audit log without the
-export endpoint, a plugin, or knowing `auditCapture` exists. Deployed configurations keep Chronicle,
-which is what the throughput path needs.
-
-**This makes MA-2 load-bearing for the developer journey**, not merely for completeness claims: text as
-the default *is* MA-2, Mongoose writing the text file directly. Until MA-2 ships the developer default
-cannot change, so **MA-4 is gated on MA-2** rather than just improved by it.
-
-**Still open under OD-4:** whether core's own examples match the playground's persistence setting, and
-where `auditCapture` is documented.
-
-The original framing, kept for the record:
-
-- **Default persistence on?** Partly decided already: the developer download ships it **on**, as
-  Chronicle, relying on `svc-admin-web`'s export. The live question is **text versus Chronicle** by
-  default, and whether core's own examples should match the playground. Recording costs — `UP-FLX-51` measured ~120 ns/event for a manager recording nothing —
-  so "on for everyone" is a real choice, not a free one. "On in the developer/example configuration,
-  off in production defaults" is the obvious middle and should be considered explicitly.
-- **Text or Chronicle by default?** MA-2 makes direct text possible. Text is readable by the analyser
-  with no plugin; Chronicle is faster and needs the export endpoint.
-- **Documented where?** `auditCapture` is absent from core's docs entirely. At minimum one page, and
-  one example config that turns it on.
-
-### Acceptance MA-4
-
-A developer who downloads Mongoose and follows the getting-started path **ends up with an audit log they
-can open in the analyser**, without knowing that `auditCapture` exists. If that journey still requires
-prior knowledge, MA-1 and MA-2 have not delivered a user-visible capability.
-
-## MA-3 · MOVED to `mongoose-plugins#38`
-
-Review is right that it belongs there: it shares no code and no ordering with the rest of this spec. The
-acceptance below stays as the pointer; the work is tracked in the issue.
-
-### The pointer
-
-[mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). Independent of MA-1 and
-MA-2 and much smaller; included so the producer side has one list.
-
-The ceiling is guarded at unit level by `AuditTailTickTest`, where a **failing send** is the condition. A
-live test was written and failed on its own premise: a JDK websocket client that stops calling `request()`
-applies flow control in its listener, not on the wire, so the server's sends kept succeeding and the batch
-never grew.
-
-### Acceptance MA-3
-
-A client that completes the upgrade and then stops reading **at TCP level** drives the pending batch to
-`MAX_PENDING`; the server logs `client fell behind`, sends the `err` frame and closes the session.
-
-## Out of scope, explicitly
-
-- ~~The per-node `NONE` corruption~~ — **WRONG, and moved in-scope as a dependency.** I wrote that its
-  description could not be found. It is **AFMT-3**, in `docs/specs/tracker.md` (under *Audit format*) and
-  in `docs/proposals/mongoose-audit-format/README.md` §§102-106 and 267-271, **with a repro**
-  (`…/audit-format-review-2026-09-21/rev5/LevelTest3.java`): after
-  `EventLogControlEvent(sourceId, null, NONE)` the next record keeps its values but loses its header,
-  keys and newlines, for every node. Cause undiagnosed. It is a **dependency** of this spec, not adjacent
-  to it: MA-1.3 drives levels through the same control event, and OD-1's `NONE` default touches the same
-  path. See the Ordering block.
-- **AF-6, the coupled analyser documents.** Blocked on MA-2 shipping, by design: until a marker is
-  written, the statement that Mongoose does not write analyser-readable text directly is still true.
-- **Binary audit encoding**, `spec-binary-audit-encoding.md`.
-
-## Ordering
-
-**The ordering block lives once, at the top of this spec**, under *"The measurement, and the argument I
-built on it — WITHDRAWN after review"*. A second copy stood here and still carried the **withdrawn**
-ordering — MA-2 blocked on MA-1, no MA-0, no MA-5, MA-3 in scope — so an implementer skimming to the end
-would have got exactly the ordering this spec retracted. Deleted rather than duplicated: two copies of an
-ordering is how the stale one survives.
-
-The only downstream item not in that block: **AF-6**, the coupled analyser documents, blocked on MA-2
-shipping and tracked in the tracker rather than here.
-
-## What is verified, and what is only read
-
-**Review, 2026-09-23.** Two rounds, both CHANGES REQUIRED, both now answered. The first review
-(`review_mongoose_audit_production_2026_09_23_claude.md`) **overturned this spec's central argument** —
-`complete` is a true container claim, and MA-1 does not close the empty-log hole. The second
-(`..._r2_...`) found MA-5. Both are committed beside this spec; the first sat unread in the reviewer's
-worktree for a round because **my brief told them to leave it uncommitted**, which is the wrong
-instruction for a handoff review and is corrected in the brief.
-
-**Verified by running, 2026-09-23:** the empty-but-claimed-complete measurement against the published
-1.18.0 jar (sha256 `5a8c2a4f070ad06a7804894391b5660d3fe160c14d6f382ddf2ddff3f79a2f02`); the zero-record
-emission on a booted `MongooseServer`; the `getAuditorById` failure; the c21 counts of 25/7/18.
-
-**Read, not run:** `DefaultEventProcessor`'s declared fields (via `javap` on
-`fluxtion-runtime-1.0.15.jar`); `EventProcessorConfig.getEventHandler()` and `ConfigAwareEventProcessor`
-source on `develop` `17a03b4`.
-
-**Verified by running after review:** that a correctly audited processor at a quiet level writes an
-effectively empty log — the same handler gave **5 records at DEBUG and 1 at WARN**, which is what
-withdrew the ordering constraint. AFMT-3's existence and location. MA-5a/MA-5b in the source.
-
-**Not established:** the per-event cost of an
-`EventLogManager` after `UP-FLX-51`; whether any AOT path in Mongoose is also affected; **AFMT-3's
-cause**, which is now a dependency rather than out of scope.
