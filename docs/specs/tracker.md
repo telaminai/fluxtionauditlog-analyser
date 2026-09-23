@@ -6,6 +6,43 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+- **[AF-8] ☐ — OWNER DECISION NEEDED: does a record scalar support a trailing `#` comment?**
+  _Found 2026-09-21 while checking the vendor-integration pages for the same defect class. Not from the
+  stream-end branch; it is in **released, published** `format-spec.md` §2._ **§2's normative example is
+  annotated with trailing `#` comments on almost every line, and the reference parser does not treat `#`
+  as a comment on a value line.** Measured on a file written in exactly the shape that example teaches:
+
+  ```
+  kind       = OK
+  logTime    = null                  <- every record falls off the timeline
+  event      = [ExportFunctionAuditEvent      # event class or trigger type]
+  groupingId = [null                     # optional correlation id]
+  ```
+
+  Loaded as a file, `minLogTime` and `maxLogTime` are both **null** and every record reports `OK`. The
+  time filter, the graph axis, coverage windows and the time-order check all read that one field, so the
+  failure is total and completely silent, and the thing teaching the shape is the specification's own
+  example. §2's field table never says whether a trailing comment is allowed.
+
+  **Scope, measured rather than assumed.** No shipped artefact is affected: not `sample.yml`, not the
+  demo asset, not any conformance fixture. The exposure is an adapter author copying the example, which
+  is the audience §2 exists for.
+
+  **An inconsistency I introduced.** §1a's recognition rule (stream-end branch) says an unquoted `#`
+  begins a comment, because the marker recogniser strips them. So the format now states one rule for
+  `streamEnd` values and has different, undeclared behaviour for every other scalar in the same record.
+  I made an existing inconsistency normative without noticing it was one.
+
+  **Why this is an owner decision and not a fix.** The two answers are different products:
+  (a) comments ARE supported — `RecordParser` changes, and so does how every released reader reads every
+  value, for every producer that has ever written a `#` inside one; or
+  (b) comments are NOT supported — §2's example is de-annotated, the field table says so, and §1a's
+  comment rule for markers is removed as the odd one out.
+  **Not started, and nothing done on either path.** Whichever is chosen, the guard is the same and it
+  already exists in miniature: extend `PublishedSpecExamplesTest` to parse **every** published
+  `eventLogRecord` example, not only the marker ones. That test is what would have caught this, scoped
+  one notch too narrowly.
+
 ## Beta — [proposal](../proposals/beta-testing/README.md), sixth draft (2026-09-21)
 
 Rewritten after the public release: the battery is retired, acquisition is measured, the journal is replaced by
