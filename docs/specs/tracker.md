@@ -103,7 +103,7 @@ still to do.
   (`riskCheck`/`rootNode`). A marked file holding a corrupt record reads `complete` **with no finding**,
   so a marker would vouch for corruption. **The tracker repro below is stale** — it targets `volumeTotal`,
   absent from today's bundle, so re-running it wrongly looks clean.
-- **[MA-2] ☐ — the text backend and the marker** · **BLOCKED** on AFMT-3 and on **OD-5**. `backend` is
+- **[MA-2] ☐ — the text backend and the marker** · **BLOCKED** on AFMT-3; its Chronicle half also on OD-5. `backend` is
   read by nothing today (`getBackend()` has no caller), so `backend: text` is silently ignored — the
   switch OD-4 depends on does nothing. The text writer owns its own separators; the marker's lifecycle
   (when, which thread, restart, roll, retention) is five decisions; `svc-admin-web` must become
@@ -112,8 +112,10 @@ still to do.
   and text *is* MA-2. Mongoose audit-logs by default; the gap is persistence in a form the analyser can
   open.
 - **[MA-3] ☐ → moved to [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38).**
-- **[OD-5] ☐ — OWNER DECISION, BLOCKING: does the Chronicle backend get a marker?** Deployed
-  configurations keep Chronicle; as specified MA-2 changes nothing for them. OD-2 (refuse) and OD-4 (text
+- **[OD-5] ☐ — OWNER DECISION: does the Chronicle backend get a marker?** Blocks only MA-2's **Chronicle
+  half**; the text writer the developer journey depends on can proceed. An export-time marker is
+  **rejected by name** — it would always read `complete`, the manufactured marker the skill forbids.
+  Running the text writer as a second destination needs no Chronicle change once MA-5 lands. OD-2 (refuse) and OD-4 (text
   for developers) are taken; **OD-1 and OD-3 are moot**.
 - **[MA-R] ◧ — spec REWRITTEN at round 3 and out for re-review**, three reviews answered, all committed in
   `docs/handoff/`. Implementation is mine.

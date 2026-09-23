@@ -6,8 +6,8 @@ it replaced in place, four times, and round 3 found the appendix holding live de
 readers to skip them. The superseded analysis is **deleted**, not archived; its conclusions are inline
 and its history is one section at the end._
 
-_**One owner decision blocks: OD-5**, whether the Chronicle backend gets a marker. Without it MA-2
-changes nothing for deployed configurations. **OD-2** (refuse) and **OD-4** (text for developers,
+_**One owner decision is open: OD-5**, whether the Chronicle backend gets a marker. It blocks only the
+**Chronicle half** of MA-2; the text writer the developer journey depends on can proceed. **OD-2** (refuse) and **OD-4** (text for developers,
 Chronicle deployed) are taken; **OD-1 and OD-3 are moot** — see *Decisions*._
 
 _Replaces the scattered record: tracker AF-4, `UP-MON-02` in [upstream asks](../proposals/upstream-asks.md),
@@ -31,13 +31,21 @@ the producer, and Mongoose holds up neither end.
 ## What is NOT the problem — corrected twice, at cost
 
 **Not `customHandler`.** An earlier draft treated the wrapper path as central. It is an edge case, used
-only to run Mongoose without a Fluxtion event processor. Verified by downloading a public
-`analyser-bundle` (`/start/scaffold?template=analyser-bundle`, 200, sha256
-`1eb6062b00a2e95a5bafc4d3cdd3d4b6e778cf804495e96e6fc332da86c1c8ee`): it contains **no** `customHandler`;
+only to run Mongoose without a Fluxtion event processor. Verified by downloading a public `analyser-bundle`
+(`/start/scaffold?template=analyser-bundle`, 200): it contains **no** `customHandler`;
 its `marketProcessor` is an AOT `MarketProcessor` declaring `eventLogger`, wiring its clock, calling
-`initialiseAuditor(eventLogger)` and registering the user's own `riskCheck` and `rootNode`. **Pin
-evidence by digest, not size** — review's download of the same template was 66,269 bytes against this
-one's 65,364.
+`initialiseAuditor(eventLogger)` and registering the user's own `riskCheck` and `rootNode`.
+
+**How to pin this evidence — and not by the zip's digest, which was my mistake.** Round 3 said to pin by
+sha256 rather than size; I did, and round 4 was right that it does not reproduce. **Measured:** two
+downloads a few hours apart had **byte-identical extracted contents** and **different zip digests**
+(`1eb6062b…` then `3e66cc64…`) at the **same** 65,364 bytes — the zip container carries fresh
+timestamps. (Two back-to-back downloads *do* match, so the mechanism is timestamp granularity, not
+per-request regeneration of content as round 4 supposed.) Size is no better: round 3's download of the
+same template was 66,269 bytes.
+
+**Pin by content.** Extracted-tree digest (sorted paths + file contents) `3629ef6c6a84531c…`, or the one
+file the claim rests on, `generated/MarketProcessor.java`, `6745794596512197…`.
 
 **Not "the wrapper path" either.** Review corrected the correction: the population that gets silence is
 **any processor without an `EventLogManager`**, which includes **AOT processors built without audit** —
@@ -55,7 +63,8 @@ MA-0  (analyser: an empty log is a finding)     ← THIS repo; smallest; closes 
 MA-1  (a processor that cannot audit says so)   ← independent
 MA-5  (capture must fan out, and restore)       ← independent; a live silent-discard path
 AFMT-3 (per-node NONE corrupts the record)      ← GATES MA-2
-  └── MA-2  (the text backend + the marker)     ← needs AFMT-3 resolved and OD-5 decided
+  └── MA-2 text writer                          ← needs AFMT-3 resolved; NOT blocked by OD-5
+  └── MA-2 Chronicle marker                     ← needs AFMT-3 resolved AND OD-5 decided
         └── MA-4  (defaults, docs, the journey) ← GATED on MA-2
               └── AF-6 (the coupled documents)  ← in the tracker, not here
 MA-3  → moved to mongoose-plugins#38
@@ -88,14 +97,16 @@ The quiet-level case — a processor whose level is above its calls — is **alr
 Adopted from review, which ran the case table on the published 1.19.0 jar:
 
 1. Each of these raises the empty-log finding as a **warning** (not a `COMPLETENESS_NOTE`) on the status
-   bar, in the tooltip, in `context` and in the report, with the stream-end state **unchanged**: a marker
+   bar, in the tooltip, in `context` and **in the report — which means ADDING producer findings to
+   `ReportRenderer`, since it carries none today**; that is part of MA-0's cost, not a free surface.
+   The stream-end state is **unchanged** in every case: a marker
    declaring 0 and nothing else; today's empty export; zero bytes; whitespace only; two empty marked
    segments; a rolled set whose members are all empty.
 2. Five records without node entries are unchanged — `NO_NODE_LOGS` still fires alone — and a healthy
    marked file stays clean.
 3. In Follow, an empty file opened before its first record shows the finding, and it **clears on every
-   surface** when a record arrives. Diagnostics recompute on `added > 0` but the status text is set at
-   open; assert both.
+   surface** when a record arrives. *(Round 3 justified this by "the status text is set at open". That is
+   false — every Follow tick rewrites it. The acceptance stands on its own; only the reason was wrong.)*
 4. A file whose zero records come from `SOURCE_DAMAGE` says both, **damage first**, matching the existing
    ordering.
 5. Each case is a conformance fixture with a mutation witness proving it fails without the change.
@@ -109,8 +120,15 @@ Adopted from review, which ran the case table on the published 1.19.0 jar:
 ### D-MA1a · Detect by capability, with `getAuditorById("eventLogger")`
 
 It resolves on a generated processor built with audit (public field) and throws on one built without, and
-on `DefaultEventProcessor`. One check covers both populations. **Known limit**, from `AuditReadiness` N1:
-a processor with a custom auditor would be refused wrongly — the safe direction to be wrong in.
+on `DefaultEventProcessor`. One check covers both populations, and the unaudited population is **common,
+not marginal**: of the generated processors in local checkouts, **162 of 207 declare no `eventLogger`**
+(round 4 counted 130 of 158 by a narrower rule; same conclusion).
+
+**Known limit, and it needs an escape hatch.** A processor with a **custom** auditor would be refused
+wrongly (`AuditReadiness` N1). An earlier draft called that "the safe direction to be wrong in" — round 4
+is right that it is not: refusing removes persistence from a processor that works today. **Required:** a
+documented override that forces capture on for a named processor, so a wrong refusal is recoverable
+without a rebuild.
 
 ### D-MA1b · Refuse at start, not at boot
 
@@ -120,14 +138,16 @@ processor **refuses**, naming the reason and the remedy; the sink is **never lis
 
 ### Acceptance MA-1
 
-1. Each of the three per-processor triggers — `autoStart`, the `audit.start` admin command, and
-   `MongooseAuditCaptureService.start(name)` — refuses for a processor with no `EventLogManager`, naming
-   the reason and the remedy (build with audit enabled), **and the server still boots**.
+1. Each of the **four** per-processor triggers — `autoStart`, the `audit.start` admin command,
+   `MongooseAuditCaptureService.start(name)`, and **`POST /api/audit/{processor}/start`** (which today
+   answers **404 "not found"** for a processor that exists) — refuses for a processor with no
+   `EventLogManager`, naming the reason and the remedy (build with audit enabled), **and the server still
+   boots**.
 2. That processor never appears as recording in `liveSinks` or the admin file list.
 3. `POST /api/processors/{group}/{name}/audit/level` — in **`svc-admin-web` (mongoose-plugins), not
-   core** — returns **409 or 422** with a body naming the reason. "Not 200" alone would be satisfied by a
-   500.
-4. A regression check for each; all three failures are currently silent.
+   core** — returns **409** with a body naming the reason. (An earlier draft said "409 or 422"; left open,
+   implementations differ. "Not 200" alone would be satisfied by a 500.)
+4. A regression check for each; all **four** failures are currently silent.
 
 ---
 
@@ -164,6 +184,11 @@ processor author's own listener is already replaced before capture starts.
 5. **Isolation**: a listener that throws must not stop the other destination receiving the record.
 6. Fan-out and restore are a contract of `MongooseAuditCaptureService`, tested for **every** backend —
    otherwise MA-2's text backend reintroduces MA-5a.
+7. **Capture the listener at `attach` time, not at `start`.** `MongooseServer.logRecordListener` is
+   `private static` (confirmed), so two servers in one JVM share the field; reading it late can restore
+   the wrong one.
+8. **The text writer must report write failures, not swallow them.** Isolation (5) must not become a
+   silent discard of its own — that is MA-5b in a new place.
 
 ---
 
@@ -189,10 +214,17 @@ it at `riskCheck`/`rootNode`.
 via `DataFlow.setAuditLogLevel(level, sourceId)`. The corruption is in the runtime's record encoder, so it
 reaches JUL, Chronicle and a text writer alike.
 
-**To clear the gate**, either the runtime fix lands first, **or** MA-0 grows a check for a document
-carrying no `eventLogRecord:` key (cheap, same class) and MA-2's acceptance includes a per-node-`NONE`
-run. `UP-FLX-51`'s `NONE` default is a second, independent reason not to ship a `NONE` default onto this
-path.
+**How the gate clears — corrected, and this was the sixth add-without-reconcile defect.** Round 3
+proposed two things that contradict each other and the spec adopted both: D-MA0b says MA-0 keys on zero
+records **only**, "so nobody widens it", while this section said the gate could be cleared by MA-0
+growing a check for a document with no `eventLogRecord:` key. Round 4 caught its own contradiction.
+
+**It is resolved in favour of D-MA0b, because the widening would not work anyway.** A warning beside an
+unchanged `complete` does not stop the file vouching for the corrupt record, so it cannot satisfy MA-2.5.
+
+So the gate clears **only** by AFMT-3 being fixed in the runtime, or by MA-2 declining to write a marker
+for a run in which a per-node `NONE` was set. There is no cheap analyser-side route. `UP-FLX-51`'s
+`NONE` default is a second, independent reason not to ship a `NONE` default onto this path.
 
 ---
 
@@ -216,7 +248,7 @@ when it stops, not configured. **`backend` is read by nothing today** — `getBa
 `backend: text` is accepted and silently ignored, and so is a typo. **That is this spec's defect class, in
 the switch OD-4 depends on.** MA-2 makes `backend` load-bearing and refuses an unknown value by name.
 
-### D-MA2c · The marker's lifecycle — all five answers required
+### D-MA2c · The marker's lifecycle — seven questions, with recommended answers
 
 | Question | Why it must be decided |
 | --- | --- |
@@ -225,6 +257,15 @@ the switch OD-4 depends on.** MA-2 makes `backend` load-bearing and refuses an u
 | **Restart — new file or append?** | appending after a crash puts the crashed run's unmarked records into the next segment, and the next marker counts only its own run → `more_than_declared` on a file that lost nothing (D-E3, per-segment counting). A new file per start avoids this and the cumulative-export trap |
 | **Roll — daily/size, as Chronicle does?** | every rolled set reads `unknown` by design (D-E5). If text rolls, each file carries its own marker, or "the developer opens the file and sees `complete`" is false after midnight |
 | **Retention (`retainHours`)** | say whether the janitor applies to text |
+| **Counted when: records RECEIVED or records WRITTEN?** | Chronicle counts after a successful write, which hides exactly the loss the count exists to catch. **Recommend: count records RECEIVED by the writer**, so a write that fails shows as `missing_records` rather than being counted away |
+| **When does the writer flush?** | a marker written before the preceding records reach disk declares more than the file holds. **Recommend: flush records before writing the marker, and flush again after its separator** |
+
+**Recommended answers to the first five**, so the implementer has a default to argue with rather than a
+blank: written on `stopRecording` **and** the shutdown hook **and** each roll; written **on the processor
+thread**, by posting the stop through the same queue the records use, which is what makes the count
+correct under load; **a new file per start**, avoiding the crashed-run segment trap; **roll daily as
+Chronicle does, each file carrying its own marker**, accepting that a rolled set reads `unknown` by D-E5;
+and **retention applies to text**, with the janitor never deleting the file it is currently writing.
 
 ### D-MA2d · Per-node parity is an acceptance-time comparison
 
@@ -239,8 +280,18 @@ MA-2 as scoped describes the text writer only. **The deployed configuration keep
 its exports will read `unknown` for ever unless capture appends a marker excerpt at stop, which the 1.0.44
 exporter would then terminate. As specified, MA-2 changes nothing for any deployed export.
 
-Decide explicitly, even if the answer is "not in this spec". Until then the problem statement's "every
-export reads `unknown`" remains true for deployments.
+**Two options round 4 says this framing hid, one of which must be rejected by name:**
+
+- **An export-time marker — REJECTED.** Having the exporter synthesise a marker at export time would
+  make every export read `complete`, because the exporter always reaches its own end. That is the
+  "manufactured marker" the `run-mongoose-server` skill already forbids, and it is D-T8 inverted: a
+  completeness claim about a run, made by something that never saw the run stop.
+- **Run the text writer alongside Chronicle in deployments.** Once MA-5 lands, capture fans out, so a
+  text writer can be a second destination with **no Chronicle change at all**. This is the option worth
+  costing before answering OD-5.
+
+**OD-5 blocks only the Chronicle half of MA-2.** The text writer — which is what the developer journey
+and OD-4 depend on — can proceed while OD-5 is open. An earlier draft blocked all of MA-2 on it.
 
 ### The text backend's blast radius — in scope, and previously in no item
 
@@ -256,13 +307,18 @@ skill ("Mongoose does not write analyser-readable YAML directly") and AF-6 all c
    equal to `recordsRead`, **`recordsRead > 0`**, and those records carrying node entries.
 2. A text file whose writer never reached stop reads `unknown`; **MA-0 fires if it is empty**. (The
    earlier "an export without one reads as today" has no meaning for a direct writer.)
-3. Kill points, scoped: before any record → `unknown`; **between records** (after a separator) →
-   `unknown`; mid-record → `unknown`; mid-marker → `unterminated_marker`; **after the marker's separator
-   is flushed → `complete`, which is correct**. Plus **stop under load** → `complete` with
+3. Kill points, scoped and **corrected by round 4's run**: before any record → `unknown`; **between
+   records** (after a separator) → `unknown`; mid-record → `unknown`; **after the marker's FIRST line →
+   `unknown`, with a phantom extra record — NOT `unterminated_marker`** (measured; an earlier draft had
+   this wrong); mid-marker after its recognising key → `unterminated_marker`; **after the marker's
+   separator is flushed → `complete`, which is correct**. Plus **stop under load** → `complete` with
    `declaredRecords` equal to the records actually appended — D-MA2c's thread question as a test.
-4. **Byte-identical to a named baseline modulo the marker**: the 1.0.44 Chronicle export of the same run.
-   (The old reason — "a known-good export has no trailing separator" — has been stale since 1.0.44
-   terminates the last document.)
+4. **Parity with a Chronicle export, in ONE process** — not "the same run", which round 4 showed is
+   impossible: a run has one backend, and a second run differs in its timestamps. What *is* achievable,
+   and was measured: Chronicle round-trips all records exactly and the export framing reproduces byte for
+   byte. So the test writes the same in-memory records through both paths in one process and compares,
+   modulo the marker. **Note for the implementer:** the framing class lives in the **plugin**, so core's
+   text writer cannot reuse it — the rule is duplicated and must be tested on both sides.
 5. A per-node-`NONE` run produces no marked file that vouches for a corrupt record (AFMT-3).
 6. `backend: text` selects the text writer; an unknown `backend` is refused by name.
 7. Verified against the **published** analyser jar, by digest.
@@ -313,7 +369,7 @@ spec. Reaching the ceiling needs a client that stops reading at TCP level; a JDK
 | **OD-2** | install an auditor, or refuse | **DECIDED: refuse.** A user wanting audit is better served by the AOT path, which gives real per-node coverage |
 | **OD-3** | how to install it — framework release / subclass / generated artefact | **MOOT**, superseded by OD-2 |
 | **OD-4** | developer default | **DECIDED: text for developers, Chronicle deployed** |
-| **OD-5** | does Chronicle get a marker? | **OPEN — BLOCKS MA-2** |
+| **OD-5** | does Chronicle get a marker? | **OPEN — blocks MA-2's Chronicle half only.** An export-time marker is rejected by name (it would always read `complete`). Running the text writer as a second destination needs no Chronicle change once MA-5 lands |
 
 ## What is verified, and what is only read
 
