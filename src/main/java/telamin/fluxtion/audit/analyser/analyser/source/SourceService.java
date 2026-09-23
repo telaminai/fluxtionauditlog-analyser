@@ -20,6 +20,7 @@ public final class SourceService {
 
     private SourceRootResolver resolver = new SourceRootResolver(List.of());
     private MavenSourceResolver maven = new MavenSourceResolver(List.of(), false);
+    private long generation;
     private String selectedFqn;
     private EventProcessorModel selectedModel;
 
@@ -29,6 +30,7 @@ public final class SourceService {
 
     /** Full configuration: source roots + the maven repos searched for {@code *-sources.jar} fallbacks. */
     public void configure(List<String> roots, String selectedFqn, List<String> mavenRepos, boolean searchMaven) {
+        generation++;
         this.resolver = new SourceRootResolver(roots);
         this.maven = new MavenSourceResolver(mavenRepos, searchMaven);
         this.selectedFqn = selectedFqn;
@@ -50,6 +52,7 @@ public final class SourceService {
 
     public void select(String fqn) {
         if (!java.util.Objects.equals(fqn, selectedFqn)) {
+            generation++;
             this.selectedFqn = fqn;
             this.selectedModel = null;
         }
@@ -68,6 +71,23 @@ public final class SourceService {
     public Optional<String> sourceForFqn(String fqn) {
         Optional<String> fromRoots = resolver.read(fqn);
         return fromRoots.isPresent() ? fromRoots : maven.read(fqn);
+    }
+
+    /** Captured on the EDT; the worker owns no mutable service or Swing state. */
+    public record Lookup(long generation, String selectedFqn, SourceRootResolver roots, MavenSourceResolver archives) {
+        public Optional<SourceDocument> freshDocumentForSpotlight(String fqn) {
+            if (javax.swing.SwingUtilities.isEventDispatchThread())
+                throw new IllegalStateException("Source spotlight reads must run off the EDT");
+            Optional<SourceDocument> root = roots.document(fqn);
+            return root.isPresent() ? root : archives.freshDocument(fqn);
+        }
+    }
+    public Lookup captureLookup() { return new Lookup(generation, selectedFqn, resolver, maven); }
+    public boolean isCurrent(Lookup lookup) { return generation == lookup.generation(); }
+    /** Install the model parsed from the SAME snapshot rendered by an accepted plan. Never reread here. */
+    public void acceptSpotlightModel(Lookup lookup, String fqn, EventProcessorModel model) {
+        if (!isCurrent(lookup)) throw new IllegalStateException("Source configuration changed");
+        if (java.util.Objects.equals(fqn, selectedFqn)) selectedModel = model;
     }
 
     /** FQN of the declared type of a node instanceId in the selected processor, or null. */

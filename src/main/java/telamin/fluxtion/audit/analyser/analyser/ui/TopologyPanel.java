@@ -1430,6 +1430,14 @@ public final class TopologyPanel extends JPanel {
     }
 
     /** The embedded source viewer when it is on screen, else null — the caller decides what that means. */
+    /** Open the already bound viewer without seeding or navigating a second document. */
+    public SourcePanel ensureSourcePaneVisible() {
+        if (embeddedSource == null) return null;
+        showSourcePane(true);
+        return embeddedSource;
+    }
+    public SourcePanel sourceViewer() { return embeddedSource; }
+
     public SourcePanel openSourcePane() {
         return embeddedSource != null && graphSplit.getRightComponent() == embeddedSource
                 ? embeddedSource : null;

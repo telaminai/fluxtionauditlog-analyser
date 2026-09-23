@@ -29,7 +29,7 @@ public final class MavenSourceResolver {
     private final List<Path> repos;
     private final boolean enabled;
     private volatile List<Path> jars;                                       // lazy; null until first use
-    private final Map<String, Optional<String>> cache = new ConcurrentHashMap<>();
+    private final Map<String, Optional<SourceDocument>> cache = new ConcurrentHashMap<>();
 
     public MavenSourceResolver(List<String> repos, boolean enabled) {
         this.repos = new ArrayList<>();
@@ -50,18 +50,28 @@ public final class MavenSourceResolver {
 
     /** The source text for an FQN from the first {@code *-sources.jar} containing it, cached. */
     public Optional<String> read(String fqn) {
+        return document(fqn).map(SourceDocument::text);
+    }
+
+    public Optional<SourceDocument> document(String fqn) {
         if (!enabled || fqn == null || fqn.isBlank()) return Optional.empty();
         return cache.computeIfAbsent(fqn, this::lookup);
     }
 
-    private Optional<String> lookup(String fqn) {
+    /** Re-read hits AND misses; discovery remains once per resolver, not once per request. */
+    public Optional<SourceDocument> freshDocument(String fqn) {
+        cache.remove(fqn);
+        return document(fqn);
+    }
+
+    private Optional<SourceDocument> lookup(String fqn) {
         String rel = fqn.replace('.', '/') + ".java";
         for (Path jar : orderedCandidates(fqn)) {
             try (ZipFile zf = new ZipFile(jar.toFile())) {
                 ZipEntry e = zf.getEntry(rel);
                 if (e != null) {
                     try (InputStream in = zf.getInputStream(e)) {
-                        return Optional.of(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+                        return Optional.of(SourceDocument.archive(new String(in.readAllBytes(), StandardCharsets.UTF_8), jar, rel));
                     }
                 }
             } catch (IOException ignore) {

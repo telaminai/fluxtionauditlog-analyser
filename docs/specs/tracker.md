@@ -232,13 +232,13 @@ one of rule 1's four sweep terms.**
 
 ---
 
-## Java source spotlight — implementation in progress
+## Java source spotlight — implemented, validation and independent review pending
 
 [Proposal](../proposals/source-spotlight.md), [round-four response](../handoff/response_source_spotlight_r4_2026_09_21.md).
-Based on released main `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
+Rebased onto main `809303f7`, preserving its archived/closed statuses. Source baseline `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
 SourceService first-match lookup and repeat-spotlight reread are explicit; the source-glance verb
 remains unchanged. Java clips with partial disclosure; design keeps released containment refusal.
-Implementation needs preparation, lifetime bindings, viewport hooks and both CI frame lists updated.
+Preparation, lifetime bindings, viewport hooks and both CI frame lists are implemented.
 All linked proposal reviews/responses ship together. [Review 3665e237](../handoff/review_source_spotlight_r4_response_2026_09_21_claude.md)
 is READY FOR HANDOFF. [S-1/S-2 response](../handoff/response_source_spotlight_handoff_2026_09_21.md)
 specifies off-EDT reads, guarded EDT apply and selected-model replacement from the rendered snapshot.
@@ -258,8 +258,18 @@ Frozen predictions before source edits:
   mutations each fail their own geometry assertion.
 - Viewport notifications remeasure or extinguish active bindings; disabling the listener leaves
   stale bounds and fails the display check. Removed/replaced/cleared bindings never reappear.
-Validation and mutation results will be recorded against these predictions in the implementation
-handoff, alongside any mismatch or unverified acceptance. Existing evidence-correctness priority and completed work are unchanged.
+- N-1 prediction (2026-09-22, before deadline implementation): a blocked read expires without
+  revealing anything; releasing it later cannot light a target or replace the model. Removing the
+  deadline's terminal-state check must fail the late-completion assertion. Preparation gets 10 seconds,
+  below McpBridge's 60-second CALL_TIMEOUT; shorter external-client timeouts remain outside this bound.
+[Implementation report](../handoff/report_java_source_spotlight_2026_09_23.md) records these predictions,
+regression names, all twelve seen-red mutation witnesses and boundaries. [Review brief](../handoff/brief_review_java_source_spotlight_2026_09_23.md).
+- ☑ Source snapshots, background preparation, request/deadline cancellation and selected-model coherence.
+- ☑ Java viewport geometry, graph/source routing, lifetime registry and design scroll remeasurement.
+- ☑ Generated neutral screenshot inspected; vocabulary, source guide, spotlight spec and changelog updated.
+- ☑ Local gates: 1,786 headless (61 display skips), 62 display (none skipped), package, 94/94 existing spotlight checks, tool checks, strict docs and sweep. Twelve seen-red mutation witnesses restored.
+- ◧ PR CI and handoff publication.
+- ☐ Independent implementation review; owner merge/release decision. Existing evidence-correctness priority and completed work are unchanged.
 
 ---
 
