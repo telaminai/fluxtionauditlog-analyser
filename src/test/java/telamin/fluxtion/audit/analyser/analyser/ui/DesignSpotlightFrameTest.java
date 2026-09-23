@@ -63,6 +63,29 @@ class DesignSpotlightFrameTest {
             }
         }
     }
+    @Test void viewportMovementExtinguishesPartiallyVisibleDesignBand(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("design.xml"),"<beans>\n"+"  <!-- context -->\n".repeat(150)+"</beans>\n");
+        try(var f=new Frame(tmp)) {
+            onEdt(()->{((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());f.frame.setSize(1300,850);f.frame.setVisible(true);});
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            onEdt(()->{
+                assertTrue(f.ex.render("spotlight",Map.of("target","source:design:line:30")).ok());
+            });
+            onEdt(()->{});onEdt(()->{});
+            onEdt(()->{
+                var panel=(SourcePanel)field(f.frame,"sourcePanel");var design=(DesignSourcePanel)panel.designComponent();
+                var viewport=(JViewport)design.text.getParent();
+                try {
+                    int offset=design.text.getDocument().getDefaultRootElement().getElement(29).getStartOffset();
+                    var rect=design.text.modelToView2D(offset).getBounds();
+                    viewport.setViewPosition(new java.awt.Point(0,rect.y+2));
+                    assertTrue(design.lineBounds(30).isEmpty(),"released design policy refuses partial visibility");
+                }catch(Exception ex){throw new AssertionError(ex);}
+            });
+            onEdt(()->{});onEdt(()->assertFalse(((SpotlightOverlay)field(f.frame,"spotlight")).isLit(),"design viewport hook must extinguish the partial band"));
+        }
+    }
     private static void checkEcho(Frame f, Map<String,Object> echo) {
         var overlay=(SpotlightOverlay)field(f.frame,"spotlight");
         for(Object item:(List<?>)echo.get("lit")) {

@@ -21,7 +21,18 @@ import java.util.Set;
  * can you bring it on screen?". The frame implements it with Swing; the tests implement it with a map.
  * That is what lets every vocabulary entry, and the not-visible and unknown cases, be tested headless.
  */
-public record SpotlightTarget(Family family, String argument, String name, String graph) {
+public record SpotlightTarget(Family family, String argument, String name, String graph, String sourceFqn) {
+
+    public SpotlightTarget(Family family, String argument, String name, String graph) {
+        this(family, argument, name, graph, null);
+    }
+    public boolean javaSource() { return family == Family.JAVA || family == Family.JAVA_LINE; }
+    public static boolean hasJava(java.util.Map<String, Object> params) {
+        if (Boolean.TRUE.equals(params.get("clear"))) return false;
+        return requests(params).requests().stream().anyMatch(r -> {
+            Parsed p = parse(r.target()); return p.ok() && p.target().javaSource();
+        });
+    }
 
     /** Most targets name no chart: {@code graph} is null, and a graph family means the SELECTED chart (M64.10). */
     public SpotlightTarget(Family family, String argument, String name) {
@@ -34,6 +45,8 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         DESIGN("source:design", false),
         DESIGN_BEAN("source:design:bean:<id>", true),
         DESIGN_LINE("source:design:line:<n>", true),
+        JAVA("source:java:<fqn>", true),
+        JAVA_LINE("source:java:<fqn>:line:<n>", true),
         RECORDS("records", false),
         RECORDS_ROW("records:row:<recordIndex>", true),
         DETAIL("detail", false),
@@ -112,6 +125,17 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         String rest = first < 0 ? null : name.substring(first + 1);
         return switch (head) {
             case "source" -> {
+                if (rest != null && rest.regionMatches(true, 0, "java:", 0, 5)) {
+                    String[] parts = rest.substring(5).split(":", -1);
+                    String fqn = parts[0];
+                    if (!fqn.matches("[\\p{javaJavaIdentifierStart}][\\p{javaJavaIdentifierPart}]*(\\.[\\p{javaJavaIdentifierStart}][\\p{javaJavaIdentifierPart}]*)*"))
+                        yield unknown("Java target requires a fully qualified source name");
+                    if (parts.length == 1) yield new Parsed(new SpotlightTarget(Family.JAVA, null, name, null, fqn), null);
+                    if (parts.length != 3 || !parts[1].equalsIgnoreCase("line") || !parts[2].matches("[1-9][0-9]*"))
+                        yield unknown("expected source:java:<fqn>[:line:<positive integer>]");
+                    try { Integer.parseInt(parts[2]); } catch (NumberFormatException ex) { yield unknown("Java line is out of range"); }
+                    yield new Parsed(new SpotlightTarget(Family.JAVA_LINE, parts[2], name, null, fqn), null);
+                }
                 if ("design".equalsIgnoreCase(rest)) yield ok(Family.DESIGN, null, name);
                 if (rest == null || !rest.toLowerCase(Locale.ROOT).startsWith("design:")) yield unknown("expected source:design[:bean:<id>|:line:<n>]");
                 String part = rest.substring(7);

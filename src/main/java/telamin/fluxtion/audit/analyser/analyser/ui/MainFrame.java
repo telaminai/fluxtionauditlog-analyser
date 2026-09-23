@@ -262,6 +262,8 @@ public final class MainFrame extends JFrame {
         // the topology gets its own source viewer, sharing this service — so navigating from the graph
         // keeps the graph on screen instead of switching to the sibling Source tab
         topologyPanel.bindSource(sourceService);
+        sourcePanel.onSourceViewChanged(this::sourceViewportChanged);
+        topologyPanel.sourceViewer().onSourceViewChanged(this::sourceViewportChanged);
         topologyPanel.setDisplayPrefs(config.topologySpacingPercent, config.topologyTextSize);
         topologyPanel.setSavedView(config.topologyZoom, config.topologyPanX, config.topologyPanY,
                 config.topologyOrientation);
@@ -2050,15 +2052,138 @@ public final class MainFrame extends JFrame {
      * The glass pane. The ONLY place a spotlight exists (D-SP4): nothing here is read by the config, the
      * profile, a saved graph or a report, so a restart shows none and none can leak into an artefact.
      */
-    private final SpotlightOverlay spotlight = new SpotlightOverlay(null);
+    private final SpotlightOverlay spotlight = new SpotlightOverlay(this::spotlightDismissed);
+
+    private long javaSpotlightTicket;
+    // Below McpBridge.CALL_TIMEOUT (60s). Package tests shorten this duration, never the transport.
+    private java.time.Duration javaSourcePreparationTimeout = java.time.Duration.ofSeconds(10);
+    private final java.awt.event.AWTEventListener sourcePreparationDismissal = event -> {
+        if (!(event.getSource() instanceof java.awt.Component component)
+                || SwingUtilities.getWindowAncestor(component) != this) return;
+        if (event instanceof java.awt.event.MouseEvent mouse && mouse.getID() == java.awt.event.MouseEvent.MOUSE_PRESSED
+                || event instanceof java.awt.event.KeyEvent key && key.getID() == java.awt.event.KeyEvent.KEY_PRESSED
+                   && key.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) javaSpotlightTicket++;
+    };
+    private boolean applyingJavaSpotlight, sourceRemeasureQueued;
+    private record JavaBinding(SourcePanel viewer, SourcePanel.JavaAnchor anchor, Integer line,
+                               String destination, telamin.fluxtion.audit.analyser.analyser.source.SourceService.Lookup lookup) { }
+    private final Map<String, JavaBinding> javaSpotlightBindings = new java.util.LinkedHashMap<>();
+
+    private void spotlightDismissed() {
+        if (!applyingJavaSpotlight) javaSpotlightTicket++;
+        javaSpotlightBindings.clear();
+        designSpotlightRevisions.clear();
+    }
+    private void sourceViewportChanged() {
+        if (applyingJavaSpotlight) return;
+        if (sourceRemeasureQueued) return;
+        sourceRemeasureQueued = true;
+        SwingUtilities.invokeLater(() -> { sourceRemeasureQueued = false; relightSpotlight(); });
+    }
+    private static Integer javaLine(SpotlightTarget t) {
+        return t.family() == SpotlightTarget.Family.JAVA_LINE ? t.number() : null;
+    }
+    private java.util.Optional<java.awt.Rectangle> javaSpotlightBounds(SpotlightTarget t) {
+        JavaBinding binding = javaSpotlightBindings.get(t.name());
+        if (binding == null || !sourceService.isCurrent(binding.lookup())) return java.util.Optional.empty();
+        return binding.viewer().javaBounds(binding.anchor(), binding.line()).flatMap(b -> inOverlay(binding.viewer(), b.bounds()));
+    }
+
+    /** EDT capture / background immutable preparation / EDT apply. Never wait on the event thread. */
+    private java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlightHere(
+            Map<String, Object> params, Runnable revealRows) {
+        var result = new java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
+        if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Capture belongs on EDT");
+        var asked = SpotlightTarget.requests(params);
+        String wrong = SpotlightTarget.precheck(asked, spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList(),
+                store == null ? -1 : store.index().size());
+        if (wrong != null) {
+            result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(wrong)); return result;
+        }
+        long ticket = ++javaSpotlightTicket;
+        var lookup = sourceService.captureLookup();
+        var capturedStore = store;
+        var capturedSourceView = sourcePanel.spotlightViewState();
+        var capturedTopologyView = topologyPanel.sourceViewer().spotlightViewState();
+        var capturedTab = sideTabs.getSelectedComponent();
+        var retained = asked.add() ? javaSpotlightBindings.values().stream().map(b -> b.anchor().document()).toList() : List.<telamin.fluxtion.audit.analyser.analyser.source.SourceDocument>of();
+        var names = new java.util.ArrayList<>(asked.requests().stream().map(SpotlightTarget.Request::target).toList());
+        if (asked.add()) names.addAll(spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList());
+        boolean topology = sideTabs.getSelectedComponent() == topologyPanel || names.stream().anyMatch(n -> {
+            var t = SpotlightTarget.parse(n).target();
+            return t.family() == SpotlightTarget.Family.TOPOLOGY || t.family() == SpotlightTarget.Family.TOPOLOGY_NODE
+                    || t.family() == SpotlightTarget.Family.TOPOLOGY_VERDICT;
+        });
+        long deadlineNanos = System.nanoTime() + javaSourcePreparationTimeout.toNanos();
+        Runnable expire = () -> {
+            if (result.isDone()) return;
+            if (javaSpotlightTicket == ticket) javaSpotlightTicket++;
+            result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source lookup still running; retry (preparation deadline expired)"));
+        };
+        javax.swing.Timer deadlineTimer = new javax.swing.Timer((int) javaSourcePreparationTimeout.toMillis(), e -> expire.run());
+        deadlineTimer.setRepeats(false);
+        var worker = telamin.fluxtion.audit.analyser.analyser.core.Background.run(
+                () -> JavaSpotlightPlan.read(lookup, asked.requests(), retained), plan -> {
+                    if (result.isDone()) return;
+                    if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }
+                    if (ticket != javaSpotlightTicket || !sourceService.isCurrent(lookup) || capturedStore != store || !isDisplayable()
+                            || capturedTab != sideTabs.getSelectedComponent()
+                            || !capturedSourceView.equals(sourcePanel.spotlightViewState())
+                            || !capturedTopologyView.equals(topologyPanel.sourceViewer().spotlightViewState())) {
+                        result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight superseded; retry against the current view")); return;
+                    }
+                    String refusal = SpotlightTarget.precheck(asked, spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList(), store == null ? -1 : store.index().size());
+                    if (refusal != null) { result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refusal)); return; }
+                    applyingJavaSpotlight = true;
+                    try {
+                        // All source/line refusals have happened BEFORE goto can relax a record filter.
+                        revealRows.run();
+                        SourcePanel viewer = topology ? topologyPanel.ensureSourcePaneVisible() : sourcePanel;
+                        if (viewer == null) throw new IllegalArgumentException("Java source viewer is unavailable");
+                        selectSideTab(topology ? "topology" : "source");
+                        Map<String, JavaBinding> staged = new java.util.LinkedHashMap<>();
+                        for (var prepared : plan.targets().values()) {
+                            var anchor = viewer.showJavaSnapshot(prepared.target().sourceFqn(), prepared.document(), prepared.model());
+                            sourceService.acceptSpotlightModel(lookup, prepared.target().sourceFqn(), prepared.model());
+                            staged.put(prepared.target().name(), new JavaBinding(viewer, anchor, javaLine(prepared.target()),
+                                    topology ? "topology-source" : "source-tab", lookup));
+                        }
+                        result.complete(applySpotlight(params, staged));
+                    } catch (RuntimeException ex) {
+                        result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage()));
+                    } finally {
+                        applyingJavaSpotlight = false; relightSpotlight();
+                    }
+                }, ex -> result.complete(telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Java source spotlight refused: " + ex.getMessage())));
+        result.whenComplete((value, failure) -> {
+            worker.cancel(true); // best effort; the terminal/ticket checks are the correctness boundary
+            Runnable finish = () -> {
+                deadlineTimer.stop();
+                if (result.isCancelled() && javaSpotlightTicket == ticket) javaSpotlightTicket++;
+            };
+            if (SwingUtilities.isEventDispatchThread()) finish.run(); else SwingUtilities.invokeLater(finish);
+        });
+        deadlineTimer.start();
+        return result;
+    }
 
     /** Install the overlay, and keep a live spotlight on its target when the frame is resized. */
     private void installSpotlight() {
         setGlassPane(spotlight);
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(sourcePreparationDismissal,
+                java.awt.AWTEvent.MOUSE_EVENT_MASK | java.awt.AWTEvent.KEY_EVENT_MASK);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                clearSpotlightHere();
+                java.awt.Toolkit.getDefaultToolkit().removeAWTEventListener(sourcePreparationDismissal);
+                sourcePanel.onSourceViewChanged(null);
+                topologyPanel.sourceViewer().onSourceViewChanged(null);
+            }
+        });
         spotlight.setOnPressed(this::spotlightPressed);   // M64.11: a press on a lit menu item chooses it
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent e) {
-                relightSpotlight();
+                if (!applyingJavaSpotlight) relightSpotlight();
             }
         });
     }
@@ -2070,11 +2195,13 @@ public final class MainFrame extends JFrame {
      * the failure this whole feature is careful about.
      */
     private java.util.List<String> relightSpotlight() {
-        if (!spotlight.isLit()) return java.util.List.of();
-        return spotlight.remeasure(name -> {
+        if (!spotlight.isLit()) { javaSpotlightBindings.clear(); return java.util.List.of(); }
+        var departed = spotlight.remeasure(name -> {
             SpotlightTarget.Parsed parsed = SpotlightTarget.parse(name);
             return parsed.ok() ? spotlightSurface.bounds(parsed.target()) : java.util.Optional.empty();
         });
+        javaSpotlightBindings.keySet().retainAll(spotlight.lit().stream().map(SpotlightOverlay.Lit::target).toList());
+        return departed;
     }
 
     /** The frame's answer to "where is this, and can you bring it on screen?" — Swing behind a pure interface. */
@@ -2144,6 +2271,7 @@ public final class MainFrame extends JFrame {
 
         @Override public java.util.Optional<java.awt.Rectangle> bounds(SpotlightTarget t) {
             return switch (t.family()) {
+                case JAVA, JAVA_LINE -> javaSpotlightBounds(t);
                 case DESIGN, DESIGN_BEAN, DESIGN_LINE -> {
                     var doc = session().processor().designSession.document();
                     Integer line = designTargetLine(t);
@@ -2310,6 +2438,7 @@ public final class MainFrame extends JFrame {
 
     /** Put every spotlight out — and a menu that was opened only to be lit closes with them. */
     private void clearSpotlightHere() {
+        spotlightDismissed();
         boolean litMenu = spotlight.lit().stream().anyMatch(l -> l.target().regionMatches(true, 0, "menu:", 0, 5));
         spotlight.clearSpotlight();
         designSpotlightRevisions.clear();
@@ -2457,6 +2586,25 @@ public final class MainFrame extends JFrame {
      * a spotlight left pointing at a hidden thing is the failure this feature exists to avoid.
      */
     private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult applySpotlight(Map<String, Object> params) {
+        return applySpotlight(params, Map.of());
+    }
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult applySpotlight(Map<String, Object> params, Map<String, JavaBinding> prepared) {
+        SpotlightTarget.Surface surface = prepared.isEmpty() ? spotlightSurface : new SpotlightTarget.Surface() {
+            public void reveal(SpotlightTarget target) {
+                JavaBinding binding = prepared.get(target.name());
+                if (binding == null) spotlightSurface.reveal(target);
+                else binding.viewer().revealJava(binding.anchor(), binding.line());
+            }
+            public java.util.Optional<java.awt.Rectangle> bounds(SpotlightTarget target) {
+                JavaBinding binding = prepared.get(target.name());
+                return binding == null ? spotlightSurface.bounds(target)
+                        : binding.viewer().javaBounds(binding.anchor(), binding.line()).flatMap(b -> inOverlay(binding.viewer(), b.bounds()));
+            }
+            public String whyNotVisible(SpotlightTarget target) {
+                return target.javaSource() ? "Java source anchor is no longer visible in its bound document" : spotlightSurface.whyNotVisible(target);
+            }
+        };
+        if (!applyingJavaSpotlight) javaSpotlightTicket++;
         if (Boolean.TRUE.equals(params.get("clear"))) {
             boolean was;
             Object only = params.get("target");
@@ -2465,6 +2613,7 @@ public final class MainFrame extends JFrame {
                 clearSpotlightHere();
             } else {
                 was = spotlight.remove(only.toString().trim());
+                javaSpotlightBindings.remove(only.toString().trim());
             }
             Map<String, Object> echo = new java.util.LinkedHashMap<>();
             echo.put("cleared", only == null ? "all" : only.toString().trim());
@@ -2479,7 +2628,7 @@ public final class MainFrame extends JFrame {
                 store == null ? -1 : store.index().size());
         if (wrong != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(wrong);
         java.util.List<String> names = asked.requests().stream().map(SpotlightTarget.Request::target).toList();
-        SpotlightTarget.SetResolution set = SpotlightTarget.resolveAll(names, spotlightSurface);
+        SpotlightTarget.SetResolution set = SpotlightTarget.resolveAll(names, surface);
         if (!set.ok()) {
             // refused: nothing new is lit. What WAS lit stays — unless the attempt's reveal hid it, in which
             // case it goes out and the refusal says so rather than leaving it pointing at a hidden tab.
@@ -2499,6 +2648,8 @@ public final class MainFrame extends JFrame {
         for (int i = 0; i < set.lit().size(); i++) {
             SpotlightTarget.Resolution r = set.lit().get(i);
             spotlight.add(r.target().name(), r.bounds(), asked.requests().get(i).caption());
+            if (prepared.containsKey(r.target().name()))
+                javaSpotlightBindings.put(r.target().name(), prepared.get(r.target().name()));
             if (r.target().name().startsWith("source:design") && session().processor().designSession.document() != null)
                 designSpotlightRevisions.put(r.target().name(), session().processor().designSession.document().revision());
         }
@@ -2516,6 +2667,7 @@ public final class MainFrame extends JFrame {
 
     /** What is lit, as {@code context} and the verb's echo both state it — one shape, so a client learns it once. */
     private java.util.List<Map<String, Object>> litEcho(boolean withBounds) {
+        if (!applyingJavaSpotlight) relightSpotlight();
         java.util.List<Map<String, Object>> out = new java.util.ArrayList<>();
         for (SpotlightOverlay.Lit l : spotlight.lit()) {
             Map<String, Object> one = new java.util.LinkedHashMap<>();
@@ -2527,6 +2679,20 @@ public final class MainFrame extends JFrame {
                 one.put("file", doc.file()); one.put("revision", doc.revision());
                 one.put("captionRevision", designSpotlightRevisions.getOrDefault(l.target(), doc.revision()));
                 one.put("relationship", "unverified");
+            }
+            JavaBinding binding = javaSpotlightBindings.get(l.target());
+            if (binding != null) {
+                var doc = binding.anchor().document();
+                one.put("fqn", binding.anchor().fqn()); one.put("document", doc.identity());
+                one.put("revision", doc.revision()); one.put("revisionBasis", "rendered-text-utf8");
+                one.put("lookup", "source-viewer"); one.put("selectionPolicy", "first-match");
+                one.putAll(doc.origin()); one.put("relationship", "unverified");
+                one.put("destination", binding.destination());
+                one.put("anchor", binding.line() == null ? "document" : "line");
+                if (binding.line() != null) {
+                    one.put("line", binding.line());
+                    one.put("partial", binding.viewer().javaBounds(binding.anchor(), binding.line()).map(SourcePanel.JavaBand::partial).orElse(true));
+                }
             }
             if (withBounds) {
                 java.awt.Rectangle c = SwingUtilities.convertRectangle(spotlight, spotlight.cutOutOf(l.target()), getContentPane());
@@ -2766,6 +2932,7 @@ public final class MainFrame extends JFrame {
         JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, recordsCards, sideTabs);
         center.setDividerSize(9);          // constant, rather than whatever the tab's content implies
         sideTabs.addChangeListener(e -> {
+            sourceViewportChanged();
             // read now, restore after the tab change has re-laid out
             int location = center.getDividerLocation();
             SwingUtilities.invokeLater(() -> {
@@ -5518,7 +5685,15 @@ public final class MainFrame extends JFrame {
         /** M64: light or put out the spotlight. The resolution is pure ({@link SpotlightTarget}); this only supplies the frame. */
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult spotlight(Map<String, Object> params) {
+            if (params != null && SpotlightTarget.hasJava(params))
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Use asynchronous Java spotlight preparation");
             return applySpotlight(params == null ? Map.of() : params);
+        }
+
+        @Override
+        public java.util.concurrent.CompletableFuture<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult> prepareJavaSpotlight(
+                Map<String, Object> params, Runnable revealRows) {
+            return prepareJavaSpotlightHere(params, revealRows);
         }
 
         @Override

@@ -144,6 +144,12 @@ public interface AppControl {
         return java.util.List.of();
     }
 
+    /** Capture on the EDT, prepare off it, apply on it. The caller must not wait on the EDT. */
+    default java.util.concurrent.CompletableFuture<ActionResult> prepareJavaSpotlight(
+            java.util.Map<String, Object> params, Runnable revealRows) {
+        return java.util.concurrent.CompletableFuture.completedFuture(ActionResult.error("Java source spotlight is unavailable"));
+    }
+
     default void clearSpotlight() {
     }
 

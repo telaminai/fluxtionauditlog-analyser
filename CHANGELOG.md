@@ -6,6 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Spotlight explicit Java documents and logical lines beside topology. Source reads prepare off the UI thread, expire after ten seconds, and disclose origin, text revision, first-match lookup and unverified relationship to the run. Wrapped Java lines light their visible portion with a `partial` qualification.
+- Source viewport changes now remeasure or extinguish Java and design spotlights. Design lines keep the released wholly-visible refusal rule; Java captions go out when their bound source revision changes.
+
 ## [1.17.0] - 2026-09-21
 
 - Context keeps loaded log sizes separate from on-disk metadata, flags changed graph/log/result inputs, and labels producer hash comparisons as of intake. The Project panel and exported reports carry the qualification.

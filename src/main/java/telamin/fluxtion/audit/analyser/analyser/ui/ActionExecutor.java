@@ -147,6 +147,7 @@ public final class ActionExecutor implements RenderExecutor {
                 // M64: needs no log — a tab, the toolbar, the status line and the Project panel are all
                 // there on a fresh start, which is when a tutor first says "look here"
                 if (app == null) return ActionResult.error("'spotlight' is not enabled here");
+                if (SpotlightTarget.hasJava(params)) return doJavaSpotlight(params);
                 return onEdt(() -> doSpotlight(params));
             }
             case "topology" -> {
@@ -782,6 +783,31 @@ public final class ActionExecutor implements RenderExecutor {
      * It calls {@link #doGoto} directly rather than {@code render("goto")}: the public verb would put out
      * the very spotlight this is about to light.
      */
+    /** Cancellation is request-scoped, including interruption before the EDT has captured anything. */
+    private ActionResult doJavaSpotlight(Map<String, Object> params) {
+        if (SwingUtilities.isEventDispatchThread())
+            return ActionResult.error("Java source spotlight requires asynchronous preparation; invoke off the EDT");
+        var answer = new java.util.concurrent.CompletableFuture<ActionResult>();
+        SwingUtilities.invokeLater(() -> {
+            if (answer.isDone()) return;
+            try {
+                var pending = app.prepareJavaSpotlight(params, () -> revealSpotlightRows(params));
+                answer.whenComplete((value, failure) -> { if (answer.isCancelled()) pending.cancel(false); });
+                pending.whenComplete((value, failure) -> {
+                    if (failure == null) answer.complete(value); else answer.completeExceptionally(failure);
+                });
+            } catch (RuntimeException ex) { answer.completeExceptionally(ex); }
+        });
+        try { return answer.get(); }
+        catch (InterruptedException ex) {
+            answer.cancel(false);
+            Thread.currentThread().interrupt();
+            return ActionResult.error("Java source spotlight interrupted; preparation cancelled");
+        } catch (java.util.concurrent.ExecutionException ex) {
+            return ActionResult.error("Java source spotlight failed: " + ex.getCause().getMessage());
+        }
+    }
+
     private ActionResult doSpotlight(Map<String, Object> params) {
         LogStore s = store.get();
         if (Boolean.TRUE.equals(params.get("clear"))) return app.spotlight(params);
@@ -793,6 +819,13 @@ public final class ActionExecutor implements RenderExecutor {
         // relax the filter and select the LAST record before the spotlight refused it.
         String wrong = SpotlightTarget.precheck(asked, app.spotlightLit(), s == null ? -1 : s.index().size());
         if (wrong != null) return ActionResult.error(wrong);
+        revealSpotlightRows(params);
+        return app.spotlight(params);
+    }
+
+    private void revealSpotlightRows(Map<String, Object> params) {
+        LogStore s = store.get();
+        var asked = SpotlightTarget.requests(params);
         if (s != null) {
             for (SpotlightTarget.Request one : asked.requests()) {       // several rows: each revealed, the last left selected
                 SpotlightTarget.Parsed parsed = SpotlightTarget.parse(one.target());
@@ -803,7 +836,6 @@ public final class ActionExecutor implements RenderExecutor {
                 doGoto(s, reveal);
             }
         }
-        return app.spotlight(params);
     }
 
     private ActionResult doOpenAnalysis(Map<String, Object> params) {

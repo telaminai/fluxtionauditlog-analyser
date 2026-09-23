@@ -20,6 +20,8 @@ final class DesignSourcePanel extends JPanel {
     private Consumer<Map<String, Object>> navigate = p -> { };
     private boolean rendering;
     private long navigation;
+    private Runnable viewportChanged = () -> { };
+    void onViewportChanged(Runnable listener) { viewportChanged = listener; }
     record Anchor(String bean, int line, String label) { @Override public String toString() { return label + " · " + line; } }
     DesignSourcePanel() {
         super(new BorderLayout());
@@ -27,7 +29,9 @@ final class DesignSourcePanel extends JPanel {
         status.setEditable(false); status.setLineWrap(true); status.setWrapStyleWord(true); status.setRows(3);
         status.setBackground(UIManager.getColor("Panel.background"));
         JPanel top = new JPanel(new BorderLayout()); top.add(status); top.add(follow, BorderLayout.EAST); add(top, BorderLayout.NORTH);
-        var split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(beans), new JScrollPane(text));
+        JScrollPane sourceScroll = new JScrollPane(text);
+        sourceScroll.getViewport().addChangeListener(e -> viewportChanged.run());
+        var split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(beans), sourceScroll);
         split.setDividerLocation(210); split.setResizeWeight(0.22); add(split);
         JPanel links = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton node = new JButton("Show node"), records = new JButton("Show records");

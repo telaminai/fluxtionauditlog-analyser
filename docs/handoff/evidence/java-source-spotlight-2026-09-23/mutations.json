@@ -1,0 +1,417 @@
+[
+  {
+    "mutation": "negative-cache",
+    "test": "JavaSourceSpotlightFrameTest#realEntranceRereadsJarMissAndHitButNewJarNeedsReconfiguration",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/source/MavenSourceResolver.java",
+        "line": 63,
+        "before": "        cache.remove(fqn);",
+        "after": "        // mutation: retain negative cache"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#realEntranceRereadsJarMissAndHitButNewJarNeedsReconfiguration",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "{ok=false, error=Java source spotlight refused: No Java source for com.acme.Node. Repeating rereads files and entries in known sources jars; a new sources jar requires source reconfiguration or restart. Lookup: source-viewer, first-match.} ==> expected: <true> but was: <false>",
+        "text": "org.opentest4j.AssertionFailedError: {ok=false, error=Java source spotlight refused: No Java source for com.acme.Node. Repeating rereads files and entries in known sources jars; a new sources jar requires source reconfiguration or restart. Lookup: source-viewer, first-match.} ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.realEntranceRereadsJarMissAndHitButNewJarNeedsReconfiguration(JavaSourceSpotlightFrameTest.java:96)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/source/MavenSourceResolver.java": "4547011454e2d19f1079411e2c4571420f5304cb26fc74baf7c1a99393899832"
+    }
+  },
+  {
+    "mutation": "ticket",
+    "test": "JavaSourceSpotlightFrameTest#blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2129,
+        "before": "ticket != javaSpotlightTicket || !sourceService.isCurrent(lookup)",
+        "after": "false || !sourceService.isCurrent(lookup)"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "clear: superseded read must refuse ==> expected: <false> but was: <true>",
+        "text": "org.opentest4j.AssertionFailedError: clear: superseded read must refuse ==> expected: <false> but was: <true>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)\n\tat org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)\n\tat org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt(JavaSourceSpotlightFrameTest.java:155)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java": "b4764b1a0b9b59afe817a8b19c1c173c79d41e96fa0259f7ec444751cd9b18b9"
+    }
+  },
+  {
+    "mutation": "read-on-edt",
+    "test": "JavaSourceSpotlightFrameTest#blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/source/SourceService.java",
+        "line": 79,
+        "before": "if (javax.swing.SwingUtilities.isEventDispatchThread())",
+        "after": "if (false)"
+      },
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2126,
+        "before": "() -> JavaSpotlightPlan.read(lookup, asked.requests(), retained), plan -> {",
+        "after": "() -> {\n                    var read = new java.util.concurrent.atomic.AtomicReference<JavaSpotlightPlan>();\n                    try { SwingUtilities.invokeAndWait(() -> read.set(JavaSpotlightPlan.read(lookup, asked.requests(), retained))); }\n                    catch (Exception ex) { throw new RuntimeException(ex); }\n                    return read.get();\n                }, plan -> {"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "archive read must be off EDT ==> expected: <true> but was: <false>",
+        "text": "org.opentest4j.AssertionFailedError: archive read must be off EDT ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt(JavaSourceSpotlightFrameTest.java:146)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/source/SourceService.java": "25321f7bb6a45cd94c581c63ea0135368f171ae5026a231149d9ee867e14b1e1",
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java": "b4764b1a0b9b59afe817a8b19c1c173c79d41e96fa0259f7ec444751cd9b18b9"
+    }
+  },
+  {
+    "mutation": "selected-model",
+    "test": "JavaSourceSpotlightFrameTest#changedSelectedProcessorUpdatesModelAndBadBatchDoesNotReveal",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2147,
+        "before": "sourceService.acceptSpotlightModel(lookup, prepared.target().sourceFqn(), prepared.model());",
+        "after": "// mutation: do not update the selected model"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#changedSelectedProcessorUpdatesModelAndBadBatchDoesNotReveal",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "expected: <com.acme.NewType> but was: <com.acme.OldType>",
+        "text": "org.opentest4j.AssertionFailedError: expected: <com.acme.NewType> but was: <com.acme.OldType>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1145)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.lambda$changedSelectedProcessorUpdatesModelAndBadBatchDoesNotReveal$12(JavaSourceSpotlightFrameTest.java:79)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java": "b4764b1a0b9b59afe817a8b19c1c173c79d41e96fa0259f7ec444751cd9b18b9"
+    }
+  },
+  {
+    "mutation": "raw-caret",
+    "test": "JavaSourceSpotlightFrameTest#graphAndJavaUseOneVisibleDestinationInEitherOrder",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java",
+        "line": 755,
+        "before": "return JavaLineGeometry.band(first, last, view);",
+        "after": "return first.getBounds();"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#graphAndJavaUseOneVisibleDestinationInEitherOrder",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "{ok=false, error='source:java:com.acme.Node:line:3': Java source anchor is no longer visible in its bound document} ==> expected: <true> but was: <false>",
+        "text": "org.opentest4j.AssertionFailedError: {ok=false, error='source:java:com.acme.Node:line:3': Java source anchor is no longer visible in its bound document} ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.graphAndJavaUseOneVisibleDestinationInEitherOrder(JavaSourceSpotlightFrameTest.java:53)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java": "0dcdf3cc11fdc5e3c6eb3fe0ce00b9329849ef3ca6c86267354ccc4598f306cf"
+    }
+  },
+  {
+    "mutation": "no-clipping",
+    "test": "JavaSourceSpotlightFrameTest#wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/JavaLineGeometry.java",
+        "line": 16,
+        "before": "Rectangle clipped = band.intersection(viewport);",
+        "after": "Rectangle clipped = new Rectangle(band);"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "clipped band must stay inside the viewport ==> expected: <true> but was: <false>",
+        "text": "org.opentest4j.AssertionFailedError: clipped band must stay inside the viewport ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.lambda$wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial$59(JavaSourceSpotlightFrameTest.java:289)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/JavaLineGeometry.java": "06b5cea256dc2190df481ea36c8fefcd7c26184594c448a872ad81a3080ec51c"
+    }
+  },
+  {
+    "mutation": "first-wrapped-row",
+    "test": "JavaSourceSpotlightFrameTest#wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java",
+        "line": 752,
+        "before": "last = text.modelToView2D(end);",
+        "after": "last = text.modelToView2D(start);"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "all visual rows form the logical line band ==> expected: <136> but was: <17>",
+        "text": "org.opentest4j.AssertionFailedError: all visual rows form the logical line band ==> expected: <136> but was: <17>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.lambda$wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial$58(JavaSourceSpotlightFrameTest.java:280)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java": "0dcdf3cc11fdc5e3c6eb3fe0ce00b9329849ef3ca6c86267354ccc4598f306cf"
+    }
+  },
+  {
+    "mutation": "design-containment",
+    "test": "DesignSpotlightFrameTest#viewportMovementExtinguishesPartiallyVisibleDesignBand",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DesignSourcePanel.java",
+        "line": 99,
+        "before": "!text.getVisibleRect().contains(at)",
+        "after": "!text.getVisibleRect().intersects(at)"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=DesignSpotlightFrameTest#viewportMovementExtinguishesPartiallyVisibleDesignBand",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "released design policy refuses partial visibility ==> expected: <true> but was: <false>",
+        "text": "org.opentest4j.AssertionFailedError: released design policy refuses partial visibility ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.DesignSpotlightFrameTest.lambda$viewportMovementExtinguishesPartiallyVisibleDesignBand$14(DesignSpotlightFrameTest.java:83)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DesignSourcePanel.java": "d1bc9a321ce93f517fa4338de73400d36442174c84cc6ecfa1fa6ff07fe2cf97"
+    }
+  },
+  {
+    "mutation": "viewport-listeners",
+    "test": "JavaSourceSpotlightFrameTest#viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 265,
+        "before": "sourcePanel.onSourceViewChanged(this::sourceViewportChanged);",
+        "after": "sourcePanel.onSourceViewChanged(null);"
+      },
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 266,
+        "before": "topologyPanel.sourceViewer().onSourceViewChanged(this::sourceViewportChanged);",
+        "after": "topologyPanel.sourceViewer().onSourceViewChanged(null);"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "viewport callback must extinguish scrolled-away line ==> expected: <false> but was: <true>",
+        "text": "org.opentest4j.AssertionFailedError: viewport callback must extinguish scrolled-away line ==> expected: <false> but was: <true>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)\n\tat org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)\n\tat org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.lambda$viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget$53(JavaSourceSpotlightFrameTest.java:250)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java": "b4764b1a0b9b59afe817a8b19c1c173c79d41e96fa0259f7ec444751cd9b18b9"
+    }
+  },
+  {
+    "mutation": "revision-binding",
+    "test": "JavaSourceSpotlightFrameTest#viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java",
+        "line": 559,
+        "before": "if (!pane.isShowing() || pane.snapshot == null || !pane.snapshot.equals(anchor.document()))",
+        "after": "if (!pane.isShowing())"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "same line in a replacement document is not the old anchor ==> expected: <false> but was: <true>",
+        "text": "org.opentest4j.AssertionFailedError: same line in a replacement document is not the old anchor ==> expected: <false> but was: <true>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)\n\tat org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)\n\tat org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.lambda$viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget$56(JavaSourceSpotlightFrameTest.java:258)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java": "0dcdf3cc11fdc5e3c6eb3fe0ce00b9329849ef3ca6c86267354ccc4598f306cf"
+    }
+  },
+  {
+    "mutation": "reveal-before-read",
+    "test": "JavaSourceSpotlightFrameTest#invalidJavaBeforeRecordRevealKeepsSelectionAndFilter",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2103,
+        "before": "long ticket = ++javaSpotlightTicket;",
+        "after": "revealRows.run();\n        long ticket = ++javaSpotlightTicket;"
+      },
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2141,
+        "before": "                        revealRows.run();",
+        "after": "                        // mutation: rows already revealed"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#invalidJavaBeforeRecordRevealKeepsSelectionAndFilter",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "expected: <0> but was: <1>",
+        "text": "org.opentest4j.AssertionFailedError: expected: <0> but was: <1>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:145)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:531)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.lambda$invalidJavaBeforeRecordRevealKeepsSelectionAndFilter$50(JavaSourceSpotlightFrameTest.java:235)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java": "b4764b1a0b9b59afe817a8b19c1c173c79d41e96fa0259f7ec444751cd9b18b9"
+    }
+  },
+  {
+    "mutation": "deadline-late-publication",
+    "test": "JavaSourceSpotlightFrameTest#preparationDeadlineRefusesBeforeReadReturnsAndLateCompletionCannotLight",
+    "sourceSites": [
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2120,
+        "before": "if (javaSpotlightTicket == ticket) javaSpotlightTicket++;",
+        "after": "// mutation: expiry does not invalidate ticket"
+      },
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2127,
+        "before": "                    if (result.isDone()) return;",
+        "after": "                    // mutation: ignore terminal reply"
+      },
+      {
+        "file": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+        "line": 2128,
+        "before": "                    if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }",
+        "after": "                    // mutation: no deadline check before apply"
+      }
+    ],
+    "seenRed": true,
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=JavaSourceSpotlightFrameTest#preparationDeadlineRefusesBeforeReadReturnsAndLateCompletionCannotLight",
+      "-Djava.awt.headless=false",
+      "-DargLine=-Djava.awt.headless=false"
+    ],
+    "exitCode": 1,
+    "failures": [
+      {
+        "message": "late read after deadline must never light ==> expected: <false> but was: <true>",
+        "text": "org.opentest4j.AssertionFailedError: late read after deadline must never light ==> expected: <false> but was: <true>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)\n\tat org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)\n\tat org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.JavaSourceSpotlightFrameTest.lambda$preparationDeadlineRefusesBeforeReadReturnsAndLateCompletionCannotLight$39(JavaSourceSpotlightFrameTest.java:195)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n"
+      }
+    ],
+    "restored": true,
+    "sourceHashes": {
+      "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java": "b4764b1a0b9b59afe817a8b19c1c173c79d41e96fa0259f7ec444751cd9b18b9"
+    }
+  }
+]

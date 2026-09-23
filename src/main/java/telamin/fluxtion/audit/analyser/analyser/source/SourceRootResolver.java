@@ -23,7 +23,7 @@ public final class SourceRootResolver {
     }
 
     public List<Path> roots() {
-        return roots;
+        return List.copyOf(roots);
     }
 
     /**
@@ -36,11 +36,13 @@ public final class SourceRootResolver {
      * the framework's examples teach. Each trailing capitalised segment is dropped in turn, which stops
      * at the package (lower-case by convention) rather than walking off the top.
      */
-    public Optional<Path> find(String fqn) {
+    public Optional<Path> find(String fqn) { return locate(fqn).map(Location::file); }
+    private record Location(Path root, Path file) { }
+    private Optional<Location> locate(String fqn) {
         if (fqn == null || fqn.isBlank()) return Optional.empty();
         String name = fqn;
         while (true) {
-            Optional<Path> hit = findExact(name);
+            Optional<Location> hit = findExact(name);
             if (hit.isPresent()) return hit;
             int dot = name.lastIndexOf('.');
             if (dot < 0) return Optional.empty();
@@ -53,18 +55,22 @@ public final class SourceRootResolver {
         }
     }
 
-    private Optional<Path> findExact(String fqn) {
+    private Optional<Location> findExact(String fqn) {
         String rel = fqn.replace('.', '/') + ".java";
         for (Path root : roots) {
             Path candidate = root.resolve(rel);
-            if (Files.isRegularFile(candidate)) return Optional.of(candidate);
+            if (Files.isRegularFile(candidate)) return Optional.of(new Location(root, candidate));
         }
         return Optional.empty();
     }
 
     /** Reads the source for an FQN if present. */
     public Optional<String> read(String fqn) {
-        return find(fqn).map(SourceRootResolver::readFile);
+        return document(fqn).map(SourceDocument::text);
+    }
+
+    public Optional<SourceDocument> document(String fqn) {
+        return locate(fqn).map(location -> SourceDocument.file(readFile(location.file()), location.root(), location.file()));
     }
 
     static String readFile(Path p) {

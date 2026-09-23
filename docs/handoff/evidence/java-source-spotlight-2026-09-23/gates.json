@@ -1,0 +1,103 @@
+{
+  "base": "809303f7",
+  "headless": {
+    "command": "mvn -q clean test",
+    "tests": 1786,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 61
+  },
+  "display": {
+    "suites": {
+      "PairingDuringLoadFrameTest": {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "AsyncOpenInterleavingFrameTest": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "SpotlightFrameTest": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "WestColumnStartsCollapsedFrameTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "MenuScreenshotFrameTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "PersonAtTheScreenFrameTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "NamedGraphAndMenuSpotlightFrameTest": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "SessionRecoveryFrameTest": {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "TemplateCatalogueFrameTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "DesignSpotlightFrameTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "JavaSourceSpotlightFrameTest": {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "LoadedFileObservationFrameTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "totals": {
+      "tests": 62,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "package": "mvn -q package: passed (1786 tests, 0 failures/errors, 61 headless skips)",
+  "tools": "python3 tools/test_tools.py: all passed",
+  "existingSpotlight": {
+    "command": "python3 tools/verify-m64-spotlight.py",
+    "passedChecks": 94
+  },
+  "docs": "mkdocs build --strict: passed",
+  "diffCheck": "git diff --check: passed",
+  "sweep": "tracked and untracked rule-1 sweeps: no output",
+  "mutations": "12/12 named assertion failures, source bytes restored",
+  "ci": "pending feature PR"
+}
