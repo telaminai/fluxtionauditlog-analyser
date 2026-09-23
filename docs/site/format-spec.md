@@ -105,7 +105,10 @@ the record an ordinary record. `<value>` is read to end of line, and then:
   and does not make the record ordinary;
 - otherwise an unquoted `#` begins a comment and the value is what precedes it.
 
-A `streamEndRecords` value, **after the surrounding whitespace defined above is stripped**, is **ASCII
+A value is stripped of the whitespace defined above **after** it is extracted, quoted or not; a value that
+is empty after stripping is empty, and an empty `streamEnd` value makes the record an ordinary record.
+
+A `streamEndRecords` value, after the stripping just described, is **ASCII
 digits `0`-`9` with an optional leading `+` or `-`, and nothing else**. This is stated exactly because "parseable as an integer" is not portable: Java's parser accepts any
 Unicode decimal digit, so `streamEndRecords: ３` (fullwidth) and `٣` (Arabic-Indic) read as 3 and a file was
 reported **complete** where a stricter reader said unverified - the unsafe direction. Python's `int()`
@@ -158,7 +161,9 @@ restarts — are therefore two segments, each checked against its own marker, an
 | no marker, or records after the last one | **unknown whether complete** |
 | ends with a marker that has no closing `---` | **unterminated marker** — the claim is unfinished; the marker is not shown as a record |
 
-**Precedence, when more than one row applies.** Records after the last marker make the FILE unknown:
+**Precedence, when more than one row applies.** When the final item is an unterminated marker, **that row
+wins**: the records before it are not "records after the last marker" for this purpose, and any run that
+already failed its count is still reported. Otherwise, records after the last marker make the FILE unknown:
 nothing vouches for the tail. But a run that already failed its own count has already proved it, and a
 reader MUST still report that run. The file's state is `unknown`; the failed run is named beside it. A
 reader that reported only `unknown` there would conceal a proven loss behind an honest one, which is the

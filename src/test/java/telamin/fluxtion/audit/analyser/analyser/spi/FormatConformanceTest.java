@@ -136,6 +136,14 @@ class FormatConformanceTest {
         // a time and, having withheld that item under §1a rule 1, can only report "unknown" — it has no
         // way to say WHY. That is an SPI gap, filed as AF-10, not a licence to disagree: every other
         // combination fails here.
+        // EVIDENCE never differs, whatever label each path puts on it. Round seven built a plugin whose
+        // only defect was never handing over a marker: identical records, identical isKnownComplete, and
+        // the tolerated state pair — so the old tolerance skipped the comparison entirely while one path
+        // reported a proven loss and the other said nothing. The runs are the proof, and they are
+        // compared unconditionally.
+        assertEquals(a.streamEnd().runs(), b.streamEnd().runs(),
+                name + ": one path proved a run lost records and the other did not");
+
         boolean plugInIsLessPrecise =
                 a.streamEnd().state() == telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNTERMINATED_MARKER
                         && b.streamEnd().state() == telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN;
@@ -143,6 +151,18 @@ class FormatConformanceTest {
             assertEquals(a.streamEnd().state(), b.streamEnd().state(), name + ": completeness state");
             assertEquals(a.completenessDiagnostics(), b.completenessDiagnostics(),
                     name + ": what each path says about completeness");
+        } else {
+            // The ONE thing a plugin may lose is the explanation of why it withheld the item (AF-10).
+            // Nothing else: it may not be silent about anything the built-in reader had to say.
+            assertTrue(b.completenessDiagnostics().isEmpty(),
+                    () -> name + ": a plugin that can say something must say the same thing: "
+                            + b.completenessDiagnostics());
+            assertEquals(1, a.completenessDiagnostics().size(),
+                    () -> name + ": exactly one sentence may be lost, not a set of them: "
+                            + a.completenessDiagnostics());
+            assertTrue(a.completenessDiagnostics().get(0).contains("no closing ---"),
+                    () -> name + ": and it must be the unterminated-marker sentence, nothing else: "
+                            + a.completenessDiagnostics().get(0));
         }
         return a;
     }
@@ -475,6 +495,59 @@ class FormatConformanceTest {
         LogStore legacy = new HeapLogStore(text);
         assertEquals("\"hello\"", legacy.record(0).nodeLogs().get(0).last("greeting").rawValue(), "same bytes, no declaration");
         assertFalse(legacy.record(0).nodeLogs().get(0).last("greeting").quoted());
+    }
+
+    /**
+     * The hole round seven demonstrated in this very helper, now closed and pinned.
+     *
+     * <p>A plugin whose ONLY defect is that it never hands a marker over produces identical records and
+     * identical {@code isKnownComplete}, and lands on the tolerated state pair — so the old tolerance
+     * skipped every remaining comparison while the built-in reader reported a proven loss and the plugin
+     * said nothing at all. The evidence is compared unconditionally now, and this proves it.
+     */
+    @Test
+    void aPluginThatSwallowsMarkersIsCaughtEvenOnTheToleratedStatePair() throws IOException {
+        String body = "---\neventLogRecord:\n  logTime: 1\n  event: Tick\n  nodeLogs:\n    - b: { v: 1}\n"
+                + "---\neventLogRecord:\n  logTime: 2\n  event: Tick\n  nodeLogs:\n    - b: { v: 1}\n"
+                + "---\neventLogRecord:\n  logTime: 3\n  event: Tick\n  nodeLogs:\n    - b: { v: 1}\n"
+                + "---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 5\n"   // declares 5, holds 3
+                + "---\neventLogRecord:\n  logTime: 4\n  event: Tick\n  nodeLogs:\n    - b: { v: 1}\n"
+                + "---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 4";     // unterminated
+        Path f = dir.resolve("swallowed.yaml");
+        Files.writeString(f, body);
+
+        record MarkerSwallowingReader() implements AuditLogReader {
+            @Override public String formatId() { return "swallows-markers"; }
+            @Override public String displayName() { return "swallows markers"; }
+            @Override public boolean canOpen(Path s) { return true; }
+            @Override public TimeBase timeBase() { return TimeBase.wallClockMillisUtc(); }
+            @Override public Capabilities capabilities() {
+                return new Capabilities(false, false, true, Ordering.TOTAL);
+            }
+            @Override public void read(Path source, Consumer<String> out) throws IOException {
+                RecordFramer.frameForPlugin(Files.readString(source), raw -> {
+                    if (telamin.fluxtion.audit.analyser.analyser.parse.StreamEndMarker
+                            .of(raw.text()).isEmpty()) out.accept(raw.text());
+                });
+            }
+        }
+
+        LogStore builtIn = new HeapLogStore(body);
+        LogStore plugin = SpiLogStore.open(new MarkerSwallowingReader(), f);
+
+        // the shape that made it slip through: same records, same claim, the tolerated state pair
+        assertEquals(builtIn.size(), plugin.size(), "identical records, which is what made it invisible");
+        assertEquals(builtIn.streamEnd().isKnownComplete(), plugin.streamEnd().isKnownComplete());
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNTERMINATED_MARKER,
+                builtIn.streamEnd().state());
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
+                plugin.streamEnd().state());
+
+        // and the evidence differs, which is the thing that must never be skipped
+        assertEquals(1, builtIn.streamEnd().runs().size(), "the built-in reader proved run 1 lost records");
+        assertEquals(0, plugin.streamEnd().runs().size(), "and the plugin says nothing about it");
+        assertNotEquals(builtIn.streamEnd().runs(), plugin.streamEnd().runs(),
+                "so the unconditional comparison in bothPathsAgree is what catches this");
     }
 
     @Test

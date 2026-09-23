@@ -183,6 +183,10 @@ defects. **Nothing below is implemented.**
   less precise, and a person reading a plugin-sourced log is not told their producer must terminate its
   marker. Closing it means a way for a reader to hand back a container fact, which is a change to the
   SPI and belongs in its own slice.
+  **Round seven accepted this disposition and added a condition: the SPI needs that route before any
+  third-party TEXT plugin ships.** Until then every such plugin reports `unknown` for a file the built-in
+  reader can explain, and its users are never told their producer must terminate its marker. Text files
+  do not reach the plugin path in production today, which is the only reason this can wait.
 
 - **[AF-3a] ⊘ — WITHDRAWN: main fixed it through TA-6, and my fix was wrong.** _Round six L-2: this branch
   still listed it open._ `HeapLogStore.appendFrom` on main refuses to append when the snapshot includes an
