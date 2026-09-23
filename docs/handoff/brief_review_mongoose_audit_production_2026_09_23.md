@@ -43,10 +43,14 @@ eventLogRecord:
    whether MA-1 is then worth doing at all, versus making the wrapper path say out loud that auditing
    needs an AOT-built processor. This was added after the owner asked what `DefaultEventProcessor`
    actually is; an earlier draft implied MA-1 delivered per-node coverage, which was wrong.
-3. **D-MA1 — that the fix belongs in `fluxtion-runtime`, not Mongoose.** I said the opposite to the owner
-   earlier today and corrected it after reading `DefaultEventProcessor`'s declared fields. Check I have
-   that right: is there a supported way for Mongoose to install an `EventLogManager` on a graph it did
-   not build, which would keep the change out of the framework?
+3. **D-MA1 and OD-3 — three ways to fix it, only one needing a framework release.** This section has now
+   been wrong twice and rewritten twice, both times because the owner pushed back, so attack it hardest.
+   (b), a Mongoose-side subclass, is **proven by a spike** — source and output in
+   `docs/handoff/evidence/mongoose-audit-production-2026-09-23/`; reproduce it. (c), generating the
+   processor shape Mongoose wants, is **recommended but NOT built**. Is (c) actually as clean as claimed,
+   or does generating a processor drag in obligations the spec has not costed? And the question worth
+   more than the rest: **can a generated processor register a node set supplied at runtime?** If it can,
+   D-MA1b's cap lifts and MA-1 is far more valuable than this spec claims.
 4. **OD-1, the owner decision I framed** — always-on versus opt-in for the auditor. Check the framing is
    honest, particularly that I have not stacked it. `UP-FLX-51` measures ~120 ns/event for a manager
    recording nothing and proposes a fix that would make always-on cheap; I claim the two should be

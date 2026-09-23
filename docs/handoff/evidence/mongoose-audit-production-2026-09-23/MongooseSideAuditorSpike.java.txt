@@ -1,0 +1,94 @@
+/*
+ * SPDX-FileCopyrightText: © 2026 Telamin
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+package com.telamin.mongoose.plugin.svc.adminweb;
+
+import com.telamin.fluxtion.runtime.DefaultEventProcessor;
+import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
+import com.telamin.fluxtion.runtime.audit.EventLogManager;
+import com.telamin.fluxtion.runtime.audit.LogRecord;
+import com.telamin.fluxtion.runtime.audit.LogRecordListener;
+import com.telamin.fluxtion.runtime.node.ObjectEventHandlerNode;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * SPIKE, not a shipped test: can a MONGOOSE-side subclass install a working EventLogManager on the
+ * DefaultEventProcessor path, so MA-1 needs no fluxtion-runtime release?
+ *
+ * <p>The three structural preconditions were read first: onEvent is public and non-final;
+ * getAuditorById does getClass().getField(id), so a PUBLIC field on a subclass resolves; and
+ * setAuditLogProcessor arrives as an ordinary event. What is NOT established by reading is whether
+ * nodeRegistered injects the logger into the handler's auditLog, and whether the manager ever publishes.
+ */
+class MongooseSideAuditorSpikeTest {
+
+    public static class H extends ObjectEventHandlerNode {
+        @Override protected boolean handleEvent(Object event) {
+            if (event instanceof String) {
+                auditLog.info("tick", String.valueOf(event));
+            }
+            return true;
+        }
+    }
+
+    /** The candidate: everything a Mongoose-side class would have to do itself. */
+    public static class AuditingProcessor extends DefaultEventProcessor {
+        // public, so getAuditorById("eventLogger") and getLastAuditLogRecord() resolve
+        public final transient EventLogManager eventLogger = new EventLogManager();
+        private final ObjectEventHandlerNode handler;
+
+        AuditingProcessor(ObjectEventHandlerNode handler) {
+            super(handler);
+            this.handler = handler;
+            // the manager needs the processor's clock; DefaultEventProcessor.clock is public
+            eventLogger.clock = this.clock;
+            eventLogger.init();
+            eventLogger.nodeRegistered(handler, "allEventHandler");
+        }
+
+        @Override
+        public void onEvent(Object event) {
+            // the control event has its own handler; eventReceived is the wrong door for it
+            if (event instanceof EventLogControlEvent c) {
+                eventLogger.calculationLogConfig(c);
+                return;
+            }
+            eventLogger.eventReceived(event);
+            super.onEvent(event);
+            eventLogger.processingComplete();
+        }
+    }
+
+    @Test
+    void canMongooseInstallItsOwnAuditor() {
+        List<String> records = new CopyOnWriteArrayList<>();
+        LogRecordListener capture = (LogRecord r) -> records.add(String.valueOf(r.asCharSequence()));
+
+        AuditingProcessor p = new AuditingProcessor(new H());
+        p.init();
+
+        // does the auditor resolve by id now?
+        String byId;
+        try {
+            byId = String.valueOf(p.getAuditorById(EventLogManager.NODE_NAME) != null);
+        } catch (Exception e) {
+            byId = "THREW " + e.getClass().getSimpleName();
+        }
+        System.out.println("[SPIKE] getAuditorById(eventLogger) -> " + byId);
+
+        // route the listener + level the way the framework does
+        p.onEvent(new EventLogControlEvent(capture));
+        p.onEvent(new EventLogControlEvent(EventLogControlEvent.LogLevel.DEBUG));
+
+        for (int i = 0; i < 5; i++) p.onEvent("e" + i);
+
+        System.out.println("[SPIKE] LogRecords captured: " + records.size());
+        records.stream().limit(2).forEach(r -> System.out.println("[SPIKE] record >>>\n" + r));
+        System.out.println("[SPIKE] getLastAuditLogRecord -> ["
+                + p.getLastAuditLogRecord().replace("\n", "\\n") + "]");
+    }
+}

@@ -83,10 +83,46 @@ Mongoose reaches that class through `EventProcessorConfig.getEventHandler()`, wh
 which 7 carry node entries and 18 are empty** — counted. The defect is the `DefaultEventProcessor`
 construction path.
 
-### D-MA1 · The fix belongs in `fluxtion-runtime`, not in Mongoose
+### D-MA1 · Three ways to fix it, and only one needs a framework release
 
-`DefaultEventProcessor` owns its auditor set; Mongoose only chooses that class. An earlier statement of
-this finding said the fix belonged in Mongoose core. **That was wrong** and is corrected here.
+`DefaultEventProcessor` owns its auditor set, so the obvious reading is that the fix must be in
+`fluxtion-runtime`. **The owner challenged that twice, and both challenges were right.** The options:
+
+**(a) Change `fluxtion-runtime`.** Add the auditor to `DefaultEventProcessor`. Clean, and it fixes the
+path for every consumer — but it needs a framework release, and it puts the always-on/opt-in cost
+question (OD-1) in the framework where it affects everyone.
+
+**(b) A Mongoose-side subclass. PROVEN — spiked and running, 2026-09-23.** No framework release. The
+spike source and output are in
+[`evidence/mongoose-audit-production-2026-09-23/`](../handoff/evidence/mongoose-audit-production-2026-09-23/):
+**5 of 5 events produced records carrying `nodeLogs: - allEventHandler: { tick: e1}`**. It works, and
+what it takes was found by running rather than reading:
+
+| Requirement | Found how |
+| --- | --- |
+| `public final transient EventLogManager eventLogger` | `getAuditorById` does `getClass().getField(id)`, so it must be **public** — then it resolves |
+| `eventLogger.clock = this.clock` | omitted → `NullPointerException` in `LogRecord.triggerEvent` |
+| `eventLogger.init()` + `nodeRegistered(handler, "allEventHandler")` | this is what injects the logger into the handler's `auditLog` |
+| `EventLogControlEvent` → `calculationLogConfig(c)`, **not** `eventReceived` | routed to `eventReceived` first: **0 records**, silently |
+| otherwise `eventReceived` → `super.onEvent` → `processingComplete()` | `processingComplete` is what publishes |
+
+**Two wrinkles the spike also exposed**, both against (b): the `init()` record bled into the first
+event's record, so lifecycle ordering needs care; and `getLastAuditLogRecord()` still returned empty.
+Neither is fatal, both are the cost of re-implementing by hand what the framework does natively.
+
+**(c) Mongoose generates the processor shape it wants. RECOMMENDED.** `DefaultEventProcessor` is not a
+hand-designed class — its javadoc still carries **unsubstituted** generator placeholders
+(`${generator_version_information}`), so it began as generator output and has been hand-maintained since.
+Mongoose can therefore generate its own equivalent that declares `eventLogger` and wires it in
+`initialiseAuditor`, `auditEvent` and `afterEvent` **natively**, exactly as a generated AOT processor
+does — no overrides, none of (b)'s wrinkles, and no framework release. Like `DefaultEventProcessor`
+itself, it is generated once and committed, so no permanent build-time dependency on the compiler is
+needed (neither Mongoose repo has one today).
+
+**OD-3 — owner decision: (a), (b) or (c).** The spec recommends **(c)**: it is the only one that is both
+release-free and structurally the same as what the framework does for generated graphs. (b) is proven and
+is the fallback if generating is unattractive. (a) remains the right answer if the fix should benefit
+every `DefaultEventProcessor` consumer rather than only Mongoose.
 
 **OD-1 — owner decision.** Two shapes, and the owner picks:
 
@@ -115,7 +151,14 @@ into "this processor logs at handler granularity". It does **not** make "absence
 node level on the wrapper path — for that, the processor has to be a real generated graph. An earlier
 draft of this spec implied otherwise.
 
-**OD-2 — owner decision.** Given that, is MA-1 worth doing at all, or is the right answer to tell users
+**Does option (c) lift the cap?** Partly, and the honest answer is: not by itself. A generated processor
+registers the nodes known **at generation time**, and on the wrapper path the handler is supplied at
+**runtime**, so its internal nodes are still invisible. (c) buys the same coverage as (b), cleanly. The
+cap is lifted only by generating from the user's actual node set, which is the AOT path and is out of
+scope here. **This is worth a reviewer's attention: if (c) can be made to register a runtime-supplied
+node set, MA-1 becomes far more valuable than this spec claims.**
+
+**OD-2 — owner decision.** Given that cap, is MA-1 worth doing at all, or is the right answer to tell users
 that auditing requires an AOT-built processor and make the wrapper path **say so** rather than silently
 emit nothing? A third option: keep MA-1 *and* have the analyser report the wrapper path explicitly, so a
 four-node denominator is not mistaken for a complete topology.

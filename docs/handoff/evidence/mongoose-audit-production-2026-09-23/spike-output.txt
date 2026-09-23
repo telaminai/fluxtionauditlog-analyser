@@ -1,0 +1,13 @@
+[SPIKE] getAuditorById(eventLogger) -> true
+[SPIKE] LogRecords captured: 5
+[SPIKE] record >>>
+        - allEventHandler: { init: allEventHandlereventLogRecord: 
+    nodeLogs: , tick: e0}
+[SPIKE] record >>>
+    nodeLogs: 
+        - allEventHandler: { tick: e1}
+[SPIKE] getLastAuditLogRecord -> []
+
+--- run context ---
+mongoose-plugins 1.0.44-SNAPSHOT, fluxtion-runtime 1.0.15, mongoose 1.0.29
+Tests run: 1, Failures: 0, Errors: 0.  2026-09-23.
