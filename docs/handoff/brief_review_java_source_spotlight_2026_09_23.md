@@ -1,6 +1,6 @@
 # Independent review: Java source spotlight
 
-Review `feat/java-source-spotlight` against main `809303f7`. Work in your own worktree; do not alter the
+Review `feat/java-source-spotlight-current` against main `9b88e6ac` (1.18.0). Work in your own worktree; do not alter the
 primary checkout or the author's implementation worktree. Start with `docs/ONBOARDING.md` and `CLAUDE.md`,
 then read the whole [proposal](../proposals/source-spotlight.md) and
 [implementation report](report_java_source_spotlight_2026_09_23.md). The proposal's accepted review,

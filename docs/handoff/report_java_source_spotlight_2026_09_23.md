@@ -1,11 +1,12 @@
 # Java source spotlight — implementation handoff
 
-Branch: `feat/java-source-spotlight`. Base: main `809303f7` (v1.17.0 plus tracker cleanup).
-The unpublished branch was rebased; the only tracker difference from that base is this feature's section.
+Branch: `feat/java-source-spotlight-current`. Base: main `9b88e6ac` (1.18.0).
+The original implementation remains at `5bf2e442` on `feat/java-source-spotlight`; this replacement
+branch rebases it without force-pushing published history. Only this feature's section is added to the tracker.
 The primary checkout and its IDE edits were not used for implementation. No merge or release is requested.
 
 Contract: [source spotlight proposal](../proposals/source-spotlight.md). Predictions were committed
-before source changes (`aa10f326`, rebased as `b199f1cc`). The accepted review and S-1/S-2 clarifications
+before source changes (`aa10f326`, rebased as `b199f1cc`, then `54658193`). The accepted review and S-1/S-2 clarifications
 are preserved in the proposal packet. N-1's deadline was specified in the tracker before that code was added.
 
 ## What changed
@@ -61,7 +62,7 @@ state rather than treating every extent notification as user input. The final di
 
 ## Validation
 
-Local gates, from the restored implementation:
+Original local gates at `5bf2e442`, before integration with 1.18.0:
 
 - `mvn -q clean test`: **1,786 tests, 0 failures/errors, 61 headless skips**.
 - Full twelve-suite display list from CI: **62 tests, 0 failures/errors/skips**. The Java frame suite was
@@ -72,9 +73,19 @@ Local gates, from the restored implementation:
 - Strict MkDocs, `git diff --check`, tracked/untracked rule-1 sweeps: passed/clean.
 - All **12/12** mutations failed their named assertions; source files restored.
 
-[Machine-readable gate record](evidence/java-source-spotlight-2026-09-23/gates.json). PR CI is pending;
-no Linux/Xvfb result is claimed until its no-skip gate completes. The suite distinguishes headless skips
-from the mandatory display job; headless green alone is not display evidence.
+Integration with 1.18.0 at `914ae908` was checked separately: **1,875 headless tests (61 skips),
+62 display tests (no skips), zero failures/errors**. Packaging after these gates, tool checks and strict
+docs and all 94 existing spotlight API checks also passed. MainFrame's added/removed lines from 1.18.0 were compared with the integrated result:
+every line is preserved. The tracker diff adds only this feature's section. No source conflict required
+manual resolution; tracker and changelog conflicts were resolved by retaining both bodies of work.
+
+[PR #6](https://github.com/telaminai/fluxtionauditlog-analyser/pull/6) replaces the conflicting draft #5.
+[GitHub CI on `914ae908`](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35839227529)
+passed build, loop-bench and ui-frame; static checks also passed. The Linux/Xvfb log explicitly records
+all twelve suites: **62 tests, no errors, failures or skips**. See the
+[machine-readable gate record](evidence/java-source-spotlight-2026-09-23/gates.json).
+The original twelve mutation witnesses remain evidence at `5bf2e442`; they were not repeated after the
+rebase. Their code sites are unchanged apart from MainFrame line displacement by 1.18.0 additions.
 
 The generated [site screenshot](../site/assets/java-source-spotlight.png) was inspected: both cutouts
 align, both captions are visible, and the source/run qualification is visible. Only neutral fixture names

@@ -1,6 +1,6 @@
 # Proposal: spotlight Java source beside the topology
 
-**Status: IMPLEMENTED on `feat/java-source-spotlight`, pending independent implementation review.**
+**Status: IMPLEMENTED on `feat/java-source-spotlight-current`, pending independent implementation review.**
 [Implementation report](../handoff/report_java_source_spotlight_2026_09_23.md) and
 [review brief](../handoff/brief_review_java_source_spotlight_2026_09_23.md). Proposal accepted at `3665e237`; S-1/S-2 were settled before implementation, and N-1 adds the deadline below. Revised 2026-09-21 in response to
 [the first review](../handoff/review_source_spotlight_proposal_2026_09_21.md) and
@@ -15,7 +15,8 @@ contracts; it does not add application execution or code analysis by the analyse
 
 Re-baselined on fetched `origin/main` **`401da35bf43aee102d53be9c59d164af0fdd9eba`**, which includes
 **v1.17.0**, on 2026-09-21. The primary working checkout remains at `9c10de82` to preserve concurrent
-uncommitted work; it is **not** the source baseline for this revision. Implementation was rebased onto main `809303f7`, whose changes archive completed tracker/spec items;
+uncommitted work; it is **not** the source baseline for this revision. Implementation was rebased onto main `809303f7`, whose changes archive completed tracker/spec items,
+then onto released `9b88e6ac` (1.18.0) on a replacement branch;
 the released source baseline below is unchanged.
 
 In particular, `c6aeafde` already added `DesignSourcePanel.revealLine` and rejects an existing design

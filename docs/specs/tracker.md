@@ -307,17 +307,17 @@ are what makes the instrument argue against itself in front of a stranger.
 
 ---
 
-## Java source spotlight — implemented, validation and independent review pending
+## Java source spotlight — implemented, independent review pending
 
 [Proposal](../proposals/source-spotlight.md), [round-four response](../handoff/response_source_spotlight_r4_2026_09_21.md).
-Rebased onto main `809303f7`, preserving its archived/closed statuses. Source baseline `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
+Rebased first onto `809303f7`, then released main `9b88e6ac` on a replacement branch without force-pushing. Main's archived/closed statuses and later work are preserved. Source baseline `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
 SourceService first-match lookup and repeat-spotlight reread are explicit; the source-glance verb
 remains unchanged. Java clips with partial disclosure; design keeps released containment refusal.
 Preparation, lifetime bindings, viewport hooks and both CI frame lists are implemented.
 All linked proposal reviews/responses ship together. [Review 3665e237](../handoff/review_source_spotlight_r4_response_2026_09_21_claude.md)
 is READY FOR HANDOFF. [S-1/S-2 response](../handoff/response_source_spotlight_handoff_2026_09_21.md)
 specifies off-EDT reads, guarded EDT apply and selected-model replacement from the rendered snapshot.
-Implementation on `feat/java-source-spotlight`, starting at `48aa78f5`; no release claimed.
+Implementation on `feat/java-source-spotlight-current`, starting at `48aa78f5`; no release claimed.
 Frozen predictions before source edits:
 - Source snapshots retain root/archive origin and rendered-text hash. Refresh sees a newly added
   entry in an already-known jar after a cached miss, while a new jar needs resolver recreation.
@@ -343,7 +343,8 @@ regression names, all twelve seen-red mutation witnesses and boundaries. [Review
 - ☑ Java viewport geometry, graph/source routing, lifetime registry and design scroll remeasurement.
 - ☑ Generated neutral screenshot inspected; vocabulary, source guide, spotlight spec and changelog updated.
 - ☑ Local gates: 1,786 headless (61 display skips), 62 display (none skipped), package, 94/94 existing spotlight checks, tool checks, strict docs and sweep. Twelve seen-red mutation witnesses restored.
-- ◧ PR CI and handoff publication.
+- ☑ Integrated 1.18.0 at `914ae908`: 1,875 headless (61 skips), 62 display (none skipped), zero failures/errors; package, tool checks, 94/94 existing spotlight checks and strict docs pass. MainFrame retains every released added/removed line.
+- ☑ [PR #6](https://github.com/telaminai/fluxtionauditlog-analyser/pull/6) CI: build, loop-bench, static and Linux/Xvfb display pass (62 tests, no skips). Handoff published. Original branch/PR preserved without force-push; #5 superseded.
 - ☐ Independent implementation review; owner merge/release decision. Existing evidence-correctness priority and completed work are unchanged.
 
 ---

@@ -30,3 +30,10 @@ Implementation uses `/private/tmp/analyser-java-source-spotlight`; the primary c
 
 See the [implementation report](report_java_source_spotlight_2026_09_23.md) for final gates and the
 [review brief](brief_review_java_source_spotlight_2026_09_23.md) for independent attack instructions.
+
+**Release integration (2026-09-23).** Main advanced to `9b88e6ac` (1.18.0) during implementation.
+The published feature remains intact at `5bf2e442`. Replacement branch
+`feat/java-source-spotlight-current` rebases those four commits without a force-push or merge bubble.
+Tracker conflicts retained all of main and added only the spotlight section; changelog conflicts kept
+the feature unreleased above 1.18.0. MainFrame merged automatically; its stream-end additions were
+inspected against main. Combined gates are recorded separately from the original implementation gates.
