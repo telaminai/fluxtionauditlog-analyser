@@ -1,0 +1,16 @@
+{
+  "scope": "canvas recovery, no generation or key",
+  "clientSeconds": 180.78783675003797,
+  "healthyChecks": 91,
+  "healthFailures": [],
+  "projectFilesUnchanged": true,
+  "projectFileCount": 68,
+  "clientExportRefused": true,
+  "operatorExportSucceeded": true,
+  "originalRecordBlocks": 9,
+  "originalSeparators": 0,
+  "analyserParsedRecords": 1,
+  "independentScenarioRuns": 2,
+  "independentStateSnapshotsPerRun": 7,
+  "jarSha256": "0254c618688669e790bf2c73ba0d37dccd8541fa2e81b89882af60364b84cfee"
+}

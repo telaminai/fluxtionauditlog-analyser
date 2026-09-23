@@ -1,0 +1,41 @@
+FFFF.
+======================================================================
+FAIL: test_foreign_endpoint_refuses_before_http (__main__.SessionWatchTest.test_foreign_endpoint_refuses_before_http)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/watch-mutation-aqyn9cds/test_analyser_session_watch.py", line 58, in test_foreign_endpoint_refuses_before_http
+    with self.assertRaisesRegex(RuntimeError,'another process'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError not raised
+
+======================================================================
+FAIL: test_live_process_with_unreachable_endpoint_refuses (__main__.SessionWatchTest.test_live_process_with_unreachable_endpoint_refuses)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/watch-mutation-aqyn9cds/test_analyser_session_watch.py", line 69, in test_live_process_with_unreachable_endpoint_refuses
+    with self.assertRaisesRegex(RuntimeError,'manifest request failed'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError not raised
+
+======================================================================
+FAIL: test_missing_endpoint_refuses (__main__.SessionWatchTest.test_missing_endpoint_refuses)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/watch-mutation-aqyn9cds/test_analyser_session_watch.py", line 48, in test_missing_endpoint_refuses
+    with self.assertRaisesRegex(RuntimeError,'endpoint missing'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError not raised
+
+======================================================================
+FAIL: test_real_server_then_exit_cannot_remain_healthy (__main__.SessionWatchTest.test_real_server_then_exit_cannot_remain_healthy)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/watch-mutation-aqyn9cds/test_analyser_session_watch.py", line 37, in test_real_server_then_exit_cannot_remain_healthy
+    with self.assertRaisesRegex(RuntimeError,'analyser exited'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: RuntimeError not raised
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.188s
+
+FAILED (failures=4)

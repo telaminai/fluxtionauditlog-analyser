@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "action": "coverage",
+  "coverage": {
+    "loggedButNotInTopology": [
+      "checked"
+    ],
+    "uncovered": 0,
+    "scope": "whole log",
+    "dispatchNote": "Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.",
+    "warning": "instanceIds in the log are absent from the topology \u2014 the graphml is probably from a different build, which makes every other figure here suspect",
+    "excludedFromDenominator": {
+      "Commands": "an exported service interface \u2014 an entry point, not a node that logs",
+      "PriceUpdate": "an event class \u2014 data entering the graph, not code that runs"
+    },
+    "covered": 2,
+    "neverLogged": [],
+    "dispatchHierarchy": "unknown",
+    "excludedNote": "excluded 2 declared item(s) that can never write audit output: 1 event class(es), 1 exported service(s). They appear in the graph because the processor handles them, not because they run \u2014 counting them as 'never logged' would report a category error as a low score.",
+    "ratio": 1.0,
+    "declared": 2,
+    "recordsScanned": 1,
+    "note": "a node appears here if it never wrote audit output. That is 'never logged', not proven 'never ran' \u2014 a node with no auditLog call, or one whose dirty contract stops it early, is silent by design. Build with addEventAudit(LogLevel.TRACE) to make absence conclusive."
+  }
+}

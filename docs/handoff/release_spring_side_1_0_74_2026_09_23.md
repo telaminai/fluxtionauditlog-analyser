@@ -103,7 +103,17 @@ observer launch log records successful startup. The transport failure needs diag
 The subject also edited recorded annotation ownership to get past a reconciliation
 conflict. That is recorded behaviour, not an endorsed recovery instruction. Its scenario
 claims and that edit have not yet had the independent acceptance check. Exit 0 means the
-client ended, not that G14 passed. **G14 remains open**; no additional client trial was started.
+client ended, not that G14 passed. **G14 remained open at that checkpoint**; the subsequently
+authorised connection recovery is recorded below.
+
+## Connection recovery, 2026-09-24
+
+The supervised recovery passed connection checks throughout a 181-second client run.
+The unchanged compiled processor also passed independent checks of all seven expected
+states in two JVMs. Canvas objects were created; exports needed an operator configuration
+correction. G14 stays open for the log-framing and rendered-evidence findings, not for
+the original lost connection. See the [scored recovery report](evidence/spring-g14-recovery-2026-09-24/README.md).
+No new generation or compilation-key use.
 
 ## Documentation integration and limits
 

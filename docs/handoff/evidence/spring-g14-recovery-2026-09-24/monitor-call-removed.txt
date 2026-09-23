@@ -1,0 +1,17 @@
+....F
+======================================================================
+FAIL: test_supervision_stops_client_when_health_is_lost (__main__.SessionWatchTest.test_supervision_stops_client_when_health_is_lost)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/watch-mutation-aqyn9cds/test_analyser_session_watch.py", line 86, in test_supervision_stops_client_when_health_is_lost
+    self.assertEqual('analyser exited: 0',failures[0]['error'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'analyser exited: 0' != 'supervised run exceeded its deadline'
+- analyser exited: 0
++ supervised run exceeded its deadline
+
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.465s
+
+FAILED (failures=1)

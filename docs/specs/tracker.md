@@ -354,6 +354,14 @@ or evidence-linked report was produced. It also edited its ownership baseline to
 a conflict. Scenario correctness and that recovery require independent assessment; this
 is not an acceptance pass. [Release checks, failures and limits](../handoff/release_spring_side_1_0_74_2026_09_23.md).
 
+**2026-09-24 connection recovery:** supervised released analyser stayed reachable
+for the 181-second client (91 healthy checks); all 68 project files unchanged.
+Independent getter checks passed all seven states twice. Chart/report were created;
+exports required an operator configuration correction/replay. G14 stays open: the
+original log lacks separators, coverage falsely calls a declared sink absent, and
+the exported chart/topology need correctness follow-up. See the
+[recovery evidence and disputed client claims](../handoff/evidence/spring-g14-recovery-2026-09-24/README.md).
+No additional generation or key use. Existing evidence-correctness work remains P1.
 
 **Review-response checkpoint 2026-09-23:** `fix/spring-side-review-response` carries
 compiler `a37ff17b` (docs intake; tested head `af7352bf`, implementation `a156010b`) and playground `454a313`; shared catalogue
@@ -449,9 +457,9 @@ those seams, so the order below groups by what a single change set can close.
   repository. Decide the shared home once (M67's D-X7 proposes a new vendor-jar repository) and build both sets there.
 
 **5. Close the release evidence** (all three).
-- **G14**: the acceptance-13 run has only ever happened on a provisioned local fixture. Now that the tool is published,
-  repeat it from a real download through its own `setup.sh`, with the frozen prompt, so the two runs are comparable.
-  The witnessed browser preview of the design view is still outstanding.
+- **G14**: the real published-download run generated and ran, but its canvas step was interrupted; the supervised recovery and remaining evidence defects are recorded in the release checkpoint above. Now that the tool is published,
+  preserve that public setup/generation evidence and resolve the named remaining findings before another acceptance attempt.
+  The public two-node browser preview was already owner-witnessed; this recovery did not repeat it.
 
 **Order inside the block, because the fan-out is uneven.** Do not work it top to bottom. Two items unblock other
 people and two unblock nobody, and a session handed a list will naturally start with the concrete reproducible

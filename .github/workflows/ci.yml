@@ -30,6 +30,8 @@ jobs:
       # regression only fails when somebody remembers a separate command.
       - name: Resolver and mode-selector smoke tests
         run: python3 tools/test_tools.py
+      - name: Acceptance analyser supervision tests
+        run: python3 tools/test_analyser_session_watch.py
       # UI classes are only constructed, never shown, so the headless ubuntu runner is fine.
       - run: mvn -B verify
 

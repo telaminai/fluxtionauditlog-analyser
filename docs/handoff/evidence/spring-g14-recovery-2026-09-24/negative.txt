@@ -1,0 +1,4 @@
+STATE 0 0,0.0,false,0
+Exception in thread "main" java.lang.AssertionError: step 1: 1,10.0,false,1
+	at CheckScenario.state(CheckScenario.java:16)
+	at CheckScenario.main(CheckScenario.java:22)

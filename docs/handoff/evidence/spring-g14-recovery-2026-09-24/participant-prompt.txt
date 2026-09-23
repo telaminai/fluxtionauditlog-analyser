@@ -1,0 +1,12 @@
+This is a recovery of a blocked evidence-presentation step, not a new cold-start trial.
+The prior task's finished project is read-only at /private/tmp/spring-g14-canvas-recovery-2026-09-24/project. Read its ACCEPTANCE-RESULT.md and shipped runbooks. Its original run logs are /private/tmp/spring-g14-canvas-recovery-2026-09-24/exchange/run1.log and run2.log. Do not modify the application, ownership record, dependencies, or logs. Do not build, generate, provision or use any compilation key. Do not inspect other projects, observer directories or source repositories.
+
+The released analyser has been restarted in an isolated home and is supervised throughout this task. Discover its actual instructions and schemas using:
+python3 /private/tmp/spring-g14-canvas-recovery-2026-09-24/driver.py manifest
+Drive only this analyser using:
+python3 /private/tmp/spring-g14-canvas-recovery-2026-09-24/driver.py action VERB '{"parameter":"value"}'
+For shell commands use python3 /private/tmp/spring-g14-canvas-recovery-2026-09-24/driver.py shell '<command>'. You may also Read the supplied project. Write new evidence only in /private/tmp/spring-g14-canvas-recovery-2026-09-24/exchange. The wrapper is transport, not product guidance. If connectivity fails, stop and record it; do not start a replacement server.
+
+Finish the original request's missing canvas step: show the matching project/design, graph and run log in the analyser, a chart from values actually present, and an evidence-linked report answering the original four questions. Distinguish measurements from inference and absent evidence; do not invent state values that were never logged. Export the report and useful visual evidence using the analyser's supported actions. Inspect the result before claiming it is available. Do not guess parameters; use the manifest. Record failures and limitations. Do not spawn agents. There is a 12-minute cap.
+
+Write /private/tmp/spring-g14-canvas-recovery-2026-09-24/exchange/RECOVERY-RESULT.md listing exact evidence files, analyser actions, what is established and what remains unverified. The original application's setup/generation are already complete and are not to be repeated. This run is only a canvas recovery.

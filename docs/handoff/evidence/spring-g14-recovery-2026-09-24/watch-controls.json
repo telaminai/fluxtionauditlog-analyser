@@ -1,0 +1,16 @@
+{
+  "baselineTests": 5,
+  "baselinePassed": true,
+  "controls": [
+    {
+      "mutation": "health-disabled",
+      "exit": 1,
+      "restoredSource": true
+    },
+    {
+      "mutation": "monitor-call-removed",
+      "exit": 1,
+      "restoredSource": true
+    }
+  ]
+}
