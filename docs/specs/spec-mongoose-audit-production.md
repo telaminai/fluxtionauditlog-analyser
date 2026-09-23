@@ -250,17 +250,31 @@ terminate its own document is writing someone else's byte.
 
 ## MA-4 · Default-off and undocumented — added 2026-09-23, and the spec was incomplete without it
 
-Asked by the owner: *does Mongoose log with text in the developer download by default?* **No, on five
-counts**, and MA-1 and MA-2 fix only the last two:
+Asked by the owner: *does Mongoose log with text in the developer download by default?*
+
+**First, a correction to an earlier answer in this spec, because the owner was right to push back.**
+Mongoose **does** audit-log by default. `MongooseServer` installs its own `LogRecordListener` at boot —
+a static lambda routing records to its `java.util.logging` logger — and passes it to
+`DataFlow.setAuditLogProcessor` for every processor. Core's own code uses `auditLog` (for example
+`BatchDtoHandler`). So a developer running an example **does** see audit output, and examples can rely
+on it. An earlier draft of this section said capture was "off entirely", which conflated **logging**
+with **persistence**. They are different, and only the second is off.
+
+**What is actually missing is a file the analyser can open.**
 
 | | State today | Fixed by |
 | --- | --- | --- |
-| `AuditCaptureConfig.enabled` | **`false`** — capture is off entirely | nothing in this spec |
-| What it writes when on | a **Chronicle binary queue** at `./audit`; the record text is the excerpt payload, the container is not text | MA-2 |
-| How text is obtained | only `GET /api/audit/file/{id}/export?format=yaml`, which needs `svc-admin-web` — not core | MA-2 |
-| Developer examples | **no** shipped example enables audit capture | nothing in this spec |
+| Audit records reaching a listener | **ON by default** — `MongooseServer`'s JUL listener | already works |
+| A processor built from a `customHandler` | produces **nothing** for that listener to receive | MA-1 |
+| `AuditCaptureConfig.enabled` — persistence | **`false`**; without it nothing is retained | nothing in this spec |
+| What persistence writes when on | a **Chronicle binary queue** at `./audit`; the record text is the excerpt payload, the container is not text | MA-2 |
+| How analyser-readable text is obtained | only `GET /api/audit/file/{id}/export?format=yaml`, which needs `svc-admin-web` — not core | MA-2 |
+| Developer examples | **no** shipped example enables persistence | nothing in this spec |
 | Core documentation | `auditCapture` appears in **no** `docs/*.md` in mongoose core | nothing in this spec |
-| On the wrapper path | would be an empty log anyway | MA-1 |
+
+**So the developer journey breaks at persistence, not at logging.** Records go to the console, where they
+cannot be opened, compared, or reasoned about by the analyser — and the moment the process exits they are
+gone. That is the gap, and it is narrower and more fixable than the earlier draft implied.
 
 **This is the "ships and does nothing" failure again**, in a new place. UP-MON-01 was worth doing only
 because something would eventually write a marker; MA-1 and MA-2 are worth doing only if a developer
@@ -274,7 +288,7 @@ or **documented**. Those are a product decision, not a consequence.
 
 **OD-4 — owner decision.** For the developer download specifically:
 
-- **Default on?** Recording costs — `UP-FLX-51` measured ~120 ns/event for a manager recording nothing —
+- **Default persistence on?** Logging is already on; this is about retaining it. Recording costs — `UP-FLX-51` measured ~120 ns/event for a manager recording nothing —
   so "on for everyone" is a real choice, not a free one. "On in the developer/example configuration,
   off in production defaults" is the obvious middle and should be considered explicitly.
 - **Text or Chronicle by default?** MA-2 makes direct text possible. Text is readable by the analyser

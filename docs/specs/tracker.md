@@ -105,7 +105,8 @@ still to do.
   `complete`, so shipping this first would replace an honest `unknown` with a confident false claim on
   exactly the processors that are already broken — D-T8 inverted. Was AF-4 item 1.
 - **[MA-4] ☐ — audit is off by default, undocumented, and unreachable in the developer download** ·
-  `AuditCaptureConfig.enabled` defaults to **false**; when on it writes a Chronicle BINARY queue, not
+  Audit LOGGING is on by default — MongooseServer installs a JUL LogRecordListener at boot — so the gap
+  is PERSISTENCE, not logging. `AuditCaptureConfig.enabled` defaults to **false**; when on it writes a Chronicle BINARY queue, not
   text; text needs `svc-admin-web`'s export endpoint; no shipped example enables it; `auditCapture`
   appears in no core doc. MA-1 and MA-2 make audit logging possible and trustworthy — they do **not**
   make it on, discoverable or documented. **OD-4** is the product decision. Without this, the work ships
