@@ -62,6 +62,17 @@ public final class CoverageService {
         // happen to be looking at, so a filter that hides the control record must not drop the
         // annotation. AuditLevel above reports GLOBAL levels; this is the per-node case it cannot see.
         PerNodeLevelChanges levelChanges = PerNodeLevelChanges.of(store);
+        // The scope's end: a change AFTER the last record in view cannot explain silence before it.
+        // logTime is NULLABLE — untimed records are legal (§1, fixture c05) — so they are skipped
+        // rather than dereferenced. A scope made only of untimed records has no end, and MAX_VALUE
+        // then means "no change is in the future", which is the honest reading.
+        long scopeEnd = Long.MIN_VALUE;
+        for (int row = 0; row < store.size(); row++) {
+            if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
+            Long at = store.record(row).logTime();
+            if (at != null) scopeEnd = Math.max(scopeEnd, at);
+        }
+        if (scopeEnd == Long.MIN_VALUE) scopeEnd = Long.MAX_VALUE;
 
         Map<String, Object> echo = new LinkedHashMap<>();
         echo.put("dispatchHierarchy", "unknown");
@@ -84,7 +95,7 @@ public final class CoverageService {
         if (levelChanges.any()) {
             Map<String, String> annotations = new LinkedHashMap<>();
             for (String node : coverage.uncovered()) {
-                String note = levelChanges.annotationFor(node);
+                String note = levelChanges.annotationFor(node, scopeEnd);
                 if (note != null) annotations.put(node, note);
             }
             if (!annotations.isEmpty()) {

@@ -199,6 +199,34 @@ public record ProducerDiagnostics(List<Finding> findings) {
      * like from the outside.
      */
     /**
+     * Does this document OPEN with the record key, as §1 requires?
+     *
+     * <p><b>Framing, not a substring search.</b> An earlier version asked whether the text contained
+     * {@code eventLogRecord:} anywhere, which a payload defeats: a headerless document whose content
+     * merely mentions the key read as a well-formed record, so a marker over it declared a count
+     * including it and the file read {@code complete} with no finding. That is V1 — a payload changing
+     * the verdict — and it is the same class as the injection MA-7 fixes.
+     *
+     * <p>The test is therefore positional: the FIRST non-blank, non-comment line must trim to the key.
+     * Comments are skipped because §1 allows them before a record, and the analyser's own fixtures use
+     * them.
+     */
+    private static boolean opensWithRecordKey(String text) {
+        int from = 0;
+        while (from <= text.length()) {
+            int nl = text.indexOf('\n', from);
+            int end = nl < 0 ? text.length() : nl;
+            String line = text.substring(from, end).trim();
+            if (!line.isEmpty() && !line.startsWith("#")) {
+                return line.equals(RECORD_KEY);
+            }
+            if (nl < 0) break;
+            from = nl + 1;
+        }
+        return false;
+    }
+
+    /**
      * MA-6 — a document that carries no {@code eventLogRecord:} key.
      *
      * <p>The reader counts it as a record, so a marker written over it declares a count that includes
@@ -215,7 +243,7 @@ public record ProducerDiagnostics(List<Finding> findings) {
         for (int row = 0; row < idx.size(); row++) {
             String text = rawText.apply(row);
             if (text == null || text.isBlank()) continue;
-            if (text.indexOf(RECORD_KEY) < 0) {
+            if (!opensWithRecordKey(text)) {
                 if (firstRow < 0) firstRow = row;
                 affected++;
             }
