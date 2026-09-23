@@ -100,7 +100,7 @@ still to do.
   **The old acceptance was impossible and is withdrawn.** It said "byte-identical to a known-good export
   modulo the marker". §1a rule 1 makes that unachievable, because the known-good export has no trailing
   separator. The acceptance is now: byte-identical modulo the marker AND the final separator.
-- **[AF-5] ◧ — the audit-tail thread fix, immediate and standalone** · _not this repository; owner decision
+- **[AF-5] ☑ — RELEASED 2026-09-23 in `mongoose-plugins` 1.0.44.** · _not this repository; owner decision
   3. Create the tailer and call `toEnd()` on the reading thread. Repairs live tailing for every existing
   Chronicle deployment and waits for nothing here. A second defect behind it discards unflushed reads, so
   the test needs a sub-50 ms burst._
@@ -114,19 +114,38 @@ still to do.
   batch lives in the per-socket state and clears only after a successful send. `AuditTailThreadingTest`,
   3 tests; the first reproduces Chronicle's cross-thread refusal against a bare queue, so the lazy
   creation is load-bearing rather than stylistic. Module suite 100 pass, 0 fail.
-  **Not ◧→☑ until:** the end-to-end acceptance that the count DELIVERED equals the count EXPORTED for the
-  same window. That needs a live server and a client, and **no shipped client opens `/ws/audit-tail` yet**
-  — which is the other half of the original finding and is still open.
+  **That gate is MET and the work is released.** Merged to `mongoose-plugins` `main` as `beadf70` after
+  five independent review rounds, released as **1.0.44** (tag `v1.0.44`, 59 artifacts published,
+  `svc-admin-web-1.0.44.jar`). The acceptance needed a client and none shipped, so the test brought its
+  own: the JDK's `HttpClient` speaks WebSocket, so it cost a test class rather than a dependency.
+  Delivered equals exported, by record id, against a booted `MongooseServer` with its own audit sink.
+
+  **Two further defects were found after the entry above was written, both by driving the running thing
+  rather than reasoning about it.** The lazy tailer described above put `toEnd()` up to one poll interval
+  AFTER the client connected; fixing that moved it to connect, which review then measured and rejected —
+  `onOpen` fires at the HTTP 101, so the window spans the whole connect handler. Records written straight
+  after `onOpen` were lost in **19 of 20 rounds**, the window a **median 8.0 ms, max 17.1 ms**. It is
+  closed by positioning the tail in `wsBeforeUpgrade`, before the 101 is sent: **0 of 20**, first record
+  delivered 0µs after `onOpen`, at rest and under load average 21–27.
+
+  **Still owed, filed so it outlives the branch:** the `MAX_PENDING` ceiling has no live-server test —
+  [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). A JDK client that stops
+  calling `request()` applies flow control in its listener, not on the wire, so the server's sends keep
+  succeeding; reaching the ceiling live needs a client that stops reading at TCP level.
 - **[AF-6] ☐ — the coupled analyser documents** · _the Mongoose skill states Mongoose does not write
   analyser-readable YAML directly, which this makes false; its pin and the playground re-vendor follow.
   Also `spec-tool-agreement.md` D12/D13, `spec-onboarding-example.md:62-72`, `spec-guided-start.md:66`,
   `spec-follow-refreshes-graphs.md:37`, `docs/experience/current/skills/read-audit-log`,
   `tutorial-playground.md` §3, and `TemplateArchive` installing `export-audit`._ Last in release 1: it
   describes shipped behaviour.
-  **Still blocked after 1.18.0, deliberately.** The analyser half is released; the Mongoose skill's
-  statement that Mongoose does not write analyser-readable text directly is still TRUE until AF-4 ships,
-  so editing these documents now would make them wrong rather than right. Blocked on AF-4 shipping, not
-  on this release.
+  **Still blocked after 1.18.0 AND after `mongoose-plugins` 1.0.44, deliberately.** The analyser half is
+  released and the exporter now terminates its last document, but the Mongoose skill's statement that
+  Mongoose does not write analyser-readable text directly is still TRUE — nothing writes a stream-end
+  marker, so exports still read `unknown`. Editing these documents now would make them wrong rather than
+  right. Blocked on AF-4 shipping.
+  **Note for whoever is aligning the playground:** the re-vendor named in this item is part of AF-6 and
+  should NOT be done ahead of AF-4, for the same reason. Aligning the playground's *versions* is
+  independent and safe; changing what it *says about Mongoose writing text* is not.
 - **[AF-7] ☐ — release 2, blocked** · _one `fluxtion-runtime` release: pluggable record selection (owner
   decision 6), the record-swap staleness, the per-node `NONE` corruption (owner decision 2, confirmed to
   ride this release), and the renderer move. **Gate:** the corruption's cause is undiagnosed, and diagnosis
