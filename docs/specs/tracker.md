@@ -497,6 +497,33 @@ are what makes the instrument argue against itself in front of a stranger.
 
 ---
 
+## M68 · Evidence integrity — [spec-evidence-integrity.md](spec-evidence-integrity.md) (proposed 2026-09-24)
+
+The open DX/WS findings, given one governing rule and one owner instead of six loose items: **the instrument never
+says more than it established.** Raised to a milestone because on 2026-09-24 a held-out client was told a declared
+node was absent from a graph that declares it, reported that faithfully, and the result now holds G14 open. The
+same packet shows a chart reporting no data where the series response yields a point, and a requested illustration
+missing from an export that reported success.
+
+Sibling of the tool-agreement spec, which governs agreement *between* tools. Distinct from the Mongoose audit
+format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
+verdict, which is owned jointly.
+
+- [M68.1] ☐ **The coverage and pairing verdict** — membership against every declared node, the authored denominator
+  unchanged, one verdict on every surface. The recovery packet's own artefacts are the fixture. Was DX-02.
+- [M68.2] ☐ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
+  data is contradicted by a successful series response over the same inputs; acceptance is by inspecting the
+  artefact, not by exit status.
+- [M68.3] ☐ **The framing verdict, analyser half** — a file with record blocks and no separators reported with the
+  same prominence to a person and an assistant, at open and under follow. Producer half filed against the audit
+  format work.
+- [M68.4] ☐ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
+- [M68.5] ☐ **Identity change under follow, and the project root** — was WS-1 and WS-2.
+- [M68.6] ☐ **The naming grammar** — was DX-05; last, because it needs the compatibility decision.
+
+Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
+unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate.
+
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
 ### Released — 2026-09-21
@@ -2079,7 +2106,8 @@ files (playground owner).
 2. ☐ **Finish the tool agreement** — TA-5b implement and vendor the chosen follow route, then TA-5c its one spot-check
    session; TA-9 the analyser half of authoritative dispatch metadata, still blocked on the producer; TA-B category B of the
    September feedback.
-3. ☐ **Evidence correctness before any new surface** — DX-02 the false graph/log mismatch first, then DX-03/04/05, and the
+3. ☐ **Evidence correctness before any new surface** — now specified as **M68** (`spec-evidence-integrity.md`), and
+   no longer optional: it is what a held-out client was told wrongly on 2026-09-24 and what holds G14 open. Formerly — DX-02 the false graph/log mismatch first, then DX-03/04/05, and the
    report-integrity slice (every requested section renders or says why). This is the order the observed trial argued for and
    two reviewers endorsed.
 4. ☐ **SG-2** — the hosted Spring download must carry the authoring record and local scripts, proven on an actual hosted ZIP
