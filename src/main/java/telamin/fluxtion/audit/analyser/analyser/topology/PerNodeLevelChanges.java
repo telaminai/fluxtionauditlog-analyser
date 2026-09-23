@@ -68,7 +68,10 @@ public final class PerNodeLevelChanges {
 
         for (int row = 0; row < store.size(); row++) {          // deliberately unfiltered — MA-8.3
             var record = store.record(row);
-            if (record == null || !CONTROL_EVENT.equals(record.event())) continue;
+            // Match the fully-qualified name too. `onlyControlEvents` uses contains(), and a log that
+            // records the qualified class name would otherwise be missed here while being seen there.
+            String event = record.event();
+            if (record == null || event == null || !event.contains(CONTROL_EVENT)) continue;
             String text = record.eventToString();
             if (text == null) continue;
 
@@ -77,11 +80,15 @@ public final class PerNodeLevelChanges {
             String sourceId = field(text, "sourceId");
             String groupId = field(text, "groupId");
 
+            // An untimed control record is legal; treat it as having happened at the start of the
+            // log rather than dereferencing null, so its window still begins where the record does.
+            Long at = record.logTime();
+            long when = at == null ? Long.MIN_VALUE : at;
             if (sourceId != null) {
                 bySource.computeIfAbsent(sourceId, k -> new ArrayList<>())
-                        .add(new Change(sourceId, false, level, row, record.logTime()));
+                        .add(new Change(sourceId, false, level, row, when));
             } else if (groupId != null) {
-                groups.add(new Change(groupId, true, level, row, record.logTime()));
+                groups.add(new Change(groupId, true, level, row, when));
             }
             // Neither named: a GLOBAL level change. AuditLevel already reports those.
         }
@@ -117,27 +124,44 @@ public final class PerNodeLevelChanges {
      * between the two changes. Silence outside that window is plain uncovered, and saying otherwise
      * would excuse a node that really never ran.
      */
-    public String annotationFor(String nodeId) {
-        List<Change> changes = bySource.get(nodeId);
-        if (changes != null && !changes.isEmpty()) {
-            Change last = changes.get(changes.size() - 1);
-            if (isQuiet(last.level())) {
-                return "this log sets " + nodeId + "'s audit level to " + last.level()
-                        + " (record " + (last.row() + 1) + "), so its lines below that level are not in "
-                        + "this log — it is still counted as uncovered, because a level change is not "
-                        + "proof the node ran";
-            }
-            return "this log changes " + nodeId + "'s audit level to " + last.level()
-                    + " (record " + (last.row() + 1) + "), which does not suppress its lines — so its "
-                    + "silence is not explained by a level";
+    public String annotationFor(String nodeId, long scopeEnd) {
+        String own = intervalAnnotation(bySource.get(nodeId), nodeId, scopeEnd, false);
+        if (own != null) return own;
+        for (Change ignored : groupChanges) {
+            String grouped = intervalAnnotation(groupChanges, nodeId, scopeEnd, true);
+            if (grouped != null) return grouped;
+            break;
         }
-        if (!groupChanges.isEmpty()) {
-            Change g = groupChanges.get(groupChanges.size() - 1);
-            if (isQuiet(g.level())) {
-                return "this log sets the audit level of group '" + g.target() + "' to " + g.level()
-                        + " (record " + (g.row() + 1) + "). The log alone does not say which nodes are "
-                        + "in that group, so this may or may not cover " + nodeId;
+        return null;
+    }
+
+    /**
+     * MA-8.4 — a level applies over an INTERVAL, {@code [change, next change)}, clipped to the scope.
+     *
+     * <p>Using only the last change for the whole log gets both directions wrong, and review found
+     * both: a node set to WARN at record 1 and restored to INFO at record 7 was annotated NOWHERE,
+     * because the last change is the restore; and a node set to WARN late, viewed through a filter
+     * ending before it, had its earlier silence "explained" by a change that had not happened yet.
+     */
+    private String intervalAnnotation(List<Change> changes, String nodeId, long scopeEnd, boolean group) {
+        if (changes == null || changes.isEmpty()) return null;
+        for (int i = 0; i < changes.size(); i++) {
+            Change c = changes.get(i);
+            if (!isQuiet(c.level())) continue;
+            long from = c.logTime();
+            if (from > scopeEnd) continue;                       // it had not happened yet
+            Long to = i + 1 < changes.size() ? changes.get(i + 1).logTime() : null;
+            String window = to == null
+                    ? "from " + from + " to the end of this log"
+                    : "between " + from + " and " + to;
+            if (group) {
+                return "this log sets the audit level of group '" + c.target() + "' to " + c.level()
+                        + " " + window + ". The log alone does not say which nodes are in that group, "
+                        + "so this may or may not cover " + nodeId;
             }
+            return "this log sets " + nodeId + "'s audit level to " + c.level() + " " + window
+                    + ", so its lines below that level are not in this log — it is still counted as "
+                    + "uncovered, because a level change is not proof the node ran";
         }
         return null;
     }

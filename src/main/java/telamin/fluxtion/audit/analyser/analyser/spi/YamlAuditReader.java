@@ -37,12 +37,37 @@ public final class YamlAuditReader implements AuditLogReader {
             byte[] head = new byte[4096];
             try (var in = Files.newInputStream(source)) {
                 int n = in.read(head);
-                if (n <= 0) return false;
-                return new String(head, 0, n, StandardCharsets.UTF_8).contains("eventLogRecord:");
+                // NOTHING TO SNIFF. A zero-byte or whitespace-only file has no content to recognise, so
+                // content-sniffing cannot decide and the extension is the only signal there is.
+                //
+                // Rejecting it used to cap MA-0: three of the six empty shapes — zero bytes, whitespace,
+                // and an empty export — were refused by every reader, so the app said "no installed
+                // reader recognises this file" and the empty-log finding never appeared. It also made
+                // MA-0.5 impossible: a file opened in Follow BEFORE its first record could not be opened
+                // at all, which is exactly when a person most wants to be told the file is still empty.
+                //
+                // Accepting it by extension is deliberate and narrow: only names this reader would own
+                // anyway, so an empty file of some other type is not claimed.
+                if (n <= 0) return hasAuditLogExtension(source);
+                String text = new String(head, 0, n, StandardCharsets.UTF_8);
+                if (text.isBlank()) return hasAuditLogExtension(source);
+                return text.contains("eventLogRecord:");
             }
         } catch (IOException e) {
             return false;
         }
+    }
+
+    /**
+     * The names this reader owns, used ONLY when a file has no content to recognise.
+     *
+     * <p>Deliberately not used for files that do have content: a real audit log is recognised by what
+     * is in it, whatever it is called, and that must not regress to an extension check.
+     */
+    private static boolean hasAuditLogExtension(Path source) {
+        String name = source.getFileName() == null
+                ? "" : source.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
+        return name.endsWith(".yaml") || name.endsWith(".yml") || name.endsWith(".log");
     }
 
     @Override

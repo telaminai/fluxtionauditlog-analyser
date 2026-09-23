@@ -85,7 +85,8 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
     @Test
     void theEmptyLogSignalIsAWarningAndNotAState() {
         ProducerDiagnostics d = diagnose(new LogIndex(), texts());
-        assertTrue(d.isWarning(), "MA-0.1: it must raise a warning on the status bar");
+        assertTrue(d.firstWarning().isPresent(),
+                "MA-0.1: it must raise a warning on the status bar (asserted via firstWarning, MA-0.4)");
         assertEquals(1, d.findings().size(), "one finding, and nothing that could become a state");
         assertNotEquals(ProducerDiagnostics.Kind.COMPLETENESS_NOTE, d.findings().get(0).kind(),
                 "a COMPLETENESS_NOTE is explicitly NOT raised as a warning, which would hide this");
@@ -206,5 +207,33 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
         ProducerDiagnostics d = diagnose(idx, texts("mainonRiskCheck"));
         assertTrue(d.findings().stream().anyMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
                 "a producer fault is worth naming whatever else the file shows: " + d.messages());
+    }
+
+    /**
+     * MA-6 and V1 — the check is on FRAMING, not on a substring.
+     *
+     * <p>Review found the hole: a headerless document whose CONTENT merely contains the record key read
+     * as a well-formed record, so a marker over it declared a count including it and the file read
+     * complete with no finding. A payload changing the verdict is exactly what V1 forbids.
+     */
+    @Test
+    void aHeaderlessDocumentThatMentionsTheKeyInItsContentIsStillNamed() {
+        LogIndex idx = indexOf(record("?", 0));
+        ProducerDiagnostics d = diagnose(idx,
+                texts("mainonRiskCheckPriceEvent{note=see eventLogRecord: below}195.3"));
+
+        assertTrue(d.findings().stream().anyMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
+                "V1: a payload mentioning the key must not make a corrupt document read as a record");
+    }
+
+    /** And a normal record with a leading comment is NOT named — §1 allows comments before a record. */
+    @Test
+    void aRecordWithALeadingCommentIsNotNamed() {
+        LogIndex idx = indexOf(record("Tick", 1));
+        ProducerDiagnostics d = diagnose(idx,
+                texts("#00:00:00.000 [main] INFO\neventLogRecord:\n  nodeLogs:\n    - a: { v: 1}\n"));
+
+        assertTrue(d.findings().stream().noneMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
+                "a comment before the record is legal and must not be reported: " + d.messages());
     }
 }
