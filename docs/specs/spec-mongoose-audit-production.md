@@ -231,8 +231,9 @@ per-node audit requires an AOT-built processor?
 
 **OD-2 — owner decision.** Given that cap, is MA-1 worth doing at all, or is the right answer to tell users
 that auditing requires an AOT-built processor and make the wrapper path **say so** rather than silently
-emit nothing? A third option: keep MA-1 *and* have the analyser report the wrapper path explicitly, so a
-four-node denominator is not mistaken for a complete topology.
+emit nothing? A third option: keep MA-1 *and* have the analyser report the wrapper path
+explicitly, so that the **absence of a coverage claim is not read as a clean one**. (Not "a four-node
+denominator" — there is no denominator on this path at all; see D-MA1b.)
 
 ### Acceptance MA-1
 
@@ -419,13 +420,14 @@ A client that completes the upgrade and then stops reading **at TCP level** driv
 
 ## Ordering
 
-```
-MA-1  (fluxtion-runtime: install the auditor)   ← OD-1 blocks the start
-  └── MA-2  (the marker writer)                 ← blocked on MA-1, measured above
-        └── AF-6  (the coupled documents)       ← blocked on MA-2, not in this spec
-MA-3  (the ceiling's live test)                 ← independent, any time
-MA-4  (defaults, docs, the developer journey)   ← needs MA-1+MA-2 to be worth doing; OD-4
-```
+**The ordering block lives once, at the top of this spec**, under *"The measurement, and the argument I
+built on it — WITHDRAWN after review"*. A second copy stood here and still carried the **withdrawn**
+ordering — MA-2 blocked on MA-1, no MA-0, no MA-5, MA-3 in scope — so an implementer skimming to the end
+would have got exactly the ordering this spec retracted. Deleted rather than duplicated: two copies of an
+ordering is how the stale one survives.
+
+The only downstream item not in that block: **AF-6**, the coupled analyser documents, blocked on MA-2
+shipping and tracked in the tracker rather than here.
 
 ## What is verified, and what is only read
 
