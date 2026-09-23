@@ -14,8 +14,12 @@ The analyser's central claim is that **absence is evidence**: a node that never 
 a log that cannot say whether it is whole is reported `unknown` rather than guessed at. Both depend on the
 producer. Today Mongoose cannot hold up either end:
 
-1. A processor built the way Mongoose builds one from a `customHandler` **emits no audit records at all**,
-   so absence means nothing — nothing could ever have logged.
+1. A processor built from a `customHandler` **emits no audit records at all**, so absence means nothing
+   there — nothing could ever have logged. **Scoped down 2026-09-23 after checking the bundle and asking
+   the owner:** this is an **edge case**, not the default path. `customHandler` exists for running
+   Mongoose *without* a Fluxtion event processor and is rarely used; the developer download and the
+   normal path both use AOT-generated processors that audit correctly. An earlier draft of this spec
+   treated it as central. It is not.
 2. Nothing writes a stream-end marker, so every export reads `unknown` and the 1.18.0 reader work and the
    1.0.44 exporter work deliver nothing a user sees.
 
@@ -64,7 +68,7 @@ lines — rather than as a gate.
 
 ```
 MA-0  (analyser: an empty log is a finding)     ← THIS repo; unblocks the ordering
-MA-1  (the auditor on the wrapper path)         ← independent; OD-1 DECIDED opt-in, OD-2 OPEN
+MA-1  (the wrapper path SAYS it cannot audit)   ← rescoped; OD-2 DECIDED (ii); OD-3 now moot
 MA-2  (the marker writer)                       ← needs MA-0, not MA-1
 MA-4  (defaults, docs, the developer journey)   ← GATED on MA-2: OD-4 makes text the developer default
 MA-5  (capture must fan out, and restore on stop) ← independent; a live silent-discard path
@@ -72,7 +76,43 @@ MA-3  → moved to mongoose-plugins#38
 AFMT-3 (the per-node NONE corruption)           ← DEPENDENCY, see below
 ```
 
-## MA-1 · A `DefaultEventProcessor` graph has no `EventLogManager`, so no node can log
+## MA-1 · The wrapper path must SAY it cannot audit — rescoped 2026-09-23
+
+**OD-2 is DECIDED: option (ii).** The owner confirms `customHandler` is an edge case, used only when
+someone wants Mongoose without a Fluxtion event processor, and the bundle check confirms the default
+path is unaffected. So MA-1 is **no longer "install an auditor"**. It is:
+
+> A processor that cannot audit says so, at configuration time, and the level endpoint stops returning
+> 200 for a processor that cannot honour it.
+
+**What this withdraws**, in full, because it was the spec's largest unbuilt piece:
+
+- **OD-3 is MOOT.** The whole (a) framework-release / (b) hand-written subclass / (c) generated-artefact
+  question existed only to install an auditor on this path. Nothing needs generating, no artefact needs
+  maintaining, and the drift cost disappears. The (b) spike stays in the evidence directory as the record
+  that it *was* possible — that is what made (ii) a choice rather than a concession.
+- **OD-1's scope narrows.** Opt-in still holds as the framework-level answer, but it no longer gates
+  anything here.
+- **D-MA1b's coverage cap** stops being a limitation to weigh and becomes simply the reason for the
+  refusal: this path has no graph, so it cannot offer per-node audit, and saying so is the honest
+  outcome.
+
+**Why (ii) is better than (i) rather than merely cheaper.** A `customHandler` user who wants audit is
+better served by the AOT path, which the bundle demonstrates gives them real per-node coverage —
+`riskCheck` and `rootNode` registered by name. Building MA-1 as originally specified would have handed
+them handler-granularity logging instead: a degraded version of something they can already have
+properly. Pointing them at the real thing is the better product answer, not the lesser one.
+
+### Acceptance MA-1, rescoped
+
+1. Configuring audit capture for a `customHandler` processor produces a **clear refusal or warning**
+   naming the reason and the remedy (use an AOT-built processor), rather than silent success.
+2. `POST …/audit/level` for such a processor **does not return 200** as though it had worked.
+3. A regression check for each, since both failures are currently silent.
+
+### The original finding, kept as the record of why
+
+
 
 **What this class is.** `DefaultEventProcessor` is **hand-written in the shape of a generated processor**
 — its javadoc header still carries the generator's template fields (`generation time : Not available`) —
@@ -157,7 +197,9 @@ this will think of it; the answer is no, and the reason is the dependency, not t
 
 ### D-MA1 verdict · (c), generate the shape and commit it
 
-**OD-3 — DECIDED 2026-09-23 by the owner: (c).** (d) is closed on the runtime-compiler constraint;
+**OD-3 — MOOT from 2026-09-23**, superseded by OD-2 taking option (ii): nothing needs an auditor
+installed on this path, so nothing needs generating. Previously decided as (c); kept for the record.
+**Original decision:** (c). (d) is closed on the runtime-compiler constraint;
 (a) and (b) are not taken. (b) remains the fallback if (c)'s open questions below answer badly — it is
 spiked and working, so falling back costs little.
 
@@ -258,7 +300,9 @@ This sharpens OD-2 rather than answering it: given that the cap is permanent und
 options, is MA-1 worth doing at all, or is the honest product answer to make the wrapper path SAY that
 per-node audit requires an AOT-built processor?
 
-**OD-2 — OPEN, and reframed by OD-1.** The owner is undecided. The narrowest form of the question:
+**OD-2 — DECIDED 2026-09-23: option (ii).** The owner: `customHandler` is an edge case, used only to run
+Mongoose without a Fluxtion event processor. Combined with the bundle check, that settles it. The
+reasoning is kept below because it took three reframings to get here.
 
 **It is no longer "is MA-1 worth building".** Under opt-in it costs nothing to anyone who does not ask.
 What remains is **truthfulness**, and D-T8 answers half of it: a user who opts into auditing must not be

@@ -123,7 +123,21 @@ reads exactly as it does today.
 
 ---
 
-### UP-MON-02 ☐ A `customHandler` processor emits NO audit records, so absence cannot be read
+### UP-MON-02 ☐ A `customHandler` processor emits NO audit records — EDGE CASE, rescoped 2026-09-23
+
+**Rescoped down, twice, and the second time by evidence.** This entry first read as a claim about
+Mongoose processors generally; that was corrected to the `customHandler` path. It is now scoped further:
+**that path is an edge case**, used only to run Mongoose without a Fluxtion event processor. A fresh
+`analyser-bundle` download was read to check — the developer template uses `handlerBuilder` with an
+AOT-generated processor that declares `eventLogger` and registers the user's own `riskCheck`/`rootNode`;
+`customHandler` appears nowhere in it.
+
+**So the ask is no longer "install the auditor".** It is: *this path should say it cannot audit, rather
+than accepting the configuration and emitting nothing.* A user who wants audit here should be pointed at
+the AOT path, which gives them real per-node coverage instead of the handler-granularity logging an
+auditor on this path could offer. See `spec-mongoose-audit-production.md` MA-1 (rescoped) and OD-2.
+
+**The original finding, which stands as a description of the defect:**
 
 **Specified in [`spec-mongoose-audit-production.md`](../specs/spec-mongoose-audit-production.md) as MA-1**
 (2026-09-23), with the owner decision OD-1 it needs and the measurement that makes it block the marker

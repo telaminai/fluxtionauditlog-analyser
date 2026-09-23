@@ -85,7 +85,11 @@ still to do.
   threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
   index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
   must not be merged; its own entry records the detail.
-- **[MA-1] ☐ — a `DefaultEventProcessor` graph installs no `EventLogManager`, so no node can log** ·
+- **[MA-1] ☐ — the wrapper path must SAY it cannot audit** · _rescoped 2026-09-23; `customHandler` is an
+  EDGE CASE, used only to run Mongoose without a Fluxtion event processor. A fresh `analyser-bundle`
+  download confirms the default path is AOT and audits correctly. **OD-2 DECIDED: option (ii)** — refuse
+  and point at AOT, rather than install an auditor. **OD-3 is now moot**: nothing needs generating._
+  Original finding, which stands as the description:
   _not this repository — `fluxtion-runtime`._ **Blocks MA-2.** Spec:
   [`spec-mongoose-audit-production.md`](spec-mongoose-audit-production.md). A processor Mongoose builds
   from a `customHandler` emits **zero** audit records at any level; the admin endpoint that sets the level
