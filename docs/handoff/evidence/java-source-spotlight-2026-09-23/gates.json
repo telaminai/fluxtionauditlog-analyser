@@ -99,5 +99,124 @@
   "diffCheck": "git diff --check: passed",
   "sweep": "tracked and untracked rule-1 sweeps: no output",
   "mutations": "12/12 named assertion failures, source bytes restored",
-  "ci": "pending feature PR"
+  "ci": {
+    "result": "passed",
+    "head": "914ae908",
+    "base": "9b88e6ac",
+    "run": "https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35839227529",
+    "jobs": [
+      "build",
+      "loop-bench",
+      "ui-frame"
+    ],
+    "static": "passed",
+    "display": {
+      "suites": {
+        "PairingDuringLoadFrameTest": {
+          "tests": 9,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "AsyncOpenInterleavingFrameTest": {
+          "tests": 12,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "SpotlightFrameTest": {
+          "tests": 4,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "WestColumnStartsCollapsedFrameTest": {
+          "tests": 3,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "MenuScreenshotFrameTest": {
+          "tests": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "PersonAtTheScreenFrameTest": {
+          "tests": 3,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "NamedGraphAndMenuSpotlightFrameTest": {
+          "tests": 6,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "SessionRecoveryFrameTest": {
+          "tests": 9,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "TemplateCatalogueFrameTest": {
+          "tests": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "DesignSpotlightFrameTest": {
+          "tests": 2,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "JavaSourceSpotlightFrameTest": {
+          "tests": 11,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        },
+        "LoadedFileObservationFrameTest": {
+          "tests": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failures": 0
+        }
+      },
+      "totals": {
+        "tests": 62,
+        "errors": 0,
+        "skipped": 0,
+        "failures": 0
+      }
+    }
+  },
+  "implementation": "5bf2e442",
+  "integration": {
+    "head": "914ae908",
+    "base": "9b88e6ac",
+    "headless": {
+      "tests": 1875,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 61
+    },
+    "display": {
+      "tests": 62,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "package": "mvn -q package -DskipTests: passed after clean test and display gates",
+    "tools": "all passed",
+    "docs": "mkdocs build --strict: passed",
+    "mainFrameIntegration": "added/removed lines from 809303f7..9b88e6ac equal 5bf2e442..914ae908 exactly",
+    "mutations": "original 12 witnesses retained; not repeated after rebase; spotlight changes unchanged",
+    "existingSpotlight": {
+      "passedChecks": 94,
+      "command": "python3 tools/verify-m64-spotlight.py"
+    }
+  }
 }
