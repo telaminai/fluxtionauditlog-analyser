@@ -34,6 +34,17 @@ class CoveragePerNodeLevelTest {
     }
 
     /** One control record, rendered as the runtime renders it. */
+    /** A control record with NO logTime — legal under §1, and a real case for the window wording. */
+    private static String untimedControl(String sourceId, String level) {
+        return """
+                eventLogRecord:
+                  event: EventLogControlEvent
+                  eventToString: EventLogConfig{level=%s, logRecordProcessor=null, sourceId=%s, groupId=null}
+                  nodeLogs:
+                ---
+                """.formatted(level, sourceId);
+    }
+
     private static String control(long logTime, String sourceId, String level) {
         return """
                 eventLogRecord:
@@ -302,5 +313,73 @@ class CoveragePerNodeLevelTest {
 
         assertTrue(annotations(assess(qualified + plainRecord(1001))).containsKey(node),
                 "the qualified name is the same event");
+    }
+
+    // ------------------------------------------------------------------ untimed windows
+
+    /** An untimed WARN closed by an untimed INFO must not print Long.MIN_VALUE at a reader. */
+    @Test
+    void twoUntimedChangesReadAsUntimedRatherThanAsAHugeNegativeNumber() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+
+        CoverageService.Result r = assess(
+                untimedControl(node, "WARN") + plainRecord(1001) + untimedControl(node, "INFO"));
+
+        String note = annotations(r).get(node);
+        assertNotNull(note, "the WARN window is still real: " + annotations(r));
+        assertFalse(note.contains("-9223372036854775808"),
+                "a stand-in for 'no time given' must never reach a reader: " + note);
+        assertTrue(note.contains("untimed"), "it says so in words: " + note);
+    }
+
+    /**
+     * A TIMED WARN closed by an UNTIMED change must keep its window.
+     *
+     * <p>Long.MIN_VALUE is "no time given", not an early instant, so comparing it against the scope
+     * start dropped the window entirely and a genuinely quietened node lost its explanation.
+     */
+    @Test
+    void aTimedWindowClosedByAnUntimedChangeIsKept() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+
+        CoverageService.Result r = assess(
+                control(1001, node, "WARN") + plainRecord(1002) + untimedControl(node, "INFO"));
+
+        assertTrue(annotations(r).containsKey(node),
+                "the window must survive an untimed close: " + annotations(r));
+        assertTrue(annotations(r).get(node).contains("until an untimed change"),
+                "and say what closed it: " + annotations(r).get(node));
+    }
+
+    /**
+     * Multi-group fall-through: when the FIRST group's window does not apply, a later group's must
+     * still be considered. Reinstating an early {@code break} in the byGroup loop survives without this.
+     */
+    @Test
+    void aLaterGroupsWindowIsFoundWhenTheFirstDoesNotApply() {
+        CoverageService.Result base = assess(plainRecord(1000));
+        String node = anUncoveredNode(base);
+        String twoGroups = """
+                eventLogRecord:
+                  logTime: 1000
+                  event: EventLogControlEvent
+                  eventToString: EventLogConfig{level=DEBUG, logRecordProcessor=null, sourceId=null, groupId=alpha}
+                  nodeLogs:
+                ---
+                eventLogRecord:
+                  logTime: 1001
+                  event: EventLogControlEvent
+                  eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=beta}
+                  nodeLogs:
+                ---
+                """;
+
+        CoverageService.Result r = assess(twoGroups + plainRecord(1002));
+        assertTrue(annotations(r).containsKey(node),
+                "alpha is DEBUG and explains nothing; beta's WARN does, and must still be reached: "
+                        + annotations(r));
+        assertTrue(annotations(r).get(node).contains("beta"), "and it names beta: " + annotations(r).get(node));
     }
 }

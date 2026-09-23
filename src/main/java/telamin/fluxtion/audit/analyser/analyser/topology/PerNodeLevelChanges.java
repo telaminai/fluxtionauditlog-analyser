@@ -171,8 +171,17 @@ public final class PerNodeLevelChanges {
             // Clip at BOTH ends. Only clipping the end left a window that CLOSED before the scope
             // began still explaining silence inside it — a filter entirely after the restore was
             // annotated "WARN between 1001 and 1007", which is a window it never overlapped.
-            if (to != null && to < scopeStart) continue;
-            String window = from == Long.MIN_VALUE
+            //
+            // An UNTIMED closing change is not "closed before the scope": Long.MIN_VALUE is a stand-in
+            // for "no time given", not an early one. Treating it as a real instant dropped the window
+            // entirely, so a genuinely quietened node lost its explanation.
+            boolean untimedClose = to != null && to == Long.MIN_VALUE;
+            if (to != null && !untimedClose && to < scopeStart) continue;
+            String window = untimedClose
+                    ? (from == Long.MIN_VALUE
+                    ? "for this whole log (both changes are untimed)"
+                    : "from " + from + " until an untimed change")
+                    : from == Long.MIN_VALUE
                     ? (to == null ? "for this whole log (the change is untimed)"
                     : "from an untimed change until " + to)
                     : to == null

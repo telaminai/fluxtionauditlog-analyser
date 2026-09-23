@@ -107,15 +107,26 @@ public final class RecordFramer {
         sink.accept(new RawRecord(start, e - start, file.substring(start, e)));
     }
 
-    /** True when the line [start,end) is exactly {@code ---} (ignoring surrounding whitespace/CR). */
+    /**
+     * True when the line [start,end) is exactly {@code ---} (ignoring surrounding whitespace/CR).
+     *
+     * <p><b>A leading byte-order mark is skipped too.</b> U+FEFF is a character, not whitespace, so a
+     * UTF-8 BOM before the file's first {@code ---} stopped it separating: a healthy BOM'd file whose
+     * first line was a separator reported the whole head as one record and raised
+     * {@code NO_RECORD_KEY}, and a BOM-only file opened as ONE record with {@code NO_NODE_LOGS} rather
+     * than reading as empty. Same treatment as {@code StreamEndMarker.strip}, which already did this.
+     */
     private static boolean isSeparator(String s, int start, int end) {
         int a = start, b = end;
+        if (a < b && s.charAt(a) == '\uFEFF') a++;
         while (a < b && isWs(s.charAt(a))) a++;
         while (b > a && isWs(s.charAt(b - 1))) b--;
         return (b - a) == 3 && s.charAt(a) == '-' && s.charAt(a + 1) == '-' && s.charAt(a + 2) == '-';
     }
 
+    /** A lone byte-order mark is not content: a BOM-only file is empty, not a one-record file. */
     private static boolean isBlank(String s, int start, int end) {
+        if (start < end && s.charAt(start) == '\uFEFF') start++;
         for (int k = start; k < end; k++) {
             if (!isWs(s.charAt(k))) return false;
         }

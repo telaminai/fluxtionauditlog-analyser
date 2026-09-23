@@ -88,17 +88,30 @@ public final class ByteRecordFramer {
         sink.accept(recStart, end, new String(bytes, 0, end, StandardCharsets.UTF_8));
     }
 
-    /** True if the line (with its EOL) trims to exactly {@code ---}. */
+    /**
+     * True if the line (with its EOL) trims to exactly {@code ---}.
+     *
+     * <p>A leading UTF-8 byte-order mark is skipped, for the reason given in {@code RecordFramer}: it is
+     * a character rather than whitespace, so a BOM before the file's first separator stopped it
+     * separating. In bytes the BOM is the three-byte sequence {@code EF BB BF}.
+     */
     private static boolean isSeparator(byte[] b) {
-        int a = 0, e = b.length;
+        int a = skipBom(b), e = b.length;
         while (a < e && isWs(b[a])) a++;
         while (e > a && isWs(b[e - 1])) e--;
         return (e - a) == 3 && b[a] == '-' && b[a + 1] == '-' && b[a + 2] == '-';
     }
 
+    /** A lone byte-order mark is not content: a BOM-only file is empty, not a one-record file. */
     private static boolean isBlank(byte[] b) {
-        for (byte value : b) if (!isWs(value)) return false;
+        for (int i = skipBom(b); i < b.length; i++) if (!isWs(b[i])) return false;
         return true;
+    }
+
+    /** The index after a UTF-8 BOM at the head of this line, or 0 when there is none. */
+    private static int skipBom(byte[] b) {
+        return b.length >= 3 && (b[0] & 0xFF) == 0xEF && (b[1] & 0xFF) == 0xBB && (b[2] & 0xFF) == 0xBF
+                ? 3 : 0;
     }
 
     private static boolean isWs(byte b) {
