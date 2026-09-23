@@ -97,8 +97,12 @@ still to do.
   is closed on the constraint that Mongoose must not depend on the compiler at runtime — it is the only
   option that would have lifted the per-node coverage cap, so that cap is permanent and full per-node
   coverage stays the AOT path.
-  **Gate: OD-1**, always-on versus opt-in for the auditor, to be decided with `UP-FLX-51` (~120 ns/event
-  for a manager recording nothing). Filed as `UP-MON-02` in
+  **OD-1 DECIDED 2026-09-23: OPT-IN** — the no-auditor configuration is the low-latency profile and must
+  stay reachable. That settles review's F5: nobody pays the unmeasured cost who did not ask for it.
+  **OD-2 remains OPEN** and is now the narrower question: a user who OPTS IN on the wrapper path must not
+  get silence, so either MA-1 makes it log or the path refuses at configuration time — "neither" is
+  today's behaviour and is off the table. **OD-4 DECIDED: text as the developer default, Chronicle when
+  deployed**, which gates MA-4 on MA-2. Filed as `UP-MON-02` in
   [upstream asks](../proposals/upstream-asks.md).
 - **[MA-2] ☐ — the marker writer** · _not this repository._ **Blocked on MA-1, and the ordering is a
   requirement.** Measured against the published 1.18.0 jar: a marker declaring zero records reads

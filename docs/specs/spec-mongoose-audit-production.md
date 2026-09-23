@@ -64,9 +64,9 @@ lines — rather than as a gate.
 
 ```
 MA-0  (analyser: an empty log is a finding)     ← THIS repo; unblocks the ordering
-MA-1  (the auditor on the wrapper path)         ← independent; OD-1, OD-2
+MA-1  (the auditor on the wrapper path)         ← independent; OD-1 DECIDED opt-in, OD-2 OPEN
 MA-2  (the marker writer)                       ← needs MA-0, not MA-1
-MA-4  (defaults, docs, the developer journey)   ← needs MA-2 to be worth doing; OD-4
+MA-4  (defaults, docs, the developer journey)   ← GATED on MA-2: OD-4 makes text the developer default
 MA-5  (capture must fan out, and restore on stop) ← independent; a live silent-discard path
 MA-3  → moved to mongoose-plugins#38
 AFMT-3 (the per-node NONE corruption)           ← DEPENDENCY, see below
@@ -196,6 +196,35 @@ Unlike (b), nothing here has been run. These are the implementation's first ques
    spec exists to fix. A generated processor should get this right natively; **assert it**, because it
    fails quietly.
 
+### OD-1 · DECIDED — the auditor is OPT-IN
+
+**Restored and decided 2026-09-23.** This block was silently deleted four commits ago by a splice that
+rewrote the section around it (`745cd995`, rejecting option (d)) — nobody noticed, including me, and I
+went on to write commit messages about a decision whose text no longer existed. It is the same
+add-a-correction-without-minding-what-it-replaces failure as the duplicate ordering block, in its worst
+form: not stale text left behind, but live content removed.
+
+**The decision: OPT-IN.** The auditor is installed only when asked for. In the owner's words, the
+no-auditor configuration **is** the low-latency profile, and that profile has to stay reachable.
+
+The options as they were framed, for the record:
+
+| | Always on | **Opt-in (CHOSEN)** |
+| --- | --- | --- |
+| **What** | the processor always installs an `EventLogManager` | a constructor/flag installs it |
+| **For** | `auditLog` in a node means the same thing everywhere; no silent no-op | no cost for users who never audit |
+| **Against** | `UP-FLX-51` measured **~120 ns/event** for a manager recording nothing | the silent no-op survives for anyone who does not know the flag |
+
+**This settles review's F5.** F5 objected that choosing always-on rested on an unmeasured post-`UP-FLX-51`
+cost. Under opt-in nobody pays that cost who did not ask for it, so the measurement is no longer a gate
+on this decision. It still matters for `UP-FLX-51` itself, and the `NONE`-default interaction with
+**AFMT-3** still stands: a `NONE` default must not ship onto an undiagnosed corruption path.
+
+**What opt-in makes worse, and OD-2 must answer.** Opt-in plus today's wrapper-path behaviour is the
+worst combination available: a user who *explicitly opts in* gets silence — an empty log and a 200 from
+the level endpoint. Opting in and receiving nothing is a stronger failure than never having been offered
+it.
+
 ### D-MA1b · What MA-1 can and cannot deliver — it is NOT per-node coverage
 
 `initialiseAuditor` (line 291) registers a **fixed list of four nodes**: `callbackDispatcher`,
@@ -229,11 +258,30 @@ This sharpens OD-2 rather than answering it: given that the cap is permanent und
 options, is MA-1 worth doing at all, or is the honest product answer to make the wrapper path SAY that
 per-node audit requires an AOT-built processor?
 
-**OD-2 — owner decision.** Given that cap, is MA-1 worth doing at all, or is the right answer to tell users
-that auditing requires an AOT-built processor and make the wrapper path **say so** rather than silently
-emit nothing? A third option: keep MA-1 *and* have the analyser report the wrapper path
-explicitly, so that the **absence of a coverage claim is not read as a clean one**. (Not "a four-node
-denominator" — there is no denominator on this path at all; see D-MA1b.)
+**OD-2 — OPEN, and reframed by OD-1.** The owner is undecided. The narrowest form of the question:
+
+**It is no longer "is MA-1 worth building".** Under opt-in it costs nothing to anyone who does not ask.
+What remains is **truthfulness**, and D-T8 answers half of it: a user who opts into auditing must not be
+told that nothing is wrong. So the choice is between two honest outcomes —
+
+- **(i) Make it log.** MA-1 as specified: handler-granularity records, no coverage claim.
+- **(ii) Make it refuse.** The wrapper path says at configuration time that per-node audit needs an
+  AOT-built processor, and the level endpoint stops returning 200 for a processor that cannot honour it.
+
+**Only "neither" is off the table**, because that is today's behaviour and it is the defect class this
+spec exists to remove.
+
+**The one check that would settle it.** How exposed is the wrapper path? The developer download is
+**probably unaffected**: review observed events "flowing to Chronicle" for the template's
+`marketProcessor`, and a `customHandler` processor emits nothing at all — so that processor must be on a
+path that can log. **Inferred, not confirmed; the bundle is not checked out here.** Confirm whether
+`analyser-bundle`'s `marketProcessor` is built via `customHandler` or AOT. **AOT** → MA-1 serves people
+writing their own handlers rather than the onboarding path, and (ii) may suffice. **`customHandler`** →
+MA-1 is on the first journey a new user takes, and (i) is the answer.
+
+Available under either: have the analyser report the wrapper path explicitly, so the **absence of a
+coverage claim is not read as a clean one**. (Not "a four-node denominator" — there is none on this
+path; see D-MA1b.)
 
 ### Acceptance MA-1
 
@@ -366,7 +414,19 @@ capturing, restore it on stop. Small, and it removes a silent-discard path.
 MA-1 and MA-2 make audit logging **possible and trustworthy**. They do not make it **on**, **discoverable**
 or **documented**. Those are a product decision, not a consequence.
 
-**OD-4 — owner decision.** For the developer download specifically:
+**OD-4 — DECIDED 2026-09-23: TEXT as the developer default, CHRONICLE when deployed.** The developer
+download writes analyser-readable text directly, so a new user can open their audit log without the
+export endpoint, a plugin, or knowing `auditCapture` exists. Deployed configurations keep Chronicle,
+which is what the throughput path needs.
+
+**This makes MA-2 load-bearing for the developer journey**, not merely for completeness claims: text as
+the default *is* MA-2, Mongoose writing the text file directly. Until MA-2 ships the developer default
+cannot change, so **MA-4 is gated on MA-2** rather than just improved by it.
+
+**Still open under OD-4:** whether core's own examples match the playground's persistence setting, and
+where `auditCapture` is documented.
+
+The original framing, kept for the record:
 
 - **Default persistence on?** Partly decided already: the developer download ships it **on**, as
   Chronicle, relying on `svc-admin-web`'s export. The live question is **text versus Chronicle** by
@@ -450,6 +510,6 @@ source on `develop` `17a03b4`.
 effectively empty log — the same handler gave **5 records at DEBUG and 1 at WARN**, which is what
 withdrew the ordering constraint. AFMT-3's existence and location. MA-5a/MA-5b in the source.
 
-**Not established:** whether "always on" or "opt-in" is right for OD-1; the per-event cost of an
+**Not established:** the per-event cost of an
 `EventLogManager` after `UP-FLX-51`; whether any AOT path in Mongoose is also affected; **AFMT-3's
 cause**, which is now a dependency rather than out of scope.
