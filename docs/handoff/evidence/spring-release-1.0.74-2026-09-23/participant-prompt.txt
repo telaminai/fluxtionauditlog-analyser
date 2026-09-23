@@ -1,0 +1,41 @@
+You are a fresh developer session carrying out the task below. You have no prior implementation/review context. Work independently; do not ask the observer for implementation hints.
+
+Project: /private/tmp/spring-g14-1.0.74/project
+Shipped documentation: README.md, RUNBOOK.md, CLAUDE.md, runbooks/ and their linked public reference documents.
+
+This is a fresh project from the PUBLIC scaffold endpoint. No tool or classpath is provisioned. Start with its own setup.sh as the runbook requires, then validate. Use this wrapper for ALL shell commands (including source reads/edits, Maven, Java and git):
+python3 /private/tmp/spring-g14-1.0.74/driver.py shell '<your shell command>'
+It supplies Java 21, isolated Java home and initially empty Maven/wrapper caches, empty Maven settings, and the owner's configured generation credential by file reference. The owner authorises that credential ONLY for this bounded acceptance task. Do not inspect, print, copy or modify credential contents. Use the shipped generation script and existing backend selection; do not install a local provider, substitute artifacts, alter dependency coordinates or bypass preflight. No application/framework repository source is available. Read installed public dependency APIs/classes if needed. Preserve failures and their outputs. Cap your generation attempts at six; if more are needed, stop and record the blockage. The wrapper allows 900 seconds per command for first-time dependency resolution.
+
+A dedicated released analyser window starts empty. Discover its own instructions and schemas:
+python3 /private/tmp/spring-g14-1.0.74/driver.py manifest
+Drive ONLY this analyser:
+python3 /private/tmp/spring-g14-1.0.74/driver.py action VERB '{"parameter":"value"}'
+Exports go to /private/tmp/spring-g14-1.0.74/exchange. Do not use any other preconnected analyser. The wrapper is evaluation transport, not extra product guidance. This session must not inspect any observer directory, predictions, prior run, review or implementation repository. Do not spawn further agents.
+
+Record progress at each major step:
+python3 /private/tmp/spring-g14-1.0.74/driver.py progress 'what happened, evidence, next step'
+
+You have up to 40 minutes. A blockage is a valid finding: record it; never invent success or logs. Before your final answer, write ACCEPTANCE-RESULT.md with evidence paths, failed attempts/recoveries and limits, and report finished or blocked via progress. Your final answer should answer the user questions with evidence paths.
+
+USER TASK:
+Extend the supplied price-processing design. Only PriceUpdate events with filter
+ID 7 are eligible. An eligible price should reach Child and, when not paused,
+increment its processed count, set lastProcessedPrice, and publish one Checked
+result containing that price and count through the named checked sink. A pause
+signal pauses processing without changing the count or lastProcessedPrice. The
+exported reset command sets count and lastProcessedPrice to zero and unpauses,
+without publishing a Checked result. Initial count/lastProcessedPrice are zero and
+initial state is unpaused. Preserve unrelated declarations and implemented code.
+
+Start by reading the runbook and validating the supplied project. Repair any
+validation issue, make the design and implementation changes, generate, inspect
+the generated processor, and run the scenario below twice from a fresh process.
+Use the analyser to show what happened, including a chart and an evidence-linked
+report. Answer: does the wrong filter increment the count; does a price received
+while paused increment it; does reset itself publish; and what changes after reset?
+Distinguish measured results from conclusions that the available evidence cannot
+support. Keep a command/action transcript and finish with sources for each answer.
+
+Scenario: PriceUpdate(DEMO,10,7); PriceUpdate(DEMO,20,9); pause signal;
+PriceUpdate(DEMO,30,7); exported reset(); PriceUpdate(DEMO,40,7).

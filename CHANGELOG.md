@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Docs: describe starter 1.0.74 standalone and hosted Spring authoring, generated callback audit facts, matching-version upgrades, and the version-scoped protection for dependency classes. Older-release evidence and remaining limitations stay explicit.
+
 ## [1.19.0] - 2026-09-23
 
 - Java spotlight echoes omit `partial` when no line band is measurable, rather than describing an invisible line as partly visible. Line numbers follow the editor, including its final empty line after a trailing newline.

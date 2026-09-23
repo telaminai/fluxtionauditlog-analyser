@@ -7,15 +7,17 @@ The LLM edits and runs the project through its own tools; the analyser displays 
 **Guided means a conversation following the project's runbooks.** It is optional, with no special
 runtime mode or separate “guided” project type. You can follow the same steps yourself.
 
-!!! info "Use starter 1.0.73 or later"
-    New **Fluxtion Spring XML** downloads include the fixed public Maven descriptor. The shipped
-    `setup.sh`, validation, changed-design generation and sample run have been verified with
-    starter **1.0.73**. Setup and XML validation need no compilation key; generation still needs
-    the backend prerequisites below.
+!!! info "Spring authoring in starter 1.0.74"
+    New standalone and hosted Spring AOT downloads include the local authoring record and
+    `setup.sh`, `validate.sh` and `generate.sh`. Setup and XML validation need no compilation
+    key; generation needs the backend prerequisites below. The hosted launcher is
+    `run-server.sh`; the standalone launcher is `run.sh`.
 
-    If you already downloaded a 1.0.72 project, update `starterVersion` in
-    `fluxtion-authoring.json` to `1.0.73`, and update the POM's `fluxtion.bom.version` from
-    `1.0.72` to `1.0.73`. Keep your source and ownership entries. Run `./setup.sh` again.
+    Keep the starter and BOM versions together when upgrading an existing project. Update
+    `starterVersion` in `fluxtion-authoring.json` and `fluxtion.bom.version` in the POM to
+    `1.0.74`, keep your source and ownership history, and run `./setup.sh` again. An older
+    hosted download missing the authoring scripts needs a fresh download; changing its POM
+    alone does not add them.
 
 ## Choose your starting point
 
@@ -24,7 +26,7 @@ runtime mode or separate “guided” project type. You can follow the same step
 | Learn the analyser without building anything | [Guided analyser tour](guided-start.md), using its included demo log. |
 | Run an existing example and examine its evidence without a compilation key | [Playground to analyser](tutorial-playground.md), using the Audit analyser bundle. |
 | Design and change an application in Spring XML | This guide, using **Fluxtion Spring XML**. |
-| Host a Spring design in Mongoose | Use **Fluxtion Spring in Mongoose** and its hosting/build runbooks. It currently omits the local authoring record and scripts, so the setup/validate/generate steps below apply to the standalone template only. |
+| Host a Spring design in Mongoose | Use **Fluxtion Spring in Mongoose** and its hosting/build runbooks. Starter 1.0.74 downloads include the local authoring workflow below; use `run-server.sh` for the host. |
 
 For the Spring path, use JDK 21, network access for provisioning, and analyser **1.16.0 or later**.
 Your local LLM needs access to the downloaded project and a terminal. Generation through RapidAPI
@@ -122,13 +124,14 @@ Ask the LLM: “What feeds this node? Which references should trigger it, and wh
 supply data?” The [capability guide](spring-authoring.md#what-you-can-design-together) explains
 `DATA`, `TRIGGER`, events, services and lifecycle declarations.
 
-!!! warning "Never list a supplier's class in nodeBeans"
-    Reference it from one of your own nodes instead. The starter writes skeleton classes for
-    `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
-    looks like a class that does not exist yet, and the skeleton silently replaces it: the build
-    stays green and the supplier's component is gone. This remains open as
-    [the dependency-shadowing issue](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2).
-    See the [vendor worked example](integrating-a-vendor-component.md) before adding a supplier jar.
+!!! warning "Keep supplier classes in their dependency jar"
+    Prefer referencing the supplier root from your own node. Tools through 1.0.73 could
+    write a shell over a dependency-only `nodeBeans` class; the build stayed green while
+    the intended component disappeared. The [dependency-shadowing issue](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2) records that failure.
+    Starter 1.0.74 local reconciliation checks the classpath written by setup before
+    emitting a shell. Refresh setup after changing dependencies. The browser generator
+    cannot inspect your local dependency jars, so do not use its fresh-class skeletons
+    as replacements for supplier classes. Check the generated graph and actual results.
 
 The website also previews imported XML as a graph. This separate two-node example shows its
 **declaration** view; its arrow points from `child` to its dependency `rootNode`:
@@ -185,17 +188,24 @@ Then follow `RUNBOOK.md`:
 Reconciliation plans source changes first, preserves implemented bodies where ownership permits,
 and refuses conflicts. Read the refusal rather than deleting ownership records to get past it.
 
-!!! warning "New-node stubs still need audit scaffolding"
-    Starter 1.0.73 makes stub generation reachable on the standalone template, but generated
-    stubs for **new nodes** do not extend `EventLogNode`. Their bodies cannot use its `auditLog`
-    field until you add that support. For a new node that must write audit values, manually make
-    it extend `com.telamin.fluxtion.runtime.audit.EventLogNode`, then implement the logging and
-    check the emitted record. Do not assume a generated stub already logs. This is the known,
-    still-open [new-node audit-scaffolding gap](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3).
+!!! info "Generated callback facts, authored business values"
+    Starter 1.0.74 adds INFO audit scaffolding to newly generated handlers, triggers and
+    lifecycle methods. A handler logs the handled event and relevant filter, a trigger
+    logs that it fired, and a lifecycle method logs its phase. Fresh classes receive
+    `EventLogNode`; reconciliation preserves an existing superclass and uses the logger
+    callback interface when needed. Conflicting developer logger setup is refused.
 
-In the [reviewed new-node case](https://github.com/telaminai/fluxtionauditlog-analyser/tree/c1e23172fcfe1cc23b6c002fef2172c2116e8f24/docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21) on starter 1.0.73, reconciliation preserved the manually added
-`EventLogNode` superclass and audit-writing body, including after a later handler declaration was
-added. That checks edit preservation; check the emitted audit value after running your application.
+    You still implement and log the state behind your decisions, such as a count, price
+    or threshold. Callback facts establish execution; they do not establish business
+    correctness. Existing implemented bodies are preserved, not rewritten to add logging.
+    Filter strings are altered for safe display, not retained losslessly; see the
+    [callback contract](https://fluxtion-playground.dev/spring-authoring/contract.md#callback-auditing-starter-1074-and-later).
+
+On older tools through 1.0.73, new nodes need manual audit scaffolding; see the
+[original issue](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3) and the
+[reviewed workaround](https://github.com/telaminai/fluxtionauditlog-analyser/tree/c1e23172fcfe1cc23b6c002fef2172c2116e8f24/docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21).
+That case preserved a manually added `EventLogNode` superclass and audit-writing body
+across later reconciliation. Always check the emitted audit values after a real run.
 
 The build receipt is `target/fluxtion-run.json`; compilation diagnostics belong to the latest
 attempt only when that receipt says the compiler ran and its input checks still hold.
@@ -206,8 +216,7 @@ can be keyless; a custom HTTP host is not automatically a local provider.
 
 The screenshots show download, design rendering and XML validation. The separate
 [1.0.73 release check](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/handoff/report_sg1_release_2026_09_21.md)
-verifies the standalone setup, changed-design generation and sample run. The hosted-template
-authoring gap (SG-2) remains open. For a Mongoose template, use
+verifies the standalone setup, changed-design generation and sample run. Starter 1.0.74 adds the hosted authoring record and scripts. For a Mongoose template, use
 its emitted `run-server.sh` and host runbook; do not substitute the standalone `run.sh` commands.
 
 ## 6. Answer one question from evidence

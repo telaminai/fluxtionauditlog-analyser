@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "requestedUrl": "http://127.0.0.1:8339/start/scaffold?template=fluxtion-spring",
+  "emptyMavenCache": true,
+  "privateSettings": false,
+  "generationAttempted": false,
+  "clientSessions": 0,
+  "zipSha256": "a455b444fa2ed6b125960e6b508cdf870e20457e44397ec4564c2b6762856cc3",
+  "starterVersion": "1.0.74",
+  "starterSha256": "21e2d8008c9b2429de33b6bbe320963001b1bd0ec8a639f9f4fe4426e4596110",
+  "classpathEntries": 48,
+  "validationValid": true,
+  "originalFilesUnchanged": 35,
+  "elapsedSeconds": 73.199
+}

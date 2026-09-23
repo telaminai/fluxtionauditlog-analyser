@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "requestedUrl": "https://fluxtion-playground.dev/start/scaffold?template=fluxtion-spring",
+  "emptyMavenCache": true,
+  "privateSettings": false,
+  "generationAttempted": false,
+  "clientSessions": 0,
+  "zipSha256": "cc0aa9f42fe3af59ec2b299f969b069478ab76c4bf803e23c3cd62da0b3153f7",
+  "starterVersion": "1.0.73",
+  "error": "Public download still pins a different version",
+  "elapsedSeconds": 0.786
+}

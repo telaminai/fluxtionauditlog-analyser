@@ -246,20 +246,22 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
   predictions). **Still open:** customer key *acquisition*. Owner, 2026-09-21: free registration is enough for now,
   and simple key registration in the analyser is a separate future item. Evidence:
   `.local-evidence/coldstart-v2-2026-09-20/{key-journey-*,a2-*}` (git-ignored).
-- **[BETA-B2] ☐ — new-node stubs must audit before the beta** · _feedback 6 / issue 3; otherwise A2 measures the
+- **[BETA-B2] ☑ — new-node stubs must audit before the beta** · _feedback 6 / issue 3; otherwise A2 measures the
   product, not the tester (§11 carve-out)._ **Owned by the starter (compiler + playground), not the analyser — done as
   part of the [Spring-side work block](#spring-side-work-block--assembled-2026-09-23-to-be-done-as-one-piece-of-work).** Implementation intake 2026-09-23:
-  **Policy settled; implemented on the feature branches, not published.** Owner chose INFO callback
+  **Policy settled; reviewed and published in starter 1.0.74 / deployed playground 5d6a38a.** Owner chose INFO callback
   facts: event name/current filter, trigger fired and lifecycle phase, including unfinished nodes;
   retain existing superclasses using runtime logger injection. No inferred business-state dump.
   Both emitters are covered by real audit-manager tests. Historical BETA-B2 stage gate: 84 builder + 51 starter;
   playground: 551 tests; no failures or skips. Five Java and three browser mutations reject missing
   facts/disabled protection, with green baselines and restored green. Canonical policy is compiler
-  Spec 3 B4; playground commit `ec2b1f8`. Publication and independent review remain open; authors
-  still supply the values behind their decisions. No owner key, publication or analyser code change.
+  Spec 3 B4; original playground commit `ec2b1f8`. Independent review and publication now hold; authors
+  still supply the values behind their decisions. `CallbackAuditTest` covers fresh and added-member
+  execution facts; browser `callback-audit.test.ts` covers the fresh generator. G14 is a separate
+  public acceptance gate, and only that run may consume the owner-authorised key.
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
-  standalone Spring, the only template with a verified local authoring route._ **That recommendation rests on SG-2
-  being open; closing it in the Spring-side block widens the choice.** The dry run itself stays with the beta.
+  standalone Spring, the only template with a verified local authoring route._ **The original recommendation rested on SG-2
+  being open; hosted authoring files now ship too.** The dry run itself stays with the beta.
 - **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _implemented and independently source-reviewed; publication/integration remain open._ **Build these in
   the same collection as M67.1's catalogue jars — same artefact type, same repository, one decision (Spring-side block ▸ 4).**
   G18 access resolved: [source branch](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`; clean clone and placeholder-source controls pass. G's re-review `e559c424` now closes source/oracle review; binaries are not published.
@@ -339,6 +341,18 @@ one of rule 1's four sweep terms.**
 
 ## Spring-side work block — assembled 2026-09-23, to be done as ONE piece of work
 
+**Release execution — 1.0.74:** owner approved publication. Compiler/starter/BOM 1.0.74
+is published; the owner reports matching cloud deployment. Playground `5d6a38a` is
+on main and deployed, with public artifact/comment parity and 563 tests/zero skips.
+Public provisioning CI 35929392911 passes both Spring templates and the keyless
+bundle (build/run, five independently checked rows, export, stop). Its first standalone
+attempt served 1.0.73 and refused; the separately retained retry serves 1.0.74 and passes.
+**G14 is still open:** one sandbox-invalid fresh-client attempt is preserved; a new,
+environment-corrected session is running from the same sealed public ZIP and frozen task.
+The changed graph has generated with client/server version 1.0.74; scenario and canvas
+acceptance are not yet verified. [Release checks, failures and limits](../handoff/release_spring_side_1_0_74_2026_09_23.md).
+
+
 **Review-response checkpoint 2026-09-23:** `fix/spring-side-review-response` carries
 compiler `a37ff17b` (docs intake; tested head `af7352bf`, implementation `a156010b`) and playground `454a313`; shared catalogue
 source branch `feat/spring-side-work-block` is available at `3a89391`.
@@ -366,10 +380,11 @@ and red-control acceptance remain in compiler `design/spring-authoring/TRACKER.m
 under “Independent re-review intake — required corrections hold”; this is an index,
 not a duplicate implementation queue. None of these follow-ups is implemented here.
 
-**Still open:** carrying-tool publication, matching browser pin/deployment,
+**Still open after publication:**
 G14 on the real public download, catalogue public binary resolution/integration and D-X9's
 previously owner-built provenance. Low review follow-ups and runtime metadata escaping
-remain open. No analyser code changed and no analyser server ran.
+remain open. No analyser application code changed. G14 uses an isolated released analyser
+as the evidence canvas; it does not run the application.
 
 <!-- branch-archive-evidence -->
 **G19 scope of the five generated-project checks and round trips:** these checks run
@@ -615,18 +630,23 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   owner-witnessed website preview. The analyser remains a read-only canvas, not an application runner.
 - ☑ SG-1 fixed and released in starter **1.0.73**; public standalone setup/validate and changed-graph
   generation/run pass. Closure and regression checks are in the [completed tracker](completed/tracker.md).
-- ☐ **SG-2 — hosted Spring download omits local authoring files (playground).** **In the Spring-side work block (▸ 3).** The expanded
+- ☑ **SG-2 — hosted Spring authoring files shipped in 1.0.74 (playground).** **In the Spring-side work block (▸ 3).** The expanded
   preflight found no authoring record or local scripts in `fluxtion-spring-mongoose`; its generator
   emits graph files without the local-tooling wrapper. Separate from the fixed Maven descriptor.
   Actual hosted ZIP coverage must prove record/scripts, launcher preservation, setup/validate and
-  generation/run without breaking the keyless bundle. **Implemented on feature branches, not deployed:**
+  generation/run without breaking the keyless bundle. **Deployed at `5d6a38a` with published starter 1.0.74.**
+  Public CI 35929392911 verifies the actual hosted archive: shipped setup/validate, 97 classpath
+  entries, 36 originals unchanged; the keyless bundle builds/runs/exports five checked rows/stops.
+  Regression: scaffold `spring-authoring.test.ts` actual-archive cases and named hosted controls.
+  Public provisioning uses no key. Hosted generation/run remains the previously reviewed branch
+  trial below; G14 is the separate fresh public-download acceptance. **Historical implementation:**
   playground `e85a459`, compiler verification `1073bfb3`. Nine actual-archive cases and five
   seen-red controls pass. Five fresh downloads pass emitted scripts; both hosted variants
   export five independently checked records and stop cleanly. **G19:** branch tool 1.0.74-SNAPSHOT substitutes for the emitted POM/record pin 1.0.73; this is not evidence of what a user receives. The pristine bundle separately
   builds/runs without setup or a key. F9 refuses extended declarations outside AOT; F11 refuses
   a mismatched BOM/tool pair before download. Full playground gate: 560 tests; production build
-  passes; same four existing type errors and six warnings. G14 still needs publication and a
-  fresh published-download run. The live guide still states the deployed scope.
+  passes; same four existing type errors and six warnings. Publication now holds; G14 still needs
+  its fresh published-download acceptance. The guide is updated to the new deployed scope.
 
 
 Evidence and regeneration: [guide author report](../handoff/report_spring_getting_started_2026_09_21.md).
@@ -846,7 +866,8 @@ Evidence and regeneration: [guide author report](../handoff/report_spring_gettin
   implemented through `7eceff5`, with real-frame close/reopen and new-frame relaunch witnesses; actual OS-process
   restart remains unverified. Spotlight echo/paint after settled layout (39) now closes under D15
   with `DesignSpotlightFrameTest` and its viewport mutation. Compiler/starter owner: repeat EndOfDayReporter
-  audit-scaffolding case and define new-owned-node policy; absence of values is not absence of execution.
+  audit-scaffolding case/new-owned-node policy now shipped under BETA-B2 in starter 1.0.74, with
+  `CallbackAuditTest` and browser callback controls. Absence of values is not absence of execution.
 - ☐ **Feature request 40 (intake alias P1) — saved focus captions** — assess explicit ordered commentary associated with a focus,
   preserving transient spotlight defaults. Attribute text; bind structural claims to model/code identity where
   available and observational steps to original run/record or existing report references. Current report

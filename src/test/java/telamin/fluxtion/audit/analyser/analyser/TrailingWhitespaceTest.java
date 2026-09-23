@@ -33,6 +33,8 @@ class TrailingWhitespaceTest {
      */
     private static final List<String> EVIDENCE = List.of(
             "src/test/resources/formula-golden/",
+            // Captured producer spike output: its spaces are evidence, not prose formatting.
+            "docs/handoff/evidence/mongoose-audit-production-2026-09-23/spike-output.txt",
             // Captured generator outputs, whose manifests pin the original bytes. Do not reformat.
             "docs/handoff/evidence/spring-authoring-feedback-2026-09-19-round2/pom.xml",
             "docs/handoff/evidence/spring-authoring-feedback-2026-09-19-round2/src/main/java/com/example/myapp/node/Child.java",
@@ -102,6 +104,7 @@ class TrailingWhitespaceTest {
 
     /** Every byte-sensitive fixture, pinned. A missing one is a FAILURE, not a skip. */
     private static final List<String> BYTE_SENSITIVE = List.of(
+            "docs/handoff/evidence/mongoose-audit-production-2026-09-23/spike-output.txt",
             "docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21/AlertNode.hand-finished.java",
             "docs/experience/runs/round-49/expected.txt",
             "docs/experience/runs/round-49/expected.conforming.txt",

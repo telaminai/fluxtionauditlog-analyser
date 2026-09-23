@@ -1,0 +1,16 @@
+{
+  "frozenUtc": "2026-09-23T22:21:55.355098+00:00",
+  "participantPromptSha256": "d51b5bd52bc0ab7cedce501d918a4e36508100659168ef14c2534e76a4b36dfb",
+  "userTaskSha256": "064f79fc71347cdbbb5284795fa98ac553e2d6b002f144b6b5ac2fd2e3e2e512",
+  "businessTaskIdenticalToSeptember19": true,
+  "starterVersion": "1.0.74",
+  "analyserVersion": "1.19.0",
+  "analyserJarSha256": "826daf64788674511c23d591f4e5aff3df53a5e44709c8e3990829bbfde41f65",
+  "modelRequested": "sonnet",
+  "generationAttemptsCap": 6,
+  "timeCapSeconds": 2400,
+  "substantiveInterventionsTarget": 0,
+  "keyPermission": "Owner permits configured key for G14 only",
+  "condition": "Public extended Spring AOT download; own setup.sh, empty Maven/wrapper caches, no local provider or repository source access",
+  "failurePolicy": "Stop first provider refusal. Preserve product failures, no in-place repair of the sealed fixture or retest as if initial success."
+}

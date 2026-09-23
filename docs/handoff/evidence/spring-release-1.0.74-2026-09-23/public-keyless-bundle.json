@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "requestedUrl": "https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle",
+  "scope": "public",
+  "emptyMavenCache": true,
+  "clientSessions": 0,
+  "generationKeyProvisioned": false,
+  "resolvedUrl": "https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle",
+  "zipSha256": "23e4c8946da906eadb560aa528ef5a10cb5d85741e00fe4d7c01b03e30fa096b",
+  "expectedRows": [
+    [
+      "AAPL",
+      195.3,
+      1200
+    ],
+    [
+      "MSFT",
+      410.1,
+      800
+    ],
+    [
+      "GOOG",
+      155.75,
+      1500
+    ],
+    [
+      "AMZN",
+      178.22,
+      640
+    ],
+    [
+      "NVDA",
+      905.6,
+      2100
+    ]
+  ],
+  "sampleSha256": "d503256ce2dedaeb7cfc725aeab733c7e755cdebf090e1be6ef2186559faaf51",
+  "verifiedRows": 5,
+  "auditSha256": "19bd61db6ca8ecad2b15379e173b08d11f0330fca1eca4d088ef01da27ed75dd",
+  "cleanStop": true,
+  "unchangedOriginalFiles": 43,
+  "seconds": 39.21
+}

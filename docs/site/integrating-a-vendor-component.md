@@ -53,12 +53,14 @@ Spring excerpt preserved in the [experiment's evidence record][record]:
 </bean>
 ```
 
-!!! warning "Never list a supplier's class in nodeBeans"
-    Reference it from one of your own nodes instead. The starter writes skeleton classes for
-    `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
-    looks like a class that does not exist yet, and the skeleton silently replaces it: the build
-    stays green and the supplier's component is gone. This is the open
-    [dependency-shadowing issue][tracker], documented in [the P4 reproduction][predictions].
+!!! warning "Keep supplier classes in their dependency jar"
+    Prefer referencing the supplier root from your own node. Tools through 1.0.73 could
+    write a shell over a dependency-only `nodeBeans` class; the build stayed green while
+    the intended component disappeared. The [dependency-shadowing issue](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2) records that failure.
+    Starter 1.0.74 local reconciliation checks the classpath written by setup before
+    emitting a shell. Refresh setup after changing dependencies. The browser generator
+    cannot inspect your local dependency jars, so do not use its fresh-class skeletons
+    as replacements for supplier classes. Check the generated graph and actual results.
 
 Only the host node belongs in the starter's `nodeBeans` selection here. The compiler discovers
 the supplier's sub-graph through the reference. These discovered nodes use the supplier's
@@ -158,7 +160,8 @@ does not identify the supplier jar's bytes or establish the correctness of its a
 ### For integrators
 
 - Declare the supplier root and reference it from your own node. Keep dependency-only classes
-  out of `nodeBeans` while [the dependency-shadowing issue][tracker] remains open.
+  out of browser-generated skeletons; use starter 1.0.74 or later and a refreshed classpath for
+  local reconciliation. See the version-scoped warning above.
 - Refresh the runtime classpath after adding or changing a jar; do not assume a successful
   Maven build refreshed a launcher's cached classpath.
 - Read the supplier's naming contract. Discovered nodes need supplier-provided stable names;

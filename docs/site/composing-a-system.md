@@ -41,12 +41,14 @@ classes without knowing the graph they will be composed into. An integrator writ
 <bean id="intent" class="vendor.orders.IntentPublisher">…</bean>
 ```
 
-!!! warning "Never list a supplier's class in nodeBeans"
-    Reference it from one of your own nodes instead. The starter writes skeleton classes for
-    `nodeBeans` entries it cannot find source for. A class that exists only in a dependency jar
-    looks like a class that does not exist yet, and the skeleton silently replaces it: the build
-    stays green and the supplier's component is gone. This is the open
-    [dependency-shadowing issue][tracker], reproduced in [the experiment's P4 record][predictions].
+!!! warning "Keep supplier classes in their dependency jar"
+    Prefer referencing the supplier root from your own node. Tools through 1.0.73 could
+    write a shell over a dependency-only `nodeBeans` class; the build stayed green while
+    the intended component disappeared. The [dependency-shadowing issue](https://github.com/telaminai/fluxtionauditlog-analyser/issues/2) records that failure.
+    Starter 1.0.74 local reconciliation checks the classpath written by setup before
+    emitting a shell. Refresh setup after changing dependencies. The browser generator
+    cannot inspect your local dependency jars, so do not use its fresh-class skeletons
+    as replacements for supplier classes. Check the generated graph and actual results.
 
 Nobody writes the dispatch order. The compiler derives it from the references.
 
@@ -54,8 +56,8 @@ Nobody writes the dispatch order. The compiler derives it from the references.
 
 **Declare each class.** The integrator wires the individual supplier classes as beans, as in the
 example above. When selected directly for the graph, those beans retain the integrator's names.
-This describes the compiler's composition model; the starter's open `nodeBeans` defect makes the
-reference route below the safe authoring path for dependency-only classes today.
+This describes the compiler's composition model. The reference route below avoids asking a
+fresh-project generator to emit source for a dependency-only class.
 
 **Reference a root.** The supplier constructs its own sub-graph. The integrator declares its root
 bean and references it from a host node; the compiler discovers the internals through fields.
@@ -106,9 +108,10 @@ Composition at build time catches several wiring mistakes. The
 adapter raises typed diagnostics for a handler bound to an event it cannot receive, a binding naming a
 bean that was not selected, an undeclared service callback, conflicting log levels.
 
-It does not catch every mistake. In particular, the starter's dependency-shadowing defect above
-can remove a supplier's component while the build stays green. A successful build alone does not
-establish that the intended supplier graph was included.
+It does not catch every mistake. Older starters' dependency-shadowing failure above removed a
+supplier's component while the build stayed green. The local reconciliation guard addresses that
+case; a successful build still does not establish that the intended supplier graph was included
+or that its calculations are right.
 
 The reasoning attached to the first is the clearest statement of what this design removes:
 

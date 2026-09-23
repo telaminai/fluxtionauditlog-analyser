@@ -21,12 +21,12 @@ show the collaboration; this page explains the capabilities and workflow.
     when the required tool cannot be fetched. Compilation credentials depend on the selected route.
     For the keyless published demo, follow [Playground to analyser](tutorial-playground.md).
 
-!!! info "Public Spring setup corrected"
-    Starter **1.0.73** fixes the Maven descriptor failure in the standalone Spring download.
-    Its shipped setup, validation, changed-design generation and sample run have been verified.
-    See the [step-by-step guide](spring-authoring-getting-started.md) for existing-project upgrades.
-    The hosted Spring template currently omits the local authoring record/scripts; follow its
-    build and hosting runbooks rather than applying the standalone commands to that download.
+!!! info "Standalone and hosted local authoring"
+    Starter **1.0.74** adds the hosted Spring authoring record and scripts, callback audit
+    scaffolding, classpath protection for reconciled shells, and reconciliation corrections.
+    Use the [step-by-step guide](spring-authoring-getting-started.md) for prerequisites,
+    existing-project upgrades and the different standalone/hosted launchers. Setup and
+    validation are keyless; a successful setup does not establish generation or behaviour.
 
 ## One conversation, two workspaces
 
