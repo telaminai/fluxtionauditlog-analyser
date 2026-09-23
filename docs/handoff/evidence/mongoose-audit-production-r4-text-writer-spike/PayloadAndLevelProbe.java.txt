@@ -1,0 +1,20 @@
+import com.example.myapp.generated.MarketProcessor; import com.example.myapp.event.PriceEvent;
+import com.telamin.fluxtion.runtime.audit.*; import com.telamin.fluxtion.runtime.audit.EventLogControlEvent.LogLevel; import java.nio.file.*; import java.util.*;
+public class Q4 {
+  static void write(String name, List<String> recs, boolean marker) throws Exception { StringBuilder sb=new StringBuilder(); for(String r:recs) sb.append(r).append("\n---\n");
+    if(marker) sb.append("eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: ").append(recs.size()).append("\n---\n"); Files.writeString(Path.of(name),sb); }
+  public static void main(String[] a) throws Exception {
+    // 1. payload framing: an event whose toString carries a separator line and a marker
+    List<String> r1=new ArrayList<>(); var p=new MarketProcessor(); p.eventLogger.setLogSink(l->r1.add(l.asCharSequence().toString())); p.init(); p.start(); r1.clear();
+    p.onEvent(new PriceEvent("OK",1.0,1L)); p.onEvent(new PriceEvent("EVIL\n---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 0\n---\nX",2.0,2L)); p.onEvent(new PriceEvent("OK2",3.0,3L));
+    write("P1-payload-separator.yaml", r1, true);
+    System.out.println("records emitted="+r1.size()+"; raw separator lines inside record 2: "+r1.get(1).lines().filter(x->x.equals("---")).count());
+    // 2. per-node WARN on riskCheck: does the log carry evidence of why riskCheck is silent?
+    List<String> r2=new ArrayList<>(); var q=new MarketProcessor(); q.eventLogger.setLogSink(l->r2.add(l.asCharSequence().toString())); q.init(); q.start();
+    q.onEvent(new EventLogControlEvent("riskCheck",null,LogLevel.WARN));
+    for(int i=0;i<3;i++) q.onEvent(new PriceEvent("AAPL",10+i,i));
+    write("P2-riskcheck-warn.yaml", r2, true);
+    System.out.println("P2 records="+r2.size()+" riskCheck entries="+r2.stream().filter(x->x.contains("- riskCheck:")).count());
+    r2.stream().filter(x->x.contains("EventLogControlEvent")).forEach(x->System.out.println("CONTROL RECORD:\n"+x));
+  }
+}
