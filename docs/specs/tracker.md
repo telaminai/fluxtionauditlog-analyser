@@ -568,7 +568,14 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   preflight found no authoring record or local scripts in `fluxtion-spring-mongoose`; its generator
   emits graph files without the local-tooling wrapper. Separate from the fixed Maven descriptor.
   Actual hosted ZIP coverage must prove record/scripts, launcher preservation, setup/validate and
-  generation/run without breaking the keyless bundle. The guide states the current scope.
+  generation/run without breaking the keyless bundle. **Implemented on feature branches, not deployed:**
+  playground `e85a459`, compiler verification `1073bfb3`. Nine actual-archive cases and five
+  seen-red controls pass. Five fresh downloads pass emitted scripts; both hosted variants
+  export five independently checked records and stop cleanly. The pristine bundle separately
+  builds/runs without setup or a key. F9 refuses extended declarations outside AOT; F11 refuses
+  a mismatched BOM/tool pair before download. Full playground gate: 560 tests; production build
+  passes; same four existing type errors and six warnings. G14 still needs publication and a
+  fresh published-download run. The live guide still states the deployed scope.
 
 
 Evidence and regeneration: [guide author report](../handoff/report_spring_getting_started_2026_09_21.md).
@@ -1358,6 +1365,9 @@ call the LLM is waiting on; would be M64.14, the tour its first user.
 
 - [M67.1] ☐ **The catalogue** — repository, `catalogue.json`, three jars in placeholder packages with their source (cross-repo).
   **Carries the beta's jars too (BETA-B4): jar A honestly wrong, jar B, and the spec-derived check. One collection, not two.**
+  Owner clarification 2026-09-23: feed adapter selected for D-X9, but no existing jar/source
+  is available. A new CSV adapter is authorised and will be labelled new example code;
+  using a previously owner-built component remains open, not claimed by that example.
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
 - [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).
