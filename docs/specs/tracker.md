@@ -104,6 +104,12 @@ still to do.
   requirement.** Measured against the published 1.18.0 jar: a marker declaring zero records reads
   `complete`, so shipping this first would replace an honest `unknown` with a confident false claim on
   exactly the processors that are already broken — D-T8 inverted. Was AF-4 item 1.
+- **[MA-4] ☐ — audit is off by default, undocumented, and unreachable in the developer download** ·
+  `AuditCaptureConfig.enabled` defaults to **false**; when on it writes a Chronicle BINARY queue, not
+  text; text needs `svc-admin-web`'s export endpoint; no shipped example enables it; `auditCapture`
+  appears in no core doc. MA-1 and MA-2 make audit logging possible and trustworthy — they do **not**
+  make it on, discoverable or documented. **OD-4** is the product decision. Without this, the work ships
+  and does nothing, which is the same failure UP-MON-01 was written to avoid.
 - **[MA-3] ☐ — the `MAX_PENDING` ceiling has no live-server test** ·
   [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). Independent of MA-1/MA-2.
   Needs a client that stops reading at TCP level; a JDK client that stops calling `request()` applies flow

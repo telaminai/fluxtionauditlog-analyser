@@ -248,6 +248,46 @@ terminate its own document is writing someone else's byte.
    export has no trailing separator. Recorded because the withdrawn version is still quoted in places.
 5. Verified against the **published** analyser jar, by digest, not a local build.
 
+## MA-4 · Default-off and undocumented — added 2026-09-23, and the spec was incomplete without it
+
+Asked by the owner: *does Mongoose log with text in the developer download by default?* **No, on five
+counts**, and MA-1 and MA-2 fix only the last two:
+
+| | State today | Fixed by |
+| --- | --- | --- |
+| `AuditCaptureConfig.enabled` | **`false`** — capture is off entirely | nothing in this spec |
+| What it writes when on | a **Chronicle binary queue** at `./audit`; the record text is the excerpt payload, the container is not text | MA-2 |
+| How text is obtained | only `GET /api/audit/file/{id}/export?format=yaml`, which needs `svc-admin-web` — not core | MA-2 |
+| Developer examples | **no** shipped example enables audit capture | nothing in this spec |
+| Core documentation | `auditCapture` appears in **no** `docs/*.md` in mongoose core | nothing in this spec |
+| On the wrapper path | would be an empty log anyway | MA-1 |
+
+**This is the "ships and does nothing" failure again**, in a new place. UP-MON-01 was worth doing only
+because something would eventually write a marker; MA-1 and MA-2 are worth doing only if a developer
+can reach the result. A capability that is off by default, undocumented, and requires a separate plugin
+to read is one almost nobody will find.
+
+### D-MA5 · Making it work is not the same as making it reachable, and the spec must say which it is doing
+
+MA-1 and MA-2 make audit logging **possible and trustworthy**. They do not make it **on**, **discoverable**
+or **documented**. Those are a product decision, not a consequence.
+
+**OD-4 — owner decision.** For the developer download specifically:
+
+- **Default on?** Recording costs — `UP-FLX-51` measured ~120 ns/event for a manager recording nothing —
+  so "on for everyone" is a real choice, not a free one. "On in the developer/example configuration,
+  off in production defaults" is the obvious middle and should be considered explicitly.
+- **Text or Chronicle by default?** MA-2 makes direct text possible. Text is readable by the analyser
+  with no plugin; Chronicle is faster and needs the export endpoint.
+- **Documented where?** `auditCapture` is absent from core's docs entirely. At minimum one page, and
+  one example config that turns it on.
+
+### Acceptance MA-4
+
+A developer who downloads Mongoose and follows the getting-started path **ends up with an audit log they
+can open in the analyser**, without knowing that `auditCapture` exists. If that journey still requires
+prior knowledge, MA-1 and MA-2 have not delivered a user-visible capability.
+
 ## MA-3 · The `MAX_PENDING` ceiling has no live-server test
 
 [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). Independent of MA-1 and
@@ -279,6 +319,7 @@ MA-1  (fluxtion-runtime: install the auditor)   ← OD-1 blocks the start
   └── MA-2  (the marker writer)                 ← blocked on MA-1, measured above
         └── AF-6  (the coupled documents)       ← blocked on MA-2, not in this spec
 MA-3  (the ceiling's live test)                 ← independent, any time
+MA-4  (defaults, docs, the developer journey)   ← needs MA-1+MA-2 to be worth doing; OD-4
 ```
 
 ## What is verified, and what is only read
