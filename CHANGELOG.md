@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-09-23
+
 ### Added
 - **A log can say whether it is whole** — audit format 1.1 §1a adds an optional stream-end marker, and
   `context` reports `log.streamEnd` as `complete`, `missing_records`, `more_than_declared`, `unverified`,
