@@ -2,7 +2,7 @@
 
 G14 predictions and exact task are frozen before the client in compiler evidence commit
 `abaff023`. The task's business text is identical to the September 19 task; environment
-changes are recorded in `freeze.json`. Public release/deployment and public provisioning checks pass; G14 remains pending.
+changes are recorded in `freeze.json`. Public release/deployment and public provisioning checks pass; G14 remains open after an incomplete retry.
 See [the release record](../../release_spring_side_1_0_74_2026_09_23.md) for scope and failures.
 The public standalone attempt 1 (old version) and attempt 2 (1.0.74 pass) are separate
 result files; hosted and keyless-bundle results retain their own conditions.

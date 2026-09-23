@@ -1,6 +1,6 @@
 # Spring-side release 1.0.74 — execution record
 
-**Published and deployed; G14 is still running.** The owner approved the release order and
+**Published and deployed; G14 remains open after an incomplete retry.** The owner approved the release order and
 explicitly authorised the configured compilation key for G14 only. No other release check
 uses it. Accepted non-blocking follow-ups remain open; publication alone does not close G14.
 
@@ -91,7 +91,19 @@ read the actual configured credential target, permit the existing directory's ow
 operation, and keep bare `mktemp -d` inside the isolated temporary directory. Credential-content
 writes stay forbidden. A published-tool preflight in a separate throwaway directory reported
 `Generation route: rapidapi`; no generation request was made by that check. Its temporary tool
-was removed before the subject started. The retry is **pending**, not a pass.
+was removed before the subject started.
+
+The retry finished after 868.82 seconds, exit 0, zero substantive interventions. It
+reported three generation-script attempts (one rejected by reconciliation) and two
+fresh-process scenario logs. Source carries client/target-generator 1.0.74. The subject
+then failed to read the analyser endpoint file and produced no chart or evidence-linked
+report. This observation does not establish that the analyser process was absent; the
+observer launch log records successful startup. The transport failure needs diagnosis.
+
+The subject also edited recorded annotation ownership to get past a reconciliation
+conflict. That is recorded behaviour, not an endorsed recovery instruction. Its scenario
+claims and that edit have not yet had the independent acceptance check. Exit 0 means the
+client ended, not that G14 passed. **G14 remains open**; no additional client trial was started.
 
 ## Documentation integration and limits
 

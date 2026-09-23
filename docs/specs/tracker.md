@@ -347,10 +347,12 @@ on main and deployed, with public artifact/comment parity and 563 tests/zero ski
 Public provisioning CI 35929392911 passes both Spring templates and the keyless
 bundle (build/run, five independently checked rows, export, stop). Its first standalone
 attempt served 1.0.73 and refused; the separately retained retry serves 1.0.74 and passes.
-**G14 is still open:** one sandbox-invalid fresh-client attempt is preserved; a new,
-environment-corrected session is running from the same sealed public ZIP and frozen task.
-The changed graph has generated with client/server version 1.0.74; scenario and canvas
-acceptance are not yet verified. [Release checks, failures and limits](../handoff/release_spring_side_1_0_74_2026_09_23.md).
+**G14 is still open:** the first sandbox-invalid attempt is preserved. The fresh retry
+finished after 869 seconds with no substantive coaching. It generated with client/server
+1.0.74 and captured two scenario runs, but could not read the analyser endpoint; no chart
+or evidence-linked report was produced. It also edited its ownership baseline to resolve
+a conflict. Scenario correctness and that recovery require independent assessment; this
+is not an acceptance pass. [Release checks, failures and limits](../handoff/release_spring_side_1_0_74_2026_09_23.md).
 
 
 **Review-response checkpoint 2026-09-23:** `fix/spring-side-review-response` carries
