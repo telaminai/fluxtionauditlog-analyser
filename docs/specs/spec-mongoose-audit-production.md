@@ -71,7 +71,9 @@ MA-0  (analyser: an empty log is a finding)      ← THIS repo; smallest; closes
 MA-1  (a processor that cannot audit says so)    ← independent
 MA-5  (capture must fan out, and restore)        ← independent; a live silent-discard path
 MA-6  (a document without eventLogRecord: )      ← independent; unblocks MA-2 without AFMT-3
-  └── MA-2 TEXT writer                           ← needs MA-6; NOT blocked by AFMT-3 or OD-5
+MA-7  (framing injection — a payload forges a marker) ← GATES MA-2; V1
+MA-8  (coverage qualifies a per-node level)      ← THIS repo; MA-0 sibling
+  └── MA-2 TEXT writer                           ← needs MA-6 and MA-7; NOT blocked by AFMT-3 or OD-5
         └── MA-4  (defaults, docs, the journey)  ← GATED on the text writer
               └── AF-6 (the coupled documents)   ← in the tracker, not here
   └── MA-2 CHRONICLE marker                      ← needs OD-5 decided
@@ -79,7 +81,29 @@ AFMT-3 (per-node NONE corrupts the record)       ← a live runtime defect; MA-6
 MA-3  → moved to mongoose-plugins#38
 ```
 
-MA-0, MA-1, MA-5 and MA-6 can start now, in any order.
+MA-0, MA-1, MA-5, MA-6, MA-7 and MA-8 can start now, in any order.
+
+---
+
+## Validity invariants
+
+Four checks every MA item's acceptance must pass. They were proposed as the test any signal here should
+face: **what would have to be true for "this node never ran" to be wrong, and does the analyser say so?**
+Stated once, here; items point at them rather than restating them.
+
+**V1 · A payload cannot change the verdict.** Nothing an event or node value carries may alter the
+record count, the framing, or the stream-end state. **Live violation: MA-7.**
+
+**V2 · Follow and a fresh open agree at every cut**, including the bare-marker-header cut — a file
+truncated just after a marker's `eventLogRecord:` line must read the same way in a live tail as it does
+when opened cold.
+
+**V3 · Absence never becomes a claim.** Not knowing must read as `unknown` or as a finding, never as
+`complete`. This is D-T8 applied to this spec, and it is why OD-5 (c) is rejected.
+
+**V4 · Every verdict is stated in its own scope.** MA-4's acceptance means **one run's file**; a
+directory of files is `unknown` by design (D-E5). An empty file is a fact about **the file**, not the
+run. `complete` means "every record this processor produced is here", never "no event was dropped".
 
 ---
 
@@ -109,8 +133,9 @@ matter in the report — and it is part of MA-0's cost, not a free surface.
 
 ### D-MA0d · In Follow, say "no records in the file yet"
 
-The spike measured a buffered writer holding **0 bytes** while ~24 records sat in memory. So an empty
-file is not a fact about the run. The finding's wording must be about the **file**, never the run.
+**V4 applied.** The spike measured a buffered writer holding **0 bytes** while ~24 records sat in memory,
+so the wording must be about the file. MA-0's acceptance also carries **V2**: the finding must read the
+same in Follow as on a cold open.
 
 ### Acceptance MA-0
 
@@ -232,6 +257,74 @@ cause, and it is not specific to AFMT-3 — any producer emitting a document wit
 
 ---
 
+## MA-7 · Framing injection — a payload forges a marker. GATES MA-2
+
+**V1's live violation, and the most serious finding in this spec.** The runtime writes `eventToString`
+**unescaped**. An event whose `toString()` contains a line that is exactly `---`, followed by marker
+lines, **breaks the framing before recognition runs**, so §1a's allow-list cannot defend against it —
+the allow-list protects a record that *mentions* a marker key, not one that *terminates the document*.
+
+**Reproduced independently, twice.** Review framed 3 real records as the 1.0.44 exporter does, plus a
+marker declaring 3, with one hostile payload: the analyser read **5 records**, recognised the injected
+marker, and reported damage on a file that lost nothing. My own payload gave **4 records** from 3, split
+into **two runs**, `missing_records`, with a `more_than_declared` run whose `declaredRecords` was the
+injected **0**. Different shapes, same three effects: **a record split, a marker forged, damage claimed
+where nothing was lost.**
+
+**Reach.** Every text sink today — including the **shipped 1.0.44 exporter**, whose `YamlContainerWriter`
+writes the record text as-is — and MA-2's writer, wherever it lives. Payloads come from event
+`toString()`, which is routinely user-controlled: symbols, messages, parsed input.
+
+**Not recorded anywhere before this**: no tracker item, no spec, nothing on escaping, injection or
+framing.
+
+### D-MA7 · Fix at the writer, and file the shipped exporter separately
+
+Two options: the **runtime** escapes `eventToString` and node values so no emitted line can be exactly
+`---`; or the **writer** refuses or escapes a record whose text contains such a line.
+
+**Decided: the writer**, matching MA-6's writer half — it needs no runtime release and defends MA-2 on
+day one. **But the writer fix cannot help the 1.0.44 export, which is already shipped and vulnerable**,
+so the runtime option stays on the table as the complete fix, and **a tracker entry is required for the
+existing exporter**, outside this spec.
+
+**What is not established:** review could not construct a payload making a log read **`complete`**
+falsely — the record's remainder always lands after the forged marker, so the file reads `unknown` or
+damaged. **That no such payload exists is not proved.**
+
+### Acceptance MA-7
+
+1. **Hostile payload:** a record whose `eventToString` carries a line that is exactly `---` plus marker
+   lines leaves **the record count and the verdict unchanged** (V1).
+2. The same for a node value, not only `eventToString`.
+3. A conformance fixture with a mutation witness.
+
+---
+
+## MA-8 · Coverage qualifies a node whose level was changed per node
+
+**An MA-0 sibling, analyser side.** A node set to `WARN` **runs**, but reads as never logged — and the
+log carries the evidence.
+
+**Measured:** with `riskCheck` at `WARN`, the file reads `complete`, 6 of 6, no findings, and **zero**
+`riskCheck` entries, while `riskCheck` ran three times. **The control record naming
+`sourceId=riskCheck, level=WARN` is in the log.**
+
+Coverage reads only record levels and node entries; `AuditLevel` names a **global** level as a cause of a
+coverage gap and does not look at a **per-node** change the log states outright. So coverage lists
+`riskCheck` as uncovered with no qualification — which is precisely "this node never ran" being wrong,
+with the answer sitting in the file.
+
+### Acceptance MA-8
+
+1. When a control record names a `sourceId`, coverage **qualifies that node**: its level was set to
+   `WARN` at *t*, and lines below that level are not in this log.
+2. The node is not reported as plainly uncovered.
+3. A conformance fixture. *(The admin endpoint is global-only, so this is reachable from Java alone —
+   which does not make it rare in hand-tuned deployments.)*
+
+---
+
 ## AFMT-3 · Per-node `NONE` corrupts the record — a live runtime defect
 
 **Reproduced on today's download**, against the bundle's `fluxtion-runtime-1.0.16`: setting `riskCheck`
@@ -291,9 +384,8 @@ duplicated framing rule is the same failure in code.
 live file opened early raises the empty-log finding while records exist in memory (hence D-MA0d); and
 `kill -9` loses the buffered tail — still `unknown`, so honest.
 
-**One thing no marker can see.** Events Mongoose drops upstream — `dropping publish to slow/contended
-queue` — never reach a processor. `complete` therefore means "every record this processor produced is
-here", never "no event was dropped".
+**One thing no marker can see (V4).** Events Mongoose drops upstream — `dropping publish to
+slow/contended queue` — never reach a processor, so no marker can account for them.
 
 ### D-MA2d · Per-node parity is an acceptance-time comparison
 
@@ -321,7 +413,8 @@ Whatever OD-4's mechanism, an unknown or unimplemented `backend` is **refused by
    export **plus the marker plus `---\n`**. Measured: Chronicle round-trips each record exactly and the
    framing reproduces byte for byte. *("The same run" is impossible — a run has one backend, and a
    second run differs in timestamps.)*
-5. The writer **refuses to count or mark a record lacking `eventLogRecord:`** (MA-6's writer half).
+5. The writer **refuses to count or mark a record lacking `eventLogRecord:`** (MA-6's writer half), and
+   **refuses or escapes a record carrying a line that is exactly `---`** (MA-7's writer half).
 6. An unknown `backend` is refused by name (D-MA2e).
 7. Verified against the **published** analyser jar.
 
@@ -333,9 +426,9 @@ Blocks **only MA-2's Chronicle half**. The text writer proceeds without it.
   consequences if chosen: counts must be of **records received**, not written; and `retainHours` pruning
   a run's early files will read **`missing_records`**, correctly but surprisingly.
 - **(b) No marker for Chronicle.** Deployed exports keep reading `unknown`.
-- **(c) An export-time marker counting what the exporter read — REJECTED BY NAME.** It would always read
-  `complete`, because the exporter always reaches its own end. That is the manufactured marker the
-  `run-mongoose-server` skill already forbids, and D-T8 inverted.
+- **(c) An export-time marker counting what the exporter read — REJECTED BY NAME, on V3.** It would
+  always read `complete`, because the exporter always reaches its own end: absence becoming a claim. The
+  `run-mongoose-server` skill already forbids manufactured markers.
 - **(d) Deployments also run the text writer**, through MA-5's fan-out. Needs **no Chronicle change**.
 
 ---
@@ -399,7 +492,9 @@ The `MAX_PENDING` ceiling's live-server test. It shares no code and no ordering 
 
 ## What is verified, and what is only read
 
-**Verified by running:** the spike's six results — clean SIGTERM `complete` 29 of 29 with node entries;
+**Verified by running:** MA-7's framing injection, reproduced independently — 3 records read as 4, split
+into two runs, `missing_records` with a forged `declaredRecords: 0`; MA-8's per-node `WARN` case;
+the spike's six results — clean SIGTERM `complete` 29 of 29 with node entries;
 marker-after-stop `complete` 31,586 twice with zero records after the marker; marker-before-stop
 `complete` with 39 and 20 records lost; `kill -9` `unknown`; buffered 0 bytes after boot; two starts
 giving two `complete` files and a `complete` two-segment concatenation. The MA-2.4 parity result. The
@@ -413,7 +508,9 @@ zip-digest and request-parameter effects on the bundle.
 path; MA-1's refusal paths, since there is no implementation to boot; problem 1's behaviour for an
 unaudited AOT processor.
 
-**Not established:** AFMT-3's **cause**; the per-event cost of an `EventLogManager` after `UP-FLX-51`.
+**Not established:** AFMT-3's **cause**; the per-event cost of an `EventLogManager` after `UP-FLX-51`;
+**whether a payload exists that makes a log read `complete` falsely** (MA-7) — none was constructed, and
+that none exists is unproved.
 
 ## How this spec got here
 

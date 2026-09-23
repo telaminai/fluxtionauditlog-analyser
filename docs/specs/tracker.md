@@ -104,6 +104,18 @@ still to do.
   repo; **writer half in MA-2 — the writer refuses to count or mark such a record**, which is what
   actually prevents vouching. A warning beside `complete` does not. **This unblocks MA-2 without waiting
   on AFMT-3.**
+- **[MA-7] ☐ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
+  finding in this spec. An event `toString()` carrying a line that is exactly `---` plus marker lines
+  breaks the framing BEFORE §1a recognition runs, so the allow-list cannot defend it. Reproduced twice
+  independently: 3 real records read as 4 or 5, a forged marker recognised, and `missing_records`
+  reported on a file that lost nothing. **Live on the SHIPPED 1.0.44 exporter** — `YamlContainerWriter`
+  writes record text as-is — so a **separate tracker entry for the existing exporter is required**; the
+  writer-side fix chosen for MA-2 cannot reach it. Payloads come from event `toString()`, routinely
+  user-controlled. Not previously recorded anywhere.
+- **[MA-8] ☐ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
+  sibling._ A node at `WARN` runs but reads as never logged, and the control record naming its
+  `sourceId` and level is in the log. Measured: `complete`, 6 of 6, no findings, zero entries for a node
+  that ran three times. Coverage must say why it is silent instead of listing it as uncovered.
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
   one reads `complete` with no finding. **Cause NOT established.** **The tracker repro is stale** — it

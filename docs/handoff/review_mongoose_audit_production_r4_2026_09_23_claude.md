@@ -384,3 +384,103 @@ the admin file list. That is a real alternative for OD-4's developer default. Th
 choose it or say why the capture-service route is worth the blast radius it lists.
 
 **Still not done:** MA-1's refusal paths (no implementation to boot); AFMT-3's cause.
+
+---
+
+## Addendum 2: the four validity checks, applied (RUN)
+
+A second reviewer proposed the test every signal here should face: **what would have to be true for "this
+node never ran" to be wrong, and does the analyser say so?** It comes with four checks:
+- a payload must not change the verdict;
+- a live tail and a fresh open must agree;
+- absence must never become a claim;
+- every verdict must be stated in its own scope.
+
+Two of them had not been tested against this spec. I ran both on the bundle's `MarketProcessor` with
+`fluxtion-runtime-1.0.16`, and read the files with the published 1.19.0 jar. Source:
+`evidence/…/PayloadAndLevelProbe.java.txt`.
+
+### G1 · Critical · A payload can split records and forge markers: framing injection, live today (RUN)
+
+The runtime writes `eventToString` **unescaped**. I sent an event whose `toString()` contains
+`\n---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 0\n---\n`. Its record text then
+carries **four raw `---` lines**. I framed 3 real records exactly as the 1.0.44 exporter and the spike
+writer do, then added a marker declaring 3. The analyser reads:
+
+- **5 records, not 3.** One record became three documents.
+- **The injected marker is recognised as a real one.** Runs 1 and 2 are `more_than_declared` against
+  `declaredRecords: 0`, and the last run reads `missing_records`.
+- A `COMPLETENESS_GAP` warning appears on a file that lost nothing.
+
+So the payload made the log **claim damage**, **split a record**, and **forged a stream-end marker**.
+
+The §1a allow-list protects against a record that *mentions* a marker key. It cannot protect against
+this, because the framing is broken before recognition runs.
+
+The injection reaches:
+- **every text sink today:** the 1.0.44 export (`YamlContainerWriter` writes the text as-is) and any
+  hand-written sink;
+- **MA-2's writer**, whichever repository it lives in.
+
+Payloads come from event `toString()`, which is often user-controlled data: symbols, messages, parsed
+input.
+
+Nothing in the tracker or the specs records this (I searched for escaping, injection and framing).
+
+**Required:** this gates MA-2 exactly as AFMT-3 does, and it needs its own item. Options:
+1. **Runtime:** escape `eventToString` (and any node value) so that no emitted line can be exactly `---`
+   or start a document.
+2. **Writer:** refuse or escape a record whose text contains a line that is exactly `---`.
+
+Option 2 fits the "writer refuses to count" idea in F1. MA-2's acceptance needs a hostile-payload
+case: a `toString()` carrying `---` and a marker leaves the record count and the verdict unchanged.
+Because the same bytes reach the 1.0.44 export today, it probably needs a tracker entry of its own,
+outside this spec.
+
+I did not construct a payload that makes a log read **`complete`** falsely. The rest of the record
+after the payload always lands after the forged marker, so the file reads `unknown` or damaged. I have
+not proved that no such payload exists.
+
+### G2 · High · A per-node level makes "this node never ran" wrong, and the log carries the evidence (RUN + read)
+
+I set `riskCheck` to WARN through `EventLogControlEvent("riskCheck", null, WARN)`, then sent 3 price
+events.
+- The file reads **`complete`, 6 of 6, no findings**, with **0** `riskCheck` entries. `riskCheck` ran
+  3 times; its `info` lines were suppressed by its level.
+- **The control record is in the log**, with `eventToString: EventLogConfig{level=WARN, …,
+  sourceId=riskCheck, …}`.
+
+Coverage reads only record levels and node entries (`CoverageService.java:43-60`, read). `AuditLevel`
+names a *global* level as "a fourth cause of a coverage gap". It does not look at a **per-node** level
+change, which the log states outright. So coverage will list `riskCheck` as uncovered, with no
+qualification.
+
+That fails the headline question: the node ran, the analyser can know why it is silent, and it does not
+say.
+
+**Required, analyser side, an MA-0 sibling:** when a control record names a `sourceId`, coverage
+qualifies that node: "its level was set to WARN at t; lines below that are not in this log". The
+admin level endpoint is global only, so this can be reached from Java code alone (AFMT-3's reach, F4 of
+round 3). That doesn't make it rare in hand-tuned deployments.
+
+### The other two checks against this spec (read, from runs above)
+
+- **Absence never becomes a claim.**
+  - OD-5's option (c), an export-time marker, is exactly this drift, which is why F6 asks for it to be
+    named and rejected.
+  - The spike's marker-before-stop run is the same failure from the writer side: `complete`, with
+    records the processor produced missing.
+  - Both belong in MA-2's acceptance as negative cases.
+- **Live tail against fresh open.** The phantom-record kill point (F3) is where the two readers can
+  differ. A fresh open counts a trailing `eventLogRecord:`-only document as a record (10 of 9). Follow
+  treats an unterminated last document as pending. MA-2.3 should assert **both readers at that cut**,
+  plus MA-0's Follow case with a buffered writer (addendum 1).
+- **Scope.**
+  - One file per start makes each run's verdict a file verdict.
+  - A directory of per-start files opened as a set is `unknown` by D-E5, correctly.
+  - MA-4's acceptance ("a log they can open") should say it is **one run's file**, and that opening
+    the directory is `unknown` by design, so nobody "fixes" it.
+
+**Suggested:** put the four checks into the spec as a short **validity invariants** section, each
+stated as an acceptance that every MA item must pass. Most of them already appear piecemeal in MA-0,
+MA-2 and OD-5. One list makes a seventh add-without-reconcile defect easier to catch.
