@@ -271,13 +271,35 @@ told that nothing is wrong. So the choice is between two honest outcomes —
 **Only "neither" is off the table**, because that is today's behaviour and it is the defect class this
 spec exists to remove.
 
-**The one check that would settle it.** How exposed is the wrapper path? The developer download is
-**probably unaffected**: review observed events "flowing to Chronicle" for the template's
-`marketProcessor`, and a `customHandler` processor emits nothing at all — so that processor must be on a
-path that can log. **Inferred, not confirmed; the bundle is not checked out here.** Confirm whether
-`analyser-bundle`'s `marketProcessor` is built via `customHandler` or AOT. **AOT** → MA-1 serves people
-writing their own handlers rather than the onboarding path, and (ii) may suffice. **`customHandler`** →
-MA-1 is on the first journey a new user takes, and (i) is the answer.
+**The check is DONE — CONFIRMED 2026-09-23, not inferred.** A fresh public bundle was downloaded from
+the documented endpoint (`/start/scaffold?template=analyser-bundle`, 200, 65,364 bytes) and read:
+
+| Question | Answer |
+| --- | --- |
+| Is `marketProcessor` a `customHandler`? | **No.** `MongooseProgrammaticMain` uses `.handlerBuilder(new MarketProcessorSupplier())` |
+| Does `customHandler` appear anywhere in the bundle? | **No occurrences** |
+| What supplies the processor? | `generated/MarketProcessor.java` — **AOT-generated** |
+| Does it declare the auditor? | **Yes** — `public final transient EventLogManager eventLogger`, clock wired, `initialiseAuditor(eventLogger)` called |
+| What does it register? | **The user's own domain nodes** — `riskCheck`, `rootNode` — plus `callbackDispatcher`, `subscriptionManager`, `context` |
+
+**So the developer download is entirely unaffected by MA-1.** It has the auditor, per-node registration
+of real domain nodes, and therefore a real coverage denominator — the opposite of the wrapper path in
+every respect. The onboarding journey never touches the broken path.
+
+**What that means for OD-2.** MA-1's value is confined to users who write their own `customHandler`
+processors. For them, option (i) delivers **handler-granularity logging only** — no per-node coverage,
+no graph. But the bundle demonstrates that the AOT path gives those same users **real per-node audit**,
+which is strictly better than anything MA-1 can offer them.
+
+**Recommendation: (ii), and it is now the cheaper AND the more useful answer.** Tell a `customHandler`
+user at configuration time that per-node audit requires an AOT-built processor, and stop the level
+endpoint returning 200 for a processor that cannot honour it. That is honest, small, and points them at
+the path that actually serves them — rather than building MA-1 to hand them a degraded version of
+something they can already have properly.
+
+**(i) is still defensible** if handler-granularity logging is wanted for its own sake on a path that
+deliberately hosts non-Fluxtion code. That is the owner's call; the evidence no longer supports doing it
+for the onboarding journey's benefit, because there is no such benefit.
 
 Available under either: have the analyser report the wrapper path explicitly, so the **absence of a
 coverage claim is not read as a clean one**. (Not "a four-node denominator" — there is none on this
