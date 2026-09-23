@@ -153,7 +153,10 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
   `.local-evidence/coldstart-v2-2026-09-20/{key-journey-*,a2-*}` (git-ignored).
 - **[BETA-B2] ☐ — new-node stubs must audit before the beta** · _feedback 6 / issue 3; otherwise A2 measures the
   product, not the tester (§11 carve-out)._ **Owned by the starter (compiler + playground), not the analyser — done as
-  part of the [Spring-side work block](#spring-side-work-block--assembled-2026-09-23-to-be-done-as-one-piece-of-work).**
+  part of the [Spring-side work block](#spring-side-work-block--assembled-2026-09-23-to-be-done-as-one-piece-of-work).** Implementation intake 2026-09-23:
+  isolated `feat/spring-side-work-block` branches created; owner audit policy requested before
+  either emitter changes. Policy, implementation and acceptance remain open. No trial, key use,
+  publication or analyser code change has occurred.
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
   standalone Spring, the only template with a verified local authoring route._ **That recommendation rests on SG-2
   being open; closing it in the Spring-side block widens the choice.** The dry run itself stays with the beta.
