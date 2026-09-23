@@ -31,45 +31,25 @@ eventLogRecord:
 ---
 ```
 
-## What to attack, in order
+## What to attack, in order — round 4
 
-1. **The ordering claim above.** Reproduce it. Then ask the harder question: is `complete` actually the
-   wrong verdict for a file whose marker honestly says "I wrote nothing"? I argue the writer's claim is
-   true-but-useless and the harm is that it *looks* like a healthy log. If you think `complete` is
-   defensible, the spec's central argument is wrong and I want to know.
-2. **D-MA1b — how much MA-1 actually buys.** `initialiseAuditor` registers a hard-coded list of four
-   nodes, so an `EventLogManager` here audits the handler plus three infrastructure nodes and nothing
-   else. MA-1 does NOT make "absence is evidence" work at node level on the wrapper path. **OD-2** asks
-   whether MA-1 is then worth doing at all, versus making the wrapper path say out loud that auditing
-   needs an AOT-built processor. This was added after the owner asked what `DefaultEventProcessor`
-   actually is; an earlier draft implied MA-1 delivered per-node coverage, which was wrong.
-3. **D-MA1 and OD-3 — three ways to fix it, only one needing a framework release.** This section has now
-   been wrong twice and rewritten twice, both times because the owner pushed back, so attack it hardest.
-   (b), a Mongoose-side subclass, is **proven by a spike** — source and output in
-   `docs/handoff/evidence/mongoose-audit-production-2026-09-23/`; reproduce it. (c), generating the
-   processor shape Mongoose wants, is **recommended but NOT built**. Is (c) actually as clean as claimed,
-   or does generating a processor drag in obligations the spec has not costed? And the question worth
-   more than the rest: **can a generated processor register a node set supplied at runtime?** If it can,
-   D-MA1b's cap lifts and MA-1 is far more valuable than this spec claims. **The answer is no, by constraint.** Building
-   through the builder at runtime WOULD lift the cap and addEventAudit() exists, but the compiler is
-   build-time only and Mongoose must not depend on it at runtime (owner). So the cap is permanent under
-   every remaining option, and full per-node coverage stays the AOT path. Attack whether that makes MA-1
-   worth doing at all — OD-2 — and whether (c), generating the shape at build time and committing it, is
-   as clean as claimed.
-4. **OD-1, the owner decision I framed** — always-on versus opt-in for the auditor. Check the framing is
-   honest, particularly that I have not stacked it. `UP-FLX-51` measures ~120 ns/event for a manager
-   recording nothing and proposes a fix that would make always-on cheap; I claim the two should be
-   decided together. Is that right, or is it a way of avoiding the cost question?
-5. **D-MA2, per-node entry parity rather than a record count.** The argument is that a record count passes
-   while every record is empty, which is exactly the MA-1 failure. Is parity checkable at the writer, or
-   does it need the reader?
-6. **Acceptance MA-1.3** — that the level endpoint must be shown to change the bytes, not to return 200.
-   And MA-2.3, that a killed run must never read `complete`. Are these the right acceptances, and are any
-   of them unfalsifiable as written?
-7. **Scope.** MA-3 is much smaller than the other two and arguably belongs in its own issue rather than
-   this spec. And the per-node `NONE` corruption is excluded because I could not find its description —
-   only a reference at `tracker.md:131`. If you know where it is recorded, that changes AF-7's gate and
-   possibly this spec's scope.
+The spec was **rewritten**, not patched, after round 3. It is 343 lines from 600; the appendix is
+deleted. Round 3's findings are all answered and its review is committed in `docs/handoff/`.
+
+1. **The rewrite itself.** Three rescopes of patching produced four stale-text defects. Read the body
+   against itself: one `## Ordering` block at top level, one definition of MA-1, no surviving mention of
+   `customHandler` as central, `complete` described as true everywhere. Tell me what contradicts.
+2. **MA-2 is where the risk now sits** and it is the least-reviewed item. D-MA2a (separators split by
+   backend), D-MA2b (`backend` is read by nothing today), D-MA2c (five lifecycle answers), and whether
+   MA-2.4's byte-identity baseline is achievable at all.
+3. **OD-5**, the one blocking decision: does Chronicle get a marker? As specified MA-2 changes nothing
+   for deployments. Is the framing fair, or does it hide a third option?
+4. **MA-0's acceptance is adopted from round 3 verbatim.** Check I have not weakened it, and that the
+   SOURCE_DAMAGE ordering and Follow-clearing cases are right.
+5. **MA-1's capability check.** `getAuditorById(eventLogger)` refuses a processor with a custom
+   auditor — the stated safe direction. Is 409/422 right, and are the three triggers complete?
+6. **MA-5's mechanism** — passing Mongoose's own listener into `attach`/`start`. Does that hold for
+   every backend, including MA-2's text writer?
 
 ## What I verified versus what I only read
 

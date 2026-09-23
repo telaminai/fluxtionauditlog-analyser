@@ -85,54 +85,40 @@ still to do.
   threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
   index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
   must not be merged; its own entry records the detail.
-- **[MA-1] ☐ — the wrapper path must SAY it cannot audit** · _rescoped 2026-09-23; `customHandler` is an
-  EDGE CASE, used only to run Mongoose without a Fluxtion event processor. A fresh `analyser-bundle`
-  download confirms the default path is AOT and audits correctly. **OD-2 DECIDED: option (ii)** — refuse
-  and point at AOT, rather than install an auditor. **OD-3 is now moot**: nothing needs generating._
-  Original finding, which stands as the description:
-  _not this repository — `fluxtion-runtime`._ **Blocks MA-2.** Spec:
-  [`spec-mongoose-audit-production.md`](spec-mongoose-audit-production.md). A processor Mongoose builds
-  from a `customHandler` emits **zero** audit records at any level; the admin endpoint that sets the level
-  returns 200 and changes nothing; the sink holds only `metadata.cq4t`. Measured on a booted server.
-  Scoped: AOT-built processors DO log — `c21-real-export.yaml` has 25 records, 7 with node entries.
-  **OD-3 DECIDED 2026-09-23: option (c)** — Mongoose generates the processor shape it needs at BUILD
-  time and commits it; no runtime compiler dependency, no fluxtion release. Option (b), a hand-written
-  subclass, is spiked and working and is the fallback. Option (d), building via the builder at runtime,
-  is closed on the constraint that Mongoose must not depend on the compiler at runtime — it is the only
-  option that would have lifted the per-node coverage cap, so that cap is permanent and full per-node
-  coverage stays the AOT path.
-  **OD-1 DECIDED 2026-09-23: OPT-IN** — the no-auditor configuration is the low-latency profile and must
-  stay reachable. That settles review's F5: nobody pays the unmeasured cost who did not ask for it.
-  **OD-2 evidence CONFIRMED 2026-09-23:** a fresh `analyser-bundle` download uses `handlerBuilder` with
-  an AOT-generated `MarketProcessor` that declares `eventLogger` and registers the user's own
-  `riskCheck`/`rootNode`; `customHandler` appears nowhere in the bundle. **The developer download is
-  unaffected by MA-1**, so MA-1 serves only self-written handlers — for whom the AOT path already gives
-  strictly more. Spec now recommends option (ii), refuse-and-point-at-AOT. **OD-2 remains the owner's
-  call** and is the narrower question: a user who OPTS IN on the wrapper path must not
-  get silence, so either MA-1 makes it log or the path refuses at configuration time — "neither" is
-  today's behaviour and is off the table. **OD-4 DECIDED: text as the developer default, Chronicle when
-  deployed**, which gates MA-4 on MA-2. Filed as `UP-MON-02` in
-  [upstream asks](../proposals/upstream-asks.md).
-- **[MA-2] ☐ — the marker writer** · _not this repository._ **Blocked on MA-1, and the ordering is a
-  requirement.** Measured against the published 1.18.0 jar: a marker declaring zero records reads
-  `complete`, so shipping this first would replace an honest `unknown` with a confident false claim on
-  exactly the processors that are already broken — D-T8 inverted. Was AF-4 item 1.
-- **[MA-4] ☐ — audit is off by default, undocumented, and unreachable in the developer download** ·
-  Audit LOGGING is on by default — MongooseServer installs a JUL LogRecordListener at boot — so the gap
-  is PERSISTENCE, not logging. `AuditCaptureConfig.enabled` defaults to **false**; when on it writes a Chronicle BINARY queue, not
-  text; text needs `svc-admin-web`'s export endpoint; no shipped example enables it; `auditCapture`
-  appears in no core doc. MA-1 and MA-2 make audit logging possible and trustworthy — they do **not**
-  make it on, discoverable or documented. **OD-4** is the product decision. Without this, the work ships
-  and does nothing, which is the same failure UP-MON-01 was written to avoid.
-- **[MA-3] ☐ — the `MAX_PENDING` ceiling has no live-server test** ·
-  [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). Independent of MA-1/MA-2.
-  Needs a client that stops reading at TCP level; a JDK client that stops calling `request()` applies flow
-  control in its listener, not on the wire, so the server's sends keep succeeding.
-- **[MA-R] ◧ — the spec is OUT FOR REVIEW**, brief at
-  [`brief_review_mongoose_audit_production_2026_09_23.md`](../handoff/brief_review_mongoose_audit_production_2026_09_23.md).
-  Implementation is mine; review comes back through the handoff protocol before any of MA-1…MA-3 starts.
+- **[MA-0] ☐ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
+  the only one here._ Every empty shape returns from `ProducerDiagnostics` before any check, so an empty
+  log raises nothing, marked or unmarked. A **finding**, never a seventh state; keyed on zero records only
+  (the quiet-level case is already caught by `ONLY_CONTROL_EVENTS`). Acceptance and the six-case table are
+  in the spec, adopted from review's run on the published 1.19.0 jar.
+- **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
+  processor with no `EventLogManager`** — including **AOT processors built without audit**, the
+  low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);
+  refuse at `start`, not at boot, so a server with one unaudited processor in `autoStart` still boots.
+  The level endpoint lives in `svc-admin-web`, not core, and must return 409/422.
+- **[MA-5] ☐ — capture must fan out, and restore on stop** · _live silent-discard path in core._
+  `ChronicleAuditCaptureService`'s comment promises to compose in front of the existing listener and
+  restore it; the code sets `previousListener = null` and, on stop, installs a no-op. `DataFlow` has no
+  getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
+- **[AFMT-3 gates MA-2]** — per-node `NONE` corrupts the next record, reproduced on today's bundle
+  (`riskCheck`/`rootNode`). A marked file holding a corrupt record reads `complete` **with no finding**,
+  so a marker would vouch for corruption. **The tracker repro below is stale** — it targets `volumeTotal`,
+  absent from today's bundle, so re-running it wrongly looks clean.
+- **[MA-2] ☐ — the text backend and the marker** · **BLOCKED** on AFMT-3 and on **OD-5**. `backend` is
+  read by nothing today (`getBackend()` has no caller), so `backend: text` is silently ignored — the
+  switch OD-4 depends on does nothing. The text writer owns its own separators; the marker's lifecycle
+  (when, which thread, restart, roll, retention) is five decisions; `svc-admin-web` must become
+  backend-aware or refuse by name.
+- **[MA-4] ☐ — the developer journey** · **GATED on MA-2**, since OD-4 makes text the developer default
+  and text *is* MA-2. Mongoose audit-logs by default; the gap is persistence in a form the analyser can
+  open.
+- **[MA-3] ☐ → moved to [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38).**
+- **[OD-5] ☐ — OWNER DECISION, BLOCKING: does the Chronicle backend get a marker?** Deployed
+  configurations keep Chronicle; as specified MA-2 changes nothing for them. OD-2 (refuse) and OD-4 (text
+  for developers) are taken; **OD-1 and OD-3 are moot**.
+- **[MA-R] ◧ — spec REWRITTEN at round 3 and out for re-review**, three reviews answered, all committed in
+  `docs/handoff/`. Implementation is mine.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
-  work is specified: see [MA-1…MA-3] above and
+  work is specified: see [MA-0…MA-5] above and
   [`spec-mongoose-audit-production.md`](spec-mongoose-audit-production.md).** Item 2 shipped in
   `mongoose-plugins` 1.0.44; item 1 is now MA-2, and the spec adds the prerequisite AF-4 did not know
   about. Kept here for its history.
