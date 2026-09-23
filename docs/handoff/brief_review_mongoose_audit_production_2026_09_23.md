@@ -80,10 +80,16 @@ zero-record emission on a booted server, the `getAuditorById` failure and the c2
 
 ## Process
 
-I am the implementer. Leave the review uncommitted as
-`docs/handoff/review_mongoose_audit_production_2026_09_23_<reviewer>.md` with a verdict, numbered
+I am the implementer. Write the review as
+`docs/handoff/review_mongoose_audit_production_<round>_2026_09_23_<reviewer>.md` with a verdict, numbered
 findings, `file:line` references, required corrections, and an explicit statement of what you ran versus
-what you only read. Do not edit the spec, implement, merge, push or release.
+what you only read. Do not edit the spec, implement, merge or release.
+
+**COMMIT AND PUSH THE REVIEW** — to a review branch, or ask the author to collect it. **An earlier
+version of this brief said to leave it uncommitted. That was wrong and it cost a whole round:** the first
+review sat unread in the reviewer's worktree while the author revised the spec around findings they had
+never seen. "Uncommitted" is the convention for reviewing someone's *proposal* untouched; a handoff
+review is correspondence and has to reach the author.
 
 **A caution earned in this session, twice.** Two defects here were found only by driving the running
 thing, and both had survived careful reading — including mine. A claim in this spec that has not been run
