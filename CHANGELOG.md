@@ -8,8 +8,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 - **A log can say whether it is whole** — audit format 1.1 §1a adds an optional stream-end marker, and
-  `context` reports `log.streamEnd` as `complete`, `missing_records`, `more_than_declared`, `unverified`
-  or `unknown`. A file that makes no claim reads as **unknown**, never as complete, so "this node never
+  `context` reports `log.streamEnd` as `complete`, `missing_records`, `more_than_declared`, `unverified`,
+  `unterminated_marker` or `unknown`. A file that makes no claim reads as **unknown**, never as complete, so "this node never
   ran" stays a conclusion you have earned rather than one the file's shape implied. The status bar says
   *complete* when a file claims it. The marker is never shown as a record. A **rolled set is never
   reported as complete**, however many of its files say they are: a marker vouches for the file that

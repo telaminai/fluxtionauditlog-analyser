@@ -11,155 +11,9 @@ Legend for each item: **[id] status — title** · _acceptance_.
 Remove the export step between a Mongoose run and the analyser. Owner decisions taken 2026-09-21; the
 proposal carries the seven decisions, the repository order and the acceptance. Release 1 is text and
 touches no `fluxtion` code; release 2 is one runtime release carrying binary, the renderer and two live
-defects. **Nothing below is implemented.**
-
-- **[AF-1] ☑ — the stream-end contract** · _[spec-audit-stream-end.md](spec-audit-stream-end.md), written
-  2026-09-21, reviewed and revised the same day._ Step 1 of release 1 and the blocker for everything after it: the writer and
-  the reader implement the same contract, so it exists first. **Why it is not trivial:** the proposal's
-  original "write an end marker" was measured unworkable — as its own document it becomes a phantom record,
-  inside the last record it is silently absorbed, and absent it is indistinguishable from either. The spec
-  separated the two problems (mid-record stop needs no format change; boundary stop does) — **review showed
-  the first half of that was false**, and it is withdrawn — makes the marker
-  an additive reserved field on a record because Format 1 has no non-record position, and adds a count so
-  the claim is checkable rather than declarative.
-- **[AF-2] ☑ — amend `docs/site/format-spec.md` and add conformance fixtures** · _fixtures for the states
-  plus the two the review showed were missing — the real export layout and a marker lookalike; all fifteen existing fixtures unchanged in behaviour through both paths; **forward
-  compatibility demonstrated against the released jar**, not a branch with the feature off._ Public site
-  page, so it deploys (owner decision 4).
-- **[AF-3] ☑ — the analyser reports incompleteness** · _owner decision 1. Marked ☑ once before it had earned
-  it; re-opened by review and closed again after eight findings were fixed (see the review entry below).
-  **Five** states reported distinctly, the unknown one **not** rendered as complete; a file that ends
-  without a trailing separator is ordinary and whole; a record is never dropped because of its own
-  contents; the marker absent from table, `read`, report, coverage, series, record count, `context` and the
-  time range; heap, mapped and SPI agree about the same bytes._
-- **[AF-2/AF-3 implementation note, 2026-09-21]** · _branch `feat/audit-format-end-marker`._ Format 1.1 §1a
-  is additive; `c18-stream-end.yaml` runs through **both** paths, which is what forced the marker filter into
-  one shared `StreamEndTracker` rather than three stores — the built-in and SPI readers must agree on how many
-  records a file holds. Two spec corrections found by building it: the marker is **flat scalars**, not a nested
-  mapping, because `RecordParser` switches on top-level scalars and a nested payload would need new parser
-  machinery for no compatibility gain; and the framer only withholds an unterminated tail in **follow** mode, so
-  an ordinary load needed an explicit callback rather than inheriting the behaviour. **AF-3 closed:** `StreamEndMarkerNeverLeaksTest`
-  asserts D-E4 across read, summaries (what report tables reduce over), the timeline, coverage's inputs and
-  series. **All seven fail when the filter is removed**, which is the point — and the mutation earned its keep:
-  the first series assertion stayed GREEN under it, because a marker has no node logs and a value series can
-  only plot keys it finds. It guarded nothing and was replaced by a marker that carries the charted key, which
-  is the case where "clean by construction" stops being true.
-- **[AF-2/AF-3 REVIEW, 2026-09-21] ☑ — the branch was rejected, and rightly.** _Independent review of
-  `ffcae5b6`; ten findings, eight upheld, two already fixed one commit later at `be076f1c`._ AF-3 had been
-  marked ☑ and had not earned it. Every correction is in `spec-audit-stream-end.md` ▸ *Revision history* and
-  in §1a. The four that matter:
-  1. **The tail signal was unsound, and it was the reason for the whole state.** "No closing `---` means a
-     writer stopped mid-record" reads the separator as a terminator. §1 says separator, and Mongoose's export
-     writes `\n---\n` **between** records and nothing after the last. Measured: a byte-exact export of 25 real
-     records reported as a damaged tail. **Every real export, called damaged** — while all fifteen fixtures
-     stayed green, because each happened to end with a separator. The state is **withdrawn**, not repaired:
-     a text container cannot detect a mid-record stop, and `c19-export-layout.yaml` now holds the real shape.
-     The lesson is narrower than "test more": the spec reasoned about the framer and never read the writer.
-  2. **A record could be deleted by its own contents.** Recognition searched for a `streamEnd:` line, and
-     `RecordParser` ignores indentation, so an event whose `toString` contained that line was dropped from
-     the index on all three paths and the file then reported records missing. Silent, content-controlled
-     loss — a D-T8 violation committed by the mechanism built to serve D-T8. Recognition is now an allow-list
-     over the record's whole contents; `c20-marker-lookalike.yaml` pins it.
-  3. **The three stores disagreed about the same file** on five fixtures, because the tail signal lived only
-     in the heap framer: one answer opened small, another opened large. Closed by deleting the signal, and
-     pinned by a test that walks eight shapes through heap and mapped and compares state, count and
-     diagnostics.
-  4. **Follow leaked the marker and froze the state**; **rolled sets** took the default and reported unknown
-     while a member was short; **the arithmetic** printed "-5 are missing" and "holds -1 records", now split
-     into `MORE_THAN_DECLARED` and `UNVERIFIED`; **appended runs** are counted per segment, so two whole runs
-     are complete rather than 25 short.
-
-  **Found while fixing, not in the review:** the status bar's *complete* note was computed into a local and
-  never added to the text, so the one human surface `context`'s comment named did not exist. Its docs pointer
-  named `log-sources.md`, which never mentioned any of this; it is `assistant.md`. And one of my own new tests
-  was vacuous — a text block used as a `replace` argument has its indentation stripped while the target's does
-  not, so it matched nothing and asserted twice over the unmodified log. Mutation caught it: it stayed green
-  while three others went red. **Six mutations were run, one per fix, and all six go red.**
-- **[AF-2/AF-3 RE-REVIEW, 2026-09-21] ☑ — one blocker, three smaller findings, all fixed.** _Independent
-  re-review of `02fa62b3`, with the reviewer's own eight mutations and 17 container shapes across three
-  stores._ The reviewer confirmed the withdrawal is complete, found no false positive in the allow-list,
-  no ninth shape where the stores disagree, and no unearned COMPLETE except the one below.
-  1. **BLOCKER — a rolled set reported COMPLETE with a whole member missing.** My fix for the previous
-     round's finding 7 was worse than the defect: members of 10 and 5 records, each marked complete, with
-     the file between them absent, reported **complete, 15 records**. A marker vouches for the file that
-     carries it and nothing records how many files a set should hold. **A set is now never COMPLETE** —
-     new decision D-E5, with the reasoning, because this is the kind of mistake that reads as obviously
-     correct. Guarded by a missing-member test; the old behaviour goes red.
-  2. **Rule 8 — my own status-bar fix had no regression check.** The reviewer's mutation left every test
-     green. Closed by extracting the line's **assembly** into a pure function with its own test. Testing
-     the decision alone would have passed with the note dropped on the floor, which is exactly what had
-     happened. Both mutation shapes now go red.
-  3. A diagnostic reported one run's numbers as the whole file's: *"holds 30 records and 25 were read"*
-     about a 50-record file. Verdicts now name the run and the file total when a file holds more than one
-     run, and say nothing extra when it holds one.
-  4. A byte-order mark defeated the opener check, so a leading marker was indexed as a record. `strip()`
-     treats U+FEFF as a character, not whitespace.
-
-  **Recommendations taken as well as findings.** §1a restates the mid-record limit as *conditional on a
-  producer declaring closed framing*, naming the two routes that would buy the capability back, so it is
-  deferred on the record rather than quietly lost — the reviewer also disproved two candidate signals I
-  had suggested, and both refutations are recorded. §1a gained a precise recognition rule, since the
-  reviewer could not reproduce the recogniser from the prose alone. And the two documentation findings
-  from round one are now **mechanical**: `PublishedSpecExamplesTest` parses every published marker example
-  with the recogniser it documents and checks every emitted state is explained on the page `context`
-  names. Both go red when the original drift is reintroduced.
-
-  **Not taken at the time, and wrongly.** I declined to commit a captured real export, saying it would
-  carry real names I could not scrub. Round three showed that premise was false. Closed as **AF-2a**.
-- **[AF-2a] ☑ — the real producer's layout is pinned by its own bytes.** _Filed and closed in round
-  three; **I declined this in round two on a premise that was false.** I said a real export would need
-  scrubbing I could not verify. The reviewer checked one and found no paths, hostnames or sweep terms,
-  only the project's own package names, generic node names and public tickers. They were right: I
-  reasoned about the file instead of reading it, which is the same mistake, in miniature, that caused
-  this branch's worst defect._ `c21-real-export.yaml` is 25 records of a Mongoose export endpoint's
-  output, byte for byte. It carries what nobody would have invented: four-space indent, a trailing space
-  after `eventLogRecord:`, an empty `nodeLogs:` on lifecycle records, no leading separator and no
-  trailing one. It is the file round one measured as a damaged tail. A stated limit is recorded with it:
-  records 2-15 carry a two-line `eventToString` whose continuation sits at column 0, and the reader
-  keeps only the first line in that field. Pre-existing, pinned rather than fixed, so a change is visible.
-- **[AF-2/AF-3 ROUND THREE, 2026-09-21] ☑ — two blockers, both one surface disagreeing with another.**
-  _Reviewer implemented §1a from the published prose alone and compared 53 files against the analyser; 51
-  agreed. 13 of 13 mutations red. Gates confirmed independently._
-  1. **BLOCKER — the prose and the recogniser disagreed on two shapes.** A quoted count followed by a
-     comment (`"25"  # declared`), and a key with no space after its colon (`streamEnd:normal`). §1a is a
-     normative section whose whole purpose is that someone else can implement it and agree, so a
-     disagreement there is a defect in the section. Fixed on the prose side for both, because the code
-     already matched §2's long-standing reader, and pinned by `c22-marker-syntax.yaml`.
-  2. **BLOCKER — a rolled set put one member's numbers beside the SET's count in `context`, unnamed.**
-     Third appearance of this class, after the diagnostic sentence and then `context` for runs. An agent
-     saw `declaredRecords: 6` next to `recordsRead: 25` under a missing-records state, which reads as
-     MORE than declared. A verdict now carries the file it came from, and those numbers nest under it.
-  3. An empty run reported "records 25 to 24", because the last record of a run holding nothing is one
-     before its first. Named as empty instead.
-  4. `PublishedSpecExamplesTest` had gaps: it ran recognition only over the published spec, so it would
-     not have caught round one's design-spec drift, and its state-name check was tautological for
-     "complete" and "unknown" because those are ordinary English on that page. Now it runs over both
-     specs and matches a state's own table ROW. Its remaining limit is stated in the test: it cannot read
-     the recognition TABLE, which is why blocker 1 survived, and fixtures cover that instead.
-  5. §1a now names the route to set completeness (a manifest, or a marker naming its successor), on the
-     same deferred terms as the mid-record limit.
-  6. "each of the 1 files in this set" now reads as a sentence.
-
-- **[AF-2/AF-3 ROUND FOUR, 2026-09-21] ☑ — the structural fix, finally.** _Reviewer re-ran the
-  prose-only §1a reader over 61 files: **0 disagreements**, so §1a is implementable from the text. 18 of
-  19 mutations red; the one green was theirs and is now red._ Verdict was merge-after-one-gate-fix.
-  1. **GATE — `git diff --check` failed**, 50 trailing-whitespace hits, all in `c21`, all REAL producer
-     output. Exempted in `.gitattributes` rather than stripped: stripping would falsify the one fixture
-     whose purpose is to be the producer's own bytes. **I had reported that gate clean, and it was not
-     — I ran it against a commit range that did not yet contain the file.**
-  2. **The recurring defect, at last addressed structurally.** Two MORE instances found: a set's run
-     numbers flattened into the member (with the member's own count missing entirely), and the SPI path
-     reporting a verdict to an agent that it never showed a person. That makes **five**, each previously
-     fixed where it was spotted. New `StreamEndReport` is the one place a verdict becomes either
-     surface: scopes nest (set ⊃ member ⊃ run), every scope states its own record count beside its own
-     numbers, and `StreamEndSurfacesAgreeTest` opens one bad file four ways — heap, mapped, SPI, rolled —
-     and asserts the sentence and the map agree. The reviewer's own mutation X6, which was green against
-     every test in the suite, is now red.
-  3. `c22` grew from two rules to five: unreadable count, duplicate key, empty value, no-space colon,
-     quoted-count-then-comment. The recognition table is now pinned by fixtures an outside adapter author
-     runs, which is what let round three's blocker through.
-  4. §1a gained the unbalanced-quote fallback and a note on what a YAML-library reader will do.
-  5. Wording: "declares 1 record", "1 record is missing", "the single file in this set".
+defects. **The analyser half of release 1 shipped in 1.18.0** (AF-1, AF-2, AF-2a, AF-3, and the seven
+review rounds behind them, now in [the completed tracker](completed/tracker.md)). Everything below is
+still to do.
 
 - **[AF-9] ☐ — no real Mongoose export is classified as an exported call (§5).** _Found by the round-four
   reviewer while checking `c21`'s stated limit; **pre-existing, and true of the released reader too.**_
@@ -233,6 +87,10 @@ defects. **Nothing below is implemented.**
   `spec-follow-refreshes-graphs.md:37`, `docs/experience/current/skills/read-audit-log`,
   `tutorial-playground.md` §3, and `TemplateArchive` installing `export-audit`._ Last in release 1: it
   describes shipped behaviour.
+  **Still blocked after 1.18.0, deliberately.** The analyser half is released; the Mongoose skill's
+  statement that Mongoose does not write analyser-readable text directly is still TRUE until AF-4 ships,
+  so editing these documents now would make them wrong rather than right. Blocked on AF-4 shipping, not
+  on this release.
 - **[AF-7] ☐ — release 2, blocked** · _one `fluxtion-runtime` release: pluggable record selection (owner
   decision 6), the record-swap staleness, the per-node `NONE` corruption (owner decision 2, confirmed to
   ride this release), and the renderer move. **Gate:** the corruption's cause is undiagnosed, and diagnosis
