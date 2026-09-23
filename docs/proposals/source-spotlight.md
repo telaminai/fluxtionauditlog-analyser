@@ -1,6 +1,8 @@
 # Proposal: spotlight Java source beside the topology
 
-**Status: IMPLEMENTED on `feat/java-source-spotlight-current`, pending independent implementation review.**
+**Status: IMPLEMENTED on `feat/java-source-spotlight-current`, independent verdict MERGE at `0fbbdace`; owner merge pending.**
+[Implementation review](../handoff/review_java_source_spotlight_2026_09_23_claude.md) and
+[low-finding response](../handoff/response_java_source_spotlight_2026_09_23.md).
 [Implementation report](../handoff/report_java_source_spotlight_2026_09_23.md) and
 [review brief](../handoff/brief_review_java_source_spotlight_2026_09_23.md). Proposal accepted at `3665e237`; S-1/S-2 were settled before implementation, and N-1 adds the deadline below. Revised 2026-09-21 in response to
 [the first review](../handoff/review_source_spotlight_proposal_2026_09_21.md) and
@@ -320,9 +322,11 @@ Each lit Java target's echo and `context.spotlight` entry include:
 
 - requested target and resolved FQN, document identity, revision and revision basis;
 - lookup/selection policy and chosen root/file or archive/entry, as specified above;
-- anchor kind (`document` or `line`) and resolved one-based line for line anchors;
+- anchor kind (`document` or `line`) and resolved one-based editor line for line anchors, including
+  the final empty editor line after a trailing newline;
 - destination (`source-tab` or `topology-source`); for Java line anchors, `partial` states whether
-  any of the logical-line band was clipped. It is absent from document and design targets;
+  any of the measurable logical-line band was clipped. It is omitted when no band is measurable
+  (remeasurement extinguishes the target), and absent from document and design targets;
 - `relationship: unverified` — displaying this source does not establish its relationship to the
   loaded run. Captions remain the assistant's testimony.
 

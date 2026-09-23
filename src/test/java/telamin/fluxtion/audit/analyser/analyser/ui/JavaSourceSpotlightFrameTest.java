@@ -270,6 +270,35 @@ class JavaSourceSpotlightFrameTest {
         }
     }
 
+    @Test void missingBandDoesNotClaimPartialDuringApply(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());source(tmp);
+        try(var f=new Frame(tmp)) {
+            show(f,tmp.resolve("src"));
+            var first=f.ex.render("spotlight",Map.of("target",TARGET));assertTrue(first.ok());
+            assertEquals(false,javaEcho(first).get("partial"),"visible band has a measured qualification");
+            onEdt(()->{
+                try {
+                    var applying=MainFrame.class.getDeclaredField("applyingJavaSpotlight");applying.setAccessible(true);
+                    var echo=MainFrame.class.getDeclaredMethod("litEcho",boolean.class);echo.setAccessible(true);
+                    // Reproduce the short assembly window before the apply finally block remeasures.
+                    applying.setBoolean(f.frame,true);
+                    try {
+                        var a=anchor(f,TARGET);var scroll=(JScrollPane)field(a.component(),"scroll");
+                        scroll.getViewport().setViewPosition(new Point(0,1000));
+                        assertEquals(1,overlay(f).lit().size(),"old lit set still present before remeasurement");
+                        var binding=((Map<?,?>)field(f.frame,"javaSpotlightBindings")).get(TARGET);
+                        var viewer=(SourcePanel)field(binding,"viewer");
+                        assertTrue(viewer.javaBounds(a,3).isEmpty(),"no part of the band is visible");
+                        @SuppressWarnings("unchecked") var lit=(List<Map<String,Object>>)echo.invoke(f.frame,false);
+                        assertEquals(1,lit.size());
+                        assertFalse(lit.getFirst().containsKey("partial"),"no measurable band must not be described as partial");
+                    } finally { applying.setBoolean(f.frame,false); }
+                    assertTrue(((List<?>)echo.invoke(f.frame,false)).isEmpty(),"normal remeasurement extinguishes the target");
+                } catch(ReflectiveOperationException ex) {throw new AssertionError(ex);}
+            });
+        }
+    }
+
     @Test void wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());Path file=source(tmp);
         // One moderately wrapped line and one deliberately taller than the visible viewport.

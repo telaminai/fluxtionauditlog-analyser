@@ -232,7 +232,7 @@ one of rule 1's four sweep terms.**
 
 ---
 
-## Java source spotlight — implemented, independent review pending
+## Java source spotlight — reviewed MERGE, low findings addressed
 
 [Proposal](../proposals/source-spotlight.md), [round-four response](../handoff/response_source_spotlight_r4_2026_09_21.md).
 Rebased first onto `809303f7`, then released main `9b88e6ac` on a replacement branch without force-pushing. Main's archived/closed statuses and later work are preserved. Source baseline `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
@@ -270,7 +270,11 @@ regression names, all twelve seen-red mutation witnesses and boundaries. [Review
 - ☑ Local gates: 1,786 headless (61 display skips), 62 display (none skipped), package, 94/94 existing spotlight checks, tool checks, strict docs and sweep. Twelve seen-red mutation witnesses restored.
 - ☑ Integrated 1.18.0 at `914ae908`: 1,875 headless (61 skips), 62 display (none skipped), zero failures/errors; package, tool checks, 94/94 existing spotlight checks and strict docs pass. MainFrame retains every released added/removed line.
 - ☑ [PR #6](https://github.com/telaminai/fluxtionauditlog-analyser/pull/6) CI: build, loop-bench, static and Linux/Xvfb display pass (62 tests, no skips). Handoff published. Original branch/PR preserved without force-push; #5 superseded.
-- ☐ Independent implementation review; owner merge/release decision. Existing evidence-correctness priority and completed work are unchanged.
+- ☑ Independent review at `8b72d628`: **MERGE**, no blocker, three low findings. [Report](../handoff/review_java_source_spotlight_2026_09_23_claude.md) preserved verbatim. Reviewer repeated all gates and all twelve mutations.
+- ☑ Review follow-ups, predictions recorded before edits (outcomes below): F1 a failed unmutated test will stop that witness before source edits and record `baselineGreen: false`; a passing baseline plus named assertion failure records both halves. Negative test: feed the checker an already-failing baseline. F2 a missing band omits `partial` during echo assembly, and normal remeasurement extinguishes the target; restoring the old fallback must fail the missing-band display assertion. F3 retain the editor's final empty line, document it and pin acceptance/refusal at that boundary.
+- ☑ F1–F3 addressed: [response](../handoff/response_java_source_spotlight_2026_09_23.md). All predictions held: thirteen green-baseline/red-mutation pairs, source hashes restored; baseline bypass rejected by its own regression; missing band omits `partial`; final empty editor-line behavior documented and pinned.
+- ☑ Follow-up clean gate: 1,876 tests / 0 failures / 0 errors / 62 headless skips; package, tool checks and strict docs pass. Full display gate follows in PR CI.
+- ☐ Owner merge/release decision. Existing evidence-correctness priority and completed work are unchanged.
 
 ---
 

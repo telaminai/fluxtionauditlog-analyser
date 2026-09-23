@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Destructive-to-working-copy mutation witnesses; restores exact bytes in finally.
 Run alone in a disposable feature worktree with a real display (Linux: xvfb-run -a).
-Each witness must be a JUnit assertion failure in the named test, not a compile error or a skip.
+Each witness requires a passing unmutated named test, then a JUnit assertion failure in that test,
+not a compile error or a skip. A failed baseline is recorded without applying the mutation.
 """
 import argparse
 import hashlib
@@ -48,11 +49,36 @@ WITNESSES = [
     ('reveal-before-read', JAVA, 'invalidJavaBeforeRecordRevealKeepsSelectionAndFilter', [
         (FRAME, 'long ticket = ++javaSpotlightTicket;', 'revealRows.run();\n        long ticket = ++javaSpotlightTicket;'),
         (FRAME, '                        revealRows.run();', '                        // mutation: rows already revealed')]),
+    ('missing-band-partial', JAVA, 'missingBandDoesNotClaimPartialDuringApply', [
+        (FRAME, 'binding.viewer().javaBounds(binding.anchor(), binding.line())\n                            .ifPresent(band -> one.put("partial", band.partial()));',
+         'one.put("partial", binding.viewer().javaBounds(binding.anchor(), binding.line()).map(SourcePanel.JavaBand::partial).orElse(true));')]),
     ('deadline-late-publication', JAVA, 'preparationDeadlineRefusesBeforeReadReturnsAndLateCompletionCannotLight', [
         (FRAME, 'if (javaSpotlightTicket == ticket) javaSpotlightTicket++;', '// mutation: expiry does not invalidate ticket'),
         (FRAME, '                    if (result.isDone()) return;', '                    // mutation: ignore terminal reply'),
         (FRAME, '                    if (System.nanoTime() - deadlineNanos >= 0) { expire.run(); return; }', '                    // mutation: no deadline check before apply')]),
 ]
+
+
+def run_test(suite, method, log):
+    report = ROOT/'target/surefire-reports'/f'TEST-telamin.fluxtion.audit.analyser.analyser.ui.{suite}.xml'
+    report.unlink(missing_ok=True)
+    command = ['mvn', '-q', 'test', '-Dtest='+suite+'#'+method,
+               '-Djava.awt.headless=false', '-DargLine=-Djava.awt.headless=false']
+    with log.open('w') as output:
+        code = subprocess.run(command, cwd=ROOT, stdout=output, stderr=subprocess.STDOUT, timeout=180).returncode
+    result = {'command': command, 'exitCode': code, 'green': False, 'assertionFailure': False}
+    if report.exists():
+        xml = ET.parse(report).getroot()
+        cases = [t for t in xml.findall('testcase') if t.get('name','').split('(')[0] == method]
+        failures = [t.find('failure') for t in cases if t.find('failure') is not None]
+        counts = {k: int(xml.get(k, '0')) for k in ('tests', 'failures', 'errors', 'skipped')}
+        one_test = len(cases) == 1 and counts['tests'] == 1
+        no_error_or_skip = counts['errors'] == counts['skipped'] == 0
+        result.update(counts=counts, matchedTests=len(cases),
+                      failures=[{'message': f.get('message'), 'text': f.text} for f in failures])
+        result['green'] = code == 0 and one_test and no_error_or_skip and counts['failures'] == 0 and not failures
+        result['assertionFailure'] = code != 0 and one_test and no_error_or_skip and counts['failures'] == 1 and len(failures) == 1
+    return result
 
 
 def main():
@@ -67,37 +93,32 @@ def main():
     results = []
     for name, suite, method, edits in selected:
         originals = {ROOT/p: (ROOT/p).read_bytes() for p, _, _ in edits}
-        report = ROOT/'target/surefire-reports'/f'TEST-telamin.fluxtion.audit.analyser.analyser.ui.{suite}.xml'
-        result = {'mutation': name, 'test': f'{suite}#{method}', 'sourceSites': [], 'seenRed': False}
+        result = {'mutation': name, 'test': f'{suite}#{method}', 'sourceSites': [],
+                  'baselineGreen': False, 'seenRed': False}
         try:
-            for p, old, new in edits:
-                path = ROOT/p
-                text = path.read_text()
-                if text.count(old) != 1:
-                    raise RuntimeError(f'{name}: expected exactly one source site in {p}: {old!r}')
-                result['sourceSites'].append({'file': p, 'line': text[:text.index(old)].count('\n')+1, 'before': old, 'after': new})
-                path.write_text(text.replace(old, new, 1))
-            report.unlink(missing_ok=True)
-            command = ['mvn', '-q', 'test', '-Dtest='+suite+'#'+method,
-                       '-Djava.awt.headless=false', '-DargLine=-Djava.awt.headless=false']
-            result['command'] = command
-            with (args.out/(name+'.log')).open('w') as log:
-                result['exitCode'] = subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, timeout=180).returncode
-            if report.exists():
-                xml = ET.parse(report).getroot()
-                failures = [t.find('failure') for t in xml.findall('testcase') if t.get('name','').split('(')[0] == method and t.find('failure') is not None]
-                result['seenRed'] = result['exitCode'] != 0 and bool(failures) and int(xml.get('errors','0')) == 0 and int(xml.get('skipped','0')) == 0
-                result['failures'] = [{'message': f.get('message'), 'text': f.text} for f in failures]
+            result['baseline'] = run_test(suite, method, args.out/(name+'.baseline.log'))
+            result['baselineGreen'] = result['baseline']['green']
+            if result['baselineGreen']:
+                for p, old, new in edits:
+                    path = ROOT/p
+                    text = path.read_text()
+                    if text.count(old) != 1:
+                        raise RuntimeError(f'{name}: expected exactly one source site in {p}: {old!r}')
+                    result['sourceSites'].append({'file': p, 'line': text[:text.index(old)].count('\n')+1, 'before': old, 'after': new})
+                    path.write_text(text.replace(old, new, 1))
+                mutated = run_test(suite, method, args.out/(name+'.log'))
+                result.update(command=mutated['command'], exitCode=mutated['exitCode'],
+                              failures=mutated.get('failures', []), seenRed=mutated['assertionFailure'])
         finally:
             for path, data in originals.items():
                 path.write_bytes(data)
             result['restored'] = all(path.read_bytes() == data for path, data in originals.items())
             result['sourceHashes'] = {str(path.relative_to(ROOT)): hashlib.sha256(data).hexdigest() for path, data in originals.items()}
             (args.out/(name+'.json')).write_text(json.dumps(result, indent=2)+'\n')
-        print(name+': '+('SEEN RED; restored' if result['seenRed'] and result['restored'] else 'NOT PROVEN; inspect log'), flush=True)
+        print(name+': '+('BASELINE GREEN; SEEN RED; restored' if result['baselineGreen'] and result['seenRed'] and result['restored'] else 'NOT PROVEN; inspect log'), flush=True)
         results.append(result)
     (args.out/'summary.json').write_text(json.dumps(results, indent=2)+'\n')
-    return 0 if all(r['seenRed'] and r['restored'] for r in results) else 1
+    return 0 if all(r['baselineGreen'] and r['seenRed'] and r['restored'] for r in results) else 1
 
 if __name__ == '__main__':
     raise SystemExit(main())

@@ -283,6 +283,10 @@ def main() -> int:
                              capture_output=True, text=True)
     check("comment mutation witness rejects misleading failure labels", witness.returncode == 0,
           witness.stdout + witness.stderr)
+    java_witness = subprocess.run([sys.executable, str(ROOT / "tools/test_java_spotlight_witness.py")],
+                                  capture_output=True, text=True)
+    check("Java spotlight witness requires a clean baseline and named assertion", java_witness.returncode == 0,
+          java_witness.stdout + java_witness.stderr)
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILED:")

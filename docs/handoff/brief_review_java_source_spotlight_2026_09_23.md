@@ -43,7 +43,8 @@ Repeat mutation witnesses in a disposable worktree, with a real display:
 python3 tools/verify-java-source-spotlight.py
 ```
 
-The helper restores exact source bytes after each mutation and checks JUnit's named assertion failure;
+The helper first requires a clean unmutated named test (`baselineGreen`), then restores exact source
+bytes after each mutation and checks JUnit's named assertion failure;
 it refuses to count compilation errors or skips. It must run alone: it temporarily edits source files.
 Use `--only <name>` for one witness. Read `docs/handoff/evidence/java-source-spotlight-2026-09-23/mutations.json`;
 attack the evidence checker if a false-positive path is apparent. Rebuild after mutations before other gates.
@@ -53,3 +54,7 @@ Write `docs/handoff/review_java_source_spotlight_2026_09_23_<reviewer>.md` on yo
 commit and push it. Give a verdict, numbered findings with file:line and reproduction, and distinguish
 run/observed from source-read or unverified claims. Do not fix findings, edit the author's report, merge,
 release, amend or force-push. Report the review branch, commit and report path to the author/owner.
+
+The first independent implementation review is MERGE at `0fbbdace`. For its three low findings, read
+[the response](response_java_source_spotlight_2026_09_23.md); the follow-up adds a thirteenth witness for
+the missing-band echo and requires a baseline for every witness. Original evidence is retained separately.
