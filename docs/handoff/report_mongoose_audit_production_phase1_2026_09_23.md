@@ -1,4 +1,4 @@
-# Phase 1 — report for review, 2026-09-23
+# Phase 1 — report, revised after review, 2026-09-23
 
 Implementing [`spec-mongoose-audit-production.md`](../specs/spec-mongoose-audit-production.md) at
 `fda01845`. **Phase 1 is NOT complete**: the ship-critical item and MA-5 are done, the analyser items
@@ -10,8 +10,8 @@ released or deployed. No Fluxtion API key was used.
 | Repo | Branch | Head | Base |
 | --- | --- | --- | --- |
 | `mongoose-plugins` | `feat/mongoose-audit-production` | `b208257` | `main` `40f01cf` (post-1.0.44) |
-| `mongoose` core | `feat/mongoose-audit-production` | `4e3dba7` | `develop` `17a03b4` |
-| analyser | `feat/mongoose-audit-production` | `bce830c4` | `main` `fda01845` |
+| `mongoose` core | `feat/mongoose-audit-production` | `35f9a13` | `develop` `17a03b4` |
+| analyser | `feat/mongoose-audit-production` | `d13006a7` | `main` `fda01845` |
 
 Predictions were committed before any trial: `07a13bf7`,
 [`evidence/mongoose-audit-production-impl/phase1-predictions.md`](evidence/mongoose-audit-production-impl/phase1-predictions.md).
@@ -54,14 +54,15 @@ forged `declaredRecords: 0`.
 
 `svc-admin-web` suite: **131 tests, 0 failures**.
 
-**U1.2 is still unchecked:** whether the JSON-lines export branch needs the same treatment. My
-expectation is no — a newline inside a JSON string is escaped by the mapper — but I did not verify it.
+**U1.2, settled by review, not by me:** the JSON-lines export, the read endpoint and the websocket tail
+all go through Jackson, one line per record, so they are not injectable. My expectation was right; the
+verification is theirs.
 
 ---
 
 ## 2 · MA-5 — capture fans out and restores · DONE
 
-`4e3dba7`, core.
+`4e3dba7`, then `35f9a13` for MA-5.4. Core.
 
 The class comment promised both behaviours and the code did neither. Capture now composes in front of
 **the server's configured listener**, handed to it at `attach` through a new overload that defaults to
@@ -71,7 +72,7 @@ the existing two-arg form, so the NoOp impl and any external implementor keep wo
 `private static` that every `bootServer` overwrites, so reading it at stop would restore another server's
 listener. Fan-out is isolated both ways and failures are **counted and logged**, never swallowed.
 
-**Acceptances met:** MA-5.1, 5.2, 5.3, 5.4, 5.5, 5.6 — five tests in `AuditCaptureFanOutTest`.
+**Acceptances met:** MA-5.1, 5.2, 5.3, 5.5, 5.6 in round 1; **MA-5.4 only after round 2** — see below.
 **MA-5.7** (the every-backend contract) arrives with MA-2's text writer; there is only one backend today.
 
 **Mutation witnesses**, green baseline of 5, source restored byte-identical:
@@ -86,12 +87,13 @@ Core suite: **214 tests, 0 failures**, 9 skipped.
 
 **MA-5.4's re-add path is named in the test**: `addEventProcessor` on a *running* server does not call
 `init()`, so a re-add through it leaves the processor uninitialised; the configuration path does call it.
+**MA-5.4 itself was NOT met in round 1** — see the round-2 table.
 
 ---
 
 ## 3 · Analyser MA-0, MA-6 reader half, MA-8 · SUBSTANCE DONE, THREE CLAUSES OPEN
 
-`cb97f8ad` and `bce830c4`.
+`cb97f8ad`, `bce830c4`, then `d13006a7` for the round-2 fixes.
 
 **MA-0** fires immediately before the early return that made every empty log silent. It is a **finding
 beside an unchanged state**, never a seventh state. Keyed on `size() == 0` only. Damage findings are
@@ -106,8 +108,10 @@ node stays in `uncovered` and in the ratio. Read **unfiltered**. Keyed on the ev
 rendering parsed tolerantly so a format change loses the annotation rather than breaking the load.
 `groupId` in scope, annotated at group level where the log cannot map it to nodes.
 
-**Acceptances met:** MA-0.1, MA-0.3, MA-0.4, MA-0.6, MA-6.1, MA-6.2 (reader side), MA-8.1–8.5.
-15 tests across `EmptyLogAndRecordKeyDiagnosticsTest` and `PerNodeLevelChangesTest`.
+**Acceptances met:** MA-0.1 (all six shapes, and openable after round 2), MA-0.3, MA-0.4, MA-0.6,
+MA-6.1, MA-6.2 (reader side), MA-8.1–8.5 **including 8.4 after round 2**. 24 tests across
+`EmptyLogAndRecordKeyDiagnosticsTest`, `PerNodeLevelChangesTest`, `CoveragePerNodeLevelTest` and
+`EmptyFileOpensTest`.
 
 **Mutation witnesses**, green baseline of 10, source restored byte-identical:
 
@@ -117,7 +121,7 @@ rendering parsed tolerantly so a format change loses the annotation rather than 
 | MA-0 widened past zero records | 2 fail, incl. *"a healthy log must raise nothing"* |
 | MA-6 check removed | 3 fail |
 
-Full analyser suite: **1891 tests, 0 failures**, 62 skipped.
+Full analyser suite: **1904 tests, 0 failures**, 62 skipped (round 2 figure).
 
 ### Still open in phase 1, and why
 
@@ -132,6 +136,33 @@ Full analyser suite: **1891 tests, 0 failures**, 62 skipped.
   mutation witnesses, but the spec asks for fixtures in the conformance corpus as well.
 
 ---
+
+## Round 2 — what review found, and what changed
+
+Review ran everything and confirmed #39, MA-5 (except 5.4), and the analyser suites. Six fixes
+followed; all are in `35f9a13` (core) and `d13006a7` (analyser).
+
+| # | Finding | Fix | Witness |
+| --- | --- | --- | --- |
+| 1 | **MA-5.4 still discarded silently on a live server.** My test asserted `isRecording` and the listener restored on stop — the *neighbours* of the spec's clause — never "the new instance's records reach the capture file" | `attach` now installs the capture listener on the new `DataFlow` when the sink is already recording | removing it fails at *"MA-5.4: NOTHING was installed on the new DataFlow"*. The witness needed tightening first: `assertNotSame(configured, null)` passed vacuously and the test died on an NPE instead of a named assertion |
+| 2 | **MA-6 was a substring search** — a headerless document merely *mentioning* the key read as a record, so a marker over it read `complete`. A payload changing the verdict: V1 | keyed on **framing** — first non-blank, non-comment line trims to the key | two tests: the payload case is named, a leading comment is not |
+| 3 | **MA-8 had no behavioural test**; four mutations survived | six tests through `CoverageService.assess` | all four now fail at named assertions |
+| 4 | **MA-8.4 not met** — only the LAST change was used, so a quietened-then-restored node was annotated nowhere, and a late change "explained" earlier silence | levels apply over `[change, next change)`, clipped to the scope's end | mutation to last-change-only fails |
+| 5 | MA-8 absent from the report path | **deferred to D-MA0c**, as review agreed | — |
+| 6 | **MA-0 capped by the app** — `canOpen` rejected zero bytes and content without the key, so 3 of 6 shapes were refused by every reader and the finding never showed | when there is **nothing to sniff**, accept by extension, narrowly | five tests, incl. an empty `.png` still not claimed and a real log still recognised by content |
+
+Low items all taken: `firstWarning()` instead of `isWarning()`; event-name matched with `contains`,
+consistently with `onlyControlEvents`; the annotation states `logTime` windows rather than record
+numbers.
+
+## What I got wrong in round 2
+
+**`logTime` is nullable** — untimed records are legal (§1, fixture `c05`) — and my scope-end scan
+dereferenced it. The suite caught it, not me: `DispatchHierarchyTest` threw an NPE. Both the scope scan
+and the change list now skip or floor nulls.
+
+That is the second defect this round that my own tests missed and the existing suite caught. The first
+was MA-0 firing on a null index.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
@@ -156,14 +187,30 @@ split parts so a clean export read as two, and a hand-rolled counters proxy wher
 
 ## What I ran versus what I only read
 
-**Ran:** every test and mutation above; the #39 acceptance against the downloaded published 1.19.0 jar;
-the pre-fix reproduction of all four injection variants; all three full suites.
+**Ran, round 1:** the pre-fix reproduction of all four injection variants through the real exporter; the
+#39 acceptance against the published 1.19.0 jar, downloaded and digest-checked; every test and mutation
+in sections 1–3; all three full suites.
 
-**Read, not run:** the JSON-lines export branch (U1.2); `ReportRenderer`'s current contents; the Follow
-path.
+**Ran, round 2:** the MA-5.4 witness, including reading the Chronicle queue back so the assertion is
+about the FILE rather than a counter; the four MA-8 mutations review said survived, each now failing at
+a named assertion; the MA-6 framing cases; the five `canOpen` cases. Final suites —
+`svc-admin-web` **131/0**, core **214/0/9 skipped**, analyser **1904/0/62 skipped**.
 
-**Not done:** the three clauses listed above. AFMT-3 is untouched, as instructed, and no `NONE` default
-was shipped onto that path.
+**Read, not run:**
+
+- `ReportRenderer`'s contents — enough to establish it carries no producer findings today, which is why
+  D-MA0c is real work, but nothing there was exercised;
+- the Follow path (MA-0.5);
+- the app's own open path beyond the registry: `EmptyFileOpensTest` drives `ReaderRegistry.readerFor`,
+  **not** `MainFrame.loadFile`. Swing is not unit-tested here by convention, so the end-to-end claim
+  "the app now shows the empty-log warning for all six shapes" is **NOT** established — only that every
+  shape is now recognised by a reader;
+- `U1.2` — review settled it independently: the JSON-lines export, the read endpoint and the websocket
+  tail all go through Jackson, one line per record, so they are not injectable. I did not verify that
+  myself.
+
+**Not done:** D-MA0c, MA-0.5, the MA-0.7/MA-6.3 fixtures, MA-5.7, and MA-8's report path. AFMT-3 is
+untouched, as instructed, and no `NONE` default was shipped onto that path.
 
 ## Public-repo discipline
 
