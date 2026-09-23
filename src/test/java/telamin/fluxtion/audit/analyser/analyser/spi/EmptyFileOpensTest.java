@@ -70,4 +70,14 @@ class EmptyFileOpensTest {
         assertNotNull(REGISTRY.readerFor(oddName, null),
                 "content recognition must still work for a name this reader does not own");
     }
+
+    /**
+     * A file holding nothing but a byte-order mark is empty too. {@code isBlank()} treats U+FEFF as a
+     * character, so it would otherwise be refused by every reader and MA-0 could never speak for it.
+     */
+    @Test
+    void aBomOnlyAuditFileIsRecognised(@TempDir Path dir) throws IOException {
+        assertNotNull(REGISTRY.readerFor(write(dir, "bom.yaml", "\uFEFF"), null),
+                "a BOM-only .yaml is an empty audit file, not an unrecognised one");
+    }
 }

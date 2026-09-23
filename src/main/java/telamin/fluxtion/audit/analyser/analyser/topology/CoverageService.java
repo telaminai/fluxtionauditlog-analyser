@@ -67,12 +67,19 @@ public final class CoverageService {
         // rather than dereferenced. A scope made only of untimed records has no end, and MAX_VALUE
         // then means "no change is in the future", which is the honest reading.
         long scopeEnd = Long.MIN_VALUE;
+        long scopeStart = Long.MAX_VALUE;
         for (int row = 0; row < store.size(); row++) {
             if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
             Long at = store.record(row).logTime();
-            if (at != null) scopeEnd = Math.max(scopeEnd, at);
+            if (at != null) {
+                scopeEnd = Math.max(scopeEnd, at);
+                scopeStart = Math.min(scopeStart, at);
+            }
         }
+        // A scope of only untimed records has no bounds, and the widest pair means "no change is
+        // outside it", which is the honest reading when there is nothing to compare against.
         if (scopeEnd == Long.MIN_VALUE) scopeEnd = Long.MAX_VALUE;
+        if (scopeStart == Long.MAX_VALUE) scopeStart = Long.MIN_VALUE;
 
         Map<String, Object> echo = new LinkedHashMap<>();
         echo.put("dispatchHierarchy", "unknown");
@@ -95,7 +102,7 @@ public final class CoverageService {
         if (levelChanges.any()) {
             Map<String, String> annotations = new LinkedHashMap<>();
             for (String node : coverage.uncovered()) {
-                String note = levelChanges.annotationFor(node, scopeEnd);
+                String note = levelChanges.annotationFor(node, scopeStart, scopeEnd);
                 if (note != null) annotations.put(node, note);
             }
             if (!annotations.isEmpty()) {

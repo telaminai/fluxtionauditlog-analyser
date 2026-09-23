@@ -42,11 +42,12 @@ public final class PerNodeLevelChanges {
     static final String CONTROL_EVENT = "EventLogControlEvent";
 
     private final Map<String, List<Change>> bySource;
-    private final List<Change> groupChanges;
+    /** Keyed BY GROUP: a window must be closed by the next change to the SAME group, not to any. */
+    private final Map<String, List<Change>> byGroup;
 
-    private PerNodeLevelChanges(Map<String, List<Change>> bySource, List<Change> groupChanges) {
+    private PerNodeLevelChanges(Map<String, List<Change>> bySource, Map<String, List<Change>> byGroup) {
         this.bySource = bySource;
-        this.groupChanges = groupChanges;
+        this.byGroup = byGroup;
     }
 
     /**
@@ -63,15 +64,17 @@ public final class PerNodeLevelChanges {
 
     public static PerNodeLevelChanges of(LogStore store) {
         Map<String, List<Change>> bySource = new LinkedHashMap<>();
-        List<Change> groups = new ArrayList<>();
+        Map<String, List<Change>> groups = new LinkedHashMap<>();
         if (store == null) return new PerNodeLevelChanges(bySource, groups);
 
         for (int row = 0; row < store.size(); row++) {          // deliberately unfiltered — MA-8.3
             var record = store.record(row);
             // Match the fully-qualified name too. `onlyControlEvents` uses contains(), and a log that
             // records the qualified class name would otherwise be missed here while being seen there.
-            String event = record.event();
-            if (record == null || event == null || !event.contains(CONTROL_EVENT)) continue;
+            if (record == null) continue;
+            // Exact match, not contains: `FakeEventLogControlEventX` is not a control event. The
+            // fully-qualified name is accepted by comparing the simple name after the last dot.
+            if (!isControlEvent(record.event())) continue;
             String text = record.eventToString();
             if (text == null) continue;
 
@@ -88,11 +91,24 @@ public final class PerNodeLevelChanges {
                 bySource.computeIfAbsent(sourceId, k -> new ArrayList<>())
                         .add(new Change(sourceId, false, level, row, when));
             } else if (groupId != null) {
-                groups.add(new Change(groupId, true, level, row, when));
+                groups.computeIfAbsent(groupId, k -> new ArrayList<>())
+                        .add(new Change(groupId, true, level, row, when));
             }
             // Neither named: a GLOBAL level change. AuditLevel already reports those.
         }
         return new PerNodeLevelChanges(bySource, groups);
+    }
+
+    /**
+     * Is this the runtime's control event, by NAME rather than by resemblance?
+     *
+     * <p>{@code contains} accepted {@code FakeEventLogControlEventX}; an exact match alone missed a
+     * fully-qualified name. So: the simple name, after the last dot, must equal it exactly.
+     */
+    static boolean isControlEvent(String event) {
+        if (event == null) return false;
+        int dot = event.lastIndexOf('.');
+        return (dot < 0 ? event : event.substring(dot + 1)).equals(CONTROL_EVENT);
     }
 
     /**
@@ -114,7 +130,7 @@ public final class PerNodeLevelChanges {
 
     /** True when the log states any per-node or per-group level change. */
     public boolean any() {
-        return !bySource.isEmpty() || !groupChanges.isEmpty();
+        return !bySource.isEmpty() || !byGroup.isEmpty();
     }
 
     /**
@@ -124,13 +140,13 @@ public final class PerNodeLevelChanges {
      * between the two changes. Silence outside that window is plain uncovered, and saying otherwise
      * would excuse a node that really never ran.
      */
-    public String annotationFor(String nodeId, long scopeEnd) {
-        String own = intervalAnnotation(bySource.get(nodeId), nodeId, scopeEnd, false);
+    public String annotationFor(String nodeId, long scopeStart, long scopeEnd) {
+        String own = intervalAnnotation(bySource.get(nodeId), nodeId, scopeStart, scopeEnd, false);
         if (own != null) return own;
-        for (Change ignored : groupChanges) {
-            String grouped = intervalAnnotation(groupChanges, nodeId, scopeEnd, true);
+        // LOW: group windows are closed by the NEXT change to the SAME group, not by any group's.
+        for (Map.Entry<String, List<Change>> e : byGroup.entrySet()) {
+            String grouped = intervalAnnotation(e.getValue(), nodeId, scopeStart, scopeEnd, true);
             if (grouped != null) return grouped;
-            break;
         }
         return null;
     }
@@ -143,7 +159,8 @@ public final class PerNodeLevelChanges {
      * because the last change is the restore; and a node set to WARN late, viewed through a filter
      * ending before it, had its earlier silence "explained" by a change that had not happened yet.
      */
-    private String intervalAnnotation(List<Change> changes, String nodeId, long scopeEnd, boolean group) {
+    private String intervalAnnotation(List<Change> changes, String nodeId,
+                                      long scopeStart, long scopeEnd, boolean group) {
         if (changes == null || changes.isEmpty()) return null;
         for (int i = 0; i < changes.size(); i++) {
             Change c = changes.get(i);
@@ -151,7 +168,14 @@ public final class PerNodeLevelChanges {
             long from = c.logTime();
             if (from > scopeEnd) continue;                       // it had not happened yet
             Long to = i + 1 < changes.size() ? changes.get(i + 1).logTime() : null;
-            String window = to == null
+            // Clip at BOTH ends. Only clipping the end left a window that CLOSED before the scope
+            // began still explaining silence inside it — a filter entirely after the restore was
+            // annotated "WARN between 1001 and 1007", which is a window it never overlapped.
+            if (to != null && to < scopeStart) continue;
+            String window = from == Long.MIN_VALUE
+                    ? (to == null ? "for this whole log (the change is untimed)"
+                    : "from an untimed change until " + to)
+                    : to == null
                     ? "from " + from + " to the end of this log"
                     : "between " + from + " and " + to;
             if (group) {
@@ -179,7 +203,7 @@ public final class PerNodeLevelChanges {
     public List<Change> all() {
         List<Change> out = new ArrayList<>();
         bySource.values().forEach(out::addAll);
-        out.addAll(groupChanges);
+        byGroup.values().forEach(out::addAll);
         return List.copyOf(out);
     }
 }

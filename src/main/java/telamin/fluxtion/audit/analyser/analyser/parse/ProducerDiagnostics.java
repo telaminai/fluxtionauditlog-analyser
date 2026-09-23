@@ -216,7 +216,9 @@ public record ProducerDiagnostics(List<Finding> findings) {
         while (from <= text.length()) {
             int nl = text.indexOf('\n', from);
             int end = nl < 0 ? text.length() : nl;
-            String line = text.substring(from, end).trim();
+            // StreamEndMarker.strip, not trim(): trim() keeps U+FEFF, so a healthy UTF-8 file with a
+            // BOM read as having no record key on its first record. One strip, shared.
+            String line = StreamEndMarker.strip(text.substring(from, end));
             if (!line.isEmpty() && !line.startsWith("#")) {
                 return line.equals(RECORD_KEY);
             }
