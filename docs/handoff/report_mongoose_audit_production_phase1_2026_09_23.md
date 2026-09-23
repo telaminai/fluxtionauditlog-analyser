@@ -11,7 +11,7 @@ released or deployed. No Fluxtion API key was used.
 | --- | --- | --- | --- |
 | `mongoose-plugins` | `feat/mongoose-audit-production` | `b208257` | `main` `40f01cf` (post-1.0.44) |
 | `mongoose` core | `feat/mongoose-audit-production` | `2c4192e` | `develop` `17a03b4` |
-| analyser | `feat/mongoose-audit-production` | `a3c7e4e4` | `main` `fda01845` |
+| analyser | `feat/mongoose-audit-production` | `5d4bf116` | `main` `fda01845` |
 
 Predictions were committed before any trial: `07a13bf7`,
 [`evidence/mongoose-audit-production-impl/phase1-predictions.md`](evidence/mongoose-audit-production-impl/phase1-predictions.md).
@@ -183,6 +183,25 @@ neither; the dead null guard removed.
 **On item 4's diagnosis:** I found the cause by reading, then **proved it by mutation** — reverting each
 half reproduces the symptom measured on the live server. I did **not** re-boot the bundle myself, so the
 end-to-end 23→45 observation remains review's, not mine.
+
+## Round 3 follow-ups — three items, none blocking
+
+Review cleared #39, core MA-5 and the analyser as a partial, and confirmed the listing fix **live**
+(23 → 24 on one event; 46 after a re-registration plus 3, matching the export). Three follow-ups
+followed, in `5d4bf116`.
+
+| # | Finding | Fix | Witness |
+| --- | --- | --- | --- |
+| 1 | **BOM in the framers.** Neither `isSeparator` skipped a leading U+FEFF, so a healthy file whose first line was a separator behind a BOM ran its head together and raised `NO_RECORD_KEY`; a BOM-only file framed as ONE record with `NO_NODE_LOGS` | both framers skip it — the char one on the character, the byte one on `EF BB BF` — and both `isBlank` checks with it. Tested through **`HeapLogStore` and `MappedLogStore`**, two implementations of one rule | each framer's skip removed → fails its store's test with `[NO_RECORD_KEY]` |
+| 2 | **Untimed windows.** An untimed close printed `-9223372036854775808`; a TIMED window closed by an untimed change was dropped entirely, because `MIN_VALUE` compared as before the scope start | `MIN_VALUE` is "no time given", not an early instant: the wording says "until an untimed change", and an untimed close no longer closes a window early | treating it as a real instant → fails `aTimedWindowClosedByAnUntimedChangeIsKept` |
+| 3 | **Multi-group fall-through untested** | a test for it | reinstating the `break` → fails `aLaterGroupsWindowIsFoundWhenTheFirstDoesNotApply`, exactly as predicted |
+
+**Worth stating plainly:** that BOM has now cost something in four places, and the rule lives in five —
+`StreamEndMarker.strip`, `ProducerDiagnostics`, `YamlAuditReader`, and both framers. Consolidating them
+is not this change, but five copies of one idea is the shape that produced the regression in the first
+place.
+
+**Suite:** analyser **1920/0/62**.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
