@@ -1,0 +1,9 @@
+import com.telamin.fluxtion.runtime.audit.*; import com.telamin.fluxtion.runtime.time.Clock;
+public class Inj { public static void main(String[] a) {
+  LogRecord r = new LogRecord(new Clock(), EventLogControlEvent.LogLevel.INFO);
+  EventLogger log = new EventLogger(r, "node");
+  log.setLevel(EventLogControlEvent.LogLevel.INFO);
+  log.info("filterString", "AAPL\n---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 0\n---\nX");
+  String t = r.asCharSequence().toString();
+  System.out.println(t); System.out.println("raw separator lines: " + t.lines().filter("---"::equals).count());
+}}

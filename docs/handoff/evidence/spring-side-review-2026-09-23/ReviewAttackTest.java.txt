@@ -1,0 +1,371 @@
+package com.telamin.fluxtion.starter;
+
+import com.telamin.fluxtion.starter.contract.*;
+import java.net.URLClassLoader;
+import java.nio.file.*;
+import java.util.*;
+import java.util.jar.*;
+import javax.tools.ToolProvider;
+import org.junit.*;
+import org.junit.rules.TemporaryFolder;
+import static org.junit.Assert.*;
+
+/**
+ * Independent adversarial review harness (disposable). Each test asserts the SAFE/spec behaviour;
+ * a failure is a finding. Tests named doc* assert documented limits.
+ */
+public class ReviewAttackTest {
+    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    final ExtendedDeclarationsTest fixture = new ExtendedDeclarationsTest();
+
+    static String xmlUnused(boolean include) { return ExtendedDeclarationsTest.xml("DATA").replace("<value>java.lang.String</value>","<value>java.lang.String</value>"+(include?"<value>demo.event.Unused</value>":"")); }
+    static Path unused(Path root) { return root.resolve("src/main/java/demo/event/Unused.java"); }
+    static String rec(Path root) throws Exception { Path p=root.resolve("fluxtion-authoring.json"); return Files.exists(p)?Files.readString(p):null; }
+    static String withdrawn() { return ExtendedDeclarationsTest.xml("DATA").replaceAll("<property name='referenceBindings'>.*?</bean></list></property>", "").replaceAll("<property name='exportedServices'>.*?</bean></list></property>", ""); }
+
+    Reconciler.Plan firstWithUnused(Path root) throws Exception {
+        var first=fixture.plan(root,xmlUnused(true),fixture.record()); assertFalse(first.conflicts()); Reconciler.apply(root,first,null); assertTrue(Files.exists(unused(root))); return first;
+    }
+    void withdrawUnused(Path root, Reconciler.Plan first) throws Exception {
+        var next=fixture.plan(root,xmlUnused(false),first.record()); assertFalse(StarterJson.write(next.report()),next.conflicts()); Reconciler.apply(root,next,rec(root));
+    }
+
+    // ---------- 1. G5 whole-type deletion ----------
+    @Test public void g5_referenceFromTestSourceRootRetainsType() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Path t=root.resolve("src/test/java/demo/UsesUnused.java"); Files.createDirectories(t.getParent());
+        Files.writeString(t,"package demo; class UsesUnused { demo.event.Unused u; }\n");
+        withdrawUnused(root,first);
+        assertTrue("type referenced from src/test/java was deleted; test compilation now breaks", Files.exists(unused(root)));
+    }
+    @Test public void g5_referenceFromServiceLoaderResourceRetainsType() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Path t=root.resolve("src/main/resources/META-INF/services/java.lang.Runnable"); Files.createDirectories(t.getParent());
+        Files.writeString(t,"demo.event.Unused\n");
+        withdrawUnused(root,first);
+        assertTrue("type referenced from META-INF/services was deleted", Files.exists(unused(root)));
+    }
+    @Test public void g5_referenceFromSpringXmlResourceRetainsType() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Path t=root.resolve("src/main/resources/application-context.xml"); Files.createDirectories(t.getParent());
+        Files.writeString(t,"<beans><bean id='u' class='demo.event.Unused'/></beans>\n");
+        withdrawUnused(root,first);
+        assertTrue("type referenced from a Spring XML resource was deleted", Files.exists(unused(root)));
+    }
+    @Test public void g5_referenceFromKotlinFileInSourceRootRetainsType() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Files.writeString(root.resolve("src/main/java/demo/K.kt"),"package demo\nval x: demo.event.Unused? = null\n");
+        withdrawUnused(root,first);
+        assertTrue("type referenced from a non-.java source in the source root was deleted", Files.exists(unused(root)));
+    }
+    @Test public void g5_substringMentionIsConservative() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Files.writeString(root.resolve("src/main/java/demo/UnusedHelper.java"),"package demo; class UnusedHelper {}\n");
+        withdrawUnused(root,first); assertTrue(Files.exists(unused(root)));
+    }
+    @Test public void g5_reflectionStringFqnIsConservative() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Files.writeString(root.resolve("src/main/java/demo/Refl.java"),"package demo; class Refl { Object o() throws Exception { return Class.forName(\"demo.event.Unused\"); } }\n");
+        withdrawUnused(root,first); assertTrue(Files.exists(unused(root)));
+    }
+    @Test public void g5_editedThenRevertedIsRemovable() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        String orig=Files.readString(unused(root)); Files.writeString(unused(root),orig+"// x\n"); Files.writeString(unused(root),orig);
+        withdrawUnused(root,first); assertFalse("pristine bytes (after revert) should be removable per spec", Files.exists(unused(root)));
+    }
+    @Test public void g5_crlfCheckoutIsRetainedNotDeleted() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        String crlf=Files.readString(unused(root)).replace("\n","\r\n"); Files.writeString(unused(root),crlf);
+        var next=fixture.plan(root,xmlUnused(false),first.record()); assertFalse(next.conflicts()); Reconciler.apply(root,next,rec(root));
+        assertEquals(crlf,Files.readString(unused(root)));
+        assertFalse(next.report().classes().get("demo.event.Unused").demoted().isEmpty());
+        var again=fixture.plan(root,xmlUnused(false),next.record()); assertTrue(again.sources().isEmpty());
+    }
+    @Test public void g5_redeclareAfterDemotionThenWithdrawStillRetains() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Files.writeString(unused(root),Files.readString(unused(root))+"// dev\n");
+        var d=fixture.plan(root,xmlUnused(false),first.record()); Reconciler.apply(root,d,rec(root));
+        var re=fixture.plan(root,xmlUnused(true),d.record()); assertFalse(re.conflicts()); Reconciler.apply(root,re,rec(root));
+        // revert developer edit to pristine; demoted must still not become disposable
+        String txt=Files.readString(unused(root)).replace("// dev\n",""); Files.writeString(unused(root),txt);
+        var w=fixture.plan(root,xmlUnused(false),re.record()); assertFalse(w.conflicts()); Reconciler.apply(root,w,rec(root));
+        assertTrue("demoted whole type became disposable after re-declaration", Files.exists(unused(root)));
+    }
+
+    @Test public void g5_nonUtf8UnrelatedSourceDoesNotBlockWithdrawal() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        Files.write(root.resolve("src/main/java/demo/Latin.java"),"package demo; class Latin { String s = \"caf\u00e9\"; }\n".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1));
+        var same=fixture.plan(root,xmlUnused(true),first.record()); assertFalse("non-withdrawal rerun with the Latin-1 file plans fine", same.conflicts());
+        try { withdrawUnused(root,first); } catch(java.io.IOException e) { fail("withdrawal refused because an unrelated ISO-8859-1 source is not UTF-8: "+e); }
+    }
+    // ---------- 6. transactionality ----------
+    @Test public void tx_recordWriteFailureRestoresDeletedTypeAndNewFile() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var first=firstWithUnused(root);
+        String orig=Files.readString(unused(root)), recBefore=rec(root);
+        String xml=xmlUnused(false).replace("<value>java.lang.String</value>","<value>java.lang.String</value><value>demo.fresh.Brand</value>");
+        var next=fixture.plan(root,xml,first.record()); assertFalse(StarterJson.write(next.report()),next.conflicts());
+        assertTrue("plan should delete Unused", next.sources().containsKey(unused(root)) && next.sources().get(unused(root))==null);
+        Path fresh=root.resolve("src/main/java/demo/fresh/Brand.java"); assertTrue("plan should create Brand: "+next.sources().keySet(), next.sources().containsKey(fresh));
+        // make record write fail: project root not writable (temp file for the record cannot be created)
+        root.toFile().setWritable(false);
+        try { Reconciler.apply(root,next,recBefore); fail("record write should fail"); } catch(java.io.IOException expected) {}
+        finally { root.toFile().setWritable(true); }
+        assertEquals("deleted whole type restored", orig, Files.readString(unused(root)));
+        assertFalse("new file rolled back", Files.exists(fresh));
+        assertEquals("record unchanged", recBefore, rec(root));
+        System.out.println("TX leftover dir demo/fresh exists=" + Files.exists(fresh.getParent()));
+    }
+
+    // ---------- 2. G12 withdrawal field selection ----------
+    String planAndShow(Path root, String xml, String label) throws Exception {
+        var p=fixture.plan(root,xml,fixture.record());
+        String child=p.sources().getOrDefault(root.resolve("src/main/java/demo/node/Child.java"),"<unchanged>");
+        System.out.println("=== "+label+" conflicts="+p.conflicts()+"\n"+(p.conflicts()?diag(p):child));
+        if(!p.conflicts()) { Reconciler.apply(root,p,null); }
+        return p.conflicts()?null:Files.readString(root.resolve("src/main/java/demo/node/Child.java"));
+    }
+    static String diag(Reconciler.Plan p) throws Exception { String j=StarterJson.write(p.report().diagnosticReport()); return j.length()>2500?j.substring(0,2500):j; }
+    Path childDir(Path root) throws Exception { return Files.createDirectories(root.resolve("src/main/java/demo/node")); }
+
+    @Test public void g12_interfaceTypedFieldIsNotSilentlyDuplicated() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("ParentApi.java"),"package demo.node; public interface ParentApi {}\n");
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent implements ParentApi {}\n");
+        Files.writeString(d.resolve("Child.java"),"package demo.node;\npublic class Child {\n    private final ParentApi upstream;\n    public Child(Parent p) { this.upstream = p; }\n}\n");
+        String after=planAndShow(root,withdrawn(),"interface-typed");
+        if(after!=null) assertFalse("a bean-id-named field was invented next to the developer's interface-typed field", after.contains(" parent;"));
+    }
+    @Test public void g12_staticFieldIsNotChosenAsReference() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent {}\n");
+        Files.writeString(d.resolve("Child.java"),"package demo.node;\npublic class Child {\n    static Parent DEFAULT;\n    private final Object upstream;\n    public Child(Parent p) { this.upstream = p; }\n}\n");
+        var p=fixture.plan(root,withdrawn(),fixture.record());
+        String report=StarterJson.write(p.report());
+        System.out.println("=== static conflicts="+p.conflicts()+" diag="+diag(p)+" childEdit="+p.sources().get(d.resolve("Child.java"))+"\nrecordChild="+StarterJson.write(p.record().ownership().get("demo.node.Child")));
+        assertTrue("static field DEFAULT was selected as the node reference", p.conflicts() || !StarterJson.write(p.record()).contains("field:DEFAULT"));
+    }
+    @Test public void g12_explicitBindingNoFieldNameAnnotatesStaticField() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent {}\n");
+        String orig="package demo.node;\npublic class Child {\n    static Parent DEFAULT;\n    private final Object upstream;\n    public Child(Parent p) { this.upstream = p; }\n}\n";
+        Files.writeString(d.resolve("Child.java"),orig);
+        String xml=ExtendedDeclarationsTest.xml("DATA").replace("<property name='referenceField' value='parent'/>","").replaceAll("<property name='exportedServices'>.*?</bean></list></property>", "");
+        var p=fixture.plan(root,xml,fixture.record());
+        String child=p.sources().get(d.resolve("Child.java"));
+        System.out.println("=== explicitStatic conflicts="+p.conflicts()+" diag="+diag(p)+"\n"+child+"\nrecordChild="+StarterJson.write(p.record().ownership().get("demo.node.Child")));
+        assertTrue("static field silently chosen/annotated as the node reference", p.conflicts() || child==null || !child.contains("NoTriggerReference\n    static") && !child.matches("(?s).*NoTriggerReference[^;]*static Parent DEFAULT.*"));
+    }
+    @Test public void g12_inheritedFieldIsNotSilentlyDuplicated() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent {}\n");
+        Files.writeString(d.resolve("ChildBase.java"),"package demo.node; public class ChildBase { protected final Parent up; protected ChildBase(Parent p){ up=p; } }\n");
+        Files.writeString(d.resolve("Child.java"),"package demo.node;\npublic class Child extends ChildBase {\n    public Child(Parent p) { super(p); }\n}\n");
+        String after=planAndShow(root,withdrawn(),"inherited");
+        if(after!=null) assertFalse("a bean-id-named field was invented shadowing the inherited reference", after.contains(" parent;"));
+    }
+    @Test public void g12_nestedClassFieldIgnored() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent {}\n");
+        Files.writeString(d.resolve("Child.java"),"package demo.node;\npublic class Child {\n    private final Parent input;\n    public Child(Parent p) { this.input = p; }\n    static class Inner { Parent other; }\n}\n");
+        String after=planAndShow(root,withdrawn(),"nested");
+        assertNotNull("nested-class field made selection ambiguous", after);
+        assertFalse(after.contains(" parent;"));
+    }
+    @Test public void g12_explicitEmptyFieldMultiVariableDeclarationPicksFirst() throws Exception {
+        // Pre-existing path (explicit binding, empty field name): counts FieldDeclarations, not variables.
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent {}\n");
+        Files.writeString(d.resolve("Child.java"),"package demo.node;\npublic class Child {\n    private Parent a, b;\n    public Child(Parent p) { this.a = p; }\n}\n");
+        String xml=ExtendedDeclarationsTest.xml("DATA").replace("<property name='referenceField' value='parent'/>","");
+        var p=fixture.plan(root,xml,fixture.record());
+        System.out.println("=== multivar conflicts="+p.conflicts()+" diag="+diag(p)+" child="+p.sources().get(d.resolve("Child.java")));
+        assertTrue("two same-typed variables in one declaration silently resolved to the first", p.conflicts());
+    }
+
+    // ---------- 3. classpath shadowing ----------
+    Path compileVendorParent(Path root) throws Exception {
+        Path src=root.resolve("vendor/Parent.java"); Files.createDirectories(src.getParent());
+        Files.writeString(src,"package demo.node; public class Parent { static { if(true) throw new AssertionError(\"exec\"); } }");
+        Path classes=Files.createDirectories(root.resolve("vendor-classes"));
+        assertEquals(0,ToolProvider.getSystemJavaCompiler().run(null,null,null,"-d",classes.toString(),src.toString()));
+        return classes.resolve("demo/node/Parent.class");
+    }
+    void classpath(Path root, String entries) throws Exception { Files.createDirectories(root.resolve(".fluxtion")); Files.writeString(root.resolve(".fluxtion/classpath"),entries); }
+    @Test public void cp_multiReleaseOnlyClassIsDetected() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path cls=compileVendorParent(root); Path jar=root.resolve("mr.jar");
+        Manifest m=new Manifest(); m.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION,"1.0"); m.getMainAttributes().putValue("Multi-Release","true");
+        try(var out=new JarOutputStream(Files.newOutputStream(jar),m)) { out.putNextEntry(new JarEntry("META-INF/versions/11/demo/node/Parent.class")); out.write(Files.readAllBytes(cls)); out.closeEntry(); }
+        classpath(root,jar.toString());
+        var r=fixture.plan(root,xmlUnused(false),fixture.record());
+        assertTrue("MR-only dependency class not detected; shadowing shell planned", r.conflicts());
+    }
+    @Test public void cp_directoryEntryDetected() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); compileVendorParent(root); classpath(root,root.resolve("vendor-classes").toString());
+        assertTrue(fixture.plan(root,xmlUnused(false),fixture.record()).conflicts());
+    }
+    @Test public void cp_relativeDirectoryEntryDetected() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); compileVendorParent(root); classpath(root,"vendor-classes");
+        assertTrue(fixture.plan(root,xmlUnused(false),fixture.record()).conflicts());
+    }
+    @Test public void cp_bootFatJarNestedClassIsDetected() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path cls=compileVendorParent(root); Path jar=root.resolve("boot.jar");
+        try(var out=new JarOutputStream(Files.newOutputStream(jar))) { out.putNextEntry(new JarEntry("BOOT-INF/classes/demo/node/Parent.class")); out.write(Files.readAllBytes(cls)); out.closeEntry(); }
+        classpath(root,jar.toString());
+        assertTrue("class inside a nested/fat-jar layout not detected", fixture.plan(root,xmlUnused(false),fixture.record()).conflicts());
+    }
+    @Test public void doc_cp_missingClasspathFileCannotDetect() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); compileVendorParent(root);
+        var r=fixture.plan(root,xmlUnused(false),fixture.record());
+        assertFalse("documented limit: no .fluxtion/classpath -> shell created", r.conflicts());
+    }
+    @Test public void doc_cp_missingEntryRefuses() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); classpath(root,root.resolve("nope.jar").toString());
+        try { fixture.plan(root,xmlUnused(false),fixture.record()); fail("missing entry must refuse"); } catch(java.io.IOException e) { assertTrue(e.getMessage().contains("rerun setup")); }
+    }
+    @Test public void cp_dependencyEventTypeNotShelled() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path src=root.resolve("vendor/Unused.java"); Files.createDirectories(src.getParent());
+        Files.writeString(src,"package demo.event; public class Unused { }");
+        Path classes=Files.createDirectories(root.resolve("vendor-classes"));
+        assertEquals(0,ToolProvider.getSystemJavaCompiler().run(null,null,null,"-d",classes.toString(),src.toString()));
+        classpath(root,classes.toString());
+        var r=fixture.plan(root,xmlUnused(true),fixture.record()); assertFalse(r.conflicts());
+        assertFalse("dependency event shelled", r.sources().containsKey(unused(root)));
+    }
+
+    // ---------- 4. audit injection ----------
+    void compile(Path root, Path out, String extraCp) throws Exception {
+        List<String> args=new ArrayList<>(List.of("-proc:none","-classpath",System.getProperty("java.class.path")+(extraCp==null?"":java.io.File.pathSeparator+extraCp),"-d",out.toString()));
+        try(var files=Files.walk(root.resolve("src/main/java"))) { files.filter(p->p.toString().endsWith(".java")).forEach(p->args.add(p.toString())); }
+        assertEquals("compile",0,ToolProvider.getSystemJavaCompiler().run(null,null,null,args.toArray(String[]::new)));
+    }
+    @Test public void audit_localBaseImplementingEventLogSourceIsNotOverridden() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("Base.java"),"package demo.node; public class Base implements com.telamin.fluxtion.runtime.audit.EventLogSource { public com.telamin.fluxtion.runtime.audit.EventLogger baseLog; public void setLogger(com.telamin.fluxtion.runtime.audit.EventLogger l) { baseLog = l; } }\n");
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent extends Base { }\n");
+        String base=Files.readString(d.resolve("Base.java"));
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record());
+        System.out.println("=== localBase conflicts="+p.conflicts()+" diag="+diag(p)+"\n"+p.sources().get(d.resolve("Parent.java")));
+        if(p.conflicts()) { assertEquals(base,Files.readString(d.resolve("Base.java"))); return; }
+        Reconciler.apply(root,p,null); assertEquals(base,Files.readString(d.resolve("Base.java")));
+        Path out=Files.createDirectories(root.resolve("classes")); compile(root,out,null);
+        try(var l=new URLClassLoader(new java.net.URL[]{out.toUri().toURL()},getClass().getClassLoader())) {
+            Object parent=l.loadClass("demo.node.Parent").getConstructor().newInstance();
+            var audit=new com.telamin.fluxtion.runtime.audit.EventLogManager(r->{}); audit.clock=new com.telamin.fluxtion.runtime.time.Clock(); audit.clock.init(); audit.init(); audit.nodeRegistered(parent,"parent");
+            assertNotNull("developer superclass setLogger was silently overridden; Base.baseLog never injected", parent.getClass().getField("baseLog").get(parent));
+        }
+    }
+    @Test public void audit_interfaceDefaultSetLoggerIsNotOverridden() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Files.writeString(d.resolve("Audited.java"),"package demo.node; public interface Audited extends com.telamin.fluxtion.runtime.audit.EventLogSource { java.util.List<Object> SEEN = new java.util.ArrayList<>(); default void setLogger(com.telamin.fluxtion.runtime.audit.EventLogger l) { SEEN.add(l); } }\n");
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent implements Audited { }\n");
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record());
+        System.out.println("=== ifaceDefault conflicts="+p.conflicts()+" diag="+diag(p)+"\n"+p.sources().get(d.resolve("Parent.java")));
+        if(p.conflicts()) return;
+        Reconciler.apply(root,p,null);
+        Path out=Files.createDirectories(root.resolve("classes")); compile(root,out,null);
+        try(var l=new URLClassLoader(new java.net.URL[]{out.toUri().toURL()},getClass().getClassLoader())) {
+            Object parent=l.loadClass("demo.node.Parent").getConstructor().newInstance();
+            var audit=new com.telamin.fluxtion.runtime.audit.EventLogManager(r->{}); audit.clock=new com.telamin.fluxtion.runtime.time.Clock(); audit.clock.init(); audit.init(); audit.nodeRegistered(parent,"parent");
+            List<?> seen=(List<?>) l.loadClass("demo.node.Audited").getField("SEEN").get(null);
+            assertFalse("developer default setLogger silently overridden", seen.isEmpty());
+        }
+    }
+    @Test public void audit_vendorSuperclassExtendingEventLogNodeRefusesOrKeepsInjection() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        Path vs=root.resolve("vendor/vend/VBase.java"); Files.createDirectories(vs.getParent());
+        Files.writeString(vs,"package vend; public class VBase extends com.telamin.fluxtion.runtime.audit.EventLogNode { public Object log(){ return auditLog; } }");
+        Path vc=Files.createDirectories(root.resolve("vendor-classes"));
+        assertEquals(0,ToolProvider.getSystemJavaCompiler().run(null,null,null,"-classpath",System.getProperty("java.class.path"),"-d",vc.toString(),vs.toString()));
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent extends vend.VBase { }\n");
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record());
+        System.out.println("=== vendorBase conflicts="+p.conflicts()+" diag="+diag(p)+"\n"+p.sources().get(d.resolve("Parent.java")));
+        assertTrue("vendor superclass: expected refusal (outside source root)", p.conflicts());
+    }
+    @Test public void audit_existingEventLoggerFieldAndOtherSetLoggerOverload() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        String orig="package demo.node;\npublic class Parent {\n    private com.telamin.fluxtion.runtime.audit.EventLogger myLog;\n    public void setLogger(String s) { }\n}\n";
+        Files.writeString(d.resolve("Parent.java"),orig);
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record());
+        System.out.println("=== overload conflicts="+p.conflicts()+" diag="+diag(p));
+        assertTrue("overload named setLogger should refuse (conservative)", p.conflicts()); assertEquals(orig,Files.readString(d.resolve("Parent.java")));
+    }
+
+    @Test public void audit_localEventLogNodeBaseIsReused() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        String base="package demo.node; public class Base extends com.telamin.fluxtion.runtime.audit.EventLogNode { public int untouched() { return 1; } }\n";
+        Files.writeString(d.resolve("Base.java"),base);
+        Files.writeString(d.resolve("Parent.java"),"package demo.node; public class Parent extends Base { }\n");
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); assertFalse(diag(p),p.conflicts()); Reconciler.apply(root,p,null);
+        String parent=Files.readString(d.resolve("Parent.java")); System.out.println("=== eventLogNodeBase\n"+parent);
+        assertEquals(base,Files.readString(d.resolve("Base.java")));
+        assertFalse(parent.contains("setLogger")); assertFalse(parent.contains("__fluxtionAuditLog")); assertTrue(parent.contains("auditLog.info(\"handledEvent\""));
+        Path out=Files.createDirectories(root.resolve("classes")); compile(root,out,null);
+    }
+    @Test public void fmt_sameLineTrailingCommentSurvives() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        String orig="package demo.node;\npublic class Parent {\n    public int value() { return 7; } // dev same-line note\n}\n";
+        Files.writeString(d.resolve("Parent.java"),orig);
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); assertFalse(diag(p),p.conflicts()); Reconciler.apply(root,p,null);
+        String after=Files.readString(d.resolve("Parent.java")); System.out.println("=== sameline\n"+after);
+        assertTrue(after.contains("    public int value() { return 7; } // dev same-line note\n"));
+        var again=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),p.record()); assertTrue(again.sources().isEmpty());
+    }
+    @Test public void fmt_commentBeforeClosingBraceAfterFieldSurvives() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        String orig="package demo.node;\npublic class Parent {\n    private int x;\n    /** Javadoc for something the developer is about to write. */\n}\n";
+        Files.writeString(d.resolve("Parent.java"),orig);
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); assertFalse(diag(p),p.conflicts()); Reconciler.apply(root,p,null);
+        String after=Files.readString(d.resolve("Parent.java")); System.out.println("=== danglingJavadoc\n"+after);
+        assertEquals(1,after.split("Javadoc for something",-1).length-1);
+        var again=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),p.record()); assertTrue(again.sources().isEmpty());
+    }
+    // ---------- 5. formatting ----------
+    @Test public void fmt_trailingDeveloperCommentSurvivesAddedMembers() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        String orig="package demo.node;\npublic class Parent {\n    public int value() { return 7; }\n    // developer trailing note\n}\n";
+        Files.writeString(d.resolve("Parent.java"),orig);
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); assertFalse(StarterJson.write(p.report()),p.conflicts()); Reconciler.apply(root,p,null);
+        String after=Files.readString(d.resolve("Parent.java")); System.out.println("=== trailing\n"+after);
+        assertEquals("developer comment kept exactly once",1,after.split("// developer trailing note",-1).length-1);
+        assertTrue(after.contains("    public int value() { return 7; }\n"));
+        var again=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),p.record()); assertTrue("repeat no-op: "+again.sources(),again.sources().isEmpty());
+    }
+    @Test public void fmt_javadocOnLastMemberSurvives() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        String orig="package demo.node;\npublic class Parent {\n    /** Value doc. */\n    public int value() { return 7; }\n    /* block note */\n}\n";
+        Files.writeString(d.resolve("Parent.java"),orig);
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); assertFalse(p.conflicts()); Reconciler.apply(root,p,null);
+        String after=Files.readString(d.resolve("Parent.java")); System.out.println("=== block\n"+after);
+        assertEquals(1,after.split("/\\* block note \\*/",-1).length-1); assertTrue(after.contains("    /** Value doc. */\n    public int value() { return 7; }"));
+    }
+    void repeatStable(String orig, String label) throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root); Files.writeString(d.resolve("Parent.java"),orig);
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); assertFalse(StarterJson.write(p.report()),p.conflicts()); Reconciler.apply(root,p,null);
+        String once=Files.readString(d.resolve("Parent.java")), onceChild=Files.readString(d.resolve("Child.java")); var r=p.record();
+        System.out.println("=== "+label+"\n"+once.replace("\r","\\r").replace("\t","\\t"));
+        for(int i=0;i<3;i++) { var n=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),r); assertFalse(n.conflicts()); assertTrue(label+" drift run "+i+": "+n.sources().keySet(),n.sources().isEmpty()); Reconciler.apply(root,n,rec(root)); r=n.record(); }
+        // mode round trip on the existing class file too
+        for(int i=0;i<3;i++) for(String mode:List.of("TRIGGER","DATA")) { var n=fixture.plan(root,ExtendedDeclarationsTest.xml(mode),r); assertFalse(StarterJson.write(n.report()),n.conflicts()); Reconciler.apply(root,n,rec(root)); r=n.record(); }
+        assertEquals(label+" Parent drift after mode round trips",once,Files.readString(d.resolve("Parent.java")));
+        assertEquals(label+" Child drift after mode round trips",onceChild,Files.readString(d.resolve("Child.java")));
+        Path out=Files.createDirectories(root.resolve("classes")); compile(root,out,null);
+    }
+    @Test public void fmt_repeatStableLf() throws Exception { repeatStable("package demo.node;\n\npublic class Parent {\n    public int value() { return 7; }\n}\n","lf"); }
+    @Test public void fmt_repeatStableCrlf() throws Exception { repeatStable("package demo.node;\r\n\r\npublic class Parent {\r\n    public int value() { return 7; }\r\n}\r\n","crlf"); }
+    @Test public void fmt_repeatStableTabs() throws Exception { repeatStable("package demo.node;\n\npublic class Parent {\n\tpublic int value() { return 7; }\n}\n","tabs"); }
+    @Test public void fmt_repeatStableMixedEol() throws Exception { repeatStable("package demo.node;\r\n\npublic class Parent {\r\n    public int value() { return 7; }\n}\r\n","mixed"); }
+    @Test public void fmt_mixedEolDeveloperBytesKept() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); Path d=childDir(root);
+        String orig="package demo.node;\r\n\npublic class Parent {\r\n    public int value() { return 7; }\n}\r\n";
+        Files.writeString(d.resolve("Parent.java"),orig);
+        var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); Reconciler.apply(root,p,null);
+        String after=Files.readString(d.resolve("Parent.java"));
+        assertTrue("mixed-EOL developer line bytes changed: "+after.replace("\r","\\r"), after.startsWith("package demo.node;\r\n\npublic class Parent") && after.contains("{\r\n    public int value() { return 7; }\n"));
+    }
+    @Test public void fmt_freshRepeatStable() throws Exception {
+        Path root=tmp.newFolder().toPath().toRealPath(); var p=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),fixture.record()); Reconciler.apply(root,p,null);
+        Map<Path,String> snap=new TreeMap<>(); try(var w=Files.walk(root.resolve("src"))) { for(Path f:w.filter(Files::isRegularFile).toList()) snap.put(f,Files.readString(f)); }
+        var r=p.record(); for(int i=0;i<3;i++){ var n=fixture.plan(root,ExtendedDeclarationsTest.xml("DATA"),r); assertTrue(n.sources().isEmpty()); Reconciler.apply(root,n,rec(root)); r=n.record(); }
+        for(var e:snap.entrySet()) assertEquals(e.getValue(),Files.readString(e.getKey()));
+    }
+}

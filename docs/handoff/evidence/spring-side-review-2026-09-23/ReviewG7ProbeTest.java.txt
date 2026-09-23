@@ -1,0 +1,37 @@
+package com.telamin.fluxtion.builder.extern.spring;
+
+import com.telamin.fluxtion.builder.diagnostic.*;
+import java.util.*;
+import org.junit.Test;
+
+/** REVIEW PROBE — prints, never asserts. */
+public class ReviewG7ProbeTest {
+    public static class Plain {}
+    static void dump(String label, FluxtionSpringConfig config, Map<String,Object> nodes) {
+        var result = FluxtionDiagnostics.capture(() -> { SpringDeclarationVerifier.verify(List.of(config), nodes); return true; });
+        System.out.println("=== " + label + " failure=" + (result.getFailure() == null ? null : result.getFailure().getClass().getSimpleName()));
+        for (var d : result.getReport().getDiagnostics())
+            System.out.println("   " + d.getCode() + " kind=" + d.getElement().getKind() + " props=" + d.getElement().getProperties() + " why=" + d.getWhy());
+    }
+    @Test public void probe() {
+        // 1. configuration-wide collision: two exporters of the same service
+        var c1 = new FluxtionSpringConfig();
+        var e1 = new FluxtionSpringConfig.ExportedService(); e1.setService("com.x.Svc"); e1.setNodeBean("a");
+        var e2 = new FluxtionSpringConfig.ExportedService(); e2.setService("com.x.Svc"); e2.setNodeBean("b");
+        c1.setExportedServices(new ArrayList<>(List.of(e1, e2)));
+        dump("duplicate exporter", c1, Map.of("a", new Plain(), "b", new Plain()));
+        // 2. reference whose TARGET bean is unknown
+        var c2 = new FluxtionSpringConfig();
+        var r = new FluxtionSpringConfig.ReferenceBinding(); r.setOwnerBean("owner"); r.setReferencedBean("ghost");
+        c2.setReferenceBindings(new ArrayList<>(List.of(r)));
+        dump("unknown reference target", c2, Map.of("owner", new Plain()));
+        // 3. unknown lifecycle bean: how many findings for one missing bean?
+        var c3 = new FluxtionSpringConfig(); c3.setLifecycleNodes(List.of("nobody"));
+        dump("unknown lifecycle bean", c3, Map.of());
+        // 4. collected failures, then a non-coded exception
+        var c4 = new FluxtionSpringConfig(); c4.setLifecycleNodes(List.of("first"));
+        var s = new FluxtionSpringConfig.SignalBinding(); s.setName("sig"); s.setNodeBeans(null);
+        c4.setSignalHandlers(new ArrayList<>(List.of(s)));
+        dump("4 collected then NPE", c4, Map.of("first", new Plain()));
+    }
+}
