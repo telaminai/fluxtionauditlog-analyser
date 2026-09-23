@@ -1,3 +1,50 @@
+## Java source spotlight — ☑ SHIPPED in 1.19.0 — 2026-09-23
+
+[Proposal](../../proposals/source-spotlight.md), [round-four response](../../handoff/completed/response_source_spotlight_r4_2026_09_21.md).
+Rebased first onto `809303f7`, then released main `9b88e6ac` on a replacement branch without force-pushing. Main's archived/closed statuses and later work are preserved. Source baseline `401da35b`. Explicit FQN/line targets beside topology; node inference deferred.
+SourceService first-match lookup and repeat-spotlight reread are explicit; the source-glance verb
+remains unchanged. Java clips with partial disclosure; design keeps released containment refusal.
+Preparation, lifetime bindings, viewport hooks and both CI frame lists are implemented.
+All linked proposal reviews/responses ship together. [Review 3665e237](../../handoff/completed/review_source_spotlight_r4_response_2026_09_21_claude.md)
+is READY FOR HANDOFF. [S-1/S-2 response](../../handoff/completed/response_source_spotlight_handoff_2026_09_21.md)
+specifies off-EDT reads, guarded EDT apply and selected-model replacement from the rendered snapshot.
+Implemented on `feat/java-source-spotlight-current`, starting at `48aa78f5`; released after rebase onto `1ea0a934`.
+Frozen predictions before source edits:
+- Source snapshots retain root/archive origin and rendered-text hash. Refresh sees a newly added
+  entry in an already-known jar after a cached miss, while a new jar needs resolver recreation.
+  Disabling negative-cache invalidation must fail the repeat-request assertion.
+- Explicit Java targets prepare without UI effects; a failing mixed record/Java batch leaves
+  selection/filter intact. A blocked archive read runs off EDT, and clear/configuration changes
+  prevent its late completion from publishing. Disabling tickets must resurrect a target in the
+  controlled interleaving test; moving the read onto EDT must fail the thread assertion.
+- Updating the selected processor installs the model parsed from exactly the rendered snapshot;
+  disabling installation produces the previous field-type mapping.
+- Graph plus Java line stay visible in either target order. Java bands clip and disclose partial;
+  design bands retain containment refusal. Raw-caret, unclipped-band and first-wrapped-row-only
+  mutations each fail their own geometry assertion.
+- Viewport notifications remeasure or extinguish active bindings; disabling the listener leaves
+  stale bounds and fails the display check. Removed/replaced/cleared bindings never reappear.
+- N-1 prediction (2026-09-22, before deadline implementation): a blocked read expires without
+  revealing anything; releasing it later cannot light a target or replace the model. Removing the
+  deadline's terminal-state check must fail the late-completion assertion. Preparation gets 10 seconds,
+  below McpBridge's 60-second CALL_TIMEOUT; shorter external-client timeouts remain outside this bound.
+[Implementation report](../../handoff/completed/report_java_source_spotlight_2026_09_23.md) records these predictions,
+regression names, all twelve seen-red mutation witnesses and boundaries. [Review brief](../../handoff/completed/brief_review_java_source_spotlight_2026_09_23.md).
+- ☑ Source snapshots, background preparation, request/deadline cancellation and selected-model coherence.
+- ☑ Java viewport geometry, graph/source routing, lifetime registry and design scroll remeasurement.
+- ☑ Generated neutral screenshot inspected; vocabulary, source guide, spotlight spec and changelog updated.
+- ☑ Local gates: 1,786 headless (61 display skips), 62 display (none skipped), package, 94/94 existing spotlight checks, tool checks, strict docs and sweep. Twelve seen-red mutation witnesses restored.
+- ☑ Integrated 1.18.0 at `914ae908`: 1,875 headless (61 skips), 62 display (none skipped), zero failures/errors; package, tool checks, 94/94 existing spotlight checks and strict docs pass. MainFrame retains every released added/removed line.
+- ☑ [PR #6](https://github.com/telaminai/fluxtionauditlog-analyser/pull/6) CI: build, loop-bench, static and Linux/Xvfb display pass (62 tests, no skips). Handoff published. Original branch/PR preserved without force-push; #5 superseded.
+- ☑ Independent review at `8b72d628`: **MERGE**, no blocker, three low findings. [Report](../../handoff/completed/review_java_source_spotlight_2026_09_23_claude.md) preserved verbatim. Reviewer repeated all gates and all twelve mutations.
+- ☑ Review follow-ups, predictions recorded before edits (outcomes below): F1 a failed unmutated test will stop that witness before source edits and record `baselineGreen: false`; a passing baseline plus named assertion failure records both halves. Negative test: feed the checker an already-failing baseline. F2 a missing band omits `partial` during echo assembly, and normal remeasurement extinguishes the target; restoring the old fallback must fail the missing-band display assertion. F3 retain the editor's final empty line, document it and pin acceptance/refusal at that boundary.
+- ☑ F1–F3 addressed: [response](../../handoff/completed/response_java_source_spotlight_2026_09_23.md). All predictions held: thirteen green-baseline/red-mutation pairs, source hashes restored; baseline bypass rejected by its own regression; missing band omits `partial`; final empty editor-line behavior documented and pinned.
+- ☑ Follow-up clean gate: 1,876 tests / 0 failures / 0 errors / 62 headless skips; package, tool checks and strict docs pass. Full display gate follows in PR CI.
+- ☑ Owner authorised analyser-only 1.19.0 on 2026-09-23, then explicitly instructed proceeding on the existing reviews and rebased gates without another review round. Local candidate branch `release/java-source-spotlight-1.19.0` rebases the reviewed feature onto `f91919eb`; main's new Spring-side section is retained intact. Rebased gates pass: 1,876 headless (62 skips), 63 display (no skips), all thirteen green-baseline/red-mutation witnesses restored. Built-jar API, handoff, spotlight (94/94), restart and conversation gates pass; [release receipt](../../handoff/completed/release_java_source_spotlight_1_19_0.md) records the macOS path-alias retry. No skills changed; no playground re-vendor or Mongoose release is included.
+- ☑ Main fast-forward at `dac7c840`; main CI/static/docs passed. [Release 1.19.0](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.19.0) at `a74f1b9e`; release workflow and Pages passed. Public jars downloaded, checksums, version manifests and bundled notes verified. Existing evidence-correctness priority and completed work are unchanged.
+
+---
+
 ## AF · Mongoose audit format, release 1 analyser half — ☑ SHIPPED in 1.18.0 — 2026-09-23
 
 The contract, the format amendment and the analyser's reporting. Spec

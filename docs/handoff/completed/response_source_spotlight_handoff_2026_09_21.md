@@ -3,7 +3,7 @@
 [Independent review at 3665e237](review_source_spotlight_r4_response_2026_09_21_claude.md):
 **READY FOR HANDOFF**, U-1 and L-1–L-3 closed. The review is preserved unchanged. It judged proposal
 `2b17209d`; the two clarifications below are subsequent author changes, not retrospectively reviewed
-implementation. [Proposal](../proposals/source-spotlight.md).
+implementation. [Proposal](../../proposals/source-spotlight.md).
 
 ## S-1 — off-EDT read, guarded EDT application
 

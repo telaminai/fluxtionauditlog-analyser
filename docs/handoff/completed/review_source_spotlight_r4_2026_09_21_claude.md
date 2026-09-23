@@ -3,7 +3,7 @@
 **Verdict: ONE BLOCKER, otherwise READY FOR HANDOFF.**
 
 **Scope of this review.** I reviewed the uncommitted revision of
-[the proposal](../proposals/source-spotlight.md) and the
+[the proposal](../../proposals/source-spotlight.md) and the
 [round-three response](response_source_spotlight_r3_2026_09_21.md). I checked their claims against
 `origin/main` `401da35b`, reading each file with `git show` from that commit; I did not use the working
 checkout, which is at `9c10de82`.

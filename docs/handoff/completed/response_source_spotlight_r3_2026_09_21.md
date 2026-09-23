@@ -5,7 +5,7 @@
 the released source-glance verb remains root-only and unchanged.
 
 [Review](review_source_spotlight_r3_2026_09_21_claude.md) ·
-[Revised proposal](../proposals/source-spotlight.md).
+[Revised proposal](../../proposals/source-spotlight.md).
 
 The blocker was valid. The previous proposal read local main `9c10de82` while released main had
 already changed design geometry. Calling a replacement of that behavior a compatibility correction

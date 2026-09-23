@@ -9,7 +9,7 @@ This is a documentation-only proposal packet, not an implementation or a release
 
 Read ONBOARDING and CLAUDE, then:
 
-1. [Proposal](../proposals/source-spotlight.md), especially One lookup and acceptance 7.
+1. [Proposal](../../proposals/source-spotlight.md), especially One lookup and acceptance 7.
 2. [Round-four review](review_source_spotlight_r4_2026_09_21_claude.md).
 3. [Round-four response](response_source_spotlight_r4_2026_09_21.md).
 

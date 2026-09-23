@@ -2,7 +2,7 @@
 
 **Status:** SHIPPED — M64.1–.9 in analyser 1.14.0 (2026-09-17), M64.10/.11/.12 in 1.15.0 (2026-09-18: a target may name its
 chart — `graph:<name>:…` — or reach a menu item — `menu:<Menu>:<item>`; the guidance says a call REPLACES unless `add: true`).
-M64.13 (menu follow-ups from the M64.11 review) remains open. Java source spotlight is implemented on `feat/java-source-spotlight-current`, independent review at `0fbbdace`: MERGE; owner merge pending. History: ON MAIN 2026-09-17 (M64.1–.7; reviewed in two
+M64.13 (menu follow-ups from the M64.11 review) remains open. Java source spotlight shipped in [1.19.0](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.19.0) on 2026-09-23 after independent MERGE review and the three low-finding corrections. History: ON MAIN 2026-09-17 (M64.1–.7; reviewed in two
 rounds and a two-reader re-review — record in `docs/handoff/completed/`, SHA map beside it); M64.8/.9/.10 then gated the 1.14.0
 release and shipped in it. Originally: implemented on branch `fix/m46-agent-api-closure`
 (`docs/handoff/completed/report_m64_spotlight.txt`); **extended the same day by D-SP6 and D-SP7** (owner direction: several
@@ -402,7 +402,7 @@ spotlight. `NamedGraphAndMenuSpotlightFrameTest.hiddenProjectRowIsRevealedBefore
 Marker labels are not currently series spotlight targets: the refusal names that limit and suggests
 lighting the plot, rather than claiming the marker is absent. The companion marker-refusal test pins it.
 
-## Java source spotlight — implementation contract (unreleased)
+## Java source spotlight — implementation contract (shipped in 1.19.0)
 
 The [reviewed source spotlight proposal](../proposals/source-spotlight.md) defines this extension and
 its acceptance/mutation checks. `source:java:<fqn>` means the visible Java text viewport;

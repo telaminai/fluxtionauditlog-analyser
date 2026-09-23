@@ -17,7 +17,7 @@ temporary source/report files: green then assertion failure; already-red/error/s
 baselines; a green XML report with a failed process; and mutant outcomes that are not a named assertion.
 `tools/test_tools.py` runs it in CI. Removing the baseline guard makes
 `test_bad_baseline_never_mutates_or_attempts_red` fail; see the
-[negative-control record](evidence/java-source-spotlight-2026-09-23/baseline-guard-witness.json).
+[negative-control record](../evidence/java-source-spotlight-2026-09-23/baseline-guard-witness.json).
 One passing baseline cannot rule out every intermittent display failure, but baseline evidence is now
 part of each witness rather than an unstated dependency on another run.
 
@@ -39,7 +39,7 @@ what a valid editor anchor means. No subtraction or new source mapping was intro
 The tracker recorded all three predictions before edits. All held:
 
 - F1: all **13/13** current witnesses pass their unmutated baseline, fail their named assertion after
-  mutation, and restore exact source bytes. [New record](evidence/java-source-spotlight-2026-09-23/review-followup-mutations.json).
+  mutation, and restore exact source bytes. [New record](../evidence/java-source-spotlight-2026-09-23/review-followup-mutations.json).
   The baseline-guard negative test fails when that guard is removed; restored helper tests pass.
 - F2: `missingBandDoesNotClaimPartialDuringApply` passes unmutated and fails with the old fallback.
   Normal remeasurement extinguishes the target. This is the thirteenth recorded mutation.

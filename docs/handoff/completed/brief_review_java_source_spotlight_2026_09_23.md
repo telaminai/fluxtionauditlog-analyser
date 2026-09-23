@@ -2,7 +2,7 @@
 
 Review `feat/java-source-spotlight-current` against main `9b88e6ac` (1.18.0). Work in your own worktree; do not alter the
 primary checkout or the author's implementation worktree. Start with `docs/ONBOARDING.md` and `CLAUDE.md`,
-then read the whole [proposal](../proposals/source-spotlight.md) and
+then read the whole [proposal](../../proposals/source-spotlight.md) and
 [implementation report](report_java_source_spotlight_2026_09_23.md). The proposal's accepted review,
 S-1/S-2 and N-1 dispositions are part of the contract. Inspect the actual diff; do not take green on trust.
 

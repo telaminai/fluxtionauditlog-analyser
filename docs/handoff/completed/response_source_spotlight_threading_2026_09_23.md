@@ -14,7 +14,7 @@ Worker interruption is best effort, never the correctness boundary.
 resolver's discovery monitor past a shortened test deadline. The refusal arrives before the monitor is
 released. After release and worker completion, nothing is lit. Removing the terminal, elapsed-deadline
 and expiry-ticket guards makes its late-publication assertion fail; the exact output is in the
-[mutation record](evidence/java-source-spotlight-2026-09-23/mutations.json).
+[mutation record](../evidence/java-source-spotlight-2026-09-23/mutations.json).
 
 Waiting-caller interruption is request-scoped too, including interruption before EDT capture. It cancels
 the pending future, preserves the thread's interrupt flag, and does not clear a newer request's spotlight.

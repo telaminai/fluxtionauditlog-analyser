@@ -12,7 +12,7 @@ Constructed regression fixtures; no participant session, paid generation or runt
   Inspected: source declaration and graph node cutouts align; captions and the unverified-relationship
   qualification are visible; no real project or operational identifiers appear.
 
-The [implementation report](../../report_java_source_spotlight_2026_09_23.md) records the predictions,
+The [implementation report](../../completed/report_java_source_spotlight_2026_09_23.md) records the predictions,
 outcomes and limitations. The script's `--only` option repeats one mutation. Run it alone in a disposable
 worktree with a display; it temporarily edits source. Rebuild afterward before using the application.
 

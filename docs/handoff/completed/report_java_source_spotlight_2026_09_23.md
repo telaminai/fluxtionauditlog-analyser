@@ -5,7 +5,7 @@ The original implementation remains at `5bf2e442` on `feat/java-source-spotlight
 branch rebases it without force-pushing published history. Only this feature's section is added to the tracker.
 The primary checkout and its IDE edits were not used for implementation. No merge or release is requested.
 
-Contract: [source spotlight proposal](../proposals/source-spotlight.md). Predictions were committed
+Contract: [source spotlight proposal](../../proposals/source-spotlight.md). Predictions were committed
 before source changes (`aa10f326`, rebased as `b199f1cc`, then `54658193`). The accepted review and S-1/S-2 clarifications
 are preserved in the proposal packet. N-1's deadline was specified in the tracker before that code was added.
 
@@ -37,8 +37,8 @@ are preserved in the proposal packet. N-1's deadline was specified in the tracke
 
 All fixtures below are **constructed regression cases**, not preserved participant runs.
 Every mutation was restored to its exact original bytes. The executable recipe is
-[`tools/verify-java-source-spotlight.py`](../../tools/verify-java-source-spotlight.py).
-The [machine-readable record](evidence/java-source-spotlight-2026-09-23/mutations.json) includes the actual
+[`tools/verify-java-source-spotlight.py`](../../../tools/verify-java-source-spotlight.py).
+The [machine-readable record](../evidence/java-source-spotlight-2026-09-23/mutations.json) includes the actual
 failure text, named test, command, changed source sites and SHA-256 of each restored source file. A compile
 error, missing report, skipped test or an error rather than the named assertion does not count as seen red.
 
@@ -83,11 +83,11 @@ manual resolution; tracker and changelog conflicts were resolved by retaining bo
 [GitHub CI on `914ae908`](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35839227529)
 passed build, loop-bench and ui-frame; static checks also passed. The Linux/Xvfb log explicitly records
 all twelve suites: **62 tests, no errors, failures or skips**. See the
-[machine-readable gate record](evidence/java-source-spotlight-2026-09-23/gates.json).
+[machine-readable gate record](../evidence/java-source-spotlight-2026-09-23/gates.json).
 The original twelve mutation witnesses remain evidence at `5bf2e442`; they were not repeated after the
 rebase. Their code sites are unchanged apart from MainFrame line displacement by 1.18.0 additions.
 
-The generated [site screenshot](../site/assets/java-source-spotlight.png) was inspected: both cutouts
+The generated [site screenshot](../../site/assets/java-source-spotlight.png) was inspected: both cutouts
 align, both captions are visible, and the source/run qualification is visible. Only neutral fixture names
 appear. Reproduce with a real display:
 

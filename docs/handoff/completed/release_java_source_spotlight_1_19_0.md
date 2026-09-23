@@ -6,8 +6,8 @@ Source tree is identical across the rebase. Removing the inserted spotlight sect
 reproduces `f91919eb` byte-for-byte, including its Spring-side work block. The additional release notes
 state that Java highlighting is requested through an assistant, not activated by opening a log.
 
-No force-push, merge bubble, push to main or release has occurred. The published feature branch and
-PR #6 remain intact at `4558babc`. The owner initially requested a pre-push re-verification, then explicitly instructed the author to
+Main was fast-forwarded to `dac7c840`; release tag `v1.19.0` is at workflow stamp `a74f1b9e`.
+No force-push or merge bubble was used. The original feature branch remains intact at `4558babc`. The owner initially requested a pre-push re-verification, then explicitly instructed the author to
 proceed on the existing independent reviews and the passing rebased gates (2026-09-23). No further
 review round is required; the source tree remains identical to the reviewed implementation.
 
@@ -23,8 +23,8 @@ review round is required; the source tree remains identical to the reviewed impl
 | Generated conversations | all scenarios complete; five native captures; transcript refreshed |
 | Rule-1 sweep / diff check / new author addresses | clean / clean / personal |
 
-[Gate receipt](evidence/java-source-spotlight-1.19.0/gates.json).
-[Rebased mutation results](evidence/java-source-spotlight-1.19.0/mutations.json).
+[Gate receipt](../evidence/java-source-spotlight-1.19.0/gates.json).
+[Rebased mutation results](../evidence/java-source-spotlight-1.19.0/mutations.json).
 The reviewer's verdict and low-finding response remain in the original handoff packet.
 
 ## Release sequence
@@ -59,4 +59,23 @@ section. The candidate was rebased again without conflict. Source revision `9a00
 the tested source tree `c2b1904ae1d7774c4fb8c4fca0b9b5839fd73a8c` (also identical to reviewed `4558babc`).
 Removing only the feature section still reproduces the new main tracker byte-for-byte. No runtime,
 workflow, tool or test code changed; the source-hash-bound display and mutation evidence above still
-applies. The final clean gate and strict docs are checked again before the fast-forward.
+applies. The final clean gate passed again (1,876 / 0 / 0 / 62 headless skips), as did strict docs before the fast-forward.
+
+## Published — 2026-09-23
+
+- [Release 1.19.0](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.19.0),
+  tag/stamp `a74f1b9e`; main integration `dac7c840`.
+- [Main CI](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35846654178),
+  [static checks](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35846654182), and
+  [initial Pages deployment](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35846654190): success.
+- [Release workflow](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35847096957) and
+  [release-notes deployment](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/35847205740): success.
+- Downloaded both public jar assets and `SHA256SUMS.sha256`. Both jars are 3,945,846 bytes and match
+  SHA-256 `826daf64788674511c23d591f4e5aff3df53a5e44709c8e3990829bbfde41f65`.
+  Each manifest says `Implementation-Version: 1.19.0`; bundled release notes include the stamped
+  section and the assistant-requested activation caveat. The initial tag API response had an empty
+  assets array; the asset-list endpoint and actual public downloads verified all three published assets.
+- The completed review cycle is archived with relative links repaired. The independent implementation
+  review remains byte-identical. Historical review verdicts and test counts have not been rewritten.
+
+This completes the analyser release. Mongoose, compiler and playground releases are unchanged.

@@ -5,7 +5,7 @@
 Design keeps its released containment refusal; Java alone clips and labels partial lines.
 
 Response to [SR-1–SR-10](review_source_spotlight_revised_2026_09_21_claude.md).
-The [proposal](../proposals/source-spotlight.md) is revised in place. Review text is unchanged.
+The [proposal](../../proposals/source-spotlight.md) is revised in place. Review text is unchanged.
 These are corrections to an implementation contract, not evidence that the feature is built.
 
 | Finding | Response in proposal |

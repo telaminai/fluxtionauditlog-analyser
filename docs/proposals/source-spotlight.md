@@ -1,15 +1,15 @@
 # Proposal: spotlight Java source beside the topology
 
-**Status: IMPLEMENTED on `feat/java-source-spotlight-current`, independent verdict MERGE at `0fbbdace`; owner merge pending.**
-[Implementation review](../handoff/review_java_source_spotlight_2026_09_23_claude.md) and
-[low-finding response](../handoff/response_java_source_spotlight_2026_09_23.md).
-[Implementation report](../handoff/report_java_source_spotlight_2026_09_23.md) and
-[review brief](../handoff/brief_review_java_source_spotlight_2026_09_23.md). Proposal accepted at `3665e237`; S-1/S-2 were settled before implementation, and N-1 adds the deadline below. Revised 2026-09-21 in response to
-[the first review](../handoff/review_source_spotlight_proposal_2026_09_21.md) and
-[the revised-proposal review](../handoff/review_source_spotlight_revised_2026_09_21_claude.md).
-[Disposition of SR-1–SR-10](../handoff/response_source_spotlight_revised_2026_09_21.md);
-[round-four lookup correction](../handoff/response_source_spotlight_r4_2026_09_21.md);
-[accepted review and S-1/S-2 response](../handoff/response_source_spotlight_handoff_2026_09_21.md).
+**Status: SHIPPED in [analyser 1.19.0](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.19.0), 2026-09-23.** Independent verdict MERGE; all three low findings addressed before release.
+[Implementation review](../handoff/completed/review_java_source_spotlight_2026_09_23_claude.md) and
+[low-finding response](../handoff/completed/response_java_source_spotlight_2026_09_23.md).
+[Implementation report](../handoff/completed/report_java_source_spotlight_2026_09_23.md) and
+[review brief](../handoff/completed/brief_review_java_source_spotlight_2026_09_23.md). Proposal accepted at `3665e237`; S-1/S-2 were settled before implementation, and N-1 adds the deadline below. Revised 2026-09-21 in response to
+[the first review](../handoff/completed/review_source_spotlight_proposal_2026_09_21.md) and
+[the revised-proposal review](../handoff/completed/review_source_spotlight_revised_2026_09_21_claude.md).
+[Disposition of SR-1–SR-10](../handoff/completed/response_source_spotlight_revised_2026_09_21.md);
+[round-four lookup correction](../handoff/completed/response_source_spotlight_r4_2026_09_21.md);
+[accepted review and S-1/S-2 response](../handoff/completed/response_source_spotlight_handoff_2026_09_21.md).
 Owner: analyser source navigation and spotlight UI. This extends M64 and the existing source-view
 contracts; it does not add application execution or code analysis by the analyser.
 
@@ -23,7 +23,7 @@ the released source baseline below is unchanged.
 
 In particular, `c6aeafde` already added `DesignSourcePanel.revealLine` and rejects an existing design
 line band unless the whole band is inside the text viewport. This proposal preserves that released
-contract. The [round-three response](../handoff/response_source_spotlight_r3_2026_09_21.md) records
+contract. The [round-three response](../handoff/completed/response_source_spotlight_r3_2026_09_21.md) records
 T-1–T-4 and the source checks against this revision.
 
 ## Purpose and existing capability
@@ -48,7 +48,7 @@ Java, but it does not provide a Java spotlight rectangle or bind a spotlight to 
 
 ## Proposed vocabulary
 
-These additions are implemented on the feature branch and are not in the current release:
+These additions shipped in analyser 1.19.0:
 
 | Target | Meaning |
 |---|---|
@@ -496,5 +496,6 @@ SessionProcessor events/effects, consistent with its designated-thread disciplin
 requirement to create a second binding registry: retain one authoritative lifetime state and keep
 Swing geometry as an adapter. Either representation must satisfy the same headless transition tests.
 
-The handoff includes all mutation witnesses and anything not verified. Implementation evidence is recorded in the linked handoff; an independent implementation review and
-owner merge remain separate from the accepted proposal. No release is claimed here.
+The handoff includes all mutation witnesses and anything not verified. Independent review and owner-authorised
+release are complete. The [release record](../handoff/completed/release_java_source_spotlight_1_19_0.md) records the final
+rebased gates, public asset checks and analyser-only scope.

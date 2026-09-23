@@ -1,7 +1,7 @@
 # Source spotlight: round-four response — 2026-09-21
 
 [Review](review_source_spotlight_r4_2026_09_21_claude.md) ·
-[Proposal](../proposals/source-spotlight.md).
+[Proposal](../../proposals/source-spotlight.md).
 
 ## U-1 — one named lookup, and a reread route that actually reaches it
 
