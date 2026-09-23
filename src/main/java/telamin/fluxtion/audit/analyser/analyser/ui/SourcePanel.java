@@ -5,6 +5,7 @@ import telamin.fluxtion.audit.analyser.analyser.source.EventProcessorModel;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceNavigation;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceNavigation.Ref;
 import telamin.fluxtion.audit.analyser.analyser.source.SourceService;
+import telamin.fluxtion.audit.analyser.analyser.source.SourceDocument;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignDocument;
 
@@ -68,6 +69,16 @@ public final class SourcePanel extends JPanel {
     /** Which of the two panes are on screen. */
     public enum Mode { PROCESSOR, NODE, SPLIT, DESIGN }
 
+    private Runnable sourceViewChanged = () -> { };
+    public void onSourceViewChanged(Runnable listener) { sourceViewChanged = listener == null ? () -> { } : listener; }
+    private void sourceViewChanged() { sourceViewChanged.run(); }
+    /** View identity for a pending preparation; layout extent alone is not a user navigation. */
+    public Object spotlightViewState() {
+        return List.of(mode, wrap, processorPane.navigation, nodePane.navigation,
+                processorPane.scroll.getViewport().getViewPosition(), nodePane.scroll.getViewport().getViewPosition(),
+                designPane.text.getVisibleRect().getLocation());
+    }
+
     private final DesignSourcePanel designPane = new DesignSourcePanel();
     private final java.util.Map<Mode, JToggleButton> modeButtons = new java.util.EnumMap<>(Mode.class);
     private DesignWorkspace.View fileView;
@@ -114,6 +125,7 @@ public final class SourcePanel extends JPanel {
         top.add(new JLabel("  (Ctrl-click a node/method/type to navigate)"));
         add(top, BorderLayout.NORTH);
 
+        designPane.onViewportChanged(this::sourceViewChanged);
         installBackKeyBindings();
 
         split.setResizeWeight(0.5);
@@ -183,6 +195,7 @@ public final class SourcePanel extends JPanel {
         }
         host.revalidate();
         host.repaint();
+        sourceViewChanged();
     }
 
     /**
@@ -480,6 +493,7 @@ public final class SourcePanel extends JPanel {
         if (view.mode().equals("DESIGN")) {
             designPane.render(view, note); setMode(Mode.DESIGN);
         } else {
+            nodePane.snapshot = null; nodePane.navigation++; sourceViewChanged();
             nodePane.fqn = view.file(); nodePane.source = view.text();
             nodePane.model = EventProcessorModel.parse(view.file(), view.text());
             nodePane.label.setText(view.file());
@@ -499,6 +513,59 @@ public final class SourcePanel extends JPanel {
         if (fileView != null) { fileView = null; nodePane.renderPlain("Source closed with the design session."); }
         backStack.clear(); backButton.setEnabled(false);
     }
+    /** Binding measures only this rendered snapshot, never a new FQN lookup. */
+    public record JavaAnchor(JComponent component, SourceDocument document, String fqn) { }
+    public record JavaBand(Rectangle bounds, boolean partial) { }
+
+    public JavaAnchor showJavaSnapshot(String fqn, SourceDocument document, EventProcessorModel model) {
+        Pane pane = Objects.equals(fqn, service.selectedFqn()) ? processorPane : nodePane;
+        fileView = null;
+        if (pane.snapshot == null || !pane.snapshot.equals(document)) {
+            pane.navigation++;
+            pane.fqn = fqn; pane.source = document.text(); pane.model = model; pane.snapshot = document;
+            highlighter.render(pane.text.getStyledDocument(), pane.source);
+            pane.text.setWrap(wrap);
+            pane.text.setCaretPosition(0);
+        }
+        String disclosure = "Source/run: unverified\n" + fqn + "\nsource-viewer · first-match\n" + document.identity();
+        pane.label.setRows(5);
+        pane.label.setText(disclosure);
+        pane.label.setToolTipText(disclosure + " · rendered-text-utf8 SHA-256 " + document.revision());
+        revealPaneFor(pane);
+        sourceViewChanged();
+        return new JavaAnchor(pane, document, fqn);
+    }
+
+    public void revealJava(JavaAnchor anchor, Integer line) {
+        Pane pane = (Pane) anchor.component();
+        pane.navigation++;
+        java.awt.Window window = SwingUtilities.getWindowAncestor(this);
+        if (window != null) window.validate();
+        pane.scroll.validate(); pane.text.validate();
+        int offset = line == null ? 0 : pane.text.getDocument().getDefaultRootElement().getElement(line - 1).getStartOffset();
+        pane.text.setCaretPosition(Math.min(offset, pane.text.getDocument().getLength()));
+        try {
+            Rectangle band = pane.logicalBand(line == null ? 1 : line);
+            Rectangle view = pane.scroll.getViewport().getViewRect();
+            if (!view.contains(band)) {
+                int y = band.height > view.height ? band.y : Math.max(0, band.y - (view.height - band.height) / 2);
+                pane.text.scrollRectToVisible(new Rectangle(view.x, y, view.width, view.height));
+            }
+        } catch (BadLocationException ignored) { /* measurement refuses an unavailable band */ }
+    }
+
+    public Optional<JavaBand> javaBounds(JavaAnchor anchor, Integer line) {
+        Pane pane = (Pane) anchor.component();
+        if (!pane.isShowing() || pane.snapshot == null || !pane.snapshot.equals(anchor.document())) return Optional.empty();
+        Rectangle viewport = pane.scroll.getViewport().getViewRect().intersection(pane.text.getVisibleRect());
+        if (viewport.isEmpty()) return Optional.empty();
+        try {
+            Rectangle band = line == null ? viewport : pane.logicalBand(line);
+            return JavaLineGeometry.visible(band, viewport).map(visible -> new JavaBand(
+                    SwingUtilities.convertRectangle(pane.text, visible.bounds(), this), visible.partial()));
+        } catch (BadLocationException | IllegalArgumentException ex) { return Optional.empty(); }
+    }
+
     public JComponent designComponent() { return designPane; }
     public void revealDesignLine(int line) { designPane.revealLine(line); }
     public Optional<Rectangle> designBounds(String file, Integer line) {
@@ -531,18 +598,32 @@ public final class SourcePanel extends JPanel {
     private final class Pane extends JPanel {
         private final WrapTextPane text = new WrapTextPane(false);
         private final JScrollPane scroll = new JScrollPane(text);
-        private final JLabel label = new JLabel(" ");
+        private final javax.swing.JTextArea label = new javax.swing.JTextArea(" ", 1, 0) {
+            @Override public java.awt.Dimension getPreferredSize() {
+                // A wrapping area measured before its first width otherwise asks for thousands of
+                // pixels of height and gives the source viewport a negative extent on first reveal.
+                var insets = getInsets();
+                return new java.awt.Dimension(0, getRows() * getFontMetrics(getFont()).getHeight() + insets.top + insets.bottom);
+            }
+        };
         private String fqn;
         private String source = "";
         private EventProcessorModel model;
+        private SourceDocument snapshot;
+        private long navigation;
 
         Pane(String role) {
             super(new BorderLayout());
             text.setEditable(false);
             text.setFont(UiTheme.mono(12));
             scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            scroll.getViewport().addChangeListener(e -> sourceViewChanged());
+            addHierarchyListener(e -> sourceViewChanged());
             label.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
-            UiTheme.status(label);
+            label.setEditable(false); label.setLineWrap(true); label.setWrapStyleWord(true);
+            label.setFont(UiTheme.mono(11));
+            label.setForeground(UiTheme.mutedForeground());
+            label.setBackground(javax.swing.UIManager.getColor("Panel.background"));
             label.setText(role);
             add(label, BorderLayout.NORTH);
             add(scroll, BorderLayout.CENTER);
@@ -569,6 +650,8 @@ public final class SourcePanel extends JPanel {
 
         void applyTheme() {
             UiTheme.applySurface(scroll, text);
+            label.setForeground(UiTheme.mutedForeground());
+            label.setBackground(javax.swing.UIManager.getColor("Panel.background"));
             if (!source.isEmpty()) highlighter.render(text.getStyledDocument(), source);
             else if (fqn != null) showNothingToShow(fqn);
             // a pane showing only its "nothing open yet" message has neither source nor an fqn, so
@@ -587,9 +670,12 @@ public final class SourcePanel extends JPanel {
             text.revalidate();
             scroll.revalidate();
             scroll.repaint();
+            sourceViewChanged();
         }
 
         void render(String newFqn) {
+            navigation++; snapshot = null; sourceViewChanged();
+            label.setRows(1);
             Optional<String> src = service.sourceForFqn(newFqn);
             fqn = newFqn;
             if (src.isPresent()) {
@@ -620,6 +706,7 @@ public final class SourcePanel extends JPanel {
 
         /** Plain, muted text — messages must not be coloured as if they were code. */
         void renderPlain(String message) {
+            navigation++; snapshot = null; sourceViewChanged();
             this.placeholder = message;
             javax.swing.text.StyledDocument doc = text.getStyledDocument();
             try {
@@ -656,7 +743,20 @@ public final class SourcePanel extends JPanel {
             }
         }
 
+        Rectangle logicalBand(int line) throws BadLocationException {
+            var root = text.getDocument().getDefaultRootElement();
+            if (line < 1 || line > root.getElementCount()) throw new BadLocationException("line", line);
+            var element = root.getElement(line - 1);
+            int start = Math.min(element.getStartOffset(), text.getDocument().getLength());
+            int end = Math.max(start, Math.min(element.getEndOffset() - 1, text.getDocument().getLength()));
+            Rectangle2D first = text.modelToView2D(start), last = text.modelToView2D(end);
+            if (first == null || last == null) throw new BadLocationException("no layout", start);
+            Rectangle view = scroll.getViewport().getViewRect();
+            return JavaLineGeometry.band(first, last, view);
+        }
+
         void scrollToOffset(int offset) {
+            long ticket = ++navigation;
             try {
                 text.setCaretPosition(Math.min(offset, text.getDocument().getLength()));
                 Rectangle2D r = text.modelToView2D(offset);
@@ -666,7 +766,7 @@ public final class SourcePanel extends JPanel {
                     text.scrollRectToVisible(view);   // bring the target near the top
                 }
             } catch (BadLocationException | IllegalArgumentException ignore) {
-                SwingUtilities.invokeLater(() -> text.setCaretPosition(0));
+                SwingUtilities.invokeLater(() -> { if (ticket == navigation) text.setCaretPosition(0); });
             }
         }
     }

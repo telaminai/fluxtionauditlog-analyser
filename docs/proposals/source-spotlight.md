@@ -1,6 +1,8 @@
 # Proposal: spotlight Java source beside the topology
 
-**Status: READY FOR HANDOFF at review `3665e237`; S-1/S-2 clarified below before implementation. Not implemented.** Revised 2026-09-21 in response to
+**Status: IMPLEMENTED on `feat/java-source-spotlight`, pending independent implementation review.**
+[Implementation report](../handoff/report_java_source_spotlight_2026_09_23.md) and
+[review brief](../handoff/brief_review_java_source_spotlight_2026_09_23.md). Proposal accepted at `3665e237`; S-1/S-2 were settled before implementation, and N-1 adds the deadline below. Revised 2026-09-21 in response to
 [the first review](../handoff/review_source_spotlight_proposal_2026_09_21.md) and
 [the revised-proposal review](../handoff/review_source_spotlight_revised_2026_09_21_claude.md).
 [Disposition of SR-1–SR-10](../handoff/response_source_spotlight_revised_2026_09_21.md);
@@ -13,8 +15,8 @@ contracts; it does not add application execution or code analysis by the analyse
 
 Re-baselined on fetched `origin/main` **`401da35bf43aee102d53be9c59d164af0fdd9eba`**, which includes
 **v1.17.0**, on 2026-09-21. The primary working checkout remains at `9c10de82` to preserve concurrent
-uncommitted work; it is **not** the source baseline for this revision. Implementation must start from
-current main and re-check intervening changes before editing these shared surfaces.
+uncommitted work; it is **not** the source baseline for this revision. Implementation was rebased onto main `809303f7`, whose changes archive completed tracker/spec items;
+the released source baseline below is unchanged.
 
 In particular, `c6aeafde` already added `DesignSourcePanel.revealLine` and rejects an existing design
 line band unless the whole band is inside the text viewport. This proposal preserves that released
@@ -34,7 +36,7 @@ Design XML already has working targets:
 
 Their vocabulary and meaning remain unchanged, including the rule that a source glance at file B
 never redirects a session-design target away from design A. Their revision handling and ambiguous
-bean refusal remain governed by [spec-design-render.md](../specs/spec-design-render.md#d-3--spotlight-vocabulary).
+bean refusal remain governed by [spec-design-render.md](../specs/completed/spec-design-render.md#d-3--spotlight-vocabulary).
 This proposal does not add a `source:bean` alias or embedded XML design rendering.
 
 The missing capability is **Java source targeting**, including in the Topology tab's embedded
@@ -43,7 +45,7 @@ Java, but it does not provide a Java spotlight rectangle or bind a spotlight to 
 
 ## Proposed vocabulary
 
-These are proposed additions, not commands available in the current release:
+These additions are implemented on the feature branch and are not in the current release:
 
 | Target | Meaning |
 |---|---|
@@ -124,6 +126,15 @@ UI callers use the asynchronous entry point and receive the result on the EDT. A
 an interface that would synchronously wait from the EDT must refuse rather than freeze the canvas.
 A failed read or superseded ticket returns an error and publishes no new bindings.
 
+N-1 (2026-09-22): preparation has a **10-second server deadline**, below McpBridge's existing
+60-second CALL_TIMEOUT (`mcp/McpBridge.java`). Measure elapsed time monotonically, check it again
+before EDT apply, and schedule refusal without waiting for a stuck read. Expiry terminates that
+request, invalidates its ticket, returns “source lookup still running; retry” and prevents all late
+view/model/binding publication. Attempt worker cancellation, but correctness must not depend on
+filesystem I/O honouring interruption. Interrupt/cancel of the waiting caller also invalidates its
+request. A third-party client configured to give up before ten seconds cannot be detected merely
+from a disconnected HTTP request; this bound is not a claim about arbitrary client timeouts.
+
 **Both reveal entrances matter:** `ActionExecutor.doSpotlight` reveals `records:row` through doGoto
 before calling MainFrame, so Java preparation must complete **before that loop too**, not merely
 between MainFrame's precheck and resolveAll. Factor the capture/precheck from the executor's reveal
@@ -182,7 +193,7 @@ spotlight must not be described as resolving the glance's ambiguity. The assista
 disclosed origin before transferring a line number or claim from another source document.
 
 The public **fresh reread route is a new Java spotlight request itself**, including repeating the
-same target. Its frame preparation calls a proposed `SourceService.freshDocumentForSpotlight(fqn)`
+same target. Its frame preparation calls a `SourceService.Lookup.freshDocumentForSpotlight(fqn)` on the captured immutable lookup
 once per distinct FQN in that batch **on the background worker**, invalidates lookup hits/misses
 and returns an origin-bearing snapshot. It performs no navigation. The prepared snapshot is then rendered directly; measurement
 of an existing Lit binding never calls this reread entry point. No extra MCP verb, source-verb flag
@@ -445,7 +456,9 @@ relevant behavior disabled. Distinguish constructed fixtures from preserved sess
    exercise invalidation, not just a warm-cache success. Clear or change configuration while blocked,
    release the worker, and require a refusal with no reveal/binding resurrection. A mixed
    records-row/invalid-Java batch must leave filter/selection unchanged. Running preparation on the
-   EDT or dropping the ticket check must fail separate assertions; no timing-only benchmark suffices.
+   EDT or dropping the ticket check must fail separate assertions; no timing-only benchmark suffices. Block a real read past the preparation deadline: the request
+   refuses while the read is still blocked, then releasing it publishes no view, model or binding.
+   Disabling terminal-result/deadline guards must fail the late-completion assertion.
 9. **Selected-model freshness:** load a processor model, change a field's declared type in its source,
    and request a Java spotlight for that processor. The displayed snapshot/revision and subsequent
    fqnForInstance result must both reflect the new text. Supersede a blocked reread and prove neither
@@ -478,5 +491,5 @@ SessionProcessor events/effects, consistent with its designated-thread disciplin
 requirement to create a second binding registry: retain one authoritative lifetime state and keep
 Swing geometry as an adapter. Either representation must satisfy the same headless transition tests.
 
-The handoff includes all mutation witnesses and anything not verified. This remains a proposal for
-re-review; no implementation, non-skipping display result or acceptance closure is claimed here.
+The handoff includes all mutation witnesses and anything not verified. Implementation evidence is recorded in the linked handoff; an independent implementation review and
+owner merge remain separate from the accepted proposal. No release is claimed here.

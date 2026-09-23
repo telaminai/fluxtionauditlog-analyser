@@ -342,6 +342,11 @@ public final class VerbSchemas {
                         + "out on any click, Escape, {clear: true}, or any verb that changes the view (open, "
                         + "filter, goto, graph, topology) — so light AFTER the view is how you want it. The callout "
                         + "shows WHERE; your chat says WHAT. Durable findings are flags, notes and reports. "
+                        + "Java: source:java:<fqn>[:line:<n>] uses the viewer's first matching root, then enabled local sources jars; "
+                        + "source {fqn} instead refuses duplicate roots and never reads jars. Check the echoed origin before using a line number. "
+                        + "A repeated Java spotlight rereads source; preparation expires after ten seconds without lighting late. "
+                        + "One Java document per set; combine with topology targets to open source beside the graph. "
+                        + "Java line partial means a clipped logical line; source/run relationship is unverified. "
                         + "Targets: " + SpotlightVocabulary.TEXT,
                 props(
                         p("target", string(), "one of the targets above, e.g. tab:topology, records:row:12, "
