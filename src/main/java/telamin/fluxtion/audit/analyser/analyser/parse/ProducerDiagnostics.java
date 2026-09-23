@@ -40,6 +40,30 @@ public record ProducerDiagnostics(List<Finding> findings) {
          * The worst of the three: the file opens, and the record COUNT is wrong with no other symptom.
          */
         UNSEPARATED,
+        /**
+         * The file holds NO records at all (MA-0).
+         *
+         * <p>Every empty shape used to return from {@link #of} before any check, so an empty log raised
+         * nothing — marked or unmarked. A marker only changed the label from {@code unknown} to
+         * {@code complete}; what made an empty file look healthy was the absent warning, not the verdict.
+         *
+         * <p>It is a FINDING beside an unchanged state, never a seventh stream-end state: the six are a
+         * published contract that three store paths and {@code context} agree on.
+         *
+         * <p>Its wording is about the FILE, never the run. A buffered writer was measured holding zero
+         * bytes on disk while ~24 records sat in memory, so "this run produced nothing" would be a claim
+         * the file cannot support (V4).
+         */
+        EMPTY_LOG,
+        /**
+         * A document carried no {@code eventLogRecord:} key (MA-6).
+         *
+         * <p>Any producer can emit one; the known live source is AFMT-3, where a per-node level of
+         * {@code NONE} corrupts the next record into a run-together line with no header and no keys.
+         * Measured: such a document is COUNTED as a record and nothing flags it, so a marker over it
+         * reads {@code complete} and vouches for the corruption.
+         */
+        NO_RECORD_KEY,
         /** Records arrived, but no node logged anything — the audit auditor was never installed. */
         NO_NODE_LOGS,
         /** The only thing in the log is the framework's own control event. */
@@ -132,7 +156,16 @@ public record ProducerDiagnostics(List<Finding> findings) {
         for (String d : completeness) {
             out.add(new Finding(note ? Kind.COMPLETENESS_NOTE : Kind.COMPLETENESS_GAP, d));
         }
-        if (idx == null || idx.size() == 0) return new ProducerDiagnostics(List.copyOf(out));
+        if (idx == null || idx.size() == 0) {
+            // MA-0. Placed HERE, before the early return, because that return is why an empty log has
+            // always been silent. Damage findings are already in `out`, so SOURCE_DAMAGE is stated
+            // first and this second (MA-0.6).
+            out.add(new Finding(Kind.EMPTY_LOG,
+                    "No records in this file. A file can be empty because nothing was written yet, "
+                            + "because the writer is buffering, or because the processor cannot audit "
+                            + "at all — this says the file is empty, not that the run produced nothing."));
+            return new ProducerDiagnostics(List.copyOf(out));
+        }
 
         int damage = out.size();
         unseparated(idx, rawText).ifPresent(out::add);
@@ -144,6 +177,9 @@ public record ProducerDiagnostics(List<Finding> findings) {
         if (out.size() == damage) {
             noNodeLogs(idx).ifPresent(out::add);
         }
+        // MA-6 is independent of the three above: a document with no record key is a producer fault
+        // whatever else the file shows, and it is what lets a marker vouch for AFMT-3's output.
+        noRecordKey(idx, rawText).ifPresent(out::add);
         return new ProducerDiagnostics(List.copyOf(out));
     }
 
@@ -156,6 +192,41 @@ public record ProducerDiagnostics(List<Finding> findings) {
      * one-record log is perfectly legal, and that is exactly what an unseparated ten-record log looks
      * like from the outside.
      */
+    /**
+     * MA-6 — a document that carries no {@code eventLogRecord:} key.
+     *
+     * <p>The reader counts it as a record, so a marker written over it declares a count that includes
+     * it and the file reads {@code complete}: the marker vouches for a document whose header, keys and
+     * newlines are gone. Naming it is what stops a completeness claim covering corruption.
+     *
+     * <p>Reports the FIRST such row and how many there are, rather than one finding per row, so a badly
+     * affected file says one clear thing.
+     */
+    private static java.util.Optional<Finding> noRecordKey(LogIndex idx, IntFunction<String> rawText) {
+        if (rawText == null) return java.util.Optional.empty();
+        int firstRow = -1;
+        int affected = 0;
+        for (int row = 0; row < idx.size(); row++) {
+            String text = rawText.apply(row);
+            if (text == null || text.isBlank()) continue;
+            if (text.indexOf(RECORD_KEY) < 0) {
+                if (firstRow < 0) firstRow = row;
+                affected++;
+            }
+        }
+        if (firstRow < 0) return java.util.Optional.empty();
+        return java.util.Optional.of(new Finding(Kind.NO_RECORD_KEY,
+                (affected == 1
+                        ? "Record " + (firstRow + 1) + " carries no 'eventLogRecord:' key"
+                        : affected + " records carry no 'eventLogRecord:' key, the first at "
+                        + (firstRow + 1))
+                        + ". A document without it is not a record this format can read, yet it is "
+                        + "counted as one — so a stream-end marker written over it declares a count "
+                        + "that includes it, and the log reads as complete while the document's "
+                        + "header, keys and newlines are gone. The known producer-side cause is a "
+                        + "per-node audit level of NONE, which corrupts the record that follows it."));
+    }
+
     private static java.util.Optional<Finding> unseparated(LogIndex idx, IntFunction<String> rawText) {
         if (rawText == null) return java.util.Optional.empty();
         for (int row = 0; row < idx.size(); row++) {
