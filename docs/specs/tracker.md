@@ -252,7 +252,7 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
   **Policy settled; implemented on the feature branches, not published.** Owner chose INFO callback
   facts: event name/current filter, trigger fired and lifecycle phase, including unfinished nodes;
   retain existing superclasses using runtime logger injection. No inferred business-state dump.
-  Both emitters are covered by real audit-manager tests. Clean Java gate: 84 builder + 51 starter;
+  Both emitters are covered by real audit-manager tests. Historical BETA-B2 stage gate: 84 builder + 51 starter;
   playground: 551 tests; no failures or skips. Five Java and three browser mutations reject missing
   facts/disabled protection, with green baselines and restored green. Canonical policy is compiler
   Spec 3 B4; playground commit `ec2b1f8`. Publication and independent review remain open; authors
@@ -260,8 +260,9 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
   standalone Spring, the only template with a verified local authoring route._ **That recommendation rests on SG-2
   being open; closing it in the Spring-side block widens the choice.** The dry run itself stays with the beta.
-- **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _none exists yet._ **Build these in
+- **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _implemented but unreviewed/unapproved; source is now available to reviewers._ **Build these in
   the same collection as M67.1's catalogue jars — same artefact type, same repository, one decision (Spring-side block ▸ 4).**
+  G18 access resolved: [source branch](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`; clean clone and placeholder-source controls pass. This does not approve the jars or publish binaries.
 - **[BETA-8] ◧ — the journey on Haiku (2026-09-21)** · _A2 and A3 hold on a model two generations smaller._
   A2 ×3: full success 3/3 (92–123 s; two runs edited shipped data, one undisclosed). A3 without routing: fix
   3/3, but 0/6 runs (with or without the `Skill` tool) loaded `point-at-the-fault`, 0/3 kept deliberate
@@ -346,6 +347,24 @@ have 13 named seen-red witnesses and green baseline/restoration. [Review handoff
 **Still open:** carrying-tool publication, matching browser pin/deployment, G14 on the real public
 download, catalogue public resolution/integration and D-X9's previously owner-built provenance.
 No analyser code changed and no analyser server ran. These are branch results, not release claims.
+
+<!-- branch-archive-evidence -->
+**G19 scope of the five generated-project checks and round trips:** these checks run
+branch tool **1.0.74-SNAPSHOT** while the emitted POM and authoring record pin
+published **1.0.73**, which contains none of this work. They are branch evidence,
+not evidence of what a user receives. G14 remains open for a carrying public release.
+<!-- end-branch-archive-evidence -->
+
+**Review intake:** both reports read. G's access/gate/scope/key findings are being
+addressed; the second review's H1/M1–M6 require correction before publication.
+Neither report is silently overridden by the other. The complete current Java gate is
+`JAVA_HOME=/path/to/jdk-21 ./mvnw -q -o -pl fluxtion-starter-core -am clean package`:
+263 builder tests (one existing packaged-jar-only skip), 62 starter tests, no failures/errors,
+measured before review-response source changes. Source-driven coverage check rejects the
+four suites omitted by the old filter. Historical stage counts below are not this gate.
+Playground `pnpm test` needs both FLUXTION_STARTER_TEST_JAR and FLUXTION_RUNTIME_TEST_JAR:
+with only the starter jar, 559 pass and the runtime callback probe skips; with both,
+560 pass and none skip (independently repeated in this response).
 
 
 Owner's instruction, 2026-09-23: complete the Spring-side blockers together rather than as separate queue items,
@@ -581,7 +600,7 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   generation/run without breaking the keyless bundle. **Implemented on feature branches, not deployed:**
   playground `e85a459`, compiler verification `1073bfb3`. Nine actual-archive cases and five
   seen-red controls pass. Five fresh downloads pass emitted scripts; both hosted variants
-  export five independently checked records and stop cleanly. The pristine bundle separately
+  export five independently checked records and stop cleanly. **G19:** branch tool 1.0.74-SNAPSHOT substitutes for the emitted POM/record pin 1.0.73; this is not evidence of what a user receives. The pristine bundle separately
   builds/runs without setup or a key. F9 refuses extended declarations outside AOT; F11 refuses
   a mismatched BOM/tool pair before download. Full playground gate: 560 tests; production build
   passes; same four existing type errors and six warnings. G14 still needs publication and a
@@ -1384,7 +1403,7 @@ call the LLM is waiting on; would be M64.14, the tour its first user.
   zero-multiplier controls are seen red, with green baseline/restoration. Repeated builds
   match bytes; unknown catalogue version and altered jars are refused. These are direct
   callback/packaging checks, not generated-dispatch or receipt-integrity evidence.
-  D-X7's remote was unavailable at intake; source/evidence are in the local catalogue repo.
+  D-X7's remote was unavailable at intake; G18 now provides the [source repository](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`. Implemented but unreviewed/unapproved; binaries are not published.
   Public resolution, owner-built provenance and the tour remain open. [Evidence](../handoff/evidence/spring-side-2026-09-23/jars/summary.json).
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
