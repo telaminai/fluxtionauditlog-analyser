@@ -156,7 +156,13 @@ public record ProducerDiagnostics(List<Finding> findings) {
         for (String d : completeness) {
             out.add(new Finding(note ? Kind.COMPLETENESS_NOTE : Kind.COMPLETENESS_GAP, d));
         }
-        if (idx == null || idx.size() == 0) {
+        if (idx == null) {
+            // No index SUPPLIED — callers that only want the reader's diagnostics echoed pass null.
+            // That is not the same as a log with no records, and MA-0 must not fire on it: f20 parses a
+            // whole record and still passes null here. D-MA0b keys on size() == 0, and only that.
+            return new ProducerDiagnostics(List.copyOf(out));
+        }
+        if (idx.size() == 0) {
             // MA-0. Placed HERE, before the early return, because that return is why an empty log has
             // always been silent. Damage findings are already in `out`, so SOURCE_DAMAGE is stated
             // first and this second (MA-0.6).

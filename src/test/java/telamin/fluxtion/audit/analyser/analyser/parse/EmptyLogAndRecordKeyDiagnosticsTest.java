@@ -51,17 +51,30 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
     // ---------------------------------------------------------------- MA-0
 
     /**
-     * MA-0.1 — every empty shape raises the finding. The shapes differ on disk but reach this method
-     * identically: an index with no records. A null index is the not-yet-loaded case.
+     * MA-0.1 — an index with no records raises the finding. Every empty shape on disk — zero bytes,
+     * whitespace only, an empty export, a marker declaring zero, two empty marked segments, a rolled
+     * set of empty members — reaches this method identically, as an index of size zero.
      */
     @Test
-    void everyEmptyShapeRaisesTheEmptyLogFinding() {
-        for (LogIndex idx : new LogIndex[]{new LogIndex(), null}) {
-            ProducerDiagnostics d = diagnose(idx, texts());
-            assertTrue(d.firstWarning().isPresent(),
-                    "an empty log must raise a finding — this is what was silent");
-            assertEquals(ProducerDiagnostics.Kind.EMPTY_LOG, d.firstWarning().orElseThrow().kind());
-        }
+    void anIndexWithNoRecordsRaisesTheEmptyLogFinding() {
+        ProducerDiagnostics d = diagnose(new LogIndex(), texts());
+        assertTrue(d.firstWarning().isPresent(),
+                "an empty log must raise a finding — this is what was silent");
+        assertEquals(ProducerDiagnostics.Kind.EMPTY_LOG, d.firstWarning().orElseThrow().kind());
+    }
+
+    /**
+     * A NULL index is not an empty log, and MA-0 must not fire on it.
+     *
+     * <p>Callers that only want the reader's own diagnostics echoed pass {@code null} — the binary
+     * conformance suite does exactly that while having parsed a whole record. Firing here would put an
+     * "empty file" warning on a file with records in it. D-MA0b keys on {@code size() == 0}, and this
+     * is why it says only that.
+     */
+    @Test
+    void aNullIndexIsNotAnEmptyLog() {
+        ProducerDiagnostics d = diagnose(null, texts());
+        assertTrue(d.isClean(), "no index supplied is not a claim about the file: " + d.messages());
     }
 
     /**

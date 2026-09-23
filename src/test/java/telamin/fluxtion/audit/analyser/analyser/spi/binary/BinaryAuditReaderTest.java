@@ -539,7 +539,14 @@ class BinaryAuditReaderTest {
         assertEquals(1, again.sourceDiagnostics().size(), "and a re-open reports again");
         var messages = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(again.index(), again::rawText, again.sourceDiagnostics()).messages();
-        assertEquals(again.sourceDiagnostics(), messages, "what the context echo would carry");
+        // MA-0.6. The cut file parsed NO records, so the echo now carries two things: the damage, and
+        // the empty-log finding. Damage comes FIRST because it explains why the file is empty. Before
+        // MA-0 this said only the damage, and a reader was left to notice the emptiness themselves.
+        assertEquals(2, messages.size(), "damage and empty, both worth saying: " + messages);
+        assertEquals(again.sourceDiagnostics().get(0), messages.get(0),
+                "the reader's own damage message comes first");
+        assertTrue(messages.get(1).startsWith("No records in this file"),
+                "and the empty-log finding second: " + messages.get(1));
     }
 
     /** The reader claims only what the store can do: no follow, no byte anchors, random access by row. */

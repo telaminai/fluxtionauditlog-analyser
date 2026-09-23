@@ -58,6 +58,10 @@ public final class CoverageService {
         }
         NodeCoverage coverage = NodeCoverage.of(scope.loggable(), logged, Set.of());
         AuditLevel auditLevel = AuditLevel.of(levels);
+        // MA-8. Read UNFILTERED on purpose: a level change is configuration state, not an event you
+        // happen to be looking at, so a filter that hides the control record must not drop the
+        // annotation. AuditLevel above reports GLOBAL levels; this is the per-node case it cannot see.
+        PerNodeLevelChanges levelChanges = PerNodeLevelChanges.of(store);
 
         Map<String, Object> echo = new LinkedHashMap<>();
         echo.put("dispatchHierarchy", "unknown");
@@ -73,6 +77,23 @@ public final class CoverageService {
         echo.put("recordsScanned", scanned);
         echo.put("scope", filtered ? "current filter" : "whole log");
         if (!coverage.uncovered().isEmpty()) echo.putAll(auditLevel.echo());
+        // Annotate, never excuse (MA-8.2): the node stays in `uncovered` and in the ratio above, and
+        // this says why the log may be silent about it. Excusing it would hide a node that never ran
+        // whenever the qualifying record is wrong — and a control-LOOKING record can be content until
+        // every writer escapes (MA-7).
+        if (levelChanges.any()) {
+            Map<String, String> annotations = new LinkedHashMap<>();
+            for (String node : coverage.uncovered()) {
+                String note = levelChanges.annotationFor(node);
+                if (note != null) annotations.put(node, note);
+            }
+            if (!annotations.isEmpty()) {
+                echo.put("levelAnnotations", annotations);
+                echo.put("levelAnnotationsNote",
+                        "These nodes are still counted as uncovered. A level change explains why the log "
+                                + "may be silent about them; it is not evidence that they ran.");
+            }
+        }
 
         List<Map<String, Object>> never = new ArrayList<>();
         for (String id : coverage.uncovered()) never.add(node(id, input.topology(), "uncovered",

@@ -1,10 +1,10 @@
 [SPIKE] getAuditorById(eventLogger) -> true
 [SPIKE] LogRecords captured: 5
 [SPIKE] record >>>
-        - allEventHandler: { init: allEventHandlereventLogRecord: 
+        - allEventHandler: { init: allEventHandlereventLogRecord:
     nodeLogs: , tick: e0}
 [SPIKE] record >>>
-    nodeLogs: 
+    nodeLogs:
         - allEventHandler: { tick: e1}
 [SPIKE] getLastAuditLogRecord -> []
 
