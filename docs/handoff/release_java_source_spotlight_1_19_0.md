@@ -51,3 +51,12 @@ Conversation capture completed all scenarios and captured five native images. Fo
 the fifth was visually compared with its prior image and differed only in the worktree source-root path,
 so it was restored. The generated transcript's new `streamEnd` facts are retained. All visible data are
 the neutral demo fixture; no user profile was used.
+
+## Final tracker-only integration
+
+Main advanced from `f91919eb` to `1ea0a934` while preflight ran, changing only its Spring-side tracker
+section. The candidate was rebased again without conflict. Source revision `9a00c602` has exactly
+the tested source tree `c2b1904ae1d7774c4fb8c4fca0b9b5839fd73a8c` (also identical to reviewed `4558babc`).
+Removing only the feature section still reproduces the new main tracker byte-for-byte. No runtime,
+workflow, tool or test code changed; the source-hash-bound display and mutation evidence above still
+applies. The final clean gate and strict docs are checked again before the fast-forward.

@@ -185,5 +185,15 @@
   "mainPush": "not performed",
   "release": "not performed",
   "sweep": "tracked/untracked clean",
-  "authorEmailAudit": "new commits all personal address; full-history distribution checked locally"
+  "authorEmailAudit": "new commits all personal address; full-history distribution checked locally",
+  "finalBase": "1ea0a934",
+  "finalSourceRevision": "9a00c602",
+  "finalSourceTreeMatchesTestedTree": true,
+  "finalHeadless": {
+    "tests": 1876,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 62
+  },
+  "finalDocs": "strict build passed"
 }
