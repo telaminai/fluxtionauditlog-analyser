@@ -340,13 +340,19 @@ one of rule 1's four sweep terms.**
 ## Spring-side work block — assembled 2026-09-23, to be done as ONE piece of work
 
 **Review-response checkpoint 2026-09-23:** `fix/spring-side-review-response` carries
-compiler `a4bf2077` (source `6e69b231`, reviewed at `8db49c4c`) and playground `9e2c112`; shared catalogue
+compiler `af7352bf` (implementation `a156010b`, prior source independently reviewed) and playground `454a313`; shared catalogue
 source branch `feat/spring-side-work-block` is available at `3a89391`.
 Reviewer G independently closed G17–G20 at `e559c424`, including the catalogue source/oracle
 review. G21 remains an accepted P4 playground gate follow-up: missing test jars must
 refuse a full-evidence gate or prominently report incomplete evidence; both supplied
 must execute the callback probe with no skips, with a guard-disabled negative control. H1 and
-M1–M6 have executable corrections and seen-red controls, awaiting independent re-review.
+M1/M2/M4 and Java H1 are independently confirmed; M3's original protections hold but
+R1–R3 now have an explicit input allow-list and three seen-red regressions. The browser
+addendum confirms H1/M5/M6 on the prior head. Its N1 is now guarded in both emitters
+with the real tokenizer and a guard-removal witness each; N2 narrows the unregistered
+node claim. New corrections are implemented, pending independent re-review. Runtime
+value escaping remains upstream at mongoose-plugins#39. See the existing response for
+the exact allow-list, its limitations, predictions, commits and regression witnesses.
 [Response and exact gate commands](../handoff/response_spring_side_reviews_2026_09_23.md).
 The original implementation handoff is historical; its filtered counts are superseded.
 **Still open:** carrying-tool publication, matching browser pin/deployment,
@@ -364,7 +370,7 @@ not evidence of what a user receives. G14 remains open for a carrying public rel
 **Both reviews addressed without overriding either verdict.** Final Java command:
 `JAVA_HOME=/path/to/jdk-21 bash tools/spring-authoring/run-local-gates.sh` runs the entire
 starter module and dependencies: **264 builder (one existing packaged-jar-only skip),
-71 starter (zero skips), zero failures/errors**; coverage guard and jar check pass.
+80 starter (zero skips), zero failures/errors**; coverage guard and jar check pass.
 Playground `pnpm test` with both `FLUXTION_STARTER_TEST_JAR` and
 `FLUXTION_RUNTIME_TEST_JAR` as in the response: **563 passed, zero skipped**; build passes,
 type check retains four existing errors/six warnings. The earlier 559-plus-one-skip run

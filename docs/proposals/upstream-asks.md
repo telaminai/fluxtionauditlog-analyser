@@ -189,6 +189,17 @@ told. It does not assert that the behaviour is correct.
 
 ## TA-U · Tool-agreement upstream intake — 2026-09-21
 
+**Existing upstream issue: [mongoose-plugins#39](https://github.com/telaminai/mongoose-plugins/issues/39),
+runtime value escaping — OPEN. Owner: runtime audit writer / producer maintainers.**
+Spring-side H1 deferred eventToString/eventFilter escaping; re-review N1 additionally
+reproduces forged node-field keys from a comma/colon filter string and damaged items
+from braces. This is the same V1 field-value/node-entry integrity boundary, not a new
+runtime implementation in the analyser. Durable quoting/escaping must cover arbitrary
+node values and event metadata. Acceptance must pass actual emitted text through the
+reader's declared tokenizer grammar and preserve exactly the producer's entries; a
+payload must not add fields, hide an entry or change framing. Interim generated-filter
+neutralisation is lossy and is not closure of this issue. See the [Spring response](../handoff/response_spring_side_reviews_2026_09_23.md).
+
 Status: **recorded, not implemented or independently reproduced here**. Source:
 [the preserved session](../handoff/evidence/unguided-session-2026-09-21/session-report.md) and
 [the spec baseline](../specs/spec-tool-agreement.md). Every runtime prediction matched; these asks
