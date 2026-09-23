@@ -85,7 +85,32 @@ still to do.
   threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
   index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
   must not be merged; its own entry records the detail.
-- **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ Two changes, and the second is
+- **[MA-1] ☐ — a `DefaultEventProcessor` graph installs no `EventLogManager`, so no node can log** ·
+  _not this repository — `fluxtion-runtime`._ **Blocks MA-2.** Spec:
+  [`spec-mongoose-audit-production.md`](spec-mongoose-audit-production.md). A processor Mongoose builds
+  from a `customHandler` emits **zero** audit records at any level; the admin endpoint that sets the level
+  returns 200 and changes nothing; the sink holds only `metadata.cq4t`. Measured on a booted server.
+  Scoped: AOT-built processors DO log — `c21-real-export.yaml` has 25 records, 7 with node entries.
+  **Gate: OD-1**, always-on versus opt-in for the auditor, to be decided with `UP-FLX-51` (~120 ns/event
+  for a manager recording nothing). Filed as `UP-MON-02` in
+  [upstream asks](../proposals/upstream-asks.md).
+- **[MA-2] ☐ — the marker writer** · _not this repository._ **Blocked on MA-1, and the ordering is a
+  requirement.** Measured against the published 1.18.0 jar: a marker declaring zero records reads
+  `complete`, so shipping this first would replace an honest `unknown` with a confident false claim on
+  exactly the processors that are already broken — D-T8 inverted. Was AF-4 item 1.
+- **[MA-3] ☐ — the `MAX_PENDING` ceiling has no live-server test** ·
+  [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). Independent of MA-1/MA-2.
+  Needs a client that stops reading at TCP level; a JDK client that stops calling `request()` applies flow
+  control in its listener, not on the wire, so the server's sends keep succeeding.
+- **[MA-R] ◧ — the spec is OUT FOR REVIEW**, brief at
+  [`brief_review_mongoose_audit_production_2026_09_23.md`](../handoff/brief_review_mongoose_audit_production_2026_09_23.md).
+  Implementation is mine; review comes back through the handoff protocol before any of MA-1…MA-3 starts.
+- **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
+  work is specified: see [MA-1…MA-3] above and
+  [`spec-mongoose-audit-production.md`](spec-mongoose-audit-production.md).** Item 2 shipped in
+  `mongoose-plugins` 1.0.44; item 1 is now MA-2, and the spec adds the prerequisite AF-4 did not know
+  about. Kept here for its history.
+  Two changes, and the second is
   in a different class from the first, which round six had to point out to me.
   1. **The marker writer.** `asCharSequence()` per record, then the marker. Config validation refuses
      unknown values by name. Per-node entry parity, not a record count.

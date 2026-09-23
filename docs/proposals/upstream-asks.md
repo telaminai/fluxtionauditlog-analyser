@@ -125,8 +125,16 @@ reads exactly as it does today.
 
 ### UP-MON-02 ☐ A `customHandler` processor emits NO audit records, so absence cannot be read
 
-**Where.** `telaminai/mongoose` core, the DataFlow built for a processor added as
-`EventProcessorConfig.builder().customHandler(...)`. Measured against `mongoose-1.0.29`.
+**Specified in [`spec-mongoose-audit-production.md`](../specs/spec-mongoose-audit-production.md) as MA-1**
+(2026-09-23), with the owner decision OD-1 it needs and the measurement that makes it block the marker
+writer. That spec is the working document; this entry remains the filed ask.
+
+**Where — CORRECTED 2026-09-23.** This first said `telaminai/mongoose` core. **It is `fluxtion-runtime`.**
+`com.telamin.fluxtion.runtime.DefaultEventProcessor` (read at `1.0.15`) declares exactly two auditors,
+`NodeNameAuditor nodeNameLookup` and `Clock clock`, and no `EventLogManager` — so no graph built on it can
+resolve `eventLogger`, whoever constructs it. Mongoose only chooses that class, through
+`EventProcessorConfig.getEventHandler()` wrapping a `customHandler` in `ConfigAwareEventProcessor extends
+DefaultEventProcessor`. Measured against `mongoose-1.0.29`.
 
 **The symptom.** A real handler, on a real agent thread, in a booted `MongooseServer` with
 `PerformanceMonitoringConfig.auditCapture` enabled, calling `auditLog.info(...)` on every event at level
@@ -152,8 +160,10 @@ between "this node is silent" and "this whole processor cannot speak".
 
 **The likely fix, which the analyser already names.** `ProducerDiagnostics.NO_NODE_LOGS` reports that the
 `EventLogManager` auditor was never installed and names **`addEventAudit()`** as the missing call. The
-product already points at the cause and the remedy; what is missing is the call in the builder for this
-path.
+product already points at the cause and the remedy; what is missing is the auditor on
+`DefaultEventProcessor`. Whether it goes on always or behind a flag is **OD-1** in the spec, and should be
+decided together with `UP-FLX-51` — which measured ~120 ns/event for a manager recording nothing, and
+proposes a fix that would make "always on" cheap.
 
 **Acceptance.** A processor added via `customHandler`, with the audit level at INFO, writes records
 carrying `nodeLogs` entries into its Chronicle sink, and its export loads in the analyser with a
