@@ -1,0 +1,21 @@
+package com.example.myapp.spike;
+import com.example.myapp.builder.MarketProcessorSupplier;
+import com.telamin.mongoose.MongooseServer;
+import java.io.FileReader; import java.nio.file.*;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
+/** REVIEW SPIKE. Boots the bundle with Chronicle capture on and an unaudited AOT processor; on the file
+ *  'phase2' appearing, stops and re-adds marketProcessor (MA-5.4) and writes 'phase2done'. */
+public final class LiveChecksMain {
+    public static void main(String[] a) throws Exception {
+        String cfg = "config/live-config.yml"; System.setProperty("mongooseServer.config.file", cfg);
+        MongooseServer server; try (FileReader r = new FileReader(cfg)) { server = MongooseServer.bootServer(r); }
+        Runtime.getRuntime().addShutdownHook(new Thread(server::stop));
+        System.out.println("LIVE started");
+        while (!Files.exists(Path.of("phase2"))) Thread.sleep(200);
+        server.stopProcessor("processor-agent", "marketProcessor");
+        Thread.sleep(500);
+        server.addEventProcessor("marketProcessor", "processor-agent", new SleepingMillisIdleStrategy(), () -> { var f = new MarketProcessorSupplier().get(); f.init(); return f; });
+        Files.writeString(Path.of("phase2done"), "ok");
+        System.out.println("LIVE re-added marketProcessor");
+    }
+}

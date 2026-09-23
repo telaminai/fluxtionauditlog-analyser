@@ -1,0 +1,9 @@
+12a13,14
+>       unaudited:
+>         eventHandlerBuilder: !!com.example.myapp.spike.UnauditedSupplier {}
+47c49
+<     enabled: false
+---
+>     enabled: true
+53a56
+>       - unaudited
