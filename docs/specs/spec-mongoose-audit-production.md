@@ -129,7 +129,9 @@ this will think of it; the answer is no, and the reason is the dependency, not t
 
 ### D-MA1 verdict · (c), generate the shape and commit it
 
-**OD-3 — owner decision: (a), (b) or (c); (d) is closed.** The spec recommends **(c)**.
+**OD-3 — DECIDED 2026-09-23 by the owner: (c).** (d) is closed on the runtime-compiler constraint;
+(a) and (b) are not taken. (b) remains the fallback if (c)'s open questions below answer badly — it is
+spiked and working, so falling back costs little.
 
 `DefaultEventProcessor` began as generator output — its javadoc still carries unsubstituted placeholders
 — so the shape Mongoose needs is generatable: a processor that declares `eventLogger` and wires it in
@@ -140,6 +142,31 @@ does. Generate it once **at build time**, commit the source, ship it. Mongoose g
 **(b) is the fallback and the only PROVEN option** — spiked and running — if generating the artefact is
 unattractive. **(a)** remains right only if the fix should benefit every `DefaultEventProcessor` consumer
 rather than Mongoose alone.
+
+#### What (c) still has to answer — it is chosen, not proven
+
+Unlike (b), nothing here has been run. These are the implementation's first questions, in order:
+
+1. **Can the generator actually emit this shape?** The target is a processor hosting a *runtime-supplied*
+   `ObjectEventHandlerNode` — the wrapper shape — with an `eventLogger` wired in. `DefaultEventProcessor`
+   is evidence the shape exists, but not that today's generator will emit it on request. **Spike this
+   first**; if it cannot, fall back to (b) rather than hand-writing the file, which is (b) with extra
+   steps.
+2. **The drift cost, which is (c)'s real price.** The artefact is a committed copy of a shape
+   `fluxtion-runtime` also maintains. When `DefaultEventProcessor` changes, Mongoose's copy does not —
+   and this is not hypothetical: that class's own `getLastAuditLogRecord()` is **already broken** in the
+   framework, silently returning `""` because it reflects on a field its hand-written version never
+   declares. A copy inherits that and adds a second place to fix it. **The spec's position: regenerate
+   rather than hand-edit, and record the generator version and source in the artefact's header** so the
+   next person can tell a regeneration from a patch.
+3. **Where does it live and who regenerates it?** `mongoose` core, since that is where
+   `ConfigAwareEventProcessor` lives and what chooses the processor class. Needs a documented,
+   repeatable generation step — a committed artefact nobody can reproduce is worse than a hand-written
+   one, because it *looks* generated.
+4. **The `EventLogControlEvent` trap, found by the (b) spike.** Routing it to `eventReceived` instead of
+   `calculationLogConfig` yields **zero records, silently** — the same failure shape as the defect this
+   spec exists to fix. A generated processor should get this right natively; **assert it**, because it
+   fails quietly.
 
 ### D-MA1b · What MA-1 can and cannot deliver — it is NOT per-node coverage
 

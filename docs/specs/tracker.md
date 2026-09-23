@@ -91,6 +91,12 @@ still to do.
   from a `customHandler` emits **zero** audit records at any level; the admin endpoint that sets the level
   returns 200 and changes nothing; the sink holds only `metadata.cq4t`. Measured on a booted server.
   Scoped: AOT-built processors DO log — `c21-real-export.yaml` has 25 records, 7 with node entries.
+  **OD-3 DECIDED 2026-09-23: option (c)** — Mongoose generates the processor shape it needs at BUILD
+  time and commits it; no runtime compiler dependency, no fluxtion release. Option (b), a hand-written
+  subclass, is spiked and working and is the fallback. Option (d), building via the builder at runtime,
+  is closed on the constraint that Mongoose must not depend on the compiler at runtime — it is the only
+  option that would have lifted the per-node coverage cap, so that cap is permanent and full per-node
+  coverage stays the AOT path.
   **Gate: OD-1**, always-on versus opt-in for the auditor, to be decided with `UP-FLX-51` (~120 ns/event
   for a manager recording nothing). Filed as `UP-MON-02` in
   [upstream asks](../proposals/upstream-asks.md).
