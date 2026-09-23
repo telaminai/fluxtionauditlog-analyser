@@ -1,0 +1,162 @@
+{
+  "catalogue": 1,
+  "publication": "local rehearsal; not publicly resolvable",
+  "repoBase": "https://raw.githubusercontent.com/telaminai/fluxtion-vendor-jars/main/libs",
+  "jars": [
+    {
+      "id": "component-api",
+      "name": "component-api",
+      "description": "Shared event interfaces and notification service contract.",
+      "coordinate": "com.acme.vendor:component-api:1.0.0",
+      "src": "com/acme/vendor/component-api/1.0.0/component-api-1.0.0.jar",
+      "size": 1196,
+      "sha256": "48444dca097e53e36731453db725c5f76be362dfc0b7d5b63cd29b3bdb25afa5",
+      "provides": {
+        "nodes": [],
+        "events": [
+          "com.acme.vendor.api.QuoteView",
+          "com.acme.vendor.api.RiskInput"
+        ],
+        "services": [
+          "com.acme.vendor.api.NotificationService"
+        ]
+      },
+      "consumes": {
+        "events": []
+      },
+      "licence": "Apache-2.0",
+      "source": "https://github.com/telaminai/fluxtion-vendor-jars/tree/main/src/component-api",
+      "dependencies": []
+    },
+    {
+      "id": "quote-limit-check",
+      "name": "quote-limit-check",
+      "description": "Publishes a breach when a quote exceeds its per-symbol size limit.",
+      "coordinate": "com.acme.vendor:quote-limit-check:1.0.0",
+      "src": "com/acme/vendor/quote-limit-check/1.0.0/quote-limit-check-1.0.0.jar",
+      "size": 4779,
+      "sha256": "5b899622061e87cbdf6fb57b2a6ece46e415575ef05fa4359925f17c2f53aabd",
+      "provides": {
+        "nodes": [
+          "com.acme.vendor.limit.LimitCheck"
+        ],
+        "events": [
+          "com.acme.vendor.limit.LimitBreach"
+        ],
+        "services": []
+      },
+      "consumes": {
+        "events": [
+          "com.acme.vendor.api.QuoteView"
+        ]
+      },
+      "licence": "Apache-2.0",
+      "source": "https://github.com/telaminai/fluxtion-vendor-jars/tree/main/src/quote-limit-check",
+      "dependencies": [
+        "component-api"
+      ]
+    },
+    {
+      "id": "notifier",
+      "name": "notifier",
+      "description": "Exported notification service publishing text to a named sink.",
+      "coordinate": "com.acme.vendor:notifier:1.0.0",
+      "src": "com/acme/vendor/notifier/1.0.0/notifier-1.0.0.jar",
+      "size": 1944,
+      "sha256": "f40a19218cced699607f27fbb44e6c741791ab7ade405e50a458b8a81ee196ad",
+      "provides": {
+        "nodes": [
+          "com.acme.vendor.notify.Notifier"
+        ],
+        "events": [],
+        "services": [
+          "com.acme.vendor.api.NotificationService"
+        ]
+      },
+      "consumes": {
+        "events": []
+      },
+      "licence": "Apache-2.0",
+      "source": "https://github.com/telaminai/fluxtion-vendor-jars/tree/main/src/notifier",
+      "dependencies": [
+        "component-api"
+      ]
+    },
+    {
+      "id": "csv-feed-adapter",
+      "name": "csv-feed-adapter",
+      "description": "New example CSV to QuoteView adapter; caller owns ordering.",
+      "coordinate": "com.acme.vendor:csv-feed-adapter:1.0.0",
+      "src": "com/acme/vendor/csv-feed-adapter/1.0.0/csv-feed-adapter-1.0.0.jar",
+      "size": 3235,
+      "sha256": "e8076feaabfb695a187c32cc05b8cad6f5bbf1bda4d285f7d8f36b3c949bf388",
+      "provides": {
+        "nodes": [],
+        "events": [
+          "com.acme.vendor.feed.CsvFeedAdapter.Quote"
+        ],
+        "services": []
+      },
+      "consumes": {
+        "events": []
+      },
+      "licence": "Apache-2.0",
+      "source": "https://github.com/telaminai/fluxtion-vendor-jars/tree/main/src/csv-feed-adapter",
+      "dependencies": [
+        "component-api"
+      ]
+    },
+    {
+      "id": "risk-a",
+      "name": "risk-a",
+      "description": "Authentic annualised convention, intentionally incompatible with the one-day consuming contract.",
+      "coordinate": "com.acme.vendor:risk-a:1.0.0",
+      "src": "com/acme/vendor/risk-a/1.0.0/risk-a-1.0.0.jar",
+      "size": 1792,
+      "sha256": "5a8083fafc884279a4e4331585fe800624aab172fe98102e1a1fa7a33e7cb6bd",
+      "provides": {
+        "nodes": [
+          "com.acme.vendor.risk.RiskEngine"
+        ],
+        "events": [],
+        "services": []
+      },
+      "consumes": {
+        "events": [
+          "com.acme.vendor.api.RiskInput"
+        ]
+      },
+      "licence": "Apache-2.0",
+      "source": "https://github.com/telaminai/fluxtion-vendor-jars/tree/main/src/risk-a",
+      "dependencies": [
+        "component-api"
+      ]
+    },
+    {
+      "id": "risk-b",
+      "name": "risk-b",
+      "description": "One-day risk matching SPEC.md.",
+      "coordinate": "com.acme.vendor:risk-b:1.0.0",
+      "src": "com/acme/vendor/risk-b/1.0.0/risk-b-1.0.0.jar",
+      "size": 1759,
+      "sha256": "ab33528f0ed97a5c81afb2d824052ba2cff67109a0b17b4b6533a2daf7648e3c",
+      "provides": {
+        "nodes": [
+          "com.acme.vendor.risk.RiskEngine"
+        ],
+        "events": [],
+        "services": []
+      },
+      "consumes": {
+        "events": [
+          "com.acme.vendor.api.RiskInput"
+        ]
+      },
+      "licence": "Apache-2.0",
+      "source": "https://github.com/telaminai/fluxtion-vendor-jars/tree/main/src/risk-b",
+      "dependencies": [
+        "component-api"
+      ]
+    }
+  ]
+}

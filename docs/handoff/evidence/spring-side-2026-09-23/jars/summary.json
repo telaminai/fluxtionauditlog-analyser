@@ -1,0 +1,60 @@
+{
+  "risk-a": {
+    "rows": 6,
+    "mismatches": 5,
+    "failures": [
+      {
+        "id": "long",
+        "expected": "200.000",
+        "actual": "3174.9015732775088"
+      },
+      {
+        "id": "short",
+        "expected": "1250.0000",
+        "actual": "19843.13483298443"
+      },
+      {
+        "id": "fraction",
+        "expected": "1.728300",
+        "actual": "27.435911945477596"
+      },
+      {
+        "id": "large",
+        "expected": "54000.000",
+        "actual": "857223.4247849274"
+      },
+      {
+        "id": "small",
+        "expected": "0.00100",
+        "actual": "0.015874507866387545"
+      }
+    ]
+  },
+  "risk-b": {
+    "rows": 6,
+    "mismatches": 0,
+    "failures": []
+  },
+  "limit": {
+    "seenRed": true,
+    "witness": "above limit must fail"
+  },
+  "notifier": {
+    "seenRed": true,
+    "witness": "notifier sink delivery"
+  },
+  "feed": {
+    "seenRed": true,
+    "witness": "feed values/order"
+  },
+  "risk-zero": {
+    "seenRed": true,
+    "witness": "5 of 6 rows mismatch"
+  },
+  "reproducible": true,
+  "unknownCatalogueRefused": true,
+  "changedArtifactRefused": true,
+  "baselineGreen": true,
+  "restoredGreen": true,
+  "scope": "direct runtime callbacks; generated dispatch not verified"
+}

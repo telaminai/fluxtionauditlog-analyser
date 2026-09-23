@@ -338,6 +338,16 @@ one of rule 1's four sweep terms.**
 
 ## Spring-side work block — assembled 2026-09-23, to be done as ONE piece of work
 
+**Implementation checkpoint 2026-09-23:** compiler `a962d01c`, playground `21346be`, on
+`feat/spring-side-work-block`; local shared catalogue `b05f6e2`. BETA-B2, SG-2/F9/F11,
+G12/G5, formatting and G7 are implemented for independent review. Final gates: 86 builder +
+61 starter tests, 560 playground tests, five downloaded-project script paths; follow-up controls
+have 13 named seen-red witnesses and green baseline/restoration. [Review handoff](../handoff/report_spring_side_work_block_2026_09_23.md).
+**Still open:** carrying-tool publication, matching browser pin/deployment, G14 on the real public
+download, catalogue public resolution/integration and D-X9's previously owner-built provenance.
+No analyser code changed and no analyser server ran. These are branch results, not release claims.
+
+
 Owner's instruction, 2026-09-23: complete the Spring-side blockers together rather than as separate queue items,
 because they share owners, repositories and artefacts. **This section is an index, not a second home** — each item's
 canonical entry stays where it is linked below, and status changes there. Hand this section to the implementing
@@ -1368,6 +1378,14 @@ call the LLM is waiting on; would be M64.14, the tour its first user.
   Owner clarification 2026-09-23: feed adapter selected for D-X9, but no existing jar/source
   is available. A new CSV adapter is authorised and will be labelled new example code;
   using a previously owner-built component remains open, not claimed by that example.
+  **Source implemented locally at `b05f6e2` (branch `feat/spring-side-work-block`):** limit,
+  notifier, new CSV adapter, shared API, risk A/B and an independent Decimal oracle. A has
+  5/6 mismatches; B has 0/6 (the zero-exposure row matches both). Limit/notifier/feed and
+  zero-multiplier controls are seen red, with green baseline/restoration. Repeated builds
+  match bytes; unknown catalogue version and altered jars are refused. These are direct
+  callback/packaging checks, not generated-dispatch or receipt-integrity evidence.
+  D-X7's remote was unavailable at intake; source/evidence are in the local catalogue repo.
+  Public resolution, owner-built provenance and the tour remain open. [Evidence](../handoff/evidence/spring-side-2026-09-23/jars/summary.json).
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
 - [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).

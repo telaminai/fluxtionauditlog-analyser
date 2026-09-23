@@ -136,7 +136,7 @@ whether the tester's own check would have caught it. A probe may be crude; a nar
 |---|---|---|
 | **Structural** — non-public node, no accessible wiring constructor | the **toolchain**; generation refuses | *measured*: `com.acmerisk.QuoteFeed is not public in com.acmerisk`, ×6, before any run |
 | **Tampering** — artefact altered after release | a **digest in the run receipt** | *measured as a gap*: a jar rebuilt under the same filename left every receipt hash byte-identical and the build green. Integrity work is excluded from the current release and remains open |
-| **Authentic and incorrect** — builds clean, wrong numbers | an **independent check**; nothing else can | *measured by analogy*: the zeroed-constant jar produced VaR 0.00 on every row; 9 of 11 rows failed the independent calculation, re-verified from the [preserved evidence](../../handoff/evidence/vendor-integration-2026-09-19/). The convention-mismatch artefact **does not exist yet** |
+| **Authentic and incorrect** — builds clean, wrong numbers | an **independent check**; nothing else can | *measured by analogy*: the zeroed-constant jar produced VaR 0.00 on every row; 9 of 11 rows failed the independent calculation, re-verified from the [preserved evidence](../../handoff/evidence/vendor-integration-2026-09-19/). The convention-mismatch source and local jars now exist (`b05f6e2`, 2026-09-23): A mismatches 5 of 6 synthetic rows and B matches all 6 against the spec-derived oracle. Publication and the integrated beta run remain open |
 
 > The compiler refuses what it can prove wrong. A digest catches what was altered. The evidence catches what
 > neither can see. Here is precisely where those boundaries sit.
@@ -252,7 +252,7 @@ The fifth draft's slices A–D are replaced by the table below. Each blocker nam
 
 | # | Blocker | Evidence |
 |---|---|---|
-| **B4** | Jar A (convention mismatch), jar B, and the spec-derived check that catches A — **none exists yet** | §3 |
+| **B4** | Jar A (convention mismatch), jar B, and the spec-derived check: **built and locally checked**, source commit `b05f6e2`. Public resolution and integrated beta run remain open; see M67.1 | §3 |
 
 **Blocks act 7 and any public claim beyond onboarding**
 
