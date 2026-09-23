@@ -1,0 +1,7 @@
+package com.example.myapp.spike;
+import com.telamin.fluxtion.runtime.DataFlow;
+import java.util.function.Supplier;
+/** REVIEW SPIKE: an AOT processor from the current generator, built WITHOUT audit. */
+public class UnauditedSupplier implements Supplier<DataFlow> {
+    @Override public DataFlow get() { return /* any AOT processor generated WITHOUT audit */ new UnauditedGeneratedProcessor(); }
+}

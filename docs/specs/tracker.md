@@ -131,7 +131,10 @@ still to do.
   backend-aware or refuse by name.
 - **[MA-4] ☐ — the developer journey** · **GATED on MA-2's text half**. **OD-4 DECIDED: the developer
   text backend is the server's CONFIGURED LISTENER** (`bootServer(config, listener)`), not the capture
-  service — no `backend` switch, no `svc-admin-web` change, measured working end to end. Cost stated: it
+  service — no `backend` switch, no `svc-admin-web` change. **It DEPENDS ON MA-5**: run with the
+  bundle's shipped capture on, the text writer got 4 startup records and none of the 8 business events,
+  and the file read `complete, 4 of 4` — a V3/V4 violation in MA-2's own configuration, found by running
+  the two together for the first time. Cost stated: it
   is invisible to `audit.start`/`stop`, `liveSinks` and the admin file list, which is acceptable for a
   journey whose point is opening the file. Since OD-4 makes text the developer default
   and text *is* MA-2. Mongoose audit-logs by default; the gap is persistence in a form the analyser can

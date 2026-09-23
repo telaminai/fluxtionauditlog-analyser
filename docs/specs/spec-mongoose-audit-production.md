@@ -8,7 +8,8 @@ supersedes in the same edit, and there is deliberately **no appendix**._
 _**Open owner decision: OD-5**, whether the Chronicle backend gets a marker. It blocks **only MA-2's
 Chronicle half**; the text writer the developer journey depends on proceeds without it. **Decided:**
 OD-2 (refuse), OD-4 (text for developers via the configured listener, Chronicle deployed), the flush
-policy (a user-configurable property), MA-2's framing home. **Moot:** OD-1, OD-3._
+policy (a user-configurable property, with `auditText` as its home), MA-2's framing home — **which must
+carry the READER's trimmed separator predicate, not an exact match**. **Moot:** OD-1, OD-3._
 
 _Replaces the scattered record: tracker AF-4, `UP-MON-02` in [upstream asks](../proposals/upstream-asks.md),
 [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). The reader half shipped in
@@ -24,8 +25,9 @@ the producer, and Mongoose holds up neither end.
 
 1. **A processor with no `EventLogManager` emits nothing, and everything reports success.** The capture
    sink is created and says it is recording; `POST …/audit/level` returns 200; the file stays empty.
-   *(Read, not measured: the code paths are read and the capability check is verified by running, but
-   nobody has booted a server with an unaudited AOT processor and watched the sink report recording.)*
+   **Measured on a booted server** with an unaudited AOT processor and capture on: listed with
+   `recordCount: 0` holding only `metadata.cq4t`; `POST /api/audit/{p}/start` answers
+   `{"recording": true}` **200**; `POST …/audit/level` answers **200**.
 2. **Nothing writes a stream-end marker**, so every export reads `unknown` and the 1.18.0 and 1.0.44
    work delivers nothing a user sees.
 3. **An empty log raises no finding at all** — the analyser's own gap, and the cheapest to close.
@@ -73,7 +75,7 @@ MA-5  (capture must fan out, and restore)        ← independent; a live silent-
 MA-6  (a document without eventLogRecord: )      ← independent; unblocks MA-2 without AFMT-3
 MA-7  (framing injection — a payload forges a marker) ← GATES MA-2; V1
 MA-8  (coverage qualifies a per-node level)      ← THIS repo; MA-0 sibling
-  └── MA-2 TEXT writer                           ← needs MA-6 and MA-7; NOT blocked by AFMT-3 or OD-5
+  └── MA-2 TEXT writer                           ← needs MA-5, MA-6 and MA-7; NOT blocked by AFMT-3/OD-5
         └── MA-4  (defaults, docs, the journey)  ← GATED on the text writer
               └── AF-6 (the coupled documents)   ← in the tracker, not here
   └── MA-2 CHRONICLE marker                      ← needs OD-5 decided
@@ -92,11 +94,17 @@ face: **what would have to be true for "this node never ran" to be wrong, and do
 Stated once, here; items point at them rather than restating them.
 
 **V1 · A payload cannot change the verdict.** Nothing an event or node value carries may alter the
-record count, the framing, or the stream-end state. **Live violation: MA-7.**
+record count, the framing, the stream-end state, **or any field value, node entry or coverage result**.
+The parser is indentation-insensitive and content lines have been read as fields before, so a payload
+reaching field values would move coverage — "this node never ran", in the other direction. **Live
+violation: MA-7.** *(That a payload can reach field values is a stated gap: untested by either side.)*
 
-**V2 · Follow and a fresh open agree at every cut**, including the bare-marker-header cut — a file
-truncated just after a marker's `eventLogRecord:` line must read the same way in a live tail as it does
-when opened cold.
+**V2 · The stream-end STATE and every finding agree at every cut**, including the bare-marker-header
+cut; **the record count may differ only by the one pending last document.** Counts legitimately disagree
+there by the reader's own contract — a cold open reads the marker's lone `eventLogRecord:` line as a
+record, while Follow holds an unterminated last document pending — so an earlier wording demanding the
+counts agree contradicted §1. Asserted where the cut is, in MA-2.3, with Follow driven through the real
+store.
 
 **V3 · Absence never becomes a claim.** Not knowing must read as `unknown` or as a finding, never as
 `complete`. This is D-T8 applied to this spec, and it is why OD-5 (c) is rejected.
@@ -224,9 +232,14 @@ the count must make that read `missing_records`.
 1. With capture on, a record reaches **both** the Chronicle queue and the server's configured listener.
 2. After `stopRecording()`, records reach that listener again — not a no-op, without a restart.
 3. **start → stop → start**: no double wrapping; each record reaches each destination exactly once.
-4. **Re-registration while recording**: `stopProcessor` does not stop capture; re-adding swaps the
-   `DataFlow` in `attach`, and `start` returns early because the sink `isRecording()`. Assert the new
-   instance's records reach the capture file. *(Read, not run.)*
+4. **Re-registration while recording — MEASURED, and the silent path is real.** After `stopProcessor`
+   and a re-add, the new instance's events reached the configured listener but the capture's
+   `recordCount` stayed at 23, the export held none of them, and `start` still answered
+   `"recording": true`. Assert the new instance's records reach the capture file. **Name the re-add
+   path**: `addEventProcessor` on a *running* server does **not** call `init()` — the first re-add threw
+   `init() must be called before start()` and the processor never ran, while the configuration path does
+   call it. Whether that is itself a Mongoose defect is an owner call, recorded here because MA-5.4's
+   acceptance depends on which path it uses.
 5. **Isolation**: a listener that throws does not stop the other destination — and the failure is
    counted and logged, per D-MA5b.
 6. Two servers in one JVM each restore their own listener.
@@ -245,14 +258,17 @@ cause, and it is not specific to AFMT-3 — any producer emitting a document wit
 **Two halves:**
 
 - **Reader half (this repo):** a document carrying no `eventLogRecord:` key raises a finding.
-- **Writer half (MA-2):** the writer **refuses to count or mark a record that lacks `eventLogRecord:`**.
-  This is what actually prevents vouching — a warning beside `complete` does not, which is why the
-  earlier "MA-0 grows a check" route could never satisfy MA-2.5 and is withdrawn.
+- **Writer half (MA-2):** the writer **writes the record, counts it, and withholds the marker.** Round 5
+  showed the earlier "refuses to count or mark" had three readings and two break an invariant: writing
+  but not counting reads `more_than_declared` — damage claimed; not writing and not counting reads
+  `complete` with a produced record missing — breaking V4. Only write-count-withhold is honest, and it
+  yields `unknown` plus the reader finding.
 
 ### Acceptance MA-6
 
 1. A file of good record, AFMT-3 record, good record, with a marker declaring 3, raises the finding.
-2. With the writer half, such a run produces **no marker that counts the corrupt record**.
+2. With the writer half, such a run reads **`unknown`** — the record is present and counted, and no
+   marker is written.
 3. A conformance fixture with a mutation witness.
 
 ---
@@ -260,7 +276,7 @@ cause, and it is not specific to AFMT-3 — any producer emitting a document wit
 ## MA-7 · Framing injection — a payload forges a marker. GATES MA-2
 
 **V1's live violation, and the most serious finding in this spec.** The runtime writes `eventToString`
-**unescaped**. An event whose `toString()` contains a line that is exactly `---`, followed by marker
+**unescaped**. An event whose `toString()` contains a line that **trims to** `---` (see the predicate below), followed by marker
 lines, **breaks the framing before recognition runs**, so §1a's allow-list cannot defend against it —
 the allow-list protects a record that *mentions* a marker key, not one that *terminates the document*.
 
@@ -280,23 +296,38 @@ framing.
 
 ### D-MA7 · Fix at the writer, and file the shipped exporter separately
 
-Two options: the **runtime** escapes `eventToString` and node values so no emitted line can be exactly
-`---`; or the **writer** refuses or escapes a record whose text contains such a line.
+### The predicate is the READER's, not "a line that is exactly `---`"
 
-**Decided: the writer**, matching MA-6's writer half — it needs no runtime release and defends MA-2 on
-day one. **But the writer fix cannot help the 1.0.44 export, which is already shipped and vulnerable**,
-so the runtime option stays on the table as the complete fix, and **a tracker entry is required for the
-existing exporter**, outside this spec.
+Both framers split on any line that, **after trimming space, tab and CR**, is `---`. So `  ---`,
+`\t---` and `---\r` all separate, and a writer checking for an exact match lets all three through.
+**Since D-MA2b moves framing to core, core carries that one predicate and cites §1 for it.**
 
-**What is not established:** review could not construct a payload making a log read **`complete`**
-falsely — the record's remainder always lands after the forged marker, so the file reads `unknown` or
-damaged. **That no such payload exists is not proved.**
+### ESCAPE, never refuse
+
+**Refusing cannot satisfy V1**, which requires the count *and* the verdict unchanged: count the refused
+record and the file reads `missing_records` — the payload changed the verdict; don't count it and the
+record vanishes under a `complete` marker — breaking V4. **Only escaping** — altering the line so it no
+longer trims to `---`, and keeping the record — meets V1. **The escape changes the logged value, and
+that is the stated price of V1.** An earlier "refuses or escapes" is withdrawn.
+
+### Both fixes, not one — decided without waiting on the open question
+
+- **The writer escapes.** MA-2's day-one defence.
+- **A producer-side escape is MANDATORY for any path through the shipped 1.0.44 exporter** — runtime, or
+  a patched exporter release. A writer fix cannot reach bytes already shipped, the reader cannot tell a
+  real marker from a forged one, and **neither side can prove no forged-`complete` payload exists**. On
+  V3, not knowing whether an attack exists is a finding, never a clearance — so this is decided **as if
+  the answer were yes**, and **a tracker entry for the existing exporter is required**, outside this spec.
+
+**Recorded as open:** no payload making a log read `complete` falsely has been constructed; neither side
+tried to prove none exists. The decision above stands in spite of it, not because of it.
 
 ### Acceptance MA-7
 
-1. **Hostile payload:** a record whose `eventToString` carries a line that is exactly `---` plus marker
-   lines leaves **the record count and the verdict unchanged** (V1).
-2. The same for a node value, not only `eventToString`.
+1. **Hostile payload:** a record whose `eventToString` carries a separator line plus marker lines leaves
+   **the record count and the verdict unchanged** (V1). Fixtures include the **indented (`  ---`), tab
+   and CR (`---\r`) variants**, not only the bare line.
+2. The same for a node value, and **coverage is unchanged too**, not only the count (V1's extension).
 3. A conformance fixture with a mutation witness.
 
 ---
@@ -317,10 +348,20 @@ with the answer sitting in the file.
 
 ### Acceptance MA-8
 
-1. When a control record names a `sourceId`, coverage **qualifies that node**: its level was set to
+1. When a control record names a `sourceId`, coverage **annotates that node** — its level was set to
    `WARN` at *t*, and lines below that level are not in this log.
-2. The node is not reported as plainly uncovered.
-3. A conformance fixture. *(The admin endpoint is global-only, so this is reachable from Java alone —
+2. **Annotate, never excuse.** The node **stays in `uncovered` and in the ratio**, with the note.
+   Excusing it would hide a node that never ran if the qualifying record is wrong — and MA-7's injection
+   means a control-*looking* record can be content until every writer escapes.
+3. **Filter scope:** level changes are configuration state, consulted **regardless of the current
+   filter**, up to the scope's end. A time or type filter that excludes the control record must not drop
+   the annotation.
+4. **Intervals:** a node set to `WARN` and later restored is annotated **only between the two changes**;
+   silence outside that window is plain uncovered.
+5. **What is parsed:** key on the record's `event` being `EventLogControlEvent` and parse
+   `sourceId`/`level` — **the runtime's `toString` format is not a contract**, so the fixture is pinned
+   to the runtime version. Say whether `groupId`, which also targets nodes, is in scope.
+6. A conformance fixture. *(The admin endpoint is global-only, so this is reachable from Java alone —
    which does not make it rare in hand-tuned deployments.)*
 
 ---
@@ -395,13 +436,22 @@ ordinary record. A per-node count cannot travel in the marker without a format c
 ### D-MA2e · `backend` must stop being a silent no-op
 
 `getBackend()` has no caller in core, so `backend: text` is accepted and ignored today, and so is a typo.
-Whatever OD-4's mechanism, an unknown or unimplemented `backend` is **refused by name**.
+**Under OD-4 text is not a capture backend at all**, so `backend` accepts only `chronicle`, and
+`backend: text` is **refused with a message pointing at the text writer's own configuration**.
+
+**That configuration needs a home, and had none.** The bundle boots from YAML (`bootServer(reader)`)
+while `bootServer(config, listener)` is programmatic, so nothing named how YAML turns the text writer
+on, where its directory goes, or where the owner-decided flush property lives — **a user-configurable
+property with no configuration key is not configurable**. Name the block: `auditText: {enabled,
+directory, flush}`, and state its interaction with `auditCapture` (the MA-5 dependency above).
 
 ### Acceptance MA-2
 
 1. A text file carrying a marker reads **`complete`** in the released analyser, `declaredRecords` equal
-   to `recordsRead`, **`recordsRead > 0`**, records carrying node entries. *(Met end to end by the
-   spike: `complete`, 29 of 29, every record with node entries.)*
+   to `recordsRead`, **`recordsRead > 0`**, records carrying node entries — **asserted with the
+   developer bundle's ACTUAL configuration, capture included**. *(The spike's `complete`, 29 of 29 held
+   only with capture **disabled**; that condition was unstated, and with the shipped configuration the
+   claim was false. See OD-4.)*
 2. A text file whose writer never reached stop reads `unknown`; MA-0 fires if the file is empty.
 3. **Kill points**, corrected by measurement: before any record → `unknown`; between records → `unknown`;
    mid-record → `unknown`; **just after the marker's `eventLogRecord:` line → `unknown`, with a phantom
@@ -413,8 +463,9 @@ Whatever OD-4's mechanism, an unknown or unimplemented `backend` is **refused by
    export **plus the marker plus `---\n`**. Measured: Chronicle round-trips each record exactly and the
    framing reproduces byte for byte. *("The same run" is impossible — a run has one backend, and a
    second run differs in timestamps.)*
-5. The writer **refuses to count or mark a record lacking `eventLogRecord:`** (MA-6's writer half), and
-   **refuses or escapes a record carrying a line that is exactly `---`** (MA-7's writer half).
+5. The writer **writes and counts a record lacking `eventLogRecord:` and withholds the marker**, so the
+   file reads `unknown` (MA-6's writer half), and **escapes — never refuses — a record carrying a line
+   that trims to `---`** (MA-7's writer half).
 6. An unknown `backend` is refused by name (D-MA2e).
 7. Verified against the **published** analyser jar.
 
@@ -452,8 +503,22 @@ developer download persistence is ON**, so MA-5a applies and those records no lo
 The spike settles the mechanism. For the developer profile the text backend is **the server's configured
 listener** (`bootServer(config, listener)`), not the capture service.
 
-**Why.** It delivers MA-4's acceptance with **no `backend` switch and no `svc-admin-web` change**, and it
-was measured working end to end. The capture-service route drags in a blast radius no item had costed:
+**The mechanism DEPENDS ON MA-5, and round 5 found that the hard way.** The developer bundle ships
+`auditCapture.enabled: true` with `autoStart: [marketProcessor]`, and MA-5a says capture **replaces**
+the configured listener. OD-4 makes the text writer *be* that listener. Run together — which nobody had
+done — the writer received **4 startup records, none of the 8 business events**, and the file read
+**`{complete, recordsRead: 4, declaredRecords: 4}`**. `complete` true of the file, false of the run:
+**a V3 and V4 violation in MA-2's own shipped configuration.** Confirmed in source: `ServerConfigurator`
+sets the configured listener, then registration calls `attach` and, for `autoStart`, `start` — which
+replaces it.
+
+**So: the text writer requires MA-5**, so capture fans out instead of replacing. Chosen over "turn
+capture off in the bundle", which would leave the composition broken for anyone configuring both and
+would also remove the admin UI's file list and export. **As a guard, Mongoose warns loudly when a text
+writer and a replacing capture are configured together**, so the interim is not silent.
+
+**Why the listener route, still.** It delivers MA-4's acceptance with **no `backend` switch and no
+`svc-admin-web` change**. The capture-service route drags in a blast radius no item had costed:
 `DirAuditIntrospectionService` is built over the Chronicle service, and the plugin's file listing, export
 and websocket tail all read Chronicle, so each would have to become backend-aware or refuse by name.
 
@@ -468,7 +533,8 @@ Deployments keep Chronicle and may add text through OD-5 (d).
 ### Acceptance MA-4
 
 A developer who downloads Mongoose and follows getting-started **ends up with an audit log they can open
-in the analyser**, without knowing `auditCapture` exists. Run as the virgin-LLM test.
+in the analyser**, without knowing `auditCapture` exists. Run as the virgin-LLM test, **against the
+bundle's actual shipped configuration** — not a variant with capture disabled (F1).
 
 ---
 
@@ -492,7 +558,9 @@ The `MAX_PENDING` ceiling's live-server test. It shares no code and no ordering 
 
 ## What is verified, and what is only read
 
-**Verified by running:** MA-7's framing injection, reproduced independently — 3 records read as 4, split
+**Verified by running:** F1's composition — the OD-4 text writer with the bundle's capture on, reading
+`complete` with none of the run's business events; problem 1's three clauses on an unaudited AOT
+processor; MA-5.4's re-registration discard; MA-7's framing injection, reproduced independently — 3 records read as 4, split
 into two runs, `missing_records` with a forged `declaredRecords: 0`; MA-8's per-node `WARN` case;
 the spike's six results — clean SIGTERM `complete` 29 of 29 with node entries;
 marker-after-stop `complete` 31,586 twice with zero records after the marker; marker-before-stop
@@ -504,9 +572,10 @@ zip-digest and request-parameter effects on the bundle.
 
 **Read, not run:** `getBackend()` having no caller (a grep) and `DataFlow` having no listener getter (a
 `javap`); `ChronicleAuditCaptureService`'s replace-and-no-op behaviour; `ServerConfigurator`;
-`AuditCaptureConfig`; `DefaultEventProcessor` and `EventLogManager` sources; MA-5.4's re-registration
-path; MA-1's refusal paths, since there is no implementation to boot; problem 1's behaviour for an
-unaudited AOT processor.
+`AuditCaptureConfig`; `DefaultEventProcessor` and `EventLogManager` sources; the framers' separator
+predicates; `CoverageService.assess`. **MA-1's refusal paths remain unbuilt**, though three of the four
+triggers' *current* behaviour is now measured — `autoStart` silent, REST start claiming recording, the
+level endpoint 200; the `audit.start` admin command was not run.
 
 **Not established:** AFMT-3's **cause**; the per-event cost of an `EventLogManager` after `UP-FLX-51`;
 **whether a payload exists that makes a log read `complete` falsely** (MA-7) — none was constructed, and
