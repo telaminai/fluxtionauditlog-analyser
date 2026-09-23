@@ -152,10 +152,13 @@ observed tool events, and the fifth draft's slices A–D become a short blocker 
   and simple key registration in the analyser is a separate future item. Evidence:
   `.local-evidence/coldstart-v2-2026-09-20/{key-journey-*,a2-*}` (git-ignored).
 - **[BETA-B2] ☐ — new-node stubs must audit before the beta** · _feedback 6 / issue 3; otherwise A2 measures the
-  product, not the tester (§11 carve-out)._
+  product, not the tester (§11 carve-out)._ **Owned by the starter (compiler + playground), not the analyser — done as
+  part of the [Spring-side work block](#spring-side-work-block--assembled-2026-09-23-to-be-done-as-one-piece-of-work).**
 - **[BETA-B3] ☐ — template decision, with a dry run of A1–A2 by someone other than the author** · _recommendation:
-  standalone Spring, the only template with a verified local authoring route._
-- **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _none exists yet._
+  standalone Spring, the only template with a verified local authoring route._ **That recommendation rests on SG-2
+  being open; closing it in the Spring-side block widens the choice.** The dry run itself stays with the beta.
+- **[BETA-B4] ☐ — jar A (convention mismatch), jar B and the spec-derived check** · _none exists yet._ **Build these in
+  the same collection as M67.1's catalogue jars — same artefact type, same repository, one decision (Spring-side block ▸ 4).**
 - **[BETA-8] ◧ — the journey on Haiku (2026-09-21)** · _A2 and A3 hold on a model two generations smaller._
   A2 ×3: full success 3/3 (92–123 s; two runs edited shipped data, one undisclosed). A3 without routing: fix
   3/3, but 0/6 runs (with or without the `Skill` tool) loaded `point-at-the-fault`, 0/3 kept deliberate
@@ -229,6 +232,59 @@ neutrality section says exactly that. A strong internal data point, not outside 
 proposes (unsubscribe mid-burst, reconnect mid-unsubscribe) would be worth more than another successful run._
 **Before any of that review is published or quoted, the kernel line must lose the strategy class it names — the prefix is
 one of rule 1's four sweep terms.**
+
+## Spring-side work block — assembled 2026-09-23, to be done as ONE piece of work
+
+Owner's instruction, 2026-09-23: complete the Spring-side blockers together rather than as separate queue items,
+because they share owners, repositories and artefacts. **This section is an index, not a second home** — each item's
+canonical entry stays where it is linked below, and status changes there. Hand this section to the implementing
+session as its scope.
+
+Three repositories move together: the compiler (starter and reconciler), the playground (browser generator,
+templates, download) and, for evidence only, the analyser. Every defect this programme has produced has lived at
+those seams, so the order below groups by what a single change set can close.
+
+**1. What a new node contains — the piece that blocks the beta.**
+- **BETA-B2** (▸ *Beta*): a newly added node must audit its own state, or the A2 task measures the product rather
+  than the tester. **This is starter work, not analyser work:** the browser generator decides a fresh class and the
+  reconciler decides a member added to an existing one, and today the reconciler writes stub bodies with no state
+  logging. The `add-a-node` skill has already been reworded to ask authors to log the state behind a decision;
+  a wording change does not fix a generated stub. Settle the new-owned-node policy at the same time — absence of
+  values is not absence of execution.
+
+**2. The reconciler follow-ups from pass 4** (compiler; canonical text in `design/spring-authoring/` on
+`feat/spring-authoring-a1`, findings G12, G5, F5/G13/F10 and G7).
+- **G12** withdrawing an explicit reference binding demands a field the class does not have, because the undeclared
+  path names the field after the bean while the declared path resolves by type. Refusal is transactional, so nothing
+  is written, but generation cannot proceed.
+- **G5** value and service type shells are written outside the ownership record and the report, never removed when a
+  declaration is withdrawn, and the classpath is not checked before one is created.
+- **F5 / G13 / F10** one formatting item: added members unindented and fully qualified, updated annotations
+  unindenting their neighbours, blank lines accumulating, and a line-feed inserted into files that use carriage returns.
+- **G7** the declaration verifier stops at the first unmet declaration and names no bean in its element. For a jar the
+  integrator cannot read this message is the whole conversation, and **M67 beat 4 improves when it lands**.
+
+**3. The download must carry its own tooling** (playground).
+- **SG-2** (▸ *Spring getting-started guide*): the hosted download omits the authoring record and local scripts.
+  Until it does not, standalone Spring is the only template with a verified local route, which is what **BETA-B3**'s
+  recommendation rests on. Closing SG-2 widens that choice rather than being independent of it.
+- **F9** extended declarations in interpreted mode pin the carrying release with no setup files and nothing naming the
+  coordinate. **F11** a user version override splits the tool from the dependency set.
+
+**4. The jars — build one collection, not two.**
+- **BETA-B4** needs jar A, a component whose vendor built it honestly and got the logic wrong, so that no integrity
+  mechanism can catch it and only an independent calculation finds it, plus jar B and the spec-derived check.
+  **M67.1** needs a public catalogue with three jars of its own. Different purposes, same artefact type and the same
+  repository. Decide the shared home once (M67's D-X7 proposes a new vendor-jar repository) and build both sets there.
+
+**5. Close the release evidence** (all three).
+- **G14**: the acceptance-13 run has only ever happened on a provisioned local fixture. Now that the tool is published,
+  repeat it from a real download through its own `setup.sh`, with the frozen prompt, so the two runs are comparable.
+  The witnessed browser preview of the design view is still outstanding.
+
+**Not in this block:** the analyser's own instrument defects (DX-02 to DX-05, WS-1, WS-2). They are analyser work and
+they gate the beta's invite-the-attack step for a different reason — a tester must not be invited to find a hole we
+already know about.
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
@@ -373,7 +429,7 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   owner-witnessed website preview. The analyser remains a read-only canvas, not an application runner.
 - ☑ SG-1 fixed and released in starter **1.0.73**; public standalone setup/validate and changed-graph
   generation/run pass. Closure and regression checks are in the [completed tracker](completed/tracker.md).
-- ☐ **SG-2 — hosted Spring download omits local authoring files (playground).** The expanded
+- ☐ **SG-2 — hosted Spring download omits local authoring files (playground).** **In the Spring-side work block (▸ 3).** The expanded
   preflight found no authoring record or local scripts in `fluxtion-spring-mongoose`; its generator
   emits graph files without the local-tooling wrapper. Separate from the fixed Maven descriptor.
   Actual hosted ZIP coverage must prove record/scripts, launcher preservation, setup/validate and
@@ -1166,6 +1222,7 @@ lit (D-X10). Proposed, undecided: D-X11 the wizard — `spotlight {wait: true}` 
 call the LLM is waiting on; would be M64.14, the tour its first user.
 
 - [M67.1] ☐ **The catalogue** — repository, `catalogue.json`, three jars in placeholder packages with their source (cross-repo).
+  **Carries the beta's jars too (BETA-B4): jar A honestly wrong, jar B, and the spec-derived check. One collection, not two.**
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
 - [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).
@@ -1772,7 +1829,10 @@ open — a version pin naming a release that did not contain the module, and an 
 on a provisioned local fixture. **Still open upstream:** SG-2, the hosted Spring download that omits the local authoring
 files (playground owner).
 
-1. ☐ **The beta blockers** — the active push (▸ *Beta*, sixth draft). BETA-B2 new-node stubs must audit before A2 measures
+1. ☐ **The beta blockers** — the active push (▸ *Beta*, sixth draft). **Read with the *Spring-side work block* first:
+   B1 is already answered by the released starter, B2 is starter work rather than analyser work, B3's recommendation
+   rests on SG-2, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
+   fewer efforts than the numbering implies.** BETA-B2 new-node stubs must audit before A2 measures
    the product rather than the tester; BETA-B3 the template decision plus a dry run of A1–A2 by someone other than the
    author; BETA-B4 the three jars and the spec-derived check, none of which exists yet. BETA-B1's key journey passed with a
    key present and the owner has settled acquisition for now; BETA-8's Haiku series says the routing line plus the fixer
