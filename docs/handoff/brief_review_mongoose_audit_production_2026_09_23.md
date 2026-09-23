@@ -50,7 +50,12 @@ eventLogRecord:
    processor shape Mongoose wants, is **recommended but NOT built**. Is (c) actually as clean as claimed,
    or does generating a processor drag in obligations the spec has not costed? And the question worth
    more than the rest: **can a generated processor register a node set supplied at runtime?** If it can,
-   D-MA1b's cap lifts and MA-1 is far more valuable than this spec claims.
+   D-MA1b's cap lifts and MA-1 is far more valuable than this spec claims. **That question is now
+   answered as option (d)** — build through the Fluxtion builder at runtime with addEventAudit(), which
+   the analyser's own NO_NODE_LOGS diagnostic already names. It is RECOMMENDED but READ, NOT RUN:
+   addEventAudit() is verified to exist by javap; a runtime build inside Mongoose is not. Attack whether
+   the runtime-compiler dependency is acceptable, and whether graph-construction-at-startup changes
+   Mongoose behaviour the spec has not costed.
 4. **OD-1, the owner decision I framed** — always-on versus opt-in for the auditor. Check the framing is
    honest, particularly that I have not stacked it. `UP-FLX-51` measures ~120 ns/event for a manager
    recording nothing and proposes a fix that would make always-on cheap; I claim the two should be

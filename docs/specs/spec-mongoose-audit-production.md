@@ -119,10 +119,32 @@ does — no overrides, none of (b)'s wrinkles, and no framework release. Like `D
 itself, it is generated once and committed, so no permanent build-time dependency on the compiler is
 needed (neither Mongoose repo has one today).
 
-**OD-3 — owner decision: (a), (b) or (c).** The spec recommends **(c)**: it is the only one that is both
-release-free and structurally the same as what the framework does for generated graphs. (b) is proven and
-is the fallback if generating is unattractive. (a) remains the right answer if the fix should benefit
-every `DefaultEventProcessor` consumer rather than only Mongoose.
+**(d) Mongoose builds the processor through the Fluxtion builder AT RUNTIME, with `addEventAudit()`.
+RECOMMENDED — and it makes (b) and (c) unnecessary.** The builder already has the switch:
+`com.telamin.fluxtion.builder.generation.config.EventProcessorConfig` (read at `fluxtion-builder-api`
+`1.0.16`) declares `addEventAudit()`, `addEventAudit(LogLevel)` and `addAuditedEventLog(LogLevel)` —
+**the exact call `ProducerDiagnostics.NO_NODE_LOGS` already names as the missing one**. Using the
+compiler at runtime is an established pattern in this ecosystem rather than a new idea.
+
+This is better than (b) and (c) for a reason neither can match: the builder registers the node set it is
+**given**, and on this path the handler arrives at runtime — so the nodes ARE known when the graph is
+built. **That lifts D-MA1b's cap.** Instead of four hard-coded nodes, coverage becomes the user's actual
+topology, which is what makes "absence is evidence" mean something on this path. It also needs no
+framework release, no hand-written overrides, and no generated artefact to maintain.
+
+**Cost:** `fluxtion-builder`/`fluxtion-compiler` on Mongoose's runtime classpath, which neither Mongoose
+repo has today, and graph construction moves from "wrap an object" to "build a graph" — a real change in
+what processor startup does.
+
+**OD-3 — owner decision: (a), (b), (c) or (d).** The spec recommends **(d)**. It is the only option that
+lifts the cap, and it uses a documented builder call rather than re-implementing framework internals.
+**(b) is the only PROVEN option** — spiked and running — and is the fallback if the runtime-compiler
+dependency is unacceptable. (c) is a middle path with no proven advantage over (d). (a) remains right
+only if the fix should benefit every `DefaultEventProcessor` consumer rather than Mongoose alone.
+
+**(d) is read, not run.** `addEventAudit()`'s existence is verified by `javap`; a runtime build inside
+Mongoose is not. **Spiking (d) is the first implementation task**, and if it fails the recommendation
+falls back to (b), which already works.
 
 **OD-1 — owner decision.** Two shapes, and the owner picks:
 
@@ -151,12 +173,11 @@ into "this processor logs at handler granularity". It does **not** make "absence
 node level on the wrapper path — for that, the processor has to be a real generated graph. An earlier
 draft of this spec implied otherwise.
 
-**Does option (c) lift the cap?** Partly, and the honest answer is: not by itself. A generated processor
-registers the nodes known **at generation time**, and on the wrapper path the handler is supplied at
-**runtime**, so its internal nodes are still invisible. (c) buys the same coverage as (b), cleanly. The
-cap is lifted only by generating from the user's actual node set, which is the AOT path and is out of
-scope here. **This is worth a reviewer's attention: if (c) can be made to register a runtime-supplied
-node set, MA-1 becomes far more valuable than this spec claims.**
+**The cap applies to options (a), (b) and (c). Option (d) lifts it.** (a)–(c) all register the four
+hard-coded nodes, because they keep the wrap-an-object shape. (d) builds a real graph from the handler
+at runtime, so the registered node set is the user's own and coverage means what it means everywhere
+else. That is the single strongest argument for (d), and it is why OD-2 below — "is MA-1 worth doing
+given the cap?" — is largely answered by choosing (d): under (d) there is no cap to weigh.
 
 **OD-2 — owner decision.** Given that cap, is MA-1 worth doing at all, or is the right answer to tell users
 that auditing requires an AOT-built processor and make the wrapper path **say so** rather than silently
