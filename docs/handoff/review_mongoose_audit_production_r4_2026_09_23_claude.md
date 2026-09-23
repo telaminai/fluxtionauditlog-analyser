@@ -306,3 +306,81 @@ additions.
 
 Experiment sources (`Parity.java`, `Cap.java`, `Wrap.java`, `RProbe.java`, the K0–K8 cuts) are in my
 worktree under `.review-tmp/`, uncommitted.
+
+---
+
+## Addendum: a text writer booted in the real server (RUN)
+
+Asked by the owner after the review was pushed: *why not boot a server with a text writer?* No text
+writer exists (`backend` is unread), so I wrote the simplest one as a **review spike, not an
+implementation**:
+- `TextAuditWriter`, 72 lines, a `LogRecordListener`;
+- a 34-line main that boots the bundle's **own** `server-config.yml` through
+  `MongooseServer.bootServer(reader, writer)`, with `auditCapture.enabled: false`.
+
+The writer:
+- opens one file per start;
+- writes each record followed by `\n---\n` (the exporter's framing, F5);
+- counts records **received**, before the write;
+- holds records and the marker under one lock;
+- fans out to a delegate listener, isolated both ways;
+- writes a marker in a shutdown hook.
+
+Flushing is a switch. Sources are in `evidence/mongoose-audit-production-r4-text-writer-spike/`.
+Every file was read with the published 1.19.0 jar.
+
+| Run | Result |
+|---|---|
+| **Clean SIGTERM**, the bundle's 5 input lines plus 3 appended | **`complete`, 29 of 29**. Every record carries node entries; all 8 `PriceEvent`s carry `riskCheck` and `rootNode`. **MA-2.1 met end to end** |
+| **SIGTERM under continuous load**, server stopped **then** marker written (2 reps) | `complete`, 31,586 of 31,586 both times; **0 records after the marker**; stop took 4 ms |
+| **SIGTERM under continuous load**, marker written **then** server stopped (2 reps) | **`complete`**, 31,627 and 31,746, **but 39 and 20 records were produced after the marker and are not in the file** |
+| `kill -9` under load, flushed and buffered | `unknown` both times. Honest |
+| buffered (8 KB), 1 s after boot | **0 bytes on disk**, with ~24 boot records held in memory. Flushed per record: 8,632 bytes |
+| two clean starts into one directory | two files, each `complete` (26 of 26); concatenated, `complete` (52, two segments) |
+| SIGTERM with a 195k-line backlog (an earlier, discarded run) | stop took **over 30 s** (`feeds-agent failed to close due to timeout, retrying…`), with `dropping publish to slow/contended queue` warnings before it |
+
+**What this settles in F3:**
+
+1. **Thread: a lock is necessary but not sufficient; the order decides it.** With the marker written
+   before the processors stopped, the file and its marker **agree**: it reads `complete`, with records
+   missing. The analyser cannot detect this by construction, because the marker counted what it saw.
+   Only the writer's own after-close counter showed the loss. **Required in D-MA2c:**
+   - the marker is written only after the processors have stopped;
+   - a record arriving after the marker is an **error, counted and logged**, never silently dropped.
+
+   **Required in MA-2.3's "stop under load":** assert against a **producer-side** count (records the
+   processor emitted), not the file, because the file is self-consistent in the failure case.
+2. **When: the shutdown hook works, but it can be slow.** Stop was 4-6 ms in normal runs and over 30 s
+   behind a large backlog. A supervisor that sends SIGKILL after a grace period (10 s is common) will
+   cut that off. The file then reads `unknown`, which is honest, but D-MA2c should say the marker
+   depends on a completed stop.
+
+   Events Mongoose drops upstream (`dropping publish to slow/contended queue`) never reach a processor.
+   No marker can see them. That is out of this spec's scope, but it is worth one sentence so nobody
+   reads `complete` as "no event was dropped".
+3. **Restart: a new file per start works.** Each run reads `complete` on its own, and appended runs read
+   as segments.
+4. **Flush policy: a user-configurable property, as the owner has decided.** The spec should:
+   - **name the property and give its default**;
+   - say what buffering costs, as the run shows.
+
+   A buffered file lags the run. After boot it held **0 bytes** while records existed, so:
+   - Follow shows nothing until the buffer fills;
+   - once MA-0 ships, a buffered live file opened early raises the **empty-log** finding while records
+     exist in memory;
+   - `kill -9` loses the buffered tail (still `unknown`, so honest).
+
+   Recommended:
+   - default to a flush per record in the developer profile, which the bundle's config sets, since
+     Follow is part of that journey;
+   - buffering is available for deployments;
+   - **MA-0's Follow wording** should not assert emptiness as a fact about the run when the writer may
+     be buffering. For example: "no records **in the file yet**".
+
+**Also visible from the spike:** for the developer profile, the simplest text backend is **the server's
+configured listener** (`bootServer(config, listener)`), not a capture service. It needs no `backend`
+switch and no `svc-admin-web` change. But it is then invisible to `audit.start`/`stop`, `liveSinks` and
+the admin file list. That is a real alternative for OD-4's developer default. The spec should either
+choose it or say why the capture-service route is worth the blast radius it lists.
+
+**Still not done:** MA-1's refusal paths (no implementation to boot); AFMT-3's cause.

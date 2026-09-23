@@ -1,0 +1,72 @@
+package com.example.myapp.spike;
+
+import com.telamin.fluxtion.runtime.audit.LogRecord;
+import com.telamin.fluxtion.runtime.audit.LogRecordListener;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * REVIEW SPIKE, not an implementation. The simplest text audit writer that answers D-MA2c:
+ * one file per start, every record followed by "\n---\n" (the exporter's framing), a count of records
+ * RECEIVED taken before the write, a flush per record, and a stream-end marker written by close().
+ * Fans out to the server's configured listener (MA-5), isolated both ways.
+ */
+public final class TextAuditWriter implements LogRecordListener {
+    private final Path file;
+    private final Writer out;
+    private final LogRecordListener delegate;
+    private final boolean flushEach;
+    private long received;
+    private long writeFailures;
+    private long afterClose;
+    private boolean closed;
+
+    public TextAuditWriter(Path dir, LogRecordListener delegate, boolean flushEach) throws IOException {
+        Files.createDirectories(dir);
+        this.file = dir.resolve("audit-" + System.currentTimeMillis() + ".yaml");   // restart: new file per start
+        this.out = Files.newBufferedWriter(file, StandardCharsets.UTF_8);
+        this.delegate = delegate;
+        this.flushEach = flushEach;
+    }
+
+    public Path file() { return file; }
+
+    @Override
+    public void processLogRecord(LogRecord record) {
+        synchronized (this) {                       // thread: records and the marker share one lock
+            if (closed) { afterClose++; }
+            else {
+                received++;                         // count what was HANDED to us, before the write
+                try {
+                    out.append(record.asCharSequence()).append("\n---\n");
+                    if (flushEach) out.flush();
+                } catch (IOException e) {
+                    writeFailures++;                // reported, never swallowed silently
+                    System.err.println("text audit write failed (" + writeFailures + "): " + e);
+                }
+            }
+        }
+        if (delegate != null) {
+            try { delegate.processLogRecord(record); } catch (RuntimeException e) {
+                System.err.println("delegate listener threw: " + e);   // isolation
+            }
+        }
+    }
+
+    public synchronized void close(String reason) throws IOException {
+        if (closed) return;
+        out.append("eventLogRecord:\n  streamEnd: ").append(reason)
+           .append("\n  streamEndRecords: ").append(Long.toString(received)).append("\n---\n");
+        out.flush();
+        out.close();
+        closed = true;
+        System.out.println("text audit closed: " + file + " received=" + received
+                + " writeFailures=" + writeFailures);
+    }
+
+    public synchronized long afterClose() { return afterClose; }
+}
