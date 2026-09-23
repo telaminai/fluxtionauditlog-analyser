@@ -10,8 +10,8 @@ released or deployed. No Fluxtion API key was used.
 | Repo | Branch | Head | Base |
 | --- | --- | --- | --- |
 | `mongoose-plugins` | `feat/mongoose-audit-production` | `b208257` | `main` `40f01cf` (post-1.0.44) |
-| `mongoose` core | `feat/mongoose-audit-production` | `35f9a13` | `develop` `17a03b4` |
-| analyser | `feat/mongoose-audit-production` | `d13006a7` | `main` `fda01845` |
+| `mongoose` core | `feat/mongoose-audit-production` | `2c4192e` | `develop` `17a03b4` |
+| analyser | `feat/mongoose-audit-production` | `a3c7e4e4` | `main` `fda01845` |
 
 Predictions were committed before any trial: `07a13bf7`,
 [`evidence/mongoose-audit-production-impl/phase1-predictions.md`](evidence/mongoose-audit-production-impl/phase1-predictions.md).
@@ -164,6 +164,26 @@ and the change list now skip or floor nulls.
 That is the second defect this round that my own tests missed and the existing suite caught. The first
 was MA-0 firing on a null index.
 
+## Round 3 — four items and four Lows
+
+| # | Finding | Fix | Witness |
+| --- | --- | --- | --- |
+| 1 | **BOM regression, mine from round 2.** `opensWithRecordKey` used `trim()`, which keeps U+FEFF, so a healthy BOM'd file was flagged `NO_RECORD_KEY` — the substring check it replaced had passed it | calls `StreamEndMarker.strip`, made package-private, rather than a second notion of whitespace. `YamlAuditReader` likewise, so a BOM-only file still opens | `trim()` restored → fails `aHealthyFileWithAByteOrderMarkIsNotFlagged`; BOM-only refused → fails `aBomOnlyAuditFileIsRecognised` |
+| 2 | **MA-8.4 scope start.** Only `from > scopeEnd` was clipped, so a window that CLOSED before the scope began still explained silence in it | both ends clipped; `CoverageService` computes the scope start | clip removed → fails `aWindowThatClosedBeforeTheScopeDoesNotExplainSilenceInIt` with the exact "WARN between 1001 and 1007" symptom |
+| 3 | **All six MA-8 tests ran unfiltered**, which is why two mutations survived | six more through a real `FilterState` | scope-end clip removed, and annotations dropped when filtered → each fails at its named assertion |
+| 4 | **Listing froze while the file grew** — cause not established | **diagnosed, and it is pre-existing, not the re-registration.** `invalidate()` had NO callers anywhere despite the cache comment claiming the capture service reports mutations; and handles carry `recordCount`/`lastWriteAt`, which change per record, served from a frozen snapshot. Mutation hook added; live handles overlaid on read while the directory walk stays cached | two witnesses reproduce the reported symptoms: count frozen at 1 while 3 were written with `lastWriteAt` identical, and a late sink absent entirely |
+
+**Lows, all four:** group windows keyed by group; untimed control records say "untimed" rather than
+printing `Long.MIN_VALUE`; the event name matches on the simple name exactly, so
+`FakeEventLogControlEventX` is rejected while a fully-qualified name is accepted — `contains()` did
+neither; the dead null guard removed.
+
+**Suites after round 3:** `svc-admin-web` **131/0**, core **218/0/9**, analyser **1913/0/62**.
+
+**On item 4's diagnosis:** I found the cause by reading, then **proved it by mutation** — reverting each
+half reproduces the symptom measured on the live server. I did **not** re-boot the bundle myself, so the
+end-to-end 23→45 observation remains review's, not mine.
+
 ## Two existing tests changed, both rewritten rather than deleted
 
 - `ProducerDiagnosticsTest.anEmptyLogSaysNothing` asserted **exactly the behaviour MA-0 reverses**. It now
@@ -209,7 +229,8 @@ a named assertion; the MA-6 framing cases; the five `canOpen` cases. Final suite
   tail all go through Jackson, one line per record, so they are not injectable. I did not verify that
   myself.
 
-**Not done:** D-MA0c, MA-0.5, the MA-0.7/MA-6.3 fixtures, MA-5.7, and MA-8's report path. AFMT-3 is
+**Not done:** D-MA0c, MA-0.5, the MA-0.7/MA-6.3 fixtures, MA-5.7, and MA-8's report path. Round 3 added
+no new gaps. AFMT-3 is
 untouched, as instructed, and no `NONE` default was shipped onto that path.
 
 ## Public-repo discipline
