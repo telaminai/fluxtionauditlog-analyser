@@ -277,3 +277,40 @@ path for saved charts.
   - W34: the quoted branch removed from `parse` turns `everyNameHasAnAddress` red;
   - W35: `doGraph`'s create check removed turns `theVerbRefusesAtCreation` red.
 - **P50 — headless 2,009** (2,005 + 4), 0 failures. Frame 66 / 0 / 0 / 1. Verifier 72 / 0.
+
+## Set 10 — M68.4, whole-or-refused requests (D-E3) and the record parameter (D-E4)
+
+Written after the code compiled and before any of its tests ran. Gated on a tree without the code.
+
+**The order, stated honestly.** The audit (a read-only agent, whose file:line claims were spot-checked before any
+fix was built on them: the `open` early returns, the spotlight ordering, the topology record path) came first, and
+the behaviour changes followed. The spec's disposition table is WRITTEN after the changes; the spec asked for it
+first. **Decisions taken that reverse or change a tested or recorded behaviour, for review:**
+
+- **The spotlight** goes out only when a view-changing verb SUCCEEDS. This reverses M64's recorded rationale, and
+  `SpotlightEndsWhenTheViewChangesTest` was rewritten to the new policy, keeping its one-case-per-verb property.
+- **`flag`** refuses an out-of-log index or offset instead of clamping it, following `SpotlightSetTest`'s precedent.
+  `goto` keeps its clamp and names it.
+- **A `graph` rename** carrying other fields is refused.
+
+**Predictions:**
+
+- **P51 — `WholeOrRefusedTest`, 9 cases, green on first run.** Confidence 45%. The proxy-based stand-in
+  application is new: `invokeDefault` on a default interface method, and matching `openLog`'s three overloads by
+  name. It is the likeliest thing to fail, for harness reasons rather than product ones. `gotoNamesItsClampAndItsLosers`
+  assumes `targetRow` clamps 99 to 1 and prefers `recordIndex` over `at`.
+- **P52 — `TopologyWholeOrRefusedTest`, 3 cases, green.** Confidence 55%. Risk: `cursorState().get("selected")` may
+  not be a List, or the fixture's node id may not be `rootNode`.
+- **P53 — `SpotlightEndsWhenTheViewChangesTest` green**, now 10 cases.
+- **P54 — existing tests that break because they pinned a behaviour this set changes.** I expect **at least one**,
+  from tests that send `graph {name, rename, …}` with other keys, clamp a `flag`, or read `open {log, format}`'s echo
+  shape. Each one found is a disposition to check against the table, not a test to relax.
+- **P55 — witnesses:**
+  - W36: the rolled-set early return restored turns `aRolledSetAndAGraphAreBothOpened` red;
+  - W37: `flag` back to clamping turns `flagRefusesAnIndexTheLogDoesNotHave` red;
+  - W38: topology without its pre-check turns `aRefusalIsWhole` red;
+  - W39: render clearing before `renderVerb` turns `aRefusedCallLeavesItLit` red;
+  - W40: `withIgnoredParams` returning early on a refusal turns `aRefusalNamesUnknownKeys` red.
+- **P56 — headless 2,022** (2,009 + 9 + 3 + 1), 0 failures after any P54 fixes. **Frame 66 / 0 / 0 / 1.**
+- **P57 — end to end.** Scenarios 14 and 15 fail on a jar built from `00fd7773` (14: echo `recordIndex` 0, nothing
+  selected; 15: graph gone) and pass on the fix. Everything else stays green, at 72 plus the new checks.
