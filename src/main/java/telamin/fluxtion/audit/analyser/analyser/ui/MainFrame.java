@@ -191,6 +191,7 @@ public final class MainFrame extends JFrame {
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
         graphTabs.setSavedDefinitions(() -> config.savedGraphs);
+        graphTabs.setRepairHandler(this::repairDuplicateCharts);   // the in-app way out of an ambiguous profile
         graphTabs.setChangeListener(this::onGraphsEdited);
         // 38ecc7f3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
         // config before the change listener writes the merged list back
@@ -5314,6 +5315,96 @@ public final class MainFrame extends JFrame {
     void sayToStatus(String message) {
         sayAtMillis = System.currentTimeMillis();
         status.setText(message);
+    }
+
+    /**
+     * Owner decision 2026-09-24: the way out of an ambiguous profile, in the app.
+     *
+     * <p>Asks for a choice per contested definition and applies them together through
+     * {@link telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair}, which refuses a partial
+     * or colliding repair. Replaceable so a test can answer it: the real one is a modal, and the branch
+     * that must change nothing — cancel — is the one a modal makes untestable.
+     */
+    java.util.function.Function<List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec>,
+            java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>>
+            repairChooser = this::askHowToRepairDuplicates;
+
+    /** Run the repair: ask, apply, persist, rebind. Cancel leaves every definition exactly as it was. */
+    private void repairDuplicateCharts() {
+        var saved = List.copyOf(config.savedGraphs);
+        var choices = repairChooser.apply(saved);
+        if (choices == null || choices.isEmpty()) return;          // cancelled: nothing is touched
+        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> repaired;
+        try {
+            repaired = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.apply(saved, choices);
+        } catch (IllegalArgumentException refused) {
+            JOptionPane.showMessageDialog(this, refused.getMessage(), "Charts not repaired",
+                    JOptionPane.WARNING_MESSAGE);
+            return;                                                 // still ambiguous, still all preserved
+        }
+        config.savedGraphs.clear();
+        config.savedGraphs.addAll(repaired);
+        graphTabs.clearRefusal();
+        restoreGraphDefinitions(List.copyOf(config.savedGraphs));
+        saveConfigQuietly();
+        if (project != null) project.requestSave();
+        refreshProjectPanel();
+        // sayToStatus, not status.setText: R12-2 landed on main between this branch and here, and an idle
+        // follow tick would otherwise wipe the one confirmation that the repair actually happened.
+        sayToStatus("Chart names repaired; definitions loaded.");
+    }
+
+    /** The modal half. Returns null when the person cancels. */
+    private java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>
+            askHowToRepairDuplicates(List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> saved) {
+        var duplicates = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.find(saved);
+        if (duplicates.isEmpty()) return null;
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.add(new JLabel("<html>Two or more charts share a name, so none of them can be loaded.<br>"
+                + "Choose what happens to each. Nothing is changed until you press OK.</html>"));
+        java.util.Map<Integer, JComboBox<String>> actions = new java.util.LinkedHashMap<>();
+        java.util.Map<Integer, JTextField> names = new java.util.LinkedHashMap<>();
+        for (var duplicate : duplicates) {
+            form.add(Box.createVerticalStrut(UiTheme.GAP));
+            form.add(new JLabel("\"" + duplicate.name() + "\""));
+            for (int index : duplicate.indices()) {
+                JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+                // what is in it, so a person is not asked to destroy something unnamed
+                row.add(new JLabel(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                        .describe(saved.get(index)) + " →"));
+                JComboBox<String> action = new JComboBox<>(new String[]{"Choose…", "Rename to", "Delete"});
+                JTextField field = new JTextField(duplicate.name(), 16);
+                field.setEnabled(false);
+                action.addActionListener(e -> field.setEnabled(action.getSelectedIndex() == 1));
+                row.add(action);
+                row.add(field);
+                actions.put(index, action);
+                names.put(index, field);
+                form.add(row);
+            }
+        }
+        int answer = JOptionPane.showConfirmDialog(this, new JScrollPane(form), "Repair chart names",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) return null;
+
+        var choices = new java.util.LinkedHashMap<Integer,
+                telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>();
+        actions.forEach((index, action) -> {
+            if (action.getSelectedIndex() == 1) {
+                choices.put(index, new telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                        .Choice(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Action.RENAME,
+                        names.get(index).getText()));
+            } else if (action.getSelectedIndex() == 2) {
+                choices.put(index, new telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                        .Choice(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Action.DELETE,
+                        null));
+            }
+            // "Choose…" contributes nothing, so DuplicateChartRepair.apply refuses the partial repair and
+            // says which one is unanswered. A default here would be the silent winner this all exists to avoid.
+        });
+        return choices;
     }
 
     /** Legacy global settings can contain duplicates that project/import validation now refuses. */
