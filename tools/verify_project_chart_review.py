@@ -121,6 +121,28 @@ CASES = [('explicit-name',
 CASES.append(('import-ambiguous-target', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SettingsShare.java',
               'SavedGraphMerge.requireUniqueNames(target.savedGraphs);', '',
               'GraphProfileMetadataTest#mergingIntoDuplicateTargetRefusesBeforeAnyCategoryChanges'))
+# The graph verb's series shape and style read-back (GraphSeriesShapeAndStyleEchoTest, a headless class).
+GRAPH_VERB = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java'
+SESSION_FACTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/SessionFacts.java'
+ECHO_TEST = 'GraphSeriesShapeAndStyleEchoTest#'
+CASES += [
+    ('series-object', GRAPH_VERB, '            if (o instanceof String) continue;',
+     '            if (o instanceof String || o instanceof Map<?, ?>) continue;',
+     ECHO_TEST + 'anObjectInSeriesIsRefusedAndNothingIsCreated'),
+    ('series-null', GRAPH_VERB, '            if (o instanceof String) continue;',
+     '            if (o == null || o instanceof String) continue;',
+     ECHO_TEST + 'aNullSeriesEntryIsRefused'),
+    ('series-not-a-list', GRAPH_VERB,
+     '        if (!(series instanceof List<?> list)) {\n            return "series is a list',
+     '        if (!(series instanceof List<?> list)) {\n            if (true) return null;\n            return "series is a list',
+     ECHO_TEST + 'aSeriesThatIsNotAListIsRefused'),
+    ('style-echo', GRAPH_VERB, '            applied.put("style", panel.styleName());', '',
+     ECHO_TEST + 'theEchoReportsTheStyleTheChartHas'),
+    ('saved-graphs-style', SESSION_FACTS, '            m.put("style", g.style());', '',
+     ECHO_TEST + 'savedGraphsShowTheKeyAsSentAndTheStyle'),
+    ('saved-graphs-key', SESSION_FACTS, 'map(SessionFacts::displayKey)', 'map(s -> s)',
+     ECHO_TEST + 'savedGraphsShowTheKeyAsSentAndTheStyle'),
+]
 
 
 def display_classes(root=Path('.')):

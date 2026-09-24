@@ -6,6 +6,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **An assistant that sends a chart series in the wrong shape is now told so.** `graph {series}` takes
+  `"instanceId.key"` strings. An object such as `{expr, label}` used to be turned into a key that could
+  never match, saved with the chart, and answered as a success, leaving an empty chart that looked
+  finished. A bare string instead of a list was silently ignored. Both are now refused with the right
+  shape named (`exprs` for a labelled or computed series), and nothing is changed.
+
+- **An assistant can now read back a chart's plot style.** The `graph` reply and the `context` list of
+  saved charts report each chart's style (step, line or points), and saved charts list their series as
+  `instanceId.key` rather than in the internal stored form.
+
 ## [1.19.2] - 2026-09-24
 
 - Legacy global settings with duplicate chart names no longer interrupt log loading. The Graph panel
