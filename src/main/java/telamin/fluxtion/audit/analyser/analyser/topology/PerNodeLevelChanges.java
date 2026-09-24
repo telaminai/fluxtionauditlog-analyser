@@ -304,6 +304,8 @@ public final class PerNodeLevelChanges {
     private static String sentence(String nodeId, Change c, Change next, int firstInView, Integer boundary) {
         java.util.List<String> premises = new ArrayList<>();
         StringBuilder s = new StringBuilder();
+        // Fifth re-review R5-2: while applying is open, the opening RECORDS a change; it never says it "sets" one.
+        boolean applied = c.applies() == Applies.YES;
         if (c.sourceId() == null) {
             // S3: lead with the ambiguity. The runtime renders a Java null and the string "null" identically.
             s.append("at ").append(at(c)).append(" this log records a change to ").append(c.level())
@@ -311,11 +313,13 @@ public final class PerNodeLevelChanges {
                     .append("called \"null\"; the log renders both identically");
             // Third re-review O-A: for a node literally named "null", both readings set THIS node, so the
             // premise is not open and an "otherwise" would be false.
-            if ("null".equals(nodeId)) s.append(" — either way it sets this node, which is named \"null\"");
+            if ("null".equals(nodeId)) {
+                s.append(" — either way it ").append(applied ? "sets" : "addresses").append(" this node, which is named \"null\"");
+            }
             else premises.add("it named no node");
         } else {
-            s.append("this log sets ").append(nodeId).append("'s audit level to ").append(c.level())
-                    .append(" at ").append(at(c));
+            s.append(applied ? "this log sets " : "this log records a change setting ").append(nodeId)
+                    .append("'s audit level to ").append(c.level()).append(" at ").append(at(c));
         }
         boolean declared = c.context().declared();
         switch (c.applies()) {
@@ -338,26 +342,34 @@ public final class PerNodeLevelChanges {
             case NO -> throw new IllegalStateException("an inapplicable change never reaches a sentence");
         }
         // Never "this processor's records": RR-3 reads records that share a grouping as one stream, and nothing
-        // in a record establishes that they came from one processor (S2). Checked on every branch of this sentence
-        // and of closing() by ControlAddressAndScopeTest.noBranchOfTheSentencePresumesAProcessor, the full matrix.
+        // in a record establishes that they came from one processor (S2). Checked by
+        // ControlAddressAndScopeTest.noBranchOfTheSentencePresumesAProcessor over a matrix that reaches every branch
+        // of this sentence and of closing() (fifth re-review R5-1: the declared-null YES note and the three open
+        // closings were missing), with "processor" allowed only in "processor grouping".
         String scope = declared ? "the records sharing its grouping" : "the records that, like it, state no grouping";
         s.append(next == null ? ". Nothing later in " + scope + " changes it" : ". " + closing(nodeId, c, next));
         String lines = nodeId + "'s lines below " + c.level() + " are not in this log";
+        // Found while reading the fifth re-review's sentences: after a closing clause, "if it applied here" could read
+        // as the CLOSING change — O-1's ambiguity, in the condition. Name the change the condition is about.
+        String subject = next == null ? "it" : "the change at " + at(c);
+        if (!premises.isEmpty()) premises.set(0, premises.get(0).replaceFirst("^it ", subject + " "));
         if (boundary == null) {
             s.append(premises.isEmpty() ? ", so " + lines
                     : ". If " + all(premises) + ", " + lines + "; otherwise this change explains nothing here");
         } else {
             String marker = "a stream-end marker before record " + (boundary + 1);
+            String named = "the stream-end marker preceding record " + (boundary + 1);
             java.util.List<String> later = new ArrayList<>(premises);
-            later.add("it survived the marker");
+            later.add((premises.isEmpty() ? subject : "it") + " survived the marker");
             if (firstInView < boundary) {
                 // RR-4: definite only within the run the change was made in; conditional after the marker.
                 // Third re-review O-C: "that run" had no antecedent — the marker is only introduced after this.
                 // Fourth re-review O-1: "the run it was made in" followed the closing clause, so "it" could read as
                 // the closing change, made in the LATER run. Name the boundary instead.
-                s.append(premises.isEmpty() ? ", so before the marker " + lines
-                        : ". Before the marker, if " + all(premises) + ", " + lines);
-                s.append(". ").append(capitalise(marker)).append(" begins a later run, and the log does not say ")
+                // Fifth re-review O5-3: name the marker where it is first used, not one sentence later.
+                s.append(premises.isEmpty() ? ", so before " + named + ", " + lines
+                        : ". Before " + named + ", if " + all(premises) + ", " + lines);
+                s.append(". That marker begins a later run, and the log does not say ")
                         .append("whether the level survived into it: for the records in view from record ")
                         .append(boundary + 1).append(" on, those lines are absent only if ").append(all(later));
             } else {
@@ -385,22 +397,25 @@ public final class PerNodeLevelChanges {
         // from the runtime's rule (grouping null or equal), not taken on trust; see P9.
         boolean closeOpen = !c.context().declared() && c.groupId() != null && !c.groupId().equals(next.groupId());
         String addressed = next.groupId() == null ? "no processor grouping" : "processor grouping '" + next.groupId() + "'";
-        String open = "; whether that applied here is not established either";
+        // Fifth re-review O5-1: while that is open, the level is known to hold AT LEAST until then, not to end there.
+        String holds = closeOpen ? "It holds at least until " : "It holds until ";
+        // O5-2: one "if it applied", not two.
+        String onlyIf = ", and only if it applied here: it was addressed to " + addressed
+                + ", and whether it applied is not established either";
         if (next.sourceId() != null) {
             return closeOpen
-                    ? "It holds until " + at(next) + ", which records a change to " + next.level() + " addressed to "
-                    + addressed + open
-                    : "It holds until " + at(next) + " sets it to " + next.level();
+                    ? holds + at(next) + ", which records a change to " + next.level() + " addressed to " + addressed
+                    + "; whether that applied here is not established either"
+                    : holds + at(next) + " sets it to " + next.level();
         }
         if ("null".equals(nodeId)) {
-            return "It holds until " + at(next) + " records a change to " + next.level() + " that names no node or "
-                    + "this node, which is named \"null\" — "
-                    + (closeOpen ? "either way it would end here if it applied, addressed as it was to " + addressed + open
-                    : "either way it ends here");
+            return holds + at(next) + " records a change to " + next.level() + " that names no node or "
+                    + "this node, which is named \"null\" — either way it " + (closeOpen ? "would end it there" + onlyIf
+                    : "ends here");
         }
-        return "It holds until " + at(next) + ", which records a change to " + next.level() + " that names no node — "
+        return holds + at(next) + ", which records a change to " + next.level() + " that names no node — "
                 + "or a node literally called \"null\"; the log renders both identically, and only the first would "
-                + "end it there" + (closeOpen ? ", if it applied — it was addressed to " + addressed + open : "");
+                + "end it there" + (closeOpen ? onlyIf : "");
     }
 
     /** "a", "a and b", "a, b and c" — one condition, every premise in it. */

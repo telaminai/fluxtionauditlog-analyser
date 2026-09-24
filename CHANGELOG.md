@@ -32,7 +32,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   conditional: the log does not say whether the level survived into the later run. Every explanation
   states each thing the log leaves open — whether the change named no node or a node literally called
   "null", whether it applied, whether it survived a marker — in the one condition its conclusion rests on,
-  and the change that ends a window is described with the same care as the one that began it.
+  and the change that ends a window is described with the same care as the one that began it. A change
+  the log does not show to have applied is described as recorded, never as having set the level.
 - An empty or blank file now opens by its extension rather than being refused as unreadable.
 
 ### Fixed

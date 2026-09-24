@@ -167,7 +167,8 @@ class ControlAddressAndScopeTest {
         var change = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
         String log = control(1, ABSENT, change) + row(2, ABSENT) + MARKER_1 + row(3, ABSENT) + MARKER_1;
         String note = annotate(log, "riskMonitor", 1, 2);
-        assertTrue(note.contains("Before the marker, if it applied here, riskMonitor's lines below WARN are not in this log"),
+        assertTrue(note.contains("Before the stream-end marker preceding record 3, if it applied here, riskMonitor's lines below "
+                        + "WARN are not in this log"),
                 "S2: even within the run the claim waits on applicability: " + note);
         assertTrue(note.contains("those lines are absent only if it applied here and it survived the marker"),
                 "S2: after the marker, both premises: " + note);
@@ -249,15 +250,40 @@ class ControlAddressAndScopeTest {
     }
 
     /**
-     * Fourth re-review R-C: "never this processor's" is checked on EVERY branch of the sentence, not only the ones a
-     * test happened to reach. The whole matrix the reviewers probed: source × grouping × boundary × closing, plus a
-     * node literally named "null". Counts its annotations, so it cannot pass by annotating nothing.
+     * Fourth re-review R-C, fifth re-review R5-1 and R5-2: no branch of the sentence presumes a processor, and none
+     * says a change "sets" a level while its applying is open. The matrix is source × grouping × boundary × closing,
+     * plus a node literally named "null", and it REACHES every branch: each branch's wording must appear in some note,
+     * so a branch the inputs stop reaching fails here rather than going unchecked. Round 4's matrix claimed every
+     * branch and missed four — the declared-null YES note and the three open closings — because its groupings had no
+     * declared-null row with a groupId and its closing change always reused the opening's groupId.
      */
     @Test
     void noBranchOfTheSentencePresumesAProcessor() {
         record G(String recordGrouping, String gid) { }
-        java.util.List<G> groupings = java.util.List.of(new G("null", null), new G(ABSENT, null),
+        java.util.List<G> groupings = java.util.List.of(new G("null", null), new G("null", "alpha"), new G(ABSENT, null),
                 new G("alpha", "alpha"), new G(ABSENT, "alpha"));
+        java.util.regex.Pattern presumes = java.util.regex.Pattern.compile("processor(?! grouping)");
+        // after a closing clause, a condition on "it" could read as the closing change: name the change instead
+        java.util.regex.Pattern bareIt = java.util.regex.Pattern.compile("(?i)\\bif it (applied here[,.]|survived|named)");
+        java.util.Map<String, Integer> reached = new java.util.LinkedHashMap<>();
+        for (String branch : new String[]{
+                "this log sets ", "this log records a change setting ", "that names no node — which would set every node's",
+                "either way it sets this node", "either way it addresses this node",
+                "which applies because the control record declares no grouping",
+                "which is the grouping the control record itself declares",
+                "states no processor grouping, so whether this change applied",
+                "— addressed to processor grouping 'alpha' — applied here",
+                "Nothing later in the records sharing its grouping", "Nothing later in the records that, like it, state no grouping",
+                " sets it to INFO", "which records a change to INFO addressed to ",
+                "either way it ends here", "either way it would end it there, and only if it applied here",
+                "only the first would end it there.", "only the first would end it there, and only if it applied here",
+                ", so riskMonitor's lines", "; otherwise this change explains nothing here",
+                ", so before the stream-end marker", ". Before the stream-end marker",
+                "If the change at record 1 (logTime 1) applied here", "only if the change at record 1 (logTime 1) survived",
+                "Every record in view is in a LATER run"}) {
+            reached.put(branch, 0);
+        }
+        int logs = 0;
         int notes = 0;
         java.util.List<String> offenders = new java.util.ArrayList<>();
         for (String node : new String[]{"riskMonitor", "null"}) {
@@ -266,35 +292,50 @@ class ControlAddressAndScopeTest {
                 for (G g : groupings) {
                     for (String boundary : new String[]{"none", "spanning", "whollyAfter"}) {
                         for (String closing : new String[]{"none", "perNode", "null"}) {
-                            var open = new EventLogControlEvent(nullSource ? null : node, g.gid(), LogLevel.WARN);
-                            String close = switch (closing) {
-                                case "perNode" -> control(90, g.recordGrouping(), new EventLogControlEvent(node, g.gid(), LogLevel.INFO));
-                                case "null" -> control(90, g.recordGrouping(), new EventLogControlEvent(null, g.gid(), LogLevel.INFO));
-                                default -> "";
-                            };
-                            String log;
-                            int[] view;
-                            switch (boundary) {
-                                case "spanning" -> { log = control(1, g.recordGrouping(), open) + row(2, g.recordGrouping()) + MARKER_1
-                                        + row(3, g.recordGrouping()) + close + row(95, g.recordGrouping()); view = new int[]{1, 2}; }
-                                case "whollyAfter" -> { log = control(1, g.recordGrouping(), open) + MARKER_1 + row(2, g.recordGrouping())
-                                        + close + row(95, g.recordGrouping()); view = new int[]{1}; }
-                                default -> { log = control(1, g.recordGrouping(), open) + row(2, g.recordGrouping()) + close
-                                        + row(95, g.recordGrouping()); view = new int[]{1}; }
-                            }
-                            String note = annotate(log, node, view);
-                            if (note == null) continue;
-                            notes++;
-                            if (note.contains("this processor")) {
-                                offenders.add(node + "/" + (nullSource ? "null" : "perNode") + "/" + g + "/" + boundary + "/" + closing);
+                            for (String closeGid : closing.equals("none") ? new String[]{"-"} : new String[]{"same", "beta", "none"}) {
+                                String gid = switch (closeGid) { case "same" -> g.gid(); case "beta" -> "beta"; default -> null; };
+                                String rg = g.recordGrouping();
+                                var open = new EventLogControlEvent(nullSource ? null : node, g.gid(), LogLevel.WARN);
+                                String close = switch (closing) {
+                                    case "perNode" -> control(90, rg, new EventLogControlEvent(node, gid, LogLevel.INFO));
+                                    case "null" -> control(90, rg, new EventLogControlEvent(null, gid, LogLevel.INFO));
+                                    default -> "";
+                                };
+                                String log;
+                                int[] view;
+                                switch (boundary) {
+                                    case "spanning" -> { log = control(1, rg, open) + row(2, rg) + MARKER_1 + row(3, rg) + close
+                                            + row(95, rg); view = new int[]{1, 2}; }
+                                    case "whollyAfter" -> { log = control(1, rg, open) + MARKER_1 + row(2, rg) + close + row(95, rg);
+                                            view = new int[]{1}; }
+                                    default -> { log = control(1, rg, open) + row(2, rg) + close + row(95, rg); view = new int[]{1}; }
+                                }
+                                logs++;
+                                String note = annotate(log, node, view);
+                                if (note == null) continue;
+                                notes++;
+                                String at = node + "/" + (nullSource ? "null" : "perNode") + "/" + g + "/" + boundary + "/" + closing
+                                        + "/" + closeGid;
+                                if (presumes.matcher(note).find()) offenders.add("R5-1 " + at + ": " + note);
+                                // R5-2: with no grouping declared, applying is open, so nothing may say the change "sets"
+                                if (ABSENT.equals(rg) && (note.startsWith("this log sets") || note.contains("either way it sets"))) {
+                                    offenders.add("R5-2 " + at + ": " + note);
+                                }
+                                if (note.contains("It holds ") && bareIt.matcher(note).find()) {
+                                    offenders.add("unnamed condition " + at + ": " + note);
+                                }
+                                reached.replaceAll((branch, n) -> note.contains(branch) ? n + 1 : n);
                             }
                         }
                     }
                 }
             }
         }
-        assertTrue(notes >= 60, "the matrix must actually produce annotations to check: " + notes);
-        assertEquals(java.util.List.of(), offenders, "R-C: a branch of the sentence presumes a processor");
+        assertEquals(315, logs, "the matrix: 3 openings × 5 groupings × 3 boundaries × 7 closings");
+        assertEquals(315, notes, "every log in the matrix annotates, so every one is checked");
+        assertEquals(java.util.List.of(), reached.entrySet().stream().filter(e -> e.getValue() == 0).map(java.util.Map.Entry::getKey)
+                .toList(), "R5-1: a branch of the sentence the matrix no longer reaches");
+        assertEquals(java.util.List.of(), offenders, "R-C/R5-1/R5-2: a branch presumes a processor, says an open change sets, or leaves the condition's subject open");
     }
 
     // ------------------------------------------------------------------ RR-3: which processor
