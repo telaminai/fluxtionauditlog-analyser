@@ -612,7 +612,7 @@ the same rule as `staleResult`, applied to facts. `MembershipCompared` is gated 
 pairing revision it qualifies. This replaces the frame's object-identity check (`qualifiedPairing ==
 lastPairing`) with a gate the audit log can show.
 
-**A graph opened outside a transition** (from the File menu, the Topology panel, or a reader supplying one) is
+**A graph opened outside a transition** (from the Sources menu, the Topology panel, or a reader supplying one) is
 now a `GraphOpened` fact with no opId, where it used to be an observation. That is one entrance with one
 record, instead of a funnel inferring what changed.
 

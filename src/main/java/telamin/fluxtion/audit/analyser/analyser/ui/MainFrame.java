@@ -3821,7 +3821,7 @@ public final class MainFrame extends JFrame {
         // review F2: the verdict was about THIS log, and with it gone the graph makes no claim. The LogCleared fact below
         // (or the LogClosed result, inside an effect) changes the snapshot, and the listener clears the note (M44.4c).
         // M44.4a: the close is a fact. Inside a CloseLogEffect it is queued behind the LogClosed result and
-        // arrives as a recorded no-op; from the File menu it is how the processor learns the log went.
+        // arrives as a recorded no-op; from Audit log ▸ Close log it is how the processor learns the log went.
         if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared(sessionLogGeneration));
         pendingProjectOffer = null;        // review F3: an offer made for a log that is no longer open
         pendingRolledSetOffer = null;      // M35.9: likewise

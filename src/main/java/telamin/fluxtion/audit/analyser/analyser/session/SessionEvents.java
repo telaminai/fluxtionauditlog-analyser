@@ -200,8 +200,8 @@ public final class SessionEvents {
     }
 
     /**
-     * The graph left the screen outside a transition: File ▸ Close graph, a reset, or a reader's graph retired with
-     * its log. Inside a transition the processor already learned it from {@link GraphClosed}, and this one then
+     * The graph left the screen outside a transition: Sources ▸ Close graph, Project ▸ Close log and topology, or a
+     * reader's graph retired with its log. Inside a transition the processor already learned it from {@link GraphClosed}, and this one then
      * arrives after the operation and changes nothing — which the record shows, rather than the frame guessing.
      */
     public record GraphCleared() {

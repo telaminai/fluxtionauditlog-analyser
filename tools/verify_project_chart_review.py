@@ -249,6 +249,13 @@ CASES.extend([
 ])
 
 
+# M44.4 and M68 (feat/m44-single-state-session): the mutation witnesses behind that branch's evidence sets, registered
+# so they protect the code from now on instead of recording one run. See tools/mutation_controls_session.py.
+from mutation_controls_session import CONTROLS as SESSION_CONTROLS  # noqa: E402
+assert not {c[0] for c in CASES} & {c[0] for c in SESSION_CONTROLS}, 'a session control reuses a control name'
+CASES += SESSION_CONTROLS
+
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')

@@ -205,3 +205,15 @@ draft of this paragraph said all of them were outside the processor, and was wro
 **A log was not needed.** Every acceptance-10 case was constructed, because the diagnostic reads structure. The client's
 file would have shown only one case: the collapse. The cases that mattered most, the legal file that was accused and the
 pending live collapse, could only be constructed.
+
+## After the sets: the witnesses are now regression protection
+
+Every witness in sets 1–11 ran from a one-off script in the session's scratchpad. That shows a mutation was caught
+once, and protects nothing after. On 2026-09-25 they were registered as 45 controls in `tools/mutation_controls_session.py`,
+which `tools/verify_project_chart_review.py` appends to `CASES`. The CI `mutation-gate` job (main's PRs #16 and #18)
+therefore runs them on every PR to main and every push to it. W3–W44 map one to one, with W23 split across its
+two named tests. **W45 is new:** removing goto's empty-log refusal (set 10, P53) must turn
+`SpotlightEndsWhenTheViewChangesTest#aRefusedCallLeavesItLit` red, and it did. W1/W2 belong to the M68.1 harness
+and stay there. Run: the 45 alone, all caught in 62.4 s; the full gate, 95 controls caught in 255.0 s; preflight,
+95 anchors. The GraphML control anchors on the edge's source and target rather than its id, because the id changed
+across this branch's regenerations (78, then 80), and an id-based anchor would have moved with the next one.
