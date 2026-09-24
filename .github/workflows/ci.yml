@@ -95,3 +95,33 @@ jobs:
             grep -q 'skipped="0"' "$f" || { echo "$c skipped — no display reached the JVM"; exit 1; }
             grep -q 'tests="0"' "$f" && { echo "$c: no tests ran"; exit 1; } || true
           done
+
+  mutation-gate:
+    # PR #16 (docs/proposals/faster-mutation-gate.md): the FULL set of mutation controls, on every PR to main and
+    # every push to main. Until this job the controls ran only by hand. The fast engine compiles once, then per
+    # control javac's the one mutated file and runs the named test in a fresh JVM; `--mode compare` is how it was
+    # shown to give the Maven engine's verdicts. Controls are not parallelised: under one xvfb display they would
+    # contend for focus, and the gate's value is that a red means something.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Install virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Check the fast engine's compile-fallback detection
+        run: python3 tools/verify_project_chart_review.py --mode selftest --output target/mutation-selftest.json
+      - name: Run every mutation control (fast engine)
+        run: xvfb-run -a python3 tools/verify_project_chart_review.py --mode mutations --engine fast --output target/mutation-gate.json
+      - name: Keep the gate's evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-gate
+          path: target/mutation-*.json

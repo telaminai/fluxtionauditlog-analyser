@@ -2,14 +2,26 @@
 """Display and mutation gates. Use an isolated worktree and JDK21 with a real display.
 Preflight checks all anchors before any Maven run. One shared clean baseline establishes
 all selected methods; each mutation must fail its named assertion and restore green.
+
+Engines (--mode mutations): `--engine maven` runs a Maven lifecycle per run (the original);
+`--engine fast` compiles once, then per control javac's only the mutated file and runs the named
+test in a fresh JVM (tools/mutation_gate_fast.py). `--mode compare` runs both over every control
+plus PLANTED survivors and requires identical verdicts. `--changed-since REF` runs only the
+controls a branch diff can affect and prints every skip. `--mode selftest` checks the fast
+engine's constant/signature fallback detection.
 """
 import argparse
 import hashlib
 import json
 import re
 import subprocess
+import sys
+import time
 from pathlib import Path
 import xml.etree.ElementTree as ET
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutation_gate_fast as fast  # noqa: E402  (the fast engine and branch-subset selection)
 
 CASES = [('follow-hold',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
@@ -283,17 +295,134 @@ def green(result):
         for s in result['suites'])
 
 
+# Controls that MUST survive: a mutation no assertion covers. `--mode compare` requires BOTH engines to report
+# them as not caught; an engine that cannot report a survivor is not faster, it is broken. The second one adds a
+# public constant, which changes the class's API and so exercises the fast engine's full-compile fallback and
+# its byte-identical restore of target/classes.
+PLANTED = [
+    ('plant-survivor-comment',
+     'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/DuplicateChartRepair.java',
+     'public final class DuplicateChartRepair {',
+     'public final class DuplicateChartRepair { // gate plant: changes nothing',
+     'DuplicateChartRepairTest#anUnansweredRowProducesNoChoiceAtAll'),
+    ('plant-survivor-api-change',
+     'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/DuplicateChartRepair.java',
+     'public final class DuplicateChartRepair {',
+     'public final class DuplicateChartRepair { public static final int GATE_PLANT = 1;',
+     'DuplicateChartRepairTest#anUnansweredRowProducesNoChoiceAtAll'),
+]
+
+
+def subset_selftest():
+    """Branch-subset rules against the real CASES, on synthetic diffs."""
+    cases = selected_cases(None)
+    def pick(changed):
+        chosen, skipped = fast.select_subset(cases, changed)
+        assert len(chosen) + len(skipped) == len(cases), 'every control is either selected or reported skipped'
+        return {c[0] for c, _ in chosen}
+    graph_verb = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java'
+    by_site = {c[0] for c in cases if c[1] == graph_verb}
+    helper = 'src/test/java/telamin/fluxtion/audit/analyser/analyser/ui/ChartLifecycleReviewFrameTest.java'
+    users = {c[0] for c in cases
+             if re.search(r'\bChartLifecycleReviewFrameTest\b',
+                          next(fast.TEST_SOURCES.rglob(c[4].split('#')[0] + '.java')).read_text())}
+    checks = {
+        'the harness itself selects the full set': pick(['tools/verify_project_chart_review.py']) == {c[0] for c in cases},
+        'pom.xml selects the full set': pick(['pom.xml']) == {c[0] for c in cases},
+        'CI selects the full set': pick(['.github/workflows/ci.yml']) == {c[0] for c in cases},
+        'a site file selects exactly its controls': pick([graph_verb]) == by_site and bool(by_site),
+        'a shared test helper selects every control whose test uses it': pick([helper]) == users and len(users) > 1,
+        'an unrelated doc selects nothing': pick(['docs/index.md']) == set(),
+    }
+    return {k: {'ok': v} for k, v in checks.items()}
+
+
+def maven_run_safe(names):
+    """The Maven engine's run, but a build that produced no report (e.g. a compile failure) is a result."""
+    try:
+        return run(names)
+    except AssertionError as missing:
+        return {'command': ['mvn', 'test', '-Dtest=' + names], 'exit': 1, 'suites': [],
+                'output': 'no Surefire report: ' + str(missing)}
+
+
+def caught(result, test):
+    return result['exit'] != 0 and any(a['test'] == test and a['kind'] == 'failure'
+                                       for s in result['suites'] for a in s['assertions'])
+
+
+def run_gate(cases, engine, fail_fast):
+    """Baseline, then every control. Returns (baseline, entries); each entry carries a verdict."""
+    runner = engine.run if engine else (lambda names: maven_run_safe(','.join(names)))
+    classes = list(dict.fromkeys(c[4].split('#')[0] for c in cases))
+    baseline = runner(classes)
+    if fail_fast:
+        assert green(baseline), baseline['output']
+    entries = []
+    for case in cases:
+        name, site, old, new, target = case
+        cls, test = target.split('#')
+        assert any(s['name'] == cls and test in s['testNames'] for s in baseline['suites']), ('missing baseline test', target)
+        path = Path(site)
+        original = path.read_bytes()
+        assert original.decode().count(old) == 1, ('anchor changed since preflight', name)
+        entry = {'name': name, 'site': site, 'sha256': hashlib.sha256(original).hexdigest(),
+                 'baselineGreen': green(baseline), 'engine': 'fast' if engine else 'maven'}
+        started = time.monotonic()
+        if engine:
+            mutated, restored = engine.control(case, entry)
+        else:
+            try:
+                path.write_text(original.decode().replace(old, new))
+                mutated = maven_run_safe(target)
+            finally:
+                path.write_bytes(original)
+                entry['restoredByteIdentical'] = path.read_bytes() == original
+            restored = maven_run_safe(target)
+        entry.update({'mutated': mutated, 'restored': restored, 'seconds': round(time.monotonic() - started, 1)})
+        restored_ok = (green(restored) and entry['restoredByteIdentical']
+                       and entry.get('classesRestoredByteIdentical', True))
+        if not restored_ok:
+            entry['verdict'] = 'not-restored'
+        elif mutated['output'].startswith('mutated source does not compile') or (
+                not engine and not mutated['suites']):
+            entry['verdict'] = 'compile-error'
+        else:
+            entry['verdict'] = 'caught' if caught(mutated, test) else 'survived'
+        entries.append(entry)
+        if fail_fast:
+            assert entry['verdict'] == 'caught', (name, entry['verdict'], mutated['output'][-2000:])
+            print(name, ': green / named assertion red / restored green, bytes identical'
+                  + (' [full-compile fallback]' if entry.get('fullCompileFallback') else ''), flush=True)
+    return baseline, entries
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
-    parser.add_argument('--mode', choices=['preflight', 'display', 'mutations'], required=True)
+    parser.add_argument('--mode', choices=['preflight', 'display', 'mutations', 'compare', 'selftest'], required=True)
     parser.add_argument('--case', action='append')
+    parser.add_argument('--engine', choices=['maven', 'fast'], default='maven',
+                        help='mutations mode: maven = a Maven lifecycle per run (the original engine); '
+                             'fast = one test-compile, single-file javac, one fresh JVM per run')
+    parser.add_argument('--changed-since', metavar='REF',
+                        help='mutations mode on a BRANCH: run only the controls the diff against REF can affect, '
+                             'and print every control skipped. Never a substitute for the full set.')
     args = parser.parse_args()
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     result = {'mode': args.mode, 'runs': []}
     def save():
         output.write_text(json.dumps(result, indent=2) + '\n')
+    if args.mode == 'selftest':
+        checks = fast.selftest()
+        checks.update(subset_selftest())
+        result['selftest'] = checks
+        save()
+        for label, r in checks.items():
+            print(('ok   ' if r['ok'] else 'FAIL ') + label, r)
+        assert all(r['ok'] for r in checks.values()), 'selftest failed'
+        return
     if args.mode in ('preflight', 'display'):
         names = display_classes()
         if args.mode == 'preflight':
@@ -309,32 +438,58 @@ def main():
         print('display:', sum(s['tests'] for s in r['suites']), 'tests, zero failures/errors/skips', flush=True)
         return
     cases = selected_cases(args.case)  # ALL anchors before the shared baseline or any mutation
-    baseline = run(','.join(dict.fromkeys(c[4].split('#')[0] for c in cases)))
-    result['baseline'] = baseline
-    save()
-    assert green(baseline), baseline['output']
-    for name, site, old, new, names in cases:
-        cls, test = names.split('#')
-        assert any(s['name'] == cls and test in s['testNames'] for s in baseline['suites']), ('missing baseline test', names)
-        path = Path(site)
-        original = path.read_bytes()
-        text = original.decode()
-        assert text.count(old) == 1, ('anchor changed since preflight', name)
-        entry = {'name': name, 'site': site, 'sha256': hashlib.sha256(original).hexdigest(), 'baselineGreen': True}
-        try:
-            path.write_text(text.replace(old, new))
-            bad = run(names)
-            entry['mutated'] = bad
-            assert bad['exit'] != 0 and any(a['test'] == test and a['kind'] == 'failure'
-                for s in bad['suites'] for a in s['assertions']), bad
-        finally:
-            path.write_bytes(original)
-            entry['restoredByteIdentical'] = path.read_bytes() == original
-            entry['restored'] = run(names)
-            result['runs'].append(entry)
+    if args.mode == 'compare':
+        planted = [c for c in PLANTED if Path(c[1]).read_text().count(c[2]) == 1]
+        assert len(planted) == len(PLANTED), 'a planted control lost its anchor'
+        verdicts = {}
+        for label, engine in (('maven', None), ('fast', fast.FastEngine())):
+            started = time.monotonic()
+            if engine:
+                engine.prepare()
+            baseline, entries = run_gate(cases + planted, engine, fail_fast=False)
+            seconds = round(time.monotonic() - started, 1)
+            result[label] = {'seconds': seconds, 'baselineGreen': green(baseline), 'entries': entries,
+                             'fullCompileFallbacks': engine.fallbacks if engine else None}
+            verdicts[label] = {e['name']: e['verdict'] for e in entries}
             save()
-        assert green(entry['restored']), entry['restored']['output']
-        print(name, ': green / named assertion red / restored green, bytes identical', flush=True)
+            print(label, 'engine:', seconds, 's', flush=True)
+        rows = []
+        for name in verdicts['maven']:
+            expected = 'survived' if name.startswith('plant-') else 'caught'
+            m, f = verdicts['maven'][name], verdicts['fast'][name]
+            rows.append({'name': name, 'maven': m, 'fast': f, 'expected': expected, 'ok': m == f == expected})
+            print(('ok   ' if rows[-1]['ok'] else 'DIFF ') + name, 'maven=' + m, 'fast=' + f, 'expected=' + expected)
+        result['comparison'] = rows
+        save()
+        assert all(r['ok'] for r in rows), 'the engines disagree, or a control or plant has the wrong verdict'
+        print('compare: identical verdicts on', len(rows), 'controls; maven', result['maven']['seconds'],
+              's, fast', result['fast']['seconds'], 's')
+        return
+    # mutations
+    if args.changed_since:
+        chosen, skipped = fast.select_subset(cases, fast.changed_files(args.changed_since))
+        result['subset'] = {'since': args.changed_since,
+                            'selected': [{'name': c[0], 'why': why} for c, why in chosen],
+                            'skipped': [{'name': c[0], 'why': why} for c, why in skipped]}
+        save()
+        for c, why in chosen:
+            print('selected', c[0], '-', why)
+        for c, why in skipped:
+            print('SKIPPED ', c[0], '-', why)
+        print('SUBSET: %d of %d controls will run; %d skipped. A subset is a branch signal, not the gate.'
+              % (len(chosen), len(cases), len(skipped)), flush=True)
+        cases = [c for c, _ in chosen]
+        if not cases:
+            return
+    engine = fast.FastEngine() if args.engine == 'fast' else None
+    started = time.monotonic()
+    if engine:
+        engine.prepare()
+    baseline, entries = run_gate(cases, engine, fail_fast=True)
+    result.update({'engine': args.engine, 'baseline': baseline, 'runs': entries,
+                   'seconds': round(time.monotonic() - started, 1)})
+    save()
+    print('mutations:', len(entries), 'controls caught with the', args.engine, 'engine in', result['seconds'], 's')
 
 
 if __name__ == '__main__':
