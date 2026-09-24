@@ -173,11 +173,18 @@ public final class GraphPanel extends JPanel {
 
         export.addActionListener(e -> exportCsv());
         exportPng.addActionListener(e -> exportPng());
-        styleCombo.addActionListener(e -> chart.setStyle(switch (styleCombo.getSelectedIndex()) {
-            case 1 -> ChartPanel.Style.LINE;
-            case 2 -> ChartPanel.Style.POINTS;
-            default -> ChartPanel.Style.STEP;
-        }));
+        styleCombo.addActionListener(e -> {
+            chart.setStyle(switch (styleCombo.getSelectedIndex()) {
+                case 1 -> ChartPanel.Style.LINE;
+                case 2 -> ChartPanel.Style.POINTS;
+                default -> ChartPanel.Style.STEP;
+            });
+            // M68.4: the DROPDOWN is the only way a person changes the style, and it did not ask to be
+            // saved — so the choice was lost on the next load while the verb path persisted correctly.
+            // B-M20-3: an edit that changes the saved chart must say so. Quiet during restore, because
+            // GraphTabs suppresses the change listener while it rebuilds.
+            mutated();
+        });
         zoomIn.addActionListener(e -> chart.zoomIn());
         zoomOut.addActionListener(e -> chart.zoomOut());
         fit.addActionListener(e -> chart.resetView());
@@ -985,8 +992,22 @@ public final class GraphPanel extends JPanel {
             case "points" -> 2;
             default -> 0;   // step
         };
-        styleCombo.setSelectedIndex(idx);   // fires the listener → chart.setStyle
-        mutated();
+        // JComboBox fires its action event even when the selection is unchanged, so the listener always
+        // runs and is the single place that calls setStyle and mutated. Calling mutated here too would
+        // report one edit twice.
+        styleCombo.setSelectedIndex(idx);
+    }
+
+    /**
+     * The plot style as {@code step|line|points} — the form {@link #setStyleByName} takes, so the pair
+     * round-trips. Read from the combo, which is the one place the choice lives.
+     */
+    public String styleName() {
+        return switch (styleCombo.getSelectedIndex()) {
+            case 1 -> "line";
+            case 2 -> "points";
+            default -> "step";
+        };
     }
 
     private void onFilterChanged() {

@@ -51,12 +51,18 @@ public final class GraphTabs extends JPanel {
         JButton add = new JButton("New graph");
         JButton rename = new JButton("Rename…");
         JButton close = new JButton("Close graph");
+        JButton delete = new JButton("Delete chart");
         add.addActionListener(e -> addGraph());
         rename.addActionListener(e -> promptRename(tabs.getSelectedIndex()));
         close.addActionListener(e -> closeCurrent());
+        delete.addActionListener(e -> deleteCurrent());
+        // the two buttons say which is which, because one of them is unrecoverable
+        close.setToolTipText("Close the tab and keep the chart — reopen it from the Project panel");
+        delete.setToolTipText("Remove the chart's definition from the project, including its notes. Cannot be undone");
         bar.add(add);
         bar.add(rename);
         bar.add(close);
+        bar.add(delete);
         add(bar, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
         setBorder(UiTheme.section("Graphs"));
@@ -279,7 +285,8 @@ public final class GraphTabs extends JPanel {
                 out.add(new GraphSpec(gp.graphName(), gp.seriesSpecs(), gp.exprSpecs(),
                         gp.pinnedFrom(), gp.pinnedTo(), gp.caption(),
                         notes.explanation(), noteSpecs, new ArrayList<>(gp.axes().rightSeries()),
-                        gp.guides(), gp.bandSpecs(), gp.externalSpecs(), gp.markerSpecs()));
+                        gp.guides(), gp.bandSpecs(), gp.externalSpecs(), gp.markerSpecs(),
+                        gp.styleName()));
             }
         }
         return out;
@@ -297,35 +304,70 @@ public final class GraphTabs extends JPanel {
         }
     }
 
+    /**
+     * M68.2: open ONE saved chart and select it — what the Project panel's Open does for a chart that is
+     * not currently a tab. A chart already open is selected rather than rebuilt, so Open never discards
+     * edits made since the profile was written. Returns false when there is nothing to open.
+     */
+    public boolean openSaved(GraphSpec spec) {
+        if (spec == null || store == null) return false;
+        GraphPanel existing = graphNamed(spec.name());
+        if (existing != null) {
+            tabs.setSelectedComponent(existing);
+            return true;
+        }
+        boolean was = restoring;   // building from persisted state is not a user edit
+        restoring = true;
+        try {
+            GraphPanel panel = addGraph(spec.name());
+            if (panel == null) return false;
+            applySpec(panel, spec);
+            tabs.setSelectedComponent(panel);
+            return true;
+        } finally {
+            restoring = was;
+        }
+    }
+
     private void doRestore(List<GraphSpec> saved) {
         clearGraphs();
         counter = 0;
         for (GraphSpec g : saved) {
+            // M68.3: a chart closed in an earlier session stays a DEFINITION and does not reopen as a tab.
+            // It is still listed in the Project panel, and its Open reopens it through openSaved.
+            if (!g.open()) continue;
             GraphPanel panel = addGraph(g.name());
             if (panel == null) continue;
-            panel.setCaption(g.note());
-            if (g.series() != null) panel.addSpecs(g.series());
-            for (GraphSpec.ExprSpec ex : g.exprs()) {
-                panel.addExpr(ex.label(), ex.expr(), resolveOf(ex.resolve()));
-            }
-            if (g.isPinned()) panel.pin(g.from(), g.to());
-            if (!g.guides().isEmpty()) panel.setGuides(g.guides());
-            if (!g.bands().isEmpty()) panel.setBands(g.bands());
-            if (!g.external().isEmpty()) panel.setExternal(g.external());   // async reload; D-F5 notes on failure
-            if (!g.markers().isEmpty()) panel.setMarkers(g.markers());
-            // the reading of the chart, restored with it
-            var notes = new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes(
-                    g.explanation(), g.notes().stream()
-                    .map(n -> new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
-                            n.at(), n.text(), n.series()))
-                    .toList());
-            if (!notes.isEmpty()) panel.setNotes(notes);
-            if (!g.rightAxis().isEmpty()) {
-                panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
-                        g.rightAxis()));
-            }
+            applySpec(panel, g);
         }
         if (tabs.getTabCount() == 0) addGraph();
+    }
+
+    /** Everything a {@link GraphSpec} says, onto a panel — the one place a saved chart is rebuilt. */
+    private void applySpec(GraphPanel panel, GraphSpec g) {
+        panel.setCaption(g.note());
+        if (g.series() != null) panel.addSpecs(g.series());
+        for (GraphSpec.ExprSpec ex : g.exprs()) {
+            panel.addExpr(ex.label(), ex.expr(), resolveOf(ex.resolve()));
+        }
+        if (g.isPinned()) panel.pin(g.from(), g.to());
+        if (!g.guides().isEmpty()) panel.setGuides(g.guides());
+        if (!g.bands().isEmpty()) panel.setBands(g.bands());
+        if (!g.external().isEmpty()) panel.setExternal(g.external());   // async reload; D-F5 notes on failure
+        if (!g.markers().isEmpty()) panel.setMarkers(g.markers());
+        // the reading of the chart, restored with it
+        var notes = new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes(
+                g.explanation(), g.notes().stream()
+                .map(n -> new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
+                        n.at(), n.text(), n.series()))
+                .toList());
+        if (!notes.isEmpty()) panel.setNotes(notes);
+        if (!g.rightAxis().isEmpty()) {
+            panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
+                    g.rightAxis()));
+        }
+        // M68.2: last, so the style the profile declared survives everything added above
+        panel.setStyleByName(g.style());
     }
 
     private static SeriesExtractor.Resolve resolveOf(String s) {
@@ -355,12 +397,47 @@ public final class GraphTabs extends JPanel {
         tabs.removeAll();
     }
 
+    /**
+     * Close the tab. M68.3: this KEEPS the chart's definition — the profile still lists it, the Project
+     * panel still shows it, and its Open reopens it. Removing a chart for good is {@link #deleteCurrent()},
+     * a separate action that says so and asks first.
+     */
     private void closeCurrent() {
         if (tabs.getTabCount() <= 1) return;   // keep at least one
         int i = tabs.getSelectedIndex();
         if (i < 0) return;
         if (tabs.getComponentAt(i) instanceof GraphPanel gp) gp.unbind();
         tabs.removeTabAt(i);
+        fireChanged();
+    }
+
+    /** Told the NAME of a chart the person deleted, so the owner of the config can drop its definition. */
+    private java.util.function.Consumer<String> deleteListener = name -> { };
+
+    public void setDeleteListener(java.util.function.Consumer<String> listener) {
+        this.deleteListener = listener == null ? name -> { } : listener;
+    }
+
+    /**
+     * M68.3 — remove the chart's DEFINITION, not just its tab. Destructive and unrecoverable (a chart
+     * carries its explanation and pinned notes, which is the part worth keeping), so it confirms first and
+     * names the chart in the question. Close is the non-destructive neighbour.
+     */
+    private void deleteCurrent() {
+        int i = tabs.getSelectedIndex();
+        if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        String name = gp.graphName();
+        int answer = JOptionPane.showConfirmDialog(this,
+                "Delete the chart \"" + name + "\"?\n\n"
+                        + "This removes its definition from the project — series, formulas, notes and the\n"
+                        + "explanation written on it. It cannot be undone.\n\n"
+                        + "To put it away without losing it, use Close graph instead.",
+                "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) return;
+        gp.unbind();
+        tabs.removeTabAt(i);
+        if (tabs.getTabCount() == 0) addGraph();
+        deleteListener.accept(name);   // drop the definition BEFORE the change listener persists the list
         fireChanged();
     }
 }

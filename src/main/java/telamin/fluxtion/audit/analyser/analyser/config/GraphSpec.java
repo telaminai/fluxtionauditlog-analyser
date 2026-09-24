@@ -11,7 +11,56 @@ import java.util.List;
 public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                         String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
                         List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
-                        List<MarkerSpec> markers) {
+                        List<MarkerSpec> markers, String style, boolean open) {
+
+    /**
+     * A blank style is no style: the reader omits the key and {@link #style()} answers the default, so a
+     * profile written before styles were persisted reopens as stairs exactly as it did before.
+     */
+    public GraphSpec {
+        style = style == null || style.isBlank() ? null : style.toLowerCase();
+    }
+
+    /**
+     * The pre-M68.3 shape — {@code open} defaults TRUE, so a profile written before charts could be
+     * closed without being deleted still reopens every chart it lists, exactly as it did before.
+     */
+    public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
+                     String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
+                     List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
+                     List<MarkerSpec> markers, String style) {
+        this(name, series, exprs, from, to, note, explanation, notes, rightAxis, guides, bands,
+                external, markers, style, true);
+    }
+
+    /** The pre-M68.2 shape (style not persisted — a chart's stairs/line/points choice was lost on reload). */
+    public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
+                     String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
+                     List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
+                     List<MarkerSpec> markers) {
+        this(name, series, exprs, from, to, note, explanation, notes, rightAxis, guides, bands,
+                external, markers, null, true);
+    }
+
+    /**
+     * The same chart, recorded as open or closed. Closing a chart must keep everything else about it —
+     * that is the whole point: the definition and its annotations outlive the tab.
+     */
+    public GraphSpec withOpen(boolean nowOpen) {
+        return new GraphSpec(name, series, exprs, from, to, note, explanation, notes, rightAxis,
+                guides, bands, external, markers, style, nowOpen);
+    }
+
+    /**
+     * The same chart with re-pointed external series and markers — what settings sharing does when it
+     * rewrites a path. M68.4: this exists because doing it by hand through a shorter constructor silently
+     * reset the style and revived a closed chart. Copy through a wither, never by re-listing components:
+     * an omitted component takes its DEFAULT, and the compiler cannot tell that apart from an intention.
+     */
+    public GraphSpec withExternal(List<ExternalSpec> newExternal, List<MarkerSpec> newMarkers) {
+        return new GraphSpec(name, series, exprs, from, to, note, explanation, notes, rightAxis,
+                guides, bands, newExternal, newMarkers, style, open);
+    }
 
     /** The pre-M32.5 shape (no markers). */
     public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
@@ -167,5 +216,21 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
 
     public List<MarkerSpec> markers() {
         return markers == null ? List.of() : markers;
+    }
+
+    /** Stairs is the default everywhere else ({@code ChartPanel.Style.STEP}), so an unset style answers it too. */
+    public static final String DEFAULT_STYLE = "step";
+
+    /**
+     * {@code step|line|points} — never null, so a caller restoring a chart does not have to know the
+     * default. A chart saved before M68.2 has no stored style and answers {@link #DEFAULT_STYLE}.
+     */
+    public String style() {
+        return style == null ? DEFAULT_STYLE : style;
+    }
+
+    /** The stored value, null when this chart never declared one — what the writer persists. */
+    public String declaredStyle() {
+        return style;
     }
 }

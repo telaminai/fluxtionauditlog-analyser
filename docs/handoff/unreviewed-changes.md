@@ -15,3 +15,42 @@ Every entry must carry: commit SHA, what & why, files, what was verified, and **
 still check**.
 
 _Reviewed entries are retired to [`completed/unreviewed-changes-2026-09.md`](completed/unreviewed-changes-2026-09.md) and, earlier, [`completed/unreviewed-changes-2026-08.md`](completed/unreviewed-changes-2026-08.md)._
+
+---
+
+## 2026-09-24 — three documentation commits by the M68 session, straight to `main`
+
+These change specs, the tracker and a proposal, not code, so `mvn test` is not the check that matters. They are
+logged because two of them change **release-gate state** and one of those corrects a false closure written by
+the same session hours earlier. Earlier commits the same day (`610d5777` spec v2, `abb4a697` spec v3 and the
+archive sweep) were reviewed in rounds 3 and 4 and are not listed.
+
+- ☐ **`b4dbc2bd` — round-4 corrections to the M68 spec and both trackers.** *What & why:* folds in round 4
+  (`review/m68-v3-tracker-2026-09-24`, `c583edf3`). **SG-2 was split** after the session had recorded it as fully
+  closed from a claim copied out of a CI run: acquisition, setup and validation on the hosted archive are closed;
+  hosted changed-graph generation/run is not. Three archived obligations were given live homes (OBL-1 background
+  load progress/cancel, OBL-2 the autoscale-Y drag rescan, OBL-3 the first-key-seen iteration-order acceptance).
+  The freshness policy, disposition table and safety argument in the spec were corrected. *Files:*
+  `docs/specs/spec-evidence-integrity.md`, `docs/specs/tracker.md`, `docs/specs/completed/tracker.md`.
+  *Verified:* full suite 1,876 at the time, `SpecLinksResolveTest`, the public sweep; the SG-2 split re-checked
+  against the CI run's job list with `gh run view 35929392911 --repo telaminai/fluxtion-web`.
+  **Reviewer must still check:** that the SG-2 split is now right in **both** directions — neither the earlier
+  "NOT READY" nor the brief "fully closed"; that OBL-1 to OBL-3 are genuinely unfinished rather than obsolete
+  wording; and that no other archived item carries the same pattern.
+- ☐ **`aacc1ed4` — six hero framings added to the positioning proposal.** *What & why:* additive only, 202 lines,
+  none removed; four framings by audience, two recorded from another session, and eight accuracy constraints
+  each written after a draft made a claim the product does not support. *Files:*
+  `docs/proposals/positioning.md`. *Verified:* every original heading still present; the public sweep.
+  **Reviewer must still check:** each accuracy constraint against current product behaviour, especially that
+  repeatable analyses are shipped (claimed) and that handing one artefact to a colleague is not (claimed). The
+  file is public: check nothing in it would read as a published capability claim before the notebook work lands.
+- ☐ **`296b5438` — the M68.1 cold-start brief, rebased onto 1.19.1.** *What & why:* the brief half of the M68.1
+  cycle; also records in acceptance 8 that 1.19.1's named-profile fix overtakes the anchoring half of that
+  acceptance. *Files:* `docs/handoff/handoff_m68_1_coverage_pairing_scope.md`,
+  `docs/specs/spec-evidence-integrity.md`, `docs/specs/tracker.md`. *Verified:* full suite 1,877 on the rebased
+  tree; `SpecLinksResolveTest`; the public sweep. **Reviewer must still check:** that the brief's source
+  locations match the code, and that the acceptance-8 boundary agrees with the 1.19.1 fix's own tracker note.
+
+The M68.1 **implementation** itself is not on `main` and is not in this ledger: it follows the normal cycle on
+branch `feat/m68-1-coverage-pairing-scope`, with its report at
+`docs/handoff/report_m68_1_coverage_pairing_scope_2026_09_24.md` on that branch.

@@ -6,6 +6,36 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Choosing a plot style from the dropdown is now saved.** Setting a chart to Line or Points from the
+  style control kept the change on screen but never asked to be persisted, so it reverted to stairs on the
+  next load. Only the assistant's `graph {style}` path saved correctly. Fixes the user-facing half of the
+  style persistence added earlier in this release.
+
+- **Sharing or importing settings no longer resets a chart's style or reopens a closed chart.** Rewriting
+  an external series or marker path rebuilt the chart and silently dropped both.
+
+- **Closing a chart no longer deletes it.** Close now puts a chart away and keeps its definition — series,
+  formulas, right axis, explanation and pinned notes — so it stays listed in the Project panel and reopens
+  from there, and stays closed across a reload rather than reappearing. Previously the project's saved-chart
+  list mirrored the open tabs, so closing a tab silently and unrecoverably destroyed the chart and its
+  annotations.
+
+- **New: Delete chart**, beside Close on the Graph toolbar, for removing a chart's definition on purpose.
+  It names the chart, says what is lost, and asks first. Existing projects are unaffected: a chart that has
+  never been closed carries no new setting and opens exactly as before.
+
+- **Open on a Project-panel row now opens that row's thing.** Open on a saved report reveals *that*
+  report instead of whichever one was already selected, and Open on a saved chart works at all — those
+  rows previously carried no action, so the button did nothing. A chart that is saved but not currently
+  a tab is opened from the profile and selected; one already open is selected rather than rebuilt, so
+  nothing you changed since is discarded.
+
+- **A chart's plot style is saved with it.** Stairs, line and points are part of a saved chart and
+  survive a reload. Previously the choice was never written to the profile, so a chart deliberately set
+  to line or points silently came back as stairs — the reading of the chart changed without anyone
+  touching it. Charts saved before this release have no stored style and open as stairs, exactly as they
+  did before. An unrecognised style in a hand-edited profile is dropped rather than applied.
+
 - Coverage no longer tells you a node is missing from a graph that declares it. The analyser now reads the graph's own declaration of which nodes are framework plumbing (`fluxtion.framework`) before falling back to guessing from class names, so a framework class you used as a node and named is counted as yours; and it checks whether a logged node is in the graph against **every** declared node rather than only the authored ones, so a framework node that writes audit output no longer raises a warning. On the recovery-packet graph this changes coverage from 2 declared and 2 covered to the honest 3 and 3. `coverage` and the graph-open echo say how authorship was decided (`authorshipBasis`: declared, inferred or mixed), and framework nodes are listed separately under `frameworkNodesNotScored` rather than vanishing.
 - Mismatch messages state the fact and stop. "The graphml is probably from a different build, which makes every other figure here suspect", "topology may be from a different build" and "describes a different system or build" are gone: matching node names do not establish which build either file came from, so the analyser names the ids that disagree and leaves the judgement to you.
 - A graph with no node eligible to score now reports **no ratio** instead of a vacuous 100%. `coverage` carries `ratioAvailable` and a `ratioNote`, and membership is reported separately under `membership` — it can be fully established even when there is nothing to score.

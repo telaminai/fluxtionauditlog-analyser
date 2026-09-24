@@ -75,6 +75,11 @@ defect.** After the fix, a named profile can use the same portable `workspaceRoo
 
 ## Related observations (not fixed or re-tested in the UI here)
 
+> **Superseded — all three are resolved. See "Resolution of the three observations" below.** This section
+> is kept as written because it records what was known before the owner ruled on D-L3, including one
+> reading that turned out to be wrong: `Target.NONE` on a saved-chart row was taken as a boundary the
+> spec had drawn, when the row still rendered an Open button and simply had nothing behind it.
+
 Source inspection distinguishes the following cases; they are not three proven instances of one bug:
 
 1. **Reports ▸ Open reveals the Reports tab without selecting the named report.**
@@ -88,6 +93,180 @@ Source inspection distinguishes the following cases; they are not three proven i
    profile-root fix. This action alone neither loads a graph nor establishes why the tab is empty.
 
 These observations do not expand this path-resolution fix into Project-panel navigation work.
+
+## The question this needed, and the answer — 2026-09-24 (M68.2)
+
+A first attempt to patch the two Open defects was abandoned on reading the tests: D-L3 is not a
+convention here, it is asserted. `ProjectPanelIsRevealOnlyTest` pins the exact `Navigator` method set —
+
+```java
+assertEquals(Set.of("showTab", "openSettings"),
+        Set.of(…ProjectPanel.Navigator.class.getDeclaredMethods()…),
+        "the Navigator moves the eye, not the state; adding a method here is a spec change (D-L3)");
+```
+
+— plus a constant-pool check that `ProjectPanel` and `ProjectModel` never name `MainFrame`,
+`ActionExecutor` or `AppControl`: *"it renders, it does not act"*. So giving a row the ability to open
+*its own* report or chart would fail that assertion **by construction**. It was a spec change, and the
+test said so in its own failure message. The question put to the owner was therefore:
+
+> Is revealing a *specific* already-loaded report or chart still "moving the eye" (in scope for D-L3, so
+> `Navigator` may name the item), or is selecting an item a state change (out of scope, so the Project
+> panel should keep revealing the tab only)?
+
+**The owner answered "still navigation"** (2026-09-24), so the spec, `ProjectPanelIsRevealOnlyTest` and
+the implementation changed together as one deliberate change, exactly as that question anticipated.
+`spec-loaded-panel.md` D-L3 now carries the amendment and its limit: a `Navigator` method must reveal
+something that already exists; creating, editing or discarding belongs on the action surface the panel
+still cannot reach.
+
+## Resolution of the three observations
+
+1. **Reports ▸ Open** — fixed. `Row` gained an `item` carrying the row's identity, and the report row
+   sets it to the report's **name** while still displaying its **title**. That split was the substance of
+   the bug: `ReportsPanel.select` matches on name, so a panel passing its label along would have selected
+   nothing even after the identity was threaded through.
+2. **Saved charts** — fixed, and the earlier reading of `Target.NONE` as "consistent with D-L3" was
+   wrong in effect. The rows still rendered an Open button; it was simply wired to nothing, which is not
+   a boundary, it is a dead control. They now carry `Target.CHART`, and `GraphTabs.openSaved` opens a
+   saved-but-not-open chart from the profile — reveal, not create, because the definition already exists.
+   A chart already open is selected rather than rebuilt, so Open never discards later edits.
+3. **Graph ▸ Open reveals the Topology tab** — re-tested after the profile-root fix, and the tab is
+   populated (13 nodes, `graphSource: OPENED`, the log's records loaded). This observation was downstream
+   of the anchoring bug. Note the re-test that matters: an earlier check drove `analyser_topology`, the
+   **verb**, which loads the graph itself and therefore proves nothing about the button. Only the
+   button-level test below covers the reported behaviour.
+
+### The UI-test gap is closed
+
+`ProjectPanelOpenRevealsTheRowsItemTest` is the harness this note called for and could not assume:
+headless Swing, a fixture `ProjectModel`, the row's actual Open button found by the label it displays,
+clicked, asserting the call made on a recording `Navigator`. It pins that Open on report B reveals report
+B, that the two report rows do different things, that a saved chart reveals itself, and that a
+placeholder row naming no item still only reveals the tab. The fixture's reports deliberately have titles
+that differ from their names, so a regression that collapses label and identity fails here.
+
+Suite after the change: **1,887 tests, 0 failures, 0 errors, 62 skips** (1,877 before; the ten new tests
+are this class and `GraphStylePersistenceTest`). `ProjectModelTest`'s saved-chart assertion changed with
+the spec and was renamed to say what it now pins.
+
+### What is still NOT verified — checks for a person at a real display
+
+The new test asserts that the panel **asks** for the right thing: a click on report B's Open calls
+`showReport("B")`. Nothing in the suite asserts that `MainFrame`'s implementation of those two methods
+**does** the right thing on screen. That half is genuinely out of reach here, and saying so is the point:
+
+- The python harnesses (`verify-m46-agent-api.py`, `verify-m64-spotlight.py`, `verify-m43.py`) drive the
+  built jar over the **action socket**, which has verbs, not button presses. The socket has no verb that
+  clicks a Project-panel row and must not gain one — the same reasoning `verify-m43.py` records for the
+  modal `PointerDialog`. So these three defects cannot be closed by extending those scripts.
+- `ProjectPanelIsRevealOnlyTest` is structural (bytecode, Navigator shape) by design.
+- `ProjectPanelOpenRevealsTheRowsItemTest` stops at the `Navigator` boundary, deliberately: past it lies
+  `MainFrame`, which the panel may not name.
+
+**Five checks, needing a display** (the reviewer, or the author with a GUI):
+
+1. With two saved reports, Open on the second shows the **second** report's body in the Reports tab —
+   not the tab with the previous selection still in it.
+2. Open on the first then shows the **first**. Alternating must alternate; a single correct-looking
+   result proves nothing, because the pre-fix behaviour was "whatever was already selected".
+3. Open on a saved chart that is **not** an open tab opens it and selects it, with its series, notes,
+   right axis and pin intact — `openSaved` applies the same spec path as a profile restore.
+4. Open on a chart that **is** already a tab selects that tab and does **not** rebuild it: make a change
+   (add a series), press Open, confirm the change survives.
+5. Set a chart to **Line**, save, reopen the profile, confirm it comes back as Line. Then confirm a chart
+   saved before this change still opens as Stairs.
+
+Checks 1–2 are the reported defect; 4 is the regression risk the fix introduces; 5 is the style fix.
+
+### Verification record — 2026-09-24, against a build of `main` at `43ce82fc`
+
+All five checks were run by the owner at a real display, on a locally built jar (not the 1.19.1
+release). **Checks 1–4 pass**: Open on the second report reveals the second report, alternating between
+the two rows alternates correctly, a saved chart that is not an open tab opens with its series and
+annotations intact, and Open on an already-open chart selects it without discarding a series added since.
+
+**Check 5 passes**, driven over the action socket and confirmed in the profile bytes: setting a chart to
+Line writes `graph.0.style=line`; closing the project, reopening it and reopening the log then forcing a
+save from live panel state leaves `line` in place. That last step is the one that proves the restore
+path — a save writes from the panel, so had `applySpec` not applied the style the panel would have been
+at stairs and would have overwritten `line` with `step`. The same sequence on 1.19.1 wrote no style key
+at all.
+
+One consequence worth stating plainly: **the first save after upgrading adds a style key to every
+chart**, not only deliberately styled ones, because `GraphTabs.specs()` always reports `styleName()` and
+never null. The value written is always the chart's actual style and nothing reads differently, so this
+is benign — but "existing profiles are untouched" holds only until the first save.
+
+## Closing a chart destroys it — found during the same session (FIXED, M68.3)
+
+Reported by the owner immediately after the checks: close a chart tab and the chart is gone for good,
+and its row vanishes from the Project panel's *Saved charts* section. Reproduced in the profile bytes —
+`graph.count` went 2 → 1 and every `graph.1.*` key was deleted, taking the chart's series, expressions,
+right-axis assignment, explanation and all three pinned notes with it. The definition was recovered from
+a file backup; without one it would have been unrecoverable.
+
+**Cause.** `GraphTabs.closeCurrent` removes the tab and fires the change listener;
+`MainFrame.syncOpenGraphsIntoConfig` then does `config.savedGraphs.clear()` followed by
+`addAll(graphTabs.specs())`. `specs()` walks the **open tabs**, so the profile's saved-chart list is not
+a list of saved charts at all — it is a mirror of what is currently open. Closing a tab is therefore a
+silent, unconfirmed delete of persistent annotated state.
+
+**This is pre-existing and not caused by M68.2** — closing a chart has always destroyed its notes. But
+M68.2 makes it matter more, and made it visible: the *Saved charts* rows now offer an Open, which
+promises a recoverability the model does not provide. `SessionFacts.savedGraphs` already reports an
+`open` flag per chart, so the vocabulary for "saved but not open" exists; today it can only ever be false
+while a log is loaded, because the two lists are kept identical.
+
+**The shape of a fix** (needs an owner decision before building):
+
+- *Close* should close the tab and keep the definition, so the Project panel's Open can reopen it —
+  which already works, via `GraphTabs.openSaved`.
+- *Delete* becomes a separate, explicit action for removing a definition. The owner has asked for this.
+  It cannot live on the Project panel: deleting is mutation, and D-L3's amendment covers revealing an
+  item, not destroying one. It belongs on the Graph tab's toolbar beside Close.
+- The open question is what a **reload** should do with a chart that was closed but not deleted: reopen
+  every saved chart as a tab (today's `restore` behaviour, which would undo the close), or persist the
+  `open` flag per chart and reopen only those that were open. The second matches what a person means by
+  closing something, and the flag is already in the model — but it adds state that a hand-edited profile
+  can contradict.
+
+### What was built (owner decision, 2026-09-24)
+
+The owner chose to **persist the open flag** and to land **Close and Delete together**, on the reasoning
+that without a Delete, charts could never be removed once Close stopped removing them.
+
+- `GraphSpec` gains `open`, defaulting **true**, with a `withOpen` copy. Every pre-M68.3 constructor
+  delegates with `true`, so no existing profile or caller changes behaviour.
+- `ConfigStore` writes `graph.N.open=false` **only for a closed chart**. An untouched profile gains no
+  key, and a missing key reads as open.
+- `syncOpenGraphsIntoConfig` now **merges** rather than clearing: an open tab wins as live state, a chart
+  that is no longer a tab is kept and marked closed, and order follows the existing profile so charts do
+  not shuffle on every save. This single change is what stops the data loss.
+- `GraphTabs.doRestore` skips charts marked closed, so closing one survives a reload instead of being
+  undone by it.
+- **Delete chart** is a new toolbar button beside Close. It confirms first, names the chart, and says what
+  is lost; it tells `MainFrame` to drop the definition before the change listener writes the merged list.
+  It is deliberately NOT on the Project panel: deleting is mutation, and D-L3's amendment covers revealing
+  an item, not destroying one.
+
+`ClosingAChartKeepsItsDefinitionTest` pins the behaviour at the level where the loss happened — the merge
+and the round trip, not the button: a closed chart survives with its explanation and pinned notes, open is
+the default for a legacy profile, only a closed chart writes the key, and `withOpen` changes nothing else
+about a chart. Suite: **1,891 tests, 0 failures, 62 skips**.
+
+Still unverified at a display: that the two toolbar buttons behave as described in a real window.
+
+### A separate defect found while re-testing: the plot style was never saved
+
+Not a navigation issue and not D-L3-bounded. `GraphPanel` has always treated style as a persistable
+mutation — it calls `mutated()`, and its own doc lists style beside series, pins and notes — but
+`GraphSpec` had no such component and `ConfigStore` wrote no key, so the choice was dropped on every
+save. It stayed invisible because stairs is `ChartPanel`'s default: a stairs chart round-tripped by
+accident, and only a deliberate line or points chart came back changed. `GraphSpec` now carries `style`,
+`ConfigStore` writes `graph.N.style` only when one was declared (so existing profiles are untouched and
+still open as stairs), and an unrecognised hand-edited value is dropped rather than carried to a panel
+that would fall back silently.
 
 ## Review verification — 2026-09-24
 

@@ -82,6 +82,21 @@ switching, resetting stay where they are (File menu, Topology, Settings) — the
 it may not do them. Offer, never act; and a display that can mutate state is a display people learn not
 to trust.
 
+**Amendment, owner 2026-09-24 (M68.2): revealing a SPECIFIC item is navigation.** A row's action may name
+the thing the row is about — *this* report, *this* saved chart — and the `Navigator` may carry that
+identity. Until this round it could not, and the cost was not theoretical: a report row showed its title
+while the Reports panel selects by name, so Open on any report revealed whichever report was already
+selected; and saved-chart rows carried no target at all, so the Open a person could see was wired to
+nothing. Both read as broken software, because a button that says *Open* and reveals someone else's
+report has already broken the trust this rule exists to protect.
+
+The boundary is unchanged where it matters. A `Navigator` method must reveal something that **already
+exists**; one that creates, edits, discards or reorders state belongs on the action surface, which this
+panel still may not reach. Opening a saved chart that is not currently a tab is reveal, not create: the
+chart is a definition the profile already holds, and the panel asks for it to be shown, not authored.
+`ProjectPanelIsRevealOnlyTest` pins the exact `Navigator` method set, so the next addition is again a
+deliberate decision rather than a drift.
+
 ## D-L4 — the pairing verdict is a row, not a footnote
 
 Graph ↔ log pairing is the fact users most often get wrong in silence (M34 §E, M35.4). The GRAPH section

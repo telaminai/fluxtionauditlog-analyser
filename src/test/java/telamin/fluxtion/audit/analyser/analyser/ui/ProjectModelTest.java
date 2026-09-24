@@ -68,8 +68,15 @@ class ProjectModelTest {
         assertEquals(8, ProjectModel.from(null).sections().size());
     }
 
+    /**
+     * M68.2, owner 2026-09-24: the row now offers a REVEAL. It previously carried {@link
+     * ProjectModel.Target#NONE} — read at the time as "no mutation action", which it was, but the
+     * consequence was that the Open a person saw on a saved chart was wired to nothing at all. Revealing a
+     * specific chart is navigation, so the row names its chart; mutation is still barred, structurally, by
+     * {@code ProjectPanelIsRevealOnlyTest}.
+     */
     @Test
-    void savedChartsRemainVisibleWithoutInputAndHaveNoMutationAction() {
+    void savedChartsRemainVisibleWithoutInputAndRevealTheirOwnChart() {
         var ctx = empty();
         ctx.put("savedGraphs", List.of(Map.of("name", "Positions", "open", false,
                 "input", "waiting for input")));
@@ -77,7 +84,8 @@ class ProjectModelTest {
         assertEquals("Positions", row.primary());
         assertEquals("waiting for input", row.secondary());
         assertEquals("saved", row.provenance());
-        assertEquals(ProjectModel.Target.NONE, row.target());
+        assertEquals(ProjectModel.Target.CHART, row.target());
+        assertEquals("Positions", row.item(), "the row must say WHICH chart, or Open cannot reveal it");
     }
 
     @Test
