@@ -66,6 +66,18 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
         this(logged, matched, applies, reason, -1, -1);
     }
 
+    /**
+     * The one-word state this verdict is recorded under in the session's own audit log (review O3). That log
+     * is openable in the analyser, so it must not state the retention decision as the fit: a graph kept with
+     * nothing compared is {@code keptUnjudged}, one kept on a partial match {@code keptPartial}, and only a
+     * comparison that found every observed id declared is {@code applies}.
+     */
+    public String auditLabel() {
+        if (!applies) return "doesNotApply";
+        if (!evidenced()) return "keptUnjudged";
+        return everyObservedIdDeclared() ? "applies" : "keptPartial";
+    }
+
     /** True when there was something to compare: at least one observed node id. */
     public boolean evidenced() {
         return logged > 0;

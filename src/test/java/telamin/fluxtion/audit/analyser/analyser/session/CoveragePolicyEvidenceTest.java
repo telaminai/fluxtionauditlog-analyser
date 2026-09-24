@@ -50,6 +50,26 @@ class CoveragePolicyEvidenceTest {
     }
 
     @Test
+    @DisplayName("review O4: a pairing qualification no longer hides the level caveat")
+    void bothQualificationsAreStated() {
+        CoveragePolicy.Assessment unjudged = CoveragePolicy.decide(true, true, "OPENED",
+                CoveragePolicy.AuditInstalled.YES, GraphPairing.of(Set.of("a", "b"), Set.of()), 10, 10, "INFO");
+        assertEquals(CoveragePolicy.Claim.QUALIFIED, unjudged.claim());
+        assertTrue(unjudged.reason().contains("could not establish"), unjudged.reason());
+        assertTrue(unjudged.reason().contains("INFO, not TRACE"), "the level caveat is stated too: " + unjudged.reason());
+
+        CoveragePolicy.Assessment partial = CoveragePolicy.decide(true, true, "OPENED",
+                CoveragePolicy.AuditInstalled.YES, GraphPairing.of(Set.of("a", "b", "c"), Set.of("a", "b", "x")),
+                10, 10, "DEBUG");
+        assertTrue(partial.reason().contains("partial match") && partial.reason().contains("DEBUG, not TRACE"),
+                partial.reason());
+
+        CoveragePolicy.Assessment atTrace = CoveragePolicy.decide(true, true, "OPENED",
+                CoveragePolicy.AuditInstalled.YES, GraphPairing.of(Set.of("a", "b"), Set.of()), 10, 10, "TRACE");
+        assertFalse(atTrace.reason().contains("not TRACE"), "no caveat that does not apply: " + atTrace.reason());
+    }
+
+    @Test
     @DisplayName("a pairing that carries its own sampled scope is qualified by it, stated correctly")
     void aPairingsOwnScopeQualifies() {
         GraphPairing sampled = GraphPairing.of(Set.of("a"), Set.of("a")).withScope(500, 501);

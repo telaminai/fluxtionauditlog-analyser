@@ -98,8 +98,9 @@ can see it:
   comparing one build's graph against another build's log is a real thing to want. You get the
   warning, not a refusal.
 
-**Treat the warning as a version mismatch**, not a curiosity: the picture is wrong in ways you can't
-see from the picture.
+**Treat the warning as real**, not a curiosity: the graph and the log disagree about which nodes exist, and
+the picture can be wrong in ways you can't see from the picture. The warning names the ids that disagree; it
+does not say which artefact is right, because matching names do not establish that.
 
 ## Close and switch
 
@@ -197,7 +198,7 @@ this view** — a filtered picture never quietly pretends a propagation was cont
 plus a line saying *why the view exists* — and recalls it later from the same menu (or an agent can,
 with `topology {focus: "hedge path"}`; agents can save them too, rationale included). Named focuses are
 saved with your **project** and shared like saved graphs, so "the hedge path" can be a view your whole
-team opens by name. Recalling one against a different build says how many of its nodes resolved instead
+team opens by name. Recalling one against a graph that lacks some of its nodes says how many of them resolved instead
 of silently showing a subset.
 
 **Pick nodes by name.** The collapsible **Index** at the bottom-left lists everything in three groups —

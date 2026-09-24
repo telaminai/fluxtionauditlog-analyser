@@ -573,6 +573,12 @@ verdict, which is owned jointly.
   single-record file, the ordinary unterminated tail and the pending record. Needs the original logs. Producer half
   filed against **the starter** (the writer actually at fault) as well as the audit format work.
 - [M68.4] ☐ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
+  **Reproduced input from M68.1 (2026-09-24):** `open {log, graphml}` with a graph declaring only half the logged
+  ids replies `ok`, and the graph is then no longer loaded; opened separately, the graph is kept and announced.
+  **The drop lands after the reply** (M68.1 review O6): `coverage` answered with the graph still present
+  immediately after the combined open settled, and two seconds later it was gone. So an acceptance that checks the
+  first echo, or even the first settled context, passes on a request that will still lose part of itself —
+  test on the final state after the log-arrival rule has run.
 - [M68.5] ☐ **Identity change under follow, and the project root** — was WS-1 and WS-2.
   Related narrow correction: [PR #7](https://github.com/telaminai/fluxtionauditlog-analyser/pull/7),
   `fix/named-profile-project-root` at `c3523506`, fixes relative-path anchoring for named profiles.

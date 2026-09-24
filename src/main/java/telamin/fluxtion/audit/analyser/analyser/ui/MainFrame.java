@@ -1574,11 +1574,12 @@ public final class MainFrame extends JFrame {
             echo.put("wholeGraphView", views.wholeGraph() != null);
             echo.put("graph", graphName == null || graphName.isBlank() ? null : graphName);
             echo.put("pages", pictures.size());
-            // a topology that has no node from this record is a build mismatch, not an empty cycle —
-            // silently omitting the picture would leave the reader wondering where it went
+            // a topology that has no node from this record is a disagreement between the two, not an empty
+            // cycle — silently omitting the picture would leave the reader wondering where it went. M68.1
+            // re-review R3: it states the disagreement; it used to conclude "a different build".
             if (withTopology && topologyPanel.hasTopology() && views.trace() == null) {
-                echo.put("warning", "none of this record's nodes are in the loaded topology — "
-                        + "the graphml is probably from a different build");
+                echo.put("warning", telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                        .findingHasNoDeclaredNode());
             }
             // an empty finding still produces a valid report; say so rather than let the caller assume
             // the explanation made it in
@@ -4120,8 +4121,11 @@ public final class MainFrame extends JFrame {
                 for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
             }
         }
+        // M68.1 re-review R2: tell discovery what the ids were drawn from, so its candidates' pairings carry
+        // the same scope as the frame's and the session's — one verdict, one scope, every surface
         return telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
-                config.sourceRoots, logged);
+                config.sourceRoots, logged, store == null ? -1 : Math.min(store.size(), PAIRING_SAMPLE),
+                store == null ? -1 : store.size());
     }
 
     /**
@@ -4219,7 +4223,8 @@ public final class MainFrame extends JFrame {
         if (!topologyPanel.hasGraph() || lastPairing == null) {
             topologyPanel.setPairingNote(null);
         } else {
-            topologyPanel.setPairingNote(lastPairing.note());
+            var q = currentQualification();
+            topologyPanel.setPairingNote(lastPairing.note() + (q == null ? "" : " \u00b7 " + q.note()));
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }
@@ -4271,6 +4276,19 @@ public final class MainFrame extends JFrame {
 
     /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing lastPairing;
+
+    /**
+     * M68.1 re-review R2: what the last whole-scope membership comparison said about {@link #lastPairing}.
+     * Bound to the exact pairing OBJECT it qualifies ({@link #qualifiedPairing}); read through
+     * {@link #currentQualification()}, which drops it the moment the published pairing is replaced, so it can
+     * never describe a different log or graph than the verdict beside it.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification pairingQualification;
+    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing qualifiedPairing;
+
+    private telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification currentQualification() {
+        return lastPairing != null && qualifiedPairing == lastPairing ? pairingQualification : null;
+    }
 
     /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
     private void setFollowing(boolean on) {
@@ -5544,6 +5562,16 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public String qualifyPublishedPairing(java.util.Map<String, Object> coverageEcho) {
+            if (lastPairing == null) return null;
+            pairingQualification = telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification
+                    .fromCoverage(lastPairing, coverageEcho);
+            qualifiedPairing = lastPairing;
+            publishPairing();
+            return pairingQualification.note();
+        }
+
+        @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult discoverGraphs() {
             var result = discoverGraphs0();
             java.util.List<Map<String, Object>> found = new java.util.ArrayList<>();
@@ -6222,6 +6250,8 @@ public final class MainFrame extends JFrame {
                     pair.put("loggedNodes", lastPairing.logged());
                     pair.put("declaredByGraph", lastPairing.matched());
                     pair.putAll(lastPairing.facts());
+                    var q = currentQualification();
+                    if (q != null) pair.put("qualifiedBy", q.toMap());
                     pair.put("verdict", lastPairing.reason());
                 }
                 // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs

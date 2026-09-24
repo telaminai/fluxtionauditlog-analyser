@@ -169,8 +169,10 @@ pane with a draggable divider, so the code and the picture stay on screen togeth
 node's kind, what the log claims about it, and the first line of its Javadoc when the class is under a
 source root.</p>
 
-<p>A topology from a <i>different build</i> renders perfectly and misleads silently, so the status line
-reports how well the graph matches the log. Treat a mismatch as a version problem.</p>
+<p>A topology that does not match the log renders perfectly and misleads silently, so the status line
+reports how well the graph matches the log: which node ids the log writes that the graph does not declare.
+A mismatch says the two disagree about which nodes exist. It does not say which one is right, and matching
+names do not prove the two came from the same build either — decide that from what else you know.</p>
 
 <h2>LLM assistant</h2>
 <p>The <b>LLM</b> tab explains records. In <i>Settings</i> choose a provider (Anthropic / OpenAI), a

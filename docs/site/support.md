@@ -17,7 +17,8 @@ you can answer questions about a night you were asleep for.
 3. **Add the topology if you have it** — **File ▸ Open GraphML…**, or **File ▸ Find GraphML in source
    roots…** to see which of the available graphs actually *fits* this log, ranked. The Topology tab
    then says, permanently, whether the graph matches the log you have open. If it says it does not,
-   believe it: everything the graph tells you afterwards is about a different build.
+   take it seriously: the graph and the log disagree about which nodes exist, so anything the graph tells
+   you afterwards may be about nodes this log never had. The analyser does not say which one is right.
 
 !!! danger "Check which system the log came from, before you answer about it"
     Two environments running the same build produce logs that are identical in shape and often

@@ -259,6 +259,13 @@ public final class ActionExecutor implements RenderExecutor {
         var assessed = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
                 s, filtered, filter.get(), coverageInput);
         Map<String, Object> out = new LinkedHashMap<>(assessed.echo());
+        // M68.1 re-review R2 (acceptance 3): this comparison covers the whole scope against every declared
+        // node; the pairing published on open covered a sample. The broader one qualifies the narrower one
+        // wherever it is shown, and this reply says that it did.
+        if (app != null) {
+            String qualified = onEdt(() -> app.qualifyPublishedPairing(assessed.echo()));
+            if (qualified != null) out.put("qualifiedPublishedPairing", qualified);
+        }
         // A QUALIFIED number is computable and must carry what it hides — refusing it would be as much
         // a failure as printing it bare.
         if (claim != null && claim.claim()

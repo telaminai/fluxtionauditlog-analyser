@@ -192,9 +192,24 @@ class PairingDuringLoadFrameTest {
             var context = awaitVerdict(ex);
             assertEquals(3, context.get("declaredByGraph"), "session includes the framework logger");
             assertEquals(Boolean.TRUE, context.get("applies"));
-            var discovered = telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
-                    List.of(graph.getParent().toString()), java.util.Set.of("rootNode", "riskCheck", "output"))
-                    .candidates().stream().filter(c -> c.file().equals(graph)).findFirst().orElseThrow().pairing();
+            // M68.1 re-review R1/R2: discovery is read through the PRODUCT's own path (source root + the frame's
+            // discoverGraphs0), not a hand-built GraphmlDiscovery.scan call. The hand-built call passed an id
+            // set with no scope, so it could only ever agree with an unscoped verdict — it tested the fixture's
+            // arguments, not what an agent is shown. The three equality assertions below are unchanged.
+            onEdt(() -> render(ex, "source_root", Map.of("add", List.of(graph.toAbsolutePath().getParent().toString()))));
+            var discover = MainFrame.class.getDeclaredMethod("discoverGraphs0");
+            discover.setAccessible(true);
+            Path wanted = graph.toAbsolutePath().normalize();
+            var discovered = onEdtGet(() -> {
+                try {
+                    var result = (telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Result)
+                            discover.invoke(frame.get());
+                    return result.candidates().stream()
+                            .filter(c -> c.file().toAbsolutePath().normalize().equals(wanted))
+                            .findFirst().orElseThrow().pairing();
+                } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+            });
+            assertEquals("all 1 records", discovered.scope(), "discovery states its scope, as the frame does");
             var sessionField = MainFrame.class.getDeclaredField("session");
             sessionField.setAccessible(true);
             var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
@@ -210,6 +225,13 @@ class PairingDuringLoadFrameTest {
             });
             assertEquals(3, discovered.matched());
             assertFalse(discovered.reason().contains("different build"));
+            // review O1: the pairing verdict leads the Topology panel's status line, so it is the part that
+            // survives clipping, and the whole line is the label's tooltip
+            var panelField = MainFrame.class.getDeclaredField("topologyPanel");
+            panelField.setAccessible(true);
+            var panel = (TopologyPanel) panelField.get(frame.get());
+            String line = onEdtGet(panel::statusLine);
+            assertTrue(line.startsWith("every node id checked is declared (3/3"), "pairing first: " + line);
         } finally {
             System.setProperty("user.home", home);
             if (frame.get() != null) onEdt(() -> frame.get().dispose());
@@ -489,6 +511,12 @@ class PairingDuringLoadFrameTest {
             Thread.sleep(50);
         }
         fail("load still in flight after 20s: " + last.get());
+    }
+
+    private static <T> T onEdtGet(java.util.function.Supplier<T> body) throws Exception {
+        AtomicReference<T> out = new AtomicReference<>();
+        onEdt(() -> out.set(body.get()));
+        return out.get();
     }
 
     private static void onEdt(Runnable r) throws Exception {

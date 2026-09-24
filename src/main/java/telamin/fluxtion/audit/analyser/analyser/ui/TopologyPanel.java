@@ -392,8 +392,8 @@ public final class TopologyPanel extends JPanel {
         }
         java.util.List<String> resolved = spec.nodeIds().stream().filter(fullTopology::contains).toList();
         if (resolved.isEmpty()) {
-            return "focus '" + spec.name() + "': none of its " + spec.nodeIds().size()
-                    + " nodes exist in this topology — a different build?";
+            return telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                    .focusNoneDeclared(spec.name(), spec.nodeIds().size());
         }
         focusStack.popToFull();
         focusStack.push(resolved, spec.name());
@@ -404,8 +404,8 @@ public final class TopologyPanel extends JPanel {
         refreshCrumbs();
         int missing = spec.nodeIds().size() - resolved.size();
         if (missing > 0) {
-            lastRecallNote = missing + " of " + spec.nodeIds().size()
-                    + " nodes are not in this topology — the focus may be from a different build";
+            lastRecallNote = telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                    .focusPartlyDeclared(missing, spec.nodeIds().size());
             setStatus("focus '" + spec.name() + "': " + lastRecallNote);
         } else {
             setStatus("focus '" + spec.name() + "' (" + resolved.size() + " nodes)"
@@ -893,12 +893,16 @@ public final class TopologyPanel extends JPanel {
     }
 
     private void renderStatus() {
-        StringBuilder sb = new StringBuilder(statusBase == null ? " " : statusBase);
+        // M68.1 re-review O1: the pairing verdict goes FIRST. It qualifies everything else on this line, and it
+        // used to be the fifth part of one clipped label — after the long hierarchy note — so it could not be
+        // read at any window size. The full line is also the label's tooltip, so nothing is lost when it clips.
+        StringBuilder sb = new StringBuilder();
+        appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
+        appendPart(sb, statusBase);
         appendPart(sb, stepPart);
         appendPart(sb, scopePart);
         appendPart(sb, copyComparisonPart);
         if (hasTopology()) appendPart(sb, EntryPointResolver.HIERARCHY_NOTE);
-        appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
         if (!orderMeaningful) {
             appendPart(sb, "⚠ ARRIVAL ORDER, NOT DISPATCH ORDER — this source declares no order "
                     + "within a cycle, so position here is not causality");
@@ -913,7 +917,20 @@ public final class TopologyPanel extends JPanel {
                     + "path\" cannot appear and their absence proves nothing");
         }
         sb.append(viewNote());
-        status.setText(sb.toString());
+        String line = sb.length() == 0 ? " " : sb.toString();
+        status.setText(line);
+        status.setToolTipText(line.isBlank() ? null : statusTooltip(line));
+    }
+
+    /** The whole status line, one part per line, for the label's tooltip (O1: a clipped verdict stays readable). */
+    static String statusTooltip(String line) {
+        String escaped = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        return "<html>" + String.join("<br>", escaped.split("   \u00b7   ")) + "</html>";
+    }
+
+    /** The composed status line, for tests and the screenshot check — exactly what the label is given. */
+    String statusLine() {
+        return status.getText();
     }
 
     /**
@@ -1642,7 +1659,8 @@ public final class TopologyPanel extends JPanel {
         setStatus(describeEvent(record) + " — " + order.size()
                        + (AuditTrace.tracesEveryInvocation(record) ? " node(s) ran" : " node(s) logged")
                        + (unknown > 0 && hasTopology()
-                               ? "  ·  " + unknown + " not in this topology (different build?)" : ""));
+                               ? telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                                       .stepUnknownSuffix(unknown) : ""));
     }
 
     private String describeEvent(LogRecord record) {

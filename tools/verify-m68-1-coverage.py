@@ -61,6 +61,26 @@ def settle(a):
     return a.context()
 
 
+def open_in_order(a, log, order):
+    """Open the log and the graph in one of the three orders an agent or a person can use (review R2).
+    The script used to open everything combined, which is why it could not see that two orders published an
+    unscoped sample."""
+    a.act("open", close="all")
+    if order == "combined":
+        a.act("open", log=log, graphml=GRAPH)
+    elif order == "graph first":
+        a.act("open", graphml=GRAPH)
+        time.sleep(1.5)
+        a.act("open", log=log)
+    else:
+        a.act("open", log=log)
+        settle(a)
+        a.act("open", graphml=GRAPH)
+    ctx = settle(a)
+    time.sleep(1.5)            # review O6: the combined-open graph drop lands after the reply; wait past it
+    return a.context()
+
+
 def open_pair(a, log):
     a.act("open", close="all")
     reply = a.act("open", log=log, graphml=GRAPH)
@@ -144,7 +164,29 @@ def main():
             check("it states the fact without a build conclusion",
                   "build" not in str(cov.get("warning")).lower().replace("does not establish a build", ""), cov)
 
-            print("5. the exported PDF says what the screen says (D-E2)")
+            print("5. acceptance 3 in every open order: a 600-record log, the only foreign id in record 600")
+            log = os.path.join(work, "a3-600.yaml")
+            ids = ["checked", "child", "rootNode"]
+            constructed_log(log, [[ids[i % 3]] for i in range(599)] + [["foreignAfter500"]])
+            for order in ("combined", "graph first", "log first"):
+                ctx = open_in_order(a, log, order)
+                gp = ctx.get("graphPairing") or {}
+                check(f"{order}: the graph is still open", gp.get("graph") is not None, gp)
+                check(f"{order}: the pairing says it is a sample", gp.get("pairingSampled") is True, gp)
+                check(f"{order}: and names its scope", gp.get("pairingScope") == "first 500 of 600 records", gp)
+                check(f"{order}: the verdict sentence carries the scope",
+                      "judged on the first 500 of 600 records" in str(gp.get("verdict")), gp.get("verdict"))
+                reply = a.act("coverage")
+                cov = reply.get("coverage") or {}
+                check(f"{order}: whole-log coverage finds the id the sample could not see",
+                      "foreignAfter500" in str(cov.get("loggedButNotInTopology")), cov)
+                check(f"{order}: and its reply says it qualified the published pairing",
+                      "supersedes the sampled pairing" in str(cov.get("qualifiedPublishedPairing")), cov)
+                q = (a.context().get("graphPairing") or {}).get("qualifiedBy") or {}
+                check(f"{order}: context now carries the qualification", q.get("supersedesSample") is True, q)
+                check(f"{order}: naming the foreign id", "foreignAfter500" in (q.get("notDeclared") or []), q)
+
+            print("6. the exported PDF says what the screen says (D-E2)")
             pdf = os.path.join(exchange, "m68-1-partial.pdf")
             reply = a.act("report", name="m68-1-partial", title="M68.1 verification",
                           sections=[{"kind": "table", "call": {"verb": "coverage"}}], path=pdf)

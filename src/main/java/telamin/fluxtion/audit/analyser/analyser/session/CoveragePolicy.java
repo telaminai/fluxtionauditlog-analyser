@@ -68,6 +68,13 @@ public final class CoveragePolicy {
     private CoveragePolicy() {
     }
 
+    /** The level caveat, stated once so the level branch and the pairing branches cannot word it differently. */
+    private static String levelReason(String mostVerboseLevel) {
+        return "the most verbose record in this log is " + mostVerboseLevel + ", not TRACE, so a "
+                + "node may have run, logged, and had its output discarded for being below "
+                + "the captured level — a gap here is not proof a node never ran";
+    }
+
     /**
      * @param graphOpen        is a topology loaded
      * @param logOpen          is a log loaded
@@ -110,23 +117,25 @@ public final class CoveragePolicy {
         }
         // M68.1 (D-E1): applies() is a RETENTION policy, never evidence of fit. Two retained cases reached
         // FULL before, and FULL's sentence says the graph describes this log — a claim neither supports.
+        // Re-review O4: one reason used to hide the others, so these two now carry the level caveat as well
+        // whenever it also applies — a reader needs both facts, and adding one can never change the claim.
+        String levelCaveat = mostVerboseLevel != null && !TRACE.equalsIgnoreCase(mostVerboseLevel)
+                ? " Also: " + levelReason(mostVerboseLevel) : "";
         if (pairing != null && !pairing.evidenced()) {
             return new Assessment(Claim.QUALIFIED,
                     "no node output was recorded in the records the pairing checked, so it could not "
                             + "establish that this graph describes this log. The graph is kept and the number "
-                            + "is computable, but it rests on no membership evidence: " + pairing.reason());
+                            + "is computable, but it rests on no membership evidence, and every eligible node "
+                            + "therefore reads as uncovered: " + pairing.reason() + "." + levelCaveat);
         }
         if (pairing != null && !pairing.everyObservedIdDeclared()) {
             return new Assessment(Claim.QUALIFIED,
                     "the graph was kept on a partial match — it does not declare every node id this log "
                             + "writes (" + pairing.reason() + "). Kept is not the same as fits: the number "
-                            + "describes the graph, not the ids it lacks");
+                            + "describes the graph, not the ids it lacks." + levelCaveat);
         }
         if (mostVerboseLevel != null && !TRACE.equalsIgnoreCase(mostVerboseLevel)) {
-            return new Assessment(Claim.QUALIFIED,
-                    "the most verbose record in this log is " + mostVerboseLevel + ", not TRACE, so a "
-                            + "node may have run, logged, and had its output discarded for being below "
-                            + "the captured level — a gap here is not proof a node never ran");
+            return new Assessment(Claim.QUALIFIED, levelReason(mostVerboseLevel));
         }
         // the pairing's own scope, when it recorded one, is the same fact as the (sampled, total) arguments;
         // either source is enough to say the fit was judged on part of the log

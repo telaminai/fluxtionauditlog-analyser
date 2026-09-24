@@ -204,6 +204,20 @@ class EvidenceIntegrityCoverageTest {
     }
 
     @Test
+    @DisplayName("A2 — eligible nodes with no node output: the ratio is PRESENT and zero, not absent")
+    void noOutputKeepsARatioOfZero() {
+        // review R4, the brief's third mutation: "derive no-ratio from no-membership". A log with no node
+        // output has no membership evidence, but three nodes are eligible, so 0 of 3 is a real ratio.
+        CoverageService.Result r = assess(packetGraph(), constructedLog(""));
+        assertEquals(3, r.echo().get("declared"));
+        assertEquals(0, r.echo().get("covered"));
+        assertEquals(true, r.echo().get("ratioAvailable"), "no membership evidence is not no ratio: " + r.echo());
+        assertEquals(0.0, r.echo().get("ratio"));
+        assertNull(r.echo().get("ratioNote"));
+        assertEquals(false, membership(r).get("established"));
+    }
+
+    @Test
     @DisplayName("A2 — a foreign id still warns when the eligible population is empty")
     void aForeignIdWarnsEvenWithNoPopulation() {
         ProcessorTopology onlyFramework = packetGraph().subgraph(Set.of("serviceRegistry"));
