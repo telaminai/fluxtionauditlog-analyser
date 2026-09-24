@@ -181,3 +181,40 @@ kept beside this file (`rereview-probe-6998fcc8.txt`).
   `groupingId`. I expect not (`nullLiteral`), and to have to read the raw text.
 - **U6.2** — whether any fixture in the corpus writes `groupingId:` on some records and not others, which
   RR-3's rule would now treat as two contexts.
+
+## P7 · Second re-review — recorded before these fixes
+
+Second re-review `68660535` (branch `review/mongoose-second-rereview-2026-09-24`) against `3d41c3a7`: two
+Medium, three Low, five optional. Recorded before any change.
+
+1. **P7.1 — S1.** Returning `-1` from `appendFrom` whenever a decode SUCCEEDS after `liveReadFailed` was set
+   makes the longer-rotation case reload instead of reading as an append, so the store never shows COMPLETE
+   beside the fault. I expect no existing test to depend on a successful read after a failure, because none
+   performs one.
+2. **P7.2 — S2.** Composing *applied* and *survived* into one condition, and saying "records sharing this
+   grouping" wherever applicability is NOT_ESTABLISHED, changes wording that two existing tests pin: the
+   run-boundary pair uses `control()`, which declares `groupingId: null`, so those stay on the YES branch and
+   should NOT change. I expect only `ControlAddressAndScopeTest.anAbsentGroupingIsNotADeclaredNull` to need a
+   wording update, if any.
+3. **P7.3 — S3.** Leading with the ambiguity means the `"null"` sentence no longer contains the words
+   "every node's audit level" as its subject. `positiveControls_aRealPerNodeAndARealGlobalChange` asserts
+   `contains("every node")` for a real global change — which is the SAME rendering as `"null"`, since the log
+   cannot tell them apart. So I expect that test's assertion to have to accept the conditional form too; if I
+   find myself weakening it, that is the limit showing, not a regression.
+4. **P7.4 — S4.** `E2 82` then `C0`: the first poll holds 2 pending bytes; the second throws in
+   `decodeCompletePrefix` (C0 cannot begin a character) and must leave `trailingRecordsPending() == 0`.
+5. **P7.5 — S5.1.** A complete rendering on a `Quote` record makes the event type the only thing refusing it,
+   so `isControlEvent → true` turns the test red.
+6. **P7.6 — O1.** Moving the live-read fault to `sourceDiagnostics()` changes the RR-1 test's assertions on
+   `completenessIsNote()` and `completenessDiagnostics()`; the state stays UNKNOWN.
+
+**Correction recorded now, before the report is written:** my round-3 report said "three negative tests —
+the lookalike and fully-qualified event-name tests — pass or fail on grouping". Wrong twice: the
+fully-qualified test is a POSITIVE test (its failure is how the dependency was found), and the reviewer's
+witness run could reproduce the grouping dependency for only one negative test, the lookalike.
+`aRecordThatIsNotAControlEvent…` never depended on grouping; it was refused by `parse()` (S5.1).
+
+**Unsure:**
+
+- **U7.1** — whether `pollFollow`'s catch (O2) can refresh producer diagnostics without re-entering the load
+  path; it is Swing, so it will be READ plus a source-text check, not a unit test.
