@@ -81,6 +81,8 @@ public class OpenLog implements EventLogSource {
     public boolean onLogObserved(SessionEvents.LogObserved event) {
         String wasPath = logPath;
         java.util.Set<String> wasIds = loggedNodeIds;
+        int wasTotal = total;
+        int wasSampled = sampled;
         logPath = event.open() ? event.logPath() : null;
         provenance = event.open() ? event.provenance() : null;
         loggedNodeIds = event.open() ? event.loggedNodeIds() : java.util.Set.of();
@@ -91,7 +93,11 @@ public class OpenLog implements EventLogSource {
         // Dirty ONLY when something moved. The boolean is Fluxtion's propagation control, so returning
         // true unconditionally would re-derive every dependent on every observation — including the
         // ones the menu funnel fires when nothing has changed at all.
-        return !java.util.Objects.equals(wasPath, logPath) || !wasIds.equals(loggedNodeIds);
+        // M68.1 round 3, N1: a grown log is something that moved. Its sample and its total are the pairing's scope,
+        // so a Follow append must re-derive the pairing's scope ("first 500 of 601") rather than go on stating the
+        // old total. Only the pairing and the coverage claim depend on this node, and both are pure recomputes.
+        return !java.util.Objects.equals(wasPath, logPath) || !wasIds.equals(loggedNodeIds)
+                || wasTotal != total || wasSampled != sampled;
     }
 
     public boolean isOpen() {

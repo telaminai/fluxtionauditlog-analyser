@@ -50,6 +50,20 @@ class SessionPairingScopeTest {
     }
 
     @Test
+    @DisplayName("round 3 N1: a Follow append re-scopes the session's own verdict")
+    void aGrownLogReScopesTheSessionVerdict() {
+        SessionDriver d = new SessionDriver(new FakeSessionAdapter());
+        d.submit(new SessionEvents.GraphObserved(true, "/g.graphml", "OPENED", DECLARED, List.of("EventLogManager")));
+        Set<String> ids = Set.of("checked", "child", "rootNode");
+        d.submit(new SessionEvents.LogObserved(true, "/l.yaml", "DECLARED", ids, 500, 600, "TRACE"));
+        assertEquals("first 500 of 600 records", d.processor().pairing.verdict().scope());
+        // same path, same sampled ids — only the total moved, which is exactly what an append does
+        d.submit(new SessionEvents.LogObserved(true, "/l.yaml", "DECLARED", ids, 500, 601, "TRACE"));
+        assertEquals("first 500 of 601 records", d.processor().pairing.verdict().scope(),
+                "the session must not go on stating the pre-append total");
+    }
+
+    @Test
     @DisplayName("review O3: the audit label never states retention as fit")
     void theAuditLabelSeparatesKeepFromFit() {
         assertEquals("applies", GraphPairing.of(Set.of("a", "b"), Set.of("a", "b")).auditLabel());

@@ -4114,18 +4114,13 @@ public final class MainFrame extends JFrame {
      * ranking nobody asked for is a recommendation nobody can see the cost of.
      */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Result discoverGraphs0() {
-        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        if (store != null) {
-            int scan = Math.min(store.size(), PAIRING_SAMPLE);
-            for (int row = 0; row < scan; row++) {
-                for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
-            }
-        }
         // M68.1 re-review R2: tell discovery what the ids were drawn from, so its candidates' pairings carry
-        // the same scope as the frame's and the session's — one verdict, one scope, every surface
+        // the same scope as the frame's and the session's — one verdict, one scope, every surface (and, round 3
+        // O-c, one sampling method)
+        LoggedSample sample = sampleLoggedIds(store);
         return telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
-                config.sourceRoots, logged, store == null ? -1 : Math.min(store.size(), PAIRING_SAMPLE),
-                store == null ? -1 : store.size());
+                config.sourceRoots, sample.ids(), store == null ? -1 : sample.scanned(),
+                store == null ? -1 : sample.total());
     }
 
     /**
@@ -4169,19 +4164,38 @@ public final class MainFrame extends JFrame {
     }
 
     /** The loaded graph judged against a log — one comparison, used by both open directions. */
-    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing pairingAgainst(LogStore log) {
+    /**
+     * Round 3, O-c: the ONE place the pairing sample is drawn. The frame's pairing, discovery's candidates and the
+     * session's observation each used to run their own first-{@value #PAIRING_SAMPLE}-records loop, so nothing
+     * stopped them drifting apart; they now all call this, and a sampled parity test holds them to one verdict.
+     */
+    private record LoggedSample(java.util.Set<String> ids, int scanned, int total, java.util.List<String> levels) { }
+
+    private static LoggedSample sampleLoggedIds(LogStore log) {
         java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        int scan = Math.min(log.size(), PAIRING_SAMPLE);
+        java.util.List<String> levels = new java.util.ArrayList<>();
+        if (log == null) return new LoggedSample(logged, 0, 0, levels);
+        int total = log.size();
+        int scan = Math.min(total, PAIRING_SAMPLE);
         for (int row = 0; row < scan; row++) {
-            for (var nodeLog : log.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
+            var record = log.record(row);
+            levels.add(record.level());
+            for (var nodeLog : record.nodeLogs()) logged.add(nodeLog.instanceId());
         }
+        return new LoggedSample(logged, scan, total, levels);
+    }
+
+    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing pairingAgainst(LogStore log) {
+        LoggedSample sample = sampleLoggedIds(log);
+        java.util.Set<String> logged = sample.ids();
+        int scan = sample.scanned();
         var p = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
                 telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
                         topologyPanel.fullTopology()), logged);
         // review F1, then M68.1 (D-E2): the numbers describe the SAMPLE. The scope used to live only in the
         // sentence; it is now data on the verdict, so every surface that publishes it can state it, and a
         // later whole-log comparison (coverage) can say that it qualifies this one.
-        return p.withScope(scan, log.size());
+        return p.withScope(scan, sample.total());
     }
 
     /**
@@ -4223,8 +4237,9 @@ public final class MainFrame extends JFrame {
         if (!topologyPanel.hasGraph() || lastPairing == null) {
             topologyPanel.setPairingNote(null);
         } else {
-            topologyPanel.setPairingNote(telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification
-                    .panelNote(lastPairing, currentQualification()));
+            var held = currentQualifications();
+            topologyPanel.setPairingNote(held == null ? lastPairing.note()
+                    : held.panelNote(lastPairing, storeRecords()));
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }
@@ -4283,11 +4298,35 @@ public final class MainFrame extends JFrame {
      * {@link #currentQualification()}, which drops it the moment the published pairing is replaced, so it can
      * never describe a different log or graph than the verdict beside it.
      */
-    private telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification pairingQualification;
+    private final telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications qualifications =
+            new telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications();
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing qualifiedPairing;
 
-    private telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification currentQualification() {
-        return lastPairing != null && qualifiedPairing == lastPairing ? pairingQualification : null;
+    /**
+     * The qualifications, if they still describe the published pairing. Round 3: they are read at the store's
+     * CURRENT size, so a Follow append shows them as stale instead of letting them speak for a log they never saw.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications currentQualifications() {
+        return lastPairing != null && qualifiedPairing == lastPairing && !qualifications.isEmpty()
+                ? qualifications : null;
+    }
+
+    private int storeRecords() {
+        return store == null ? 0 : store.size();
+    }
+
+    /**
+     * Round 3, N1: after a Follow append the published pairing is re-judged against the current store, so its scope
+     * counts the new records ("first 500 of 601") — and the qualifications move with it, because their own
+     * staleness is judged by log size, not by which pairing object they sit on. The sample only changes while the
+     * log is under {@value #PAIRING_SAMPLE} records; above that the counts stand and only the scope moves.
+     */
+    private void republishPairingAfterAppend() {
+        if (lastPairing == null || store == null || !topologyPanel.hasGraph()) return;
+        var before = lastPairing;
+        lastPairing = pairingAgainst(store);
+        if (qualifiedPairing == before) qualifiedPairing = lastPairing;
+        publishPairing();
     }
 
     /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
@@ -4364,6 +4403,12 @@ public final class MainFrame extends JFrame {
             return;
         }
         if (tableModel != null) tableModel.rowsAppended(before);
+        // Round 3, N1: an append is a new log revision. The sample (while under PAIRING_SAMPLE records), the
+        // session's own pairing and the published pairing all move with it, and every qualification is re-read
+        // at the new size — which is what marks a whole-log verdict about the old revision as stale.
+        refreshLoggedNodeSample();
+        noteLogState();
+        republishPairingAfterAppend();
         Long mx = store.maxLogTime();
         if (mx != null) timeSlider.extendAbsMax(mx);
         timeSlider.setHistogram(buildHistogram(store, 160));
@@ -5231,21 +5276,10 @@ public final class MainFrame extends JFrame {
     private String observedLevel;
 
     private void refreshLoggedNodeSample() {
-        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        int scan = 0;
-        if (store != null) {
-            scan = Math.min(store.size(), PAIRING_SAMPLE);
-            for (int row = 0; row < scan; row++) {
-                for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
-            }
-        }
-        loggedNodeSample = logged;
-        loggedSampleScanned = scan;
-        java.util.List<String> levels = new java.util.ArrayList<>();
-        if (store != null) {
-            for (int row = 0; row < scan; row++) levels.add(store.record(row).level());
-        }
-        observedLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels).mostVerbose();
+        LoggedSample sample = sampleLoggedIds(store);          // round 3, O-c: the same sample as the frame's
+        loggedNodeSample = sample.ids();
+        loggedSampleScanned = sample.scanned();
+        observedLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(sample.levels()).mostVerbose();
     }
 
     private void noteLogState() {
@@ -5564,11 +5598,13 @@ public final class MainFrame extends JFrame {
         @Override
         public String qualifyPublishedPairing(java.util.Map<String, Object> coverageEcho) {
             if (lastPairing == null) return null;
-            pairingQualification = telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification
-                    .fromCoverage(lastPairing, coverageEcho);
+            // round 3, N2: held per published pairing, and a narrower comparison never replaces a wider one
+            if (qualifiedPairing != lastPairing) qualifications.clear();
             qualifiedPairing = lastPairing;
+            String said = qualifications.record(telamin.fluxtion.audit.analyser.analyser.topology
+                    .PairingQualification.fromCoverage(lastPairing, coverageEcho));
             publishPairing();
-            return pairingQualification.note();
+            return said;
         }
 
         @Override
@@ -6250,8 +6286,8 @@ public final class MainFrame extends JFrame {
                     pair.put("loggedNodes", lastPairing.logged());
                     pair.put("declaredByGraph", lastPairing.matched());
                     pair.putAll(lastPairing.facts());
-                    var q = currentQualification();
-                    if (q != null) pair.put("qualifiedBy", q.toMap());
+                    var held = currentQualifications();
+                    if (held != null) pair.put("qualifiedBy", held.toMap(storeRecords()));
                     pair.put("verdict", lastPairing.reason());
                 }
                 // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs

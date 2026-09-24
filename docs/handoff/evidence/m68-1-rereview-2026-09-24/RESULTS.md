@@ -48,3 +48,15 @@ Counts are summed from Surefire XML, not read from the console. Java 21 (Corrett
 
 The re-review's findings all reproduce. It is not independent — its author wrote the first review — and nothing
 here depended on that: each was checked by running it.
+
+## Set 5 — the round 3 fixes
+
+| Prediction | Result | Right? |
+|---|---|---|
+| P24 — headless 1,933 / 0 / 0 / 64 | **first run: 1,933 / 1 failure / 0 / 64.** `TrailingWhitespaceTest` failed on `set4-p19-p20-e2e-before.txt`, captured output I had committed in set 4 **without running the headless suite first**. Both captures with trailing blanks are listed as evidence in the test's exemption list, following its precedent for captured producer output, rather than rewritten. **Second run: 1,933 / 0 / 0 / 64.** First run's log: `set5-p24-headless-first-run.log` | **Wrong.** The count was right; the first run was not green, because of a gate I skipped |
+| P25 — frame 65 tests, 0 failures, 0 or 1 skip | **65 tests, 0 failures, 1 skipped** (the same focus assumption) | **Yes** |
+| P27 — end to end on the fixed jar, every check passes | **59 pass, 0 fail**, scenarios 7 and 8 included. `set5-p27-e2e-fixed.txt` | **Yes** |
+| P28 — the claim-note check fails on `550f98d8` | **fails**: "judged from the first 500 of 600 records" after the append; **7 failures** there in all, the 6 of set 4 plus this one. `set5-p28-e2e-550f98d8.txt` | **Yes** |
+| P29 — after the filtered coverage the status line still leads with the whole-log finding | before: "first 500 of 600 records: every node…"; after whole log: "whole log: 1 of 4 logged id(s) not de…"; **after filtered: the same**. `set5-p29-*.png` | **Yes** |
+| P26 — the harness, attempt 1 | **stopped at M9** on its own assertion: M9's and M17's anchors named lines I had rewritten for N1 and N2, so neither mutation could be applied. It stopped before writing, so no source was touched; the first eight entries had already passed. `set5-p26-harness-attempt1-stale-anchor.txt` | **Not a result.** The harness now checks every anchor before its baseline, so a stale one fails in seconds instead of an hour in |
+| P26 — the harness, attempt 2, `--frame` | anchors all checked first; baseline **58 green**; **33 of 33 mutations RED with a `<failure>` at the named test**; control **C1 reported as ERROR, not a failure, and recognised**; **every restore byte-identical and green again**, 34 of 34. `set5-p26-harness-frame.txt` | **Yes** |

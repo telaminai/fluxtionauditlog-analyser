@@ -174,6 +174,69 @@ class PairingDuringLoadFrameTest {
     }
 
     /**
+     * Round 3, N1 — exactly the re-review's reproduction, through Follow on a real store: a 600-record log whose ids are
+     * all declared, whole-log coverage, Follow on, one appended record writing an undeclared id. The qualification
+     * must stop claiming to confirm the whole log, and the published pairing's scope must count the new record.
+     */
+    @Test
+    void aFollowAppendMakesTheWholeLogVerdictStale(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        StringBuilder yaml = new StringBuilder();
+        for (int i = 0; i < 600; i++) {
+            yaml.append("---\neventLogRecord:\n  logTime: ").append(1000 + i).append("\n  event: Tick\n  nodeLogs:\n")
+                .append("    - rootNode: { v: 1}\n    - riskCheck: { v: 1}\n    - output: { v: 1}\n");
+        }
+        Path audit = Files.writeString(tmp.resolve("followed-600.yaml"), yaml.append("---\n").toString());
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graph.toAbsolutePath().toString())));
+            awaitVerdict(ex);
+            render(ex, "coverage", Map.of());
+            Map<String, Object> before = onEdtGet(() -> pairing(ex));
+            assertTrue(String.valueOf(((Map<?, ?>) before.get("qualifiedBy")).get("note"))
+                    .contains("confirms the sampled pairing for the whole log"), "setup: " + before);
+
+            render(ex, "open", Map.of("follow", true));
+            Files.writeString(audit, "eventLogRecord:\n  logTime: 5000\n  event: Tick\n  nodeLogs:\n"
+                    + "    - lateForeign: { v: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
+            long deadline = System.currentTimeMillis() + 15_000;
+            Map<String, Object> after = null;
+            while (System.currentTimeMillis() < deadline) {
+                Map<String, Object> ctx = onEdtGet(() -> render(ex, "context", Map.of()));
+                Object log = find(ctx, "log");
+                if (log instanceof Map<?, ?> l && Integer.valueOf(601).equals(l.get("records"))) {
+                    after = onEdtGet(() -> pairing(ex));
+                    break;
+                }
+                Thread.sleep(100);
+            }
+            assertNotNull(after, "Follow never delivered the appended record");
+            Map<?, ?> q = (Map<?, ?>) after.get("qualifiedBy");
+            assertEquals(Boolean.TRUE, q.get("stale"), "the whole-log verdict is about the old revision: " + q);
+            assertFalse(String.valueOf(q.get("note")).contains("confirms the sampled pairing for the whole log"),
+                    "a stale verdict must not claim the whole log: " + q.get("note"));
+            assertEquals("first 500 of 601 records", after.get("pairingScope"), "the published pairing counts it too");
+            var panelField = MainFrame.class.getDeclaredField("topologyPanel");
+            panelField.setAccessible(true);
+            var panel = (TopologyPanel) panelField.get(frame.get());
+            String line = onEdtGet(panel::statusLine);
+            assertTrue(line.startsWith("first 600 of 601 records: all 3 logged id(s) declared"), "panel leads: " + line);
+            assertFalse(line.contains("confirms"), line);
+            render(ex, "open", Map.of("follow", false));
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
+    /**
      * Re-review O-c: the parity case above uses a one-record log, so it never compares a SAMPLED verdict. Three
      * loops collect the sample (the frame's pairingAgainst, discovery's discoverGraphs0 and the session's
      * observation); with 600 records all three must state the same 500-of-600 verdict.

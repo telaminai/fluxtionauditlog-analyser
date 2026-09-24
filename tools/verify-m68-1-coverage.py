@@ -234,6 +234,9 @@ def main():
             check("a fresh coverage finds the appended foreign id",
                   "lateForeign" in (q2.get("notDeclared") or []), q2)
             check("and is not stale", q2.get("stale") is not True, q2)
+            note = str((reply.get("coverage") or {}).get("claimNote"))
+            check("the coverage claim's own scope counts the appended record too (the session's copy)",
+                  "of 600 records" not in note and "of 601 records" in note, note)
             a.act("open", follow=False)
 
             print("8. N2 — a narrower comparison must not erase a wider one, in either order")

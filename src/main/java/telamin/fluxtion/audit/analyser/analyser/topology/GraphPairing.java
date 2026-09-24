@@ -102,6 +102,18 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
     }
 
     /**
+     * The same verdict, re-stated for a log that now holds {@code total} records (round 3, N1). A Follow append
+     * leaves the first {@link #recordsScanned} records — the ones this verdict compared — unchanged, so the
+     * counts stand and only the scope moves. Before this, a followed log of 601 records went on publishing
+     * "first 500 of 600 records". The caller re-judges instead when the sample itself could grow.
+     */
+    public GraphPairing rescoped(int total) {
+        if (recordsScanned < 0 || total == recordsTotal) return this;
+        String base = reason.replaceFirst(" \\(judged on the first \\d+ of \\d+ records\\)$", "");
+        return new GraphPairing(logged, matched, applies, base, recordsScanned, -1).withScope(recordsScanned, total);
+    }
+
+    /**
      * The facts {@link #applies()} does not carry, for every agent surface to state beside it, so none of
      * them can be read as "the graph describes this log" when only the retention policy said keep (M68.1).
      */

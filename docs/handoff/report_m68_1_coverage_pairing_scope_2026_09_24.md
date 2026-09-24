@@ -234,7 +234,9 @@ skipped test would actually run; and a pre-vocabulary graph end to end.
   *missing* run as STILL GREEN, and with no baseline, one pre-existing failure would have made every mutation read
   RED. The review's required remedies were right; its description of the failure was not.
 - **It missed a fifth surviving conclusion**, `docs/site/user-guide/topology.md:101`, "Treat the warning as a
-  version mismatch". The repository guard now covers the docs site, so a sixth would fail the build.
+  version mismatch". *(Round 3 correction: this bullet used to end "so a sixth would fail the build". That was not
+  true — the guard did not read text blocks, joined literals, the assistant prompt or the skills. See the round 3
+  addendum for what it covers now, and what it still does not.)*
 - **Its line numbers are for `efc5decd`**; after the merge they moved (`MainFrame.java:1581`). Not an error.
 - Everything else I checked held: the three-row R2 table reproduced exactly, the frame failure reproduced exactly,
   and the cause it READ for R2 is the cause.
@@ -249,3 +251,99 @@ without rewriting published history. The one conflict was `CHANGELOG.md`, both s
 
 The ledger disputes on `main` (`tracker.md:1094–1098` and `:557–562`, and archived H8.6, A10.7 and M14.6 with no
 live home) are not this branch's work and are untouched.
+
+---
+
+## Addendum — round 3, the re-review's three findings (2026-09-24)
+
+**Re-review:** `review/m68-1-rereview-2026-09-24` at `6a7042e7`, verdict *changes required, narrowly*. **Its author
+also wrote the first review, so it is not independent.** That did not decide anything here: every finding was
+reproduced by running it before any fix (set 4), and each fix was then tested under predictions committed first
+(set 5). Evidence and predictions: `evidence/m68-1-rereview-2026-09-24/`, sets 4 and 5.
+
+### Each finding, and what closed it
+
+| Finding | Cause | Fix | Regression | Witness |
+|---|---|---|---|---|
+| **N1** the whole-log qualification outlived its log under Follow | bound only to the pairing *object*; a Follow append changes the log without replacing it. **RUN**: set 4, P19 | the qualification records the log size it was computed against and is read at the current size; a grown log makes it **stale**: it states exactly what it compared ("first 600 of 601 records") and never again "confirms the sampled pairing for the whole log". **Stale, not dropped**, because dropping would put the disproved sample back in the lead of a clipped status line, which is N2's defect by another route | `aFollowAppendMakesTheWholeLogVerdictStale`, the re-review's reproduction through Follow on a real store (display); `aGrownLogMakesTheWholeLogVerdictStale` (headless) | M18, M18f |
+| **N1, one level down** — the published pairing's own scope | `pollFollow` never touched the published pairing. **RUN**: set 4 showed "first 500 of 600 records" on a 601-record log | on every append the published pairing is re-judged against the current store; the qualifications move with it, because their staleness is judged by size | the same Follow test asserts `pairingScope` "first 500 of 601 records"; `aRescopedPairingCountsTheAppendedRecords` | M19f, M21 |
+| **N1, one level further** — the session's copy, which feeds the coverage claim note. **Not in the re-review; found by reading** | the session's log node propagated only a change of path or sampled ids, so a total change never reached its pairing; and nothing told the session about an append | the node now propagates a change of total or sample (only the pairing and the coverage claim depend on it, both pure recomputes; the session boundary holds it but has no trigger on it), and `pollFollow` reports the append | `aGrownLogReScopesTheSessionVerdict` (headless); end-to-end scenario 7's claim-note check | M20; P28 shows the claim note stale on `550f98d8` |
+| **N2** a narrower comparison erased a wider one | `qualifyPublishedPairing` overwrote whatever was held. **RUN**: set 4, P20 | a pure holder, `PairingQualifications`: **a narrower comparison never replaces a wider one**; it is kept beside it (`qualifiedBy.narrower`), and the filtered reply says which whole-log finding still stands. **A later whole-log comparison replaces an earlier filtered one**, because it dominates it: every id a filter can find undeclared, the whole log finds too, and a filter's result would otherwise go on describing a view that may have changed | `aNarrowerComparisonNeverReplacesAWiderOne`, both orders; end-to-end scenario 8, both orders | M22 |
+| **N3a** text blocks were never read | the literal pattern excluded newlines, and comment stripping then read a text block as code | the guard tokenises text blocks as strings | planted text block in `theGuardDetectsTheConclusionItForbids` | M23 |
+| **N3b** a split sentence passed | literals were checked one at a time | adjacent literals joined only by `+` and whitespace are read as one string; the limit — variables, `String.format`, `StringBuilder`, a comment between the halves — is stated in the test's own comment | planted split literal, neither half matching | M24 |
+| **N3c** two surfaces an assistant reads were unscanned | the document list stopped at help and the docs site | `llm/system-prompt.md` and every file under `docs/skills` are scanned; the test fails if either is missing from its list | planted lines | M25, M26 |
+| **N3d** the addendum over-claimed | "a sixth would fail the build" | narrowed in place in the round-2 addendum, and the guard's own comment now lists what it does not cover: synonyms, strings built other than by joined literals, released changelog history, and comments | — | — |
+| **O-a** the release-notes exemption was too wide | `CHANGELOG.md` ships in the jar as `release-notes/CHANGELOG.md` (**RUN**: `unzip -l`) and was not scanned | its `[Unreleased]` section is scanned; released history stays as written (1.8.0, line 1176, and 1.1.0, line 1503). The `docs/site/release-notes.md` exemption is **removed**: in the repository it is a nine-line placeholder the deploy replaces. **My own unreleased lines quoted the removed phrases to say they were gone**; they now describe them instead, the same rule CLAUDE.md rule 1 applies to the sweep terms: a mechanical guard cannot tell a mention from a use | planted unreleased line | M27 |
+| **O-b** a crash counted as guarded; no green re-run | `<error>` was treated as `<failure>`; restores were checked by bytes only | the named test must end in a `<failure>`; an `<error>` is reported as a crash that proves nothing; every restore is followed by a full green re-run, or the harness stops | control **C1** plants exactly a crash and must be recognised | set 4 P22 showed the old harness calling a crash RED |
+| **O-c** three sampling loops | frame, discovery and session each drew their own first-500 sample | one method, `sampleLoggedIds`, used by all three | `aSampledPairingAgreesAcrossFrameDiscoveryAndSession`, a 600-record parity case (display) | M28f |
+| **O-d** merge versus rebase | — | **not taken.** Renaming the branch mid-review would break every review's reference to it; `main` already carries merge commits; the owner can squash or rebase at merge | — | — |
+| **O-e** the new-project offer's scope-less discovery call | — | agree: no log, so no scope, and no verdict shown. No change | — | — |
+
+### N2 on screen — the three states, `screenshot {scope: "topology"}`, default size (RUN)
+
+The same constructed 600-record log whose only foreign id is in record 600, opened with the recovery graph.
+
+| State | First readable text of the status line | Image |
+|---|---|---|
+| before coverage | "first 500 of 600 records: every node…" | `evidence/m68-1-rereview-2026-09-24/set5-p29-1-before-coverage.png` |
+| after whole-log coverage | "whole log: 1 of 4 logged id(s) not de…" | `…/set5-p29-2-after-whole-log.png` |
+| **after a filtered coverage** | **"whole log: 1 of 4 logged id(s) not de…"** — unchanged. On `550f98d8` the re-review saw this revert to the disproved sample | `…/set5-p29-3-after-filtered.png` |
+
+![before coverage](evidence/m68-1-rereview-2026-09-24/set5-p29-1-before-coverage.png)
+![after whole-log coverage](evidence/m68-1-rereview-2026-09-24/set5-p29-2-after-whole-log.png)
+![after filtered coverage](evidence/m68-1-rereview-2026-09-24/set5-p29-3-after-filtered.png)
+
+### Gates on the final tree
+
+| Gate | Result |
+|---|---|
+| Headless `mvn test` | **1,933 tests, 0 failures, 0 errors, 64 skipped** (set 5 P24, second run; the first run failed, see below) |
+| All twelve `*FrameTest` classes with a display | **65 tests, 0 failures, 1 skipped** — the focus-dependent test, which runs on the re-review's machine and skips on this one |
+| `tools/mutate-m68-1.py --frame` | anchors checked first; baseline **58 green**; **33 of 33 mutations RED with a `<failure>` at the named test**; control C1 recognised as a crash; every restore byte-identical and **green again**, 34 of 34 |
+| `tools/verify-m68-1-coverage.py`, fixed jar | **59 pass, 0 fail**, including scenario 7 (N1, Follow) and scenario 8 (N2, both orders) |
+| Same script, jar built from `550f98d8` | **7 failures**: the six of set 4 and the claim-note check |
+| The three N2 screenshots | the whole-log finding leads after the filtered coverage |
+
+**Not run:** CI's xvfb job, which still triggers only on `main`; a pre-vocabulary graph end to end; hovering the
+tooltip by hand.
+
+### Ran, and only read
+
+**RUN:** every reproduction in set 4; both suites; the harness with the display test; the end-to-end script against
+the fixed jar and against a jar built from `550f98d8`; the three screenshots; `unzip -l` of the jar for the
+changelog and the assistant prompt.
+
+**READ, not run:** that only the pairing and coverage-claim nodes react to the session's log node — I read every
+node that takes it as a parent, and the session boundary, which holds it but has no trigger on it; that main has
+merge commits already (the re-review's count, not re-counted); and that CI's xvfb job would behave as the local
+display does.
+
+### What I got wrong this round
+
+- **The CHANGELOG line "dropped as soon as the log or graph changes" was false** for the commonest change a live log
+  has. I bound the qualification to the pairing object and assumed a changed log always meant a new object.
+- **The published pairing's scope was stale one level down**, and the session's copy one level further. I did not
+  look beneath the surface the review named until this round.
+- **"A sixth would fail the build" was not true.** My own guard could not read a text block or a split sentence —
+  though the incident sentence itself was split — and it skipped the assistant's own instructions.
+- **My harness counted a crash as a guarded mutation.** I wrote "passes only when its named test fails" and then
+  treated an error as a failure.
+- **I committed set 4's evidence without running the headless suite**, which the rules require before every commit.
+  One captured file carried trailing whitespace, so the branch failed `TrailingWhitespaceTest` from `972441cd`
+  onwards. Set 5's first headless run (P24) caught it; that run's log is kept. Both captures are now listed as
+  evidence in the test's exemption list, following its precedent for captured output, rather than rewritten.
+- **P24 was wrong** for that reason: the count was right, 1,933, but the first run had one failure.
+- **My first full harness run stopped at M9.** Rewriting two methods for N1 and N2 left two mutation anchors naming
+  lines that no longer existed. The harness caught it on its own assertion without writing anything, but only when
+  that mutation came up. It now checks every anchor before its baseline.
+- **Set 3's panel-note design handled only one comparison at a time**, which is why N2 existed.
+
+### What the re-review got wrong, or did not reach
+
+- **It did not reach the session's copy.** It asked about the published pairing; the coverage claim note, fed by the
+  session, also went on saying "first 500 of 600". Found by reading, confirmed by P28.
+- **The release-notes exemption it proposed scoping was unnecessary.** `docs/site/release-notes.md` in the repository
+  is a placeholder with no content to exempt; it is now scanned like any other page.
+- **Its frame count differs from mine by one skip**, 0 against 1. Not an error: the focus-dependent test runs on its
+  machine and skips on this one, as the addendum said.
+- Everything else I checked held: N1, N2 and N3 reproduced exactly as described (set 4), and so did O-b.

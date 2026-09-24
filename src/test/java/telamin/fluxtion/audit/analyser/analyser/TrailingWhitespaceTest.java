@@ -33,6 +33,11 @@ class TrailingWhitespaceTest {
      */
     private static final List<String> EVIDENCE = List.of(
             "src/test/resources/formula-golden/",
+            // M68.1 round 3: captured end-to-end and Maven output, kept byte-for-byte as the trial record. The
+            // first headless run of set 5 failed on exactly this, because the set 4 capture was committed
+            // without running the suite; both captures are evidence and are listed rather than rewritten.
+            "docs/handoff/evidence/m68-1-rereview-2026-09-24/set4-p19-p20-e2e-before.txt",
+            "docs/handoff/evidence/m68-1-rereview-2026-09-24/set5-p24-headless-first-run.log",
             // Captured producer spike output: its spaces are evidence, not prose formatting.
             "docs/handoff/evidence/mongoose-audit-production-2026-09-23/spike-output.txt",
             // Captured generator outputs, whose manifests pin the original bytes. Do not reformat.

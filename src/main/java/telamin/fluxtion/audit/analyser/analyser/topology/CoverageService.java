@@ -50,7 +50,10 @@ public final class CoverageService {
         Set<String> logged = new LinkedHashSet<>();
         List<String> levels = new ArrayList<>();
         int scanned = 0;
-        for (int row = 0; row < store.size(); row++) {
+        // Round 3, N1: the bound is fixed before the scan and reported, so a qualification built from this echo
+        // knows exactly which log revision it describes even if Follow appends while the scan runs.
+        int rows = store.size();
+        for (int row = 0; row < rows; row++) {
             if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
             scanned++;
             levels.add(store.record(row).level());
@@ -83,6 +86,7 @@ public final class CoverageService {
         }
         echo.put("authorshipBasis", Scaffolding.authorshipBasis(input.topology()));
         echo.put("recordsScanned", scanned);
+        echo.put("logRecords", rows);
         echo.put("scope", filtered ? "current filter" : "whole log");
         if (!coverage.uncovered().isEmpty()) echo.putAll(auditLevel.echo());
 

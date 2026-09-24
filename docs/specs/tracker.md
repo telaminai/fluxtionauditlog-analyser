@@ -561,7 +561,13 @@ verdict, which is owned jointly.
   only one of three open orders, the build conclusion alive on five surfaces, the brief's third mutation
   unguarded, and an untested merged tree. All answered on the branch with `main` merged in; see the report's
   addendum and `docs/handoff/evidence/m68-1-rereview-2026-09-24/`. Final gates: headless 1,927 / 0 / 0 / 62, frame
-  63 / 0 / 1 skip, 21 of 21 mutations RED at their named test. **Awaiting re-review; still ◧.**
+  63 / 0 / 1 skip, 21 of 21 mutations RED at their named test.
+  **Round 3, 2026-09-24:** the re-review (`review/m68-1-rereview-2026-09-24`, `6a7042e7`; not independent, its author
+  wrote the first review) found three more — the whole-log qualification outliving its log under Follow, a
+  narrower comparison erasing a wider one, and holes in the wording guard. All three answered, plus the same
+  staleness one and two levels down (the published pairing, the session's copy). Final gates: headless
+  1,933 / 0 / 0 / 64, frame 65 / 0 / 1 skip, 33 of 33 mutations RED with a `<failure>` at their named test and green
+  again after every restore. **Awaiting review; still ◧.**
   **Found while testing, belongs to M68.4:** `open {log, graphml}` with a graph that declares only half the logged
   ids reports success and the graph is then no longer loaded — a combined request that silently drops part of
   itself. Reproduced end to end, and **pre-existing**: identical on a jar built from `main`, and only the combined
