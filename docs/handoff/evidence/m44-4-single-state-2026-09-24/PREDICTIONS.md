@@ -99,3 +99,35 @@ carries the pair identity captured before the scan, and the session refuses a mi
   `total` rather than `store.size()`, and "pending" from the gate rather than `loadInFlight`. A frame test that reads
   `context` between a store change and its fact would see the session lag by one step.
 - **P17 — `verify-m68-1-coverage.py` 65 / 0 on the rebuilt jar.** Confidence 60%, for the same risk.
+
+## Set 4 — M44.4 acceptance journeys, and M68.4's combined open
+
+**Already run, so not predicted:** `SessionLifecycleJourneysTest`, 5 journeys re-expressing the M68.1 frame tests'
+verdict assertions headless: 5 / 0 / 0 / 0. They were run as soon as they were written, and predictions were not
+written first. They re-express behaviour the frame tests already establish, so there was nothing new to predict.
+What makes them count is that each fails when the behaviour it re-expresses is broken:
+
+- W16: `pending` always false, turned `aGraphOpenedDuringTheNextLoadIsJudgedAgainstTheNewLog` red.
+- W17: the unscoped verdict (round 2's R2) turned `openOrderDoesNotChangeTheVerdict` red, and two others.
+- W18: `sizeStale` always false turned `aFollowAppendMakesTheWholeLogComparisonStale` red.
+- W19: the qualifier ignoring a closed log turned `closingTheLogRetiresEverythingAboutIt` red.
+
+Every restore was byte-identical.
+
+**M68.4, the combined open**, written before any run of `CombinedOpenTest` and before the fix:
+
+- **P18 — seen red.** On the current code, `aGraphOpenedForTheLoggingLogIsKept` FAILS at its first assertion: one
+  `CloseGraphEffect`, the graph the request itself opened. Both controls PASS, because they describe today's
+  behaviour for residue and reader graphs.
+- **P19 — the fix is one decision in `LogArrival`.** It records the graph revision when the log is requested, and on
+  arrival keeps an `OPENED` graph whose revision moved since then, announcing the mismatch and recording
+  `graphOpenedForThisLog`. After regenerating, all three cases pass.
+- **P20 — witness W20:** keeping every graph whose revision moved, regardless of source, turns `aReaderGraphIsNotIntent`
+  red. **W21:** dropping the revision comparison, so every `OPENED` graph is kept, turns
+  `aGraphFromBeforeTheRequestIsStillResidue` red.
+- **P21 — nothing else changes.** Headless 1,962 (1,954 + 5 journeys + 3), 0 failures. Frame 66 / 0 / 0 / 1. The
+  M68.1 verifier stays at 65 / 0. Named risk: a frame test that opens a mismatching graph DURING a load and expects it
+  closed. I know of none, and `freshWindow_socketGraphThenMismatchingSocketLog…` opens the graph first.
+- **P22 — end to end.** A new verifier check, a half-foreign log opened combined with the committed graph, shows
+  the graph still loaded on the final state (after the arrival rule, past review O6's delay), with `applies` false. It
+  fails on a jar built from `8893cb08` and passes on the fixed jar.
