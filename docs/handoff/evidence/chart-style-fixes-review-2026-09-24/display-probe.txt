@@ -1,0 +1,17 @@
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK Show this chart in the Graph tab at java.awt.Point[x=273,y=873]
+BUTTON FIRED Show this chart in the Graph tab
+CLICK Style dropdown at java.awt.Point[x=1046,y=427]
+PASS real mouse selection chooses Line
+PASS dropdown alone autosaves Line to project file
+PASS setup action open [close] => null
+PASS project close closes log
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK Show this chart in the Graph tab at java.awt.Point[x=273,y=828]
+BUTTON FIRED Show this chart in the Graph tab
+PASS mouse-selected Line survives actual project close/reopen and explicit log open
+PASS import plan applies Points/closed before UI refresh
+OBSERVATION after actual import refresh: style=line, open=true
+PASS REPRODUCED import refresh overwrites imported Points/closed with old Line/open tab

@@ -1,0 +1,9 @@
+PASS FlatLaf Light: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS FlatLaf Dark: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS FlatLaf IntelliJ: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS FlatLaf Darcula: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS Metal: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS Nimbus: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS CDE/Motif: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS Mac OS X: 12 single callbacks, restore zero writes, post-restore edit one write
+PASS profile save/load and share export/preview/apply: 12 cases, all components retained except resolved paths

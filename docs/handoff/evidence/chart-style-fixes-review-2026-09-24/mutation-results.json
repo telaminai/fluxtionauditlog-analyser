@@ -1,0 +1,180 @@
+{
+  "baseline": {
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=StyleDropdownRequestsASaveTest"
+    ],
+    "exit": 0,
+    "output": "",
+    "suites": [
+      {
+        "{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation": "https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd",
+        "version": "3.0",
+        "name": "telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest",
+        "time": "0.217",
+        "tests": "3",
+        "errors": "0",
+        "skipped": "0",
+        "failures": "0",
+        "failedAssertions": []
+      }
+    ]
+  },
+  "mutations": [
+    {
+      "name": "dropdown-notification",
+      "sourceSite": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphPanel.java",
+      "originalSha256": "ca08d45dc4a73a219f1e6715f71116761c3c838d7138174b55cc679a34bda8d3",
+      "baselineGreen": true,
+      "committedTest": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=StyleDropdownRequestsASaveTest"
+        ],
+        "exit": 1,
+        "output": "[ERROR] Tests run: 3, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 0.192 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest.choosingAStyleFromTheDropdownAsksToBeSaved -- Time elapsed: 0.166 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: B-M20-3: choosing a style edits the saved chart, so it must request a save \u2014 without this the choice is lost on the next load and only the verb path persisted ==> expected: <1> but was: <0>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest.lambda$choosingAStyleFromTheDropdownAsksToBeSaved$1(StyleDropdownRequestsASaveTest.java:53)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest.theVerbPathStillAsksExactlyOnce -- Time elapsed: 0.006 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: ONCE: the combo listener now asks, so setStyleByName must not ask again on top of it ==> expected: <1> but was: <0>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest.lambda$theVerbPathStillAsksExactlyOnce$3(StyleDropdownRequestsASaveTest.java:71)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   StyleDropdownRequestsASaveTest.lambda$choosingAStyleFromTheDropdownAsksToBeSaved$1:53 B-M20-3: choosing a style edits the saved chart, so it must request a save \u2014 without this the choice is lost on the next load and only the verb path persisted ==> expected: <1> but was: <0>\n[ERROR]   StyleDropdownRequestsASaveTest.lambda$theVerbPathStillAsksExactlyOnce$3:71 ONCE: the combo listener now asks, so setStyleByName must not ask again on top of it ==> expected: <1> but was: <0>\n[ERROR] Tests run: 3, Failures: 2, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-chart-style-fixes-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n",
+        "suites": [
+          {
+            "{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation": "https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd",
+            "version": "3.0",
+            "name": "telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest",
+            "time": "0.192",
+            "tests": "3",
+            "errors": "0",
+            "skipped": "0",
+            "failures": "2",
+            "failedAssertions": [
+              {
+                "test": "choosingAStyleFromTheDropdownAsksToBeSaved",
+                "message": "B-M20-3: choosing a style edits the saved chart, so it must request a save \u2014 without this the choice is lost on the next load and only the verb path persisted ==> expected: <1> but was: <0>"
+              },
+              {
+                "test": "theVerbPathStillAsksExactlyOnce",
+                "message": "ONCE: the combo listener now asks, so setStyleByName must not ask again on top of it ==> expected: <1> but was: <0>"
+              }
+            ]
+          }
+        ]
+      },
+      "restoredSha256": "ca08d45dc4a73a219f1e6715f71116761c3c838d7138174b55cc679a34bda8d3",
+      "byteIdentical": true,
+      "restoredTest": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=StyleDropdownRequestsASaveTest"
+        ],
+        "exit": 0,
+        "output": "",
+        "suites": [
+          {
+            "{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation": "https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd",
+            "version": "3.0",
+            "name": "telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest",
+            "time": "0.165",
+            "tests": "3",
+            "errors": "0",
+            "skipped": "0",
+            "failures": "0",
+            "failedAssertions": []
+          }
+        ]
+      },
+      "restoredProbe": {
+        "command": [
+          "/Users/greg/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home/bin/java",
+          "-Djava.awt.headless=true",
+          "-cp",
+          "/private/tmp/chart-style-probe-classes:target/classes:target/fluxtion-auditlog-analyser-0.0.0-SNAPSHOT.jar",
+          "StyleContractProbe",
+          "paths-only"
+        ],
+        "exit": 0,
+        "output": "PASS profile save/load and share export/preview/apply: 12 cases, all components retained except resolved paths\n"
+      }
+    },
+    {
+      "name": "import-callsite-old-constructor",
+      "sourceSite": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SettingsShare.java",
+      "originalSha256": "fbce86449aec5ffd89c9fbb5ccc59b96638bb265b555e4fa0601f3b05551b721",
+      "baselineGreen": true,
+      "committedTest": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=StyleDropdownRequestsASaveTest"
+        ],
+        "exit": 0,
+        "output": "",
+        "suites": [
+          {
+            "{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation": "https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd",
+            "version": "3.0",
+            "name": "telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest",
+            "time": "0.166",
+            "tests": "3",
+            "errors": "0",
+            "skipped": "0",
+            "failures": "0",
+            "failedAssertions": []
+          }
+        ]
+      },
+      "reviewProbe": {
+        "command": [
+          "/Users/greg/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home/bin/java",
+          "-Djava.awt.headless=true",
+          "-cp",
+          "/private/tmp/chart-style-probe-classes:target/classes:target/fluxtion-auditlog-analyser-0.0.0-SNAPSHOT.jar",
+          "StyleContractProbe",
+          "paths-only"
+        ],
+        "exit": 1,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: PROFILE_METADATA line-true-series: got step/true\n\tat StyleContractProbe.check(StyleContractProbe.java:13)\n\tat StyleContractProbe.main(StyleContractProbe.java:39)\n"
+      },
+      "restoredSha256": "fbce86449aec5ffd89c9fbb5ccc59b96638bb265b555e4fa0601f3b05551b721",
+      "byteIdentical": true,
+      "restoredTest": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=StyleDropdownRequestsASaveTest"
+        ],
+        "exit": 0,
+        "output": "",
+        "suites": [
+          {
+            "{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation": "https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd",
+            "version": "3.0",
+            "name": "telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest",
+            "time": "0.17",
+            "tests": "3",
+            "errors": "0",
+            "skipped": "0",
+            "failures": "0",
+            "failedAssertions": []
+          }
+        ]
+      },
+      "restoredProbe": {
+        "command": [
+          "/Users/greg/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home/bin/java",
+          "-Djava.awt.headless=true",
+          "-cp",
+          "/private/tmp/chart-style-probe-classes:target/classes:target/fluxtion-auditlog-analyser-0.0.0-SNAPSHOT.jar",
+          "StyleContractProbe",
+          "paths-only"
+        ],
+        "exit": 0,
+        "output": "PASS profile save/load and share export/preview/apply: 12 cases, all components retained except resolved paths\n"
+      }
+    }
+  ]
+}
