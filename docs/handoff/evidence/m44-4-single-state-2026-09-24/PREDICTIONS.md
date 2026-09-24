@@ -33,3 +33,35 @@ Predictions for trials not yet run:
   already measurable when written.** `git diff --numstat` shows +40 / −41, net −1. So "at least 25" was **wrong**, and
   it is left on the record. The funnel's deleted lines were replaced by the fact reporters and their comments. The
   spec's −150 for the whole milestone rests on M44.4b/c, which delete the verdict copies.
+
+## Set 2 — M44.4b (the snapshot; appends reported as they land; retention by kind)
+
+Written after the code compiled and before any test in it ran. **Already measured, so not predicted:** `MainFrame` is
++52 / −58, net −6. The frame's duplicate scorer `pairingAgainst`, `republishPairingAfterAppend`,
+`refreshSessionIfLogGrew`, `sessionNotedTotal` and the `invokeAndWait` are all gone. No UI class calls
+`GraphPairing.of`, `.withScope(` or `.rescoped(` any more (grep: 0).
+
+**Scope moved from the spec's table, stated before the trials:** M44.4d's retention by kind lands here. Reporting
+every append to the session would otherwise break O-i's property, so the two cannot ship apart. Two things are
+**not built**:
+
+- off-EDT `post` marshalling, because nothing posts off the EDT now that coverage reads the snapshot;
+- the DEBUG-level half of D-S13.5, because with tracing on it removes keys and not records, and retention is what
+  O-i needed.
+
+- **P8 — `SessionSnapshotTest`, 6 cases, all green on first run.** Confidence 80%. The likeliest failure is
+  `reScopesNeverEvictTransitions` miscounting `droppedRescopes`, if `openLog` or `graph` in the setup also emits
+  something the sink classifies as a re-scope.
+- **P9 — each witness turns its named test red:**
+  - W6: `publishSnapshot` not called, turns `theSnapshotFollowsEachOperation` red;
+  - W7: no `equals` short-circuit, turns `listenersHearChangesOnly` red;
+  - W8: `revision` not incremented, turns `aDifferentArtefactIsADifferentPair` red;
+  - W9: re-scopes routed to the transition ring, turns `reScopesNeverEvictTransitions` red;
+  - W10: `GraphPairing.of(` restored in `MainFrame`, turns `theFrameRendersAndDoesNotCompute` red.
+- **P10 — headless `mvn test`: 1,947 run** (1,941 + 6), 0 failures, 0 errors, 65 skipped.
+- **P11 — frame tests 66 / 0 / 0 / 1 skip**, including the reworded O-i test
+  (`aFollowAppendEvictsNoTransitionRecordAndTheClaimIsCurrent`). Confidence 65%. Named risk: `judgeOpenedGraph` now
+  reads the session's verdict, and reopening the *same* graph file no longer produces a new pairing object. Qualifications
+  from an earlier coverage comparison therefore survive a same-graph reopen, where before they were dropped. If a frame
+  test asserts they drop, it fails, and that is a finding about which behaviour is right, not a test to relax.
+- **P12 — `verify-m68-1-coverage.py` on the rebuilt jar: 65 / 0.** Confidence 70%, for the same named risk.
