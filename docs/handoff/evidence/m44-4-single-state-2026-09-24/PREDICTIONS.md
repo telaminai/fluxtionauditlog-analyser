@@ -163,3 +163,31 @@ append-then-idle pair of polls, and reporting them apart would be the non-change
   `wait_records`-style loop time out.
 - **P29 — end to end.** The verifier's new scenario 12 fails on a jar built from `f2e25e80` (no `log.identity` in
   context) and passes on the fix. The other 67 checks are unchanged.
+
+## Set 6 — M68.5, the file's identity at the next request (both stores)
+
+Written after the code compiled and before any of its tests ran. Gated on a tree without the code.
+
+**Scope, stated before the trials.** The mapped store does not follow, so acceptance 7's "while following, on both
+stores" cannot apply to it as written. What D-E6 does ask of it is the next REQUEST that reads the file. That is
+checked at the dispatcher, for record-reading verbs, and at `context`, and for a person on window focus. **Limit,
+stated:** an in-place rewrite that restores size, modification time and key is invisible to this metadata check.
+Seeing it means re-reading every byte, the cost D-E6 names. The heap store's Follow pays it; a request-time check
+does not. **Not covered:** the human table view is announced on the status line, but not suspended.
+
+- **P30 — `ReadThroughIdentityTest`, 6 cases, green on first run.** Confidence 85%; it is pure.
+- **P31 — `MappedLogStoreReadIdentityTest`, 3 cases, green on first run.** Confidence 60%. Likeliest failure:
+  `inPlaceRewrite`'s precondition, if `Files.writeString` truncates and rewrites through a new inode on this
+  filesystem rather than in place. `atomicReplace`'s claim that the old channel still reads the opened file is POSIX
+  behaviour, and I have not seen it measured on APFS.
+- **P32 — `ActionDispatcherReadIdentityTest`, 3 cases, green on first run.** Confidence 75%. Risk: the stub
+  dispatcher's snapshot throwing for `context`, if `context` touches the snapshot.
+- **P33 — witnesses:**
+  - W26: the dispatcher's `suspendsReads()` refusal removed, turns `suspendedRefuses` red;
+  - W27: `inMemory` ignored in `classify` turns `inMemoryIsRetained` red;
+  - W28: the mapped store classifying with `inMemory = true` turns `inPlaceRewrite` red.
+- **P34 — headless 1,994 run** (1,982 + 12), 0 failures, 0 errors; 65 skipped, or 66 if `atomicReplace` assumes out.
+- **P35 — frame 66 / 0 / 0 / 1.** Confidence 55%. Named risk: the window-focus listener firing inside a frame test,
+  after a test rewrote a heap-loaded file, and changing the status text that test then asserts.
+- **P36 — the verifier stays at 69 / 0.** Its logs are heap-loaded and unchanged while read, apart from scenario 12,
+  which is Follow.
