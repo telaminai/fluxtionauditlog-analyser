@@ -448,6 +448,9 @@ basis, and the tracker is corrected so the outstanding item appears where the de
 - **M68.1** the coverage, pairing and scope verdicts (acceptance 1, 2, 3), completing M45.4 — first, because it is
   what a held-out client was told, what blocks G14, and what was already authorised three weeks ago. Not gated on
   the packet's missing inputs.
+  **Structural follow-up: [M44.4](spec-session-processor.md)** (§13, the single-state model). Four review rounds
+  of M68.1 each closed a synchronisation defect between copies of one verdict. M44.4 gives the verdict one owner,
+  the session processor, and every surface reads its snapshot, so D-E2 holds by construction and not by vigilance.
 - **M68.2** report and chart rendering (acceptance 9) — second, same reason.
 - **M68.3** the framing diagnostic's correction (acceptance 10), with the producer half filed against the starter
   and the audit format work. Correcting a shipped false verdict, not adding a diagnostic.

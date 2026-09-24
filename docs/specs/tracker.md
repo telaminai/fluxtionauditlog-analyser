@@ -1755,15 +1755,30 @@ retrieval-dated evidence table, because those are live documents that can change
 - [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
   our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
 
-## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived); the next slices and the AGPL owner decision open
+## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived) · M44.4 single-state model IN PROGRESS
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
+*(Restored 2026-09-24: the three entries below had been cut to their first lines by an earlier edit. The full text
+of the originals is in `057a069a`.)*
 
-- [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
-  recommends.** ☐ **Blocker before the dependency lands:** the runtime's published POM declares AGPL-3.0
-  jar. ☐ **Residue:** the five dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`,
-- [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
-- [M44.3] ☐ **Owner decision still open:** the runtime's published POM declares AGPL-3.0 and the analyser
+- [M44] ◧ **Spec: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions are the first
+  analyser decisions moved into a Fluxtion processor. Slice 1 and M44.3 shipped. ☐ **Residue:** of the five
+  dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`, `STARTUP_ACTIVATION`, import-as-project), each
+  call site's kind is verified by reading, not by running (§11).
+- [M44.2x] ☐ **Superseded by M44.4a.** The original next-slice list was `IgnoredParameters` and the F3 split,
+  both shipped, and then moving log and graph OPENING, which deletes `LogObserved`/`GraphObserved`. That last part
+  is now M44.4a.
+- [M44.3] ☑ **Licence decision: keep as is** (owner, 2026-09-24; spec D-S1.2 → D-S13.6).
+- [M44.4] ◧ **The single-state model: the processor owns every session verdict, and surfaces read one
+  snapshot** (spec §13, PROPOSED 2026-09-24; implementation started at the owner's direction, spec under review).
+  Motivated by M68.1, whose four review rounds were all synchronisation defects between copies of one pairing
+  verdict. Branch `feat/m44-single-state-session`.
+  - [M44.4a] ☐ `GraphOpened` and `LogOpened` on every open path; `SessionSnapshot`; `post(fact)`. Deletes the
+    observation funnel.
+  - [M44.4b] ☐ `LogAppended` with a log-generation gate. Deletes the append republish and the `invokeAndWait`.
+  - [M44.4c] ☐ `ViewFilterChanged`, `MembershipCompared` and a `PairingQualifier` node. Deletes the frame's
+    pairing and qualification fields.
+  - [M44.4d] ☐ Audit retention by kind: re-scopes at DEBUG in a separate ring, tracing kept on.
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button

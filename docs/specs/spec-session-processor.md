@@ -2,10 +2,12 @@
 
 **Status:** PROPOSED 2026-08-30 · **REVISED 2026-08-31** after review
 ([`review_spec_session_processor_m44.txt`](../handoff/completed/review_spec_session_processor_m44.txt) —
-*architecture accepted, specification requires changes before implementation*).
+*architecture accepted, specification requires changes before implementation*) · **§13 the single-state
+model PROPOSED 2026-09-24**, implementation started at the owner's direction and the section is under review.
 **Tracker:** [tracker.md](tracker.md) ▸ M44.
 **Related:** [spec-authoring-experience.md](spec-authoring-experience.md) (the loop this feeds),
-[spec-trust-structure.md](spec-trust-structure.md) (why an auditable decision layer is on-thesis).
+[spec-trust-structure.md](spec-trust-structure.md) (why an auditable decision layer is on-thesis),
+[spec-evidence-integrity.md](spec-evidence-integrity.md) (M68, whose D-E2 §13 exists to make structural).
 
 ## Why this one first
 
@@ -247,8 +249,8 @@ plugin execution**; and a **cold build against an empty local repository** passe
 **D-S1.2 — the distribution licence decision is recorded, not inferred.** `fluxtion-runtime` 1.0.13's
 published POM declares **AGPL-3.0**; the analyser declares its own source-available commercial licence.
 Telamin may hold a separate right to combine them, but a commercial product spec must record that
-decision rather than leave a reviewer to infer it from common ownership. **Owner decision required
-before the dependency is added.**
+decision rather than leave a reviewer to infer it from common ownership. ~~**Owner decision required
+before the dependency is added.**~~ **RESOLVED 2026-09-24: keep the licence as is** (§13, D-S13.6).
 
 *An adjacent fact found while checking this, worth filing upstream:* the runtime's **source headers**
 declare `SPDX-License-Identifier: AGPL-3.0-only OR SSPL-1.0` — a dual licence — while the **published
@@ -309,6 +311,9 @@ Typed facts, no UI or infrastructure types. Every request carries `opId`.
 |---|---|
 | `TopologyObserved` | node ids, node **types**, node count, graph provenance — raw, not pre-computed |
 | `LogObserved` | distinct logged instanceIds, observed audit level / tracing regime |
+
+**`LogObserved` and `GraphObserved` are deleted by M44.4a** (§13, D-S13.2) and replaced by `GraphOpened` and
+`LogAppended`.
 
 `PairingComputed` is **deleted**. It carried an already-computed answer under an input name, which put
 policy in the adapter — the leak §2 forbids. The graph computes pairing from `TopologyObserved` and
@@ -528,6 +533,198 @@ review question applies to us: *replaying the same typed inputs, can every impor
 reconstructed from the graph and the audit log?* — and, after this revision, *can every completed effect
 be distinguished from the intention that requested it?*
 
+## 13 · The single-state model — M44.4, PROPOSED 2026-09-24
+
+**Status: PROPOSED for review.** The owner directed on 2026-09-24 that work should start without waiting for a
+review, following the existing nodes. So implementation starts on `feat/m44-single-state-session` in the slice
+order below, and this section is what gets reviewed. **Motivated by [M68.1](spec-evidence-integrity.md) ▸ D-E2**,
+*one verdict, every surface, at a stated scope*. Four review rounds of M68.1 found defects of one class, and this
+section removes that class's cause.
+
+### What four rounds of M68.1 showed
+
+Each M68.1 round closed a narrower case of the same fault: **one verdict held in more than one place.** The
+pairing verdict exists in the frame as `lastPairing`, in the session as `Pairing.verdict()`, and in discovery as
+a candidate score. Each copy is recomputed on its own trigger:
+
+- the frame's copy is set on open, by `pairingAgainst` on a graph-first open, by
+  `republishPairingAfterAppend` on a Follow append, and by `setBusy` from the session's copy when a load did not
+  land;
+- the session's copy moves only when `LogObserved` or `LogOpened` reaches it. `noteLogState` drops that
+  observation while the driver is dispatching. After a Follow append, `refreshSessionIfLogGrew` refreshes it
+  lazily, using `invokeAndWait` from the socket thread.
+
+A comparison qualifies the verdict, and those qualifications are held beside the frame's copy. They are bound
+to the exact object (`qualifiedPairing == lastPairing`), and a filter change or append re-reads them for
+staleness. **Every one of those mechanisms is correct, and none of them would exist if the verdict had one
+owner.** The rounds went R1 (unscoped verdicts disagreed), N1 (an append left the session's scope stale), Q5b (a
+filter change left a comparison current) and O-i (the append fix spent the session's audit ring). Each was a
+synchronisation defect between copies, not a scoring defect.
+
+The processor already does the scoring. `Pairing` delegates to `GraphPairing`, and `CoverageClaim` combines
+the pairing with provenance and the audit regime. What it does not do is own the answer. The frame keeps its
+own copy because the processor does not learn about appends or filters and does not hold qualifications.
+
+### D-S13.1 — the processor owns every session verdict, and surfaces read one snapshot
+
+The processor is the **only** writer of:
+
+- which log and graph are open, with their identities and revisions;
+- the pairing verdict and its scope;
+- the pairing's qualifications, meaning the widest comparison, a narrower one, and filter findings;
+- the coverage claim.
+
+After each operation the driver publishes an immutable **`SessionSnapshot`** from those nodes, and every
+surface renders from it: the Topology status line, the Project panel, `context`, the coverage echo and the
+report. A surface may *render* the snapshot, and it may not *compute* any part of it. The following are
+deleted from `MainFrame`:
+
+- `lastPairing`, `qualifications`, `qualifiedPairing`, `currentQualifications()`;
+- `republishPairingAfterAppend()`, `refreshSessionIfLogGrew()`, `sessionNotedTotal`;
+- `setBusy`'s verdict restore;
+- the frame's use of `pairingAgainst`. Discovery keeps its own **candidate** scoring, because ranking files
+  nobody has opened is not the published verdict. It shares `sampleLoggedIds` so its numbers agree with the
+  snapshot's.
+
+`PairingQualification`, `PairingQualifications` and `GraphPairing` stay pure and unchanged. They move from
+being fields of the frame to being state of a node, which is the same pattern `Pairing` already follows with
+`GraphPairing`.
+
+### D-S13.2 — honest events replace the observation funnel (the old M44.2x)
+
+D-S0.5 named `LogObserved` *"a state snapshot pretending to be an event."* It and `GraphObserved` are
+**deleted**. So are `noteLogState`, `noteGraphState`, the ten-call-site funnel in `updateLifecycleMenu`, and the
+`isDispatching()` drop. The replacements say what happened:
+
+| Event | Carries | Advances | Kind |
+|---|---|---|---|
+| `LogOpened` *(exists)* | opId, path, provenance, sampled ids, sampled, total, most verbose level | `OpenLog` | result |
+| `GraphOpened` *(new)* | opId or none, path, source, declared ids, node types | `OpenGraph` | result or fact |
+| `LogClosed`, `GraphClosed` *(exist)* | opId | `OpenLog`, `OpenGraph` | result |
+| `LogAppended` *(new)* | log identity, new total, sample ids and levels **only if the sample changed** | `OpenLog` | fact |
+| `ViewFilterChanged` *(new)* | filter key, filter label | `ViewFilter` *(new)* | fact |
+| `MembershipCompared` *(new)* | the `PairingQualification` a coverage call produced, and the pairing identity it compared | `PairingQualifier` *(new)* | fact |
+
+**A fact is not gated by `opId`**, because nobody requested it. **It is gated by identity instead.** Every log
+open increments a log generation in `OpenLog`, and `LogAppended` carries the generation it was read from. An
+append for a log that has since been closed or replaced is refused as `staleFact` and changes nothing. That is
+the same rule as `staleResult`, applied to facts. `MembershipCompared` is gated the same way, against the
+pairing revision it qualifies. This replaces the frame's object-identity check (`qualifiedPairing ==
+lastPairing`) with a gate the audit log can show.
+
+**A graph opened outside a transition** (from the File menu, the Topology panel, or a reader supplying one) is
+now a `GraphOpened` fact with no opId, where it used to be an observation. That is one entrance with one
+record, instead of a funnel inferring what changed.
+
+### D-S13.3 — threading: one writer, the EDT, and a posting queue for facts
+
+Fluxtion's generated `processEvent` already queues a same-thread re-entrant event. It does not make the
+processor safe across threads, and it should not have to. The contract:
+
+1. **One writer thread**, the one the driver was created on (the EDT). This is unchanged, and
+   `ProtocolViolation` still guards it.
+2. **`submit(request)` keeps its single-in-flight rule.** An adapter that submits during a cycle is still a
+   violation. It is starting a second operation inside the first, and the record could not tell them apart.
+3. **`post(fact)` is new, and callable from any thread.** Off the EDT, it marshals with `invokeLater`. On the
+   EDT during a dispatch, it enqueues, and the fact runs as **its own operation** after the current one
+   settles, in FIFO order. This is Fluxtion's own re-entrancy semantic, at operation granularity. A filter
+   cleared because an effect closed the log therefore reaches the graph after the close, instead of being
+   dropped as `noteLogState` drops one today. That drop is a stale-verdict risk, and this rule removes it.
+4. **Readers never enter the processor.** They read the published `SessionSnapshot`, a `volatile` reference to
+   an immutable record, from any thread. The socket thread's `bindCoverageClaim` supplier reads the snapshot and
+   **the `invokeAndWait` is deleted**. A reader therefore sees the state as of the last completed operation, and
+   never a half-applied cycle.
+5. **Heavy work runs off the graph and returns as a fact.** A whole-log membership scan is one example: the
+   coverage call runs on the socket thread, as it does today, and posts `MembershipCompared` with its result.
+   The graph never scans a store.
+
+**Snapshot listeners** are notified on the EDT after each publish. The Topology panel and the Project panel
+repaint from that notification, which replaces the scattered `publishPairing()` calls.
+
+### D-S13.4 — the store stays outside the graph, and its changes enter as facts
+
+The owner suggested an alternative: inject the log store into the graph as a state store, with Fluxtion
+controlling change, so appends go through a graph handler. **It is recorded here and not adopted for this
+slice.** The reason is D-S0.5's replay property. Suppose the store is behind a service. Replaying the event
+sequence then no longer reproduces a verdict, because the service's contents are also needed. Suppose instead
+`LogAppended` carries the new total and the changed sample. Then the audit log alone reconstructs every scope
+the panel stated.
+
+Mutation through the graph, *Fluxtion controls the change*, is kept where it is cheap: an append is not
+visible to any verdict until `LogAppended` has been processed. Revisit this if a verdict ever needs more of the
+store than a sample and a count. The coverage scan, which does need more, stays a worker that posts its result.
+
+### D-S13.5 — audit: tracing stays on; re-scopes are retained separately, not suppressed
+
+Round 4's O-i measured the cost. With the processor generated with `addEventAudit(INFO)`, tracing is on and
+**every event publishes one record** (`EventLogManager.processingComplete`: `canTrace | terminateRecord()`,
+read in runtime 1.0.16). At the 1-second Follow poll, one `LogAppended` per tick with appends would evict
+the 2,000-record ring's transitions in about half an hour on a busy log.
+
+Turning tracing off would buy back the ring at the price of slice 1's founding property, *absence from the
+record means the node did not run.* **Not taken.** Instead:
+
+- **The node logs a re-scope at DEBUG, and a verdict change at INFO.** A `LogAppended` that moves only the
+  total leaves `pairing=` and `applies=` unwritten at INFO. Levels are changeable at runtime through
+  `EventLogControlEvent`, and both levels are written down here so the regime is stated, not defaulted
+  (D-S8.2).
+- **The sink retains by kind** (D-S8.3 says the sink is ours). A record whose event is `LogAppended` or
+  `ViewFilterChanged`, and that changed no INFO-level key, goes to a small separate ring. The transition ring
+  is never evicted by re-scopes. `SessionAuditSink.total()` still counts both, and `dropped()` reports each
+  ring's evictions separately, so the export says what it omitted (D-E1).
+
+The O-i frame test changes from *"an append writes no session record"* to *"five hundred appends evict no
+transition record,"* which is the property O-i was protecting. Its mutation witness moves with it: route
+re-scopes to the transition ring, and the test must fail.
+
+### D-S13.6 — licence: RESOLVED, keep as is
+
+D-S1.2 asked for an owner decision before the dependency landed. The dependency shipped in slice 1, so the
+decision was overdue, not pending. **Owner, 2026-09-24: "Keep the license as is."** The analyser keeps its own
+licence, and `fluxtion-runtime` remains a dependency under the terms it is published with. The adjacent
+upstream fact stands: the POM says AGPL-3.0 while the source headers say AGPL-3.0-only OR SSPL-1.0.
+
+### Slices, each deleting its old branch in the same commit (the Risks rule)
+
+| Slice | Moves | Deletes |
+|---|---|---|
+| **M44.4a** | `GraphOpened` fact and result; `LogOpened` from every open path; `SessionSnapshot` published after each operation; `post(fact)` | `LogObserved`, `GraphObserved`, `noteLogState`, `noteGraphState`, the funnel in `updateLifecycleMenu`, the `isDispatching()` drop |
+| **M44.4b** | `LogAppended`, with the log-generation gate; the pairing's scope follows appends inside the graph | `republishPairingAfterAppend`, `refreshSessionIfLogGrew`, `sessionNotedTotal`, the `invokeAndWait` |
+| **M44.4c** | `ViewFilterChanged`, `MembershipCompared`, and the `PairingQualifier` node | `lastPairing`, `qualifications`, `qualifiedPairing`, `currentQualifications`, `setBusy`'s restore, the frame's `pairingAgainst` use |
+| **M44.4d** | the audit retention of D-S13.5 and the re-worded O-i test | nothing, because this slice changes retention and not ownership |
+
+### Acceptance
+
+- [ ] **The M68.1 lifecycle, as headless event sequences.** Every `PairingDuringLoadFrameTest` journey
+      (log-first, graph-first, combined, Follow append, filter change, close during a pending open) is re-expressed
+      as a sequence submitted to `SessionDriver` with no Swing. It asserts the snapshot's pairing, scope,
+      qualifications and claim at each step. These become the regression checks under rule 8. The frame tests stay
+      as rendering witnesses and must stay green unchanged, except for O-i's documented rewording.
+- [ ] **One verdict, one owner, mechanically.** A static test fails if `MainFrame` declares a field of type
+      `GraphPairing` or `PairingQualifications`, or calls `GraphPairing.of` or `withScope`. Discovery's candidate
+      scoring is named as the one exemption, following the `UserVisibleWordingGuardTest` pattern.
+- [ ] **A stale fact is refused.** A `LogAppended` for generation *n* arriving after an open of generation *n+1*
+      changes nothing and is logged as `staleFact`. The witness mutation removes the gate, and the test must fail.
+- [ ] **No reader enters the processor off the EDT.** The coverage path reads the snapshot. The witness mutation
+      reads `processor()` from the socket thread, and a thread-assertion test must fail.
+- [ ] **`post` during a dispatch runs, in order, after the operation.** The witness mutation drops the fact, as
+      `noteLogState` does today, and the test must fail.
+- [ ] `tools/verify-m68-1-coverage.py` passes 65/0 against the built jar, unchanged. The M68.1 mutation harness
+      stays green, and any entry whose anchor moved is re-pointed and not dropped.
+- [ ] The regenerated GraphML shows every new state node below `operationGate`, or below the new fact gate.
+      `SessionGraphShapeTest` pins it.
+
+### Predictions, recorded before the code (scored at the end, including the wrong ones)
+
+1. **`MainFrame` shrinks by more than it grows.** Predicted net −150 lines or more across the four slices.
+2. **The hard part will be `GraphOpened` from the Topology panel's own open paths**, not the graph. There are
+   several of them, and at least one will be found that no test reaches.
+3. **At least one M68.1 frame test will fail on first run of M44.4c** because it asserted a frame-computed
+   intermediate that the snapshot does not reproduce. Each such failure is a finding about which of the two was
+   right, and it is not a test to relax.
+4. **The generated `batchEnd` wedge (§0) will not bite `post`**, because `post` runs between operations and
+   never inside `batchEnd`.
+
 ## What we expect to LEARN — recorded now so it can be wrong
 
 Written before the work so it cannot be retrofitted.
@@ -647,5 +844,8 @@ or an adapter will look locally reasonable. D-S0.4 is a hard prohibition for tha
 **Regeneration friction in review.** A reviewer without a key cannot regenerate. The committed source and
 the pinned GraphML are what they review; the profile is how the author changes it.
 
-**The licence decision is a blocker, not a footnote.** D-S1.2 must be answered before the dependency
-lands, because reversing a shipped dependency is far more expensive than deciding about it now.
+~~**The licence decision is a blocker, not a footnote.**~~ **Answered 2026-09-24, keep as is** (D-S13.6). It
+was answered after the dependency shipped rather than before, which is the order this paragraph warned against.
+
+**Two copies of one verdict during M44.4.** The Risks rule above applies with more force here, because M68.1 is
+what happens when it does not: each §13 slice deletes the frame's copy in the same commit that moves ownership.
