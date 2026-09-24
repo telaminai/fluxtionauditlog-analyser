@@ -386,7 +386,8 @@ public final class MainFrame extends JFrame {
                 return graphTabs.openSaved(spec);
             }
             @Override public boolean selectGraph(String name) { return graphTabs.selectGraph(name); }
-            @Override public void say(String message) { status.setText(message); }
+            @Override public String definitionRefusal() { return graphTabs.definitionRefusal(); }
+            @Override public void say(String message) { sayToStatus(message); }
         }, () -> config.savedGraphs));
         projectPanel.setVisible(!config.projectPanelCollapsed);
         projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
@@ -2916,7 +2917,7 @@ public final class MainFrame extends JFrame {
                         : telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
                                 .assembleTable(sec, store, this::coverageForReport),
                 row -> openRecordFromReport(row),
-                gname -> { sideTabs.setSelectedComponent(graphTabs); graphTabs.selectGraph(gname); },
+                gname -> { sideTabs.setSelectedComponent(graphTabs); revealGraphByName(gname); },
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name));
@@ -4355,8 +4356,13 @@ public final class MainFrame extends JFrame {
                     : String.join("\n\n", producerDiagnostics.messages()));
         }
         if (added == 0) {
-            status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
-                    store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+            // R12-2: a tick with nothing new used to overwrite whatever the status bar was saying, so an
+            // explanation of why an action did nothing vanished about a second later while Follow was on.
+            // Idle ticks carry no news; they must not erase news someone is still reading.
+            if (System.currentTimeMillis() - sayAtMillis >= SAY_HOLD_MILLIS) {
+                status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
+                        store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+            }
             return;
         }
         if (tableModel != null) tableModel.rowsAppended(before);
@@ -5278,6 +5284,36 @@ public final class MainFrame extends JFrame {
         setTitleForProject();
         updateLifecycleMenu();
         refreshProjectPanel();                                        // M37: the project, and everything it owns
+    }
+
+    /**
+     * R12-3: a report's chart link called selectGraph and ignored its result. Since a closed chart keeps
+     * its definition, a link to one brought the Graph tab forward and did nothing. Open it from the
+     * profile when it is saved, and say why when it cannot be opened at all.
+     */
+    private void revealGraphByName(String gname) {
+        if (graphTabs.selectGraph(gname)) return;
+        for (var g : config.savedGraphs) {
+            if (g.name().equals(gname)) {
+                if (!graphTabs.openSaved(g)) {
+                    String withheld = graphTabs.definitionRefusal();
+                    sayToStatus("\"" + gname + "\" cannot open yet: "
+                            + (withheld != null ? withheld : "no log is loaded."));
+                }
+                return;
+            }
+        }
+        sayToStatus("No chart called \"" + gname + "\" is open, and the project has no saved definition for it.");
+    }
+
+    /** How long an explanation holds the status bar against idle follow ticks (R12-2). */
+    private static final long SAY_HOLD_MILLIS = 12_000;
+    private long sayAtMillis = Long.MIN_VALUE / 4;
+
+    /** Put an explanation on the status bar and protect it briefly from idle overwrites. */
+    void sayToStatus(String message) {
+        sayAtMillis = System.currentTimeMillis();
+        status.setText(message);
     }
 
     /** Legacy global settings can contain duplicates that project/import validation now refuses. */

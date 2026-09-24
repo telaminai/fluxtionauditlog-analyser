@@ -83,11 +83,13 @@ class DeleteConfirmationAndRevealerTest {
         final List<String> said = new ArrayList<>();
         boolean openSavedSucceeds = true;
         boolean selectGraphSucceeds = true;
+        String refusal;   // non-null when duplicate names are withholding every definition
         @Override public void selectTab(String title) { calls.add("tab:" + title); }
         @Override public void openSettings(String page) { calls.add("settings:" + page); }
         @Override public void selectReport(String name) { calls.add("report:" + name); }
         @Override public boolean openSaved(GraphSpec spec) { calls.add("openSaved:" + spec.name()); return openSavedSucceeds; }
         @Override public boolean selectGraph(String name) { calls.add("selectGraph:" + name); return selectGraphSucceeds; }
+        @Override public String definitionRefusal() { return refusal; }
         @Override public void say(String message) { said.add(message); }
     }
 
@@ -167,6 +169,24 @@ class DeleteConfirmationAndRevealerTest {
                 + "inability to plot a chart with no data");
         assertTrue(surface.said.get(0).contains("Prices") && surface.said.get(0).contains("log"),
                 "the message names the chart and the reason: " + surface.said.get(0));
+    }
+
+    /**
+     * R12-1: openSaved also returns false while duplicate names withhold every definition. The message
+     * used to say "cannot open until a log is loaded" to someone who had a log open.
+     */
+    @Test
+    void whenDefinitionsAreWithheldTheReasonIsTheRefusalNotAMissingLog() {
+        RecordingSurface surface = new RecordingSurface();
+        surface.openSavedSucceeds = false;
+        surface.refusal = "Charts not loaded: Duplicate chart name 'Same'. Use Repair names\u2026";
+        new ProjectRevealer(surface, () -> List.of(spec("Same"))).showGraph("Same");
+
+        assertEquals(1, surface.said.size());
+        String said = surface.said.get(0);
+        assertTrue(said.contains("Duplicate chart name"), "it must give the reason that applies: " + said);
+        assertFalse(said.contains("until a log is loaded"),
+                "and must not blame a missing log when one is open: " + said);
     }
 
     @Test

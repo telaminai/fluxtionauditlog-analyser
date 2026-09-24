@@ -38,33 +38,46 @@ class WindowControlsSayWhatIsKeptTest {
     void everyWindowControlSaysWhetherItsWindowIsKept() {
         GraphPanel panel = new GraphPanel();
 
-        for (String zoom : List.of("+", "−", "Fit")) {
+        for (String zoom : List.of("+", "\u2212", "Fit")) {
             AbstractButton b = labelled(panel, zoom);
             assertNotNull(b, "the " + zoom + " control must be on the toolbar");
             String tip = b.getToolTipText();
             assertNotNull(tip, zoom + " had no tooltip at all — silence is what caused this");
-            assertTrue(tip.toLowerCase().contains("not saved"),
-                    zoom + " must say its window is not kept, or it reads like the pin beside it: " + tip);
+            assertTrue(tip.contains("not saved"),
+                    zoom + " must say its window is not kept: " + tip);
+            // R12-4: a keyword check passed on a REVERSED tip — "the zoom is kept with the chart and
+            // restored on reload, so it is not saved separately" contains "not saved" and means the
+            // opposite. Reject the words that would reverse it.
+            // phrases that cannot occur in a correct zoom tip; "saved with the chart" is NOT one of them,
+            // because the correct tip legitimately contains "not saved with the chart"
+            for (String reversal : List.of("kept with", "restored on reload", "is saved")) {
+                assertFalse(tip.contains(reversal),
+                        zoom + " must not also claim the window IS kept (" + reversal + "): " + tip);
+            }
         }
 
-        AbstractButton pin = labelled(panel, "📌");
+        AbstractButton pin = labelled(panel, "\ud83d\udccc");
         assertNotNull(pin, "the pin control must be on the toolbar");
         String pinTip = pin.getToolTipText();
         assertNotNull(pinTip);
-        assertTrue(pinTip.toUpperCase().contains("SAVED"),
-                "the pin must say its window IS saved — that is the distinction: " + pinTip);
-        assertFalse(pinTip.toLowerCase().contains("not saved"),
-                "and must not read as the opposite: " + pinTip);
+        assertTrue(pinTip.contains("SAVED with the chart"),
+                "the pin must say its window IS saved, in those words: " + pinTip);
+        // the reviewer's witness: "…unlike a zoom the window is UNSAVED: it is forgotten on reload"
+        // passed the old check, because toUpperCase() found SAVED inside UNSAVED.
+        for (String reversal : List.of("UNSAVED", "unsaved", "not saved", "forgotten")) {
+            assertFalse(pinTip.contains(reversal),
+                    "the pin tip must not read as the opposite (" + reversal + "): " + pinTip);
+        }
     }
 
     @Test
     void theTwoKindsOfControlDoNotReadAlike() {
         GraphPanel panel = new GraphPanel();
         String zoom = labelled(panel, "+").getToolTipText();
-        String pin = labelled(panel, "📌").getToolTipText();
+        String pin = labelled(panel, "\ud83d\udccc").getToolTipText();
 
         assertNotEquals(zoom, pin);
-        assertTrue(zoom.contains("📌"),
+        assertTrue(zoom.contains("\ud83d\udccc"),
                 "zoom should point at the control that DOES keep a window, so the reader learns the pair: " + zoom);
     }
 }

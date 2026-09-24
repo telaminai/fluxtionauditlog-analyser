@@ -143,7 +143,7 @@ public final class GraphPanel extends JPanel {
         // and comes back on reload. Nothing on screen said so, and an owner lost a zoom expecting it back.
         zoomIn.setToolTipText("Zoom in. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
         zoomOut.setToolTipText("Zoom out. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
-        fit.setToolTipText("Fit the data to the plot. A view only — not saved with the chart.");
+        fit.setToolTipText("Fit the data to the plot. A view, not part of the chart — it is not saved. Use 📌 to keep a window.");
         pinButton.setToolTipText("Pin this graph to a fixed time window: it stops following the shared filter, "
                 + "and unlike a zoom the window is SAVED with the chart and restored on reload");
         pinButton.setFocusable(false);

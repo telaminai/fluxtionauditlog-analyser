@@ -36,6 +36,9 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
         /** Select an already-open chart tab by name; false when there is no such tab. */
         boolean selectGraph(String name);
 
+        /** Why every saved definition is being withheld, or null when they are not. */
+        String definitionRefusal();
+
         /**
          * Tell the person something, without changing anything. Still reveal-only under D-L3: a row that
          * cannot act must say why, or it is the silent Open this whole round of work began with.
@@ -79,10 +82,14 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
         for (GraphSpec g : saved()) {
             if (name.equals(g.name())) {
                 if (!surface.openSaved(g)) {
-                    // the usual cause is no log: a chart cannot be plotted against nothing, and the row
-                    // itself said "waiting for input". Saying so beats revealing an empty tab in silence.
-                    surface.say("\"" + name + "\" cannot open until a log is loaded — open one first, "
-                            + "then use Open on the chart again.");
+                    // R12-1: this used to assume the only cause was a missing log. GraphTabs.openSaved also
+                    // returns false while duplicate names are withholding every definition, so a person
+                    // with a log open was told to open one. Ask which it is rather than guess.
+                    String withheld = surface.definitionRefusal();
+                    surface.say(withheld != null
+                            ? "\"" + name + "\" cannot open yet: " + withheld
+                            : "\"" + name + "\" cannot open until a log is loaded — open one first, "
+                                    + "then use Open on the chart again.");
                 }
                 return;
             }
