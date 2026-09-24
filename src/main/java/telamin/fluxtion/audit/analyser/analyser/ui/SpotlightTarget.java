@@ -262,18 +262,7 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
      * {@code graph:<name>}, {@code graph:<name>:note:<n>} and {@code graph:<name>:series:<label>}.
      */
     public static String chartNameProblem(String name) {
-        if (name == null || name.isBlank()) return null;             // the default "Graph N" is chosen for it
-        String n = name.trim();
-        if (n.indexOf(':') >= 0) {
-            return "a chart name cannot contain ':' — spotlight addresses use ':' to separate a chart from its notes and "
-                    + "series, so 'graph:" + n + "' could not be pointed at";
-        }
-        if (n.indexOf('"') >= 0) return "a chart name cannot contain '\"' — it quotes a chart name in a spotlight address";
-        if (n.equalsIgnoreCase("note") || n.equalsIgnoreCase("series")) {
-            return "'" + n + "' is the word spotlight addresses use for a chart's parts, so this chart's notes and series "
-                    + "could not be pointed at — choose another name";
-        }
-        return null;
+        return telamin.fluxtion.audit.analyser.analyser.config.ChartNames.problem(name);   // one rule, every entrance
     }
 
     /** The address that lights {@code chartName}: plain where the grammar carries it, quoted where only that can. */

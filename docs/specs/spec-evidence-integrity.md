@@ -189,8 +189,10 @@ awaiting review):
 - **The rule is the grammar's.** `SpotlightTarget.chartNameProblem` refuses a chart name that contains `:` (the
   part separator) or `"` (which quotes the compatible address), or that is exactly `note` or `series` in any case.
   For such a name the parts would read as the bare forms.
-- **Where it is enforced.** At the `graph` verb's create and rename, and at the UI rename. The verb refuses before
-  anything is created or changed.
+- **Where it is enforced.** At the `graph` verb's create and rename, at the UI rename, and at the duplicate-name
+  repair from main's PR #13. The repair renames saved definitions directly, past the UI's rename, so it was an entrance
+  the rule did not reach until merged code was read. The rule lives in `config.ChartNames` so that non-UI entrances can
+  apply it. The verb refuses before anything is created or changed.
 - **Saved names, the migration path.** A chart saved with such a name loads unchanged, because `restore` is not a
   naming entrance. The verb reaches it by its name as saved, and spotlight reaches it quoted, exactly:
   `graph:"a:b"`, `graph:"a:b":note:2`. `context.graphAddresses` publishes every chart's address, so an agent never
