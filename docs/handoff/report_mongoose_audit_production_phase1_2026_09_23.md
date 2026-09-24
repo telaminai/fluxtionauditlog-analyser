@@ -605,7 +605,7 @@ from the runtime's rule rather than taken from the review.
 |---|---|---|---|---|
 | R-A Low | the `closing()` branch for a node named "null" had no witness | **mine, O-A**: I witnessed the opening, not the closing | — | `aNodeNamedNullIsSetUnderBothReadings` now closes the window with a `sourceId=null` INFO: "either way it ends here", never "only the first would". Witness: the branch disabled → red |
 | R-B Low | "It holds until record 3 sets it to INFO" where the closing change's applying is not established | **mine, R1**: R1's class, in the other branch | with an absent grouping and differing `groupId`s, the only case where `c` applying does not imply `next` applied (derived in P9), all three `closing()` branches say the change was addressed to that grouping and "whether that applied here is not established either". The window still closes there, the conservative direction | `aClosingChangeWhoseApplyingIsOpenSaysSo`, the reviewer's four-record log, plus a same-grouping positive control that stays definite. Witness: `closeOpen = false` → red |
-| R-C Low | "checked on every branch" was untrue: plants in `closing()`, the undeclared YES note, the addressed-grouping clause and the post-marker text all stayed green, and the S2 guard caught only the possessive | mine: the claim outran the tests | `noBranchOfTheSentencePresumesAProcessor`: the whole matrix — source × 4 groupings × 3 boundaries × 3 closings, plus a node named "null" — **108 of 108 annotated, none presuming a processor**, and failing if the matrix stops annotating. The S2 guard is widened to "this processor"; the comment now names the test | two witnesses: planted in a `closing()` literal, and in the post-marker text → red |
+| R-C Low | "checked on every branch" was untrue: plants in `closing()`, the undeclared YES note, the addressed-grouping clause and the post-marker text all stayed green, and the S2 guard caught only the possessive | mine: the claim outran the tests | `noBranchOfTheSentencePresumesAProcessor`: the whole matrix — source × 4 groupings × 3 boundaries × 3 closings, plus a node named "null" — **108 of 108 annotated, none presuming a processor**, and failing if the matrix stops annotating. The S2 guard is widened to "this processor"; the comment now names the test. **Corrected in round 5 (R5-1): this was not the whole matrix.** It had no declared-null grouping with a `groupId`, so it never reached the YES note that row names — which is the *declared-null* case, not the undeclared one — and its closing change always reused the opening's `groupId`, so it never reached the three open closings. "for its processor" also passed the guard | two witnesses: planted in a `closing()` literal, and in the post-marker text → red |
 | O-1 | "within the run it was made in" followed the closing clause, so "it" could be the closing change | the round-3 wording, the reviewer's suggestion | "before the marker" | witness: the old phrase → red |
 | O-2 | the O-B comment described a different rule from the code | wording | comment only; `MainFrame` has no code change | — |
 | O-3 | probe outputs dropped the runtime's `updating event log config:` lines without saying so | unstated filter | a one-line header naming the filter, prepended to **all five** outputs that used it (the review named one), content verified byte-identical beneath each; this round's `rereview4-probe-after-fixes.txt` carries it from the start | — |
@@ -620,8 +620,8 @@ it. This round changes `MainFrame` in a comment only, so no frame run was requir
 **What I got wrong this round:**
 1. **R-A and R-B are R1's pattern again.** I disclosed the closing change's `"null"` reading and did not ask whether
    the closing change had applied at all, or whether my new branch had a witness.
-2. **R-C: I wrote "checked on every branch" in round 3 and checked two.** The matrix test now makes the comment
-   true by construction rather than by assertion.
+2. **R-C: I wrote "checked on every branch" in round 3 and checked two.** ~~The matrix test now makes the comment
+   true by construction rather than by assertion.~~ It did not; see the fifth re-review, R5-1.
 3. **O-3 was wider than reported.** The review named one filtered output; five had the same unstated filter,
    including three from rounds before this reviewer's.
 
@@ -637,6 +637,53 @@ it. This round changes `MainFrame` in a comment only, so no frame run was requir
 comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
+
+## Fifth re-review — two Low, three optional, all taken
+
+Fifth re-review `79a51d27` on `review/mongoose-fifth-rereview-2026-09-24`, against `98148175`, by the author of
+rounds 2–4. It found R-A, R-B, O-1, O-2 and O-3 fixed and witnessed, and R-C only partly fixed. It re-derived R-B's
+premise and probed 81 logs against it with no mismatch. Predictions `P10` were committed first (`ae9fba62`); fixes
+are `8200c4ab` and `7fd8d6a8`.
+
+| | Finding | Cause | Fix | Regression and witness (strict protocol: reports deleted, a `<failure>` at the named test, SHA-256 restore, clean `git status -- src`, green again) |
+|---|---|---|---|---|
+| R5-1 Low | R-C's "every branch" matrix missed four branches — the declared-null YES note and the three open closings — and its guard passed "for its processor" | **mine, R-C**: the matrix was built from my list of branches, not from the code, and inherited the round-4 mislabel of the declared-null note | the matrix gains `G("null", "alpha")` and a closing-`groupId` dimension {same, `beta`, none}: **315 logs, 315 annotated**, both asserted exactly. It now also asserts that it **reaches** each of 24 branch wordings, so a branch the inputs stop reaching fails rather than going unchecked. The guard is `processor(?! grouping)`. The comment says what the matrix covers and why round 4's did not | six witnesses, all red at `noBranchOfTheSentencePresumesAProcessor`: a plant at the declared-null YES note; "for its processor" in each open-closing literal (per-node, the shared disclosure, the null-node clause) and in the per-node definite closing; and the YES note's wording changed, so the matrix no longer reaches it |
+| R5-2 Low | the opening said "this log sets riskMonitor's audit level to WARN" while the next sentence said its applying is not established | **mine, since RR-3**: the opening was written before NOT_ESTABLISHED existed and no round re-read it | while applying is open the opening says "this log records a change setting …". **Re-reading every clause for the same flaw found one more:** for a node named "null", "— either way it sets this node" was appended whatever `applies()` said; it now says "addresses" when applying is open | the matrix asserts no absent-grouping note starts "this log sets" or says "either way it sets". Two witnesses, one per opening, red there |
+| O5-1 | "It holds until" said the level ends at a change whose applying is open | wording | "It holds at least until" in the open case, and only there | the matrix asserts "at least until" appears exactly where "not established either" does — **added after the first fix commit**, when setting up the witnesses showed the wording had no assertion. Witness: "It holds until" restored → red |
+| O5-2 | the generic open closing said "if it applied" twice | wording | "…and only the first would end it there, and only if it applied here: it was addressed to …, and whether it applied is not established either", shared with the null-node clause | the matrix's reach assertion pins it. Witness: the round-4 wording restored → red |
+| O5-3 | "before the marker" came one sentence before the marker was introduced | wording | "before the stream-end marker preceding record N"; the next sentence says "That marker". ("preceding", because "before the stream-end marker before record 3" read badly) | the two tests that pin the phrase, rewritten. Witness: "the marker" restored → red at `aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt` |
+| found, mine | after a closing clause, the condition "if it applied here" could read as the CLOSING change — O-1's ambiguity, in the condition rather than the conclusion | found reading the new sentences, not in the review | when a closing clause intervenes the condition names "the change at record N" | the matrix asserts no bare "if it applied/survived/named" in a note with a closing clause. Witness: the bare "it" restored → red |
+
+**R-A and R-B re-run** under the same protocol, because their code sits beside this change: both red at their named
+tests. **14 witnesses in all, every one holding** (`witness10.py`). I did not re-run the 84 earlier witnesses.
+
+**What I got wrong this round:**
+1. **R5-1 is R-C again.** I claimed "every branch" from a list I wrote, and the reviewer found the gaps by reading
+   the code. The matrix now checks that it reaches each branch's wording, so the claim has a test of its own.
+2. **R5-2, and the "null"-node instance, are R1's class a fourth time.** I checked the closing and not the
+   opening. This round I re-read every clause of `sentence()` and `closing()` with one question: does it state as
+   established something the log does not establish? That found the "null"-node opening; the condition's unnamed
+   "it" came from reading the output, not the code.
+3. **O5-1's first fix had no assertion.** I found that while writing its witness, not before committing.
+4. **P10.3 is badly worded** ("change no assertion except none"). The prediction held: no existing assertion
+   broke. P10.1 and P10.4 held exactly; P10.5 held (1,980 run).
+
+**Ran:**
+- P10 first;
+- 14 strict witnesses;
+- the focused MA-8 classes (45 tests) after each change;
+- `MARereviewProbe` against the build, run twice with identical output
+  (`rereview5-probe-after-fixes.txt`): the only change from round 4 is the R5-2 opening, in the two
+  absent-grouping cases;
+- the new sentences printed and read: the declared-null YES, all three open closings, both "null"-node openings,
+  and the spanning variants with and without a closing clause;
+- the full headless suite, summed over mapped reports (see "Suite" below).
+
+**Read, not run:** that `MainFrame` is unchanged (it is not in the diff). No frame run was needed or made.
+
+**Suite:** **1,980 / 0 / 0 / 62** over 258 reports, every one mapped to a class in `src/test/java`, no orphans;
+matching the console. Run at `8200c4ab` and again with this report in the tree. Unchanged in count: R5-1, R5-2 and
+O5-1 extend the existing matrix test.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
@@ -715,7 +762,7 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the fourth re-review's fixes are reviewed.** Five review rounds' findings are
+- analyser — **NOT ready until the fifth re-review's fixes are reviewed.** Six review rounds' findings are
   fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation witness. **CI's frame
   job has never run on this branch**; a pull request is what would run it. Still based on `610d5777`; `origin/main` has moved, and
   the rebase comes after review, not under it. Not merged: the owner's call.
