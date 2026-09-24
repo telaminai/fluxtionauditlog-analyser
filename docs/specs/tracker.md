@@ -444,14 +444,25 @@ those seams, so the order below groups by what a single change set can close.
   integrator cannot read this message is the whole conversation, and **M67 beat 4 improves when it lands**.
 
 **3. The download must carry its own tooling** (playground).
-- **SG-2 ☑ CLOSED 2026-09-24, reconciled** — it was ticked as shipped in the getting-started section while this block
-  and the work list below still carried it as open, a contradiction resolved in favour of the tick because the
-  evidence is specific and later. Hosted Spring authoring files shipped in playground **1.0.74**, deployed at
-  `5d6a38a`; public CI 35929392911 verifies the **actual hosted archive** — setup/validate shipped, 97 classpath
-  entries, 36 originals unchanged — and the keyless bundle builds, runs, exports five independently checked records
-  and stops cleanly. That is exactly what this item required. Evidence in
-  [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-24*. **Consequence: standalone Spring is no longer
-  the only template with a verified local route, so BETA-B3's recommendation is no longer forced by elimination.**
+- **SG-2 — SPLIT 2026-09-24. Provisioning closed; hosted generation/run still open.** On 2026-09-24 this was
+  reconciled as fully closed, and **that was wrong** — corrected the same day after round 4 inspected the CI log
+  rather than the claim copied from it.
+  - ☑ **Closed: acquisition, setup and validation on the actual hosted archive.** Playground **1.0.74** deployed at
+    `5d6a38a`; public CI 35929392911 — setup/validate shipped, 97 classpath entries, 36 originals unchanged. The
+    keyless bundle separately builds, runs, exports five independently checked records and stops cleanly.
+  - ☐ **Still open: changed-graph generation and run on the hosted ZIP**, which the written requirement includes.
+    **Verified here, not taken on trust:** that CI run has three jobs — `spring-provisioning (fluxtion-spring)`,
+    `spring-provisioning (fluxtion-spring-mongoose)` and `customer-download`. There is no hosted generation job,
+    the mongoose provisioning result reports `generationAttempted: false`, and the build/run/export/stop evidence
+    comes from the `analyser-bundle` template, which is the keyless regression check. Hosted generation/run remains
+    the earlier **branch** trial, and a later provisioning pass does not retroactively change that trial's artefact
+    identity. This clause needs its own acceptance naming the **hosted** template; G14 remaining open does not
+    establish that its standalone extended-design trial will exercise the hosted archive.
+  - **Consequence for BETA-B3, restated honestly:** hosted Spring is now a genuine candidate, because its
+    acquisition, setup and validation are verified on the real archive, so the recommendation may be reconsidered
+    on merit rather than by elimination. That is **not** evidence that the hosted guided journey has been
+    verified. **BETA-B3's template decision and its dry run stay open.**
+  - Evidence in [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-24*.
 - **F9** extended declarations in interpreted mode pin the carrying release with no setup files and nothing naming the
   coordinate. **F11** a user version override splits the tool from the dependency set.
 
@@ -472,8 +483,10 @@ defects rather than the policy work.
 
 1. **The new-node stub policy (BETA-B2).** Nothing in the beta can be judged until it lands, because the central task
    measures the tester rather than the product without it.
-2. ~~**SG-2, the hosted download.**~~ **DONE — closed 2026-09-24**, see above. The guided path is now true for more
-   than one route, and the template choice is no longer made by elimination. Everything below moves up one place.
+2. **SG-2, the hosted download — part done.** Acquisition, setup and validation are closed on the real hosted
+   archive; **changed-graph generation and run on that archive are not.** The template choice can now be argued on
+   merit rather than by elimination, which was the point of this item, but the guided path is not yet proven true
+   for the hosted route end to end. What remains is a single acceptance naming the hosted template.
 3. **The jars**, built once for both BETA-B4 and M67.1.
 4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
 5. **G14**, the acceptance run from a real download, once the rest is in.
@@ -1042,6 +1055,30 @@ before adding new rendering primitives for this workflow. Browser preview and ar
 unverified. The local-fixture fresh-client trial is complete, with failures preserved rather than called a clean
 pass. **G14 remains a release gate:** after artifact publication, repeat a fresh session from a real download
 through `setup.sh`, without a pre-provisioned tool/classpath. Upstream review acceptance does not close that gate.
+
+## Archived obligations restored to the live order — 2026-09-24
+
+**Found by asking the systemic version of the M45.4 question**, which is the check that would have caught the
+original loss: not *is M45.4 back*, but *what else left the live order while unfinished*. Round 4 searched both
+trackers and found three clauses sitting inside entries marked DONE or COMPLETE with no live home. The historical
+entries stay exactly as written — the record is not edited — and these lines are the live dispositions they lacked.
+None is a dependency of M68.1.
+
+- [OBL-1] ☐ **Background file load has no progress or cancel surface** — inside M7.3, under a heading reading
+  *M7 DONE*, where background load is marked ◧ and progress-percent and cancel are deferred. The ordinary file-open
+  path still uses background work with no file-load progress or cancel. Template-download cancellation is a
+  different operation and does not cover it. Predates this tidy; it was never newly lost.
+- [OBL-2] ☐ **Autoscale-Y rescans every point on a slider drag** — inside *Refinements round 11*, marked DONE,
+  where the O(points) drag scan is explicitly recorded as *Not built*. Still true:
+  `ChartPanel.setViewWindow` loops the series on each window change. It was deliberately low priority, which is
+  not the same as delivered.
+- [OBL-3] ☐ **First-key-seen iteration-order acceptance** — inside M55.2, marked COMPLETE, where the acceptance is
+  explicitly *Still open* until a downstream construct exposes iteration order. Cross-repository verification debt
+  with no closure evidence and no recorded transfer. Round 4 did not inspect the current implementation, so this
+  says the tracker lacks the evidence, **not** that the behaviour is absent.
+
+**Distinguish genuinely unfinished work from obsolete wording.** This is not a mandate to reopen every historical
+partial label; it is a mandate to give each surviving obligation a live home or an explicit withdrawal.
 
 ## Shipped — archived
 
@@ -2117,13 +2154,15 @@ is **no longer queued** — the gate the owner set was the Spring-authoring rele
 tool is published in **1.0.73**; the public standalone setup/validate and changed-graph generation/run pass; both pass-4
 reviewers judged the compiler and playground branches READY WITH FOLLOW-UPS. That closes the two gates those reviews held
 open — a version pin naming a release that did not contain the module, and an acceptance-13 run that had only ever happened
-on a provisioned local fixture. **Still open upstream:** nothing. ~~SG-2, the hosted Spring download that omits the local authoring files~~ closed
-2026-09-24 — shipped in playground 1.0.74 at `5d6a38a`, public CI 35929392911 verifying the actual hosted archive.
-This line read NOT READY through two revisions after the work had in fact shipped.
+on a provisioned local fixture. **Still open upstream:** SG-2's hosted **generation/run** clause only. The authoring files themselves shipped in
+playground 1.0.74 at `5d6a38a`, with public CI 35929392911 verifying acquisition, setup and validation on the real
+hosted archive, so this line's earlier NOT READY was stale for two revisions. It was then briefly recorded as fully
+closed on 2026-09-24, which over-read the same evidence: that run attempted no generation.
 
 1. ☐ **The beta blockers** — the active push (▸ *Beta*, sixth draft). **Read with the *Spring-side work block* first:
-   B1 is already answered by the released starter, B2 is starter work rather than analyser work, B3's recommendation no longer
-   rests on SG-2, which closed on 2026-09-24, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
+   B1 is already answered by the released starter, B2 is starter work rather than analyser work, B3's recommendation is no longer
+   forced by elimination, since SG-2's provisioning half closed on 2026-09-24, though its hosted generation/run
+   half is still open, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
    fewer efforts than the numbering implies.** BETA-B2 new-node stubs must audit before A2 measures
    the product rather than the tester; BETA-B3 the template decision plus a dry run of A1–A2 by someone other than the
    author; BETA-B4 the shared jars and spec-derived check, now implemented and source-reviewed (G18 closed; binary publication/integration remain open). BETA-B1's key journey passed with a
@@ -2136,10 +2175,12 @@ This line read NOT READY through two revisions after the work had in fact shippe
    no longer optional: it is what a held-out client was told wrongly on 2026-09-24 and what holds G14 open. Formerly — DX-02 the false graph/log mismatch first, then DX-03/04/05, and the
    report-integrity slice (every requested section renders or says why). This is the order the observed trial argued for and
    two reviewers endorsed.
-4. ☑ **SG-2 — CLOSED 2026-09-24.** The hosted download carries the authoring record and local scripts, proven on an
-   actual hosted ZIP without breaking the keyless bundle: playground 1.0.74 at `5d6a38a`, public CI 35929392911,
-   97 classpath entries, 36 originals unchanged, keyless bundle builds/runs/exports/stops. It had been ticked in the
-   getting-started section since 2026-09-21 while this list still read ☐.
+4. ◧ **SG-2 — provisioning closed, hosted generation/run open.** The hosted download carries the authoring record
+   and local scripts without breaking the keyless bundle: playground 1.0.74 at `5d6a38a`, public CI 35929392911,
+   97 classpath entries, 36 originals unchanged. **What is not closed** is changed-graph generation and run on that
+   hosted archive: the cited run has two provisioning jobs and a customer-download job, no generation job, and
+   reports `generationAttempted: false`. Needs one acceptance naming the hosted template. This item was briefly
+   marked ☑ on 2026-09-24 on the strength of the provisioning evidence; round 4 read the CI log and corrected it.
 5. ☐ **M67 the extension tour** (`spec-extension-tour.md`) — **unblocked**: extend a running application with a jar you
    already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats. The owner's
    four calls are made. M67.1 the vendor-jar catalogue and M67.2 the template are cross-repo and can start; M67.3/.4 the

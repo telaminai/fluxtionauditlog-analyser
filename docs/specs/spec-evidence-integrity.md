@@ -14,6 +14,7 @@ independent review, and earlier versions of this spec and its tracker entry wron
 | Round 1 | `review/m68-evidence-integrity-2026-09-24`, `ed06170c`, corrected `2f321705` | Raised EI-1 to EI-5. Also prepared the client evidence the spec cites. |
 | Round 2 | `review/m68-evidence-integrity-response-G`, `7b8d9f51` | Reviewer G, who **wrote this spec**. Confirmed all five against source and added D-E10. |
 | Round 3 | `review/m68-v2-2026-09-24`, `d1e58bc9` | The round-1 reviewer again, reviewing v2. Narrowed a conformance claim it had itself endorsed. |
+| Round 4 | `review/m68-v3-tracker-2026-09-24`, `c583edf3` | The same reviewer again, on v3 and the sweep. Cleared M68.1 to start, and caught a false closure the spec author had just introduced. |
 
 Each round checked source, the published contract and the committed artefacts, and each found errors the
 previous one missed. That is the value they have. Agreement between them is **not** evidence, and this table
@@ -21,6 +22,14 @@ exists so no reader mistakes three passes by two conflicted parties for independ
 
 Round 3 raised R1 to R5, all folded in below. It also reproduced two defects in shipped code, which changes
 this milestone's character: part of M68 is correcting false verdicts the product emits today.
+
+Round 4 cleared **M68.1 to start** and left five conditions on the wider handoff, all folded in: the freshness
+policy this spec invented could not establish its own claim (V3-1); the disposition table is deferred rather than
+closed (V3-4); the M45.4 safety argument was a measurement of one graph and its own report's rebuttal had to travel
+with it (V3-5); three archived obligations still lacked a live home (V3-3); and **the SG-2 closure written while
+correcting this spec was itself over-read** (V3-2), which is the same defect the milestone exists to fix, committed
+in the act of specifying the fix. That last one is the clearest evidence in this file that D-E1 is worth having:
+the author of the rule broke it within hours, by trusting a claim copied out of a CI run instead of reading the run.
 
 ## Why now
 
@@ -109,10 +118,18 @@ and each is either brought under the rule or listed here with its reason. **An e
 that there are no exceptions** — until the audit is done and its result written here, the list is simply unwritten,
 and a per-item partial success found elsewhere is an unresolved finding rather than a permitted case.
 
-**The dispositions to enumerate**, so the audit has a shape to fill: a parameter that is silently ignored; a
-parameter that is honoured with a warning; an unknown or misspelled parameter; several parameters where an early
-one succeeds and a later one fails; and a parameter whose effect depends on state established by another in the
-same call. Each gets a stated disposition, not a case-by-case judgement at implementation time.
+**The disposition table is M68.4's first deliverable, before any behaviour changes.** Round 4 named existing
+contracts the general rule would prohibit, and at least one is deliberately tested: a report keeps its valid
+sections beside a rejected one, asserted by name in `ReportVerbTest`. Graph per-item warnings, and a saved analysis
+that retains earlier effects when a later step fails, are the same shape. **An audit during the slice is not
+permission to pick different semantics case by case while implementing.** Each of these gets a row, and any change
+to a tested behaviour needs a recorded decision:
+
+report siblings beside a rejected section · graph series, markers and bands · source-root mixed additions and
+removals · `open` precedence and format combinations · multi-field topology calls · unknown or misspelled
+parameters, including one reported after execution · saved-analysis steps · a parameter silently ignored · a
+parameter honoured with a warning · an early success followed by a later failure · a parameter whose effect depends
+on state another established in the same call.
 
 **What a refusal preserves.** A refused request leaves pre-request view and session state as it was. Today a
 view-changing verb puts the spotlight out before its parameters are validated, so a refused call has already
@@ -154,16 +171,34 @@ replacement from ordinary append, and on some filesystems there is no file key a
 **The policy, supplied rather than deferred.** Round 3 was right that listing cases and saying the decision must
 define them is a checklist, not a definition. The default policy is:
 
-- **Append** — the file key is unchanged, the length has grown, and the bytes up to the previous end are unchanged.
-  The cheap check is a boundary re-read at the previous end plus a prefix fingerprint, not a whole-file hash.
-- **Replacement** — the file key changed, or the length shrank, or the prefix at the previous end no longer
-  matches. Announced before anything further is served.
-- **Unverified** — metadata is unchanged, or no file key is available, and the prefix check cannot distinguish.
-  Reported as unverified. **Never reported as proven unchanged.**
+- **Append** — the file key is unchanged, the length has grown, and **every byte up to the previous end is
+  verified unchanged**. v3 proposed a boundary re-read plus a bounded prefix sample; round 4 showed that cannot
+  establish the claim. Preserve the key, rewrite a byte in an old middle record outside both samples, then append a
+  complete record: both samples match, the length grows, and already-indexed rows now describe different content.
+  A bounded match is therefore **not** append. Either the whole old prefix is compared, and the cost is stated, or
+  the state is unverified.
+- **Replacement** — the file key changed, or the length shrank, or the verified prefix comparison fails.
+  Announced before anything further is served.
+- **Unverified — the catch-all, not a fourth case.** Anything that is not established append and not established
+  replacement is unverified: unchanged metadata, an unavailable file key, a prefix comparison that was not
+  performed or could not complete, an I/O failure, a missing or unreadable file, and a change observed during
+  verification. The decision table has **no hole**: same key, same length, changed modification time and a matching
+  prefix is unverified, because a same-length in-place rewrite produces exactly that. **Unverified is never
+  reported as proven unchanged.**
+
+**What this costs in each store, measured rather than assumed.** The heap store already reads the entire file as
+text on every poll and compares character lengths, returning immediately when they are equal, so comparing the
+complete old prefix there costs **nothing extra** — the bytes are already in hand, and the append-only assumption
+its own comment relies on is currently unverified. The mapped store reads row bytes from the channel on demand, so
+retaining its old index is not retaining an immutable snapshot after an in-place rewrite, and it needs its own
+answer. Verification happens **before** anything is published, including on a poll that adds no rows. A missing
+file key must not be compared as an equal established identity; it is currently stringified, which would make two
+absent keys look alike.
 
 The observation boundary is the next poll or the next request that reads the file, because a desktop reader cannot
-know about a write before it observes one. On replacement, operations are suspended until reopen; a prior snapshot
-may still be read only while explicitly labelled as superseded.
+know about a write before it observes one. On replacement, operations are suspended until reopen. A prior snapshot
+may be read while explicitly labelled superseded **only where its bytes are actually retained**; where the store
+reads through to the file, reads are suspended instead.
 
 **The case that currently produces nothing.** The follow poll appends when the store reports zero or more new
 records and reloads only on a shrink or rotation, and the append path returns zero for equal-length content before
@@ -245,9 +280,18 @@ on M45.4's recorded authority and verification, not on that gate.
 
 **What the fact is, precisely.** It is **NODE-scoped**. Applied to event or exported-service vertices it would
 understate coverage, which is the safe direction and still wrong. Adopt it for nodes and leave the existing kind
-filter alone. M45.4's measurement on the real graph found the declared-only set empty, so adopting the fact cannot
-shrink the denominator in a direction that flatters, and the graph-level authored count is an independent
-cross-check rather than a substitute for per-node handling.
+filter alone. M45.4's measurement found the declared-only set empty **on that one measured session graph**. That is evidence,
+not a theorem: it does not establish that a declaration can never shrink another graph's population, and
+acceptance 1 deliberately requires a declared framework node with an ordinary class name to leave the population.
+The graph-level authored count is an independent cross-check rather than a substitute for per-node handling.
+
+**The same adoption report carries a qualification that must travel with it.** Its *ATTACK 2* section states that
+the registration windows are still there and that the reason given for their unreachability was wrong, narrowing
+the assurance to the tested shapes (`../handoff/completed/response_compiler_1.0.65.txt`). A report cannot be cited
+for its optimistic half while its own rebuttal disappears. Whether that window survives in the current toolchain is
+not established here. M68.1 may consume declared provenance under the trust policy above; it must not treat that as
+proof that a producer cannot be wrong, and what M45.4 verified was the **comparison** between declaration and
+heuristic, not an implemented analyser consumer.
 
 **The fallback, specified rather than delegated.** Where the key is absent, holds an invalid value, or the major
 version is unsupported, the package heuristic is used, its basis is disclosed as inferred, and the existing kind
@@ -344,9 +388,11 @@ them.
    existing saved names still reachable and the compatibility choice recorded here.
 7. Replacing an open log file with a new file of the same path, while following, produces an announcement at the
    next observation before any further content is served, and never presents the superseded content as current.
-   The cases are: same-length replacement, truncation, ordinary append, an unavailable file identity, and an
-   in-place rewrite with metadata restored. Each resolves to append, replacement or unverified per D-E6, and
-   unverified is never reported as proven unchanged.
+   The cases are: same-length replacement, truncation, ordinary append, an unavailable file identity, an in-place
+   rewrite with metadata restored, **a middle-record rewrite combined with a genuine append**, **same key and same
+   length with a changed modification time**, a missing or unreadable file, and a change observed during
+   verification. Each resolves to append, replacement or unverified per D-E6, and unverified is never reported as
+   proven unchanged. Asserted on both store implementations, since only one of them holds the old bytes.
 8. A project whose settings live below its root resolves every shipped pointer, and a pointer that fails names the
    root that was tried.
 9. Every requested report section renders or states why not; a chart that reports no data is contradicted by no

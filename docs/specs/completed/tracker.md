@@ -4300,11 +4300,16 @@ checked and deliberately left live**, each because something inside their scope 
 and the tool-agreement spec (TA-5b/5c/9/B). Under the rule above, a spec whose milestone still carries an open or
 partial item stays where the work is read.
 
-**SG-2 reconciled in the same pass.** It was ☑ in the getting-started round and ☐ in the Spring-side work block.
-The tick won, because its evidence is specific and later: playground 1.0.74 deployed at `5d6a38a`, public CI
-35929392911 over the actual hosted archive, 97 classpath entries, 36 originals unchanged, and a keyless bundle that
-builds, runs, exports five independently checked records and stops. The work block's preamble had read NOT READY
-through two revisions after the work shipped.
+**SG-2 reconciled in the same pass, and then corrected the same day.** It was ☑ in the getting-started round and ☐
+in the Spring-side work block. The first reconciliation resolved that in favour of the tick and called the item
+closed. **That over-read the evidence.** Round 4 inspected the cited CI run rather than the claim copied from it:
+its three jobs are two `spring-provisioning` jobs and a `customer-download` job, the mongoose provisioning result
+reports `generationAttempted: false`, and the build/run/export/stop evidence comes from the `analyser-bundle`
+template, which is the keyless regression check. So the closed half is acquisition, setup and validation on the
+real hosted archive — playground 1.0.74 at `5d6a38a`, 97 classpath entries, 36 originals unchanged — and the
+**hosted changed-graph generation/run clause remains open**, tracked live in the Spring-side work block. The
+work block's preamble had read NOT READY for two revisions after the authoring files shipped, so this item has now
+been wrong in both directions within four days, which is why the split is recorded rather than a single verdict.
 
 ### Spring getting-started guide — 2026-09-21 (swept 2026-09-24)
 
