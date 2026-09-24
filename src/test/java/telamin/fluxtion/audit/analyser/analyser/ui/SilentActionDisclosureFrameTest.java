@@ -69,7 +69,12 @@ class SilentActionDisclosureFrameTest {
     @Test
     void openingASavedChartWithNoLogTellsThePersonWhy(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
-        Files.writeString(Files.createDirectories(tmp.resolve("home")).resolve(".fluxtion-analyser"),
+        // ConfigStore reads ~/.fluxtion-analyser/config — a DIRECTORY holding a file, not a file
+        // (config/ConfigStore.java:21). Seeding the directory path as a file, as an earlier version of
+        // this test did, silently loads nothing and leaves a file where the app expects a directory.
+        // Caught by review finding R3 against ProjectPanelChartLifecycleFrameTest; the same line was here.
+        Files.writeString(
+                Files.createDirectories(tmp.resolve("home").resolve(".fluxtion-analyser")).resolve("config"),
                 "projectPanelCollapsed=false\n");
 
         try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
