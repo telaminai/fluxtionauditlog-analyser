@@ -330,7 +330,13 @@ def subset_selftest():
         'the harness itself selects the full set': pick(['tools/verify_project_chart_review.py']) == {c[0] for c in cases},
         'pom.xml selects the full set': pick(['pom.xml']) == {c[0] for c in cases},
         'CI selects the full set': pick(['.github/workflows/ci.yml']) == {c[0] for c in cases},
-        'a site file selects exactly its controls': pick([graph_verb]) == by_site and bool(by_site),
+        'a site file selects its own controls, and not the whole set': (
+            by_site <= pick([graph_verb]) and bool(by_site) and pick([graph_verb]) != {c[0] for c in cases}),
+        'a production class a target test uses selects that test (GraphSpec)': {
+            c[0] for c in cases if c[4].startswith('GraphProfileMetadataTest#')} <= pick(
+            ['src/main/java/telamin/fluxtion/audit/analyser/analyser/config/GraphSpec.java']),
+        'a resource that is not a site selects the full set': pick(
+            ['src/main/resources/llm/system-prompt.md']) == {c[0] for c in cases},
         'a shared test helper selects every control whose test uses it': pick([helper]) == users and len(users) > 1,
         'an unrelated doc selects nothing': pick(['docs/index.md']) == set(),
     }
@@ -347,22 +353,28 @@ def maven_run_safe(names):
 
 
 def caught(result, test):
-    return result['exit'] != 0 and any(a['test'] == test and a['kind'] == 'failure'
+    return result['exit'] != 0 and any(fast.same_test(a['test'], test) and a['kind'] == 'failure'
                                        for s in result['suites'] for a in s['assertions'])
 
 
-def run_gate(cases, engine, fail_fast):
-    """Baseline, then every control. Returns (baseline, entries); each entry carries a verdict."""
+def run_gate(cases, engine, fail_fast, on_entry=lambda entry: None, on_baseline=lambda baseline: None):
+    """Baseline, then every control. Returns (baseline, entries); each entry carries a verdict.
+
+    `on_entry` is called after every control, so the evidence is on disk before the next one starts: a gate
+    that dies half way (PR #18 review, finding 3) still leaves what it established.
+    """
     runner = engine.run if engine else (lambda names: maven_run_safe(','.join(names)))
     classes = list(dict.fromkeys(c[4].split('#')[0] for c in cases))
     baseline = runner(classes)
+    on_baseline(baseline)
     if fail_fast:
         assert green(baseline), baseline['output']
     entries = []
     for case in cases:
         name, site, old, new, target = case
         cls, test = target.split('#')
-        assert any(s['name'] == cls and test in s['testNames'] for s in baseline['suites']), ('missing baseline test', target)
+        assert any(s['name'] == cls and any(fast.same_test(n, test) for n in s['testNames'])
+                   for s in baseline['suites']), ('missing baseline test', target)
         path = Path(site)
         original = path.read_bytes()
         assert original.decode().count(old) == 1, ('anchor changed since preflight', name)
@@ -390,6 +402,7 @@ def run_gate(cases, engine, fail_fast):
         else:
             entry['verdict'] = 'caught' if caught(mutated, test) else 'survived'
         entries.append(entry)
+        on_entry(entry)
         if fail_fast:
             assert entry['verdict'] == 'caught', (name, entry['verdict'], mutated['output'][-2000:])
             print(name, ': green / named assertion red / restored green, bytes identical'
@@ -417,6 +430,9 @@ def main():
     if args.mode == 'selftest':
         checks = fast.selftest()
         checks.update(subset_selftest())
+        engine = fast.FastEngine()
+        engine.prepare()
+        checks.update(fast.launcher_selftest(engine.cp, engine.launcher_dir))
         result['selftest'] = checks
         save()
         for label, r in checks.items():
@@ -446,7 +462,11 @@ def main():
             started = time.monotonic()
             if engine:
                 engine.prepare()
-            baseline, entries = run_gate(cases + planted, engine, fail_fast=False)
+            partial = result.setdefault(label, {'entries': []})
+            def keep(entry, partial=partial):
+                partial['entries'].append(entry)
+                save()
+            baseline, entries = run_gate(cases + planted, engine, fail_fast=False, on_entry=keep)
             seconds = round(time.monotonic() - started, 1)
             result[label] = {'seconds': seconds, 'baselineGreen': green(baseline), 'entries': entries,
                              'fullCompileFallbacks': engine.fallbacks if engine else None}
@@ -461,6 +481,9 @@ def main():
             print(('ok   ' if rows[-1]['ok'] else 'DIFF ') + name, 'maven=' + m, 'fast=' + f, 'expected=' + expected)
         result['comparison'] = rows
         save()
+        # PR #18 review, finding 4: identical verdicts over RED baselines prove nothing about either engine
+        red = [label for label in ('maven', 'fast') if not result[label]['baselineGreen']]
+        assert not red, 'baseline not green for: ' + ', '.join(red)
         assert all(r['ok'] for r in rows), 'the engines disagree, or a control or plant has the wrong verdict'
         print('compare: identical verdicts on', len(rows), 'controls; maven', result['maven']['seconds'],
               's, fast', result['fast']['seconds'], 's')
@@ -485,11 +508,19 @@ def main():
     started = time.monotonic()
     if engine:
         engine.prepare()
-    baseline, entries = run_gate(cases, engine, fail_fast=True)
-    result.update({'engine': args.engine, 'baseline': baseline, 'runs': entries,
-                   'seconds': round(time.monotonic() - started, 1)})
-    save()
-    print('mutations:', len(entries), 'controls caught with the', args.engine, 'engine in', result['seconds'], 's')
+    result.update({'engine': args.engine, 'runs': []})
+    def keep(entry):
+        result['runs'].append(entry)
+        save()
+    def keep_baseline(baseline):
+        result['baseline'] = baseline
+        save()
+    try:
+        run_gate(cases, engine, fail_fast=True, on_entry=keep, on_baseline=keep_baseline)
+    finally:
+        result['seconds'] = round(time.monotonic() - started, 1)
+        save()
+    print('mutations:', len(result['runs']), 'controls caught with the', args.engine, 'engine in', result['seconds'], 's')
 
 
 if __name__ == '__main__':
