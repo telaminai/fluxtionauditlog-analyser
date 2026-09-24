@@ -33,8 +33,14 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
         /** Open a saved chart from its definition, selecting it; false when it could not be opened. */
         boolean openSaved(GraphSpec spec);
 
-        /** Select an already-open chart tab by name. */
-        void selectGraph(String name);
+        /** Select an already-open chart tab by name; false when there is no such tab. */
+        boolean selectGraph(String name);
+
+        /**
+         * Tell the person something, without changing anything. Still reveal-only under D-L3: a row that
+         * cannot act must say why, or it is the silent Open this whole round of work began with.
+         */
+        void say(String message);
     }
 
     static final String REPORTS_TAB = "Reports";
@@ -72,11 +78,19 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
         // openSaved selects an existing tab rather than rebuilding it and losing edits made since
         for (GraphSpec g : saved()) {
             if (name.equals(g.name())) {
-                surface.openSaved(g);
+                if (!surface.openSaved(g)) {
+                    // the usual cause is no log: a chart cannot be plotted against nothing, and the row
+                    // itself said "waiting for input". Saying so beats revealing an empty tab in silence.
+                    surface.say("\"" + name + "\" cannot open until a log is loaded — open one first, "
+                            + "then use Open on the chart again.");
+                }
                 return;
             }
         }
-        surface.selectGraph(name);   // not in the profile (an unsaved tab): the tab is all there is
+        if (!surface.selectGraph(name)) {
+            surface.say("No chart called \"" + name + "\" is open, and the project has no saved definition "
+                    + "for it.");
+        }
     }
 
     private List<GraphSpec> saved() {
