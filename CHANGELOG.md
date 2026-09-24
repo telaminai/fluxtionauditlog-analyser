@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **An action that cannot happen now says so.** Open on a saved chart that cannot be shown used to bring
+  the Graph tab forward and then do nothing at all; it now explains why — no log loaded, duplicate names
+  withholding the definitions, or no such chart — naming the chart. Nothing is said when it succeeds.
+
+- **Zoom and pin now say which one keeps its window.** Both set the visible time range and sit side by
+  side, but a zoom is a view and is forgotten, while a pin is saved with the chart and comes back on
+  reload. The zoom controls had no tooltip at all and the pin's did not mention that it persists.
+
 - **An assistant that sends a chart series in the wrong shape is now told so.** `graph {series}` takes
   `"instanceId.key"` strings. An object such as `{expr, label}` used to be turned into a key that could
   never match, saved with the chart, and answered as a success, leaving an empty chart that looked
