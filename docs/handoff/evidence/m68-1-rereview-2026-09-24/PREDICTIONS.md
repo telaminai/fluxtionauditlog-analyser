@@ -61,3 +61,26 @@ The composition moves into a pure method so it can be tested without a display.
   after coverage it is "whole log: 1 of 4". I expect the rest of each line to be clipped, as before.
 - **P18.** Headless **1,927 / 0 / 0 / 62** (two new test methods). Frame **63 / 0 / 1 skip**. Harness: every
   mutation still RED at its named test, plus two new ones for this fix.
+
+## Set 4 — reproducing the re-review's findings on `550f98d8`, before any fix
+
+Re-review: `review/m68-1-rereview-2026-09-24` at `6a7042e7`. Its author also wrote the first review, so it is not
+independent; its findings are checked here, not assumed. Instruments added before this trial and committed with
+it: end-to-end scenarios 7 (N1, Follow append) and 8 (N2, whole then filtered, and the reverse), and a sampled
+parity frame test (O-c). No product code is changed for this set.
+
+- **P19 (N1).** On a jar built from `550f98d8`, scenario 7: the store reaches 601 records; *the qualification no
+  longer claims to confirm* **fails**; *says the log has grown* **fails**; *the published pairing's scope counts
+  the appended record* **fails**, because I read that `pollFollow` never touches the published pairing, so its
+  scope still says "first 500 of 600 records". A fresh coverage does find `lateForeign`.
+- **P20 (N2).** Scenario 8, whole then filtered: all three checks **fail** — the whole-log finding is gone from
+  `context`, nothing states the filtered comparison beside it, and the filtered reply does not mention the whole
+  log. Filtered then whole: both checks **pass**, because a plain overwrite by the wider comparison is what this
+  order wants.
+- **P21 (N3).** Three plants, each through the harness with a byte-identical restore — a text block carrying the
+  incident sentence in `MismatchWording.java`, the sentence split across two literals where neither half matches,
+  and a line in `src/main/resources/llm/system-prompt.md` — each leaves `UserVisibleWordingGuardTest` **green**.
+- **P22 (O-b).** A mutation that makes a named test **throw** rather than fail its assertion is reported **RED** by
+  the current harness.
+- **P23 (O-c).** The new sampled parity test **passes** on the current code: the three loops share one constant and
+  one first-N rule, so I expect them to agree today. The value of the test is that they cannot drift apart unseen.

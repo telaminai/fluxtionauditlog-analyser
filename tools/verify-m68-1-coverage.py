@@ -61,6 +61,31 @@ def settle(a):
     return a.context()
 
 
+def append_record(path, ids, t=900000):
+    """Append one constructed record to a followed log, terminated so the reader indexes it."""
+    with open(path, "a") as out:
+        out.write("eventLogRecord: \n")
+        out.write(f"    eventTime: {t}\n    logTime: {t + 1}\n    groupingId: null\n")
+        out.write("    event: PriceUpdate\n")
+        out.write("    eventToString: CONSTRUCTED for M68.1, appended under Follow\n")
+        out.write("    thread: constructed\n    nodeLogs: \n")
+        for node_id in ids:
+            out.write(f"        - {node_id}: {{ v: 1}}\n")
+        out.write(f"    endTime: {t + 2}\n---\n")
+
+
+def wait_records(a, n, seconds=12):
+    """Poll context until the followed store holds n records."""
+    deadline = time.time() + seconds
+    ctx = a.context()
+    while time.time() < deadline:
+        ctx = a.context()
+        if (ctx.get("log") or {}).get("records") == n:
+            return ctx
+        time.sleep(0.5)
+    return ctx
+
+
 def open_in_order(a, log, order):
     """Open the log and the graph in one of the three orders an agent or a person can use (review R2).
     The script used to open everything combined, which is why it could not see that two orders published an
@@ -185,6 +210,57 @@ def main():
                 q = (a.context().get("graphPairing") or {}).get("qualifiedBy") or {}
                 check(f"{order}: context now carries the qualification", q.get("supersedesSample") is True, q)
                 check(f"{order}: naming the foreign id", "foreignAfter500" in (q.get("notDeclared") or []), q)
+
+            print("7. N1 — a Follow append must not leave a whole-log verdict describing the old log")
+            log = os.path.join(work, "n1-follow.yaml")
+            constructed_log(log, [[ids[i % 3]] for i in range(600)])
+            open_in_order(a, log, "combined")
+            a.act("coverage")
+            q = (a.context().get("graphPairing") or {}).get("qualifiedBy") or {}
+            check("before the append, coverage confirms the whole log", "confirms" in str(q.get("note")), q)
+            a.act("open", follow=True)
+            append_record(log, ["lateForeign"])
+            ctx = wait_records(a, 601)
+            gp = ctx.get("graphPairing") or {}
+            q = gp.get("qualifiedBy") or {}
+            check("the followed store now holds 601 records", (ctx.get("log") or {}).get("records") == 601, ctx.get("log"))
+            check("the qualification no longer claims to confirm the whole log",
+                  not q or ("confirms the sampled pairing for the whole log" not in str(q.get("note"))), q)
+            check("and says the log has grown since coverage compared it", not q or q.get("stale") is True, q)
+            check("the published pairing's scope counts the appended record",
+                  gp.get("pairingScope") == "first 500 of 601 records", gp.get("pairingScope"))
+            reply = a.act("coverage")
+            q2 = (a.context().get("graphPairing") or {}).get("qualifiedBy") or {}
+            check("a fresh coverage finds the appended foreign id",
+                  "lateForeign" in (q2.get("notDeclared") or []), q2)
+            check("and is not stale", q2.get("stale") is not True, q2)
+            a.act("open", follow=False)
+
+            print("8. N2 — a narrower comparison must not erase a wider one, in either order")
+            log = os.path.join(work, "n2-a3.yaml")
+            constructed_log(log, [[ids[i % 3]] for i in range(599)] + [["foreignAfter500"]])
+            open_in_order(a, log, "combined")
+            a.act("coverage")
+            a.act("filter", **{"from": 1001, "to": 1011})
+            reply = a.act("coverage", filtered=True)
+            gp = a.context().get("graphPairing") or {}
+            q = gp.get("qualifiedBy") or {}
+            check("whole then filtered: the whole-log finding still stands in context",
+                  q.get("scope") == "whole log" and "foreignAfter500" in (q.get("notDeclared") or []), q)
+            check("…and the filtered comparison is stated beside it",
+                  "current filter" in str(q.get("narrower")), q)
+            check("…and the filtered coverage reply says the whole-log finding still stands",
+                  "whole log" in str((reply.get("coverage") or {}).get("qualifiedPublishedPairing")), reply.get("coverage"))
+            a.act("filter", **{"from": None, "to": None})   # null clears, missing keeps
+            open_in_order(a, log, "combined")
+            a.act("filter", **{"from": 1001, "to": 1011})
+            a.act("coverage", filtered=True)
+            a.act("filter", **{"from": None, "to": None})   # null clears, missing keeps
+            a.act("coverage")
+            q = (a.context().get("graphPairing") or {}).get("qualifiedBy") or {}
+            check("filtered then whole: the whole-log finding leads", q.get("scope") == "whole log"
+                  and q.get("supersedesSample") is True and "foreignAfter500" in (q.get("notDeclared") or []), q)
+            check("…and the earlier, dominated filtered comparison is not carried", not q.get("narrower"), q)
 
             print("6. the exported PDF says what the screen says (D-E2)")
             pdf = os.path.join(exchange, "m68-1-partial.pdf")

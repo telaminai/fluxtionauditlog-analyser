@@ -173,6 +173,60 @@ class PairingDuringLoadFrameTest {
         }
     }
 
+    /**
+     * Re-review O-c: the parity case above uses a one-record log, so it never compares a SAMPLED verdict. Three
+     * loops collect the sample (the frame's pairingAgainst, discovery's discoverGraphs0 and the session's
+     * observation); with 600 records all three must state the same 500-of-600 verdict.
+     */
+    @Test
+    void aSampledPairingAgreesAcrossFrameDiscoveryAndSession(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        StringBuilder yaml = new StringBuilder();
+        for (int i = 0; i < 600; i++) {
+            yaml.append("---\neventLogRecord:\n  logTime: ").append(1000 + i).append("\n  event: Tick\n  nodeLogs:\n")
+                .append("    - rootNode: { v: 1}\n    - riskCheck: { v: 1}\n    - output: { v: 1}\n");
+        }
+        Path audit = Files.writeString(tmp.resolve("constructed-600.yaml"), yaml.append("---\n").toString());
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graph.toAbsolutePath().toString())));
+            awaitVerdict(ex);
+            onEdt(() -> render(ex, "source_root", Map.of("add", List.of(graph.toAbsolutePath().getParent().toString()))));
+            var discover = MainFrame.class.getDeclaredMethod("discoverGraphs0");
+            discover.setAccessible(true);
+            var judge = MainFrame.class.getDeclaredMethod("pairingAgainst",
+                    telamin.fluxtion.audit.analyser.analyser.parse.LogStore.class);
+            judge.setAccessible(true);
+            var storeField = MainFrame.class.getDeclaredField("store");
+            storeField.setAccessible(true);
+            var sessionField = MainFrame.class.getDeclaredField("session");
+            sessionField.setAccessible(true);
+            Path wanted = graph.toAbsolutePath().normalize();
+            onEdt(() -> {
+                try {
+                    var discovered = ((telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Result)
+                            discover.invoke(frame.get())).candidates().stream()
+                            .filter(c -> c.file().toAbsolutePath().normalize().equals(wanted))
+                            .findFirst().orElseThrow().pairing();
+                    var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
+                    assertEquals("first 500 of 600 records", discovered.scope(), "discovery is sampled");
+                    assertEquals(discovered, judge.invoke(frame.get(), storeField.get(frame.get())), "frame/discovery, sampled");
+                    assertEquals(discovered, session.processor().pairing.verdict(), "session/discovery, sampled");
+                } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+            });
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
     /** TA-1: the producer graph is committed; the three-node audit record is constructed. */
     @Test
     void committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(@TempDir Path tmp) throws Exception {
