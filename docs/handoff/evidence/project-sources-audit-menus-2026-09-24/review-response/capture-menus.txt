@@ -1,0 +1,6 @@
+project menu (light)
+  ✓ projects-file-menu.png  (599 KB)
+  ✓ tutorial-new-project-menu.png  (377 KB, annotated from projects-file-menu.png)
+  ✓ sources-menu.png  (635 KB)
+  ✓ audit-log-menu.png  (642 KB)
+done — 4 captures, all native

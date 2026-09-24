@@ -72,7 +72,7 @@ agent drives this same window through MCP, and you review what it renders.
 
 **Records** still holds flags and selected-record actions; **Theme**, **AI** and **Help** stay separate.
 The toolbar shortcuts continue to use the same actions. Closing a log keeps the project and its saved
-chart definitions. **Project ▸ Close log and topology** clears those inputs while retaining the project.
+chart definitions. **Project ▸ Close log and topology** closes the log and the topology while retaining the project.
 
 ![Project menu](assets/projects-file-menu.png)
 ![Sources menu](assets/sources-menu.png)

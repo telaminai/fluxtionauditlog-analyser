@@ -7,6 +7,11 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Window;
 import java.util.concurrent.atomic.AtomicReference;
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -19,8 +24,8 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
 class MenuLayoutFrameTest {
     @TempDir Path tmp;
     private static List<String> labels(JMenu menu) {
-        return Arrays.stream(menu.getMenuComponents()).filter(c -> c instanceof JMenuItem)
-                .map(c -> ((JMenuItem)c).getText()).toList();
+        return Arrays.stream(menu.getMenuComponents())
+                .map(c -> c instanceof JMenuItem i ? i.getText() : MenuInventory.SEPARATOR).toList();
     }
     @Test void projectSourcesAndAuditHaveTheirOwnActions() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
@@ -29,15 +34,21 @@ class MenuLayoutFrameTest {
                 JMenuBar bar = f.frame.getJMenuBar();
                 assertEquals(List.of("Project", "Sources", "Audit log"), IntStream.range(0,3)
                         .mapToObj(i -> bar.getMenu(i).getText()).toList());
-                assertTrue(labels(bar.getMenu(0)).containsAll(List.of("Open project…", "Close project",
-                        "New project from template…", "Save project as…")));
-                assertTrue(labels(bar.getMenu(1)).containsAll(List.of("Source roots…", "Event processor…",
-                        "Maven repos…", "Open GraphML…", "Open design…", "Open producer diagnostics…")));
-                assertTrue(labels(bar.getMenu(2)).containsAll(List.of("Open log…", "Close log", "Follow (tail)",
-                        "Export records (CSV)…", "Export records (YAML)…")));
+                var relocated = new ArrayList<String>();
+                for (String name : MenuInventory.RESOURCE_MENUS) {
+                    List<String> actual = labels(menu(f.frame, name));
+                    assertEquals(MenuInventory.MENUS.get(name), actual, name + " exact ordered menu and separators");
+                    relocated.addAll(actual.stream().filter(t -> !t.equals(MenuInventory.SEPARATOR)).toList());
+                }
+                var expected = new ArrayList<>(MenuInventory.BASE_FILE.stream()
+                        .map(t -> t.equals("Reset (close log + graph)") ? "Close log and topology" : t).toList());
+                expected.addAll(MenuInventory.SHORTCUTS);
+                assertEquals(26, MenuInventory.BASE_FILE.size(), "base File inventory");
+                assertEquals(29, relocated.size(), "all legacy actions plus the three shortcuts");
+                assertEquals(new HashSet<>(expected), new HashSet<>(relocated), "legacy action inventory is preserved");
+                for (String label : expected) assertEquals(1, Collections.frequency(relocated, label), label + " appears exactly once");
                 assertEquals("Records", bar.getMenu(3).getText());
-                assertFalse(labels(bar.getMenu(0)).contains("Close log"));
-                assertFalse(labels(bar.getMenu(2)).contains("Close project"));
+                assertEquals(MenuInventory.MENUS.get("Records"), labels(bar.getMenu(3)), "Records inventory also backs the docs check");
             });
         }
     }
@@ -89,7 +100,7 @@ class MenuLayoutFrameTest {
         owner.tmp = tmp;
         try (var f = owner.new Fixture(ChartLifecycleReviewFrameTest.chart("Retained", true))) {
             assertNotNull(ChartLifecycleReviewFrameTest.edt(() -> field(f.frame, "store")));
-            onEdt(() -> item(f.frame, "Audit log", "Close log").doClick());
+            onEdt(() -> clickAsHuman(f.frame, "Audit log", "Close log"));
             assertNull(ChartLifecycleReviewFrameTest.edt(() -> field(f.frame, "store")));
             assertEquals(f.profile.toString(), f.config.activeProjectPath, "closing the log keeps the project");
             assertEquals(List.of("Retained"), f.config.savedGraphs.stream().map(g -> g.name()).toList());
@@ -98,7 +109,67 @@ class MenuLayoutFrameTest {
                 assertTrue(item(f.frame, "Project", "Close project").isEnabled());
                 item(f.frame, "Project", "Close project").doClick();
                 assertFalse(item(f.frame, "Project", "Close project").isEnabled());
+                assertEquals("", f.config.activeProjectPath, "Close project completes the CLOSE transition");
             });
         }
     }
+    private static void clickAsHuman(MainFrame frame, String menu, String label) {
+        try {
+        var intent = MainFrame.class.getDeclaredField("sessionInteractive");
+        intent.setAccessible(true);
+        intent.setBoolean(frame, false);
+        JMenuItem action = item(frame, menu, label);
+        assertTrue(action.isEnabled(), label + " is enabled on the loaded fixture");
+        action.doClick();
+        assertTrue(intent.getBoolean(frame), label + " declares human intent");
+        } catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+    }
+
+    private TopologyPanel loadTopology(ChartLifecycleReviewFrameTest.Fixture f) throws Exception {
+        // Constructed regression fixture: one declared node matches the fixture's recorded node id.
+        Path graph = Files.writeString(tmp.resolve("close.graphml"), """
+                <graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:jGraph="http://www.jgraph.com/">
+                  <key id="vertex_label" for="node" attr.name="nodeData" attr.type="string"/>
+                  <graph edgedefault="directed"><node id="node"><data key="vertex_label">
+                    <jGraph:ShapeNode><jGraph:Geometry height="70" width="160" x="20" y="20"/>
+                      <jGraph:label text="id:node&#10;class:com.acme.Node"/>
+                      <jGraph:Style properties="NODE"/>
+                    </jGraph:ShapeNode>
+                  </data></node></graph>
+                </graphml>
+                """);
+        assertTrue(f.executor.render("open", Map.of("graphml", graph.toString())).ok());
+        TopologyPanel topology = (TopologyPanel)field(f.frame, "topologyPanel");
+        onEdt(() -> assertTrue(topology.hasGraph(), "fixture has a topology before the menu click"));
+        return topology;
+    }
+
+    @Test void closeGraphFromItsMenuKeepsLogProjectAndCharts() throws Exception {
+        ChartLifecycleReviewFrameTest owner = new ChartLifecycleReviewFrameTest(); owner.tmp = tmp;
+        try (var f = owner.new Fixture(ChartLifecycleReviewFrameTest.chart("Retained", true))) {
+            TopologyPanel topology = loadTopology(f);
+            onEdt(() -> {
+                clickAsHuman(f.frame, "Sources", "Close graph");
+                assertFalse(topology.hasGraph(), "Close graph closes the topology");
+                assertNotNull(field(f.frame, "store"), "Close graph keeps the log");
+                assertEquals(f.profile.toString(), f.config.activeProjectPath);
+                assertEquals(List.of("Retained"), f.config.savedGraphs.stream().map(g -> g.name()).toList());
+            });
+        }
+    }
+
+    @Test void closeBothFromItsMenuKeepsProjectAndCharts() throws Exception {
+        ChartLifecycleReviewFrameTest owner = new ChartLifecycleReviewFrameTest(); owner.tmp = tmp;
+        try (var f = owner.new Fixture(ChartLifecycleReviewFrameTest.chart("Retained", true))) {
+            TopologyPanel topology = loadTopology(f);
+            onEdt(() -> {
+                clickAsHuman(f.frame, "Project", "Close log and topology");
+                assertNull(field(f.frame, "store"), "Close log and topology closes the log");
+                assertFalse(topology.hasGraph(), "Close log and topology closes the topology");
+                assertEquals(f.profile.toString(), f.config.activeProjectPath, "close both keeps the project");
+                assertEquals(List.of("Retained"), f.config.savedGraphs.stream().map(g -> g.name()).toList());
+            });
+        }
+    }
+
 }

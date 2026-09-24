@@ -10,7 +10,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   and settings; Sources holds source configuration, topology, design and producer diagnostics;
   Audit log holds acquisition, Follow and record export. Source settings shortcuts open their named
   page. Records, Theme, AI and Help remain separate. The toolbar and assistant verbs keep their existing
-  behavior; menu spotlight targets use the new visible menu names. Guides and screenshots follow the layout.
+  behavior. Reset is renamed **Close log and topology** and moved to its own group in Project.
+  Recent logs and topologies sit beside their open actions. Saved `menu:File…` spotlight steps are
+  now refused; update them to the new visible menu names. Guides and screenshots follow the layout.
 
 ## [1.19.2] - 2026-09-24
 

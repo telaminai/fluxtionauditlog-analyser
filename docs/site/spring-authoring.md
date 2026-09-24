@@ -1,7 +1,5 @@
 # Spring authoring with an LLM design partner
 
-> The recorded screenshots may show an earlier menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Getting started](getting-started.md#finding-the-right-menu).
-
 Describe the system you want to build. Work with an LLM to make its events, state,
 dependencies and boundaries explicit. Spring authoring turns that agreed design into
 a Java project you can inspect and develop. Run the application, then use the analyser

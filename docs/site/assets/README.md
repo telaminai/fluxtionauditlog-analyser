@@ -121,3 +121,14 @@ spotlight fixture image, MCP dialogs, and the bundle-specific tutorial/picker im
 older main-window captures now say they may show the prior menu layout and link to current navigation.
 Those captures are not claimed to be reruns of their authoring or acquisition experiments. The
 owner-witnessed browser preview and vendor image remain historical evidence, unchanged.
+
+### PR #15 review-response captures
+
+After moving the two recent-file menus and separating the Project close actions, only the five
+affected assets were recaptured: `projects-file-menu.png`, `sources-menu.png`,
+`audit-log-menu.png`, `tutorial-new-project-menu.png`, and `start-page.png`. Commands were
+`python3 tools/capture-docs.py --projects-menu` and `python3 tools/capture-docs.py --start-page`,
+using the rebuilt branch jar, repository demo, and the harness's isolated home. All five are
+3360×2100. Every image was opened and its visible strings inspected; each menu popup is visible,
+the recents follow their open action, and the start page shows the renamed close status and
+Open log guidance. The other images were not recaptured during this response.

@@ -14,6 +14,7 @@ anonymous by construction rather than by inspection.
 Usage
 -----
     python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
+    python3 tools/capture-docs.py --start-page # regenerate only the no-log start page
     python3 tools/capture-docs.py --mcp      # regenerate only the MCP setup/dialog shots
     python3 tools/capture-docs.py --spotlight  # regenerate only the spotlight shots (light AND dark)
     python3 tools/capture-docs.py --projects-menu     # Project, Sources, Audit log + the tutorial's ringed Project shot
@@ -661,6 +662,15 @@ def main():
 
     if "--tutorial" in sys.argv:
         capture_tutorial()
+        return
+
+    if "--start-page" in sys.argv:
+        ep = launch("Light")
+        seed(ep)
+        act(ep, "open", {"close": "all"})
+        time.sleep(1)
+        capture(ep, "start-page.png")
+        finish_capture()
         return
 
     if "--projects-menu" in sys.argv:

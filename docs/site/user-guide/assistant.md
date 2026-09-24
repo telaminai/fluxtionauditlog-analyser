@@ -257,7 +257,7 @@ whole, with the reason; and a canvas write goes **alone** — combined with a lo
 `context.analyses` lists them with their parameters; steps run through this surface and stop at the first failure.
 
 `open` also takes `logs: [...]` — an explicit rolled set, loaded as one log in content order, the
-echo carrying the order chosen and the time-order report (see *Records ▸ Rolled log sets*).
+echo carrying the order chosen and the time-order report (see [Rolled log sets](records-and-filtering.md#rolled-log-sets)).
 
 Three more on `open`, so an agent can manage what is loaded rather than only add to it:
 
@@ -626,7 +626,7 @@ A successful request echo is not an assertion that every saved input opened. Rec
 application logic. The human sees the same offer on the start page and the same status in the Project
 panel. [Identity and partial-restoration rules](projects.md#restore-an-earlier-session).
 
-The start page's **Author a new project** action and Project ▸ New project from template share one catalogue
+The start page's **Author a new project** action and **Project ▸ New project from template…** share one catalogue
 and download flow. All entries remain visible; recommendation tags do not establish key requirements or
 agent readiness. Check the declared entry files against the downloaded project. A walkthrough is an
 optional runbook exercise, not a separate analyser execution mode.

@@ -1,6 +1,6 @@
 # Project, Sources and Audit log menus
 
-Status: implemented and locally verified; ready for independent PR review. Branch `feat/project-sources-audit-menus`,
+Status: PR #15 review corrections implemented and verified; awaiting independent re-review. Branch `feat/project-sources-audit-menus`,
 based on released 1.19.2 (`cfe4c925`). The unfinished menu patch was copied from its older worktree;
 that worktree was preserved. No chart-lifecycle fixes were overwritten during the transfer.
 
@@ -31,7 +31,7 @@ All use the existing verifier's shared baseline, named assertion (not exception)
 byte-for-byte source restoration and restored-green run. The new suite is in both CI display lists;
 the preflight compares them with source discovery.
 
-## Verification
+## Original verification at 06884f1b
 
 - Focused real-display suite: 3 / 0 / 0 / 0. Actual Swing menu items use `doClick`; the Settings
   shortcuts open actual modal dialogs, whose selected tabs are observed before disposal. Log/project
@@ -94,3 +94,95 @@ name; there is no alias. Project profiles, assistant action verbs and chart life
 This branch does not merge or release the menu work. The shared primary checkout and the original
 unfinished menu worktree were left untouched. Release 1.19.2 continues to contain only the separately
 reviewed chart fixes.
+
+## Review response
+
+Review read in full at `421dda11` on `review/pr15-project-sources-audit-menus-2026-09-24`.
+Predictions were committed first as `7449b71c`; the unchanged-branch baseline was
+1941 total / 0 failures / 0 errors / 81 skips. This response remains on the original feature branch.
+
+**What I got wrong:** I presented the layout test as protection for the relocation, but its
+`containsAll` assertions covered only subsets. It could not see a lost action, and the Close project
+assertion checked a disabled item rather than the completed transition. The three original controls
+proved their narrow behaviours, not the completeness of the move. The review's five-change mutation
+exposed that gap; agreement with the intended layout was not regression protection.
+
+### Required corrections
+
+| Finding | Cause and fix | Regression and required witness |
+|---|---|---|
+| R1 | Subset assertions missed lost/misplaced actions. `MenuInventory` now supplies exact ordered labels and separators to both the live-menu and documentation checks. The live test also compares the three-menu union with the independently preserved 26-item base File inventory plus three shortcuts, once each, and checks Records. | `projectSourcesAndAuditHaveTheirOwnActions`; remove Exit, Close graph, Close log and topology, or the recent-log submenu in four separate controls. All three close tests force `sessionInteractive=false` before the real click and require true afterwards; remove the reset declaration in a fifth control. |
+| R2 | Close outcomes were incompletely asserted. New fixtures load both a log and a one-node topology. Closing both must remove both while retaining the project path and chart definitions. Close project must leave the actual path empty. | `closeBothFromItsMenuKeepsProjectAndCharts`, `closeGraphFromItsMenuKeepsLogProjectAndCharts`, and the strengthened existing Close log test. Replace reset's `resetAll()` with `closeLog()`; the graph-closed assertion must fail. |
+| R3 | Offline help used an obsolete S3 label, and paths had no static guard. Correct it and check paths in README, every site Markdown file, and help.html against `MenuInventory`. The parser normalizes whitespace and optional ellipses and handles the published HTML entities/inline formatting and wrapped paths; it does not accept a valid label as a prefix of an invalid one. | `MenuDocumentationTest.documentedPathsNameExistingItems` and `extractsHtmlMarkdownAndReportsLocations`. Restore the incorrect S3 label; the assertion must name help.html, line and invalid path. |
+
+The doc guard also required replacing combined Export/Import and CSV/YAML pseudo-labels with actual
+items, expanding the Flag action's abbreviation, marking the plain template path explicitly, and
+linking *Rolled log sets* as a documentation section instead of presenting it as a Records menu item.
+These are wording corrections; no additional menu actions were created.
+
+### Optional improvements
+
+O1–O5 are taken: declare the renamed item once; separate Close project from Close log and topology;
+place recents beside their open actions; align reset status, changelog and getting-started wording;
+remove the image qualification from the image-free Spring overview; use the full Open log label in
+the empty-state guidance. Capture only the affected menu images and the start page, whose reset
+status also changed. All five affected assets were recaptured at 3360×2100 under the isolated home and opened for
+inspection. Each menu popup is visible; the recents and separator match the inventory. The start
+page shows the renamed status and full Open log guidance. The other images were not recaptured.
+
+### Owner decisions carried, not resolved
+
+- **D1:** CSV remains under Audit log. Whether it belongs elsewhere remains the owner's decision.
+- **D2:** the existing no-alias behaviour for `menu:File` is unchanged. The compatibility consequence
+  is now explicit in the changelog; this response does not settle the policy.
+- **D3:** inspection of git metadata confirms merge commits `870f2833` (#7), `aa49a8f6` (#9) and
+  `cdbcd342` (#10) use the fourth sweep term's domain as author email. The repository-local pin does
+  not govern GitHub web merges. The shared config reads `review@local`, and pushed commit `262fc020`
+  uses it. No restricted domain is reproduced here, no shared config was changed, and no history
+  was rewritten. This response's commits explicitly use the verified personal address.
+
+### Verification record
+
+The two new headless tests and all five menu frame tests pass in a focused run (7/0/0/0 with a display).
+An initial compile attempt exposed checked reflection exceptions inside Runnable callbacks; the test
+helper now handles reflection failures explicitly. That compile error is not a mutation witness.
+All ten menu controls passed: shared green baseline (7/0/0/0), a named `<failure>` and no `<error>`
+for each plant, byte-identical restoration, then restored green. The seven new predictions all held.
+[Response mutation results](evidence/project-sources-audit-menus-2026-09-24/review-response/mutations.json)
+are separate from the original three-control evidence above.
+
+`mvn -q clean package` passed with **1945 / 0 / 0 / 83** (1862 executed), summed only from the
+259 XML reports mapped to `src/test/java`; **no orphan reports**. This matches the frozen count.
+[Mapped counts](evidence/project-sources-audit-menus-2026-09-24/review-response/headless-counts.json).
+The full display gate passed **84 / 0 / 0 / 0**, across all 16 frame suites, matching the prediction.
+[Display result](evidence/project-sources-audit-menus-2026-09-24/review-response/display.json).
+It passes `-Djava.awt.headless=false` directly; no POM edit was made. An initial sandboxed attempt
+stopped with a missing `PairingDuringLoadFrameTest` report, before publishing a result. It is not
+counted as a pass; the complete run outside the sandbox is the result above.
+The five Python verifier tests pass. The rebuilt-jar spotlight gate passes **94/94**;
+[recorded output](evidence/project-sources-audit-menus-2026-09-24/review-response/spotlight.txt).
+Strict MkDocs, `git diff --check`, the exact rule-one sweep and the added-lines sweep pass.
+Screenshots were captured only after the package build and
+before display tests, so test windows could not cover the capture window.
+
+The other commands were the package, Python, spotlight, MkDocs and diff commands listed above,
+plus `python3 tools/verify_project_chart_review.py --mode display --output
+/private/tmp/pr15-response-display.json`. Capture commands were `python3 tools/capture-docs.py
+--projects-menu` and `python3 tools/capture-docs.py --start-page`, with JDK 21 first on `PATH`.
+[Menu capture log](evidence/project-sources-audit-menus-2026-09-24/review-response/capture-menus.txt)
+and [start-page capture log](evidence/project-sources-audit-menus-2026-09-24/review-response/capture-start-page.txt)
+record the five captures; the appearance claims above come from opening the images, not their logs.
+
+The mutation command for this response (JDK 21 selected through `JAVA_HOME`) was:
+
+```sh
+python3 tools/verify_project_chart_review.py --mode mutations \
+  --case menu-layout --case menu-source-page --case menu-close-log \
+  --case menu-exit --case menu-close-graph-item --case menu-reset-item \
+  --case menu-recent-log --case menu-reset-human --case menu-reset-topology \
+  --case menu-help-s3 --output /private/tmp/pr15-response-mutations.json
+```
+
+The chooser/network actions and Exit were inspected as retained listeners, not clicked. Pending-load
+close interleavings are not newly claimed by these tests. The local display is macOS; Linux/xvfb
+results belong to CI and will be stated separately from local runs.

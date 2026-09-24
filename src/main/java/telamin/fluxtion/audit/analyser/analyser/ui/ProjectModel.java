@@ -192,7 +192,7 @@ public record ProjectModel(List<Section> sections) {
         Map<String, Object> log = map(ctx.get("log"));
         rows = new ArrayList<>();
         if (log.isEmpty()) {
-            rows.add(new Row("No log loaded", "Audit log ▸ Open, drag a file in, or open {path} from the socket",
+            rows.add(new Row("No log loaded", "Audit log ▸ Open log…, drag a file in, or open {path} from the socket",
                     null, null, Tone.MUTED, Target.NONE));
         } else {
             // Review C2: the ORIGIN the user named is the row — `s3://bucket/key`, not the temp file it was

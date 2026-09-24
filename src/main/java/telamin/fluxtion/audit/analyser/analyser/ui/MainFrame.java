@@ -103,7 +103,7 @@ public final class MainFrame extends JFrame {
     private final JMenuItem closeProjectItem = new JMenuItem("Close project");
     private final JMenuItem closeLogItem = new JMenuItem("Close log");
     private final JMenuItem closeGraphItem = new JMenuItem("Close graph");
-    private final JMenuItem resetItem = new JMenuItem("Reset (close log + graph)");
+    private final JMenuItem resetItem = new JMenuItem("Close log and topology");
     private telamin.fluxtion.audit.analyser.analyser.config.ProjectSession project;
     /**
      * Coalesces project writes. A profile is often a committed file, so a burst of graph tweaks should
@@ -1821,6 +1821,7 @@ public final class MainFrame extends JFrame {
         JMenuItem open = new JMenuItem("Open log…");
         open.addActionListener(e -> chooseFile());
         audit.add(open);
+        audit.add(recentMenu);
         JMenuItem openS3 = new JMenuItem("Open log from S3…");
         openS3.addActionListener(e -> chooseS3());
         audit.add(openS3);
@@ -1838,6 +1839,7 @@ public final class MainFrame extends JFrame {
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
         });
         sources.add(openGraphml);
+        sources.add(recentGraphmlMenu);
         JMenuItem openDesign = new JMenuItem("Open design…");
         openDesign.addActionListener(e -> chooseDesignFile(false));
         sources.add(openDesign);
@@ -1868,8 +1870,6 @@ public final class MainFrame extends JFrame {
             requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.ALL);
             resetAll(); });
         rebuildRecentMenu();
-        audit.add(recentMenu);
-        sources.add(recentGraphmlMenu);
 
         // Project actions change the profile in force; source and log actions have separate homes.
         projectMenu.add(openProjectItem());
@@ -1882,7 +1882,7 @@ public final class MainFrame extends JFrame {
         projectMenu.add(saveProjectAsItem);
         closeProjectItem.addActionListener(e -> closeProject());
         projectMenu.add(closeProjectItem);
-        resetItem.setText("Close log and topology");
+        projectMenu.addSeparator();
         projectMenu.add(resetItem);
         projectMenu.addSeparator();
         projectMenu.add(analysesMenu);          // M38.4: recall a saved analysis — the UI half of the offer
@@ -3847,7 +3847,7 @@ public final class MainFrame extends JFrame {
     private void resetAll() {
         closeLog();
         closeGraph();
-        status.setText("Reset — no log, no graph");
+        status.setText("Close log and topology — no log, no topology");
     }
 
     /** Close items are enabled only when there is something to close. */
