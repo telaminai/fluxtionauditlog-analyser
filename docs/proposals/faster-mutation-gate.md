@@ -1,6 +1,9 @@
 # Proposal: make the mutation gate fast enough to stay mandatory
 
-**Status:** proposal, nothing built. Raised 2026-09-24 after #13 landed, at the owner's request:
+**Status:** implemented in #18 (merged as `7254c29d`): `--engine fast`, `--mode compare`, `--changed-since`,
+`--mode selftest` and a `mutation-gate` CI job running the full set on every PR and push to `main`. The text
+below is the proposal as reviewed, with one factual correction marked in place. Raised 2026-09-24 after #13
+landed, at the owner's request:
 *"have both faster mutation gate on merge to main and only subsets of gates on a branch"*. Written by the
 session whose work the gate keeps catching.
 
@@ -35,10 +38,15 @@ assertions.
 
 ## Why the answer is not "make it optional"
 
-This repository has already run that experiment. **62 display tests existed for months and never ran
-anywhere** — not because anyone disabled them, but because running them needed a flag nobody passed. They
-were optional in effect, and optional became dormant. Every review in this cycle quoted "62 skips" as a
-known cost, and all 62 passed the moment someone actually ran them.
+This repository has already run a version of that experiment. **62 display tests were skipped by every
+local headless run**, because running them needed a flag nobody passed, and every review in this cycle quoted
+"62 skips" as a known cost.
+
+*Corrected in review of #16:* an earlier version of this paragraph said they "never ran anywhere". They did:
+CI's `ui-frame` job has run them under xvfb since 2026-09-16 (`b662bc33`), and on 2026-09-24 it reported
+`Tests run: 63, Failures: 0, Errors: 0, Skipped: 0` on `main`. The accurate lesson is narrower and still
+supports the argument: a skip count people quote as a known cost says nothing about whether the tests run
+anywhere else, and the mutation controls themselves ran nowhere automatically until #18.
 
 The mutation gate has a stronger claim on staying mandatory than most tests do, because of what it caught
 in one day, all of it against the author of this proposal:
