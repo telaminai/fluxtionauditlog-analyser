@@ -11,7 +11,7 @@ released or deployed. No Fluxtion API key was used.
 | --- | --- | --- | --- |
 | `mongoose-plugins` | `feat/mongoose-audit-production` | `b208257` | `main` `40f01cf` (post-1.0.44) |
 | `mongoose` core | `feat/mongoose-audit-production` | `2c4192e` | `develop` `17a03b4` |
-| analyser | `feat/mongoose-audit-production` | `5d4bf116` | `main` `fda01845` |
+| analyser | `feat/mongoose-audit-production` | `1aa346ff` | `main` `fda01845` |
 
 Predictions were committed before any trial: `07a13bf7`,
 [`evidence/mongoose-audit-production-impl/phase1-predictions.md`](evidence/mongoose-audit-production-impl/phase1-predictions.md).
@@ -202,6 +202,49 @@ is not this change, but five copies of one idea is the shape that produced the r
 place.
 
 **Suite:** analyser **1920/0/62**.
+
+## Round 4 — F1, and the record of what went wrong
+
+Review cleared plugins and core to merge, and the analyser as a partial **after one fix**. That fix is
+`1aa346ff`.
+
+**F1 — a sixth BOM site, and it changed a verdict.** `RecordParser` used `String.strip()`, so the `#`
+header comment behind a byte-order mark was never recognised and the record lost its thread, **level**
+and logger. The level is where `auditLevelFinest` comes from, so it fell from DEBUG to INFO and coverage
+then said debug calls might be missing. Not a first-line problem either: a concatenated file carries a
+BOM in the middle and every record behind it was affected. `HeaderParser` had the same pattern, and the
+framing tests could not have caught it because they use no header comments.
+
+**The rule now lives once**, in `AuditText` — §1a whitespace plus leading byte-order marks — with
+`StreamEndMarker`, `ProducerDiagnostics`, `YamlAuditReader`, `RecordFramer`, `RecordParser` and
+`HeaderParser` all routed through it. `ByteRecordFramer` keeps its own, because it works on bytes, and
+says so. That consolidates the five copies whose drift caused the round-2 regression.
+
+**A seventh candidate examined and scoped, not ignored:** `NodeLogTokenizer` also uses `strip()`, but it
+parses the `nodeLogs` block *inside* a record, so a BOM reaches it only if a file was cut mid-record —
+corrupt input, not the legitimate concatenation case.
+
+**Lows:** a double leading mark now loops at all three sites; the untimed-window wording no longer
+overclaims.
+
+### What went wrong, completed
+
+Review was right that the record was incomplete. Adding the three it named, and one of my own:
+
+1. **F1 itself** — a sixth copy of a rule I had already been burned by twice, found by review rather
+   than by me, in the one place where it altered a conclusion rather than a warning.
+2. **Stale round-2 wording on control-event matching**, still inconsistent in code.
+3. **`PerNodeLevelChanges.all()`'s javadoc promises a report path that does not exist.**
+4. **Mine, from this round:** I "fixed" the double-BOM loop twice without it applying. A shell heredoc
+   converted the `\uFEFF` escape into a literal BOM, so the match silently hit nothing and the test kept
+   failing. I found it by printing the framed text, not by re-reading the patch — after two rounds of
+   asserting a fix that was never applied.
+
+**Review also confirmed my question-2 suspicion was wrong:** the byte framer checks every line, lines
+are assembled across buffer reads before checking, and a BOM at five positions around the 64 KB boundary
+gave identical results on both stores.
+
+**Suite:** analyser **1925/0/62**.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
