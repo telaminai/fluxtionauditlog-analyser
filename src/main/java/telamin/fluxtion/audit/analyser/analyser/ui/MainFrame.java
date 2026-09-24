@@ -4301,7 +4301,8 @@ public final class MainFrame extends JFrame {
             // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
             // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on
             // EVERY tick, so the fault never reached context's producer list or the tooltip — only this one
-            // status line. Refresh them here too; the state change is what the refresh keys on.
+            // status line. Refresh them here too — keyed on the source DAMAGE having changed (third re-review
+            // O-B), because after the first failure nothing moves and a rebuild every second is pure cost.
             refreshFollowDiagnostics(store.streamEnd(), 0, true);
             return;
         }
@@ -4341,10 +4342,20 @@ public final class MainFrame extends JFrame {
      */
     private void refreshFollowDiagnostics(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int added,
                                           boolean readFailed) {
-        if (!readFailed && !followNeedsDiagnosticRefresh(followStreamEnd, end, added)) return;
+        java.util.List<String> damage = store.sourceDiagnostics();
+        if (readFailed) {
+            // Third re-review O-B: a failed tick adds no rows and leaves the state UNKNOWN, so the only thing that
+            // can have changed is the damage itself. The first failure is new; every later one on the same bytes
+            // is identical, and rebuilding the findings each second cost 73–201 ms on the EDT on a 1M-record log.
+            // Keyed on what the CURRENT findings carry, not on a remembered copy: the findings are also rebuilt on
+            // load, and a reloaded store failing at the same row would otherwise match a stale copy and be skipped.
+            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) return;
+        } else if (!followNeedsDiagnosticRefresh(followStreamEnd, end, added)) {
+            return;
+        }
         followStreamEnd = end;
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                .of(store.index(), store::rawText, store.sourceDiagnostics(),
+                .of(store.index(), store::rawText, damage,
                         store.completenessDiagnostics(), store.completenessIsNote());
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));

@@ -85,6 +85,13 @@ class ControlAddressAndScopeTest {
         assertFalse(runtimeStillLogsInfo(null, global), "runtime: a global WARN quietens every node");
         String note = annotate(control(1, "null", global) + row(2, "null"), "riskMonitor", 1);
         assertTrue(note != null && note.contains("every node"), "and it is explained as every node: " + note);
+        // Third re-review R2: the DECLARED-grouping branch of S2's rule had no witness. Every runtime record
+        // declares a grouping, so this is the branch every real log takes.
+        String perNodeNote = annotate(control(1, "null", perNode) + row(2, "null"), "riskMonitor", 1);
+        for (String n : new String[]{note, perNodeNote}) {
+            assertFalse(n.contains("this processor"), "R2: a shared grouping is not a processor: " + n);
+            assertTrue(n.contains("the records sharing its grouping"), "R2: it says what it does know: " + n);
+        }
     }
 
     @Test
@@ -160,11 +167,11 @@ class ControlAddressAndScopeTest {
         var change = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
         String log = control(1, ABSENT, change) + row(2, ABSENT) + MARKER_1 + row(3, ABSENT) + MARKER_1;
         String note = annotate(log, "riskMonitor", 1, 2);
-        assertTrue(note.contains("Within that run, if it applied here, riskMonitor's lines below WARN are not in this log"),
+        assertTrue(note.contains("Within the run it was made in, if it applied here, riskMonitor's lines below WARN are not in this log"),
                 "S2: even within the run the claim waits on applicability: " + note);
         assertTrue(note.contains("those lines are absent only if it applied here and it survived the marker"),
                 "S2: after the marker, both premises: " + note);
-        assertFalse(note.contains("so within that run"), "S2: nothing is definite while applicability is open: " + note);
+        assertFalse(note.contains("so within the run"), "S2: nothing is definite while applicability is open: " + note);
     }
 
     @Test
@@ -173,6 +180,41 @@ class ControlAddressAndScopeTest {
         String note = annotate(control(1, ABSENT, literal) + row(2, ABSENT), "riskMonitor", 1);
         assertTrue(note.contains("If it named no node and it applied here, riskMonitor's lines below WARN"),
                 "S2 × S3: every premise the log leaves open, in one condition: " + note);
+    }
+
+    // ------------------------------------------------------------------ third re-review R1 and O-A
+
+    /**
+     * R1. The clause describing the change that CLOSES the window said "sets it to INFO for every node" when that
+     * change was rendered sourceId=null — asserting the no-node reading the opening clause, since S3, discloses.
+     */
+    @Test
+    void aClosingChangeRenderedNullIsDisclosedNotAsserted() {
+        var warn = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        var closeNull = new EventLogControlEvent(null, null, LogLevel.INFO);   // renders sourceId=null
+        String log = control(1, "null", warn) + row(2, "null") + control(3, "null", closeNull) + row(4, "null");
+        String note = annotate(log, "riskMonitor", 1);
+        assertNotNull(note, "record 2 is inside the WARN window");
+        assertTrue(note.contains("names no node — or a node literally called \"null\"; the log renders both identically"),
+                "R1: the closing change's rendering is disclosed with both readings: " + note);
+        assertFalse(note.contains("for every node") && !note.contains("literally called \"null\""),
+                "R1: 'for every node' is never said without the literal reading beside it: " + note);
+        assertFalse(note.contains("sets it to INFO for every node"), "R1: the old assertion is gone: " + note);
+    }
+
+    /**
+     * O-A. For a node literally NAMED "null", a sourceId=null change sets that node under both readings, so there is
+     * no open premise and an "otherwise" would be false.
+     */
+    @Test
+    void aNodeNamedNullIsSetUnderBothReadings() {
+        var change = new EventLogControlEvent(null, null, LogLevel.WARN);
+        String note = annotate(control(1, "null", change) + row(2, "null"), "null", 1);
+        assertNotNull(note);
+        assertFalse(note.contains("If it named no node"), "O-A: not a premise for this node: " + note);
+        assertFalse(note.contains("otherwise this change explains nothing here"), "O-A: the otherwise was false: " + note);
+        assertTrue(note.contains("either way it sets this node"), note);
+        assertTrue(note.contains("so null's lines below WARN are not in this log"), "O-A: a definite conclusion: " + note);
     }
 
     // ------------------------------------------------------------------ RR-3: which processor

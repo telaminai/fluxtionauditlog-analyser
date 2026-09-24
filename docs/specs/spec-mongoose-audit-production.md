@@ -382,8 +382,8 @@ with the answer sitting in the file.
    `"null"`; the log renders both identically" — and **conditions its conclusion on the no-node reading**
    ("if it named no node, …"), never asserting that reading first (second re-review S3). More generally,
    every premise the log leaves open — *named no node*, *applied here*, *survived the marker* — is carried in
-   the ONE condition each conclusion rests on, and no annotation presumes a processor: it speaks of "records
-   sharing this grouping" (S2). A change **applies** only when the
+   the ONE condition each conclusion rests on, and no annotation presumes a processor: it speaks of "the records sharing its grouping", or, where the grouping is
+   not declared, "the records that, like it, state no grouping" (S2). A change **applies** only when the
    processor's grouping — the `groupingId:` every runtime record carries — is null or equals the
    change's `groupId`; it then sets **that node** (`sourceId`) or **every node** (`sourceId` null). The
    pin is tested against the runtime jar the build links, not a typed string.

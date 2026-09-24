@@ -533,9 +533,65 @@ implementer the headless suite skips them.
 **Read, not run:** that the tooltip shows the fault — the O2 probe reads `context`'s producer list, which is
 built from the same `producerDiagnostics` the tooltip is set from, but no screenshot was taken. O4's claim
 about `MongooseServer` installing the listener on every processor is the reviewer's reading, adopted in the
-spec as a requirement to design, not verified here.
+spec as a requirement to design, not verified here. *(Now verified from source, in the third re-review round:
+at mongoose `2c4192e`, `MongooseServer.java:116` declares one `private static LogRecordListener`, and
+`addEventProcessor` installs it with `setAuditLogProcessor` at `:758` for every processor it adds. READ, by me
+and independently by the third reviewer.)*
 
 **Suite:** 1976/0/62.
+
+## Third re-review — two Low, six optional, all taken
+
+Third re-review `8514f91b` on `review/mongoose-third-rereview-2026-09-24`, against `fc9b1f9c`, by the author
+of the second. It found S1–S5 and O1–O5 fixed under their own witnesses: 86 strict runs, 24 sentence
+combinations plus four extras, and no negative test refusing a record before its named rule. It asked for two
+small corrections. Predictions `P8` were committed first (`adc96d52`).
+
+| | Finding | Cause | Fix | Regression and witness (strict: `<failure>` at the named test, SHA-256 restore, green again) |
+|---|---|---|---|---|
+| R1 Low | the clause for the change that CLOSES a window said "sets it to INFO for every node" for a `sourceId=null` rendering | **mine, S3**: I fixed the opening clause and missed this one | `closing()` discloses both readings, and says only the no-node one would end the window there. The window still ends there, the conservative direction | `aClosingChangeRenderedNullIsDisclosedNotAsserted`, the reviewer's four-record log. Witness: the old string → red |
+| R2 Low | S2's "never this processor's" had no witness on the DECLARED branch, which every runtime log takes | mine: witnesses covered only the undeclared branch | `positiveControls…` asserts no "this processor" and the grouping phrase, for a global and a per-node change | witness: the declared scope back to "this processor's records" → red |
+| O-A | a node literally NAMED `"null"` was told "otherwise this change explains nothing here" | the premise list ignored that both readings set that node | no *named no node* premise for that node; "either way it sets this node"; the closing clause too | `aNodeNamedNullIsSetUnderBothReadings`. Witness → red |
+| O-B | a failed tick rebuilt identical findings every second: 73–201 ms of EDT work on a 1M-record log | O2's refresh keyed on nothing | a failed tick refreshes only if the current findings do not already carry the damage | **RUN through the jar**, rebuild counter: **2** rebuilds over about eight failed ticks with the check, **10** without it. The fault still reaches `context` on a growing file, and after a reload, a new failure reaches it too |
+| O-C | "within that run" before any run was named | wording | "within the run it was made in" | witness: the old phrase → red at the spanning test |
+| O-D | in the `"null"` sentence, the grouping parenthesis read as a gloss on "the log renders both identically" | placement | its own sentence, on every branch | new assertion on the sentence form. Witness: the parenthesis → red |
+| O-E | the CHANGELOG promised a reload for any readable replacement | too broad | narrowed to a longer one; a same-length one is not detected and the fault stays; the javadoc names that route | — |
+| O-F | the spec quoted "records sharing this grouping", which the code never says | paraphrase | quotes both of the code's phrases exactly | — |
+| O4 | MA-2.9's premise was the reviewer's reading | not verified by me | verified from mongoose source, and recorded above | READ |
+
+**What I got wrong this round:**
+
+1. **My first O-B key would have hidden a real failure.** I remembered the damage list each rebuild used, and
+   skipped a failed tick whose damage matched. But the findings are also rebuilt on load, so a reloaded store
+   failing at the same row would have matched the stale copy and been skipped. Caught on reading it back, before
+   any test. The key is now what the CURRENT findings carry, and the jar probe checks a failure after a reload.
+2. **R1 is the S3 pattern, in a clause S3 did not reach.** I rewrote the opening and did not look at the
+   sentence's other clause built from the same rendering. So did the second reviewer, who says so.
+3. **My headless count first read 1,979 from the XML, against 1,978 on the console.** The difference is a stale
+   report, `TEST-…parse.DoubleBomDiagTest.xml`, from a scratch diagnostic class of mine that no longer exists in
+   source, left in `target/` rounds ago. The true count is **1,978**, over the 258 reports of classes that exist.
+   The stale file is left in place and named here, rather than deleted.
+
+**One frame run failed, and I am not calling it a pass.** The first frame suite this round had **1 failure**:
+`NamedGraphAndMenuSpotlightFrameTest.lightingASecondMenu_keepsWhatTheEchoSaid_byReplaceAndByAdd`, whose AI-menu
+spotlight was not lit after the File menu closed. That class passed **alone, twice**, and the **second full frame
+run was 63 / 0 / 0**, with one skip (the focus-dependent test). This round changes nothing in menus or spotlights,
+only `pollFollow`'s refresh condition. So it is intermittent, one full run in two. Whether it is new is not
+established here.
+
+**Ran:**
+- predictions first;
+- five strict witnesses (R1, R2, O-A, O-C, O-D), plus the O-B rebuild counter through the jar;
+- the O-B jar probes: growing file, reload, then a new failure;
+- a by-eye read of the R1, O-A and O-D sentences;
+- the reviewer's `MARereviewProbe` against the published jars, whose non-annotation lines are identical to round 2's, kept as `rereview3-probe-after-fixes.txt`;
+- headless **1,978 / 0 / 0 / 62**;
+- frame **63 / 0 / 0** on the second full run, after the one intermittent failure above;
+- `SpecLinksResolveTest`.
+
+**Read, not run:** the mongoose source line for O4; that a hover shows the tooltip.
+
+**Suite:** 1,978/0/62 — 1,976 plus two new tests (R1 and O-A). R2 and O-D are assertions added to existing tests.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
@@ -614,9 +670,10 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the second re-review's fixes are reviewed.** The independent review's six
-  findings, the re-review's four and the second re-review's five (plus four of its five optional items) are
-  fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation witness. Still based on `610d5777`; `origin/main` has moved, and
+- analyser — **NOT ready until the third re-review's fixes are reviewed.** Four review rounds' findings are
+  fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation witness: the
+  independent review's six, the re-review's four, the second re-review's five and the third's two, plus their
+  optional items. Still based on `610d5777`; `origin/main` has moved, and
   the rebase comes after review, not under it. Not merged: the owner's call.
 
 Three release-note items stand, unchanged by this round: the producer findings are not in the report

@@ -303,7 +303,9 @@ class CoveragePerNodeLevelTest {
         assertTrue(annotations(grouped).containsKey(node),
                 "in a processor grouped 'alpha', beta's change does not apply and alpha's WARN still governs: "
                         + annotations(grouped));
-        assertTrue(annotations(grouped).get(node).contains("'alpha', which is the grouping the control record itself declares"),
+        // Third re-review O-D: the grouping is its own sentence, so it cannot read as a gloss on what precedes it.
+        assertTrue(annotations(grouped).get(node).contains(". It was addressed to processor grouping 'alpha', "
+                        + "which is the grouping the control record itself declares"),
                 "and it says why the change applied: " + annotations(grouped).get(node));
 
         CoverageService.Result ungrouped = assess(controls.formatted("null") + plainRecord(1006));
@@ -549,7 +551,7 @@ class CoveragePerNodeLevelTest {
         String node = anUncoveredNode(assess(plainRecord(1000)));
         String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
         String spanning = annotations(assess(seq, true, window(1001, 2000))).get(node);
-        assertTrue(spanning.contains("so within that run " + node + "'s lines below WARN are not in this log"),
+        assertTrue(spanning.contains("so within the run it was made in " + node + "'s lines below WARN are not in this log"),
                 "definite within the run the change was made in: " + spanning);
         assertTrue(spanning.contains("from record 3 on, those lines are absent only if it survived the marker"),
                 "conditional after the boundary: " + spanning);

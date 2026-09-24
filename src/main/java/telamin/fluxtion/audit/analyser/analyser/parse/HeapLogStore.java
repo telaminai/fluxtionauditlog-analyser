@@ -46,8 +46,10 @@ public final class HeapLogStore implements LogStore {
      * claim does not, and nothing more is read until it is reopened. That holds by three different routes,
      * stated separately because the first account of it named only one (second re-review O3): a poll that
      * finds MORE bytes re-decodes the whole file and meets the same bad byte again; a QUIET poll never decodes
-     * at all, returning at the byte-length check; and a poll whose decode SUCCEEDS returns {@code -1} so the
-     * caller reloads, because the bad byte cannot vanish by appending — the file was replaced (S1).
+     * at all, returning at the byte-length check — which is also the route a SAME-LENGTH replacement takes, so
+     * it is not detected and the fault stays (third re-review O-E); and a poll whose decode SUCCEEDS returns
+     * {@code -1} so the caller reloads, because the bad byte cannot vanish by appending — the file was replaced
+     * (S1). A reload that meets a replacement caught mid-character is the carried cold-open limitation.
      */
     private volatile boolean liveReadFailed;
 

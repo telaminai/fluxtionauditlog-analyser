@@ -31,7 +31,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   grouping is qualified rather than assumed. For records after a stream-end marker the explanation is
   conditional: the log does not say whether the level survived into the later run. Every explanation
   states each thing the log leaves open — whether the change named no node or a node literally called
-  "null", whether it applied, whether it survived a marker — in the one condition its conclusion rests on.
+  "null", whether it applied, whether it survived a marker — in the one condition its conclusion rests on,
+  and the change that ends a window is described with the same care as the one that began it.
 - An empty or blank file now opens by its extension rather than being refused as unreadable.
 
 ### Fixed
@@ -50,8 +51,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   never form a character fail loudly rather than being waited for, and the log then says its
   completeness is unknown until it is reopened, rather than keeping the verdict it had before them. That
   failure is reported as damage to the source, first among the log's findings, and reaches the assistant
-  and the status tooltip even while the file keeps growing. If the file is later replaced by a readable
-  one, it is reloaded rather than read as though the new content had been appended.
+  and the status tooltip even while the file keeps growing. If the file is later replaced by a longer
+  readable one, it is reloaded rather than read as though the new content had been appended; a replacement
+  of the same length is not detected, and the log keeps saying its completeness is unknown until reopened.
 - A healthy record read through the binary reader is no longer reported as missing its record key.
 - An event whose name merely resembles the framework's own control event is no longer counted as one.
 
