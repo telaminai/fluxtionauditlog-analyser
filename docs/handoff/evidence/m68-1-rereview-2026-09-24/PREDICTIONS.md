@@ -84,3 +84,25 @@ parity frame test (O-c). No product code is changed for this set.
   the current harness.
 - **P23 (O-c).** The new sampled parity test **passes** on the current code: the three loops share one constant and
   one first-N rule, so I expect them to agree today. The value of the test is that they cannot drift apart unseen.
+
+## Set 5 — the round 3 fixes, written before any of these trials ran
+
+Fixes in the working tree: N1 (qualification bound to a log revision and marked stale on growth; the published
+pairing re-judged on every append; the session re-scopes on a total change), N2 (a holder in which a narrower
+comparison never replaces a wider one), N3 (the guard reads text blocks and joined literals, and scans the assistant
+prompt, the skills and the changelog's `[Unreleased]` section), O-a (the unreleased lines describe the removed
+phrases instead of quoting them), O-b (the harness requires a `<failure>` and re-runs green after each restore),
+O-c (one sampling method).
+
+- **P24.** Headless: **1,933 tests, 0 failures, 0 errors, 64 skipped** — set 3's 1,927 plus four headless test
+  methods and two new frame methods, which skip headless.
+- **P25.** Frame suite with a display: **65 tests, 0 failures**, and either 0 or 1 skipped — the focus-dependent test
+  skipped here before and ran on the reviewer's machine.
+- **P26.** `tools/mutate-m68-1.py --frame`: baseline green; **every mutation RED with a `<failure>` at its named test**;
+  control C1 reported as **ERROR, not a failure**, and recognised; every restore byte-identical and green again.
+- **P27.** `tools/verify-m68-1-coverage.py` on the fixed jar: **every check passes**, scenarios 7 and 8 included.
+- **P28.** The one check added after set 4 — the coverage claim's own scope after an append — **fails on a jar built
+  from `550f98d8`**, where the claim note still says "of 600 records".
+- **P29.** Screenshots `{scope: "topology"}`, default size: before coverage the status line leads "first 500 of 600
+  records: every node…"; after whole-log coverage "whole log: 1 of 4 logged id(s) not de…"; **after the filtered
+  coverage, still "whole log: 1 of 4…"**, not the sample.
