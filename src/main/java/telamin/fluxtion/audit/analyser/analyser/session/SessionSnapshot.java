@@ -1,0 +1,40 @@
+package telamin.fluxtion.audit.analyser.analyser.session;
+
+import telamin.fluxtion.audit.analyser.analyser.session.generated.SessionProcessor;
+import telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing;
+
+/**
+ * M44.4b (spec §13, D-S13.1/.3): what the session has decided, as of the last operation that completed.
+ *
+ * <p>Immutable, and published by {@link SessionDriver} through a {@code volatile} reference after every operation, so
+ * any thread may read it: the socket thread's coverage verb used to read the processor's live fields while the EDT
+ * could be mid-dispatch, and a reader could see half a cycle. A surface RENDERS this; it never computes a verdict of
+ * its own beside it — that duplicate is what four rounds of M68.1 review kept finding out of step.
+ *
+ * <p>{@code logGeneration} and {@code graphRevision} identify the PAIR a verdict is about: a later snapshot with both
+ * unchanged is the same log and graph re-scoped (a Follow append), so anything qualifying the earlier verdict still
+ * describes this one; a change in either means a different pair.
+ *
+ * @param pairing null when either artefact is missing — "cannot say" is a verdict, not a gap
+ */
+public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
+                              boolean graphOpen, String graphPath, String graphSource, long graphRevision,
+                              GraphPairing pairing, CoveragePolicy.Assessment claim) {
+
+    /** Before the first operation: nothing is open and nothing may be claimed. */
+    public static final SessionSnapshot EMPTY =
+            new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null);
+
+    static SessionSnapshot of(SessionProcessor p) {
+        return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
+                p.openLog.sampled(), p.openLog.total(),
+                p.openGraph.isOpen(), p.openGraph.graphPath(), p.openGraph.source(), p.openGraph.revision(),
+                p.pairing.verdict(), p.coverageClaim.assessment());
+    }
+
+    /** Whether {@code other} is about the same log and the same graph — the qualifications' binding. */
+    public boolean samePairAs(SessionSnapshot other) {
+        return other != null && logOpen && graphOpen && other.logOpen && other.graphOpen
+                && logGeneration == other.logGeneration && graphRevision == other.graphRevision;
+    }
+}

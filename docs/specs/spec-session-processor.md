@@ -689,9 +689,9 @@ upstream fact stands: the POM says AGPL-3.0 while the source headers say AGPL-3.
 | Slice | Moves | Deletes |
 |---|---|---|
 | **M44.4a** | `GraphOpened`, `GraphCleared`, `LogCleared` and `LogAppended` as facts; the log-generation gate; `post(fact)`. *As built: `LogAppended` landed here, not in 4b, because deleting `LogObserved` removed its last consumer's route. The snapshot moved to 4b, since nothing reads it until the frame's copies go.* | `LogObserved`, `GraphObserved`, `noteLogState`, `noteGraphState`, the funnel in `updateLifecycleMenu`, the `isDispatching()` drop |
-| **M44.4b** | `SessionSnapshot` published after each operation; `LogAppended` posted from Follow itself; off-EDT `post` marshalled; the pairing's scope follows appends inside the graph | `republishPairingAfterAppend`, `refreshSessionIfLogGrew`, `sessionNotedTotal`, the `invokeAndWait` |
+| **M44.4b** | `SessionSnapshot` published after each operation, with a snapshot listener that republishes the pairing; `LogAppended` posted from Follow itself; the coverage verb reads the snapshot. *As built: M44.4d's retention landed here, because reporting appends without it breaks O-i. The frame's scorer `pairingAgainst` also went here, not in 4c, since nothing called it once the snapshot existed. Off-EDT `post` marshalling was not built: nothing posts off the EDT.* | `republishPairingAfterAppend`, `refreshSessionIfLogGrew`, `sessionNotedTotal`, the `invokeAndWait` |
 | **M44.4c** | `ViewFilterChanged`, `MembershipCompared`, and the `PairingQualifier` node | `lastPairing`, `qualifications`, `qualifiedPairing`, `currentQualifications`, `setBusy`'s restore, the frame's `pairingAgainst` use |
-| **M44.4d** | the audit retention of D-S13.5 and the re-worded O-i test | nothing, because this slice changes retention and not ownership |
+| ~~**M44.4d**~~ | *folded into 4b.* Retention by kind and the reworded O-i test shipped there. The DEBUG-level half of D-S13.5 was not built: with tracing on it removes keys and not records | — |
 
 ### Acceptance
 

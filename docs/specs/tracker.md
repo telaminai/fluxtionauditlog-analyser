@@ -1773,12 +1773,14 @@ of the originals is in `057a069a`.)*
   snapshot** (spec §13, PROPOSED 2026-09-24; implementation started at the owner's direction, spec under review).
   Motivated by M68.1, whose four review rounds were all synchronisation defects between copies of one pairing
   verdict. Branch `feat/m44-single-state-session`.
-  - [M44.4a] ☐ `GraphOpened` and `LogOpened` on every open path; `SessionSnapshot`; `post(fact)`. Deletes the
-    observation funnel.
-  - [M44.4b] ☐ `LogAppended` with a log-generation gate. Deletes the append republish and the `invokeAndWait`.
+  - [M44.4a] ☑ Facts (`GraphOpened`, `GraphCleared`, `LogCleared`, `LogAppended`) with a log-generation gate, and
+    `post(fact)`. Deleted the observation funnel (`2fbfee04`).
+  - [M44.4b] ☑ `SessionSnapshot` and its listener; Follow reports appends; coverage reads the snapshot. Deleted the
+    frame's scorer, the append republish and the `invokeAndWait`.
   - [M44.4c] ☐ `ViewFilterChanged`, `MembershipCompared` and a `PairingQualifier` node. Deletes the frame's
     pairing and qualification fields.
-  - [M44.4d] ☐ Audit retention by kind: re-scopes at DEBUG in a separate ring, tracing kept on.
+  - [M44.4d] ☑ Folded into M44.4b: re-scopes are held in a separate ring and tracing stays on. The DEBUG half was
+    not built (spec §13).
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button

@@ -174,13 +174,15 @@ class PairingDuringLoadFrameTest {
     }
 
     /**
-     * Round 4, O-i — a Follow append must not spend the session's audit ring. The ring holds 2,000 records, described
-     * as "a long investigation's worth of transitions"; one record per append on a live log would evict them in about
-     * half an hour. The session's copy of the pairing has one consumer, the coverage claim, so it is refreshed when
-     * coverage reads it — and the claim must then count the appended record.
+     * Round 4, O-i, reworded by M44.4b (spec §13, D-S13.5) to the property it protects. The ring holds 2,000 records,
+     * "a long investigation's worth of transitions", and one record per append would evict them in about half an hour.
+     * Round 4 met that by keeping the session UNINFORMED of appends until coverage read the claim. M44.4b informs it
+     * on every poll, so its verdict is current, and meets the cost in the sink: re-scopes are held in a ring of their
+     * own. So the assertion is no longer "no record was written" but "no transition was evicted, and the appends are
+     * on the record" — and the claim counts the appended records without anything refreshing it on read.
      */
     @Test
-    void aFollowAppendWritesNoSessionAuditRecordUntilCoverageReadsIt(@TempDir Path tmp) throws Exception {
+    void aFollowAppendEvictsNoTransitionRecordAndTheClaimIsCurrent(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
         Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
         StringBuilder yaml = new StringBuilder();
@@ -204,7 +206,8 @@ class PairingDuringLoadFrameTest {
             var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
             render(ex, "open", Map.of("follow", true));
             Thread.sleep(1500);                                   // let Follow settle before counting
-            long before = onEdtGet(() -> session.auditSink().total());
+            var transitionsBefore = onEdtGet(() -> session.auditSink().transitions());
+            long rescopesBefore = onEdtGet(() -> (long) session.auditSink().matching("event: LogAppended").size());
             for (int n = 0; n < 5; n++) {
                 Files.writeString(audit, "eventLogRecord:\n  logTime: " + (5000 + n) + "\n  event: Tick\n  nodeLogs:\n"
                         + "    - rootNode: { v: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
@@ -217,8 +220,10 @@ class PairingDuringLoadFrameTest {
                 }
             }
             Thread.sleep(1200);                                   // one more poll past the last append
-            long after = onEdtGet(() -> session.auditSink().total());
-            assertEquals(0, after - before, "session audit records written by five Follow appends: " + (after - before));
+            assertEquals(transitionsBefore, onEdtGet(() -> session.auditSink().transitions()),
+                    "five Follow appends must leave the transition record exactly as it was");
+            long rescopes = onEdtGet(() -> (long) session.auditSink().matching("event: LogAppended").size()) - rescopesBefore;
+            assertTrue(rescopes >= 1 && rescopes <= 5, "each poll that added records is on the record as a re-scope: " + rescopes);
             Map<String, Object> reply = render(ex, "coverage", Map.of());
             String claim = String.valueOf(find(reply, "claimNote"));
             assertTrue(claim.contains("of 605 records"), "the claim counts the appended records when read: " + claim);
@@ -298,8 +303,9 @@ class PairingDuringLoadFrameTest {
 
     /**
      * Re-review O-c: the parity case above uses a one-record log, so it never compares a SAMPLED verdict. Three
-     * loops collect the sample (the frame's pairingAgainst, discovery's discoverGraphs0 and the session's
-     * observation); with 600 records all three must state the same 500-of-600 verdict.
+     * loops collected the sample (the frame's pairingAgainst, discovery's discoverGraphs0 and the session's
+     * observation); with 600 records all three must state the same 500-of-600 verdict. Since M44.4b the frame's loop
+     * is gone and the frame publishes the session's verdict, so the frame leg compares what it publishes.
      */
     @Test
     void aSampledPairingAgreesAcrossFrameDiscoveryAndSession(@TempDir Path tmp) throws Exception {
@@ -324,11 +330,11 @@ class PairingDuringLoadFrameTest {
             onEdt(() -> render(ex, "source_root", Map.of("add", List.of(graph.toAbsolutePath().getParent().toString()))));
             var discover = MainFrame.class.getDeclaredMethod("discoverGraphs0");
             discover.setAccessible(true);
-            var judge = MainFrame.class.getDeclaredMethod("pairingAgainst",
-                    telamin.fluxtion.audit.analyser.analyser.parse.LogStore.class);
-            judge.setAccessible(true);
-            var storeField = MainFrame.class.getDeclaredField("store");
-            storeField.setAccessible(true);
+            // M44.4b: the frame no longer computes a pairing (pairingAgainst is deleted); it PUBLISHES the session's.
+            // The frame leg of the parity is therefore what it publishes — the verdict context and the panel render —
+            // which is the stronger comparison: the old one checked a recomputation nothing on screen displayed.
+            var publishedField = MainFrame.class.getDeclaredField("lastPairing");
+            publishedField.setAccessible(true);
             var sessionField = MainFrame.class.getDeclaredField("session");
             sessionField.setAccessible(true);
             Path wanted = graph.toAbsolutePath().normalize();
@@ -347,8 +353,8 @@ class PairingDuringLoadFrameTest {
                             .filter(r -> r.contains("via: LogOpened")).findFirst().orElse("");
                     assertTrue(arrival.contains("sampled: 500") && arrival.contains("total: 600"),
                             "arrival sample: the LogOpened record must show the same 500 of 600: " + arrival);
-                    assertEquals(discovered, judge.invoke(frame.get(), storeField.get(frame.get())), "frame/discovery, sampled");
-                    assertEquals(discovered, session.processor().pairing.verdict(), "session/discovery, sampled");
+                    assertEquals(discovered, publishedField.get(frame.get()), "frame/discovery, sampled");
+                    assertEquals(discovered, session.snapshot().pairing(), "session/discovery, sampled");
                 } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
             });
         } finally {
@@ -397,14 +403,13 @@ class PairingDuringLoadFrameTest {
             var sessionField = MainFrame.class.getDeclaredField("session");
             sessionField.setAccessible(true);
             var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
-            var storeField = MainFrame.class.getDeclaredField("store");
-            storeField.setAccessible(true);
-            var judge = MainFrame.class.getDeclaredMethod("pairingAgainst", telamin.fluxtion.audit.analyser.analyser.parse.LogStore.class);
-            judge.setAccessible(true);
+            // M44.4b: the frame leg is the verdict it PUBLISHES; it no longer computes one (see the sampled case above)
+            var publishedField = MainFrame.class.getDeclaredField("lastPairing");
+            publishedField.setAccessible(true);
             onEdt(() -> {
                 try {
-                    assertEquals(discovered, judge.invoke(frame.get(), storeField.get(frame.get())), "frame/discovery parity");
-                    assertEquals(discovered, session.processor().pairing.verdict(), "session/discovery parity");
+                    assertEquals(discovered, publishedField.get(frame.get()), "frame/discovery parity");
+                    assertEquals(discovered, session.snapshot().pairing(), "session/discovery parity");
                 } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
             });
             assertEquals(3, discovered.matched());

@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Following a live log no longer pushes the analyser's own session history out of its audit record.** Each Follow
+  update is kept in a small ring of its own. Opening, closing and switching projects therefore stay on the record however
+  long a log is followed. The export interleaves both rings and says how many of each it dropped. The coverage verb
+  also reads the session's verdict as of the last completed step, and no longer waits on the window to refresh it
+  (M44.4b).
 - **Coverage now refuses a graph that a log's reader inferred, as it always said it would.** The session tracked a
   graph by its file, and a graph supplied by a log's reader has none. So the analyser's session believed no graph
   was open while one was on screen. The refusal to score coverage against a graph built from what ran therefore

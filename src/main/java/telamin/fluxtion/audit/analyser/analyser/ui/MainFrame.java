@@ -209,10 +209,12 @@ public final class MainFrame extends JFrame {
         startMcpIndicatorWatch();
         // M44.2: the coverage verdict is the processor's. Lazily read, so the driver is not built
         // before the fields its adapter performs against exist.
+        // M44.4b: read from the SNAPSHOT. The coverage verb runs on the socket thread, which used to read the processor's
+        // live fields — and, since round 4, to invokeAndWait a refresh onto the EDT first. Follow now reports every
+        // append as it lands, so the snapshot is current, immutable and safe to read here.
         actionExecutor.bindCoverageClaim(() -> {
-            if (session == null) return null;
-            refreshSessionIfLogGrew();                        // round 4, O-i: refreshed when read, not per append
-            return session.processor().coverageClaim.assessment();
+            var driver = session;
+            return driver == null ? null : driver.snapshot().claim();
         });
         actionExecutor.bindIgnoredParameters(supplied -> {
             var driver = session();
@@ -3163,7 +3165,8 @@ public final class MainFrame extends JFrame {
         } else if (lastPairing == null && store != null && topologyPanel.hasGraph() && session != null) {
             // the load did not land (onLoaded sets the verdict before clearing busy): the previous
             // log is still the open one, and the session's verdict about it is still true
-            lastPairing = session.processor().pairing.verdict();
+            lastPairing = session.snapshot().pairing();
+            publishedSnapshot = session.snapshot();
             publishPairing();
         }
     }
@@ -3884,10 +3887,7 @@ public final class MainFrame extends JFrame {
         String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(arrival.levels()).mostVerbose();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, request.provenance(),
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString()));
-        if (driver.processor().operationGate.accepted()) {
-            sessionLogGeneration = driver.processor().openLog.generation();
-            sessionNotedTotal = arrival.total();
-        }
+        if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
             loaded.close();
@@ -3953,7 +3953,8 @@ public final class MainFrame extends JFrame {
             status.setText(status.getText() + "  ·  the previous log's source-supplied graph closed with it");
         }
         refreshLoggedNodeSample();     // the observation fields, for the menu funnel's later refreshes
-        lastPairing = session.processor().pairing.verdict();   // judged in the LogOpened submit above
+        lastPairing = session.snapshot().pairing();          // judged in the LogOpened submit above
+        publishedSnapshot = session.snapshot();
         publishPairing();
         offerSourceGraph(loaded);      // M34.1 — after the re-pair, so a stale graph is gone first
         maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
@@ -4189,19 +4190,6 @@ public final class MainFrame extends JFrame {
         return new LoggedSample(logged, scan, total, levels);
     }
 
-    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing pairingAgainst(LogStore log) {
-        LoggedSample sample = sampleLoggedIds(log);
-        java.util.Set<String> logged = sample.ids();
-        int scan = sample.scanned();
-        var p = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
-                telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
-                        topologyPanel.fullTopology()), logged);
-        // review F1, then M68.1 (D-E2): the numbers describe the SAMPLE. The scope used to live only in the
-        // sentence; it is now data on the verdict, so every surface that publishes it can state it, and a
-        // later whole-log comparison (coverage) can say that it qualifies this one.
-        return p.withScope(scan, sample.total());
-    }
-
     /**
      * M35.3 — a graph the user OPENED is judged but never closed. The asymmetry with
      * {@link #repairLoadedGraph} is the point: when a log arrives, a mismatched graph is RESIDUE
@@ -4217,8 +4205,19 @@ public final class MainFrame extends JFrame {
             publishPairing();
             return null;
         }
-        var pairing = pairingAgainst(store);
+        // M44.4b: the SESSION's verdict. GraphOpened was posted by the panel's hook when the graph loaded; every caller
+        // is a menu or socket entrance, outside any operation, so it has already run and the snapshot is current. The
+        // frame used to compute the same pairing again here, from the same sample — the duplicate D-E2 forbids.
+        var snap = session().snapshot();
+        var pairing = snap.pairing();
+        if (pairing == null) {
+            lastPairing = null;
+            publishPairing();
+            return null;
+        }
+        // the snapshot listener has already run for this graph and decided whether the qualifications carry over
         lastPairing = pairing;
+        publishedSnapshot = snap;
         publishPairing();
         String name = topologyPanel.graphLabel();     // may have no FILE — a source can supply one
         // review M34 F5: "you opened it deliberately" is false for a graph the SOURCE supplied — nobody
@@ -4324,47 +4323,40 @@ public final class MainFrame extends JFrame {
         return filter == null ? null : telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter).toString();
     }
 
-    /** The session's log total as last reported to it (round 4, O-i: an append no longer reports it). */
-    private int sessionNotedTotal = -1;
-
     /**
-     * Round 4, O-i: the session's copy of the pairing has one consumer, the coverage claim. It is refreshed here, when
-     * coverage reads the claim, instead of on every Follow append — which spent one record of the session's
-     * 2,000-record audit ring per append and evicted its real transitions in about half an hour on a live log.
+     * M44.4b: a Follow append is reported to the session as it lands — one fact per poll that added records. The
+     * session re-scopes its own verdict, and the snapshot listener publishes it. This replaces two round-3/4 workarounds:
+     * the frame re-judging its OWN copy of the pairing on every append, and the session being refreshed lazily from
+     * the socket thread with invokeAndWait. The audit cost that forced the second (O-i) is met by retaining re-scopes in
+     * a ring of their own (SessionAuditSink), not by keeping the session uninformed.
      */
-    private void refreshSessionIfLogGrew() {
-        Runnable refresh = () -> {
-            if (session != null && store != null && store.size() != sessionNotedTotal) {
-                refreshLoggedNodeSample();
-                sessionNotedTotal = store.size();
-                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended(sessionLogGeneration, loggedNodeSample,
-                        loggedSampleScanned, store.size(), observedAuditLevel()));
-            }
-        };
-        if (javax.swing.SwingUtilities.isEventDispatchThread()) {
-            refresh.run();
-        } else {
-            try {
-                javax.swing.SwingUtilities.invokeAndWait(refresh);
-            } catch (Exception e) {
-                // a refresh that could not run leaves the previous claim, whose note states its own scope
-            }
-        }
+    private void reportAppendToSession() {
+        if (session == null || store == null) return;
+        refreshLoggedNodeSample();
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended(sessionLogGeneration, loggedNodeSample,
+                loggedSampleScanned, store.size(), observedAuditLevel()));
     }
 
     /**
-     * Round 3, N1: after a Follow append the published pairing is re-judged against the current store, so its scope
-     * counts the new records ("first 500 of 601") — and the qualifications move with it, because their own
-     * staleness is judged by log size, not by which pairing object they sit on. The sample only changes while the
-     * log is under {@value #PAIRING_SAMPLE} records; above that the counts stand and only the scope moves.
+     * M44.4b: the one place the published pairing changes after a load. The snapshot is the session's verdict; the frame
+     * renders it. The qualifications stay bound when the snapshot is about the same pair (same log generation, same
+     * graph revision) — a re-scope — and are left behind, so {@link #currentQualifications()} drops them, when it is not.
      */
-    private void republishPairingAfterAppend() {
-        if (lastPairing == null || store == null || !topologyPanel.hasGraph()) return;
-        var before = lastPairing;
-        lastPairing = pairingAgainst(store);
-        if (qualifiedPairing == before) qualifiedPairing = lastPairing;
+    private void onSessionSnapshot(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        var before = publishedSnapshot;
+        publishedSnapshot = next;
+        // review B1: while a log is loading the verdict in force is about the log being replaced, so it is PENDING, and
+        // onLoaded publishes the arrival's own verdict when the load lands
+        if (loadInFlight) return;
+        if (java.util.Objects.equals(next.pairing(), lastPairing)) return;
+        if (qualifiedPairing != null && qualifiedPairing == lastPairing && next.samePairAs(before)) {
+            qualifiedPairing = next.pairing();
+        }
+        lastPairing = next.pairing();
         publishPairing();
     }
+
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot publishedSnapshot;
 
     /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
     private void setFollowing(boolean on) {
@@ -4443,7 +4435,7 @@ public final class MainFrame extends JFrame {
         // Round 3, N1: an append is a new log revision. The sample (while under PAIRING_SAMPLE records), the
         // session's own pairing and the published pairing all move with it, and every qualification is re-read
         // at the new size — which is what marks a whole-log verdict about the old revision as stale.
-        republishPairingAfterAppend();             // round 4, O-i: the session is told when coverage reads it
+        reportAppendToSession();                   // M44.4b: the session re-scopes; its snapshot republishes
         Long mx = store.maxLogTime();
         if (mx != null) timeSlider.extendAbsMax(mx);
         timeSlider.setHistogram(buildHistogram(store, 160));
@@ -5089,7 +5081,8 @@ public final class MainFrame extends JFrame {
      * The session transition processor and its driver. Created lazily because it must not exist before
      * the fields its adapter performs against ({@code project}, {@code store}, {@code topologyPanel}).
      */
-    private telamin.fluxtion.audit.analyser.analyser.session.SessionDriver session;
+    /** Volatile since M44.4b: the socket thread reads the snapshot through it. */
+    private volatile telamin.fluxtion.audit.analyser.analyser.session.SessionDriver session;
 
     /**
      * Whether the request in flight came from a person. It is <b>rendering</b>, not policy: the
@@ -5121,6 +5114,7 @@ public final class MainFrame extends JFrame {
             // The processor starts knowing nothing. A graph can already be on screen (the start page's demo, a
             // command-line graph), so it is told — as a fact, like every other graph change. A LOG cannot be: every
             // load lands through the LogOpened result, which builds the driver first.
+            session.onSnapshot(this::onSessionSnapshot);
             if (topologyPanel.hasGraph()) session.post(graphFact());
         }
         return session;

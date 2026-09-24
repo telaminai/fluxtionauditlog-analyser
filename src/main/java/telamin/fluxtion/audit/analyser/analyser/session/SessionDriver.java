@@ -118,6 +118,10 @@ public final class SessionDriver {
     private long nextOpId = 1;
     /** M44.4a: facts posted while an operation was running, each to run as its own operation afterwards. */
     private final java.util.ArrayDeque<Object> posted = new java.util.ArrayDeque<>();
+    /** M44.4b: what the session has decided, as of the last completed operation. Read from any thread. */
+    private volatile SessionSnapshot snapshot = SessionSnapshot.EMPTY;
+    private final java.util.List<java.util.function.Consumer<SessionSnapshot>> snapshotListeners =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
 
     public SessionDriver(Adapter adapter) {
         this(adapter, new SessionAuditSink());
@@ -199,6 +203,32 @@ public final class SessionDriver {
         while (!posted.isEmpty()) {
             submit(posted.poll());
         }
+        publishSnapshot();
+    }
+
+    /**
+     * Publish after every completed operation, and tell the listeners only when something they render changed. A
+     * listener runs on this thread, outside any dispatch; it RENDERS. If it posts a fact, that runs as the next
+     * operation and publishes again — allowed, and bounded by the fact changing nothing the second time.
+     */
+    private void publishSnapshot() {
+        SessionSnapshot next = SessionSnapshot.of(processor);
+        if (next.equals(snapshot)) return;
+        snapshot = next;
+        for (var listener : snapshotListeners) listener.accept(next);
+    }
+
+    /**
+     * M44.4b (spec §13, D-S13.1): the decided state, safe to read from any thread. It reflects the last operation
+     * that COMPLETED, never a cycle in progress.
+     */
+    public SessionSnapshot snapshot() {
+        return snapshot;
+    }
+
+    /** Called on the driver's thread after each operation whose snapshot differs from the one before. */
+    public void onSnapshot(java.util.function.Consumer<SessionSnapshot> listener) {
+        snapshotListeners.add(listener);
     }
 
     /**
