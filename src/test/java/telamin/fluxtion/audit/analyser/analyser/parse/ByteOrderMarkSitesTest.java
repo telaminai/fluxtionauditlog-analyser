@@ -158,6 +158,32 @@ class ByteOrderMarkSitesTest {
     /**
      * The structural half: no source file other than {@link AuditText} tests for a BOM itself.
      * A new head-of-line site must call it — or this fails and says where.
+     *
+     * <p><b>This guard matched TEXT for three rounds, and text is the wrong thing to match.</b> Round 4
+     * found it blind to {@code 0xFEFF}; adding that string left six further spellings of the same
+     * number — lowercase {@code 0xfeff}, the digit separator {@code 0xFE_FF}, lowercase byte constants,
+     * the signed bytes {@code -17/-69/-65}, and octal — each of which the final review planted and got
+     * past it. Every one of those is the same VALUE, so the guard now lexes integer literals and
+     * compares values (see {@link #integerLiterals}). The character forms stay textual, because
+     * {@code '\}{@code uFEFF'} is not an integer literal; that check is case- and repetition-insensitive
+     * because Java accepts {@code \}{@code ufeff} and {@code \}{@code uuFEFF} as the same escape.
+     *
+     * <p><b>The byte triple is only a finding when all three values appear in ONE file.</b> A BOM in
+     * bytes is the sequence {@code EF BB BF} and a site that reads it must test all three; a lone 191
+     * in unrelated code is not a BOM site, and flagging it by value would have made this gate something
+     * people silence with exclusions.
+     *
+     * <p><b>The limit, stated.</b> No lexical check can make "there is no seventh site" true. A
+     * constant expression ({@code 0xFE00 + 0xFF}), a value read from a constant in another class, or a
+     * decomposition into arithmetic all pass this and always will. The real defence is the behavioural
+     * half of this class and its siblings — every site is fed a BOM and asserted on. This guard only
+     * makes the CHEAP mistake, writing the rule a seventh time, loud.
+     *
+     * <p><b>Witnessed, not reasoned.</b> Thirteen spellings were planted into a main source one at a
+     * time and the guard re-run against each. Eleven are named with file and line: uppercase and
+     * lowercase hex, {@code 0xFE_FF}, decimal, octal, {@code '\}{@code uFEFF'} in three cases, and the
+     * byte triple written lowercase, signed and octal. Two pass, both on purpose and both recorded
+     * above: a single byte value on its own, and the constant expression.
      */
     @Test
     void theBomRuleLivesInOneClass() throws IOException {
@@ -168,22 +194,89 @@ class ByteOrderMarkSitesTest {
                 String fn = f.getFileName().toString();
                 // AuditText owns the text rule; ByteRecordFramer keeps the byte form and says so.
                 if (fn.equals("AuditText.java") || fn.equals("ByteRecordFramer.java")) continue;
-                int n = 0;
-                for (String line : Files.readAllLines(f, StandardCharsets.UTF_8)) {
-                    n++;
-                    String t = line.strip();
+                List<String> lines = Files.readAllLines(f, StandardCharsets.UTF_8);
+                List<String> here = new ArrayList<>();
+                boolean[] bomByte = new boolean[3];                    // EF, BB, BF seen in THIS file
+                for (int n = 0; n < lines.size(); n++) {
+                    String t = lines.get(n).strip();
                     if (t.startsWith("*") || t.startsWith("//") || t.startsWith("/*")) continue;
-                    // 0xFEFF and 65279 are the NUMERIC forms of the same character. Without them a new
-                    // site written as `charAt(0) == 0xFEFF` slipped through this guard entirely —
-                    // found by re-running the witness for this very test rather than by reading it.
-                    if (t.contains("\\uFEFF") || t.contains("﻿") || t.contains("0xFEFF")
-                            || t.contains("65279") || t.contains("0xEF") || t.contains("0xBB")
-                            || t.contains("0xBF")) {
-                        offenders.add(root.relativize(f) + ":" + n);
+                    String at = root.relativize(f) + ":" + (n + 1);
+                    if (UNICODE_ESCAPE.matcher(t).find() || t.indexOf('﻿') >= 0) {
+                        offenders.add(at);
+                        continue;
+                    }
+                    for (long v : integerLiterals(t)) {
+                        if (v == 0xFEFF) {
+                            offenders.add(at);
+                            break;
+                        }
+                        // signed and unsigned readings of the same byte
+                        if (v == 0xEF || v == 0xEF - 256) { bomByte[0] = true; here.add(at); }
+                        if (v == 0xBB || v == 0xBB - 256) { bomByte[1] = true; here.add(at); }
+                        if (v == 0xBF || v == 0xBF - 256) { bomByte[2] = true; here.add(at); }
                     }
                 }
+                if (bomByte[0] && bomByte[1] && bomByte[2]) offenders.addAll(here);
             }
         }
         assertEquals(List.of(), offenders, "BOM handling must go through AuditText (or the byte framer)");
+    }
+
+    /** {@code \}{@code ufeff}, {@code \}{@code uUFEFF}, {@code \}{@code uuuFEFF} — all the same escape to javac. */
+    private static final java.util.regex.Pattern UNICODE_ESCAPE =
+            java.util.regex.Pattern.compile("\\\\u+[fF][eE][fF][fF]");
+
+    /**
+     * Every Java integer literal on {@code line}, by value — hex, binary, octal, decimal, with
+     * underscores and an {@code L} suffix, and with a preceding {@code -} read as a sign.
+     *
+     * <p>Deliberately a lexer and not a parser. It exists to defeat SPELLING, not arithmetic: reading
+     * {@code -} as a sign wherever one precedes over-reads subtraction as negation, which is harmless
+     * here because a negative reading only ever contributes to the byte triple, and that needs all
+     * three values in one file before it says anything.
+     */
+    static List<Long> integerLiterals(String line) {
+        List<Long> out = new ArrayList<>();
+        int n = line.length();
+        for (int i = 0; i < n; ) {
+            char c = line.charAt(i);
+            if (!Character.isDigit(c)) {
+                i++;
+                continue;
+            }
+            char prev = i == 0 ? ' ' : line.charAt(i - 1);
+            boolean startsAToken = !(Character.isLetterOrDigit(prev) || prev == '_' || prev == '$' || prev == '.');
+            int radix = 10;
+            int from = i;
+            if (c == '0' && i + 1 < n && (line.charAt(i + 1) == 'x' || line.charAt(i + 1) == 'X')) {
+                radix = 16;
+                from = i + 2;
+            } else if (c == '0' && i + 1 < n && (line.charAt(i + 1) == 'b' || line.charAt(i + 1) == 'B')) {
+                radix = 2;
+                from = i + 2;
+            } else if (c == '0' && i + 1 < n && Character.digit(line.charAt(i + 1), 8) >= 0) {
+                radix = 8;
+                from = i + 1;
+            }
+            int j = from;
+            StringBuilder digits = new StringBuilder();
+            while (j < n && (line.charAt(j) == '_' || Character.digit(line.charAt(j), radix) >= 0)) {
+                if (line.charAt(j) != '_') digits.append(line.charAt(j));
+                j++;
+            }
+            if (startsAToken && digits.length() > 0) {
+                try {
+                    long v = Long.parseLong(digits.toString(), radix);
+                    out.add(v);
+                    int k = i - 1;
+                    while (k >= 0 && (line.charAt(k) == ' ' || line.charAt(k) == '\t')) k--;
+                    if (k >= 0 && line.charAt(k) == '-') out.add(-v);
+                } catch (NumberFormatException tooBig) {
+                    // not a value this guard can be about
+                }
+            }
+            i = Math.max(j, i + 1);
+        }
+        return out;
     }
 }

@@ -239,6 +239,15 @@ Review was right that the record was incomplete. Adding the three it named, and 
    converted the `\uFEFF` escape into a literal BOM, so the match silently hit nothing and the test kept
    failing. I found it by printing the framed text, not by re-reading the patch — after two rounds of
    asserting a fix that was never applied.
+5. **Mine, found by the final review: I rewrote committed evidence.** See *The sixth thing that went
+   wrong* below. It is the worst item on this list, because unlike the other four it destroyed
+   something rather than only stating something untrue, and it sat unnoticed for four rounds.
+6. **Mine, found by me while answering the final review: seventeen commits, no CHANGELOG line.**
+   CLAUDE.md rule 2 says every user-visible change adds one **in the same commit**. This branch adds a
+   finding, a second finding, a coverage annotation and a fix that **changes a verdict** — and touched
+   `CHANGELOG.md` not once. Five review rounds did not catch it either, which is the more useful half
+   of the observation: the rule has no gate, so it holds only as long as everyone remembers it. Filled
+   in now, retrospectively, which is strictly worse than doing it per commit.
 
 **Review also confirmed my question-2 suspicion was wrong:** the byte framer checks every line, lines
 are assembled across buffer reads before checking, and a BOM at five positions around the 64 KB boundary
@@ -255,10 +264,15 @@ witness.
   so `cat bom-only.yaml run.yaml` still hid the record key and a `#` header. **This corrects my own
   round-3 claim**: I reported fixing "the double-BOM loop", and that held in the framers but **not in
   `strip`**. The report said more than was true.
-- **F2** — `HeapLogStore.appendFrom` used `Files.readString`, which threw `MalformedInputException` when
-  a Follow poll landed inside a multi-byte character. It now decodes to the last complete character and
-  leaves the rest pending; malformed bytes elsewhere still throw. I checked `completeUtf8` at every edge
-  I could construct and it holds.
+- **F2 — Follow polls only.** `HeapLogStore.appendFrom` used `Files.readString`, which threw
+  `MalformedInputException` when a Follow poll landed inside a multi-byte character. It now decodes to
+  the last complete character and leaves the rest pending; malformed bytes elsewhere still throw. I
+  checked `completeUtf8` at every edge I could construct and it holds. **The fix does not cover
+  opening a file**: `HeapLogStore.fromFile` (`HeapLogStore.java:117`) still calls `Files.readString`,
+  so opening a log while it is being written can fail exactly the way Follow did. Final review found
+  that; my round-4 wording implied the path was closed, and it is not. Left as it is on purpose —
+  `completeUtf8` there would turn a loud failure into a quiet truncation on the main open path, and
+  that is a decision to take with a test in front of it, not in the last commit before a merge.
 - **F4** — one `isControlEvent` predicate shared by `ONLY_CONTROL_EVENTS` and MA-8, so a lookalike cannot
   count for one and not the other; and `PerNodeLevelChanges.all()` no longer claims a report path that
   does not exist.
@@ -271,13 +285,85 @@ witness.
    constants, but **not the numeric form** — a site written `charAt(0) == 0xFEFF` passed it silently.
    Now widened to `0xFEFF` and `65279`, and it names file and line.
 
-### A behaviour change worth stating
+## Final review — one blocker, and the instrument changed
+
+Verdict was *changes required*, four items, one blocking. All four are answered below. The blocker was
+not a defect in the feature: it was **evidence I had quietly rewritten**, which is the failure this
+whole branch is about — an instrument that says more than it established.
+
+### A behaviour change worth stating — now measured
 
 `RecordParser` now strips **ASCII whitespace only** (space, tab, CR, LF) where it used
 `String.strip()`, which removes every Unicode space. That is closer to §1 and it is what the rest of the
-parser already did — but it **is** a change for a line indented with, say, a non-breaking space or an
-ideographic space: such a line is no longer treated as blank or trimmed to its content. No fixture
-covers that, and nothing in the corpus produces it, so it is recorded rather than tested.
+parser already did.
+
+Round 4 recorded this as *untested, because nothing in the corpus produces it*. **Final review's answer
+was that untested is not the same as unmeasurable, and it was right.** Measured, and pinned by
+`UnicodeIndentationTest`:
+
+- a record indented with **U+3000** (ideographic space) or **U+2003** (em space) loses every indented
+  field — `event`, `logTime` — and its `nodeLogs` block never opens, because `splitScalar`'s key then
+  fails `isIdentifier` at character 0;
+- the record is still **`OK`, not `PARSE_ERROR`**: `eventLogRecord:` sits at column 0 so `sawFields` is
+  set. **The loss is quiet**, which is the part worth pinning;
+- the only signal is `NO_NODE_LOGS`, **whose message names the wrong cause** — it says the graph was
+  built without `addEventAudit()`. Recorded as a known misattribution rather than fixed: no producer,
+  fixture or conformance case emits such a file (YAML permits only the space character for indentation),
+  and inventing a finding for an unobserved shape is how a diagnostic surface rots.
+
+The narrowing is **kept**. Widening `AuditText.strip` to accept Unicode spaces would put the parser and
+the framers, which were always ASCII-only, back out of step — the drift `AuditText` exists to end. If a
+real producer is ever found emitting one, the fix is one place and this test is what changes.
+
+### The sixth thing that went wrong: I rewrote committed evidence
+
+Final review's F1, and the only blocking finding of the round. My MA-8 commit `bce830c4` stripped two
+trailing spaces from `docs/handoff/evidence/mongoose-audit-production-2026-09-23/spike-output.txt`, a
+**captured producer output committed as evidence three commits earlier**. The lines were the audit
+writer's own `nodeLogs: ` and `... allEventHandlereventLogRecord: `, each with the trailing space the
+writer actually emits — precisely the format-faithful detail `TrailingWhitespaceTest` exists to protect.
+
+It went unnoticed for four rounds because the gate that catches it did not yet cover that path: main has
+since added the file to both `EVIDENCE` and `BYTE_SENSITIVE`, so the rebased tree fails without the
+bytes. **Restored byte-identical from `ee2c5148`, the commit that captured it.**
+
+What this says about the rest of the branch, checked rather than assumed: every file the branch
+*modifies* rather than adds, compared before and after, changes no other line's trailing whitespace.
+That check is by count and so would miss one line losing a space while another gained one — a shape I
+have no reason to expect and did not separately exclude.
+
+### The guard rewritten: values, not text
+
+Round 4 widened the structural guard to `0xFEFF` and `65279` after I found it blind to the numeric form.
+**Final review found six more spellings of the same number that still got past it**, each planted and
+run: lowercase `0xfeff`, the digit separator `0xFE_FF`, lowercase byte constants, the signed bytes
+`-17/-69/-65`, octal, and a constant expression. Matching text was the wrong instrument.
+
+The guard now **lexes integer literals and compares values**. The character forms stay textual, because
+`'\u` `FEFF'` is not an integer literal — and that check is now case- and repetition-insensitive,
+because `﻿` and `\uuFEFF` are the same escape to `javac` and **both would have passed the round-4
+guard too**; neither was planted by review, and neither is hypothetical. The byte triple is a finding
+only when all three of `EF`, `BB`, `BF` appear in one file, by value: a BOM in bytes is that sequence
+and a real site must test all three, whereas flagging a lone `191` by value would have made this gate
+something people silence with exclusions.
+
+**Witnessed, not reasoned.** Thirteen spellings planted into `ProducerDiagnostics` one at a time, guard
+re-run against each, source restored between: **eleven named with file and line** — uppercase and
+lowercase hex, `0xFE_FF`, decimal, octal, the escape in three forms, and the byte triple written
+lowercase, signed and octal. **Two pass, both on purpose and both stated in the test:** a single byte
+value alone, and the constant expression `0xFE00 + 0xFF`.
+
+**The limit, stated where it belongs.** No lexical check can make *there is no seventh site* true — a
+constant expression, a value read from another class, or any arithmetic decomposition passes it and
+always will. The behavioural half is the defence; this guard only makes the cheap mistake loud.
+
+### A tail that will never complete
+
+Final review, Low, and carried rather than fixed. A lone byte left behind by a killed writer now sits
+pending forever: `completeUtf8` waits for the rest of a character that is never coming. **The verdict
+stays honest** — the state is `unknown`, which is what §1a says about anything after the last marker —
+but nothing names the stuck tail, so a reader sees a file that is permanently about to finish. Naming it
+needs a rule for how long is too long, which is a decision, not a fix.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
@@ -311,6 +397,12 @@ about the FILE rather than a counter; the four MA-8 mutations review said surviv
 a named assertion; the MA-6 framing cases; the five `canOpen` cases. Final suites —
 `svc-admin-web` **131/0**, core **214/0/9 skipped**, analyser **1904/0/62 skipped**.
 
+**Ran, final review round:** the U+3000 and U+2003 measurement, five tests, which confirmed prediction
+P4.1 including the quiet-`OK` part; the guard witness — thirteen spellings planted into
+`ProducerDiagnostics` one at a time, the guard re-run against each, the source restored between and the
+worktree verified clean afterwards; the before/after trailing-whitespace comparison over every file the
+branch modifies; the full suite on this base and again on the rebased tree.
+
 **Read, not run:**
 
 - `ReportRenderer`'s contents — enough to establish it carries no producer findings today, which is why
@@ -322,7 +414,9 @@ a named assertion; the MA-6 framing cases; the five `canOpen` cases. Final suite
   shape is now recognised by a reader;
 - `U1.2` — review settled it independently: the JSON-lines export, the read endpoint and the websocket
   tail all go through Jackson, one line per record, so they are not injectable. I did not verify that
-  myself.
+  myself;
+- `HeapLogStore.fromFile`'s mid-write behaviour — final review states it can fail the way Follow did,
+  and reading the code agrees, but I did not construct that failure.
 
 **Not done:** D-MA0c, MA-0.5, the MA-0.7/MA-6.3 fixtures, MA-5.7, and MA-8's report path. Round 3 added
 no new gaps. AFMT-3 is

@@ -8,6 +8,41 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 - Docs: describe starter 1.0.74 standalone and hosted Spring authoring, generated callback audit facts, matching-version upgrades, and the version-scoped protection for dependency classes. Older-release evidence and remaining limitations stay explicit.
 
+### Added
+- **An empty log now says it is empty.** A file with no records reads as exactly that, in all six shapes
+  it can take, instead of opening silently with nothing in it and leaving you to guess whether the run
+  produced nothing or the reader found nothing. A file with no index supplied is untouched — that means
+  *no index*, not *no records*.
+- **A document that is not a log is named as one.** A YAML file that never opens a record is reported
+  rather than read as a log with no content. The test is the file's framing — its first non-blank,
+  non-comment line — not a search for the key somewhere in the text, so a document that merely mentions
+  `eventLogRecord` is still not a log.
+- **An uncovered node whose audit level was changed now says so.** A node set to `WARN` still runs, but
+  its info lines are suppressed, so it carried no entries and coverage listed it as uncovered with no
+  explanation — while the record stating the change sat in the same file. That change is now shown
+  beside the node. It is an annotation, never an excuse: the node stays in the uncovered list and in the
+  ratio, and the annotation is read even when a filter hides the record it came from.
+- An empty or blank file now opens by its extension rather than being refused as unreadable.
+
+### Fixed
+- **A byte-order mark no longer changes a verdict.** A record behind a BOM lost its thread, level and
+  logger, and because the finest level is read from there, `auditLevelFinest` fell from DEBUG to INFO and
+  coverage went on to say debug calls might be missing. It was not only a first-line problem: a file made
+  by concatenating two runs carries a mark in the middle, and every record behind it was affected the
+  same way.
+- A BOM before a leading `---` stopped it separating, so the head of a healthy file ran together; a file
+  containing only byte-order marks framed as one record instead of reading as empty. Repeated marks are
+  handled, because concatenating two marked files produces them.
+- Following a growing log no longer fails when a poll lands inside a multi-byte character; the rest of
+  the character is awaited. Genuinely malformed bytes still fail loudly.
+- An event whose name merely resembles the framework's own control event is no longer counted as one.
+
+### Changed
+- Record lines are trimmed of **ASCII whitespace only** — space, tab, CR, LF — matching the format
+  specification and the rest of the reader, where one path previously trimmed every Unicode space. A line
+  indented with an ideographic or em space is no longer trimmed to its content, and the fields on it are
+  lost. YAML permits only the space character for indentation and no known producer emits one.
+
 ## [1.19.0] - 2026-09-23
 
 - Java spotlight echoes omit `partial` when no line band is measurable, rather than describing an invisible line as partly visible. Line numbers follow the editor, including its final empty line after a trailing newline.
