@@ -53,7 +53,15 @@ class DuplicateGlobalChartsFrameTest {
                 assertTrue(components(tabs).stream().anyMatch(c -> c instanceof JTextArea a
                         && a.isVisible() && a.getText().equals(tabs.definitionRefusal())),
                         "the refusal must be visible on the Graph panel");
-                assertNull(tabs.addGraph("Other"), "withheld definitions must not acquire unsaved edits");
+                // Owner decision 2026-09-24: this assertion used to require that NO chart could be created
+                // while definitions are withheld. That blocked unrelated work for people whose profiles
+                // were made ambiguous by a shipped release, and the clause it cited — "withheld definitions
+                // must not acquire unsaved edits" — is about reopening a WITHHELD chart, not about making a
+                // new one. Both halves are now asserted separately.
+                assertNull(tabs.addGraph("Same"),
+                        "a WITHHELD definition still cannot be opened — this is what the clause protects");
+                assertNotNull(tabs.addGraph("Other"),
+                        "but an unrelated new chart is allowed; nothing is persisted while a refusal stands");
                 assertEquals(original, f.frame.config().savedGraphs);
                 assertDoesNotThrow(() -> invoke(f.frame, "saveConfigQuietly"), "autosave must leave withheld definitions intact");
                 assertDoesNotThrow(() -> invoke(f.frame, "applyImportedConfig"),

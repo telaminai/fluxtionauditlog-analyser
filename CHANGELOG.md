@@ -81,6 +81,19 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   reload. The zoom controls had no tooltip at all and the pin's did not mention that it persists.
 
 
+
+- **Duplicate chart names can now be repaired in the app.** A project holding two charts under one name
+  still withholds both rather than guessing, but the Graph panel now offers **Repair names…**, which
+  names each contested chart, says what it contains, and offers rename or delete for each. Nothing is
+  chosen by default and a partial answer is refused, so no definition is removed without being asked for.
+
+- **An ambiguous project no longer blocks unrelated chart work.** Only Delete is withheld while duplicate
+  names are unresolved; New graph, Rename and Close work as usual, both in the app and through the
+  assistant's `graph` action, and a chart made while names are unresolved is kept when they are repaired.
+  Nothing is written to the project until then. Duplicates were creatable by earlier releases, so this
+  affected people who had done nothing wrong.
+
+
 - **An assistant that sends a chart series in the wrong shape is now told so.** `graph {series}` takes
   `"instanceId.key"` strings. An object such as `{expr, label}` used to be turned into a key that could
   never match, saved with the chart, and answered as a success, leaving an empty chart that looked

@@ -41,6 +41,24 @@ public final class GraphTabs extends JPanel {
     private final javax.swing.JTextArea definitionNotice = new javax.swing.JTextArea();
     private final javax.swing.JScrollPane definitionNoticeScroll = new javax.swing.JScrollPane(definitionNotice);
     private final List<JButton> editingButtons = new ArrayList<>();
+    /** Shown only while definitions are withheld: the way out that is not "close the app and edit a file". */
+    private final JButton repairButton = new JButton("Repair names…");
+    private Runnable repairHandler = () -> { };
+
+    public void setRepairHandler(Runnable handler) {
+        this.repairHandler = handler == null ? () -> { } : handler;
+    }
+
+    /** Visible for tests: the control a person uses to resolve ambiguity in place. */
+    JButton repairButton() {
+        return repairButton;
+    }
+
+    /** Definitions are unambiguous again; drop the refusal so the next restore can bind them. */
+    public void clearRefusal() {
+        definitionRefusal = null;
+        showDefinitionNotice();
+    }
 
     /** No definition is selected or repaired when its name is ambiguous. */
     public void refuseDefinitions(String reason) {
@@ -56,7 +74,11 @@ public final class GraphTabs extends JPanel {
     private void showDefinitionNotice() {
         definitionNotice.setText(definitionRefusal == null ? "" : definitionRefusal);
         definitionNoticeScroll.setVisible(definitionRefusal != null);
+        // Owner decision 2026-09-24: only DELETE is withheld while definitions are ambiguous. New graph,
+        // Rename and Close act on open tabs, nothing is persisted while a refusal stands, and blocking all
+        // chart work punished people whose profiles were made ambiguous by a shipped release.
         editingButtons.forEach(button -> button.setEnabled(definitionRefusal == null));
+        repairButton.setVisible(definitionRefusal != null);
         revalidate();
         repaint();
     }
@@ -67,6 +89,20 @@ public final class GraphTabs extends JPanel {
 
     public boolean hasDefinition(String name) {
         return name != null && takenNames().contains(name.trim());
+    }
+
+    /**
+     * Is this name held by a SAVED definition that is currently withheld? R13-4b: {@link #hasDefinition}
+     * answers "taken", which includes open tabs — so a chart the assistant had just created counted as
+     * withheld and could not be edited again. Only the saved definitions are actually being withheld.
+     */
+    public boolean isWithheldDefinition(String name) {
+        if (name == null || definitionRefusal == null) return false;
+        String target = name.trim();
+        for (GraphSpec g : savedDefinitions.get()) {
+            if (target.equals(g.name())) return true;
+        }
+        return false;
     }
 
 
@@ -85,7 +121,10 @@ public final class GraphTabs extends JPanel {
         JButton rename = new JButton("Rename…");
         JButton close = new JButton("Close graph");
         JButton delete = new JButton("Delete chart");
-        editingButtons.addAll(List.of(add, rename, close, delete));
+        editingButtons.add(delete);   // only Delete is withheld while definitions are ambiguous
+        repairButton.setVisible(false);
+        repairButton.setToolTipText("Resolve the duplicate chart names holding these definitions back");
+        repairButton.addActionListener(e -> repairHandler.run());
         add.addActionListener(e -> addGraph());
         rename.addActionListener(e -> promptRename(tabs.getSelectedIndex()));
         close.addActionListener(e -> closeCurrent());
@@ -97,6 +136,7 @@ public final class GraphTabs extends JPanel {
         bar.add(rename);
         bar.add(close);
         bar.add(delete);
+        bar.add(repairButton);
         add(bar, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
         definitionNotice.setEditable(false);
@@ -192,7 +232,11 @@ public final class GraphTabs extends JPanel {
      * when definitions are refused, or when an explicit name is already taken.
      */
     public GraphPanel addGraph(String name) {
-        if (definitionRefusal != null) return null;
+        // Owner decision 2026-09-24: a NEW chart is allowed while definitions are withheld — an ambiguous
+        // profile must not stop unrelated work. Reopening a WITHHELD one is still refused, by the name
+        // check below, which is what "withheld definitions must not acquire unsaved edits" actually
+        // protects. Nothing created here is persisted while a refusal stands: syncOpenGraphsIntoConfig
+        // returns early, so the ambiguous definitions are left exactly as they are on disk.
         if (name != null && !name.isBlank()
                 && (graphNamed(name.trim()) != null || (!restoring && hasDefinition(name)))) return null;
         GraphPanel panel = newPanel();
