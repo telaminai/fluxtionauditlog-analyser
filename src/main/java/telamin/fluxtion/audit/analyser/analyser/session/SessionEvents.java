@@ -240,4 +240,13 @@ public final class SessionEvents {
      */
     public record ViewFilterChanged(String filterKey) {
     }
+
+    /**
+     * M68.5 (spec-evidence-integrity D-E6): what a Follow poll established about the open log's FILE — {@code UNCHANGED},
+     * {@code APPEND}, {@code REPLACEMENT} or {@code UNVERIFIED} — with its reason. Posted only when the verdict changes.
+     * A replacement is followed by a reopen, which is a new log generation, so nothing said about the old content
+     * survives it; this fact is what lets the reopened log say WHY it was reopened.
+     */
+    public record LogIdentityObserved(long generation, String verdict, String reason) {
+    }
 }

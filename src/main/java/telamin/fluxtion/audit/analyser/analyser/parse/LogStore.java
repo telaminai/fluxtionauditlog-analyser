@@ -139,6 +139,14 @@ public interface LogStore extends AutoCloseable {
     default int trailingRecordsPending() { return -1; }
 
     /** True if this store can incrementally append newly-written records (follow/tail mode). */
+    /**
+     * M68.5 (D-E6): what the last Follow poll established about the file's identity, or null for a store that does not
+     * follow or has not polled yet.
+     */
+    default FollowIdentity followIdentity() {
+        return null;
+    }
+
     default boolean supportsFollow() {
         return false;
     }

@@ -204,6 +204,15 @@ reads through to the file, reads are suspended instead.
 records and reloads only on a shrink or rotation, and the append path returns zero for equal-length content before
 updating the store. A same-length in-place replacement is therefore neither appended nor reloaded, and nothing is
 announced on any surface. That case is acceptance, not an aside.
+
+**As built for the heap store (M68.5, 2026-09-24, not yet reviewed).** `FollowIdentity.classify` decides every
+poll, before indexing, from the load-time file key, every byte read, the key now and every byte now. It gives
+`APPEND`, `REPLACEMENT`, `UNCHANGED` or `UNVERIFIED`, and the table has no hole. **One deliberate departure from the
+wording above:** "same key, same length, changed modification time and a matching prefix" is `UNCHANGED`, not
+unverified. The heap store compares every byte, not a sample, so identical bytes are proven identical content, and
+the reason says the comparison was complete. A replacement reopens the log, which is a new session generation, so
+every verdict about the old content retires, and the reopened log states why it was reopened (`context.log.identity`).
+**The mapped store's half is not built:** it does not follow, so its identity at the next read is still open.
 ## D-E7 · A pointer that cannot resolve says why
 
 The root a project resolves against is recorded rather than inferred, and a pointer that fails reports the root it

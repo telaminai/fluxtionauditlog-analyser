@@ -321,6 +321,30 @@ def main():
             gp = ctx.get("graphPairing") or {}
             check("M68.4: the graph the request opened is still loaded", gp.get("graph") is not None, gp)
             check("M68.4: and the mismatch is stated, not hidden", gp.get("applies") is False, gp)
+
+            print("12. M68.5 — a same-length rewrite under Follow is announced, and the reopened log says why")
+            # D-E6's "case that currently produces nothing": equal length used to read as "no growth", so the rewrite
+            # was neither appended nor reloaded and nothing was announced on any surface.
+            log = os.path.join(work, "m68-5-rewrite.yaml")
+            constructed_log(log, [["checked"], ["child"], ["rootNode"]])
+            open_in_order(a, log, "log first")
+            a.act("open", follow=True)
+            time.sleep(1.5)                                  # at least one idle poll, so the rewrite is a change
+            with open(log) as f:
+                text = f.read()
+            with open(log, "w") as f:
+                f.write(text.replace("checked", "CHECKED"))   # same length, different bytes
+            identity = {}
+            deadline = time.time() + 15
+            while time.time() < deadline:
+                identity = ((a.context().get("log") or {}).get("identity")) or {}
+                if identity.get("state") == "reopened":
+                    break
+                time.sleep(0.5)
+            check("M68.5: the rewrite is detected and the log reopened", identity.get("state") == "reopened", identity)
+            check("M68.5: and it says the content already read changed",
+                  "content already read has changed" in str(identity.get("reason")), identity)
+            a.act("open", follow=False)
     finally:
         shutil.rmtree(work, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)

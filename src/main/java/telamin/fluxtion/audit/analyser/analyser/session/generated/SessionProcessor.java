@@ -50,6 +50,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpene
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.MembershipCompared;
@@ -111,6 +112,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.MembershipCompared
@@ -268,6 +270,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed",
                 false),
             new ProcessorDescriptor.Input(
+                "LogIdentityObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved",
+                false),
+            new ProcessorDescriptor.Input(
                 "LogOpenFailed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed",
                 false),
@@ -341,7 +347,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "c3c17af1c4668481c85feb8d8f36c1beb2734ef98adeeacd1611f8fa386478b0",
+              "c63344b3513cee78d3d57b9d402cbaed0f63cb7a8f406e71dbd932bdadbefc43",
               null));
 
   @Override
@@ -535,6 +541,9 @@ public class SessionProcessor
     } else if (event instanceof LogClosed) {
       LogClosed typedEvent = (LogClosed) event;
       handleEvent(typedEvent);
+    } else if (event instanceof LogIdentityObserved) {
+      LogIdentityObserved typedEvent = (LogIdentityObserved) event;
+      handleEvent(typedEvent);
     } else if (event instanceof LogOpenFailed) {
       LogOpenFailed typedEvent = (LogOpenFailed) event;
       handleEvent(typedEvent);
@@ -658,6 +667,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LogClosed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LogIdentityObserved event) {
     processEvent(event);
   }
 
@@ -914,6 +928,26 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
     isDirty_openLog = openLog.onLogClosed(typedEvent);
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    if (guardCheck_pairingQualifier()) {
+      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
+      pairingQualifier.onPairChanged();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LogIdentityObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(openLog, "openLog", "onLogIdentityObserved", typedEvent);
+    isDirty_openLog = openLog.onLogIdentityObserved(typedEvent);
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
       isDirty_pairing = pairing.recomputeOnStateChange();
@@ -1306,6 +1340,11 @@ public class SessionProcessor
       effectOutcomes.onLogClosed(typedEvent);
       auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
       isDirty_openLog = openLog.onLogClosed(typedEvent);
+    } else if (event instanceof LogIdentityObserved) {
+      LogIdentityObserved typedEvent = (LogIdentityObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(openLog, "openLog", "onLogIdentityObserved", typedEvent);
+      isDirty_openLog = openLog.onLogIdentityObserved(typedEvent);
     } else if (event instanceof LogOpenFailed) {
       LogOpenFailed typedEvent = (LogOpenFailed) event;
       auditEvent(typedEvent);

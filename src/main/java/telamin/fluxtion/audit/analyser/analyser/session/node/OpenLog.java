@@ -37,6 +37,9 @@ public class OpenLog implements EventLogSource {
     private int total;
     private String mostVerboseLevel;
     private long generation;
+    /** M68.5: the file identity verdict for this generation, and why — null until Follow has polled. */
+    private String identity;
+    private String identityReason;
 
     public OpenLog(OperationGate gate) {
         this.gate = gate;
@@ -59,6 +62,8 @@ public class OpenLog implements EventLogSource {
         sampled = 0;
         total = 0;
         mostVerboseLevel = null;
+        identity = null;                        // M68.5: a deliberate close ends the story; a later open is not a reopen
+        identityReason = null;
         auditLog.info("openLog", "none").info("via", "LogClosed");
         return wasOpen;
     }
@@ -68,12 +73,19 @@ public class OpenLog implements EventLogSource {
         if (!gate.accepted()) {
             return false;                       // a superseded load landed late: refused, state untouched
         }
+        String previousPath = logPath;          // M68.5: read BEFORE it is overwritten (set 5, P25: it was not)
         logPath = event.logPath();
         provenance = event.provenance();
         loggedNodeIds = event.loggedNodeIds();
         sampled = event.sampled();
         total = event.total();
         mostVerboseLevel = event.mostVerboseLevel();
+        // M68.5: a log reopened at the SAME path because the previous content was replaced says so, whatever the
+        // reload's own status line says afterwards — the announcement is state, not a transient message
+        boolean reopenedAfterReplacement = "REPLACEMENT".equals(identity) && java.util.Objects.equals(previousPath, event.logPath());
+        String replacedBecause = identityReason;
+        identity = reopenedAfterReplacement ? "REOPENED" : null;
+        identityReason = reopenedAfterReplacement ? "reopened because the file was replaced on disk: " + replacedBecause : null;
         generation++;
         // round 4, Q9: the arrival records its sample, so what the arrival judged can be checked after the fact
         auditLog.info("openLog", event.logPath()).info("via", "LogOpened").info("sampled", sampled).info("total", total)
@@ -95,6 +107,8 @@ public class OpenLog implements EventLogSource {
         sampled = 0;
         total = 0;
         mostVerboseLevel = null;
+        identity = null;
+        identityReason = null;
         auditLog.info("openLog", "none").info("via", "LogCleared");
         return true;
     }
@@ -116,6 +130,30 @@ public class OpenLog implements EventLogSource {
         mostVerboseLevel = event.mostVerboseLevel();
         auditLog.info("openLog", "appended").info("sampled", sampled).info("total", total);
         return moved;
+    }
+
+    /** M68.5: Follow's verdict about the file. Dirty only when the verdict or its reason moved. */
+    @OnEventHandler
+    public boolean onLogIdentityObserved(SessionEvents.LogIdentityObserved event) {
+        if (!current(event.generation(), "LogIdentityObserved")) return false;
+        boolean moved = !java.util.Objects.equals(identity, event.verdict())
+                || !java.util.Objects.equals(identityReason, event.reason());
+        identity = event.verdict();
+        identityReason = event.reason();
+        if ("REPLACEMENT".equals(identity) || "UNVERIFIED".equals(identity)) {
+            auditLog.warn("logIdentity", identity).warn("reason", identityReason);
+        } else {
+            auditLog.info("logIdentity", identity);
+        }
+        return moved;
+    }
+
+    public String identity() {
+        return identity;
+    }
+
+    public String identityReason() {
+        return identityReason;
     }
 
     private boolean current(long named, String what) {

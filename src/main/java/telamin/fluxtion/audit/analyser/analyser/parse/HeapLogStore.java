@@ -30,6 +30,9 @@ public final class HeapLogStore implements LogStore {
     private final StreamEndTracker tracker = new StreamEndTracker();
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
+    /** M68.5: the file key of the content read, or null when the filesystem has none — never compared as equal. */
+    private Object fileKey;
+    private volatile FollowIdentity followIdentity;
 
     public HeapLogStore(String file) {
         this(file, false);
@@ -120,6 +123,7 @@ public final class HeapLogStore implements LogStore {
         HeapLogStore s = new HeapLogStore(text, false);
         s.readIdentity = identity;
         s.source = path;
+        s.fileKey = keyOf(path);
         return s;
     }
 
@@ -129,6 +133,7 @@ public final class HeapLogStore implements LogStore {
         HeapLogStore live = new HeapLogStore(file, true);
         live.source = source;
         live.readIdentity = readIdentity;
+        live.fileKey = fileKey;
         return live;
     }
 
@@ -155,9 +160,25 @@ public final class HeapLogStore implements LogStore {
         // A snapshot may include an EOF record. It cannot safely become an append-only index:
         // later fields would change an existing row. The adapter reloads it as an explicit live read.
         if (includesEofRecord) return -1;
-        String full = Files.readString(p, StandardCharsets.UTF_8);
-        if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
-        if (full.length() == file.length()) return 0;    // no growth
+        // M68.5 (D-E6): identity is decided BEFORE anything is indexed. The old test was length only — shorter meant
+        // reload, equal meant nothing, longer meant append — so a same-length rewrite announced nothing and a middle
+        // rewrite plus an append was indexed as an append over bytes that no longer exist.
+        java.nio.file.attribute.BasicFileAttributes atStart = attributes(p);
+        String full;
+        try {
+            full = Files.readString(p, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            full = null;
+        }
+        java.nio.file.attribute.BasicFileAttributes after = attributes(p);
+        boolean changedDuringRead = atStart == null || after == null || atStart.size() != after.size()
+                || !atStart.lastModifiedTime().equals(after.lastModifiedTime())
+                || !java.util.Objects.equals(atStart.fileKey(), after.fileKey());
+        FollowIdentity identity = FollowIdentity.classify(fileKey, file, after == null ? null : after.fileKey(),
+                full, full != null && changedDuringRead);
+        this.followIdentity = identity;
+        if (identity.verdict() == FollowIdentity.Verdict.REPLACEMENT) return -1;   // the caller reopens, and says why
+        if (!identity.mayIndexGrowth()) return 0;          // unchanged, or not established: index nothing
         final int before = index.size();
         final int[] seen = {0};
         // M65 D-F0 part 1: publish the TEXT before the rows that point into it. The file is append-only, so
@@ -193,6 +214,22 @@ public final class HeapLogStore implements LogStore {
     }
 
     @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
+
+    /** M68.5: what the last Follow poll established about the file's identity, or null before the first poll. */
+    @Override public FollowIdentity followIdentity() { return followIdentity; }
+
+    private static Object keyOf(Path p) {
+        var a = attributes(p);
+        return a == null ? null : a.fileKey();
+    }
+
+    private static java.nio.file.attribute.BasicFileAttributes attributes(Path p) {
+        try {
+            return Files.readAttributes(p, java.nio.file.attribute.BasicFileAttributes.class);
+        } catch (IOException | SecurityException e) {
+            return null;
+        }
+    }
 
     @Override
     public StreamEnd streamEnd() {

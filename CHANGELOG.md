@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Follow now notices when the file it is following is replaced, not only when it shrinks.** A file rewritten at the
+  same length used to count as "no growth" and was ignored. A rewrite in the middle combined with an append was
+  indexed as an append, over records that had changed. Follow now compares every byte already read. If they changed,
+  or a different file now has the path, the change is announced and the log is reopened; `context.log.identity`
+  says why. A file that cannot be verified says so rather than passing as unchanged (M68.5).
 - **Opening a log and a graph together no longer loses the graph.** `open {log, graphml}` replied `ok`, then closed the
   graph a moment later if it did not fit the log. The analyser treated a graph opened while the log was still loading
   as left over from the previous investigation. A graph somebody opens after asking for a log is now kept for that

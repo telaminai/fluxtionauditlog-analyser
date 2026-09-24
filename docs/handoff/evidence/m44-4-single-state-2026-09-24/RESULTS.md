@@ -97,3 +97,20 @@ are not scored.
 **What the P22 miss teaches.** The first end-to-end check passed on the defect because it never produced the
 interleaving the defect needs. It passed for the wrong reason. Running it against the old jar is what caught that,
 which is why seen-red runs against a pre-fix build are part of the protocol.
+
+## Set 5 — M68.5, identity under Follow
+
+| # | Prediction | Result |
+|---|---|---|
+| P23 | `FollowIdentityTest` 9 green, at 85% confidence | **Held.** 9 / 0 / 0 / 0. |
+| P24 | `HeapLogStoreFollowIdentityTest` 6 green, at 60% confidence | **Held.** 6 / 0 / 0 / 0. Neither named risk fired: the touch did not read as a change during the read, and the atomic move did give a new inode. |
+| P25 | `LogIdentityTest` 4 green, at 75% confidence | **Wrong: 1 failure, a real bug.** `onlyTheSamePathIsAReopen` found a log opened at a DIFFERENT path marked `REOPENED`. The same-path comparison sat after the line that overwrote `logPath`, so it compared the new path with itself. Fixed by reading the previous path first. 4 / 0 afterwards. |
+| P26 | W23–W25 each red | **Held**, after correcting a false alarm. W23 first read as "NOT CAUGHT" in the store test. The raw report showed 2 failures, including `sameLengthRewrite: expected -1 but was 0`, the old silent behaviour. The harness regex `name="(\w+)"` never matched test names that carry a parameter (`sameLengthRewrite(Path)` for `@TempDir`). So it was a harness defect, not a missing witness. W24 and W25 were red at their named tests. |
+| P27 | headless 1,982 / 0 / 0 / 65 | **Held.** |
+| P28 | frame 66 / 0 / 0 / 1, at 60% confidence | **Held.** No Follow frame test hit a moving-read pause. |
+| P29 | scenario 12 fails on `f2e25e80`, passes on the fix | **Held.** Old jar 67 pass, 2 fail (`identity: {}`: the same-length rewrite ignored); fixed jar 69 / 0. |
+
+**The harness defect is worth keeping.** All six witness scripts this session share the pattern. Earlier sets used
+test methods without parameters, so they were unaffected. Any future witness against a parameterised test would
+have reported NOT CAUGHT for a real catch, the safe direction, but a false alarm all the same. Match on the name up
+to `(` or `"`.

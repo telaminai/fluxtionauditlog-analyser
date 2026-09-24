@@ -4017,6 +4017,12 @@ public final class MainFrame extends JFrame {
                         : displayName(location),
                 loaded.streamEnd().isKnownComplete(), orderWarning, producerWarning,
                 trailingPendingNote()));
+        // M68.5: a log reopened because its file was replaced says so on the line that follows the load, not only on the
+        // line the load has just overwritten. The reason is the session's (OpenLog), so it is not a frame copy.
+        var reopened = sessionSnapshot();
+        if ("REOPENED".equals(reopened.logIdentity())) {
+            status.setText(status.getText() + "  ·  ⚠ " + reopened.logIdentityReason());
+        }
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
@@ -4297,6 +4303,27 @@ public final class MainFrame extends JFrame {
      * the socket thread with invokeAndWait. The audit cost that forced the second (O-i) is met by retaining re-scopes in
      * a ring of their own (SessionAuditSink), not by keeping the session uninformed.
      */
+    /**
+     * M68.5: Follow's verdict about the file, reported to the session only when it CHANGES — an unchanged verdict on
+     * every idle poll is the non-change that cost transition records twice already in M44.4.
+     */
+    private void reportIdentityToSession(telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity identity) {
+        if (session == null || identity == null) return;
+        var snap = sessionSnapshot();
+        // APPEND and UNCHANGED alternate on every append-then-idle pair of polls, and mean the same thing to the
+        // session: the same file, every byte already read verified. Reporting them apart would post two facts per
+        // append. So the session hears one state for both, and a fact only when THAT changes.
+        boolean verified = identity.verdict() == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.APPEND
+                || identity.verdict() == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.UNCHANGED;
+        String verdict = verified ? "VERIFIED" : identity.verdict().name();
+        String reason = verified ? "the same file; every byte already read is verified unchanged" : identity.reason();
+        if (verdict.equals(snap.logIdentity()) && reason.equals(snap.logIdentityReason())) return;
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved(sessionLogGeneration, verdict, reason));
+        if (identity.verdict() == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.UNVERIFIED) {
+            status.setText("⚠ " + displayName(followPath) + ": " + identity.reason());
+        }
+    }
+
     private void reportAppendToSession() {
         if (session == null || store == null) return;
         refreshLoggedNodeSample();
@@ -4356,12 +4383,21 @@ public final class MainFrame extends JFrame {
             var observed = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(Path.of(followPath));
             added = store.appendFrom(Path.of(followPath));
             if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
+            reportIdentityToSession(store.followIdentity());   // M68.5: before anything the poll adds is published
         } catch (java.io.IOException ex) {
             status.setText("Follow read failed: " + rootMessage(ex));
             return;
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
             followTimer.stop();          // avoid re-entrant reloads while the async load runs
+            var identity = store.followIdentity();
+            if (identity != null && identity.verdict()
+                    == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.REPLACEMENT) {
+                // M68.5 (D-E6): announced BEFORE anything further is served. The reopen is a new log generation, so
+                // every verdict about the old content retires with it; the reopened log carries this reason.
+                status.setText("⚠ " + displayName(followPath) + " was replaced on disk — " + identity.reason()
+                        + " — reopening it as a new log; nothing shown from the old content is current");
+            }
             // review F1: carry WHO ASKED, not just what was declared — a rotation's audience is
             // whoever was there for the open that started it
             // M38.3: re-declare what the OPENER declared, not what the project supplied — the environment is
@@ -6183,6 +6219,12 @@ public final class MainFrame extends JFrame {
                 log.put("freshness", logFreshness());
                 log.put("following", following);
                 log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
+                // M68.5 (D-E6): what Follow established about the FILE, from the session; absent before the first poll
+                var identitySnap = sessionSnapshot();
+                if (identitySnap.logIdentity() != null) {
+                    log.put("identity", Map.of("state", identitySnap.logIdentity().toLowerCase(java.util.Locale.ROOT),
+                            "reason", String.valueOf(identitySnap.logIdentityReason())));
+                }
             }
             if (store != null && store.trailingRecordsIncluded() >= 0) {
                 log.put("trailingRecordsIncluded", store.trailingRecordsIncluded());

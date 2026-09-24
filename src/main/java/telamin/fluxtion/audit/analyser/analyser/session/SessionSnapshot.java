@@ -21,15 +21,18 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  *                       surface states it as pending rather than as current (review B1)
  * @param qualifications what wider comparisons say about {@code pairing}, or null — an independent copy (M44.4c)
  * @param filterKey      the view filter in force, by identity, so a comparison made under another reads as stale
+ * @param logIdentity    M68.5: Follow's verdict about the log FILE ({@code VERIFIED}/{@code UNVERIFIED}/{@code REPLACEMENT}),
+ *                       {@code REOPENED} after a replacement, or null before Follow has polled
  */
 public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
                               boolean graphOpen, String graphPath, String graphSource, long graphRevision,
                               GraphPairing pairing, CoveragePolicy.Assessment claim, boolean pending,
-                              PairingQualifications qualifications, String filterKey) {
+                              PairingQualifications qualifications, String filterKey,
+                              String logIdentity, String logIdentityReason) {
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
     public static final SessionSnapshot EMPTY =
-            new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null);
+            new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null, null, null);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -37,7 +40,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.openGraph.isOpen(), p.openGraph.graphPath(), p.openGraph.source(), p.openGraph.revision(),
                 p.pairing.verdict(), p.coverageClaim.assessment(),
                 p.operationGate.inFlightWhat() != null,
-                p.pairingQualifier.qualifications(), p.pairingQualifier.filterKey());
+                p.pairingQualifier.qualifications(), p.pairingQualifier.filterKey(),
+                p.openLog.identity(), p.openLog.identityReason());
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

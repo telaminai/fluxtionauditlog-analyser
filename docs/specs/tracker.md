@@ -607,7 +607,13 @@ verdict, which is owned jointly.
   immediately after the combined open settled, and two seconds later it was gone. So an acceptance that checks the
   first echo, or even the first settled context, passes on a request that will still lose part of itself —
   test on the final state after the log-arrival rule has run.
-- [M68.5] ☐ **Identity change under follow, and the project root** — was WS-1 and WS-2.
+- [M68.5] ◧ **Identity change under follow, and the project root** — was WS-1 and WS-2.
+  **Heap-store Follow identity built 2026-09-24 on `feat/m44-single-state-session`** (not reviewed).
+  `FollowIdentity.classify` covers every acceptance-7 case, with one departure recorded under D-E6 (full-byte
+  comparison makes a touched identical file UNCHANGED). The heap store decides before indexing; a replacement
+  reopens as a new generation and `context.log.identity` says why. The verifier's scenario 12 FAILS on a
+  `f2e25e80` jar (the same-length rewrite ignored) and passes on the fix. **Open:** the mapped store's identity at
+  the next read (acceptance 7's second store), and the project-root diagnostic (acceptance 8's remaining half).
   Related narrow correction: [PR #7](https://github.com/telaminai/fluxtionauditlog-analyser/pull/7),
   `fix/named-profile-project-root` at `c3523506`, fixes relative-path anchoring for named profiles.
   Reviewed: 52 configuration tests pass; restoring the canonical-only lookup fails the named-profile
