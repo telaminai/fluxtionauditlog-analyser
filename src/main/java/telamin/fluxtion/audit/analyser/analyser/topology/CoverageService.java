@@ -50,36 +50,23 @@ public final class CoverageService {
         Set<String> logged = new LinkedHashSet<>();
         List<String> levels = new ArrayList<>();
         int scanned = 0;
+        int[] inView = new int[store.size()];
         for (int row = 0; row < store.size(); row++) {
             if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
+            inView[scanned] = row;
             scanned++;
             levels.add(store.record(row).level());
             for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
         }
         NodeCoverage coverage = NodeCoverage.of(scope.loggable(), logged, Set.of());
         AuditLevel auditLevel = AuditLevel.of(levels);
-        // MA-8. Read UNFILTERED on purpose: a level change is configuration state, not an event you
-        // happen to be looking at, so a filter that hides the control record must not drop the
-        // annotation. AuditLevel above reports GLOBAL levels; this is the per-node case it cannot see.
+        // MA-8. Changes are read UNFILTERED on purpose: a level change is configuration state, not an
+        // event you happen to be looking at, so a filter that hides the control record must not drop the
+        // annotation. What the filter decides is which records the annotation must be ABOUT: the rows in
+        // view, by position. The earlier time-range version widened an EMPTY selection to all time, and
+        // let a record at exactly a restore's instant fall inside the window it closed (review F5).
         PerNodeLevelChanges levelChanges = PerNodeLevelChanges.of(store);
-        // The scope's end: a change AFTER the last record in view cannot explain silence before it.
-        // logTime is NULLABLE — untimed records are legal (§1, fixture c05) — so they are skipped
-        // rather than dereferenced. A scope made only of untimed records has no end, and MAX_VALUE
-        // then means "no change is in the future", which is the honest reading.
-        long scopeEnd = Long.MIN_VALUE;
-        long scopeStart = Long.MAX_VALUE;
-        for (int row = 0; row < store.size(); row++) {
-            if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
-            Long at = store.record(row).logTime();
-            if (at != null) {
-                scopeEnd = Math.max(scopeEnd, at);
-                scopeStart = Math.min(scopeStart, at);
-            }
-        }
-        // A scope of only untimed records has no bounds, and the widest pair means "no change is
-        // outside it", which is the honest reading when there is nothing to compare against.
-        if (scopeEnd == Long.MIN_VALUE) scopeEnd = Long.MAX_VALUE;
-        if (scopeStart == Long.MAX_VALUE) scopeStart = Long.MIN_VALUE;
+        inView = java.util.Arrays.copyOf(inView, scanned);
 
         Map<String, Object> echo = new LinkedHashMap<>();
         echo.put("dispatchHierarchy", "unknown");
@@ -102,7 +89,7 @@ public final class CoverageService {
         if (levelChanges.any()) {
             Map<String, String> annotations = new LinkedHashMap<>();
             for (String node : coverage.uncovered()) {
-                String note = levelChanges.annotationFor(node, scopeStart, scopeEnd);
+                String note = levelChanges.annotationFor(node, inView);
                 if (note != null) annotations.put(node, note);
             }
             if (!annotations.isEmpty()) {

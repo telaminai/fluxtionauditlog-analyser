@@ -21,8 +21,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **An uncovered node whose audit level was changed now says so.** A node set to `WARN` still runs, but
   its info lines are suppressed, so it carried no entries and coverage listed it as uncovered with no
   explanation — while the record stating the change sat in the same file. That change is now shown
-  beside the node. It is an annotation, never an excuse: the node stays in the uncovered list and in the
-  ratio, and the annotation is read even when a filter hides the record it came from.
+  beside the node, naming the records that open and close it. It is an annotation, never an excuse: the
+  node stays in the uncovered list and in the ratio, and the annotation is read even when a filter hides
+  the record it came from. A change applies exactly as the runtime applies it: a change naming no node
+  sets every node, a change addressed to another processor grouping does not apply, and a later change —
+  per-node or global — ends it. A window that crosses a stream-end marker says so.
 - An empty or blank file now opens by its extension rather than being refused as unreadable.
 
 ### Fixed

@@ -40,6 +40,7 @@ public final class HeapLogStore implements LogStore {
     private long byteLength = -1;
     /** Trailing bytes held back as the valid start of an unfinished character. They are past every item. */
     private volatile int pendingBytes;
+    private volatile java.util.List<Integer> runBoundaries = java.util.List.of();
 
     public HeapLogStore(String file) {
         this(file, false);
@@ -77,6 +78,7 @@ public final class HeapLogStore implements LogStore {
         // A held-back marker is not a trailing RECORD, so this snapshot has no EOF record to reload for.
         this.includesEofRecord = eof && !requireTerminator && lastIndexed;
         this.streamEnd = tracker.resolve();
+        this.runBoundaries = tracker.runBoundaries();
         if (trailingPending) streamEnd = pendingOverride(streamEnd, index.size());
     }
 
@@ -207,6 +209,7 @@ public final class HeapLogStore implements LogStore {
         }, true);
         this.pendingBytes = decoded.pendingBytes();
         this.streamEnd = tracker.resolve();
+        this.runBoundaries = tracker.runBoundaries();
         // Held-back bytes are content past the last item, exactly like a record still being written: the
         // file cannot vouch for itself while they are there, whatever an earlier marker declared (F2).
         if (trailingPending || pendingBytes > 0) streamEnd = pendingOverride(streamEnd, index.size());
@@ -279,6 +282,11 @@ public final class HeapLogStore implements LogStore {
     @Override
     public StreamEnd streamEnd() {
         return streamEnd;
+    }
+
+    @Override
+    public java.util.List<Integer> runBoundaries() {
+        return runBoundaries;
     }
 
     @Override

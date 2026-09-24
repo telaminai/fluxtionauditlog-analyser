@@ -55,4 +55,24 @@ class PerNodeLevelChangesTest {
         assertNull(PerNodeLevelChanges.field("EventLogConfig[level: WARN, sourceId: riskCheck]", "level"),
                 "a different rendering yields no annotation, and must not throw");
     }
+
+    /**
+     * MA-8.5's pin, made LIVE: the rendering is read from the runtime jar this build actually links,
+     * not from a string typed into a test. If a runtime upgrade changes EventLogConfig's toString, this
+     * fails and says so, instead of every annotation quietly disappearing.
+     */
+    @Test
+    void theRuntimeOnTheClasspathRendersWhatThisClassReads() {
+        var warn = com.telamin.fluxtion.runtime.audit.EventLogControlEvent.LogLevel.WARN;
+        var info = com.telamin.fluxtion.runtime.audit.EventLogControlEvent.LogLevel.INFO;
+        String perNode = new com.telamin.fluxtion.runtime.audit.EventLogControlEvent("riskMonitor", null, warn).toString();
+        assertTrue(PerNodeLevelChanges.recognised(perNode), "per-node rendering: " + perNode);
+        assertEquals("WARN", PerNodeLevelChanges.field(perNode, "level"));
+        assertEquals("riskMonitor", PerNodeLevelChanges.field(perNode, "sourceId"));
+        String global = new com.telamin.fluxtion.runtime.audit.EventLogControlEvent(info).toString();
+        assertTrue(PerNodeLevelChanges.recognised(global), "global rendering: " + global);
+        assertNull(PerNodeLevelChanges.field(global, "sourceId"), "a global change names no node");
+        String grouped = new com.telamin.fluxtion.runtime.audit.EventLogControlEvent(null, "alpha", warn).toString();
+        assertEquals("alpha", PerNodeLevelChanges.field(grouped, "groupId"));
+    }
 }

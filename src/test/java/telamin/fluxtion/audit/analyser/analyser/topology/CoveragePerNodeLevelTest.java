@@ -184,7 +184,10 @@ class CoveragePerNodeLevelTest {
         assertTrue(annotations(r).containsKey(node),
                 "MA-8.4: the WARN window is real even though the LAST change is the restore — "
                         + "using only the last change annotated nothing. annotations=" + annotations(r));
-        assertTrue(annotations(r).get(node).contains("between"),
+        // Independent review F4/F5 moved intervals from logTime to record order, so the window is stated
+        // by the records that open and close it rather than by "between 1000 and 1007".
+        assertTrue(annotations(r).get(node).contains("at record 1 (logTime 1000)")
+                        && annotations(r).get(node).contains("until record 3 (logTime 1007)"),
                 "and the annotation states the window: " + annotations(r).get(node));
     }
 
@@ -253,30 +256,48 @@ class CoveragePerNodeLevelTest {
                 "the WARN window closed at 1007, long before this scope began: " + annotations(filtered));
     }
 
-    /** LOW — one group's change must not close another group's window. */
+    /**
+     * A change addressed to ANOTHER processor grouping does not apply — the runtime's rule, not a guess.
+     *
+     * <p>This test used to assert that {@code beta}'s INFO left {@code alpha}'s WARN window open, on the
+     * model that {@code groupId} named a group of NODES. It does not. fluxtion-runtime 1.0.16 applies a change
+     * only when the PROCESSOR's {@code groupingId} is null or equals the change's {@code groupId}, and a change
+     * with no {@code sourceId} then sets every node. So the old assertion was right for a processor grouped as
+     * {@code alpha} and wrong for an ungrouped one, where beta's INFO really does restore every node. Both are
+     * asserted now, and the difference is read from each record's own {@code groupingId:} field.
+     */
     @Test
-    void oneGroupsChangeDoesNotCloseAnothersWindow() {
+    void aChangeAddressedToAnotherGroupingDoesNotApply_andInAnUngroupedProcessorItDoes() {
         CoverageService.Result base = assess(plainRecord(1000));
         String node = anUncoveredNode(base);
-        String groupControl = """
+        String controls = """
                 eventLogRecord:
                   logTime: 1000
+                  groupingId: %1$s
                   event: EventLogControlEvent
                   eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=alpha}
                   nodeLogs:
                 ---
                 eventLogRecord:
                   logTime: 1005
+                  groupingId: %1$s
                   event: EventLogControlEvent
                   eventToString: EventLogConfig{level=INFO, logRecordProcessor=null, sourceId=null, groupId=beta}
                   nodeLogs:
                 ---
                 """;
 
-        CoverageService.Result r = assess(groupControl + plainRecord(1006));
-        assertTrue(annotations(r).containsKey(node),
-                "alpha's WARN window is still open — beta's change must not close it: " + annotations(r));
-        assertTrue(annotations(r).get(node).contains("alpha"), "and it names the group");
+        CoverageService.Result grouped = assess(controls.formatted("alpha") + plainRecord(1006));
+        assertTrue(annotations(grouped).containsKey(node),
+                "in a processor grouped 'alpha', beta's change does not apply and alpha's WARN still governs: "
+                        + annotations(grouped));
+        assertTrue(annotations(grouped).get(node).contains("'alpha', which is this processor's"),
+                "and it says why the change applied: " + annotations(grouped).get(node));
+
+        CoverageService.Result ungrouped = assess(controls.formatted("null") + plainRecord(1006));
+        assertFalse(annotations(ungrouped).containsKey(node),
+                "in an ungrouped processor BOTH apply, so beta's INFO restored every node before record 3: "
+                        + annotations(ungrouped));
     }
 
     /** LOW — a lookalike event name is not a control event. */
@@ -349,13 +370,14 @@ class CoveragePerNodeLevelTest {
 
         assertTrue(annotations(r).containsKey(node),
                 "the window must survive an untimed close: " + annotations(r));
-        assertTrue(annotations(r).get(node).contains("until an untimed change"),
+        assertTrue(annotations(r).get(node).contains("until record 3 (untimed)"),
                 "and say what closed it: " + annotations(r).get(node));
     }
 
     /**
-     * Multi-group fall-through: when the FIRST group's window does not apply, a later group's must
-     * still be considered. Reinstating an early {@code break} in the byGroup loop survives without this.
+     * A loud change that is not the first must not stop a later quiet one being found. Originally the
+     * multi-group fall-through test; under the runtime's rule both changes apply to an ungrouped processor
+     * and both set every node, so it now asserts that the LATER, quiet one is the one that explains.
      */
     @Test
     void aLaterGroupsWindowIsFoundWhenTheFirstDoesNotApply() {
@@ -381,5 +403,112 @@ class CoveragePerNodeLevelTest {
                 "alpha is DEBUG and explains nothing; beta's WARN does, and must still be reached: "
                         + annotations(r));
         assertTrue(annotations(r).get(node).contains("beta"), "and it names beta: " + annotations(r).get(node));
+    }
+
+    // ------------------------------------------------------------------ independent review F4, F5, O3
+
+    private static String globalControl(long logTime, String level) {
+        return control(logTime, "null", level);
+    }
+
+    private static final String MARKER_2 = "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 2\n---\n";
+    private static final String MARKER_1 = "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 1\n---\n";
+
+    /**
+     * F4 — a GLOBAL restore closes a per-node interval. The runtime sets every node's logger on a change
+     * with no sourceId (measured on 1.0.16: after per-node WARN, canLog(INFO) is false; after a global INFO it
+     * is true). The time-based version kept saying "WARN to the end of this log" after the restore.
+     */
+    @Test
+    void aGlobalRestoreClosesAPerNodeInterval() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String seq = control(1000, node, "WARN") + plainRecord(1003) + globalControl(1007, "INFO") + plainRecord(1008);
+
+        assertTrue(annotations(assess(seq, true, window(1003, 1003))).containsKey(node),
+                "positive control: a record inside the WARN interval is explained");
+        assertFalse(annotations(assess(seq, true, window(1008, 1008))).containsKey(node),
+                "F4: after a global INFO the node is not WARN any more, so nothing explains its silence: "
+                        + annotations(assess(seq, true, window(1008, 1008))));
+    }
+
+    /** MA-8.2, kept apart from F4's wording: the level changes never move the denominator or the ledger. */
+    @Test
+    void levelChangesNeverMoveTheDenominatorOrTheLedger() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String withChanges = control(1000, node, "WARN") + plainRecord(1003) + globalControl(1007, "INFO") + plainRecord(1008);
+        String without = plainRecord(1003) + plainRecord(1008);
+        for (long at : new long[]{1003, 1008}) {
+            var a = assess(withChanges, true, window(at, at));
+            var b = assess(without, true, window(at, at));
+            assertEquals(b.echo().get("uncovered"), a.echo().get("uncovered"), "uncovered at " + at);
+            assertEquals(b.echo().get("ratio"), a.echo().get("ratio"), "ratio at " + at);
+            assertEquals(b.ledger(), a.ledger(), "ledger at " + at);
+        }
+    }
+
+    /** F5 — the interval is half-open by POSITION: a record after the restore is outside it. */
+    @Test
+    void theRestoreBoundaryIsHalfOpen() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String seq = control(1000, node, "WARN") + control(1007, node, "INFO") + plainRecord(1007);
+        var r = assess(seq, true, window(1007, 1007));
+        assertEquals(2, r.echo().get("recordsScanned"), "precondition: the restore and the record are both in view");
+        assertFalse(annotations(r).containsKey(node),
+                "F5: nothing in view lies inside [WARN, INFO), so nothing is explained: " + annotations(r));
+    }
+
+    @Test
+    void oneInstantInsideIsExplainedAndOneAfterIsNot() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String seq = control(1000, node, "WARN") + plainRecord(1003) + control(1007, node, "INFO") + plainRecord(1008);
+        assertTrue(annotations(assess(seq, true, window(1003, 1003))).containsKey(node), "inside");
+        assertFalse(annotations(assess(seq, true, window(1008, 1008))).containsKey(node), "after");
+    }
+
+    /** F5 — an EMPTY selection is not an unbounded one, before or after every control. */
+    @Test
+    void anEmptySelectionIsExplainedByNothing() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String seq = plainRecord(500) + control(1000, node, "WARN") + plainRecord(1001);
+        for (long[] w : new long[][]{{1, 2}, {9000, 9001}}) {
+            var r = assess(seq, true, window(w[0], w[1]));
+            assertEquals(0, r.echo().get("recordsScanned"), "precondition: nothing is in view");
+            assertFalse(annotations(r).containsKey(node),
+                    "F5: no record is in view, so no level explains one [" + w[0] + "," + w[1] + "]: " + annotations(r));
+        }
+    }
+
+    /** F5's last clause — a control AFTER the records in view cannot explain them, timed or not. */
+    @Test
+    void aControlAfterTheRecordsInViewExplainsNothing_evenUntimed() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        var r = assess(plainRecord(1000) + untimedControl(node, "WARN"), true, window(1000, 1000));
+        assertFalse(annotations(r).containsKey(node),
+                "an untimed control after the record was assigned to the start of the log: " + annotations(r));
+    }
+
+    /** O3 — whole fields only, and a rendering this class does not know is skipped, never read as global. */
+    @Test
+    void aFieldThatIsNotTheFieldIsNotReadAsItOrAsAbsent() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String wrong = control(1000, node, "WARN").replace("sourceId=" + node, "not_sourceId=" + node);
+        var r = assess(wrong + plainRecord(1001));
+        assertTrue(annotations(r).isEmpty(),
+                "not_sourceId is not sourceId — and a missing sourceId must not become 'every node': " + annotations(r));
+        String twice = control(1000, node, "WARN").replace("groupId=null", "groupId=null, sourceId=other");
+        assertTrue(annotations(assess(twice + plainRecord(1001))).isEmpty(), "a field written twice is ambiguous");
+    }
+
+    /** Carried item: a level set in one run is not silently carried into the next. */
+    @Test
+    void anIntervalThatCrossesARunBoundarySaysSo() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
+        String later = annotations(assess(seq, true, window(2000, 2000))).get(node);
+        assertNotNull(later, "the annotation is not dropped — the level may well have survived");
+        assertTrue(later.contains("stream-end marker before record 3") && later.contains("survived"),
+                "but it says a run boundary lies inside the interval: " + later);
+        String same = annotations(assess(seq, true, window(1001, 1001))).get(node);
+        assertFalse(same.contains("stream-end marker"), "within the same run there is nothing to qualify: " + same);
     }
 }

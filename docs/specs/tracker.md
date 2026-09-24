@@ -142,8 +142,11 @@ still to do.
   that ran three times. Coverage must say why it is silent instead of listing it as uncovered.
   **PHASE 1 DONE:** `PerNodeLevelChanges` reads the level changes a log states about itself and
   `CoverageService` annotates uncovered nodes with them — **annotate, never excuse** (the node stays in
-  the ratio), read **unfiltered**, keyed on the event TYPE, with group-level annotation where the log
-  alone cannot map a group to its nodes. **MA-8's report path is open.** Review found four surviving
+  the ratio), read **unfiltered**, keyed on the event TYPE. **Reworked after the independent review
+  (2026-09-24):** intervals are by record ORDER, closed by the next per-node or global change, empty
+  selections explained by nothing, run boundaries qualified; and a change applies by the RUNTIME's rule —
+  `groupId` gates it against the processor's `groupingId`, it is not node membership (the phase-1 reading
+  was inferred and wrong). **MA-8's report path is open.** Review found four surviving
   mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
@@ -183,8 +186,10 @@ still to do.
   reviewer that I reviewed rather than took, and a final round whose one blocker was **evidence I had
   rewritten** — two trailing spaces stripped from a committed producer capture — now restored
   byte-identical and gated. Ships: `mongoose-plugins` **1.0.45 released**; core **merged to `develop`**;
-  analyser **ready to merge as a partial** on `feat/mongoose-audit-production-rebased`, rebased onto
-  `610d5777`, suite 1939/0/62. **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  analyser was declared ready at 1939/0/62 — then an **independent review** (2026-09-24) found three High
+  regressions of mine (a BOM separator reopening #39, Follow hiding bytes after a marker, every healthy
+  binary record flagged) and three Medium; all fixed with regressions and witnesses, plus a `groupId`
+  misreading it did not name. Suite 1961/0/62. **Awaiting re-review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and

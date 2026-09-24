@@ -347,21 +347,34 @@ with the answer sitting in the file.
 
 ### Acceptance MA-8
 
-1. When a control record names a `sourceId`, coverage **annotates that node** — its level was set to
-   `WARN` at *t*, and lines below that level are not in this log.
+1. When a control record that applies (see 5) names a `sourceId`, or names none and so sets every
+   node, coverage **annotates each affected uncovered node** — its level was set to `WARN` at a named
+   record, and lines below that level are not in this log.
 2. **Annotate, never excuse.** The node **stays in `uncovered` and in the ratio**, with the note.
    Excusing it would hide a node that never ran if the qualifying record is wrong — and MA-7's injection
    means a control-*looking* record can be content until every writer escapes.
 3. **Filter scope:** level changes are configuration state, consulted **regardless of the current
-   filter**, up to the scope's end. A time or type filter that excludes the control record must not drop
-   the annotation.
-4. **Intervals:** a node set to `WARN` and later restored is annotated **only between the two changes**;
-   silence outside that window is plain uncovered.
-5. **What is parsed:** key on the record's `event` being `EventLogControlEvent` and parse
-   `sourceId`/`level` — **the runtime's `toString` format is not a contract**, so the fixture is pinned
-   to the runtime version. **`groupId` IS in scope**, treated exactly as `sourceId`: it targets nodes and
-   produces the same silence. Where the log alone does not let a `groupId` be mapped to its nodes, the
-   annotation is made **at the group level**, naming the limitation rather than dropping it.
+   filter**. A time or type filter that excludes the control record must not drop the annotation. What
+   the filter decides is which records the annotation is ABOUT — the records in view — and an **empty
+   selection is explained by nothing**; it is not an unbounded one.
+4. **Intervals, by record ORDER:** a change governs the records **after** its own control record and
+   **before** the next change that applies to the same node — a per-node change to that node, or a global
+   one. Half-open: a record after the restore is outside the window, whatever its `logTime`. A change
+   after every record in view explains none of them, timed or untimed. An interval that crosses a run
+   boundary (a stream-end marker) is **qualified, not dropped**: a marker does not prove the process
+   restarted, and nothing in the log proves the level survived.
+5. **What is parsed, and when a change applies — as the RUNTIME does it** (1.0.16,
+   `EventLogManager.calculationLogConfig`): key on the record's `event` being `EventLogControlEvent`;
+   read `level`, `sourceId`, `groupId` as **whole fields** of the pinned `EventLogConfig{…}` rendering,
+   which writes all four every time — a record missing one, or naming one twice, is not a rendering the
+   analyser knows and is **skipped**, never read as global. A change **applies** only when the
+   processor's grouping — the `groupingId:` every runtime record carries — is null or equals the
+   change's `groupId`; it then sets **that node** (`sourceId`) or **every node** (`sourceId` null). The
+   pin is tested against the runtime jar the build links, not a typed string.
+   *Superseded 2026-09-24:* this clause previously said `groupId` was "treated exactly as `sourceId`" and
+   annotated nodes "at the group level" where membership could not be mapped. `groupId` is not node
+   membership; that reading was inferred, shipped in phase 1, and was found by reading the runtime while
+   answering the independent review's F4.
 6. A conformance fixture. *(The admin endpoint is global-only, so this is reachable from Java alone —
    which does not make it rare in hand-tuned deployments.)*
 

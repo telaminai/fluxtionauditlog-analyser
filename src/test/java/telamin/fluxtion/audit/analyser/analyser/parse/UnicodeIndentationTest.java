@@ -28,10 +28,13 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p><b>Why the narrowing is kept anyway.</b> YAML permits only the space character for indentation,
  * so a file indented with U+3000 is malformed at the format level before it reaches this parser; no
- * producer, fixture or conformance case in the corpus emits one; and accepting Unicode spaces here
- * while every framer rejects them would put the two halves of the reader back out of step, which is
- * the drift {@link AuditText} exists to end. If a real producer is ever found doing this, the fix is
- * a widened {@code AuditText.strip} — one place — and this test is what will change.
+ * producer, fixture or conformance case in the corpus emits one. That is the reason, and it is the only
+ * one: an earlier version of this comment added that widening here would necessarily put the reader's
+ * halves out of step, and the independent review (O2) was right that it would not — record parsing and
+ * marker recognition need not share one whitespace policy. What IS true is that {@link AuditText#strip}
+ * also serves the marker recogniser, where accepting Unicode spaces was measured unsafe in round six;
+ * so if a real producer is ever found doing this, the fix is a separate, wider strip for record
+ * parsing ONLY, never a wider {@code AuditText.strip}, and this test is what will change.
  */
 class UnicodeIndentationTest {
 

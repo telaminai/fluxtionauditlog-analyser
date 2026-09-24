@@ -22,6 +22,7 @@ public final class SpiLogStore implements LogStore {
     private final LogIndex index = new LogIndex();
     private final AuditLogReader reader;
     private final List<String> sourceDiagnostics = new ArrayList<>();
+    private java.util.List<Integer> runBoundaries = java.util.List.of();
     private telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd streamEnd =
             telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.unknown(0);
 
@@ -78,6 +79,7 @@ public final class SpiLogStore implements LogStore {
         // A plugin owns its container, so the analyser cannot see an unterminated tail through the SPI:
         // whatever the reader chose to hand over is all there is. A marker still counts.
         store.streamEnd = tracker.resolve();
+        store.runBoundaries = tracker.runBoundaries();
         return store;
     }
 
@@ -89,6 +91,11 @@ public final class SpiLogStore implements LogStore {
     @Override
     public telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd streamEnd() {
         return streamEnd;
+    }
+
+    @Override
+    public List<Integer> runBoundaries() {
+        return runBoundaries;
     }
 
     @Override

@@ -116,7 +116,7 @@ of the other checks.
 **MA-8** annotates an uncovered node whose level a log changed per node. **Annotate, never excuse**: the
 node stays in `uncovered` and in the ratio. Read **unfiltered**. Keyed on the event **type**, with the
 rendering parsed tolerantly so a format change loses the annotation rather than breaking the load.
-`groupId` in scope, annotated at group level where the log cannot map it to nodes.
+`groupId` in scope, annotated at group level where the log cannot map it to nodes. **Wrong, and superseded after the independent review** — `groupId` gates a change by the processor's grouping; see *Independent review* below.
 
 **Acceptances met:** MA-0.1 (all six shapes, and openable after round 2), MA-0.3, MA-0.4, MA-0.6,
 MA-6.1, MA-6.2 (reader side), MA-8.1–8.5 **including 8.4 after round 2**. 24 tests across
@@ -322,9 +322,12 @@ was that untested is not the same as unmeasurable, and it was right.** Measured,
   fixture or conformance case emits such a file (YAML permits only the space character for indentation),
   and inventing a finding for an unobserved shape is how a diagnostic surface rots.
 
-The narrowing is **kept**. Widening `AuditText.strip` to accept Unicode spaces would put the parser and
-the framers, which were always ASCII-only, back out of step — the drift `AuditText` exists to end. If a
-real producer is ever found emitting one, the fix is one place and this test is what changes.
+The narrowing is **kept**, because no producer emits such a file. *(Qualified after the independent
+review, O2: this paragraph also said widening would necessarily put the parser and the framers out of
+step. Too strong — record parsing and marker recognition need not share one whitespace policy. What is
+true is narrower: `AuditText.strip` also serves the marker recogniser, where Unicode spaces were measured
+unsafe, so any future widening must be a separate strip for record parsing only. The misleading
+`NO_NODE_LOGS` wording for this case remains an explicit follow-up.)*
 
 ### The sixth thing that went wrong: I rewrote committed evidence
 
@@ -382,10 +385,62 @@ always will. The behavioural half is the defence; this guard only makes the chea
 ### A tail that will never complete
 
 Final review, Low, and carried rather than fixed. A lone byte left behind by a killed writer now sits
-pending forever: `completeUtf8` waits for the rest of a character that is never coming. **The verdict
-stays honest** — the state is `unknown`, which is what §1a says about anything after the last marker —
-but nothing names the stuck tail, so a reader sees a file that is permanently about to finish. Naming it
-needs a rule for how long is too long, which is a decision, not a fix.
+pending forever: `completeUtf8` waits for the rest of a character that is never coming. ~~The verdict
+stays honest — the state is `unknown`~~ **That sentence was false, and the independent review measured it
+(F2):** when the stuck byte followed a marker, Follow compared decoded lengths, saw no growth, and kept
+**COMPLETE**. It is true now — held-back bytes withhold the verdict — and only since `87a442d4`. Nothing
+yet names the stuck tail, so a reader sees a file permanently about to finish; naming it needs a rule for
+how long is too long, which is a decision, not a fix.
+
+## Independent review — three High, three Medium, and an error of mine it did not name
+
+Review `2d7ac12f` on `review/mongoose-analyser-independent-2026-09-24`, against `0b7076fd`: a reviewer
+with no stake in the earlier rounds, asked to go where they had not. **Changes required**, and right on
+every count. All six required findings reproduced on my checkout **before any change**, with the
+reviewer's own probe, against the published `svc-admin-web-1.0.45.jar` (SHA-256 matching the review) and
+runtime 1.0.16. Predictions `P5` were committed first (`dbc51ae9`); the probe's output before and after
+is kept beside them (`probe-0b7076fd.txt`, `probe-after-fixes.txt`).
+
+| | Finding | Cause | Fix | Regression and witness |
+|---|---|---|---|---|
+| F1 High | a BOM-prefixed separator in a node value passes the released exporter and forges COMPLETE | **mine, round 3**: the framers skipped U+FEFF on every line; #39's escape does not | a BOM counts before `---` only at the file's first byte | `ExporterFramingAgreementTest`: real runtime record → real 1.0.45 exporter → heap, mapped, Follow; 9 spellings × 2 settings. Undo either framer's restriction → that store's named assertion fails |
+| F2 High | one incomplete byte after a marker left Follow COMPLETE, identity kept | **mine, round 4**: growth measured in decoded characters | growth in bytes; held-back bytes withhold the verdict; identity clears; only a valid RFC 3629 prefix waits | `FollowPendingBytesTest`: 2/3/4-byte characters cut after every prefix byte from a complete file, then recovered; 8 never-valid sequences throw. 5 protections witnessed separately |
+| F3 High | every healthy binary record raised NO_RECORD_KEY | mine: the positional rule stopped at the binary reader's leading `---` | plain leading separators are part of the record boundary | `RecordKeyBoundaryTest` through the real binary writer, reader and SPI store with the real index; headerless and later-mention records still named |
+| F4 Medium | a global restore never closed a per-node interval | mine: only per-node changes were modelled | intervals by record order, closed by the next per-node **or global** change | `aGlobalRestoreClosesAPerNodeInterval`, plus denominator/ledger equality asserted separately |
+| F5 Medium | the restore instant fell inside the window; an empty selection read as all time | mine: time clipping with `MIN`/`MAX` sentinels | position, half-open; no rows in view explains nothing | four tests; three mutations, each failing its own assertion |
+| F6 Medium | MA-6 claimed "reads as complete … keys and newlines are gone" of every input | mine: one AFMT-3 case written as every case | quotes what it saw; conditional on a marker | three states × wording assertions; restoring the old text fails |
+| O1 | `0_177377` passed the guard | lexer checked for an octal digit, not `_` | fixed | every claimed spelling asserted on the lexer directly |
+| O3 | `not_sourceId=` annotated the node | substring search | whole fields of the pinned rendering | see below — my first fix made this **worse** |
+| O4 | "one predicate" was not one | two scopes presented as one | documented as two; the sniff uses ASCII whitespace | — |
+
+**The error the review did not name.** Reading `EventLogManager.calculationLogConfig` for F4, as rule 6
+requires, showed that `groupId` is **not a group of nodes**: it gates the whole change against the
+PROCESSOR's `groupingId`, which every runtime record writes, and a change with no `sourceId` then sets
+every node. MA-8 treated `groupId` as node membership and annotated "this may or may not cover" each node.
+**The spec said so too** (MA-8.5, "treated exactly as `sourceId`"), and it passed five spec reviews and
+four implementation reviews that way. Inferred, not read. Corrected in the code, the spec (the old clause
+marked superseded, not deleted), the tracker and this report, and
+`theRuntimeOnTheClasspathRendersWhatThisClassReads` now pins the rendering against the runtime jar the
+build actually links rather than a typed string.
+
+**Where my own fix went wrong, caught before commit.** Making `field` whole-field for O3 turned
+`not_sourceId=riskMonitor` into an ABSENT `sourceId` — absent means `null`, and `null` means every node,
+so the probe then showed all five nodes annotated. A rendering the class did not recognise was read as a
+global change. The runtime writes all four fields every time, so a record lacking one is now skipped.
+
+**Two predictions were wrong.** P5.2 expected at least one round-3 test to break when the BOM widening was
+reversed; **none did, because no test ever pinned a BOM before a mid-file `---`** — the widening was
+untested in exactly the direction that mattered. P5.5 expected several `CoveragePerNodeLevelTest`
+assertions to change; three did, and one of them (`oneGroupsChangeDoesNotCloseAnothersWindow`) asserted
+the wrong group model and is rewritten to assert the runtime's rule in both directions.
+
+**Not fixed, stated.** The pre-existing `UNSEPARATED` misreading of a payload (base does it too). A cold
+**mapped** open of a file ending in a lone `C3` counts that byte as a record where heap Follow now waits;
+the state is UNKNOWN either way, and cold-open UTF-8 is the limitation the review accepted, but the two
+stores disagree on the count. `RollSetResolver`'s tail-chunk probe frames from a chunk start; it reads
+only `logTime` and cannot change a count.
+
+**Suite:** 1961/0/62, up from 1939 — 22 tests added.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
@@ -464,8 +519,10 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **ready to merge as a partial**, on `feat/mongoose-audit-production-rebased`, rebased onto
-  `610d5777`, suite green, all four required items answered. Not merged: that call is the owner's.
+- analyser — **NOT ready until the independent review's fixes are re-reviewed.** The six required
+  findings are fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation
+  witness, plus the `groupId` correction the review did not name. Still based on `610d5777`; `origin/main`
+  has moved since, and the rebase comes after re-review, not under it. Not merged: the owner's call.
 
 Three release-note items stand, unchanged by this round: the producer findings are not in the report
 surface yet (D-MA0c); the `attach` default overload quietly drops fan-out for any other capture-service

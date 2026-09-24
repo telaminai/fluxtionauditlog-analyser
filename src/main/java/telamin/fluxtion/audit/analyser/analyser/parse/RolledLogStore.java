@@ -150,6 +150,16 @@ public final class RolledLogStore implements LogStore {
      * {@link #sourceDiagnostics()} names which file. Set-level completeness would need set-level
      * evidence — a manifest, or a marker that names its successor — which Format 1 has no room for.
      */
+    /** Each member's run boundaries, moved into the set's numbering. A FILE boundary is not a run boundary. */
+    @Override
+    public List<Integer> runBoundaries() {
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < members.size(); i++) {
+            for (int b : members.get(i).runBoundaries()) out.add(firstRow[i] + b);
+        }
+        return List.copyOf(out);
+    }
+
     @Override
     public StreamEnd streamEnd() {
         StreamEnd worst = null;
