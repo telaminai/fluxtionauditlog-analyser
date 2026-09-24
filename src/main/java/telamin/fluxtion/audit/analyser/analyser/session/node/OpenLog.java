@@ -73,7 +73,8 @@ public class OpenLog implements EventLogSource {
         sampled = event.sampled();
         total = event.total();
         mostVerboseLevel = event.mostVerboseLevel();
-        auditLog.info("openLog", event.logPath()).info("via", "LogOpened");
+        // round 4, Q9: the arrival records its sample, so what the arrival judged can be checked after the fact
+        auditLog.info("openLog", event.logPath()).info("via", "LogOpened").info("sampled", sampled).info("total", total);
         return true;
     }
     /** M35-era observation: still the route for closes and menu refreshes; never judged (M44.3a). */

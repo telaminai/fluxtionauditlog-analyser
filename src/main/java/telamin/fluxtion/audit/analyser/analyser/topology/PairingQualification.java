@@ -30,12 +30,24 @@ import java.util.Map;
  * @param declaredOfLogged  how many of those the graph declares
  * @param notDeclared       the ids the graph does not declare, capped at twenty
  * @param supersedesSample  true when coverage looked at the whole log and the published pairing did not
+ * <p><b>Bound to its filter too (round 4, Q5b).</b> A filtered comparison records which filter it was made under,
+ * {@link #filterKey}. Read under a different filter it is stale in the same way a grown log makes a whole-log one
+ * stale: it names the filter it described instead of calling itself "current filter".
+ *
+ * <p><b>Its fields say what its words say (round 4, Q2).</b> When stale, {@code toMap()} publishes {@code scope} as
+ * what was actually compared ("first 600 of 601 records") and {@code supersedesSample: false}. Before this the note
+ * was honest and the fields beside it still claimed the whole log, which an assistant reading fields would believe.
+ *
  * @param logRecords        records the log held when coverage compared it
  * @param logRecordsNow     records the log holds as this is read; greater than {@code logRecords} means stale
+ * @param filterKey         the identity of the filter a narrower comparison was made under, or null for the whole log
+ * @param filterLabel       that filter in words, for a reader
+ * @param filterKeyNow      the filter in force as this is read
  */
 public record PairingQualification(String scope, int recordsCompared, boolean established, int loggedIds,
                                    int declaredOfLogged, List<String> notDeclared, boolean supersedesSample,
-                                   int logRecords, int logRecordsNow) {
+                                   int logRecords, int logRecordsNow, String filterKey, String filterLabel,
+                                   String filterKeyNow) {
 
     public PairingQualification {
         notDeclared = notDeclared == null ? List.of() : List.copyOf(notDeclared);
@@ -53,20 +65,53 @@ public record PairingQualification(String scope, int recordsCompared, boolean es
         boolean wholeLog = "whole log".equals(scope);
         boolean publishedPartial = published == null || published.sampled()
                 || published.recordsScanned() < 0;
+        String filterKey = wholeLog ? null : stringOf(coverageEcho.get("filterKey"));
+        String filterLabel = wholeLog ? null : stringOf(coverageEcho.get("filterLabel"));
         return new PairingQualification(scope, records, Boolean.TRUE.equals(m.get("established")),
                 intOf(m.get("loggedIds")), intOf(m.get("declaredOfLogged")), foreign,
-                wholeLog && publishedPartial, logRecords, logRecords);
+                wholeLog && publishedPartial, logRecords, logRecords, filterKey, filterLabel, filterKey);
     }
 
-    /** This qualification as read against a log that now holds {@code records} records. */
+    /** This qualification as read against a log that now holds {@code records} records, under the same filter. */
     public PairingQualification atLogSize(int records) {
-        return new PairingQualification(scope, recordsCompared, established, loggedIds, declaredOfLogged,
-                notDeclared, supersedesSample, logRecords, Math.max(records, logRecords));
+        return atView(records, filterKeyNow);
     }
 
-    /** True when the log has grown since coverage compared it: this is then a verdict about an older revision. */
-    public boolean stale() {
+    /** This qualification as read against the log's current size and the filter now in force. */
+    public PairingQualification atView(int records, String filterNow) {
+        return new PairingQualification(scope, recordsCompared, established, loggedIds, declaredOfLogged,
+                notDeclared, supersedesSample, logRecords, Math.max(records, logRecords), filterKey, filterLabel,
+                filterNow);
+    }
+
+    /** True when the log has grown since coverage compared it. */
+    public boolean sizeStale() {
         return logRecordsNow > logRecords;
+    }
+
+    /** True when a filtered comparison is read under a different filter from the one it was made under. */
+    public boolean filterStale() {
+        return !wholeLog() && filterKey != null && !filterKey.equals(filterKeyNow);
+    }
+
+    /** True when this describes an older log revision or a different view: stated, but no longer current. */
+    public boolean stale() {
+        return sizeStale() || filterStale();
+    }
+
+    /** {@link #supersedesSample} as it is true NOW: a stale comparison supersedes nothing (round 4, Q2). */
+    public boolean supersedesNow() {
+        return supersedesSample && !stale();
+    }
+
+    /**
+     * Whether this comparison compared more records than the published pairing's sample, and so should lead a clipped
+     * line. A stale whole-log comparison still does — it is still the widest anyone has made — which is why the lead
+     * rule is this, not {@link #supersedesNow()}.
+     */
+    public boolean leadsOver(GraphPairing published) {
+        return wholeLog() && published != null && published.recordsScanned() >= 0
+                && logRecords > published.recordsScanned();
     }
 
     public boolean wholeLog() {
@@ -78,18 +123,25 @@ public record PairingQualification(String scope, int recordsCompared, boolean es
     }
 
     /** What was compared, precise even when stale: a grown whole log is "the first N of M records". */
-    private String scopeNow() {
-        if (!stale()) return scope;
-        return wholeLog() ? "first " + logRecords + " of " + logRecordsNow + " records"
-                : "current filter, before the log grew to " + logRecordsNow + " records";
+    public String scopeNow() {
+        if (wholeLog()) return sizeStale() ? "first " + logRecords + " of " + logRecordsNow + " records" : scope;
+        if (filterStale()) return "an earlier filter (" + (filterLabel == null ? "since changed" : filterLabel) + ")";
+        return sizeStale() ? "current filter, before the log grew to " + logRecordsNow + " records" : scope;
+    }
+
+    private String staleSuffix() {
+        if (filterStale()) return " \u2014 the filter has changed since, so this does not describe the current view";
+        if (sizeStale()) return wholeLog()
+                ? " \u2014 the log has grown since, so this no longer covers the whole log; run coverage again"
+                : " \u2014 the log has grown since";
+        return "";
     }
 
     /** The sentence every surface states. It says what was compared, what it found, and what it changes. */
     public String note() {
-        String where = "coverage compared the " + (stale() ? scopeNow() : scope) + " ("
-                + recordsCompared + " records) against every declared node";
-        String grew = stale() ? " — the log has grown since, so this no longer covers the whole log; run "
-                + "coverage again" : "";
+        String where = "coverage compared the " + scopeNow() + " (" + recordsCompared + " records) against every "
+                + "declared node";
+        String grew = staleSuffix();
         if (!established) {
             return where + " and found no node output, so membership is not established there either" + grew;
         }
@@ -119,7 +171,7 @@ public record PairingQualification(String scope, int recordsCompared, boolean es
     public static String panelNote(GraphPairing published, PairingQualification widest, PairingQualification narrower) {
         if (published == null) return null;
         String note;
-        if (widest != null && widest.supersedesSample()) {
+        if (widest != null && widest.leadsOver(published)) {
             note = widest.headline() + (widest.stale() ? " — the log has grown since coverage ran"
                     : widest.everyObservedIdDeclared() ? " — confirms" + " the sample taken on open"
                     : " — supersedes the sample taken on open") + " · on open: " + published.note();
@@ -141,17 +193,25 @@ public record PairingQualification(String scope, int recordsCompared, boolean es
     public Map<String, Object> toMap() {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("by", "coverage");
-        out.put("scope", scope);
+        out.put("scope", scopeNow());                       // round 4, Q2: what was compared, not what it once was
         out.put("recordsCompared", recordsCompared);
         out.put("membershipEstablished", established);
         out.put("everyObservedIdDeclared", everyObservedIdDeclared());
         out.put("notDeclared", notDeclared);
-        out.put("supersedesSample", supersedesSample);
+        out.put("supersedesSample", supersedesNow());
         out.put("stale", stale());
+        if (!wholeLog()) {
+            out.put("filter", filterLabel);
+            out.put("filterStale", filterStale());
+        }
         out.put("logRecordsAtComparison", logRecords);
         out.put("logRecordsNow", logRecordsNow);
         out.put("note", note());
         return out;
+    }
+
+    private static String stringOf(Object o) {
+        return o == null ? null : String.valueOf(o);
     }
 
     private static int intOf(Object o) {

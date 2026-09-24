@@ -567,7 +567,14 @@ verdict, which is owned jointly.
   narrower comparison erasing a wider one, and holes in the wording guard. All three answered, plus the same
   staleness one and two levels down (the published pairing, the session's copy). Final gates: headless
   1,933 / 0 / 0 / 64, frame 65 / 0 / 1 skip, 33 of 33 mutations RED with a `<failure>` at their named test and green
-  again after every restore. **Awaiting review; still ◧.**
+  again after every restore.
+  **Round 4, 2026-09-24:** the round 3 review (`review/m68-1-round3-2026-09-24`, `4769d93a`, same author as both
+  earlier reviews) found narrower versions of the same class — two filtered comparisons erasing each other, a
+  filtered comparison outliving its filter, a stale comparison's fields still claiming the whole log, formatting
+  that hid the phrase from the guard, and a fourth sampling loop. All answered; the normalised guard also caught a
+  real survivor in the published topology guide. Final gates: headless 1,937 / 0 / 0 / 65, frame 66 / 0 / 0 / 1
+  skipped, 48 of 48 mutations RED with a `<failure>` at their named test and 49 of 49 green again. **Awaiting
+  review; still ◧.**
   **Found while testing, belongs to M68.4:** `open {log, graphml}` with a graph that declares only half the logged
   ids reports success and the graph is then no longer loaded — a combined request that silently drops part of
   itself. Reproduced end to end, and **pre-existing**: identical on a jar built from `main`, and only the combined

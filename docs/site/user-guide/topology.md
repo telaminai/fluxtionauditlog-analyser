@@ -85,7 +85,7 @@ else days ago.
 Pairing compares logged instance ids with **every node declared in the graph**, including framework
 nodes such as sink publishers. Hiding scaffolding changes the view, not this comparison.
 
-A topology from a *different* build renders perfectly and misleads silently — the shading, the step
+A topology that does not match the log renders perfectly and misleads silently — the shading, the step
 order and the coverage figures are all derived from it. So the analyser checks, and says so where you
 can see it:
 

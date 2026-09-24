@@ -263,7 +263,14 @@ public final class ActionExecutor implements RenderExecutor {
         // node; the pairing published on open covered a sample. The broader one qualifies the narrower one
         // wherever it is shown, and this reply says that it did.
         if (app != null) {
-            String qualified = onEdt(() -> app.qualifyPublishedPairing(assessed.echo()));
+            // round 4, Q5b: a filtered comparison carries the identity of the filter it was made under
+            Map<String, Object> forQualification = new LinkedHashMap<>(assessed.echo());
+            if (filtered && filter.get() != null) {
+                var snapshot = telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter.get());
+                forQualification.put("filterKey", snapshot.toString());
+                forQualification.put("filterLabel", snapshot.describe());
+            }
+            String qualified = onEdt(() -> app.qualifyPublishedPairing(forQualification));
             if (qualified != null) out.put("qualifiedPublishedPairing", qualified);
         }
         // A QUALIFIED number is computable and must carry what it hides — refusing it would be as much

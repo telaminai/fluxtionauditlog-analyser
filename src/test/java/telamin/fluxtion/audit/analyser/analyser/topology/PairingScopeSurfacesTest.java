@@ -64,6 +64,11 @@ class PairingScopeSurfacesTest {
         assertTrue(grown.note().contains("the log has grown since"), grown.note());
         assertTrue(grown.headline().startsWith("first 600 of 601 records: all 3 logged id(s) declared"), grown.headline());
         assertEquals(Boolean.TRUE, grown.toMap().get("stale"));
+        // round 4, Q2: the fields say what the words say — a stale whole-log comparison claims neither the whole log
+        // nor to supersede the sample
+        assertEquals("first 600 of 601 records", grown.toMap().get("scope"), grown.toMap().toString());
+        assertEquals(Boolean.FALSE, grown.toMap().get("supersedesSample"), grown.toMap().toString());
+        assertEquals(Boolean.TRUE, fresh.toMap().get("supersedesSample"), "fresh, it does supersede");
         assertEquals(600, grown.toMap().get("logRecordsAtComparison"));
         assertEquals(601, grown.toMap().get("logRecordsNow"));
         String panel = PairingQualification.panelNote(sampled.rescoped(601), grown, null);
@@ -71,6 +76,60 @@ class PairingScopeSurfacesTest {
                 panel);
         assertFalse(panel.contains("confirms"), "a stale confirmation confirms nothing: " + panel);
         assertEquals(fresh, fresh.atLogSize(600), "an unchanged size is not stale");
+    }
+
+    private static Map<String, Object> filteredEcho(int records, int loggedIds, int declared, List<String> foreign,
+                                                    String filterKey, String filterLabel) {
+        return Map.of("scope", "current filter", "recordsScanned", records, "logRecords", 600,
+                "loggedButNotInTopology", foreign, "filterKey", filterKey, "filterLabel", filterLabel,
+                "membership", Map.of("scope", "current filter", "established", true, "loggedIds", loggedIds,
+                        "declaredOfLogged", declared));
+    }
+
+    @Test
+    @DisplayName("round 4 Q5a: two filtered comparisons, neither dominating, keep each other's findings")
+    void twoFilteredComparisonsKeepEachOthersFindings() {
+        GraphPairing sampled = GraphPairing.of(Set.of("a", "b", "c"), Set.of("a", "b", "c")).withScope(500, 600);
+        PairingQualifications held = new PairingQualifications();
+        held.record(PairingQualification.fromCoverage(sampled,
+                filteredEcho(3, 3, 2, List.of("foreignAfter500"), "keyA", "from 6971 to 6991")));
+        String reply = held.record(PairingQualification.fromCoverage(sampled,
+                filteredEcho(2, 2, 2, List.of(), "keyB", "from 1001 to 1011")));
+
+        Map<String, Object> ctx = held.toMap(600, "keyB");
+        assertEquals("current filter", ctx.get("scope"), "the latest filtered comparison is shown: " + ctx);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> kept = (List<Map<String, Object>>) ctx.get("undeclaredFromEarlierFilters");
+        assertNotNull(kept, "filter A's finding survives filter B: " + ctx);
+        assertEquals("foreignAfter500", kept.get(0).get("id"));
+        assertEquals("from 6971 to 6991", kept.get(0).get("foundUnder"));
+        String panel = held.panelNote(sampled, 600, "keyB");
+        assertTrue(panel.startsWith("filtered coverage found 1 undeclared id(s) (foreignAfter500)"),
+                "the finding leads, not the sample that could not see it: " + panel);
+        assertTrue(reply.contains("replaces, as the latest filtered comparison, the one under from 6971 to 6991"), reply);
+        assertTrue(reply.contains("foreignAfter500 not declared \u2014 that finding is kept"), reply);
+
+        held.record(PairingQualification.fromCoverage(sampled, wholeLogEcho(600, 4, 3, List.of("foreignAfter500"))));
+        assertNull(held.toMap(600, "keyB").get("undeclaredFromEarlierFilters"), "a whole-log run replaces them all");
+    }
+
+    @Test
+    @DisplayName("round 4 Q5b: a filtered comparison read under a different filter is not the current filter")
+    void aChangedFilterMakesAFilteredComparisonStale() {
+        GraphPairing sampled = GraphPairing.of(Set.of("a", "b", "c"), Set.of("a", "b", "c")).withScope(500, 600);
+        PairingQualifications held = new PairingQualifications();
+        held.record(PairingQualification.fromCoverage(sampled,
+                filteredEcho(2, 2, 2, List.of(), "keyB", "from 1001 to 1011")));
+        Map<String, Object> same = held.toMap(600, "keyB");
+        assertEquals("current filter", same.get("scope"));
+        assertEquals(Boolean.FALSE, same.get("filterStale"));
+
+        Map<String, Object> changed = held.toMap(600, "keyC");
+        assertEquals("an earlier filter (from 1001 to 1011)", changed.get("scope"), changed.toString());
+        assertEquals(Boolean.TRUE, changed.get("filterStale"));
+        assertEquals(Boolean.TRUE, changed.get("stale"));
+        assertTrue(String.valueOf(changed.get("note")).contains("the filter has changed since"), changed.toString());
+        assertTrue(held.panelNote(sampled, 600, "keyC").contains("an earlier filter (from 1001 to 1011)"));
     }
 
     @Test
@@ -95,13 +154,13 @@ class PairingScopeSurfacesTest {
         held.record(PairingQualification.fromCoverage(sampled, wholeLogEcho(600, 4, 3, List.of("foreignAfter500"))));
         String reply = held.record(PairingQualification.fromCoverage(sampled, filteredEcho(2, 600, 2, 2)));
 
-        Map<String, Object> ctx = held.toMap(600);
+        Map<String, Object> ctx = held.toMap(600, null);
         assertEquals("whole log", ctx.get("scope"), "the wider comparison still leads: " + ctx);
         assertEquals(List.of("foreignAfter500"), ctx.get("notDeclared"));
         @SuppressWarnings("unchecked")
         Map<String, Object> narrower = (Map<String, Object>) ctx.get("narrower");
         assertEquals("current filter", narrower.get("scope"), "the narrower one rides beside it");
-        String panel = held.panelNote(sampled, 600);
+        String panel = held.panelNote(sampled, 600, null);
         assertTrue(panel.startsWith("whole log: 1 of 4 logged id(s) not declared (foreignAfter500)"), panel);
         assertTrue(panel.endsWith("current filter: all 2 logged id(s) declared"), panel);
         assertTrue(reply.contains("still in force from the whole log: whole log: 1 of 4"), reply);
@@ -109,7 +168,7 @@ class PairingScopeSurfacesTest {
         PairingQualifications reverse = new PairingQualifications();
         reverse.record(PairingQualification.fromCoverage(sampled, filteredEcho(2, 600, 2, 2)));
         reverse.record(PairingQualification.fromCoverage(sampled, wholeLogEcho(600, 4, 3, List.of("foreignAfter500"))));
-        Map<String, Object> rev = reverse.toMap(600);
+        Map<String, Object> rev = reverse.toMap(600, null);
         assertEquals("whole log", rev.get("scope"));
         assertNull(rev.get("narrower"), "an earlier filtered comparison is dominated by a later whole-log one");
     }

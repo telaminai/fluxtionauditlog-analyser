@@ -347,3 +347,98 @@ display does.
 - **Its frame count differs from mine by one skip**, 0 against 1. Not an error: the focus-dependent test runs on its
   machine and skips on this one, as the addendum said.
 - Everything else I checked held: N1, N2 and N3 reproduced exactly as described (set 4), and so did O-b.
+
+---
+
+## Addendum — round 4, the round 3 review's findings (2026-09-24)
+
+**Review:** `review/m68-1-round3-2026-09-24` at `4769d93a`, *changes required, small*. **Its author wrote both
+earlier reviews, so it is not independent.** Every finding was reproduced before any fix (set 6), and every fix was
+tested under predictions committed first (set 7). Evidence: `evidence/m68-1-rereview-2026-09-24/`, sets 6 and 7.
+
+### The frame command, and why it matters
+
+`pom.xml:105` forces `<argLine>-Djava.awt.headless=true</argLine>`, so `-DargLine=…` alone is silently ignored; the
+bare `-Djava.awt.headless=false` is what reaches the forked JVM. Every frame run in this round used exactly:
+
+```sh
+mvn test -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false" -Dtest='*FrameTest' -DfailIfNoTests=false
+```
+
+My earlier rounds' frame runs used the same two flags, so they did execute. The per-class counts below show it: one
+skip in 66, which a skipped suite could not produce.
+
+| Frame run | Tests | Failures | Errors | Skipped |
+|---|---:|---:|---:|---:|
+| set 6, `efe3eaa1`, before any fix | 66 | **1** — the O-i instrument, by design | 0 | 1 |
+| set 6 again, before committing the results | 66 | **1** — the same | 0 | 1 |
+| set 7, the fixed tree | **66** | **0** | **0** | **1** |
+
+The one skip is always `PersonAtTheScreenFrameTest`'s focus test: its own assumption aborts it when this display
+gives the frame no keyboard focus. **It would not fail CI.** RUN: on `main`'s latest CI run, `35999134631`, the
+`ui-frame` job passed and that class reported `tests="3" errors="0" skipped="0" failures="0"` under xvfb, where its
+skip guard fails on any skip. This branch adds no new `*FrameTest` class, only methods on `PairingDuringLoadFrameTest`,
+which the job already lists.
+
+**Button or verb.** Nothing in this round needed a real click. Every behaviour was driven through the action socket
+or called directly in a frame test; the Topology panel's text was read from the label, not from a screenshot.
+
+### Each finding, and what closed it
+
+| Finding | Cause | Fix | Regression | Witness |
+|---|---|---|---|---|
+| **Q5a** two filtered comparisons erased each other | the holder protected only a whole-log result; a filtered one replaced the previous filtered one. **RUN**, set 6 P30 | **every undeclared id a filtered comparison finds is kept**, with the filter it was found under, until a whole-log run replaces them all (it dominates them). The latest filtered comparison is shown beside; its reply says which comparison it replaced and what that had found; with no whole-log run, the found ids lead the panel note. **Why ids, not every scope:** every scope would grow without bound and fill the panel with views nobody is looking at, while an undeclared id stays a fact about this log and graph — the holder resets when either changes, and a log only grows | `twoFilteredComparisonsKeepEachOthersFindings` asserts `context`, the panel note and the reply, disjoint filters A then B; scenario 9 | M40, M41 |
+| **Q5b** "current filter" outlived its filter | no filter identity was recorded. **RUN**, P31 | each filtered comparison records its filter as a `FilterSnapshot`; read under a different filter it is "an earlier filter (…)", `filterStale: true`, and the panel note is repainted on a filter change | `aChangedFilterMakesAFilteredComparisonStale`; scenario 9 | M42 |
+| **Q2** a stale qualification's fields claimed the whole log | `toMap()` published the original `scope` and `supersedesSample`. **RUN**, P32 | when stale, `scope` is what was compared and `supersedesSample` is false. **Checked every other field** in the same state: `recordsCompared`, `membershipEstablished`, `everyObservedIdDeclared` and `notDeclared` all describe what was compared, so they stay true. The panel's lead rule no longer reads `supersedesSample`: a stale whole-log comparison still compared more than the sample, so it still leads, marked as grown | `aGrownLogMakesTheWholeLogVerdictStale`, and the Follow frame test | M43, M43f, M44 |
+| **Q6** formatting inside the phrase passed the guard | it matched raw lines and raw literals. **RUN**, P33 | it matches **normalised** text: a paragraph's or text block's lines joined, Markdown emphasis and HTML tags and entities stripped, whitespace including U+00A0 collapsed. **It found a real survivor at once:** `user-guide/topology.md:88`, "A topology from a *different* build renders perfectly and misleads silently", in the published docs all along — my round 2 fix changed two other lines of that page and missed it, and no review round caught it. Reworded. The stated limits now name the one shape it still misses: a phrase split across two paragraphs | `theGuardMatchesTheSixShapesRoundFourFound`, all six shapes plus the `&nbsp;` entity, and a check that paragraphs stay separate | M45 to M50 planted in real files; M51 disables normalisation |
+| **Q9** a fourth sampling loop, unguarded | the arrival's `LogOpened` sample had its own loop, and the observation that follows overwrote its effect, so no test could see it. **RUN**, P34 | routed through `sampleLoggedIds`; the arrival's audit record now states its sample and total, and the sampled parity test reads that record — the only place that shows what the arrival, which decides whether a graph is kept, actually judged | `aSampledPairingAgreesAcrossFrameDiscoveryAndSession` | M52f |
+| **O-i** every append spent a session audit record | round 3 sent the session an observation on every append. **RUN, measured**: five appends wrote **five** records (P35) | an append sends the session nothing; the session's copy is refreshed when coverage reads its claim, its only consumer. **Measured after: zero** records for five appends, and the claim then counts 605 records | `aFollowAppendWritesNoSessionAuditRecordUntilCoverageReadsIt` | M53f |
+| **O-ii** a dead exemption | `TrailingWhitespaceTest` reads no `.log` file. **RUN**, P36 | removed, with a comment correcting my set 5 claim that both entries were needed | — | P36 is the witness: removing it changed nothing |
+| **O-iii** a frame flake could read as a catch | the harness accepted any failure at the named test | each frame mutation names the assertion message it must produce | the harness | every frame entry |
+| **O-iv** the Mongoose branch conflict | — | **not acted on, as instructed.** Whichever branch lands second resolves it in meaning: keep this branch's fixed bound and size that branch's array from the same `rows` | — | — |
+
+### Gates on the final tree
+
+| Gate | Result |
+|---|---|
+| Headless `mvn test` | **1,937 tests, 0 failures, 0 errors, 65 skipped** |
+| All twelve `*FrameTest` classes, the command above | **66 tests, 0 failures, 0 errors, 1 skipped** (the focus test) |
+| `tools/mutate-m68-1.py --frame` | anchors checked first; baseline **62 green**; **48 of 48 mutations RED with a `<failure>` at the named test**, each frame mutation with its expected message; control C1 recognised as a crash; **49 of 49 green again** after restore |
+| `tools/verify-m68-1-coverage.py`, fixed jar | **65 pass, 0 fail**, all ten scenarios |
+| Same script, a `4251bae3` jar | **59 pass, 6 fail**: exactly the Q5a, Q5b and Q2 checks |
+| `mkdocs build --strict` | **passes** (Python 3.13; CI uses 3.12) |
+
+**Not run:** CI's xvfb job, which still triggers only on `main`; hovering the tooltip by hand; a pre-vocabulary graph
+end to end; the combined tree with the Mongoose branch, which the review ran headless.
+
+### Ran, and only read
+
+**RUN:** every set 6 reproduction; both suites before every commit in this round except the first, noted below; the
+mutation run with the display test; the end-to-end script on the fixed jar and on a `4251bae3` jar; `gh run view` of
+`main`'s CI for the xvfb question; `mkdocs build --strict`.
+
+**READ, not run:** that only the pairing and coverage-claim nodes react to the session's log node — confirmed against
+the generated processor by the round 3 review; why the reviewer's Q9 mutation was invisible — the explanation is
+consistent with P34 but was not traced; and that `FilterSnapshot` equality is the right notion of "the same filter" —
+it compares the time range, dimensions, text and group mode, so a change of grouping alone also marks a filtered
+comparison stale, the conservative direction.
+
+### What I got wrong this round
+
+- **I committed set 6's instruments before running both gates**, the same mistake as set 4, one round after
+  recording it. I ran them on that exact commit straight afterwards and recorded the result.
+- **I never ran `mkdocs build --strict`** after changing `docs/site` pages in round 2, which CLAUDE.md rule 5 requires
+  before pushing site changes. I ran it this round, first on Python 3.14, where this Material version crashes on the
+  `regex` module before reading a page, then on Python 3.13, near CI's 3.12, where it passes.
+- **`topology.md:88` survived three rounds**, including my own round 2 edit of the same page.
+- **My set 5 note said both whitespace exemptions were needed.** One was dead from the start.
+- **Round 3's holder design handled only one filtered comparison**, and its fields disagreed with its words when stale.
+
+### What the review got wrong, or did not reach
+
+- **It did not reach `topology.md:88`**, the survivor the normalised guard found on its first run.
+- **It proposed "at least every undeclared id any of them found" as the minimum**, and that is what I chose. It did not
+  say what a filter's finding should do to the panel's lead with no whole-log run, which is where N2's defect would
+  have come back; the finding now leads.
+- Its frame count of **0 skipped** against my **1** is machine-dependent, not an error, as its own report says.
+- Everything else reproduced exactly as described.

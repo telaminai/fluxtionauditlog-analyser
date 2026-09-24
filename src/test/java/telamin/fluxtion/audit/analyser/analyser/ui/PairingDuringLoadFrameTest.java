@@ -279,6 +279,10 @@ class PairingDuringLoadFrameTest {
             assertFalse(String.valueOf(q.get("note")).contains("confirms the sampled pairing for the whole log"),
                     "a stale verdict must not claim the whole log: " + q.get("note"));
             assertEquals("first 500 of 601 records", after.get("pairingScope"), "the published pairing counts it too");
+            // round 4, Q2: the fields as well as the words — a stale comparison claims neither the whole log nor to
+            // supersede the sample
+            assertEquals("first 600 of 601 records", q.get("scope"), "stale scope states what was compared: " + q);
+            assertEquals(Boolean.FALSE, q.get("supersedesSample"), "a stale comparison supersedes nothing: " + q);
             var panelField = MainFrame.class.getDeclaredField("topologyPanel");
             panelField.setAccessible(true);
             var panel = (TopologyPanel) panelField.get(frame.get());
@@ -336,6 +340,13 @@ class PairingDuringLoadFrameTest {
                             .findFirst().orElseThrow().pairing();
                     var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
                     assertEquals("first 500 of 600 records", discovered.scope(), "discovery is sampled");
+                    // round 4, Q9: the ARRIVAL's own sample, as the session recorded it when the log landed. The later
+                    // observation overwrites the node's fields, so only the audit record shows what the arrival —
+                    // which decides whether a graph is kept — actually judged.
+                    String arrival = session.auditSink().records().stream()
+                            .filter(r -> r.contains("via: LogOpened")).findFirst().orElse("");
+                    assertTrue(arrival.contains("sampled: 500") && arrival.contains("total: 600"),
+                            "arrival sample: the LogOpened record must show the same 500 of 600: " + arrival);
                     assertEquals(discovered, judge.invoke(frame.get(), storeField.get(frame.get())), "frame/discovery, sampled");
                     assertEquals(discovered, session.processor().pairing.verdict(), "session/discovery, sampled");
                 } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }

@@ -85,3 +85,24 @@ Frame command, verbatim: `mvn test -Djava.awt.headless=false -DargLine="-Djava.a
 and under xvfb `PersonAtTheScreenFrameTest` reported `tests="3" errors="0" skipped="0" failures="0"`. So its focus
 skip on this machine would **not** fail CI, whose skip guard fails on any skip. No new `*FrameTest` class has been
 added by this branch — only methods on `PairingDuringLoadFrameTest`, which the job already lists.
+
+## Set 7 — the round 4 fixes
+
+Frame command, verbatim: `mvn test -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
+-Dtest='*FrameTest' -DfailIfNoTests=false`.
+
+| Prediction | Result | Right? |
+|---|---|---|
+| P37 — end to end on the fixed jar, every check passes | **65 pass, 0 fail**, scenarios 9 and 10 included. `set7-p37-e2e-fixed.txt` | **Yes** |
+| P38 — on a `4251bae3` jar exactly the six scenario-9/10 checks fail | **59 pass, 6 fail**, exactly those six. `set7-p38-e2e-4251bae3.txt` | **Yes** |
+| P39 — headless 0 failures, 65 skipped | **1,937 / 0 / 0 / 65** | **Yes** |
+| P40 — frame 0 failures, 1 skipped | **66 tests, 0 failures, 0 errors, 1 skipped**; per class, only `PersonAtTheScreenFrameTest` skips, 1 of 3 | **Yes** |
+| P41 — every mutation RED with a `<failure>`, frame ones with their expected message; C1 recognised; green again | anchors all checked first; baseline **62 green**; **48 of 48 mutations RED with a `<failure>` at the named test**, every frame mutation with its expected message; **C1 recognised as a crash**; **49 of 49 green again** after restore. `set7-p41-harness-frame.txt` | **Yes** |
+| P42 — the six Q6 shapes turn the guard RED | M45 to M50 all RED, and M51, which disables normalisation, too | **Yes** |
+| P43 — the arrival-sample mutation turns the sampled parity test RED | M52f RED, with "arrival sample" | **Yes** |
+| P44 — five appends write 0 session records; the claim counts 605 | the O-i test passes on the fixed tree; M53f, which restores the per-append report, turns it RED with "records written by five Follow appends" | **Yes** |
+
+**Also found:** the normalised guard's first run caught a real survivor, `docs/site/user-guide/topology.md:88`,
+"A topology from a *different* build…", which three rounds had missed. `mkdocs build --strict` passes after the
+rewording on Python 3.13 (`set7-mkdocs-strict.txt`); on Python 3.14 this Material version crashes before reading a
+page.

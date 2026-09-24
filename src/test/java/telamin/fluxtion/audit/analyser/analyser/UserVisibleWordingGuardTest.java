@@ -31,9 +31,17 @@ import static org.junit.jupiter.api.Assertions.*;
  *       notes (O-a).</li>
  * </ul>
  *
+ * <p><b>It matches normalised text</b> (round 4, Q6). A document is read a paragraph at a time with its lines joined,
+ * a text block with its lines joined, and in both Markdown emphasis, HTML tags and entities are removed and whitespace
+ * — including the non-breaking space — collapses to one space. The docs are hard-wrapped and use Markdown and HTML
+ * freely, and the help page's original sentence was itself inside an {@code <i>} tag, so each of those shapes passed
+ * the guard until then.
+ *
  * <p><b>What it does not cover, stated rather than implied:</b>
  * <ul>
  *   <li><b>synonyms</b> — it matches a phrase list, and any phrase list can be written around;</li>
+ *   <li>a phrase split across two <b>paragraphs</b>, or across a Markdown list item's continuation that is not
+ *       indented as part of it;</li>
  *   <li>strings assembled other than by literals directly joined with {@code +} — a variable, {@code String.format},
  *       a {@code StringBuilder}, or a comment between the two literals;</li>
  *   <li><b>released</b> {@code CHANGELOG.md} sections: dated history is left as it was written, and two entries there
@@ -58,7 +66,7 @@ class UserVisibleWordingGuardTest {
             for (Path f : files.filter(p -> p.toString().endsWith(".java")).toList()) {
                 for (String s : javaStrings(Files.readString(f))) {
                     strings++;
-                    if (CONCLUSION.matcher(s).find()) hits.add(f + ": " + s);
+                    if (CONCLUSION.matcher(normalise(s)).find()) hits.add(f + ": " + s);
                 }
             }
         }
@@ -75,8 +83,8 @@ class UserVisibleWordingGuardTest {
         assertTrue(docs.containsKey("CHANGELOG.md [Unreleased]"), "the unreleased release notes");
         List<String> hits = new ArrayList<>();
         docs.forEach((name, lines) -> {
-            for (int i = 0; i < lines.size(); i++) {
-                if (CONCLUSION.matcher(lines.get(i)).find()) hits.add(name + ":" + (i + 1) + ": " + lines.get(i).trim());
+            for (String paragraph : paragraphs(lines)) {
+                if (CONCLUSION.matcher(paragraph).find()) hits.add(name + ": " + paragraph);
             }
         });
         assertEquals(List.of(), hits, "a document a person or an assistant reads draws the build conclusion");
@@ -117,7 +125,51 @@ class UserVisibleWordingGuardTest {
     }
 
     private static boolean anyMatch(List<String> strings) {
-        return strings.stream().anyMatch(s -> CONCLUSION.matcher(s).find());
+        return strings.stream().anyMatch(s -> CONCLUSION.matcher(normalise(s)).find());
+    }
+
+    private static boolean docMatches(String text) {
+        return paragraphs(text.lines().toList()).stream().anyMatch(p -> CONCLUSION.matcher(p).find());
+    }
+
+    @Test
+    void theGuardMatchesTheSixShapesRoundFourFound() {
+        // round 4, Q6: each shape passed the guard until text was normalised; each must now be caught
+        assertTrue(docMatches("Intro.\n\nThe graph is from a different\nbuild than the log.\n"), "wrapped across a line break");
+        assertTrue(docMatches("The graph is from a *different* build."), "Markdown emphasis");
+        assertTrue(docMatches("The graph is from a <i>different</i> build."), "an HTML tag");
+        assertTrue(docMatches("The graph is from a different  build."), "two spaces");
+        assertTrue(docMatches("The graph is from a different\u00a0build."), "a non-breaking space");
+        assertTrue(docMatches("The graph is from a different&nbsp;build."), "an HTML non-breaking-space entity");
+        String textBlock = "class X { String s = \"\"\"\n        the graph is from a different\n        build, which makes it suspect\n        \"\"\"; }";
+        assertTrue(anyMatch(javaStrings(textBlock)), "a text block wrapping the phrase: " + javaStrings(textBlock));
+        // and the limit stated above is real: two paragraphs are not joined
+        assertFalse(docMatches("The graph is from a different\n\nbuild than the log."), "paragraphs stay separate");
+    }
+
+    /** Collapse formatting so the phrase is found however the text is laid out (round 4, Q6). */
+    static String normalise(String text) {
+        String s = text.replace('\u00a0', ' ')
+                .replaceAll("&(nbsp|#160|#x[aA]0);", " ")
+                .replaceAll("<[^>]+>", " ")
+                .replaceAll("[*_`~]+", "");
+        return s.replaceAll("\\s+", " ").trim();
+    }
+
+    /** A document's paragraphs — blank-line separated — each joined into one line and normalised. */
+    static List<String> paragraphs(List<String> lines) {
+        List<String> out = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        for (String line : lines) {
+            if (line.isBlank()) {
+                if (current.length() > 0) out.add(normalise(current.toString()));
+                current.setLength(0);
+            } else {
+                current.append(line).append(' ');
+            }
+        }
+        if (current.length() > 0) out.add(normalise(current.toString()));
+        return out;
     }
 
     /** Every document a person or an assistant reads, as lines, keyed by where it came from. */

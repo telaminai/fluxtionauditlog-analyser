@@ -209,8 +209,11 @@ public final class MainFrame extends JFrame {
         startMcpIndicatorWatch();
         // M44.2: the coverage verdict is the processor's. Lazily read, so the driver is not built
         // before the fields its adapter performs against exist.
-        actionExecutor.bindCoverageClaim(() -> session == null
-                ? null : session.processor().coverageClaim.assessment());
+        actionExecutor.bindCoverageClaim(() -> {
+            if (session == null) return null;
+            refreshSessionIfLogGrew();                        // round 4, O-i: refreshed when read, not per append
+            return session.processor().coverageClaim.assessment();
+        });
         actionExecutor.bindIgnoredParameters(supplied -> {
             var driver = session();
             driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
@@ -3873,17 +3876,12 @@ public final class MainFrame extends JFrame {
         // in force before it — from this operation's own immutable request, not from whichever entrance
         // (a person re-opening a graph from Recent, say) ran while the load was in flight.
         sessionInteractive = !request.suppressDialogs();
-        int scanned = Math.min(loaded.size(), PAIRING_SAMPLE);
-        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        java.util.List<String> levels = new java.util.ArrayList<>();
-        for (int row = 0; row < scanned; row++) {
-            var rec = loaded.record(row);
-            for (var nodeLog : rec.nodeLogs()) logged.add(nodeLog.instanceId());
-            levels.add(rec.level());
-        }
-        String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels).mostVerbose();
+        // Round 4, Q9: the arrival's sample is drawn by the same method as every other (O-c) — this was the fourth
+        // loop, and nothing noticed when it drifted, because the observation that follows overwrote it
+        LoggedSample arrival = sampleLoggedIds(loaded);
+        String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(arrival.levels()).mostVerbose();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, request.provenance(),
-                logged, scanned, loaded.size(), level == null ? null : level.toString()));
+                arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString()));
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
             loaded.close();
@@ -4239,7 +4237,7 @@ public final class MainFrame extends JFrame {
         } else {
             var held = currentQualifications();
             topologyPanel.setPairingNote(held == null ? lastPairing.note()
-                    : held.panelNote(lastPairing, storeRecords()));
+                    : held.panelNote(lastPairing, storeRecords(), filterKeyNow()));
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }
@@ -4313,6 +4311,37 @@ public final class MainFrame extends JFrame {
 
     private int storeRecords() {
         return store == null ? 0 : store.size();
+    }
+
+    /** Round 4, Q5b: the identity of the filter in force, so a filtered comparison knows when it stopped being current. */
+    private String filterKeyNow() {
+        return filter == null ? null : telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter).toString();
+    }
+
+    /** The session's log total as last reported to it (round 4, O-i: an append no longer reports it). */
+    private int sessionNotedTotal = -1;
+
+    /**
+     * Round 4, O-i: the session's copy of the pairing has one consumer, the coverage claim. It is refreshed here, when
+     * coverage reads the claim, instead of on every Follow append — which spent one record of the session's
+     * 2,000-record audit ring per append and evicted its real transitions in about half an hour on a live log.
+     */
+    private void refreshSessionIfLogGrew() {
+        Runnable refresh = () -> {
+            if (session != null && store != null && store.size() != sessionNotedTotal) {
+                refreshLoggedNodeSample();
+                noteLogState();
+            }
+        };
+        if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+            refresh.run();
+        } else {
+            try {
+                javax.swing.SwingUtilities.invokeAndWait(refresh);
+            } catch (Exception e) {
+                // a refresh that could not run leaves the previous claim, whose note states its own scope
+            }
+        }
     }
 
     /**
@@ -4406,9 +4435,7 @@ public final class MainFrame extends JFrame {
         // Round 3, N1: an append is a new log revision. The sample (while under PAIRING_SAMPLE records), the
         // session's own pairing and the published pairing all move with it, and every qualification is re-read
         // at the new size — which is what marks a whole-log verdict about the old revision as stale.
-        refreshLoggedNodeSample();
-        noteLogState();
-        republishPairingAfterAppend();
+        republishPairingAfterAppend();             // round 4, O-i: the session is told when coverage reads it
         Long mx = store.maxLogTime();
         if (mx != null) timeSlider.extendAbsMax(mx);
         timeSlider.setHistogram(buildHistogram(store, 160));
@@ -4785,6 +4812,7 @@ public final class MainFrame extends JFrame {
     }
 
     private void onFilterChanged() {
+        if (currentQualifications() != null) publishPairing();   // round 4, Q5b: a changed filter makes it stale
         tablePanel.reFilter();
         if (store != null) {
             showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
@@ -5284,6 +5312,7 @@ public final class MainFrame extends JFrame {
 
     private void noteLogState() {
         if (session == null || session.isDispatching()) return;
+        sessionNotedTotal = store == null ? 0 : store.size();
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved(
                 store != null, logDisplayLocation, logProvenance,
                 loggedNodeSample, loggedSampleScanned, store == null ? 0 : store.size(),
@@ -6287,7 +6316,7 @@ public final class MainFrame extends JFrame {
                     pair.put("declaredByGraph", lastPairing.matched());
                     pair.putAll(lastPairing.facts());
                     var held = currentQualifications();
-                    if (held != null) pair.put("qualifiedBy", held.toMap(storeRecords()));
+                    if (held != null) pair.put("qualifiedBy", held.toMap(storeRecords(), filterKeyNow()));
                     pair.put("verdict", lastPairing.reason());
                 }
                 // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs
