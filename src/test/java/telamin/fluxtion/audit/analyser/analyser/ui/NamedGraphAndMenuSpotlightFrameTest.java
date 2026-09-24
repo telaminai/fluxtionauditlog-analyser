@@ -58,6 +58,50 @@ class NamedGraphAndMenuSpotlightFrameTest {
         });
     }
 
+    /**
+     * 1.20.0 virgin-LLM check: a model asked for "File > Reset" learned only that there is no File menu, and
+     * concluded Reset no longer exists; another guessed paths it never lit. A miss now says where the item went,
+     * and context lists the menu bar so it can be read rather than provoked.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void aMenuMissSaysWhereTheItemIs_andContextListsTheMenus(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        javax.swing.LookAndFeel previous = flatLafLikeTheApp();   // the app's own look, whose menus open inside the window
+        try (Frame f = new Frame(tmp)) {
+            show(f, Files.createDirectories(tmp.resolve("exchange")));
+            onEdt(() -> render(f.ex, "open", Map.of("log", Path.of(SERIES_LOG).toAbsolutePath().toString())));
+            awaitLoaded(f);
+            onEdt(() -> {
+                var reset = attempt(f, "spotlight", Map.of("target", "menu:File:Reset"));
+                assertEquals(false, reset.get("ok"));
+                assertTrue(reset.toString().contains("renamed in 1.20.0")
+                        && reset.toString().contains("menu:Project:Close log and topology"), reset.toString());
+                var file = attempt(f, "spotlight", Map.of("target", "menu:File"));
+                assertTrue(file.toString().contains("split in 1.20.0 into Project, Sources and Audit log"), file.toString());
+                var moved = attempt(f, "spotlight", Map.of("target", "menu:Records:Source roots\u2026"));
+                assertTrue(moved.toString().contains("light menu:Sources:Source roots\u2026"), moved.toString());
+                var nothing = attempt(f, "spotlight", Map.of("target", "menu:Project:Frobnicate"));
+                assertFalse(nothing.toString().contains(" — light "), "no hint is invented: " + nothing);
+
+                Map<String, List<String>> menus = (Map<String, List<String>>) find(render(f.ex, "context", Map.of()), "menus");
+                assertNotNull(menus, "context lists the menus");
+                assertEquals(List.of("Project", "Sources", "Audit log", "Records", "Theme", "AI", "Help"),
+                        List.copyOf(menus.keySet()), "in menu-bar order");
+                assertTrue(menus.get("Project").contains("Close log and topology"), menus.toString());
+                // what a hint names really lights — the renamed item and a moved one
+                var follow = attempt(f, "spotlight", Map.of("target", "menu:File:Follow (tail)"));
+                assertTrue(follow.toString().contains("light menu:Audit log:Follow (tail)"), follow.toString());
+                for (String target : List.of("menu:Project:Close log and topology", "menu:Audit log:Follow (tail)")) {
+                    var lights = attempt(f, "spotlight", Map.of("target", target));
+                    assertEquals(true, lights.get("ok"), target + " " + lights);
+                }
+            });
+        } finally {
+            restoreLaf(previous);
+        }
+    }
+
     private static void show(Frame f, Path exchange) throws Exception {
         onEdt(() -> {
             AppConfig config = (AppConfig) field(f.frame, "config");

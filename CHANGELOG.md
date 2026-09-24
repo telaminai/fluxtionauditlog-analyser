@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **An assistant can find its way around the new menus.** Pointing at a menu item that is not where it was asked
+  for now says where it is — "'Follow (tail)' is in the Audit log menu" — and a renamed item names its new name:
+  File > Reset is now Project > Close log and topology. Asking for the old File menu says what replaced it.
+  The assistant's `context` also lists every menu and its items, so an assistant can read where an action
+  lives instead of guessing.
+
 ## [1.20.0] - 2026-09-24
 
 - The README names both Export settings and Import settings under Project for sharing setups.

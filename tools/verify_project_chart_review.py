@@ -248,6 +248,18 @@ CASES.extend([
      'MenuLayoutFrameTest#closeGraphFromItsMenuKeepsLogProjectAndCharts'),
 ])
 
+# Menu discoverability after the 1.20.0 reorganisation: a miss says where the item went; context lists the menus.
+MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
+MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
+CASES += [
+    ('menu-hint-renamed', MENU_HINTS, '            "reset", "Close log and topology");', '            "reset-not", "x");',
+     'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
+    ('menu-hint-wired', MAIN_FRAME, '+ menuItemTexts(m) + " (a submenu\'s items cannot be lit)" + whereIsNote(t)',
+     '+ menuItemTexts(m) + " (a submenu\'s items cannot be lit)"',
+     'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    ('context-menus', MAIN_FRAME, '            out.put("menus", menuMap());', '',
+     'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+]
 
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
