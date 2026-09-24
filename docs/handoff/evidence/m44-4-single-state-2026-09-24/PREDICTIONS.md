@@ -251,3 +251,29 @@ collapsed record and therefore one point, is constructed.
   exporting a chart PNG and asserting its size, which `toImage()` still keeps at least 640×360.
 - **P46 — end to end.** The new scenario 13 fails on a jar built from `df0b24a5` (no "NOT RENDERED" in the PDF) and
   passes on the fix. The verifier otherwise stays at 69 / 0.
+
+## Set 9 — M68.6, names and addresses share one grammar (D-E5; Q2 answered: refuse at creation)
+
+**Owner decision, 2026-09-24: Q2 = refuse at creation**, saved names reachable through an explicit compatible
+address. Written after the code compiled and before any of its tests ran. Gated on a tree without the code.
+
+**The rule, read from `SpotlightTarget.parse`, not invented.** A chart name cannot be addressed when:
+
+- it contains `:`, the part separator;
+- it is exactly `note` or `series` in any case, because its parts would be read as the bare forms;
+- it contains `"`, which now quotes the compatible address.
+
+Leading and trailing spaces are already trimmed by `addGraph`. The compatible address is quoted,
+`graph:"a:b":note:2`. `context.graphAddresses` publishes each chart's address. It is enforced at the naming
+entrances: the `graph` verb's create and rename, and the UI rename. NOT at `addGraph`, which is also the restore
+path for saved charts.
+
+- **P47 — `ChartNamingTest`, 4 cases, green on first run.** Confidence 60%. Risks: `graphAddress("x:note:2")`
+  quoted then parsed. The quoted parser reads to the FIRST closing quote and then sees nothing, which should be
+  right. The verb test's `graph {name, series: ["n.v"]}` may need a `key` shape rather than `series`, and could fail
+  for that reason rather than for the rule.
+- **P48 — `SpotlightTargetTest` unchanged and green.** The unquoted colon form keeps its refusal.
+- **P49 — witnesses:**
+  - W34: the quoted branch removed from `parse` turns `everyNameHasAnAddress` red;
+  - W35: `doGraph`'s create check removed turns `theVerbRefusesAtCreation` red.
+- **P50 — headless 2,009** (2,005 + 4), 0 failures. Frame 66 / 0 / 0 / 1. Verifier 72 / 0.
