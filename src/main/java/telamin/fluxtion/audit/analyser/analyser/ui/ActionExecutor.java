@@ -312,7 +312,7 @@ public final class ActionExecutor implements RenderExecutor {
         String refusal = onEdt(graphTabs::definitionRefusal);
         if (refusal != null) {
             String target = asText(p.get("name"));
-            boolean withheld = target == null || onEdt(() -> graphTabs.hasDefinition(target));
+            boolean withheld = target == null || onEdt(() -> graphTabs.isWithheldDefinition(target));
             if (withheld) {
                 return ActionResult.error(target == null
                         ? refusal + " Name the new chart to create one while this is unresolved."

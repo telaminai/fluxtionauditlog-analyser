@@ -95,6 +95,19 @@ public final class DuplicateChartRepair {
      *         collides with a name that survives, or the result would still be ambiguous
      */
     public static List<GraphSpec> apply(List<GraphSpec> saved, Map<Integer, Choice> choices) {
+        return apply(saved, choices, Set.of());
+    }
+
+    /**
+     * As above, with names that are taken by something this list cannot see — open tabs that have no saved
+     * definition yet, because nothing is persisted while definitions are withheld.
+     *
+     * <p>R13-2b: without this, renaming a duplicate onto an unsaved chart's name produced a repaired list
+     * holding that name, the caller's carry-forward skipped the live tab as "already present", and the
+     * person's unsaved work was destroyed by an operation they asked to be a rename.
+     */
+    public static List<GraphSpec> apply(List<GraphSpec> saved, Map<Integer, Choice> choices,
+                                        Set<String> alsoTaken) {
         List<Duplicate> duplicates = find(saved);
         Set<Integer> contested = new HashSet<>();
         for (Duplicate d : duplicates) contested.addAll(d.indices());
@@ -129,6 +142,19 @@ public final class DuplicateChartRepair {
             if (!seen.add(g.name())) {
                 throw new IllegalArgumentException("that would leave two charts called '" + g.name()
                         + "' — choose a different name");
+            }
+        }
+        // R13-2b: a name held by an open, unsaved chart is just as taken as one in the list, and losing
+        // that chart to a rename is worse than being told to pick another name.
+        if (alsoTaken != null) {
+            for (int i = 0; i < saved.size(); i++) {
+                Choice choice = given.get(i);
+                if (choice == null || choice.action() != Action.RENAME) continue;
+                String to = choice.newName().trim();
+                if (alsoTaken.contains(to)) {
+                    throw new IllegalArgumentException("an unsaved chart is already called '" + to
+                            + "' — renaming onto it would destroy it; choose a different name");
+                }
             }
         }
         return out;

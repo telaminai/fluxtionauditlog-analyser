@@ -32,6 +32,8 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  */
 class DuplicateChartRepairFrameTest {
 
+    @TempDir Path tmp;
+
     private static GraphSpec chart(String name, String explanation) {
         return new GraphSpec(name, List.of("a" + (char) 1 + "x"), List.of(), null, null, null, explanation,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), "step", true);
@@ -64,7 +66,7 @@ class DuplicateChartRepairFrameTest {
     }
 
     @Test
-    void repairingRenamesOneKeepsBothAndLoadsThem(@TempDir Path tmp) throws Exception {
+    void repairingRenamesOneKeepsBothAndLoadsThem() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path config = seedAmbiguousHome(tmp);
 
@@ -102,7 +104,7 @@ class DuplicateChartRepairFrameTest {
     }
 
     @Test
-    void cancellingTheRepairChangesNothing(@TempDir Path tmp) throws Exception {
+    void cancellingTheRepairChangesNothing() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path config = seedAmbiguousHome(tmp);
         byte[] before = Files.readAllBytes(config);
@@ -125,7 +127,7 @@ class DuplicateChartRepairFrameTest {
     }
 
     @Test
-    void aPartialAnswerIsRefusedAndNothingIsLost(@TempDir Path tmp) throws Exception {
+    void aPartialAnswerIsRefusedAndNothingIsLost() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path config = seedAmbiguousHome(tmp);
         byte[] before = Files.readAllBytes(config);
@@ -171,7 +173,7 @@ class DuplicateChartRepairFrameTest {
      * [First, Second] and "Project chart" was gone.
      */
     @Test
-    void aListThatChangedWhileTheDialogWasOpenIsRefused(@TempDir Path tmp) throws Exception {
+    void aListThatChangedWhileTheDialogWasOpenIsRefused() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         seedAmbiguousHome(tmp);
 
@@ -213,7 +215,7 @@ class DuplicateChartRepairFrameTest {
      * else. It is now carried into the repaired list and saved.
      */
     @Test
-    void aChartMadeDuringTheRefusalSurvivesTheRepair(@TempDir Path tmp) throws Exception {
+    void aChartMadeDuringTheRefusalSurvivesTheRepair() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path config = seedAmbiguousHome(tmp);
 
@@ -246,7 +248,7 @@ class DuplicateChartRepairFrameTest {
 
     /** R13-3: the refusal must name the control that fixes it, not send people to a text editor. */
     @Test
-    void theRefusalNamesTheRepairControl(@TempDir Path tmp) throws Exception {
+    void theRefusalNamesTheRepairControl() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         seedAmbiguousHome(tmp);
         try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
@@ -265,7 +267,7 @@ class DuplicateChartRepairFrameTest {
 
     /** O13-1: OK with nothing chosen is not the same as Cancel, and must not look like success. */
     @Test
-    void okWithNothingChosenSaysSo(@TempDir Path tmp) throws Exception {
+    void okWithNothingChosenSaysSo() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         seedAmbiguousHome(tmp);
         try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
@@ -310,9 +312,93 @@ class DuplicateChartRepairFrameTest {
         return t;
     }
 
+
+    /**
+     * R13-2b: renaming a duplicate onto an UNSAVED chart's name destroyed that chart. The repaired list
+     * held the name, so the carry-forward skipped the live tab as "already present", and the person's work
+     * went without a word. The reviewer's sequence: create "First" during the refusal, then repair the two
+     * "Same" charts to "First" and "Second".
+     */
+    @Test
+    void renamingOntoAnUnsavedChartIsRefusedRatherThanDestroyingIt() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path config = seedAmbiguousHome(tmp);
+
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            openLog(f, tmp);
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                invokeRestore(f.frame);
+
+                GraphPanel mine = tabs(f.frame).addGraph("First");
+                assertNotNull(mine, "a new chart is allowed during the refusal");
+                mine.addSpecs(List.of("node\u0001value"));
+                var seriesBefore = mine.seriesSpecs();
+
+                setChooser(f.frame, (java.util.function.Function<List<GraphSpec>,
+                        Map<Integer, DuplicateChartRepair.Choice>>) saved -> {
+                    Map<Integer, DuplicateChartRepair.Choice> m = new LinkedHashMap<>();
+                    m.put(0, new DuplicateChartRepair.Choice(DuplicateChartRepair.Action.RENAME, "First"));
+                    m.put(1, new DuplicateChartRepair.Choice(DuplicateChartRepair.Action.RENAME, "Second"));
+                    return m;
+                });
+
+                javax.swing.Timer dismiss = dismissDialogs();
+                try {
+                    tabs(f.frame).repairButton().doClick();
+                } finally {
+                    dismiss.stop();
+                }
+
+                assertSame(mine, tabs(f.frame).graphNamed("First"),
+                        "a rename onto an unsaved chart's name must be refused, not silently destroy it");
+                assertEquals(seriesBefore, mine.seriesSpecs(), "and the unsaved chart keeps its series");
+                assertNotNull(tabs(f.frame).definitionRefusal(), "the profile stays ambiguous");
+                // byte equality is wrong here: opening a log legitimately rewrites unrelated settings
+                // (recent files). What must not change is the chart definitions.
+                assertEquals(List.of("Same", "Same"),
+                        new ConfigStore(config).load().savedGraphs.stream().map(GraphSpec::name).toList(),
+                        "both duplicates are still on disk, unrepaired");
+            });
+        }
+    }
+
+    /**
+     * R13-4b: the assistant could create a chart during the refusal and then not edit it, because
+     * "withheld" was answered by {@code hasDefinition}, which counts open tabs as taken. Only the saved
+     * definitions are withheld.
+     */
+    @Test
+    void theAssistantCanEditAChartItCreatedDuringTheRefusal() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        seedAmbiguousHome(tmp);
+
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            openLog(f, tmp);
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                invokeRestore(f.frame);
+                assertNotNull(tabs(f.frame).definitionRefusal(), "definitions are withheld");
+            });
+
+            var created = f.ex.render("graph", Map.of("name", "Scratch", "series", List.of("node.value")));
+            assertTrue(created.ok(), "creating a new chart during the refusal is allowed: " + created.toMap());
+
+            var edited = f.ex.render("graph", Map.of("name", "Scratch", "style", "line"));
+            assertTrue(edited.ok(),
+                    "the assistant must be able to edit the chart it just created — an open tab is not a "
+                            + "withheld definition: " + edited.toMap());
+
+            var withheld = f.ex.render("graph", Map.of("name", "Same", "style", "line"));
+            assertFalse(withheld.ok(), "a WITHHELD definition is still refused");
+        }
+    }
+
     /** O13-2: this creates a chart, which its previous version claimed to and did not. */
     @Test
-    void anAmbiguousProfileNoLongerBlocksMakingANewChart(@TempDir Path tmp) throws Exception {
+    void anAmbiguousProfileNoLongerBlocksMakingANewChart() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         seedAmbiguousHome(tmp);
 

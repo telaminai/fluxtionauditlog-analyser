@@ -91,6 +91,20 @@ public final class GraphTabs extends JPanel {
         return name != null && takenNames().contains(name.trim());
     }
 
+    /**
+     * Is this name held by a SAVED definition that is currently withheld? R13-4b: {@link #hasDefinition}
+     * answers "taken", which includes open tabs — so a chart the assistant had just created counted as
+     * withheld and could not be edited again. Only the saved definitions are actually being withheld.
+     */
+    public boolean isWithheldDefinition(String name) {
+        if (name == null || definitionRefusal == null) return false;
+        String target = name.trim();
+        for (GraphSpec g : savedDefinitions.get()) {
+            if (target.equals(g.name())) return true;
+        }
+        return false;
+    }
+
 
     public void setChangeListener(Runnable listener) {
         this.changeListener = listener == null ? () -> { } : listener;

@@ -5353,7 +5353,18 @@ public final class MainFrame extends JFrame {
         }
         List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> repaired;
         try {
-            repaired = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.apply(saved, choices);
+            // R13-2b: names held by open tabs with no saved definition are taken too — a rename onto one
+            // would destroy unsaved work, which the carry-forward below cannot detect because the name is
+            // already in the repaired list by then.
+            var savedNames = saved.stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                    .collect(java.util.stream.Collectors.toSet());
+            var liveUnsaved = graphTabs.specs().stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                    .filter(n -> !savedNames.contains(n))
+                    .collect(java.util.stream.Collectors.toSet());
+            repaired = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                    .apply(saved, choices, liveUnsaved);
         } catch (IllegalArgumentException refused) {
             JOptionPane.showMessageDialog(this, refused.getMessage(), "Charts not repaired",
                     JOptionPane.WARNING_MESSAGE);
