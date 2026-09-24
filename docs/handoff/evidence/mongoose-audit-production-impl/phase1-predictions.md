@@ -248,3 +248,30 @@ before any change.
 **Verified before writing this, by me:** O4's premise. At mongoose `2c4192e`, `MongooseServer.java:116` declares
 one `private static LogRecordListener`, and `addEventProcessor` installs it with `setAuditLogProcessor` at `:758`
 for every processor it adds (READ, source).
+
+## P9 · Fourth re-review — recorded before these fixes
+
+Fourth re-review `1c706216` (branch `review/mongoose-fourth-rereview-2026-09-24`) against `74d5a009`: three Low
+required, three optional. All six are planned. Recorded before any change.
+
+**R-B's premise, checked by derivation rather than taken from the review.** The runtime applies a change when the
+processor's grouping is null or equals its `groupId`. With a DECLARED context, `applies()` is determinate and the
+closing change shares `c`'s context (`annotationFor` requires it), so a closing change that affects the node is YES:
+it applied. With an ABSENT context: if `c.groupId` is null, `c` applied only under a null grouping, which accepts
+every change; if the two `groupId`s are equal, the condition is the same. **Only when the context is absent,
+`c.groupId` is non-null and differs from `next.groupId` — including a null `next.groupId` — can `c` have applied and
+`next` not.** That is exactly the review's condition.
+
+1. **P9.1 — R-A.** Extending `aNodeNamedNullIsSetUnderBothReadings` with a closing `"null"` change makes the
+   `if (false)` mutant at the node-named-"null" closing branch go red there; nothing else changes.
+2. **P9.2 — R-B.** Disclosing the closing change's addressed grouping, and that its applying is not established,
+   changes no existing assertion, because no test builds an undeclared context with two different `groupId`s.
+3. **P9.3 — R-C.** A parameterised matrix test — {per-node, "null"} source × {declared null, absent, alpha=alpha,
+   absent with gid alpha} × {none, spanning, wholly after} × {none, per-node, "null"} closing, plus a node named
+   "null" — asserting no "this processor" on every non-null note will be green on first run (the reviewer's 110-case
+   probe found none), and red for a plant in any `closing()` literal and in the post-marker text. Some combinations
+   will legitimately yield no annotation (a closing change can close the window before a later in-view record); the
+   test must count its non-null notes and fail if too few, so it cannot pass by annotating nothing.
+4. **P9.4 — O-1.** "Before the marker" in place of "Within the run it was made in" breaks the two tests and the O-C
+   witness that pin the old phrase, and nothing else.
+5. **P9.5 — O-2 and O-3** are a comment and probe-file headers; no test changes.
