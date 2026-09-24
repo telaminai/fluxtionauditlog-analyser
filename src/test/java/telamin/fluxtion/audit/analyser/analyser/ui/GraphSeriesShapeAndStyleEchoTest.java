@@ -53,6 +53,17 @@ class GraphSeriesShapeAndStyleEchoTest {
     }
 
     @Test
+    void aNullSeriesEntryIsRefused() {
+        GraphTabs tabs = new GraphTabs();
+        Map<String, Object> params = new java.util.HashMap<>(Map.of("newTab", true, "name", "g"));
+        params.put("series", java.util.Arrays.asList("bidMakerOrder.price", null));
+        var r = executor(tabs).render("graph", params);
+        assertFalse(r.ok(), "a null entry used to be dropped silently and echoed ok: " + r);
+        assertTrue(r.toString().contains("got null"), "the refusal says what it got: " + r);
+        assertTrue(tabs.specs().stream().noneMatch(s -> "g".equals(s.name())), "nothing was created");
+    }
+
+    @Test
     void theEchoReportsTheStyleTheChartHas() {
         GraphTabs tabs = new GraphTabs();
         ActionExecutor ex = executor(tabs);

@@ -1403,8 +1403,10 @@ public final class ActionExecutor implements RenderExecutor {
                     + series.getClass().getSimpleName() + ". Nothing was changed";
         }
         for (Object o : list) {
-            if (o == null || o instanceof String) continue;
-            String got = o instanceof Map<?, ?> m && m.containsKey("expr")
+            if (o instanceof String) continue;
+            // a null entry was dropped by asStringList and echoed ok — the same empty chart (PR #14 review, F2)
+            String got = o == null ? "null"
+                    : o instanceof Map<?, ?> m && m.containsKey("expr")
                     ? "an object with 'expr' — for a labelled or computed series use exprs: [{expr, label}]"
                     : "a " + o.getClass().getSimpleName();
             return "series entries are \"instanceId.key\" strings, e.g. \"quotePublisher.spread\"; got " + got
