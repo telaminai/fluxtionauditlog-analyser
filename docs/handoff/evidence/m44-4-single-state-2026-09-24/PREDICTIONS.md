@@ -214,3 +214,40 @@ report destinations resolve through other paths and are not covered by this set.
   - W29: `ProjectModel` ignoring `problem` turns `aFailingPointerNamesTheRootItTried` red;
   - W30: `resolution` naming no root in the not-found problem turns `notFoundNamesTheRoot` red.
 - **P41 — headless 1,999** (1,994 + 5), 0 failures. **Frame 66 / 0 / 0 / 1.** **Verifier 69 / 0.**
+
+## Set 8 — M68.2, rendered evidence is checked, not assumed (D-E8)
+
+Written after the code compiled and before any of its tests ran. Gated on a tree without the code.
+
+**What the packet's PDF shows, read before any code** (`spring-g14-recovery-2026-09-24/subject-report-operator-export.pdf`):
+
+- The "Trend" picture is the whole chart TAB, with its style dropdown, "Edit series" and legend, painted about
+  190 px wide. Inside it the plot is a sliver saying "No data under the current fi…".
+- The PDF has no topology section and no statement about one.
+
+Three defects follow:
+
+1. Chart sections were captured with `paintOf(panel)` at the tab's live size. `ChartPanel.toImage()` also painted at
+   the component's own size, into a larger image.
+2. A plot starved of room printed the FILTER sentence ("No data under the current filter").
+3. The renderer's CHART/TOPOLOGY case printed only a picture. So the topology section's "recorded gap" text,
+   which `renderReportPdf` does build, has never reached a page, and a chart with no picture vanished too.
+
+**Not built:** an offscreen render of a named FOCUS. The section now states its gap on the page; it does not draw
+the focus. **Not reproduced:** the packet's original log. It is not in the public packet; its condition, one
+collapsed record and therefore one point, is constructed.
+
+- **P42 — `ChartExportRenderTest`, 4 cases, green on first run.** Confidence 55%. Risks: `setSize`/`doLayout` on a
+  never-displayed `ChartPanel` may not give the layout `paint` expects (the legend strip, `rightMargin()`), so the
+  plot at 1200×600 could still be judged too small; or `realEmptinessIsStillNoData` finds that an empty `Series`
+  gives a range rather than NaN.
+- **P43 — the two new `ReportRendererTest` cases green on first run.** Confidence 70%. Risk: the em dash in "NOT
+  RENDERED — chart" encoding oddly in the PDF stream. The tests only look for "NOT RENDERED".
+- **P44 — witnesses:**
+  - W31: `toImage(w,h)` without `setSize` turns `aNarrowChartExportsItsPlot` red;
+  - W32: `emptyPlotMessage` returning the filter sentence for a starved plot turns `noRoomIsNotNoData` red;
+  - W33: the renderer's CHART/TOPOLOGY case without the NOT RENDERED callout turns both new renderer cases red.
+- **P45 — headless 2,005** (1,999 + 6), 0 failures, 65 skipped. **Frame 66 / 0 / 0 / 1.** Named risk: a frame test
+  exporting a chart PNG and asserting its size, which `toImage()` still keeps at least 640×360.
+- **P46 — end to end.** The new scenario 13 fails on a jar built from `df0b24a5` (no "NOT RENDERED" in the PDF) and
+  passes on the fix. The verifier otherwise stays at 69 / 0.
