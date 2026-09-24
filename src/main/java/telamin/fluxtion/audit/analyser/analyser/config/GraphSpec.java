@@ -11,7 +11,24 @@ import java.util.List;
 public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                         String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
                         List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
-                        List<MarkerSpec> markers) {
+                        List<MarkerSpec> markers, String style) {
+
+    /**
+     * A blank style is no style: the reader omits the key and {@link #style()} answers the default, so a
+     * profile written before styles were persisted reopens as stairs exactly as it did before.
+     */
+    public GraphSpec {
+        style = style == null || style.isBlank() ? null : style.toLowerCase();
+    }
+
+    /** The pre-M68.2 shape (style not persisted — a chart's stairs/line/points choice was lost on reload). */
+    public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
+                     String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
+                     List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
+                     List<MarkerSpec> markers) {
+        this(name, series, exprs, from, to, note, explanation, notes, rightAxis, guides, bands,
+                external, markers, null);
+    }
 
     /** The pre-M32.5 shape (no markers). */
     public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
@@ -167,5 +184,21 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
 
     public List<MarkerSpec> markers() {
         return markers == null ? List.of() : markers;
+    }
+
+    /** Stairs is the default everywhere else ({@code ChartPanel.Style.STEP}), so an unset style answers it too. */
+    public static final String DEFAULT_STYLE = "step";
+
+    /**
+     * {@code step|line|points} — never null, so a caller restoring a chart does not have to know the
+     * default. A chart saved before M68.2 has no stored style and answers {@link #DEFAULT_STYLE}.
+     */
+    public String style() {
+        return style == null ? DEFAULT_STYLE : style;
+    }
+
+    /** The stored value, null when this chart never declared one — what the writer persists. */
+    public String declaredStyle() {
+        return style;
     }
 }

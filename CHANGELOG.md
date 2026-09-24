@@ -6,6 +6,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Open on a Project-panel row now opens that row's thing.** Open on a saved report reveals *that*
+  report instead of whichever one was already selected, and Open on a saved chart works at all — those
+  rows previously carried no action, so the button did nothing. A chart that is saved but not currently
+  a tab is opened from the profile and selected; one already open is selected rather than rebuilt, so
+  nothing you changed since is discarded.
+
+- **A chart's plot style is saved with it.** Stairs, line and points are part of a saved chart and
+  survive a reload. Previously the choice was never written to the profile, so a chart deliberately set
+  to line or points silently came back as stairs — the reading of the chart changed without anyone
+  touching it. Charts saved before this release have no stored style and open as stairs, exactly as they
+  did before. An unrecognised style in a hand-edited profile is dropped rather than applied.
+
 ## [1.19.1] - 2026-09-24
 
 - Named project profiles (`.analyser/project.<name>.fluxtion-settings`) now resolve relative paths from the project root, matching the canonical profile. Source roots, runbooks and other project-relative pointers no longer resolve one directory too deep.

@@ -279,7 +279,8 @@ public final class GraphTabs extends JPanel {
                 out.add(new GraphSpec(gp.graphName(), gp.seriesSpecs(), gp.exprSpecs(),
                         gp.pinnedFrom(), gp.pinnedTo(), gp.caption(),
                         notes.explanation(), noteSpecs, new ArrayList<>(gp.axes().rightSeries()),
-                        gp.guides(), gp.bandSpecs(), gp.externalSpecs(), gp.markerSpecs()));
+                        gp.guides(), gp.bandSpecs(), gp.externalSpecs(), gp.markerSpecs(),
+                        gp.styleName()));
             }
         }
         return out;
@@ -297,35 +298,67 @@ public final class GraphTabs extends JPanel {
         }
     }
 
+    /**
+     * M68.2: open ONE saved chart and select it — what the Project panel's Open does for a chart that is
+     * not currently a tab. A chart already open is selected rather than rebuilt, so Open never discards
+     * edits made since the profile was written. Returns false when there is nothing to open.
+     */
+    public boolean openSaved(GraphSpec spec) {
+        if (spec == null || store == null) return false;
+        GraphPanel existing = graphNamed(spec.name());
+        if (existing != null) {
+            tabs.setSelectedComponent(existing);
+            return true;
+        }
+        boolean was = restoring;   // building from persisted state is not a user edit
+        restoring = true;
+        try {
+            GraphPanel panel = addGraph(spec.name());
+            if (panel == null) return false;
+            applySpec(panel, spec);
+            tabs.setSelectedComponent(panel);
+            return true;
+        } finally {
+            restoring = was;
+        }
+    }
+
     private void doRestore(List<GraphSpec> saved) {
         clearGraphs();
         counter = 0;
         for (GraphSpec g : saved) {
             GraphPanel panel = addGraph(g.name());
             if (panel == null) continue;
-            panel.setCaption(g.note());
-            if (g.series() != null) panel.addSpecs(g.series());
-            for (GraphSpec.ExprSpec ex : g.exprs()) {
-                panel.addExpr(ex.label(), ex.expr(), resolveOf(ex.resolve()));
-            }
-            if (g.isPinned()) panel.pin(g.from(), g.to());
-            if (!g.guides().isEmpty()) panel.setGuides(g.guides());
-            if (!g.bands().isEmpty()) panel.setBands(g.bands());
-            if (!g.external().isEmpty()) panel.setExternal(g.external());   // async reload; D-F5 notes on failure
-            if (!g.markers().isEmpty()) panel.setMarkers(g.markers());
-            // the reading of the chart, restored with it
-            var notes = new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes(
-                    g.explanation(), g.notes().stream()
-                    .map(n -> new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
-                            n.at(), n.text(), n.series()))
-                    .toList());
-            if (!notes.isEmpty()) panel.setNotes(notes);
-            if (!g.rightAxis().isEmpty()) {
-                panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
-                        g.rightAxis()));
-            }
+            applySpec(panel, g);
         }
         if (tabs.getTabCount() == 0) addGraph();
+    }
+
+    /** Everything a {@link GraphSpec} says, onto a panel — the one place a saved chart is rebuilt. */
+    private void applySpec(GraphPanel panel, GraphSpec g) {
+        panel.setCaption(g.note());
+        if (g.series() != null) panel.addSpecs(g.series());
+        for (GraphSpec.ExprSpec ex : g.exprs()) {
+            panel.addExpr(ex.label(), ex.expr(), resolveOf(ex.resolve()));
+        }
+        if (g.isPinned()) panel.pin(g.from(), g.to());
+        if (!g.guides().isEmpty()) panel.setGuides(g.guides());
+        if (!g.bands().isEmpty()) panel.setBands(g.bands());
+        if (!g.external().isEmpty()) panel.setExternal(g.external());   // async reload; D-F5 notes on failure
+        if (!g.markers().isEmpty()) panel.setMarkers(g.markers());
+        // the reading of the chart, restored with it
+        var notes = new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes(
+                g.explanation(), g.notes().stream()
+                .map(n -> new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
+                        n.at(), n.text(), n.series()))
+                .toList());
+        if (!notes.isEmpty()) panel.setNotes(notes);
+        if (!g.rightAxis().isEmpty()) {
+            panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
+                    g.rightAxis()));
+        }
+        // M68.2: last, so the style the profile declared survives everything added above
+        panel.setStyleByName(g.style());
     }
 
     private static SeriesExtractor.Resolve resolveOf(String s) {

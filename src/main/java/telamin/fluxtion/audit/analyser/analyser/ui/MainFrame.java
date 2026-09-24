@@ -355,6 +355,20 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries, page);
             }
+            // M68.2: reveal the item the row is about, not merely the tab that owns it
+            @Override public void showReport(String name) {
+                selectTab("Reports");
+                if (name != null && reportsPanel != null) reportsPanel.select(name);
+            }
+            @Override public void showGraph(String name) {
+                selectTab("Graph");
+                if (name == null) return;
+                // already a tab → select it; saved but not open → open it from the profile, then select
+                for (telamin.fluxtion.audit.analyser.analyser.config.GraphSpec g : config.savedGraphs) {
+                    if (name.equals(g.name())) { graphTabs.openSaved(g); return; }
+                }
+                graphTabs.selectGraph(name);
+            }
         });
         projectPanel.setVisible(!config.projectPanelCollapsed);
         projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {

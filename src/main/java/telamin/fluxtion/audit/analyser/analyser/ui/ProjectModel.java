@@ -19,8 +19,22 @@ import java.util.Set;
  */
 public record ProjectModel(List<Section> sections) {
 
-    /** A row: what it is, where it is (a path, copyable; may be null), where it came from, and how it should read. */
-    public record Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) { }
+    /**
+     * A row: what it is, where it is (a path, copyable; may be null), where it came from, and how it should read.
+     *
+     * <p>{@code item} is the row's IDENTITY where the thing has one the app can address — a report's name, a
+     * saved chart's name. It is not the label: a report row shows its TITLE, and {@code ReportsPanel.select}
+     * matches on the name, so revealing the row the person clicked needs the two kept apart (M68.2). Null
+     * for every row whose target is a tab or a settings page rather than a thing.
+     */
+    public record Row(String primary, String secondary, String path, String provenance, Tone tone,
+                      Target target, String item) {
+
+        /** A row that names no addressable item — the shape every pre-M68.2 caller uses. */
+        public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) {
+            this(primary, secondary, path, provenance, tone, target, null);
+        }
+    }
 
     public enum Tone { NORMAL, MUTED, WARN }
 
@@ -36,7 +50,12 @@ public record ProjectModel(List<Section> sections) {
          */
         ADD_SOURCE,
         /** A pointed-at file a PERSON may read in the app (runbook, glossary): a read-only viewer — never executed, never served to an agent. */
-        VIEW_FILE }
+        VIEW_FILE,
+        /**
+         * A saved chart, revealed by name in the Graphs tab (M68.2). Before this these rows were
+         * {@link #NONE} — no action at all, so the row's Open did nothing because nothing was wired.
+         */
+        CHART }
 
     public record Section(String title, List<Row> rows) { }
 
@@ -334,7 +353,8 @@ public record ProjectModel(List<Section> sections) {
         for (Object o : list(ctx.get("savedGraphs"))) {
             Map<String, Object> saved = map(o);
             rows.add(new Row(str(saved.get("name")), str(saved.get("input")), null,
-                    Boolean.TRUE.equals(saved.get("open")) ? "open" : "saved", Tone.NORMAL, Target.NONE));
+                    Boolean.TRUE.equals(saved.get("open")) ? "open" : "saved", Tone.NORMAL, Target.CHART,
+                    str(saved.get("name"))));
         }
         if (rows.isEmpty()) rows.add(new Row("No saved charts", "Save a chart definition to keep its series and expressions", null, null, Tone.MUTED, Target.NONE));
         out.add(new Section(SAVED_GRAPHS, rows));
@@ -354,8 +374,9 @@ public record ProjectModel(List<Section> sections) {
             Map<String, Object> r = map(o);
             Object n = r.get("sections");
             String detail = (n == null ? "0" : n) + " section" + ("1".equals(String.valueOf(n)) ? "" : "s") + " · saved report";
+            // the row shows the TITLE; the report is addressed by its NAME — hence the separate item (M68.2)
             rows.add(new Row(str(r.get("title") != null ? r.get("title") : r.get("name")), detail, null, str(r.get("from")),
-                    Tone.NORMAL, Target.REPORTS));
+                    Tone.NORMAL, Target.REPORTS, str(r.get("name"))));
         }
         if (reps.isEmpty()) {
             rows.add(new Row("No saved reports", "Reports tab ▸ New report, or report {…} from the socket",

@@ -989,6 +989,18 @@ public final class GraphPanel extends JPanel {
         mutated();
     }
 
+    /**
+     * The plot style as {@code step|line|points} — the form {@link #setStyleByName} takes, so the pair
+     * round-trips. Read from the combo, which is the one place the choice lives.
+     */
+    public String styleName() {
+        return switch (styleCombo.getSelectedIndex()) {
+            case 1 -> "line";
+            case 2 -> "points";
+            default -> "step";
+        };
+    }
+
     private void onFilterChanged() {
         if (filter == null) return;
         java.util.Set<String> dims = filter.dimensions();
