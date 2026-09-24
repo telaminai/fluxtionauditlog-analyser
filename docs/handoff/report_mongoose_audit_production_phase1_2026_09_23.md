@@ -11,7 +11,7 @@ released or deployed. No Fluxtion API key was used.
 | --- | --- | --- | --- |
 | `mongoose-plugins` | `feat/mongoose-audit-production` | `b208257` | `main` `40f01cf` (post-1.0.44) |
 | `mongoose` core | `feat/mongoose-audit-production` | `2c4192e` | `develop` `17a03b4` |
-| analyser | `feat/mongoose-audit-production` | `1aa346ff` | `main` `fda01845` |
+| analyser | `feat/mongoose-audit-production` | `b181aa38` | `main` `fda01845` (needs rebase onto `7ecb0c38`) |
 
 Predictions were committed before any trial: `07a13bf7`,
 [`evidence/mongoose-audit-production-impl/phase1-predictions.md`](evidence/mongoose-audit-production-impl/phase1-predictions.md).
@@ -244,7 +244,40 @@ Review was right that the record was incomplete. Adding the three it named, and 
 are assembled across buffer reads before checking, and a BOM at five positions around the 64 KB boundary
 gave identical results on both stores.
 
-**Suite:** analyser **1925/0/62**.
+**Suite:** analyser **1925/0/62** at that point; **1934/0/62** after the round-4 additions below.
+
+### Round-4 additions, reviewed and integrated (`a605bb7c` + `b181aa38`)
+
+The reviewer supplied a commit on top of my head. I reviewed it rather than taking it, and re-ran every
+witness.
+
+- **F3 completed.** My `AuditText.strip` removed **one** leading mark while both framers already looped,
+  so `cat bom-only.yaml run.yaml` still hid the record key and a `#` header. **This corrects my own
+  round-3 claim**: I reported fixing "the double-BOM loop", and that held in the framers but **not in
+  `strip`**. The report said more than was true.
+- **F2** — `HeapLogStore.appendFrom` used `Files.readString`, which threw `MalformedInputException` when
+  a Follow poll landed inside a multi-byte character. It now decodes to the last complete character and
+  leaves the rest pending; malformed bytes elsewhere still throw. I checked `completeUtf8` at every edge
+  I could construct and it holds.
+- **F4** — one `isControlEvent` predicate shared by `ONLY_CONTROL_EVENTS` and MA-8, so a lookalike cannot
+  count for one and not the other; and `PerNodeLevelChanges.all()` no longer claims a report path that
+  does not exist.
+- `AuditText` made public for one helper. Acceptable: only `isBlankIgnoringBoms` is public.
+
+**Two corrections from re-running the witnesses myself:**
+
+1. The YAML-reader witness fires in `EmptyFileOpensTest`, not the class the summary implied.
+2. **The structural guard had a hole.** It matched `\uFEFF`, the literal character and the three byte
+   constants, but **not the numeric form** — a site written `charAt(0) == 0xFEFF` passed it silently.
+   Now widened to `0xFEFF` and `65279`, and it names file and line.
+
+### A behaviour change worth stating
+
+`RecordParser` now strips **ASCII whitespace only** (space, tab, CR, LF) where it used
+`String.strip()`, which removes every Unicode space. That is closer to §1 and it is what the rest of the
+parser already did — but it **is** a change for a line indented with, say, a non-breaking space or an
+ideographic space: such a line is no longer treated as blank or trimmed to its content. No fixture
+covers that, and nothing in the corpus produces it, so it is recorded rather than tested.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
