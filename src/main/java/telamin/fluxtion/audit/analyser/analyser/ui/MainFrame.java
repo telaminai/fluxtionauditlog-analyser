@@ -6484,6 +6484,7 @@ public final class MainFrame extends JFrame {
             // The menu bar, as spotlight targets name it: an assistant can READ where an action lives instead of
             // provoking a refusal to learn it, or guessing (1.20.0 virgin-LLM check).
             out.put("menus", menuMap());
+            out.put("menuChanges", MenuHints.changes(menuMap()));
             out.put("savedGraphs", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.savedGraphs(
                     config.savedGraphs, graphTabs.specs().stream().map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
                             .collect(java.util.stream.Collectors.toSet()), store != null));

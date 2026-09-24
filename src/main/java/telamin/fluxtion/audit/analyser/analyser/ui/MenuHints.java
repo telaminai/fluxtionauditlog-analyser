@@ -80,6 +80,27 @@ final class MenuHints {
         return null;
     }
 
+    /**
+     * The menu changes a reader of {@code context.menus} would otherwise miss: retired menus and renamed items. A
+     * model that reads the menu map first never asks for an old path, so the hint on a miss never reaches it
+     * (virgin-LLM check on PR #19: "File > Reset does not exist", with no replacement named). A rename is listed
+     * only while its new name is on the menu bar.
+     */
+    static List<String> changes(Map<String, List<String>> menus) {
+        List<String> out = new ArrayList<>(RETIRED_MENUS.values());
+        for (Map.Entry<String, String> renamed : RENAMED_ITEMS.entrySet()) {
+            for (Map.Entry<String, List<String>> menu : menus.entrySet()) {
+                for (String item : menu.getValue()) {
+                    if (normalize(item).equals(normalize(renamed.getValue()))) {
+                        out.add("File > " + Character.toUpperCase(renamed.getKey().charAt(0)) + renamed.getKey().substring(1)
+                                + " was renamed in 1.20.0: it is now " + menu.getKey() + " > " + item);
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
     /** The note for a menu that no longer exists, or null. */
     static String retired(String askedMenu) {
         return askedMenu == null ? null : RETIRED_MENUS.get(askedMenu.strip().toLowerCase(Locale.ROOT));

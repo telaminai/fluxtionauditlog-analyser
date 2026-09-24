@@ -62,6 +62,16 @@ class MenuHintsTest {
     }
 
     @Test
+    void theChangesListNamesTheRenameOnlyWhileItsNewNameIsOnTheMenuBar() {
+        assertTrue(MenuHints.changes(MENUS).contains("File > Reset was renamed in 1.20.0: it is now Project > Close log and topology"),
+                MenuHints.changes(MENUS).toString());
+        assertTrue(MenuHints.changes(MENUS).contains("the File menu was split in 1.20.0 into Project, Sources and Audit log"));
+        Map<String, List<String>> without = new LinkedHashMap<>(MENUS);
+        without.put("Project", List.of("Exit"));
+        assertTrue(MenuHints.changes(without).stream().noneMatch(c -> c.contains("Reset")), "never points at a missing item");
+    }
+
+    @Test
     void theRetiredFileMenuSaysWhatReplacedIt() {
         assertEquals("the File menu was split in 1.20.0 into Project, Sources and Audit log", MenuHints.retired(" file "));
         assertNull(MenuHints.retired("Project"));

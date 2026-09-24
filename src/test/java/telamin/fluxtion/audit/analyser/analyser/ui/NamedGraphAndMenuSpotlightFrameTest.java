@@ -89,6 +89,10 @@ class NamedGraphAndMenuSpotlightFrameTest {
                 assertEquals(List.of("Project", "Sources", "Audit log", "Records", "Theme", "AI", "Help"),
                         List.copyOf(menus.keySet()), "in menu-bar order");
                 assertTrue(menus.get("Project").contains("Close log and topology"), menus.toString());
+                // a model that reads the menus first never asks for File > Reset, so the rename must be readable too
+                List<String> changes = (List<String>) find(render(f.ex, "context", Map.of()), "menuChanges");
+                assertTrue(changes != null && changes.contains(
+                        "File > Reset was renamed in 1.20.0: it is now Project > Close log and topology"), String.valueOf(changes));
                 // what a hint names really lights — the renamed item and a moved one
                 var follow = attempt(f, "spotlight", Map.of("target", "menu:File:Follow (tail)"));
                 assertTrue(follow.toString().contains("light menu:Audit log:Follow (tail)"), follow.toString());

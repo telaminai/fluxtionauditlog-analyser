@@ -257,7 +257,9 @@ CASES += [
     ('menu-hint-wired', MAIN_FRAME, '+ menuItemTexts(m) + " (a submenu\'s items cannot be lit)" + whereIsNote(t)',
      '+ menuItemTexts(m) + " (a submenu\'s items cannot be lit)"',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
-    ('context-menus', MAIN_FRAME, '            out.put("menus", menuMap());', '',
+    ('context-menus', MAIN_FRAME, '            out.put("menus", menuMap());\n', '',
+     'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    ('context-menu-changes', MAIN_FRAME, '            out.put("menuChanges", MenuHints.changes(menuMap()));', '',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
 ]
 
