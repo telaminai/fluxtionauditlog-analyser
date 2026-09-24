@@ -1,0 +1,14 @@
+[
+  {
+    "asset": "fluxtion-auditlog-analyser.jar",
+    "sha256": "442a4d28bd3620a8a11870001d5e079312c639bf09563d00274e1b4d5b42fb4c",
+    "version": "1.20.0",
+    "bundledNotes": "1.20.0 menus present"
+  },
+  {
+    "asset": "fluxtion-auditlog-analyser-1.20.0.jar",
+    "sha256": "442a4d28bd3620a8a11870001d5e079312c639bf09563d00274e1b4d5b42fb4c",
+    "version": "1.20.0",
+    "bundledNotes": "1.20.0 menus present"
+  }
+]

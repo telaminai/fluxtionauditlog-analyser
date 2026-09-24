@@ -5,7 +5,7 @@ the same source roots, event processors and **named graphs** (formulas and pins 
 
 ## Export
 
-**File ▸ Export settings…** — tick what to include:
+**Project ▸ Export settings…** — tick what to include:
 
 | Category | Contents |
 |---|---|
@@ -47,7 +47,7 @@ file active; see [Working across projects](projects.md).
 
 ## Import
 
-**File ▸ Import settings…** shows a per-category **summary** — what's new, what would be replaced —
+**Project ▸ Import settings…** shows a per-category **summary** — what's new, what would be replaced —
 before anything changes. Deselect any category you don't want. On apply:
 
 - **Lists merge** (source roots, Maven repos, event processors) — nothing local is deleted.

@@ -1,0 +1,350 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "menu-help-s3",
+      "site": "src/main/resources/help/help.html",
+      "sha256": "a8e03f46a42f1d84650157e431fc20f06cb0bdd668bd88960aacd5f02dbd4a1d",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuDocumentationTest#documentedPathsNameExistingItems",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuDocumentationTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "documentedPathsNameExistingItems"
+            ],
+            "assertions": [
+              {
+                "test": "documentedPathsNameExistingItems",
+                "kind": "failure",
+                "message": "src/main/resources/help/help.html:263: no menu item Audit log \u2192 Open from S3 ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.027 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.documentedPathsNameExistingItems -- Time elapsed: 1.017 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: src/main/resources/help/help.html:263: no menu item Audit log \u2192 Open from S3 ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.documentedPathsNameExistingItems(MenuDocumentationTest.java:131)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   MenuDocumentationTest.documentedPathsNameExistingItems:131 src/main/resources/help/help.html:263: no menu item Audit log \u2192 Open from S3 ==> expected: <true> but was: <false>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuDocumentationTest#documentedPathsNameExistingItems",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuDocumentationTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "documentedPathsNameExistingItems"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "menu-doc-ai",
+      "site": "docs/site/faq.md",
+      "sha256": "2e09efd01562a210af84d97af17579dce7bb6ec80edee9c825fd272c9ba55093",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuDocumentationTest#documentedPathsNameExistingItems",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuDocumentationTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "documentedPathsNameExistingItems"
+            ],
+            "assertions": [
+              {
+                "test": "documentedPathsNameExistingItems",
+                "kind": "failure",
+                "message": "docs/site/faq.md:30: no menu item AI \u2192 Nonexistent item ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.235 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.documentedPathsNameExistingItems -- Time elapsed: 1.224 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: docs/site/faq.md:30: no menu item AI \u2192 Nonexistent item ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.documentedPathsNameExistingItems(MenuDocumentationTest.java:131)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   MenuDocumentationTest.documentedPathsNameExistingItems:131 docs/site/faq.md:30: no menu item AI \u2192 Nonexistent item ==> expected: <true> but was: <false>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuDocumentationTest#documentedPathsNameExistingItems",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuDocumentationTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "documentedPathsNameExistingItems"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "menu-java-path",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectModel.java",
+      "sha256": "9159f5848ff892785bd5cbc3b0b8410adc33dd858ff9a8d31d3f61a4f64ddf54",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuDocumentationTest#documentedPathsNameExistingItems",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuDocumentationTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "documentedPathsNameExistingItems"
+            ],
+            "assertions": [
+              {
+                "test": "documentedPathsNameExistingItems",
+                "kind": "failure",
+                "message": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectModel.java:195: no menu item Audit log \u2192 Open ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.355 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.documentedPathsNameExistingItems -- Time elapsed: 1.345 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectModel.java:195: no menu item Audit log \u2192 Open ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.documentedPathsNameExistingItems(MenuDocumentationTest.java:131)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   MenuDocumentationTest.documentedPathsNameExistingItems:131 src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectModel.java:195: no menu item Audit log \u2192 Open ==> expected: <true> but was: <false>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuDocumentationTest#documentedPathsNameExistingItems",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuDocumentationTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "documentedPathsNameExistingItems"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "menu-close-log-human",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "01301e7348ad413e7905ecfa5ec46ccfd5f008aedb95891bfa9b68f5d0a2784c",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "closeLogFromItsMenuPreservesTheProjectAndSavedChart"
+            ],
+            "assertions": [
+              {
+                "test": "closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+                "kind": "failure",
+                "message": "Close log declares human intent ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.875 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.closeLogFromItsMenuPreservesTheProjectAndSavedChart -- Time elapsed: 1.859 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: Close log declares human intent ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.clickAsHuman(MenuLayoutFrameTest.java:126)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.lambda$closeLogFromItsMenuPreservesTheProjectAndSavedChart$13(MenuLayoutFrameTest.java:105)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   MenuLayoutFrameTest.lambda$closeLogFromItsMenuPreservesTheProjectAndSavedChart$13:105->clickAsHuman:126 Close log declares human intent ==> expected: <true> but was: <false>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "closeLogFromItsMenuPreservesTheProjectAndSavedChart"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "menu-close-graph-human",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "01301e7348ad413e7905ecfa5ec46ccfd5f008aedb95891bfa9b68f5d0a2784c",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#closeGraphFromItsMenuKeepsLogProjectAndCharts",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "closeGraphFromItsMenuKeepsLogProjectAndCharts"
+            ],
+            "assertions": [
+              {
+                "test": "closeGraphFromItsMenuKeepsLogProjectAndCharts",
+                "kind": "failure",
+                "message": "Close graph declares human intent ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.482 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.closeGraphFromItsMenuKeepsLogProjectAndCharts -- Time elapsed: 1.470 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: Close graph declares human intent ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.clickAsHuman(MenuLayoutFrameTest.java:126)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.lambda$closeGraphFromItsMenuKeepsLogProjectAndCharts$19(MenuLayoutFrameTest.java:154)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   MenuLayoutFrameTest.lambda$closeGraphFromItsMenuKeepsLogProjectAndCharts$19:154->clickAsHuman:126 Close graph declares human intent ==> expected: <true> but was: <false>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#closeGraphFromItsMenuKeepsLogProjectAndCharts",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "closeGraphFromItsMenuKeepsLogProjectAndCharts"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    }
+  ],
+  "baseline": {
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=MenuDocumentationTest,MenuLayoutFrameTest",
+      "-Djava.awt.headless=false"
+    ],
+    "exit": 0,
+    "suites": [
+      {
+        "name": "MenuDocumentationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "extractsHtmlMarkdownAndReportsLocations",
+          "documentedPathsNameExistingItems"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "MenuLayoutFrameTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "projectSourcesAndAuditHaveTheirOwnActions",
+          "closeBothFromItsMenuKeepsProjectAndCharts",
+          "closeGraphFromItsMenuKeepsLogProjectAndCharts",
+          "closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "sourceShortcutsOpenTheNamedSettingsPage"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": ""
+  }
+}

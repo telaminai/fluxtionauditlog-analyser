@@ -1,0 +1,252 @@
+[
+  {
+    "run": 1,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 2,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 3,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 4,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 5,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 6,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 7,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 8,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 9,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  },
+  {
+    "run": 10,
+    "exit": 0,
+    "suites": [
+      {
+        "name": "PersonAtTheScreenFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      },
+      {
+        "name": "NamedGraphAndMenuSpotlightFrameTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "problems": [],
+        "focus": []
+      }
+    ],
+    "output": ""
+  }
+]

@@ -53,8 +53,9 @@ architecture, conventions). This file is only the rules that must never be skipp
    The release workflow stamps it; it feeds the GitHub release, the in-app notes, and the docs site.
 3. **Branch**: `main` only (trunk-based, always releasable); `pull.rebase` is set — no merge bubbles.
    Never force-push; never resurrect `master`.
-4. **Tests gate everything**: `mvn test` green before commit. Pure logic gets unit tests; Swing does
-   not (headless CI) — verify UI by building and running the jar.
+4. **Tests gate everything**: `mvn test` green before commit. Pure logic runs headless; frame
+   tests need a display. CI runs the registered frame suites under Xvfb and rejects skips. Report
+   skips separately from passes; use the built jar for visual and action-socket acceptance.
 5. **Docs site** (`docs/site/`, root `mkdocs.yml`, MkDocs Material): `mkdocs build --strict` must pass
    before pushing site changes (CI link-checks). Local: `pip3 install -r docs-requirements.txt &&
    mkdocs serve`.
@@ -80,7 +81,10 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Shipped through 2026-09-23 (v1.19.0 released 2026-09-23: revision-bound Java source spotlights with asynchronous preparation, viewport remeasurement and honest partial disclosure; v1.18.0 the same day: audit format 1.1 §1a — a log can say whether it is whole, `context.log.streamEnd` reports the claim, an unclaimed file reads as `unknown` and a rolled set is never reported complete; v1.17.0 2026-09-21: the tool-agreement block TA-1…TA-8, Follow through `open {follow}`, pending EOF records, chart/topology/report fixes; v1.16.0 2026-09-20: M66 design render — the Spring XML on the canvas, adding `source` as the SIXTEENTH verb — plus the project-starter journey, project landing and explicit session recovery; v1.15.0 released 2026-09-18: M64.10/.11/.12 — a spotlight target may name its chart or reach a menu item, the guidance says a call replaces unless it adds — plus `/manifest` carrying the bridge `instructions` and the external-label fixes, all reviewed twice; v1.14.0 and v1.14.1 released 2026-09-17: the M46 agent-API closure, M44.3b close supersedes a pending open, M48.7 the shared canvas through `open {posture | record}`, M64 spotlight .1–.9 incl. the point-at-the-fault skill and `topology:verdict`, M65 follow refreshes open graphs; earlier: v1.13.0–1.13.2 2026-09-16, v1.12.0, v1.11.0 2026-08-27)):** MCP bridge
+`docs/specs/completed/tracker.md`. **Latest: 1.20.0 released 2026-09-24**, with separate Project,
+Sources and Audit log menus, refreshed guides/screenshots, menu-path guards, and the fast mutation
+gate in CI. Chart lifecycle fixes shipped in 1.19.2/1.19.3. Remaining menu owner decisions stay live.
+See `docs/handoff/release_analyser_1_20_0_2026_09_24.md`. **Earlier shipped through 2026-09-23 (v1.19.0 released 2026-09-23: revision-bound Java source spotlights with asynchronous preparation, viewport remeasurement and honest partial disclosure; v1.18.0 the same day: audit format 1.1 §1a — a log can say whether it is whole, `context.log.streamEnd` reports the claim, an unclaimed file reads as `unknown` and a rolled set is never reported complete; v1.17.0 2026-09-21: the tool-agreement block TA-1…TA-8, Follow through `open {follow}`, pending EOF records, chart/topology/report fixes; v1.16.0 2026-09-20: M66 design render — the Spring XML on the canvas, adding `source` as the SIXTEENTH verb — plus the project-starter journey, project landing and explicit session recovery; v1.15.0 released 2026-09-18: M64.10/.11/.12 — a spotlight target may name its chart or reach a menu item, the guidance says a call replaces unless it adds — plus `/manifest` carrying the bridge `instructions` and the external-label fixes, all reviewed twice; v1.14.0 and v1.14.1 released 2026-09-17: the M46 agent-API closure, M44.3b close supersedes a pending open, M48.7 the shared canvas through `open {posture | record}`, M64 spotlight .1–.9 incl. the point-at-the-fault skill and `topology:verdict`, M65 follow refreshes open graphs; earlier: v1.13.0–1.13.2 2026-09-16, v1.12.0, v1.11.0 2026-08-27)):** MCP bridge
 (M13.1–13.4), topology view + step-through (M21 core), topology usability (M22, 36 of 41), project
 profiles (M20), focus-as-filter + named focuses (M27), agent-efficiency verbs (M26), expression
 conditionals + rolling windows + guides/bands (M28), external series (M29 core), rolled log sets +

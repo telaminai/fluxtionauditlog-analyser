@@ -10,11 +10,11 @@ you can answer questions about a night you were asleep for.
 
 ## The first two minutes
 
-1. **Open the log.** **File ▸ Open log…**, drag it onto the window, or **File ▸ Open from S3…** with an
+1. **Open the log.** **Audit log ▸ Open log…**, drag it onto the window, or **Audit log ▸ Open log from S3…** with an
    `s3://bucket/key` URL if it is already in object storage.
 2. **Read the status bar.** It tells you what you have before you look at anything else: how many
    records, the time range, and where the log came from. Trust this over the filename.
-3. **Add the topology if you have it** — **File ▸ Open GraphML…**, or **File ▸ Find GraphML in source
+3. **Add the topology if you have it** — **Sources ▸ Open GraphML…**, or **Sources ▸ Find GraphML in source
    roots…** to see which of the available graphs actually *fits* this log, ranked. The Topology tab
    then says, permanently, whether the graph matches the log you have open. If it says it does not,
    take it seriously: the graph and the log disagree about which nodes exist, so anything the graph tells
@@ -88,7 +88,7 @@ export. See [Graphs](user-guide/graphs.md).
 
 ### "Is it happening again / is it still happening?"
 
-Turn on **Follow** (toolbar, or **File ▸ Follow (tail)**) on a local log and new records append as they
+Turn on **Follow** (toolbar, or **Audit log ▸ Follow (tail)**) on a local log and new records append as they
 are written, keeping your flags, filters and selection. For a fixed export, compare two logs by
 opening each in turn — the fingerprint in a saved report will tell you if you have reopened a different
 one than the report was written against.

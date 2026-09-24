@@ -6,6 +6,25 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Project / Sources / Audit log menus — remaining follow-ups
+
+Implementation and guard follow-ups shipped in **1.20.0** (PRs #15 and #17);
+[verification and historical counts](completed/tracker.md)
+are in the completed tracker. The release is not a claim that these optional issues are resolved:
+
+- ☐ **Display stability:** the second-menu spotlight flake was not reproduced; the trial focus retry
+  did not demonstrate improvement and was removed. Keep the zero-skip display gate.
+- ☐ **Optional menu guard refinements:** computed Java menu strings and the prose-boundary heuristic
+  remain limited; see the [guard report](../handoff/report_menu_guard_followups_2026_09_24.md).
+- ☐ **D1 / D2 owner decisions:** CSV placement under Audit log and whether to add a legacy File
+  spotlight alias. Current shipped behaviour and the saved-step compatibility consequence are
+  documented; this release does not choose a different policy.
+- ☐ **D3 identity:** GitHub web merges bypass the local email pin. In addition to the earlier report,
+  `7254c29d` and `2a15f0ba` have non-personal metadata. Local email is personal at this release;
+  history is not rewritten. The owner still needs to settle the web-merge identity setting.
+- ☐ **CI policy:** whether the new full mutation gate is required by branch protection is an owner
+  setting; the job already runs on every PR and push to main.
+
 ## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md), revision 9 (2026-09-21)
 
 Remove the export step between a Mongoose run and the analyser. Owner decisions taken 2026-09-21; the

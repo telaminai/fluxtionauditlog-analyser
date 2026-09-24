@@ -1,0 +1,11 @@
+{
+  "command": "JAVA_HOME=<JDK21> mvn -q clean package",
+  "counts": {
+    "tests": 1945,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 83
+  },
+  "mappedSuites": 259,
+  "orphans": []
+}

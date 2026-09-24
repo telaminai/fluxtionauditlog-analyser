@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * File → Import settings… summary dialog (M15, spec-settings-share §4.2). Shows, per category, what the
+ * Project → Import settings… summary dialog (M15, spec-settings-share §4.2). Shows, per category, what the
  * file contains and what applying it would do; each category is individually deselectable before OK.
  * Returns the chosen categories, or {@code null} if cancelled. Applies nothing itself.
  */

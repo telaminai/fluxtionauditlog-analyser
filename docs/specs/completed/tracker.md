@@ -1,3 +1,46 @@
+## Project / Sources / Audit log menus — ☑ SHIPPED in 1.20.0 — 2026-09-24
+
+- ☑ **Separate top-level resource menus** — implemented on `feat/project-sources-audit-menus`,
+  merged as PR #15 (`fda14f70`), follow-ups PR #17 (`5eac0b8c`); released in 1.20.0. Project owns profiles/settings/analyses, Sources
+  owns source configuration and topology/design/diagnostics, Audit log owns acquisition/Follow/export.
+  Records, Theme, AI and Help remain separate. Existing action handlers and the reveal-only Project
+  panel boundary remain in force. Live docs, offline help, screenshots and menu spotlight examples
+  must match. Acceptance uses actual menu items and Settings dialogs on a real display, CI zero-skip
+  registration, and targeted named-red/restored-green controls. Local gates: headless
+  after integration of main `cb56c96d` (1.19.3 changelog stamp): 1985/0/0/97 (265 mapped suites, no orphans);
+  display 98/0/0/0 (19 suites). The ten menu controls passed before integration; the owner
+  requested no mutation rerun on the combined tree. R1–R3 corrected; O1–O5 taken; D1–D3 remain owner decisions.
+  Original 26 demo captures refreshed, then five affected assets recaptured and inspected for the
+  review response. Specialized older captures labelled. PR #15 merged after re-review; follow-up guards on
+  `fix/menu-guard-followups` independently reviewed at `cd2814d0`: package 1985/0/0/97, display 98/0/0/0,
+  five targeted controls red/restored green. Repeated focus measurement had two skips after
+  the trial retry; that retry was removed for review F1 before merge. No stability improvement
+  or fix for the unreproduced spotlight flake is claimed.
+  [Implementation and verification](../../handoff/report_project_sources_audit_menus_2026_09_24.md).
+  [Optional guard follow-ups](../../handoff/report_menu_guard_followups_2026_09_24.md).
+
+Release candidate `2a15f0ba`, tag `v1.20.0` at `67c672cc`. Local package 1985/0/0/97;
+main CI display 98/0/0/0 and full fast mutation gate 50 controls caught. Built-jar API, handoff,
+spotlight, restart and seven conversation scenarios passed. Five conversation images refreshed
+and inspected. Public jars, checksums, version and notes verified; Pages passed.
+[Release receipt](../../handoff/release_analyser_1_20_0_2026_09_24.md).
+Unresolved optional items and owner decisions remain in the live tracker below its menu heading.
+
+---
+
+## Fast mutation gate — ☑ MERGED with the 1.20.0 main tree — 2026-09-24
+
+PR #18 merged as `7254c29d`, proposal PR #16 as `2a15f0ba`.
+[Proposal and implementation status](../../proposals/faster-mutation-gate.md).
+The engine uses a fresh JVM per control, restores byte snapshots, forces a clean rebuild on API or
+constant changes, and records partial results on failure. CI runs the full fast gate; Maven remains
+the local default for the initial comparison cycle. Main CI at the release candidate passed the
+21-case selftest and caught all 50 controls (327.6 s). Private nested-class fallback remains safely
+conservative; branch subsets are heuristic, not a release gate. Branch-protection policy remains live.
+[Release receipt and run links](../../handoff/release_analyser_1_20_0_2026_09_24.md).
+
+---
+
 ## Java source spotlight — ☑ SHIPPED in 1.19.0 — 2026-09-23
 
 [Proposal](../../proposals/source-spotlight.md), [round-four response](../../handoff/completed/response_source_spotlight_r4_2026_09_21.md).

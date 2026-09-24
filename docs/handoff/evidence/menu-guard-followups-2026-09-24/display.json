@@ -1,0 +1,306 @@
+{
+  "mode": "display",
+  "runs": [
+    {
+      "command": [
+        "mvn",
+        "-q",
+        "test",
+        "-Dtest=PairingDuringLoadFrameTest,AsyncOpenInterleavingFrameTest,SpotlightFrameTest,WestColumnStartsCollapsedFrameTest,MenuScreenshotFrameTest,PersonAtTheScreenFrameTest,NamedGraphAndMenuSpotlightFrameTest,SessionRecoveryFrameTest,TemplateCatalogueFrameTest,DesignSpotlightFrameTest,JavaSourceSpotlightFrameTest,LoadedFileObservationFrameTest,ChartLifecycleReviewFrameTest,ProjectPanelChartLifecycleFrameTest,DuplicateGlobalChartsFrameTest,SilentActionDisclosureFrameTest,StatusExplanationSurvivesFrameTest,DuplicateChartRepairFrameTest,MenuLayoutFrameTest",
+        "-Djava.awt.headless=false"
+      ],
+      "exit": 0,
+      "suites": [
+        {
+          "name": "PairingDuringLoadFrameTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "freshWindow_socketGraphThenMismatchingSocketLog_closesTheGraphWithoutADialog(Path)",
+            "pendingTrailingRecordIsVisibleInContextAndFollowStatus(Path)",
+            "theSameThroughAnExplicitReaderFormat(Path)",
+            "openingCommittedCopiesAnnouncesDisagreementWithoutRefusing(Path)",
+            "committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(Path)",
+            "assistantFollowEchoAndHumanControlsAgree(Path)",
+            "humanArrivalThenSocketGraphOpenAndClose_noDialogForTheSocketOperations(Path)",
+            "recentGraphmlByAPerson_thenSocketClose_noDialog_andAHumanCloseStillWarns(Path)",
+            "aGraphOpenedWhileTheNextLogLoads_contextSaysPending_thenJudgesTheNewPair(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "AsyncOpenInterleavingFrameTest",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "m44_3b_onAFreshAnalyser_theMenuCanCloseAFirstLoadThatIsStillPending(Path)",
+            "b2_control_aBadProjectPathIsRefusedBeforeTheGate_theLoadSurvives(Path)",
+            "b1_aHumanRecentGraphmlDuringAPendingSocketLoad_doesNotMakeTheArrivalModal(Path)",
+            "b3_aSupersededFailure_isRecordedButNeverShown(Path)",
+            "b1_control_aHumanArrivalStillWarnsAsADialog(Path)",
+            "b3_control_anAcceptedHumanFailureStillWarns(Path)",
+            "b2_control_aLaterStaleResultDoesNotClearANewerPendingOpen(Path)",
+            "b2_aFailedSwitchStillRetiresThePendingLoad_andTheSurvivingLogPairsAtOnce(Path)",
+            "m44_3b_closingTheLogDuringAPendingLoad_retiresIt_andTheEchoSaysSo(Path)",
+            "b2_aProjectSwitchDuringAPendingLoad_retiresIt(Path)",
+            "b2_control_reopeningTheActiveProjectIsANoOp_theLoadSurvives(Path)",
+            "m44_3b_control_closingTheGraphIsNotAboutTheLog_theLoadSurvives(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "SpotlightFrameTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anUnknownNodeIsRefused_andLightsNothing(Path)",
+            "theScreenshotVerbsImageHasTheCutOutOverTheNode_dimOutside_untouchedInside(Path)",
+            "twoNodesLitTogether_bothCutOutInTheScreenshot_numbered_andASetIsAllOrNothing(Path)",
+            "aRefusedCall_leavesTheFilter_theSelection_andTheStandingSpotlightsExactlyAsTheyWere(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "WestColumnStartsCollapsedFrameTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "startingWithBothPanelsOff_theColumnIsTheRail_notTheLastChosenWidth(Path)",
+            "theRule_aChosenWidthWhileAPanelShows_theRailAloneWhenNoneDoes",
+            "control_startingWithAPanelOn_stillOpensAtTheChosenWidth(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "MenuScreenshotFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anOpenMenuReportsWhereEachItemIs_insideTheWindow_topToBottom(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "PersonAtTheScreenFrameTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theAiMenusPostureItems_andClearRecord_writeTheSharedCanvas(Path)",
+            "escapeWithTheSearchHistoryPopupFocused_putsSeveralSpotlightsOut(Path)",
+            "aLogRestoredAtStartup_isAttributedToThePreviousSession_onContextAndTheProjectRow(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "NamedGraphAndMenuSpotlightFrameTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aMenuItemIsLitInsideTheWindow_paintedIntoTheShot_chosenByAPress_andOutWhenTheMenuCloses(Path)",
+            "lightingASecondMenu_keepsWhatTheEchoSaid_byReplaceAndByAdd(Path)",
+            "aNoteOnANamedChart_lightsTheFIRSTTime_andARefusalNeverNamesTheChartItWasAskedFor(Path)",
+            "markerSpotlightRefusalNamesTheUnsupportedTarget(Path)",
+            "hiddenProjectRowIsRevealedBeforeSpotlighting(Path)",
+            "aGraphTargetThatNamesItsChart_selectsThatChart_andTheSelectedChartRefusalNamesWhereItIs(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "SessionRecoveryFrameTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "shutdownCaptureReappearsOnlyAsAnOfferAndCanBeDeclined",
+            "confirmationFlagSurvivesExplicitRecoveryOnlyAgainstTheSameLog",
+            "supersededRecoveryCompletionLeavesTheOfferDecidable(boolean)[1]",
+            "supersededRecoveryCompletionLeavesTheOfferDecidable(boolean)[2]",
+            "closeReopenOffersThenRestoresLogDesignDiagnosticsAndGraph",
+            "changedBytesDuringTheReaderAreWithheldBeforePublication",
+            "changedLogIsRefusedWhileUnchangedDesignIsRestored",
+            "fileEditedBeforeCloseCannotAcquireTheOldViewsIdentity",
+            "aMissingMemberRefusesTheWholeRolledSet"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "TemplateCatalogueFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "allEntriesAndDisclosuresAppearInTheRealPicker"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "DesignSpotlightFrameTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "sourceViewportRefusesHiddenLinesAndAddReportsDepartures(Path)",
+            "viewportMovementExtinguishesPartiallyVisibleDesignBand(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "JavaSourceSpotlightFrameTest",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "graphAndJavaUseOneVisibleDestinationInEitherOrder(Path)",
+            "clickEscapeSelectiveClearAndReplaceReleaseBindings(Path)",
+            "blockedArchiveReadLeavesEdtFreeAndClearConfigurationAndNewRequestSupersedeIt(Path)",
+            "viewportHooksRemeasureWithoutAnotherRequestAndBindingsNeverRetarget(Path)",
+            "interruptedCallerCancelsOnlyItsOwnPreparation(Path)",
+            "duplicateRootPolicyIsDisclosedAndGlanceStillRefuses(Path)",
+            "wrappedLogicalLineMeasuresAllRowsClipsAndReportsPartial(Path)",
+            "invalidJavaBeforeRecordRevealKeepsSelectionAndFilter(Path)",
+            "preparationDeadlineRefusesBeforeReadReturnsAndLateCompletionCannotLight(Path)",
+            "realEntranceRereadsJarMissAndHitButNewJarNeedsReconfiguration(Path)",
+            "changedSelectedProcessorUpdatesModelAndBadBatchDoesNotReveal(Path)",
+            "missingBandDoesNotClaimPartialDuringApply(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "LoadedFileObservationFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "overwrittenLogAndGraphAreObservedWithoutReplacingTheLoadedSnapshot(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "ChartLifecycleReviewFrameTest",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "closedNamesAreReservedForCreationAndRename",
+            "cancelPreservesBytesAndConfirmDeletesOnlyTheNamedChart",
+            "alternatingReportRowsReachesTheRealReportsPanelByIdentity",
+            "graphActionOnClosedChartPreservesItsDefinition",
+            "projectSwitchDoesNotMergeOutgoingChartsIntoIncomingProfile",
+            "rowReopenPersistsOpenStateWithoutAnotherEdit",
+            "importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState",
+            "renameMovesTheDefinitionInsteadOfLeavingAGhost",
+            "closeAndReloadKeepDefinitionAndOpenRestoresItsContent",
+            "dropdownChoiceIsSavedByTheProductionListener",
+            "confirmationCannotDeleteAReplacementTab"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "ProjectPanelChartLifecycleFrameTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "cancellingDeleteInARealFrameChangesNothing",
+            "openOnASavedChartRowOpensThatChartInTheFrame",
+            "openOnEachReportRowRevealsTheReportsTab"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "DuplicateGlobalChartsFrameTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "duplicateGlobalChartsAreWithheldAndLogLoadingCompletes",
+            "validProjectWorksAndClosingItRestoresTheGlobalRefusal"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "SilentActionDisclosureFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "openingASavedChartWithNoLogTellsThePersonWhy(Path)"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "StatusExplanationSurvivesFrameTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aReportLinkToAChartThatIsGoneSaysSo",
+            "anExplanationSurvivesAnIdleFollowTick",
+            "aReportLinkToAClosedChartOpensIt"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "DuplicateChartRepairFrameTest",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aListThatChangedWhileTheDialogWasOpenIsRefused",
+            "repairingRenamesOneKeepsBothAndLoadsThem",
+            "renamingOntoAnUnsavedChartIsRefusedRatherThanDestroyingIt",
+            "anAmbiguousProfileNoLongerBlocksMakingANewChart",
+            "okWithNothingChosenSaysSo",
+            "cancellingTheRepairChangesNothing",
+            "aChartMadeDuringTheRefusalSurvivesTheRepair",
+            "aPartialAnswerIsRefusedAndNothingIsLost",
+            "theAssistantCanEditAChartItCreatedDuringTheRefusal",
+            "theRefusalNamesTheRepairControl"
+          ],
+          "assertions": []
+        },
+        {
+          "name": "MenuLayoutFrameTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "projectSourcesAndAuditHaveTheirOwnActions",
+            "closeBothFromItsMenuKeepsProjectAndCharts",
+            "closeGraphFromItsMenuKeepsLogProjectAndCharts",
+            "closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+            "sourceShortcutsOpenTheNamedSettingsPage"
+          ],
+          "assertions": []
+        }
+      ],
+      "output": "focus attempt 1: acquired\n"
+    }
+  ]
+}

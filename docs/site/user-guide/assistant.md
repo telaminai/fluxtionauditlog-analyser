@@ -68,7 +68,7 @@ drive the same verbs:
   a finding is written; it then shows in the records table, as a callout on the Topology graph for that
   record, and in an exported report. Supplying only one of `note`/`fix` keeps the other, so adding a
   suggested fix can't wipe the explanation it's a fix for.
-- **screenshot** — write a PNG of the app, or of one panel. `scope: "menu:File"` opens a top-level menu
+- **screenshot** — write a PNG of the app, or of one panel. `scope: "menu:Audit log"` opens a top-level menu
   and leaves it open, so an assistant can *show you where a control is* rather than describe it
   (`menu:close` puts it back); the reply then lists the menu's items with where each one is in the window.
   The window is raised first: a native capture photographs a region of the
@@ -148,7 +148,7 @@ out the things it is talking about, and gives each a short numbered callout. You
 | You say | What the assistant can do with it |
 |---|---|
 | *"Show me where live orders first went above 1 — point at it."* | it finds the record, selects it, and lights that row |
-| *"Where do I start a project from a template?"* | it opens the File menu and lights *New project from template…* |
+| *"Where do I start a project from a template?"* | it opens the Project menu and lights *New project from template…* |
 | *"Which node never logged? Highlight it on the graph."* | it runs coverage, opens the Topology tab, and lights the node |
 | *"Walk me through this cycle and highlight each step."* | it lights the record, the node's lines in the detail, and the node on the graph — numbered 1, 2, 3 — and its sentences use the numbers |
 | *"Highlight everything involved in that breach."* | up to six things lit together, each with its own callout |
@@ -225,9 +225,10 @@ analyser states how the graph fits the log), `graph`,
 (a chart by name — lighting it selects that chart). A chart name may not contain `:` or `"`, or be exactly `note`
 or `series`, because those would make it unaddressable; naming a chart that way is refused. A chart saved with such a
 name before this rule is reached quoted, `graph:"a:b":note:2`, and `context.graphAddresses` gives every chart's
-address. Then `project:log`, `toolbar:flag`, `menu:File` and
-`menu:File:New project from template…` (the menu opens and the item is lit; a click on it chooses it, and the
-spotlight goes out with the menu), `status`. A target that is off
+address. Then `project:log`, `toolbar:flag`, `menu:Audit log` and
+`menu:Project:New project from template…` (the menu opens and the item is lit; a click on it chooses it, and the
+spotlight goes out with the menu), `status`. Menu names are the visible labels: Project, Sources and Audit log replace File.
+Update saved spotlight steps that name `menu:File`; old names are refused rather than redirected. A target that is off
 screen is brought on screen first (its tab selected, its row scrolled to — a filtered-out record is
 revealed the way `goto` reveals one — its node centred); one that does not exist is **refused with the
 reason**, never lit on nothing. `screenshot` and `context` leave a spotlight lit: they are how the client
@@ -259,7 +260,7 @@ whole, with the reason; and a canvas write goes **alone** — combined with a lo
 `context.analyses` lists them with their parameters; steps run through this surface and stop at the first failure.
 
 `open` also takes `logs: [...]` — an explicit rolled set, loaded as one log in content order, the
-echo carrying the order chosen and the time-order report (see *Records ▸ Rolled log sets*).
+echo carrying the order chosen and the time-order report (see [Rolled log sets](records-and-filtering.md#rolled-log-sets)).
 
 Three more on `open`, so an agent can manage what is loaded rather than only add to it:
 
@@ -278,7 +279,7 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
   and the verdict — so switching processor needs no follow-up `context`.
 
 - `open {project: "<project dir, or its .analyser/project.fluxtion-settings>"}` — switch to a
-  project, the same act as **File ▸ Open project…**, and the way to *accept* the `projectOffer` that
+  project, the same act as **Project ▸ Open project…**, and the way to *accept* the `projectOffer` that
   `context` reports. It **applies rather than asks** — a dialog cannot be answered over the socket —
   so its echo carries the safety: every category the switch replaced with before/after counts, what
   it closed and where those files were (the log and graph — a project is a session boundary), which
@@ -347,7 +348,7 @@ writes the persisted config, and `screenshot` and `report` write files.
 Those last two are **off by default**. Turning on *Allow assistant file exchange* (Settings ▸ Assistant) lets them
 write **only inside the exchange directory you choose**, and they never overwrite an existing file — so a
 second export under the same name is refused rather than silently replacing the first. Exports you drive
-yourself, through a File menu chooser, are unaffected: picking a location in a dialog *is* the
+yourself, through a menu chooser, are unaffected: picking a location in a dialog *is* the
 authorisation.
 
 ### Does my client launch the analyser?
@@ -628,7 +629,7 @@ A successful request echo is not an assertion that every saved input opened. Rec
 application logic. The human sees the same offer on the start page and the same status in the Project
 panel. [Identity and partial-restoration rules](projects.md#restore-an-earlier-session).
 
-The start page's **Author a new project** action and File ▸ New project from template share one catalogue
+The start page's **Author a new project** action and **Project ▸ New project from template…** share one catalogue
 and download flow. All entries remain visible; recommendation tags do not establish key requirements or
 agent readiness. Check the declared entry files against the downloaded project. A walkthrough is an
 optional runbook exercise, not a separate analyser execution mode.

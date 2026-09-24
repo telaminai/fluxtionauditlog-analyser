@@ -122,6 +122,6 @@ connection step whenever you want it. See [Install](install.md) and [Connecting 
 
 This page uses the demo set on purpose — nothing to build, no key, no project. When you want the tour on a
 system you can run and change, [From playground to analyser in 10 minutes](tutorial-playground.md) starts from a
-playground template (*File ▸ New project from template…* fetches it from inside the analyser). That project
+playground template (*Project ▸ New project from template…* fetches it from inside the analyser). That project
 **declares this same tour as one of its runbooks**, so with a client connected *"give me the guided tour of this
 project"* is the whole prompt.

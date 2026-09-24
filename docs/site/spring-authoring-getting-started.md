@@ -1,5 +1,7 @@
 # Getting started with Spring authoring
 
+> The recorded screenshots may show an earlier menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Getting started](getting-started.md#finding-the-right-menu).
+
 Use an LLM as your design partner and the analyser as the window you share. Agree what the
 application should do, inspect its Spring XML, then compare actual results with your expectations.
 The LLM edits and runs the project through its own tools; the analyser displays design and evidence.
@@ -35,7 +37,7 @@ route. XML validation itself is keyless.
 
 ## 1. Download a project
 
-In the analyser, choose **File ▸ New project from template…** (or **Author a new project** on
+In the analyser, choose **Project ▸ New project from template…** (or **Author a new project** on
 the start page). Choose **Fluxtion Spring XML**, read its prerequisites, and download into an
 empty directory. A shipped profile opens automatically. The analyser does not build it for you.
 
@@ -72,7 +74,7 @@ the behaviour before treating a class name as a capability.
 ## 2. Open the shared canvas and connect your LLM
 
 Start the [released analyser](install.md). If you downloaded outside the analyser, choose
-**File ▸ Open project…** and select `.analyser/project.fluxtion-settings` directly.
+**Project ▸ Open project…** and select `.analyser/project.fluxtion-settings` directly.
 
 ![Spring project open without a log: the landing page lists start-here, build-and-verify, spring-authoring and shared-evidence-canvas runbooks](assets/spring-project-landing.png)
 
@@ -106,11 +108,11 @@ End with one question answered from actual evidence and the next step written do
 
 ## 3. Inspect the design before running it
 
-In **File ▸ Settings… ▸ Source roots**, keep the existing Java root and add the project's
+In **Sources ▸ Source roots…**, keep the existing Java root and add the project's
 `src/main/fluxtion/designer` directory. Add `target` once it exists to authorise producer reports.
 Opening a project alone does not authorise every file beneath it.
 
-Choose **File ▸ Open design…**, select `application-context.xml`, then select `riskEngine`
+Choose **Sources ▸ Open design…**, select `application-context.xml`, then select `riskEngine`
 in the **Source** tab's bean index. A connected LLM can make the same selection with
 `analyser_source {"bean":"riskEngine"}` after opening the design.
 
@@ -154,7 +156,7 @@ Run the shipped project commands:
 an incomplete setup as successful validation. Validation checks XML declarations without loading
 your node classes. It writes `target/fluxtion-validation.json`.
 
-In the analyser, choose **File ▸ Open producer diagnostics…** and open that JSON file.
+In the analyser, choose **Sources ▸ Open producer diagnostics…** and open that JSON file.
 The result appears under **Reports ▸ Producer findings**.
 
 For a small learning exercise, save the original XML, change only the `orderGate` value inside

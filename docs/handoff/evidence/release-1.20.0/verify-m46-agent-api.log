@@ -1,0 +1,25 @@
+A1 - the first verdict after open {log, graphml} on a VIRGIN instance
+  PASS  while the log is loading the echo says PENDING, or the load had already landed
+  PASS  the same question twice returns the same pairing
+  PASS  the settled pairing says the graph applies - never 'no log is open', never '0 of 5'
+  PASS  coverage twice returns the same figures
+A5 - topology's position while records are open and none is selected
+  PASS  an unbound cursor does not claim there are no records
+  PASS  after goto it reports a real position
+A3 - what the open {graphml} echo calls the graph's size
+  PASS  `graphNodes` is the graph's size and `authoredNodes` the authored count - two keys
+  PASS  no bare `nodes` key is left to be read as either
+A2 - route 2: mixed coverage/topology calls
+  PASS  24 interleaved calls, none hangs
+A2 - route 1: a log INSIDE a project directory, over the socket
+  PASS  the open returns rather than waiting behind a project-offer modal
+  PASS  the socket still answers afterwards
+  PASS  the project offer arrived as DATA in context
+  PASS  context says an agent opened it
+open {analysis} - the recall runs off the EDT; its decision must still reach the driver ON it
+  PASS  a recall answers about the ANALYSIS, never with a thread-confinement violation
+A4 - a FRESH instance never implicitly restores the global last log
+  PASS  the global remembered log stays unopened
+  PASS  an unopened log has no invented attribution
+
+all M46 agent-API checks pass
