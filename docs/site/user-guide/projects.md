@@ -171,6 +171,13 @@ This includes edits made by an **assistant over the socket**. If an agent adds a
 the repo, open the analyser, and the project's source roots, event processor and curated graphs are
 already configured.
 
+For alternative configurations of the same project, keep named profiles alongside it, such as
+`.analyser/project.demo.fluxtion-settings`. Open a named profile explicitly with
+`open {project: "path/to/project/.analyser/project.demo.fluxtion-settings"}`. Canonical and named
+profiles both resolve relative paths from the directory containing `.analyser/`. Automatic discovery
+still looks for `project.fluxtion-settings`; other settings filenames retain their own directory as
+the relative-path base.
+
 !!! success "Why it's safe to commit"
 
     **A profile cannot contain either your LLM API key or your Fluxtion build-key value.** The LLM key

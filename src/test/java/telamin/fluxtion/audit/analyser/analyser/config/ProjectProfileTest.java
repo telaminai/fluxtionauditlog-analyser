@@ -208,6 +208,34 @@ class ProjectProfileTest {
         assertNull(ProjectProfile.baseDirFor(null));
     }
 
+    /**
+     * A NAMED profile — {@code project.<name>.fluxtion-settings} beside the canonical one — is the same
+     * project's file and anchors to the same project root. Matching on the canonical file name alone
+     * anchored it at {@code .analyser/}, one directory too deep, so every relative path in the profile
+     * resolved wrong: {@code src/main/java} became {@code <project>/.analyser/src/main/java} and
+     * {@code ../sibling} became {@code <project>/sibling}. Symptom in the app: that profile reported
+     * every event processor "source not found" and every runbook {@code exists:false}, while the
+     * canonical profile beside it — same roots, same values — resolved fine.
+     */
+    @Test
+    void baseDirForAnchorsNamedProfilesToTheProjectRoot(@TempDir Path dir) {
+        Path project = dir.resolve("p");
+        Path root = project.toAbsolutePath().normalize();
+
+        assertEquals(root, ProjectProfile.baseDirFor(project.resolve(".analyser/project.ws-feed.fluxtion-settings")));
+        assertEquals(root, ProjectProfile.baseDirFor(project.resolve(".analyser/project.reciprocal.fluxtion-settings")));
+        // the canonical form keeps working
+        assertEquals(root, ProjectProfile.baseDirFor(ProjectProfile.pathFor(project)));
+
+        // and the name rule itself
+        assertTrue(ProjectProfile.isProjectProfileFileName("project.fluxtion-settings"));
+        assertTrue(ProjectProfile.isProjectProfileFileName("project.ws-feed.fluxtion-settings"));
+        assertFalse(ProjectProfile.isProjectProfileFileName("other.fluxtion-settings"));
+        assertFalse(ProjectProfile.isProjectProfileFileName("projectX.fluxtion-settings"));
+        assertFalse(ProjectProfile.isProjectProfileFileName("project.fluxtion-settings.bak"));
+        assertFalse(ProjectProfile.isProjectProfileFileName(null));
+    }
+
     // ---- M35.11: a committed profile round-trips byte-for-byte ------------------------------------
 
     @Test

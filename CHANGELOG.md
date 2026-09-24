@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Named project profiles (`.analyser/project.<name>.fluxtion-settings`) now resolve relative paths from the project root, matching the canonical profile. Source roots, runbooks and other project-relative pointers no longer resolve one directory too deep.
+
 - Docs: describe starter 1.0.74 standalone and hosted Spring authoring, generated callback audit facts, matching-version upgrades, and the version-scoped protection for dependency classes. Older-release evidence and remaining limitations stay explicit.
 
 ## [1.19.0] - 2026-09-23

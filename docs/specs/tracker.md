@@ -551,6 +551,13 @@ verdict, which is owned jointly.
   filed against **the starter** (the writer actually at fault) as well as the audit format work.
 - [M68.4] ☐ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
 - [M68.5] ☐ **Identity change under follow, and the project root** — was WS-1 and WS-2.
+  Related narrow correction: [PR #7](https://github.com/telaminai/fluxtionauditlog-analyser/pull/7),
+  `fix/named-profile-project-root` at `c3523506`, fixes relative-path anchoring for named profiles.
+  Reviewed: 52 configuration tests pass; restoring the canonical-only lookup fails the named-profile
+  regression, then restoring the source returns all 52 to green. Full headless gate: 1,877 tests,
+  zero failures/errors, 62 skips; strict docs pass. See the
+  [investigation](../investigations/profile-project-root-resolution.md). Pending merge/release;
+  this does not close M68.5's freshness or unresolved-pointer diagnostic acceptance.
 - [M68.6] ☐ **The naming grammar** — was DX-05; last, because it needs the compatibility decision.
 
 Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
