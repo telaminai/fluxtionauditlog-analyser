@@ -394,7 +394,10 @@ them.
    verification. Each resolves to append, replacement or unverified per D-E6, and unverified is never reported as
    proven unchanged. Asserted on both store implementations, since only one of them holds the old bytes.
 8. A project whose settings live below its root resolves every shipped pointer, and a pointer that fails names the
-   root that was tried.
+   root that was tried. **Partly overtaken by a release:** 1.19.1 (2026-09-24) anchored named project profiles at
+   the project root rather than the settings directory, so the anchoring half of this acceptance has a landed fix
+   with its own regression. What remains for M68.5 is the **diagnostic** half — a pointer that fails naming the root
+   it tried, diagnosable from what is on screen — which that fix explicitly did not close.
 9. Every requested report section renders or states why not; a chart that reports no data is contradicted by no
    successful series response over the same inputs as defined in D-E8; the artefact's content is inspected, not
    inferred from exit status.

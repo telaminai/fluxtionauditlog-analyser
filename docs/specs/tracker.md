@@ -527,7 +527,9 @@ Sibling of the tool-agreement spec, which governs agreement *between* tools. Dis
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
 verdict, which is owned jointly.
 
-- [M68.1] ☐ **The coverage, pairing and scope verdicts — and it completes M45.4.** Declared authorship read before
+- [M68.1] ☐ **The coverage, pairing and scope verdicts — and it completes M45.4.** **Start here:**
+  [`handoff_m68_1_coverage_pairing_scope.md`](../handoff/handoff_m68_1_coverage_pairing_scope.md) is the cold-start brief.
+  Declared authorship read before
   any package heuristic (D-E10), membership against every declared node vertex, the authored eligible population
   kept for the ratio, and the three states — membership, ratio, retention — never derived from one another. The
   honest figures for the packet's graph are 3 declared and 3 covered, not the 2 the response reported. Also: a
