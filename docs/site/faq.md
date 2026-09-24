@@ -18,8 +18,9 @@ Older versions could save two charts with the same name. The analyser cannot tel
 name refers to, so it withholds that chart set and explains the conflict on the Graph panel. Log
 inspection still works. Both definitions remain saved; the analyser does not rename or discard either.
 
-The message identifies the settings file. Give each chart a unique `graph.N.name` there, keeping its
-other settings, then restart for global settings or reopen the project. You can also open a different,
+The message identifies the settings file. Close the analyser before editing global settings, or close
+the project before editing its profile, so autosave cannot overwrite the correction. Give each chart a
+unique `graph.N.name` there, keeping its other settings, then restart or reopen the project. You can also open a different,
 valid project while leaving the original definitions intact. An ambiguous project or imported chart set
 is refused before it replaces the current project.
 

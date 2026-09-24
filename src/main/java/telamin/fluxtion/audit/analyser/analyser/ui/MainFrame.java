@@ -5286,7 +5286,9 @@ public final class MainFrame extends JFrame {
         } catch (IllegalArgumentException ambiguous) {
             String source = project.hasProject() ? project.activeFile().toString() : configStore.path().toString();
             graphTabs.refuseDefinitions("Charts not loaded: " + ambiguous.getMessage()
-                    + ". All definitions are retained. Edit the chart names in " + source
+                    + ". All definitions are retained. "
+                    + (project.hasProject() ? "Close the project" : "Close the analyser")
+                    + " before editing the chart names in " + source
                     + " to make them unique, then " + (project.hasProject() ? "reopen the project." : "restart the analyser.")
                     + " Log inspection remains available.");
             return;

@@ -46,7 +46,8 @@ class TrailingWhitespaceTest {
             // Captured surefire output from the chart-lifecycle review: "[ERROR] Failures: " and its
             // siblings end in a space because Maven printed them that way. Reformatting would edit
             // evidence, which is the same reason the spike output above is listed.
-            "docs/handoff/evidence/project-chart-review-fix-2026-09-24/",
+            "docs/handoff/evidence/project-chart-review-fix-2026-09-24/before.txt",
+            "docs/handoff/evidence/project-chart-review-fix-2026-09-24/duplicate-before.txt",
             "/generated/",
             ".diff");
 
