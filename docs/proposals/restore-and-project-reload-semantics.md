@@ -34,6 +34,25 @@ come back as a side effect of the log arriving. `context.restoration.inputs` lis
 **Not captured, so never restored:** the filter, flags, the selection and step cursor, the spotlight, the
 open/selected tab, and the posture. Everything log-derived that a person set by hand.
 
+### Zoom versus pin — two controls that look alike and behave oppositely
+
+Found the hard way by the owner on 2026-09-24, reloading and expecting the zoom back:
+
+- **Zoom** (`+`, `−`, `Fit`) calls `ChartPanel.zoomIn/zoomOut/resetView`. None of them call `mutated()`, so
+  nothing is written and nothing can return. A lens.
+- **Pin** (📌, "Pin to current window") is `GraphSpec.from`/`to`, written by `ConfigStore` as
+  `graph.N.from`/`graph.N.to` and re-applied by `doRestore` via `panel.pin(...)`. A fact, and it survives.
+
+Both set the visible window. They sit on the same toolbar. One is forgotten on reload and the other is
+saved, and nothing on screen distinguishes them — the 📌 marks the tab only *after* the fact. A person who
+zooms and reloads has no way to know they should have pinned.
+
+This is the sharpest case in this document, because the remedy needs no new persisted state and no policy
+decision: **say which control keeps its window**. Options, cheapest first: word the tooltips so zoom reads
+as a lens and pin as something saved; or, when a chart is reloaded unpinned, have the chart's own caption
+line say the window was not kept. Widening capture to include zoom (A2) would make them behave the same,
+but the labelling fix stands on its own and should not wait for it.
+
 ## The two gaps
 
 **1. "Restore last session" is named for more than it restores.** A person reading it expects to be put
