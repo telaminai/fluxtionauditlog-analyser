@@ -54,7 +54,7 @@ to the exact source, and hand to an LLM for a plain-English, code-grounded expla
 - **Open from S3** — `s3://bucket/key` via your local `aws` CLI (streamed to a temp file), so large
   objects use the memory-mapped path too.
 - **Shareable setups** — **Project ▸ Export settings…** writes a versioned `.fluxtion-settings` file
-  (or clipboard / email) carrying source roots, Maven repos, event processors, **named graphs**
+  for **Project ▸ Import settings…** (or clipboard / email), carrying source roots, Maven repos, event processors, **named graphs**
   (formulas and pins included), hidden columns and assistant prefs. Import merges behind a confirmable
   summary (lists add, graphs replace by name). A whitelist enforced **both ways** means the API key,
   AWS details, recent files and search history can neither leak out nor be planted on the way in.

@@ -19,7 +19,13 @@ final class MenuInventory {
             "Records", List.of("Flag / unflag selected  (F)", "Show flagged only", "Clear all flags",
                     "Write a finding for this record…", "Export finding to PDF…", SEPARATOR, "Copy selected as YAML",
                     "Diff selected two records", "Explain selected with LLM", SEPARATOR,
-                    "Export records (CSV)…", "Export records (YAML)…"));
+                    "Export records (CSV)…", "Export records (YAML)…"),
+            "AI", List.of("Connect an AI client…", "Local MCP / REST enabled", SEPARATOR, "Fluxtion API key…",
+                    SEPARATOR, "Runbooks…", "Domain glossary…", SEPARATOR, "Posture", "Place mode-selector record…",
+                    "Clear mode-selector record", SEPARATOR, "Report exchange directory…", "Show exchange directory",
+                    SEPARATOR, "Working with AI (docs)"),
+            "Theme", List.of("Light", "Dark", "IntelliJ", "Darcula"),
+            "Help", List.of("Start page", SEPARATOR, "User guide", "Release notes", "About"));
 
     // Independently transcribed from cfe4c925's File menu, before this relocation. Pin the old 26
     // rather than deriving this list from MENUS: removing an item from both UI and inventory must fail.
