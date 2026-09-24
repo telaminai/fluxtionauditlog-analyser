@@ -38,6 +38,7 @@ class CoveragePerNodeLevelTest {
     private static String untimedControl(String sourceId, String level) {
         return """
                 eventLogRecord:
+                  groupingId: null
                   event: EventLogControlEvent
                   eventToString: EventLogConfig{level=%s, logRecordProcessor=null, sourceId=%s, groupId=null}
                   nodeLogs:
@@ -49,6 +50,7 @@ class CoveragePerNodeLevelTest {
         return """
                 eventLogRecord:
                   logTime: %d
+                  groupingId: null
                   event: EventLogControlEvent
                   eventToString: EventLogConfig{level=%s, logRecordProcessor=null, sourceId=%s, groupId=null}
                   nodeLogs:
@@ -60,6 +62,7 @@ class CoveragePerNodeLevelTest {
         return """
                 eventLogRecord:
                   logTime: %d
+                  groupingId: null
                   event: Quote
                   nodeLogs:
                     - quoteHandler: { seen: true}
@@ -156,6 +159,7 @@ class CoveragePerNodeLevelTest {
         String lookalike = """
                 eventLogRecord:
                   logTime: 1000
+                  groupingId: null
                   event: Quote
                   eventToString: EventLogConfig{level=WARN, sourceId=%s, groupId=null}
                   nodeLogs:
@@ -200,6 +204,8 @@ class CoveragePerNodeLevelTest {
 
         assertTrue(String.valueOf(r.echo().get("levelAnnotationsNote")).contains("still counted as uncovered"),
                 "the echo must say these are not excuses: " + r.echo().get("levelAnnotationsNote"));
+        assertTrue(String.valueOf(r.echo().get("levelAnnotationsNote")).contains("which nothing in a record establishes"),
+                "and states the processor-identity limit (re-review RR-3): " + r.echo().get("levelAnnotationsNote"));
     }
 
     // ------------------------------------------------------------------ filtered scope
@@ -308,6 +314,7 @@ class CoveragePerNodeLevelTest {
         String fake = """
                 eventLogRecord:
                   logTime: 1000
+                  groupingId: null
                   event: FakeEventLogControlEventX
                   eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=%s, groupId=null}
                   nodeLogs:
@@ -326,6 +333,7 @@ class CoveragePerNodeLevelTest {
         String qualified = """
                 eventLogRecord:
                   logTime: 1000
+                  groupingId: null
                   event: com.telamin.fluxtion.runtime.audit.EventLogControlEvent
                   eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=%s, groupId=null}
                   nodeLogs:
@@ -386,12 +394,14 @@ class CoveragePerNodeLevelTest {
         String twoGroups = """
                 eventLogRecord:
                   logTime: 1000
+                  groupingId: null
                   event: EventLogControlEvent
                   eventToString: EventLogConfig{level=DEBUG, logRecordProcessor=null, sourceId=null, groupId=alpha}
                   nodeLogs:
                 ---
                 eventLogRecord:
                   logTime: 1001
+                  groupingId: null
                   event: EventLogControlEvent
                   eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=null, groupId=beta}
                   nodeLogs:
@@ -499,15 +509,35 @@ class CoveragePerNodeLevelTest {
         assertTrue(annotations(assess(twice + plainRecord(1001))).isEmpty(), "a field written twice is ambiguous");
     }
 
-    /** Carried item: a level set in one run is not silently carried into the next. */
+    /**
+     * Carried item, corrected by the re-review (RR-4): a level set in one run is not silently carried into
+     * the next — and a scope wholly in the later run gets NO definite suppression claim. The first version
+     * said "its lines below that level are not in this log" and then admitted the log did not say whether
+     * the level survived; the caveat was present and the conclusion it undermines was still asserted.
+     */
     @Test
-    void anIntervalThatCrossesARunBoundarySaysSo() {
+    void aScopeWhollyAfterARunBoundaryGetsNoDefiniteClaim() {
         String node = anUncoveredNode(assess(plainRecord(1000)));
         String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
         String later = annotations(assess(seq, true, window(2000, 2000))).get(node);
-        assertNotNull(later, "the annotation is not dropped — the level may well have survived");
-        assertTrue(later.contains("stream-end marker before record 3") && later.contains("survived"),
-                "but it says a run boundary lies inside the interval: " + later);
+        assertNotNull(later, "the annotation is not dropped — the level may well have survived: " + later);
+        assertTrue(later.contains("Every record in view is in a LATER run") && later.contains("survived"),
+                "it says the scope is after the boundary: " + later);
+        assertFalse(later.contains(", so " + node + "'s lines below that level are not in this log"),
+                "RR-4: no definite suppression claim about records the level may not have reached: " + later);
+        assertTrue(later.contains("if it did, " + node + "'s lines below that level are not in this log"),
+                "the claim is made conditional instead: " + later);
+    }
+
+    @Test
+    void aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt() {
+        String node = anUncoveredNode(assess(plainRecord(1000)));
+        String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
+        String spanning = annotations(assess(seq, true, window(1001, 2000))).get(node);
+        assertTrue(spanning.contains("so within that run " + node + "'s lines below that level are not in this log"),
+                "definite within the run the change was made in: " + spanning);
+        assertTrue(spanning.contains("from record 3 on, those lines are absent only if it did"),
+                "conditional after the boundary: " + spanning);
         String same = annotations(assess(seq, true, window(1001, 1001))).get(node);
         assertFalse(same.contains("stream-end marker"), "within the same run there is nothing to qualify: " + same);
     }

@@ -93,6 +93,21 @@ class FollowPendingBytesTest {
             Files.write(p, b, StandardOpenOption.APPEND);
             assertThrows(MalformedInputException.class, () -> s.appendFrom(p),
                     "F2: " + Arrays.toString(bad) + " can never complete, so waiting for it is a silent lie");
+
+            // Re-review RR-1: refusing the bytes is right; keeping the old verdict over them is not.
+            String label = Arrays.toString(bad);
+            assertEquals(StreamEnd.State.UNKNOWN, s.streamEnd().state(),
+                    "RR-1 (" + label + "): the store refused bytes it saw, so it cannot still vouch for the file");
+            assertTrue(s.readIdentities().isEmpty(),
+                    "RR-1 (" + label + "): the file's bytes changed, so the opening identity must not survive");
+            assertEquals(0, s.trailingRecordsPending(),
+                    label + ": bytes that can never be a character are not presented as one on its way");
+            assertEquals(1, s.size(), label + ": the record read before them still stands");
+            assertFalse(s.completenessIsNote(), label + ": a failed live read is a fault, not a note");
+            assertTrue(s.completenessDiagnostics().get(0).contains("not valid UTF-8"),
+                    label + ": and it says what went wrong: " + s.completenessDiagnostics());
+            assertEquals(0, s.appendFrom(p), label + ": a re-poll of the same bytes changes nothing ...");
+            assertEquals(StreamEnd.State.UNKNOWN, s.streamEnd().state(), label + ": ... and does not restore the claim");
         }
     }
 

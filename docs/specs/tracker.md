@@ -189,7 +189,11 @@ still to do.
   analyser was declared ready at 1939/0/62 — then an **independent review** (2026-09-24) found three High
   regressions of mine (a BOM separator reopening #39, Follow hiding bytes after a marker, every healthy
   binary record flagged) and three Medium; all fixed with regressions and witnesses, plus a `groupId`
-  misreading it did not name. Suite 1961/0/62. **Awaiting re-review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  misreading it did not name. Suite 1961/0/62. **Re-review** (`cd063e89`) then found one High (a byte
+  Follow refuses left COMPLETE and the old identity standing) and three Medium in MA-8 (addresses parsed
+  lossily; one processor's change explaining or closing another's; a run-boundary caveat after a claim it
+  undermines) — all fixed, each checked against the real runtime's loggers. Suite 1971/0/62.
+  **Awaiting a second re-review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and

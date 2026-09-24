@@ -362,12 +362,23 @@ with the answer sitting in the file.
    one. Half-open: a record after the restore is outside the window, whatever its `logTime`. A change
    after every record in view explains none of them, timed or untimed. An interval that crosses a run
    boundary (a stream-end marker) is **qualified, not dropped**: a marker does not prove the process
-   restarted, and nothing in the log proves the level survived.
+   restarted, and nothing in the log proves the level survived. The suppression claim is definite only
+   for records in view **within the run the change was made in**; for records after the boundary it is
+   conditional on survival, and a scope wholly after it gets no definite claim at all (re-review RR-4).
+   **Within one processor:** order is a clock only inside one processor's records. Each record's context
+   is the grouping its OWN `groupingId:` line declares, read only before its `event:` line so a payload
+   cannot declare one; a change explains, and is closed by, only records of the same declared context.
+   A record with **no** `groupingId:` line does not declare "ungrouped", so applicability there is
+   qualified, not assumed. **Stated limit:** records that share a grouping are read as one processor's,
+   which nothing in a record establishes (re-review RR-3).
 5. **What is parsed, and when a change applies — as the RUNTIME does it** (1.0.16,
    `EventLogManager.calculationLogConfig`): key on the record's `event` being `EventLogControlEvent`;
-   read `level`, `sourceId`, `groupId` as **whole fields** of the pinned `EventLogConfig{…}` rendering,
-   which writes all four every time — a record missing one, or naming one twice, is not a rendering the
-   analyser knows and is **skipped**, never read as global. A change **applies** only when the
+   read `level`, `sourceId`, `groupId` by the rendering's **fixed separators** — each exactly once, in
+   order — so a value keeps its commas, braces and spaces exactly as the runtime's exact map lookup sees
+   them; a rendering where a value contains a separator is ambiguous and **skipped**, never read as global,
+   and an empty `sourceId` names a node called "", not every node (re-review RR-2). **Stated limit:** the
+   runtime renders Java null and the string `"null"` identically; it is read as "no node" and the sentence
+   says the log cannot tell. A change **applies** only when the
    processor's grouping — the `groupingId:` every runtime record carries — is null or equals the
    change's `groupId`; it then sets **that node** (`sourceId`) or **every node** (`sourceId` null). The
    pin is tested against the runtime jar the build links, not a typed string.

@@ -96,7 +96,10 @@ public final class CoverageService {
                 echo.put("levelAnnotations", annotations);
                 echo.put("levelAnnotationsNote",
                         "These nodes are still counted as uncovered. A level change explains why the log "
-                                + "may be silent about them; it is not evidence that they ran.");
+                                + "may be silent about them; it is not evidence that they ran. Records are "
+                                + "matched to a processor by the grouping each one declares, so records that "
+                                + "share a grouping are read as one processor's — which nothing in a record "
+                                + "establishes.");
             }
         }
 

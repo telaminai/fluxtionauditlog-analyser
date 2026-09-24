@@ -25,7 +25,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   node stays in the uncovered list and in the ratio, and the annotation is read even when a filter hides
   the record it came from. A change applies exactly as the runtime applies it: a change naming no node
   sets every node, a change addressed to another processor grouping does not apply, and a later change —
-  per-node or global — ends it. A window that crosses a stream-end marker says so.
+  per-node or global — ends it. A node name is compared exactly as written, so a name with extra
+  spaces or punctuation addresses no node. Records are matched to a processor by the grouping each
+  declares, so one processor's change never explains or ends another's, and a record that declares no
+  grouping is qualified rather than assumed. For records after a stream-end marker the explanation is
+  conditional: the log does not say whether the level survived into the later run.
 - An empty or blank file now opens by its extension rather than being refused as unreadable.
 
 ### Fixed
@@ -41,7 +45,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   therefore no longer separate at the join, and the missing-separator warning says so.
 - Following a growing log no longer fails when a poll lands inside a multi-byte character; the rest of
   the character is awaited, and until it arrives the log does not claim to be complete. Bytes that can
-  never form a character fail loudly rather than being waited for.
+  never form a character fail loudly rather than being waited for, and the log then says its
+  completeness is unknown until it is reopened, rather than keeping the verdict it had before them.
 - A healthy record read through the binary reader is no longer reported as missing its record key.
 - An event whose name merely resembles the framework's own control event is no longer counted as one.
 

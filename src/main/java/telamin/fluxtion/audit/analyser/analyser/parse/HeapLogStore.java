@@ -41,6 +41,11 @@ public final class HeapLogStore implements LogStore {
     /** Trailing bytes held back as the valid start of an unfinished character. They are past every item. */
     private volatile int pendingBytes;
     private volatile java.util.List<Integer> runBoundaries = java.util.List.of();
+    /**
+     * Follow saw bytes it could not decode (re-review RR-1). The rows read before them stand; the FILE's
+     * claim does not, and nothing more is read until it is reopened.
+     */
+    private volatile boolean liveReadFailed;
 
     public HeapLogStore(String file) {
         this(file, false);
@@ -172,13 +177,23 @@ public final class HeapLogStore implements LogStore {
         byte[] bytes = Files.readAllBytes(p);
         if (byteLength >= 0 && bytes.length < byteLength) return -1;   // truncated / rotated → caller reloads
         if (bytes.length == byteLength) return 0;                        // no growth, in BYTES
-        Utf8Prefix decoded = decodeCompletePrefix(bytes);
-        String full = decoded.text();
-        if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
-        // The bytes grew, so no opening digest describes this file any more — even when not one new
-        // character decoded. This used to sit below a decoded-length early return, which skipped it.
+        // The bytes changed, so no opening digest describes this file any more and no earlier verdict
+        // covers it — whether or not they decode. This used to sit AFTER the decode, and a byte that can
+        // never be UTF-8 threw past it: the store kept COMPLETE and its old identity over bytes it had
+        // just refused (re-review RR-1). Retire both first; then decode.
         this.readIdentity = null;
         this.byteLength = bytes.length;
+        Utf8Prefix decoded;
+        try {
+            decoded = decodeCompletePrefix(bytes);
+        } catch (java.nio.charset.CharacterCodingException unreadable) {
+            this.liveReadFailed = true;
+            this.pendingBytes = 0;                        // not a character on its way: never presented as one
+            this.streamEnd = StreamEnd.unknown(index.size()).withRuns(streamEnd.runs());
+            throw unreadable;
+        }
+        String full = decoded.text();
+        if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
         final int before = index.size();
         final int[] seen = {0};
         // M65 D-F0 part 1: publish the TEXT before the rows that point into it. The file is append-only, so
@@ -287,6 +302,24 @@ public final class HeapLogStore implements LogStore {
     @Override
     public java.util.List<Integer> runBoundaries() {
         return runBoundaries;
+    }
+
+    /** A failed live read is a FAULT, stated beside whatever the stream-end state says. */
+    @Override
+    public java.util.List<String> completenessDiagnostics() {
+        java.util.List<String> base = LogStore.super.completenessDiagnostics();
+        if (!liveReadFailed) return base;
+        java.util.List<String> out = new java.util.ArrayList<>();
+        out.add("Follow could not read bytes appended after record " + index.size() + " of this log: they "
+                + "are not valid UTF-8. The records before them are shown; whether this log is complete is "
+                + "unknown until it is reopened.");
+        out.addAll(base);
+        return java.util.List.copyOf(out);
+    }
+
+    @Override
+    public boolean completenessIsNote() {
+        return !liveReadFailed && LogStore.super.completenessIsNote();
     }
 
     @Override

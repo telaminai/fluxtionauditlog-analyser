@@ -437,10 +437,44 @@ the wrong group model and is rewritten to assert the runtime's rule in both dire
 **Not fixed, stated.** The pre-existing `UNSEPARATED` misreading of a payload (base does it too). A cold
 **mapped** open of a file ending in a lone `C3` counts that byte as a record where heap Follow now waits;
 the state is UNKNOWN either way, and cold-open UTF-8 is the limitation the review accepted, but the two
-stores disagree on the count. `RollSetResolver`'s tail-chunk probe frames from a chunk start; it reads
-only `logTime` and cannot change a count.
+stores disagree on the count. `RollSetResolver`'s tail-chunk probe frames from a chunk start; it cannot
+change a count, but its `logTime` does feed `FILE_OVERLAP` — *corrected after the re-review*, see below.
 
 **Suite:** 1961/0/62, up from 1939 — 22 tests added.
+
+## Re-review — one High and three Medium, each checked against the real runtime
+
+Re-review `cd063e89` on `review/mongoose-independent-rereview-2026-09-24`, against `6998fcc8`, by the
+reviewer of `2d7ac12f`. It confirmed F1–F6, O1, O3 and O4, and **all fourteen mutation witnesses plus a
+fifteenth of its own**, and found four more. All four reproduced on my checkout with its probe before any
+change. Predictions `P6` committed first (`719b8167`); probe output before and after is kept
+(`rereview-probe-6998fcc8.txt`, `rereview-probe-after-fixes.txt`; the first review's probe, re-run on this round's code, is `probe-after-rereview-fixes.txt`).
+
+| | Finding | Cause | Fix | Regression and witness |
+|---|---|---|---|---|
+| RR-1 High | a byte Follow refuses (`C0`) left COMPLETE and the old identity | **mine, F2**: identity and verdict were retired only AFTER the decode that throws | retire both before decoding; a failed live read forces UNKNOWN and states itself as a fault | the invalid-byte test asserts state, identity, pending, fault and re-poll AFTER the exception. Witness: invalidation moved back below the decode → `RR-1 ([192])` fails |
+| RR-2 Medium | real addresses — `riskMonitor, DEMO`, `riskMonitor}DEMO`, `" riskMonitor "`, `""`, group `alpha, DEMO` — reached no node in the runtime and were read as riskMonitor, every node, or alpha | **mine, O3**: counting fields is not parsing values; values were cut at `,`/`}` and trimmed | parse by the rendering's fixed separators, values taken whole; exact comparison; `""` is a node named "" | `ControlAddressAndScopeTest`, every case checked against a real `EventLogManager`'s logger. Three witnesses: trim, truncate, empty-as-global |
+| RR-3 Medium | an alpha change explained a beta record; beta's restore closed alpha's window; absent grouping read as ungrouped, also rolled | **mine, F4**: applicability checked against the change's processor, then applied to every record | each record's context is the grouping its own `groupingId:` declares (before `event:`, so no payload can declare one); changes explain and are closed only within their context; absent is qualified | mixed-processor, absent-vs-declared, payload-declared and rolled (heap and mapped) cases. Three witnesses |
+| RR-4 Medium | a scope wholly after a run boundary was told the lines "are not in this log", then that survival was unknown | **mine, F4's boundary sentence**: the caveat was appended to a claim it undermines | definite only within the change's run; conditional after the boundary; no definite claim for a scope wholly after | wording asserted for the wholly-after and spanning scopes. Two witnesses — the second plants the definite claim back beside the caveat, and fails at the assertion forbidding it |
+
+**Two limits, stated in advance in P6 and now stated in the product, not presented as fixes.** The
+runtime renders Java `null` and the string `"null"` identically, so a change naming `"null"` is read as
+"no node" and the sentence says the log cannot tell. And records that share a grouping are read as one
+processor's, which nothing in a record establishes; that is in the note travelling with every annotation.
+
+**What my own fixtures were hiding.** The coverage tests' fixture records carried no `groupingId:` line,
+where every runtime record carries one. Under RR-3 that made three negative tests — the lookalike and
+fully-qualified event-name tests — pass or fail on grouping rather than on the thing they name. Found
+because one of them failed; every fixture now declares `groupingId: null`, as the runtime does. U6.2 was a
+non-issue in practice: no corpus fixture mixes records with and without the line.
+
+**Also corrected:** `isQuiet` listed `FATAL` and `OFF`, which the runtime does not have; the level must now
+be one of the runtime's six names. And the report said `RollSetResolver`'s tail-chunk framing was harmless
+because it reads only `logTime` — too broad: that time feeds the `FILE_OVERLAP` ordering finding. It still
+cannot change a count or a completeness verdict, which is all F1's closure needs; the chunk-origin
+precondition is an open follow-up, not a reproduced defect.
+
+**Suite:** 1971/0/62, up from 1961.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
@@ -519,10 +553,10 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the independent review's fixes are re-reviewed.** The six required
-  findings are fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation
-  witness, plus the `groupId` correction the review did not name. Still based on `610d5777`; `origin/main`
-  has moved since, and the rebase comes after re-review, not under it. Not merged: the owner's call.
+- analyser — **NOT ready until the re-review's fixes are themselves re-reviewed.** The independent
+  review's six findings and the re-review's four are fixed on `feat/mongoose-audit-production-rebased`,
+  each with a regression and a mutation witness. Still based on `610d5777`; `origin/main` has moved, and
+  the rebase comes after review, not under it. Not merged: the owner's call.
 
 Three release-note items stand, unchanged by this round: the producer findings are not in the report
 surface yet (D-MA0c); the `attach` default overload quietly drops fan-out for any other capture-service
