@@ -24,6 +24,27 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * <p>So the rule lives here once, and callers use it rather than {@code strip()} or {@code trim()}.
  * {@code ByteRecordFramer} necessarily keeps its own — it works on bytes, where the BOM is the sequence
  * {@code EF BB BF} — and says so at its own check.
+ *
+ * <p><b>It is not ONE predicate, and it must not become one.</b> An earlier version of this comment
+ * implied that every caller of {@link #isBom} now applied the same rule. The independent review showed it
+ * does not, and that the difference is load-bearing. There are two scopes, deliberately different:
+ *
+ * <ul>
+ *   <li><b>Framing</b> — whether a line SEPARATES records ({@code RecordFramer}, {@code ByteRecordFramer}).
+ *       This decides the record COUNT, so it must speak exactly the language the released exporter
+ *       escapes: space, tab and CR around {@code ---}, and a byte-order mark <b>only at the file's first
+ *       character</b>, where no payload can reach. Widening it on every line reopened mongoose-plugins#39
+ *       and let a node value forge COMPLETE (review F1). A line such as {@code SPACE U+FEFF ---} is
+ *       therefore content, anywhere.</li>
+ *   <li><b>Parsing</b> — what a line inside an already-framed record SAYS ({@link #strip}: the parser, the
+ *       header parser, the marker recogniser, the record-key diagnostic). This cannot change a count, so it
+ *       is lenient: marks after leading whitespace are skipped too, and a record behind a mid-file BOM
+ *       keeps its header.</li>
+ * </ul>
+ *
+ * <p>A blank line is the one place both scopes meet, and {@link #isBlankIgnoringBoms} uses the framers'
+ * ASCII whitespace, not {@link Character#isWhitespace}: a file the framers would read as content must not
+ * be sniffed as empty.
  */
 public final class AuditText {
 
@@ -69,7 +90,9 @@ public final class AuditText {
     public static boolean isBlankIgnoringBoms(String s) {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            if (!isBom(c) && !Character.isWhitespace(c)) return false;
+            // isSpace, not Character.isWhitespace: the framers call a U+2003 line content, so the sniff
+            // must not call a file of them empty (review O4).
+            if (!isBom(c) && !isSpace(c)) return false;
         }
         return true;
     }

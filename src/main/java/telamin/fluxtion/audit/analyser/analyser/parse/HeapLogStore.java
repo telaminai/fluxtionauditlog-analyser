@@ -30,6 +30,16 @@ public final class HeapLogStore implements LogStore {
     private final StreamEndTracker tracker = new StreamEndTracker();
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
+    /**
+     * Bytes of the file this store has SEEN, decoded or not. -1 when not built from a file.
+     *
+     * <p>Follow compared DECODED lengths, so bytes the decoder held back — the start of a character not yet
+     * finished — were invisible: a poll that added one byte after a marker returned "no growth", kept the
+     * opening identity, and kept COMPLETE (independent review, F2). Growth is a fact about bytes.
+     */
+    private long byteLength = -1;
+    /** Trailing bytes held back as the valid start of an unfinished character. They are past every item. */
+    private volatile int pendingBytes;
 
     public HeapLogStore(String file) {
         this(file, false);
@@ -120,6 +130,7 @@ public final class HeapLogStore implements LogStore {
         HeapLogStore s = new HeapLogStore(text, false);
         s.readIdentity = identity;
         s.source = path;
+        s.byteLength = text.getBytes(StandardCharsets.UTF_8).length;
         return s;
     }
 
@@ -129,6 +140,7 @@ public final class HeapLogStore implements LogStore {
         HeapLogStore live = new HeapLogStore(file, true);
         live.source = source;
         live.readIdentity = readIdentity;
+        live.byteLength = byteLength;
         return live;
     }
 
@@ -155,9 +167,16 @@ public final class HeapLogStore implements LogStore {
         // A snapshot may include an EOF record. It cannot safely become an append-only index:
         // later fields would change an existing row. The adapter reloads it as an explicit live read.
         if (includesEofRecord) return -1;
-        String full = completeUtf8(Files.readAllBytes(p));
+        byte[] bytes = Files.readAllBytes(p);
+        if (byteLength >= 0 && bytes.length < byteLength) return -1;   // truncated / rotated → caller reloads
+        if (bytes.length == byteLength) return 0;                        // no growth, in BYTES
+        Utf8Prefix decoded = decodeCompletePrefix(bytes);
+        String full = decoded.text();
         if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
-        if (full.length() == file.length()) return 0;    // no growth
+        // The bytes grew, so no opening digest describes this file any more — even when not one new
+        // character decoded. This used to sit below a decoded-length early return, which skipped it.
+        this.readIdentity = null;
+        this.byteLength = bytes.length;
         final int before = index.size();
         final int[] seen = {0};
         // M65 D-F0 part 1: publish the TEXT before the rows that point into it. The file is append-only, so
@@ -168,7 +187,6 @@ public final class HeapLogStore implements LogStore {
         // row still has a valid span (no reader can throw), and the unindexed tail is picked up the next time
         // the file GROWS — a same-length re-read returns 0 above. Before, the retry was immediate but readers
         // could throw meanwhile (impl review F2).
-        this.readIdentity = null; // follow changes the indexed view; no stale opening digest may describe it
         this.file = full;
         // Require a terminator so a record still being written isn't indexed until complete; the first
         // `before` records are byte-identical (append-only) so we skip them and add the rest.
@@ -187,8 +205,11 @@ public final class HeapLogStore implements LogStore {
             if (seen[0]++ < before) return;               // already indexed, and byte-identical
             index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
+        this.pendingBytes = decoded.pendingBytes();
         this.streamEnd = tracker.resolve();
-        if (trailingPending) streamEnd = pendingOverride(streamEnd, index.size());
+        // Held-back bytes are content past the last item, exactly like a record still being written: the
+        // file cannot vouch for itself while they are there, whatever an earlier marker declared (F2).
+        if (trailingPending || pendingBytes > 0) streamEnd = pendingOverride(streamEnd, index.size());
         return index.size() - before;
     }
 
@@ -202,17 +223,58 @@ public final class HeapLogStore implements LogStore {
      * pending tail. Bytes malformed anywhere else still throw, as before.
      */
     static String completeUtf8(byte[] b) throws java.nio.charset.CharacterCodingException {
-        int n = b.length, lead = n - 1;
-        while (lead >= 0 && lead >= n - 4 && (b[lead] & 0xC0) == 0x80) lead--;   // back over continuation bytes
-        if (lead >= 0 && lead >= n - 4) {
-            int v = b[lead] & 0xFF;
-            int need = v < 0x80 ? 1 : (v & 0xE0) == 0xC0 ? 2 : (v & 0xF0) == 0xE0 ? 3 : (v & 0xF8) == 0xF0 ? 4 : 1;
-            if (lead + need > n) n = lead;                                      // incomplete: leave it pending
-        }
-        return StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(b, 0, n)).toString();
+        return decodeCompletePrefix(b).text();
     }
 
-    @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
+    /** What decoded, and how many trailing bytes were held back as an unfinished character. */
+    record Utf8Prefix(String text, int pendingBytes) {
+    }
+
+    /**
+     * Decode everything but a trailing VALID PREFIX of a character, and say how long that prefix is.
+     *
+     * <p><b>Only a prefix that can still become a character is waited for</b> (independent review, F2). The
+     * earlier version held back any trailing lead byte, so {@code C0} — which can never begin valid UTF-8 —
+     * would have waited for ever, silently. Now the lead byte and, where UTF-8 restricts it, the second byte
+     * are checked against RFC 3629's table; anything that can never complete throws, as malformed bytes
+     * anywhere else always did.
+     */
+    static Utf8Prefix decodeCompletePrefix(byte[] b) throws java.nio.charset.CharacterCodingException {
+        int n = b.length, lead = n - 1;
+        while (lead >= 0 && lead >= n - 3 && (b[lead] & 0xC0) == 0x80) lead--;   // back over continuation bytes
+        int keep = n;
+        if (lead >= 0 && lead >= n - 3) {
+            int v = b[lead] & 0xFF;
+            int need = v < 0x80 ? 1 : (v & 0xE0) == 0xC0 ? 2 : (v & 0xF0) == 0xE0 ? 3 : (v & 0xF8) == 0xF0 ? 4 : 1;
+            if (lead + need > n) {
+                if (!canBegin(v) || (lead + 1 < n && !secondByteAllowed(v, b[lead + 1] & 0xFF))) {
+                    throw new java.nio.charset.MalformedInputException(n - lead);
+                }
+                keep = lead;                                                     // a valid prefix: wait for it
+            }
+        }
+        String text = StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(b, 0, keep)).toString();
+        return new Utf8Prefix(text, n - keep);
+    }
+
+    /** RFC 3629: C0, C1 and F5–FF never begin a character; neither does a continuation byte. */
+    private static boolean canBegin(int v) {
+        return (v >= 0xC2 && v <= 0xDF) || (v >= 0xE0 && v <= 0xEF) || (v >= 0xF0 && v <= 0xF4);
+    }
+
+    /** The second-byte ranges RFC 3629 narrows, which is what rules out overlongs and surrogates. */
+    private static boolean secondByteAllowed(int lead, int second) {
+        return switch (lead) {
+            case 0xE0 -> second >= 0xA0 && second <= 0xBF;
+            case 0xED -> second >= 0x80 && second <= 0x9F;
+            case 0xF0 -> second >= 0x90 && second <= 0xBF;
+            case 0xF4 -> second >= 0x80 && second <= 0x8F;
+            default -> second >= 0x80 && second <= 0xBF;
+        };
+    }
+
+    /** A record still being written, or the bytes of a character not yet finished: either way, not done. */
+    @Override public int trailingRecordsPending() { return trailingPending || pendingBytes > 0 ? 1 : 0; }
 
     @Override
     public StreamEnd streamEnd() {

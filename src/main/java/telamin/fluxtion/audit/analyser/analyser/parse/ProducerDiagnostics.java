@@ -210,30 +210,50 @@ public record ProducerDiagnostics(List<Finding> findings) {
      * <p>The test is therefore positional: the FIRST non-blank, non-comment line must trim to the key.
      * Comments are skipped because §1 allows them before a record, and the analyser's own fixtures use
      * them.
+     *
+     * <p><b>A leading separator is part of the record boundary, not its content</b> (independent review,
+     * F3). The built-in framers consume separators, so their record text never holds one. A reader PLUGIN
+     * hands over whatever it renders, and the analyser's own binary reader renders a record as
+     * {@code ---\neventLogRecord:\n…}. Stopping at that {@code ---} diagnosed every healthy binary
+     * record as having no key. So plain separator lines are skipped before the first content line — PLAIN,
+     * meaning {@code ---} with only space, tab or CR around it, the exact set the exporter escapes and the
+     * framers split on. The protection this check exists for is untouched: the key must still be the
+     * first CONTENT line, so a document that merely mentions it later is still named.
      */
     private static boolean opensWithRecordKey(String text) {
+        return firstContentLine(text).equals(RECORD_KEY);
+    }
+
+    /** The first line that is not blank, a comment, or a plain leading separator; "" when there is none. */
+    private static String firstContentLine(String text) {
         int from = 0;
         while (from <= text.length()) {
             int nl = text.indexOf('\n', from);
             int end = nl < 0 ? text.length() : nl;
+            String raw = text.substring(from, end);
             // AuditText.strip, not trim(): trim() keeps U+FEFF, so a healthy UTF-8 file with a BOM
             // read as having no record key on its first record. One strip, shared.
-            String line = AuditText.strip(text.substring(from, end));
-            if (!line.isEmpty() && !line.startsWith("#")) {
-                return line.equals(RECORD_KEY);
-            }
+            String line = AuditText.strip(raw);
+            boolean plainSeparator = AuditText.asciiStrip(raw).equals("---");
+            if (!line.isEmpty() && !line.startsWith("#") && !plainSeparator) return line;
             if (nl < 0) break;
             from = nl + 1;
         }
-        return false;
+        return "";
     }
 
     /**
      * MA-6 — a document that carries no {@code eventLogRecord:} key.
      *
-     * <p>The reader counts it as a record, so a marker written over it declares a count that includes
-     * it and the file reads {@code complete}: the marker vouches for a document whose header, keys and
-     * newlines are gone. Naming it is what stops a completeness claim covering corruption.
+     * <p>The reader counts it as a record, so a marker written over it would count it too. Naming it is
+     * what stops a completeness claim silently covering a document the format cannot read.
+     *
+     * <p><b>Observation, then conditions, then a possible cause — never the one case as every case</b>
+     * (independent review, F6). The first wording said the log "reads as complete while the document's
+     * header, keys and newlines are gone". That is what AFMT-3 produced once, under a marker. Said of an
+     * unmarked, readable, merely headerless document it was false twice over: the state was UNKNOWN, and
+     * the keys and newlines were plainly there. This finding does not know the container's state, so it
+     * does not state one; it says what a marker WOULD and would not establish.
      *
      * <p>Reports the FIRST such row and how many there are, rather than one finding per row, so a badly
      * affected file says one clear thing.
@@ -251,16 +271,31 @@ public record ProducerDiagnostics(List<Finding> findings) {
             }
         }
         if (firstRow < 0) return java.util.Optional.empty();
+        String first = firstContentLine(rawText.apply(firstRow));
         return java.util.Optional.of(new Finding(Kind.NO_RECORD_KEY,
                 (affected == 1
-                        ? "Record " + (firstRow + 1) + " carries no 'eventLogRecord:' key"
-                        : affected + " records carry no 'eventLogRecord:' key, the first at "
+                        ? "Record " + (firstRow + 1) + " does not open with the 'eventLogRecord:' key"
+                        : affected + " records do not open with the 'eventLogRecord:' key, the first at "
                         + (firstRow + 1))
-                        + ". A document without it is not a record this format can read, yet it is "
-                        + "counted as one — so a stream-end marker written over it declares a count "
-                        + "that includes it, and the log reads as complete while the document's "
-                        + "header, keys and newlines are gone. The known producer-side cause is a "
-                        + "per-node audit level of NONE, which corrupts the record that follows it."));
+                        + " — its first line is " + quoted(first) + ". The format requires each "
+                        + "document to begin with that key, but this one is still counted as a record. "
+                        + "If a stream-end marker covers it, the marker counts it too: a matching marker "
+                        + "shows how many documents were written, not that each is well formed. One "
+                        + "known producer-side cause is a per-node audit level of NONE, which can "
+                        + "corrupt the record that follows it; this file does not say which cause "
+                        + "applies here."));
+    }
+
+    /** A line shown back to the reader: bounded, and with control characters made visible. */
+    private static String quoted(String line) {
+        StringBuilder sb = new StringBuilder("'");
+        int max = 60;
+        for (int i = 0; i < line.length() && i < max; i++) {
+            char c = line.charAt(i);
+            sb.append(Character.isISOControl(c) ? '?' : c);
+        }
+        if (line.length() > max) sb.append('…');
+        return sb.append("'").toString();
     }
 
     private static java.util.Optional<Finding> unseparated(LogIndex idx, IntFunction<String> rawText) {

@@ -16,7 +16,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A document that is not a log is named as one.** A YAML file that never opens a record is reported
   rather than read as a log with no content. The test is the file's framing — its first non-blank,
   non-comment line — not a search for the key somewhere in the text, so a document that merely mentions
-  `eventLogRecord` is still not a log.
+  `eventLogRecord` is still not a log. The warning quotes the line it found and says what a stream-end
+  marker would and would not establish, rather than asserting a verdict.
 - **An uncovered node whose audit level was changed now says so.** A node set to `WARN` still runs, but
   its info lines are suppressed, so it carried no entries and coverage listed it as uncovered with no
   explanation — while the record stating the change sat in the same file. That change is now shown
@@ -30,11 +31,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   coverage went on to say debug calls might be missing. It was not only a first-line problem: a file made
   by concatenating two runs carries a mark in the middle, and every record behind it was affected the
   same way.
-- A BOM before a leading `---` stopped it separating, so the head of a healthy file ran together; a file
-  containing only byte-order marks framed as one record instead of reading as empty. Repeated marks are
-  handled, because concatenating two marked files produces them.
+- A BOM before a file's first `---` stopped it separating, so the head of a healthy file ran together; a
+  file containing only byte-order marks framed as one record instead of reading as empty. A BOM counts
+  **only at the very start of a file**: an event value containing a BOM-prefixed `---` line and marker
+  lines is not a record boundary and cannot make a log read as complete. Two BOM'd files concatenated
+  therefore no longer separate at the join, and the missing-separator warning says so.
 - Following a growing log no longer fails when a poll lands inside a multi-byte character; the rest of
-  the character is awaited. Genuinely malformed bytes still fail loudly.
+  the character is awaited, and until it arrives the log does not claim to be complete. Bytes that can
+  never form a character fail loudly rather than being waited for.
+- A healthy record read through the binary reader is no longer reported as missing its record key.
 - An event whose name merely resembles the framework's own control event is no longer counted as one.
 
 ### Changed

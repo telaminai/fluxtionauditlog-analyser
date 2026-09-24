@@ -65,7 +65,7 @@ public final class ByteRecordFramer {
     private static long processLine(ByteArrayOutputStream line, long lineStart, long recStart,
                                     ByteArrayOutputStream rec, Sink sink) {
         byte[] lb = line.toByteArray();
-        if (isSeparator(lb)) {
+        if (isSeparator(lb, lineStart)) {
             if (recStart >= 0) {
                 emit(recStart, rec, sink);
                 rec.reset();
@@ -95,8 +95,10 @@ public final class ByteRecordFramer {
      * a character rather than whitespace, so a BOM before the file's first separator stopped it
      * separating. In bytes the BOM is the three-byte sequence {@code EF BB BF}.
      */
-    private static boolean isSeparator(byte[] b) {
-        int a = skipBom(b), e = b.length;
+    private static boolean isSeparator(byte[] b, long lineStart) {
+        // Only at byte 0 of the FILE, for the reason RecordFramer.isSeparator gives: a payload can never
+        // sit there, and mid-file the shipped 1.0.45 exporter does not escape a BOM'd separator (review F1).
+        int a = lineStart == 0 ? skipBom(b) : 0, e = b.length;
         while (a < e && isWs(b[a])) a++;
         while (e > a && isWs(b[e - 1])) e--;
         return (e - a) == 3 && b[a] == '-' && b[a + 1] == '-' && b[a + 2] == '-';

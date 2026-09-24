@@ -222,6 +222,24 @@ class ByteOrderMarkSitesTest {
         assertEquals(List.of(), offenders, "BOM handling must go through AuditText (or the byte framer)");
     }
 
+    /**
+     * The lexer, directly, for every spelling it claims — so a claim in the javadoc above is a test and
+     * not a sentence. Independent review found {@code 0_177377} passing while the javadoc said octal was
+     * covered; a planted-spelling run only checks the spellings someone thought to plant.
+     */
+    @Test
+    void theLexerReadsEveryClaimedSpellingAsItsValue() {
+        String[] spellings = {"0xFEFF", "0xfeff", "0XFEFF", "0xFE_FF", "65279", "65_279", "0177377",
+                "0_177377", "0b1111111011111111", "0B1111_1110_1111_1111", "0xFEFFL", "65279l"};
+        for (String s : spellings) {
+            assertTrue(integerLiterals("x == " + s + ";").contains(0xFEFFL), s + " must read as 0xFEFF");
+        }
+        assertTrue(integerLiterals("b == -17").contains(-17L), "a preceding minus is a sign");
+        assertFalse(integerLiterals("v0xFEFF").contains(0xFEFFL), "inside an identifier it is not a literal");
+        assertFalse(integerLiterals("x == 0xFE00 + 0xFF").contains(0xFEFFL),
+                "the stated limit: a constant expression is not evaluated");
+    }
+
     /** {@code \}{@code ufeff}, {@code \}{@code uUFEFF}, {@code \}{@code uuuFEFF} — all the same escape to javac. */
     private static final java.util.regex.Pattern UNICODE_ESCAPE =
             java.util.regex.Pattern.compile("\\\\u+[fF][eE][fF][fF]");
@@ -254,7 +272,11 @@ class ByteOrderMarkSitesTest {
             } else if (c == '0' && i + 1 < n && (line.charAt(i + 1) == 'b' || line.charAt(i + 1) == 'B')) {
                 radix = 2;
                 from = i + 2;
-            } else if (c == '0' && i + 1 < n && Character.digit(line.charAt(i + 1), 8) >= 0) {
+            } else if (c == '0' && i + 1 < n
+                    && (Character.digit(line.charAt(i + 1), 8) >= 0 || line.charAt(i + 1) == '_')) {
+                // `0_177377` is octal too: Java allows an underscore straight after the leading zero.
+                // Checking only for an octal DIGIT sent it down the decimal path, where it read as
+                // 177377 and passed (independent review, O1).
                 radix = 8;
                 from = i + 1;
             }
