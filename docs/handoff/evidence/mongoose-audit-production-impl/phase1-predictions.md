@@ -103,3 +103,49 @@ that agreeing with the reviewer is a result rather than an assumption. Written a
 - **U4.2** — whether restoring the spike file is the whole of F1, or whether my branch rewrote bytes
   in any other pre-existing evidence file. The review says it is the only one; I have not verified
   that independently.
+
+## P5 · Independent review — recorded before these fixes
+
+Review `2d7ac12f` (branch `review/mongoose-analyser-independent-2026-09-24`) returned three High and
+three Medium findings against `0b7076fd`. **All six reproduced on my checkout before any change**, with
+the reviewer's own probe, against the published `svc-admin-web-1.0.45.jar` (SHA-256 `68398176…3d`,
+matching the review) and runtime 1.0.16. The probe output is kept as evidence
+(`probe-0b7076fd.txt`, beside this file).
+
+**A finding of my own, from reading the runtime for F4 (rule 6), before any fix.** `EventLogManager.
+calculationLogConfig` (1.0.16) applies a change only when the processor's `logRecord.groupingId` is null
+or equals the change's `groupId`; then `sourceId == null` sets **every** node. So `groupId` is **not**
+node membership — it gates the whole change by the processor's grouping, which every runtime record
+writes as `groupingId:`. MA-8 as shipped read `groupId` as "a group of nodes whose members the log cannot
+name". That was an inference, not a reading, and it is exactly the failure rule 6 names.
+
+1. **P5.1 — F1.** Restricting a BOM-before-separator to **file offset 0**, in both framers, makes the
+   real-runtime payload read as **1 record, UNKNOWN** with both `recordEndTime` settings, on heap and
+   mapped, because a payload can never sit at the file's first byte — the container writes that. I expect
+   the pre-existing `UNSEPARATED` misreading of the payload to remain; it is on base too and is not mine
+   to fix in this change.
+2. **P5.2 — F1's cost.** `cat a.yaml b.yaml` with a BOM'd `b` stops separating at the join and raises
+   `UNSEPARATED`. That is base behaviour and is loud rather than wrong; I expect to have to change at
+   least one round-3 test that asserted the concatenation separates.
+3. **P5.3 — F2.** Comparing **byte** lengths rather than decoded lengths, and carrying held-back bytes as
+   a pending tail, makes the `C3` case read `pending=1, UNKNOWN` with identity cleared. I expect an
+   invalid lead byte (`C0`, `F5`) and an invalid second byte after `E0`/`ED`/`F0`/`F4` to have to throw
+   rather than wait, and I do not yet know whether any existing test depends on the old quiet wait.
+4. **P5.4 — F3.** Skipping leading **plain** `---` lines (ASCII whitespace only, no BOM) before the first
+   content line clears the healthy binary record and still names a genuinely headerless one.
+5. **P5.5 — F4/F5 together.** Moving MA-8's intervals from **time** to **record order**, and applying the
+   runtime's real rule (grouping gate; `sourceId == null` means every node), fixes F4 (a global restore
+   closes the interval), both F5 cases (the exact boundary, and an empty selection) and the untimed-future
+   case in one change, because an empty selection has no rows and a control after the selected rows
+   cannot precede any of them. I expect **several** existing `CoveragePerNodeLevelTest` assertions to
+   change, since they pin time-based wording and the group-membership sentence.
+6. **P5.6 — F6.** The MA-6 message can be made conditional without knowing the container state.
+7. **P5.7 — O1.** `0_177377` goes to the decimal path because the lexer checks for an octal DIGIT after
+   the `0`, not an underscore.
+
+**Unsure:**
+
+- **U5.1** — whether a run boundary (a stream-end marker) inside a quiet interval can be surfaced without
+  changing `StreamEnd`. I intend to expose marker positions through `LogStore` with an empty default.
+- **U5.2** — how the `recordEndTime=true` case splits into two records today. I expect it is the same BOM
+  separator, and that the runtime's closing brace is what differs; not verified.
