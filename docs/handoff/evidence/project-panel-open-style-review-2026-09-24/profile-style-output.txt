@@ -1,0 +1,6 @@
+plain: disk=line, loaded=line, declared=line
+plain: disk=points, loaded=points, declared=points
+external-series: disk=line, loaded=step, declared=null
+external-series: disk=points, loaded=step, declared=null
+external-marker: disk=line, loaded=step, declared=null
+external-marker: disk=points, loaded=step, declared=null

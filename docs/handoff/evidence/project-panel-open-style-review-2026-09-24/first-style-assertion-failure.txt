@@ -1,0 +1,33 @@
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK javax.swing.JButton[,2,0,81x29,alignmentX=0.0,alignmentY=0.5,border=com.apple.laf.AquaButtonBorder$Dynamic@3b192d32,flags=288,maximumSize=,minimumSize=,preferredSize=,defaultIcon=,disabledIcon=,disabledSelectedIcon=,margin=java.awt.Insets[top=0,left=4,bottom=0,right=4],paintBorder=true,paintFocus=true,pressedIcon=,rolloverEnabled=false,rolloverIcon=,rolloverSelectedIcon=,selectedIcon=,text=Open,defaultCapable=true] at java.awt.Point[x=231,y=930] size java.awt.Dimension[width=81,height=29]
+BUTTON FIRED Show this report in the Reports tab
+DETAIL=Second report title
+NARRATIVE — the author's account, not log evidence
+SECOND REPORT DISTINCT BODY
+
+PASS check1 second row selects second NAME and body
+CLICK javax.swing.JButton[,2,0,81x29,alignmentX=0.0,alignmentY=0.5,border=com.apple.laf.AquaButtonBorder$Dynamic@3b192d32,flags=288,maximumSize=,minimumSize=,preferredSize=,defaultIcon=,disabledIcon=,disabledSelectedIcon=,margin=java.awt.Insets[top=0,left=4,bottom=0,right=4],paintBorder=true,paintFocus=true,pressedIcon=,rolloverEnabled=false,rolloverIcon=,rolloverSelectedIcon=,selectedIcon=,text=Open,defaultCapable=true] at java.awt.Point[x=231,y=832] size java.awt.Dimension[width=81,height=29]
+BUTTON FIRED Show this report in the Reports tab
+PASS check2 first row selects first NAME and body
+CLICK javax.swing.JButton[,2,0,81x29,alignmentX=0.0,alignmentY=0.5,border=com.apple.laf.AquaButtonBorder$Dynamic@3b192d32,flags=288,maximumSize=,minimumSize=,preferredSize=,defaultIcon=,disabledIcon=,disabledSelectedIcon=,margin=java.awt.Insets[top=0,left=4,bottom=0,right=4],paintBorder=true,paintFocus=true,pressedIcon=,rolloverEnabled=false,rolloverIcon=,rolloverSelectedIcon=,selectedIcon=,text=Open,defaultCapable=true] at java.awt.Point[x=231,y=847] size java.awt.Dimension[width=81,height=29]
+BUTTON FIRED Show this chart in the Graph tab
+PASS check3 closed saved chart materialized
+PASS check3 chart selected
+PASS check3 series retained
+PASS check3 notes retained
+PASS check3 pin retained
+PASS check3 right axis retained
+PASS check3 reveal does not rewrite saved definitions
+CLICK javax.swing.JButton[,2,0,81x29,alignmentX=0.0,alignmentY=0.5,border=com.apple.laf.AquaButtonBorder$Dynamic@3b192d32,flags=288,maximumSize=,minimumSize=,preferredSize=,defaultIcon=,disabledIcon=,disabledSelectedIcon=,margin=java.awt.Insets[top=0,left=4,bottom=0,right=4],paintBorder=true,paintFocus=true,pressedIcon=,rolloverEnabled=false,rolloverIcon=,rolloverSelectedIcon=,selectedIcon=,text=Open,defaultCapable=true] at java.awt.Point[x=231,y=877] size java.awt.Dimension[width=81,height=29]
+BUTTON FIRED Show this chart in the Graph tab
+CLICK javax.swing.JButton[,2,0,81x29,alignmentX=0.0,alignmentY=0.5,border=com.apple.laf.AquaButtonBorder$Dynamic@3b192d32,flags=288,maximumSize=,minimumSize=,preferredSize=,defaultIcon=,disabledIcon=,disabledSelectedIcon=,margin=java.awt.Insets[top=0,left=4,bottom=0,right=4],paintBorder=true,paintFocus=true,pressedIcon=,rolloverEnabled=false,rolloverIcon=,rolloverSelectedIcon=,selectedIcon=,text=Open,defaultCapable=true] at java.awt.Point[x=231,y=832] size java.awt.Dimension[width=81,height=29]
+BUTTON FIRED Show this chart in the Graph tab
+BUTTON FIRED Show this chart in the Graph tab
+PASS check4 same panel instance
+PASS check4 later edits survive repeated Open
+CLICK javax.swing.JComboBox[,42,3,95x27,layout=com.apple.laf.AquaComboBoxUI$AquaComboBoxLayoutManager,alignmentX=0.0,alignmentY=0.0,border=,flags=16777536,maximumSize=,minimumSize=,preferredSize=,isEditable=false,lightWeightPopupEnabled=true,maximumRowCount=8,selectedItemReminder=Stairs] at java.awt.Point[x=1074,y=416] size java.awt.Dimension[width=95,height=27]
+PASS check5 real combo selects Line
+Exception in thread "main" java.lang.AssertionError: check5 persisted style key=line
+	at DisplayProbe.check(DisplayProbe.java:22)
+	at DisplayProbe.main(DisplayProbe.java:49)

@@ -1,0 +1,24 @@
+{
+  "tests": 1887,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 62,
+  "command": "JAVA_HOME=/Users/greg/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home mvn -q package",
+  "revision": "43ce82fc",
+  "newSuites": [
+    {
+      "name": "telamin.fluxtion.audit.analyser.analyser.ui.GraphStylePersistenceTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "telamin.fluxtion.audit.analyser.analyser.ui.ProjectPanelOpenRevealsTheRowsItemTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ]
+}

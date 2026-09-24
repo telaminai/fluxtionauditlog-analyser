@@ -1,0 +1,56 @@
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK Show this report in the Reports tab at java.awt.Point[x=231,y=930]
+BUTTON FIRED Show this report in the Reports tab
+DETAIL=Second report title
+NARRATIVE — the author's account, not log evidence
+SECOND REPORT DISTINCT BODY
+
+PASS check1 second row selects second NAME and body
+CLICK Show this report in the Reports tab at java.awt.Point[x=231,y=832]
+BUTTON FIRED Show this report in the Reports tab
+PASS check2 first row selects first NAME and body
+CLICK Show this chart in the Graph tab at java.awt.Point[x=231,y=847]
+BUTTON FIRED Show this chart in the Graph tab
+PASS check3 closed saved chart materialized
+PASS check3 chart selected
+PASS check3 series retained
+PASS check3 notes retained
+PASS check3 pin retained
+PASS check3 right axis retained
+PASS check3 reveal does not rewrite saved definitions
+CLICK Show this chart in the Graph tab at java.awt.Point[x=231,y=877]
+BUTTON FIRED Show this chart in the Graph tab
+CLICK Show this chart in the Graph tab at java.awt.Point[x=231,y=832]
+BUTTON FIRED Show this chart in the Graph tab
+BUTTON FIRED Show this chart in the Graph tab
+PASS check4 same panel instance
+PASS check4 later edits survive repeated Open
+CLICK Style dropdown at java.awt.Point[x=1074,y=416]
+PASS check5 real combo selects Line
+OBSERVATION check5 UI dropdown persisted line=false
+PASS setup action open [close] => null
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK Show this chart in the Graph tab at java.awt.Point[x=231,y=832]
+BUTTON FIRED Show this chart in the Graph tab
+OBSERVATION check5 UI Line after close/reopen=step
+PASS control programmatic setter persisted style key=line
+PASS setup action open [close] => null
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK Show this chart in the Graph tab at java.awt.Point[x=231,y=832]
+BUTTON FIRED Show this chart in the Graph tab
+PASS control programmatic Line survives actual project close/reopen
+PASS setup action open [close] => null
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK Show this chart in the Graph tab at java.awt.Point[x=231,y=832]
+BUTTON FIRED Show this chart in the Graph tab
+PASS check5 legacy missing style reopens as Stairs
+PASS setup action open [close] => null
+PASS setup action open [project] => null
+PASS setup action open [log] => null
+CLICK Show this chart in the Graph tab at java.awt.Point[x=231,y=832]
+BUTTON FIRED Show this chart in the Graph tab
+ATTACK external input profile style=line, rendered style=step
