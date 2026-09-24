@@ -1,0 +1,18 @@
+{
+  "candidate": "2a15f0ba",
+  "command": "JAVA_HOME=<JDK21> mvn -q clean package",
+  "order": [
+    "total",
+    "failures",
+    "errors",
+    "skips"
+  ],
+  "counts": [
+    1985,
+    0,
+    0,
+    97
+  ],
+  "mappedSuites": 265,
+  "orphanReports": []
+}

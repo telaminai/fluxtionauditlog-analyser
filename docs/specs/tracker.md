@@ -6,26 +6,24 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
-## Project / Sources / Audit log menus — owner request 2026-09-24
+## Project / Sources / Audit log menus — remaining follow-ups
 
-- ◧ **Separate top-level resource menus** — implemented on `feat/project-sources-audit-menus`,
-  merged as PR #15 (`fda14f70`); menus not yet released. Project owns profiles/settings/analyses, Sources
-  owns source configuration and topology/design/diagnostics, Audit log owns acquisition/Follow/export.
-  Records, Theme, AI and Help remain separate. Existing action handlers and the reveal-only Project
-  panel boundary remain in force. Live docs, offline help, screenshots and menu spotlight examples
-  must match. Acceptance uses actual menu items and Settings dialogs on a real display, CI zero-skip
-  registration, and targeted named-red/restored-green controls. Local gates: headless
-  after integration of main `cb56c96d` (1.19.3 changelog stamp): 1985/0/0/97 (265 mapped suites, no orphans);
-  display 98/0/0/0 (19 suites). The ten menu controls passed before integration; the owner
-  requested no mutation rerun on the combined tree. R1–R3 corrected; O1–O5 taken; D1–D3 remain owner decisions.
-  Original 26 demo captures refreshed, then five affected assets recaptured and inspected for the
-  review response. Specialized older captures labelled. PR #15 merged after re-review; follow-up guards on
-  `fix/menu-guard-followups` independently reviewed at `cd2814d0`: package 1985/0/0/97, display 98/0/0/0,
-  five targeted controls red/restored green. Repeated focus measurement had two skips after
-  the trial retry; that retry was removed for review F1 before merge. No stability improvement
-  or fix for the unreproduced spotlight flake is claimed.
-  [Implementation and verification](../handoff/report_project_sources_audit_menus_2026_09_24.md).
-  [Optional guard follow-ups](../handoff/report_menu_guard_followups_2026_09_24.md).
+Implementation and guard follow-ups shipped in **1.20.0** (PRs #15 and #17);
+[verification and historical counts](completed/tracker.md)
+are in the completed tracker. The release is not a claim that these optional issues are resolved:
+
+- ☐ **Display stability:** the second-menu spotlight flake was not reproduced; the trial focus retry
+  did not demonstrate improvement and was removed. Keep the zero-skip display gate.
+- ☐ **Optional menu guard refinements:** computed Java menu strings and the prose-boundary heuristic
+  remain limited; see the [guard report](../handoff/report_menu_guard_followups_2026_09_24.md).
+- ☐ **D1 / D2 owner decisions:** CSV placement under Audit log and whether to add a legacy File
+  spotlight alias. Current shipped behaviour and the saved-step compatibility consequence are
+  documented; this release does not choose a different policy.
+- ☐ **D3 identity:** GitHub web merges bypass the local email pin. In addition to the earlier report,
+  `7254c29d` and `2a15f0ba` have non-personal metadata. Local email is personal at this release;
+  history is not rewritten. The owner still needs to settle the web-merge identity setting.
+- ☐ **CI policy:** whether the new full mutation gate is required by branch protection is an owner
+  setting; the job already runs on every PR and push to main.
 
 ## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md), revision 9 (2026-09-21)
 

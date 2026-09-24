@@ -1,6 +1,8 @@
 # Project, Sources and Audit log menus
 
-Status: PR #15 review corrections implemented and verified; awaiting independent re-review. Branch `feat/project-sources-audit-menus`,
+Status: independently re-reviewed, merged as PR #15 (`fda14f70`), and shipped in 1.20.0.
+[Release receipt](release_analyser_1_20_0_2026_09_24.md). The sections below preserve the earlier
+implementation and verification record. Branch `feat/project-sources-audit-menus`,
 based on released 1.19.2 (`cfe4c925`). The unfinished menu patch was copied from its older worktree;
 that worktree was preserved. No chart-lifecycle fixes were overwritten during the transfer.
 

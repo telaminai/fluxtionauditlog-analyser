@@ -1,6 +1,6 @@
 # Release Process — Branching, GitHub Actions, Distribution
 
-Status: DRAFT v1 · Owner: greg.higgins · Last updated: 2026-08-13
+Status: operational reference · Owner: greg.higgins · Last updated: 2026-09-24
 
 Companion docs: **[docs-site.md](docs-site.md)** (the GitHub Pages user site) ·
 **[../specs/completed/spec-settings-share.md](../specs/completed/spec-settings-share.md)** (settings export/import) ·
@@ -17,7 +17,10 @@ The goals, in priority order:
 
 ---
 
-## 0. Pre-flight (once, before the first release)
+## 0. Original setup checklist (historical, before the first release)
+
+This records the original setup plan, not outstanding work for each release. The current executable
+workflows linked in sections 5 and 6 are authoritative; permissions remain a repository setting.
 
 - [ ] **Fix the artifactId typo**: `fluxtion-audiitlog-analyser` → `fluxtion-auditlog-analyser`
       (double "i"). Release asset names and the JBang alias are effectively permanent — fix it while
@@ -94,19 +97,25 @@ the change, never reconstructed at release time.
 
 ### 4.0 Pre-release checklist — what CI cannot see
 
-The workflow runs the unit suite. It does not launch the app, and three released versions (1.13.0–1.13.2)
+The release workflow runs the default Maven suite. Main CI separately runs frame tests on Xvfb,
+but the release workflow does not launch the app, and three released versions (1.13.0–1.13.2)
 shipped an `open {analysis}` that failed on **every call** through four independent reviews, because every one
 of them read the code and ran the unit suite and none drove the path. So, on the commit you are about to
 release, on a machine with a display (each script launches the BUILT jar under an isolated `user.home`, drives it
 over the action socket with a hard per-call timeout, and exits non-zero on any failure):
 
-- [ ] `mvn package`
+- [ ] Main CI is green at the release candidate: build, loop-bench, ui-frame and mutation-gate.
+      The frame job must have zero skips. Locally use
+      `python3 tools/verify_project_chart_review.py --mode display` on a display; it passes
+      `-Djava.awt.headless=false` directly and checks missing, empty and skipped suites.
+      `-DargLine` alone is not a substitute.
+- [ ] `mvn package` — report total / failures / errors / skips separately.
 - [ ] `python3 tools/verify-m46-agent-api.py` — first verdict after open, no REST hang, honest echoes, `open {analysis}`
 - [ ] `python3 tools/verify-m48-handoff.py` — the shared canvas through `open {posture | record}`
 - [ ] `python3 tools/verify-m64-spotlight.py` — every spotlight target, sets, refusals that touch nothing
 - [ ] `python3 tools/verify-session-restart.py` — separate JVMs, normal quit, explicit recovery and
       command-line input isolation. The launch shim only translates stdin EOF into window close.
-- [ ] `python3 tools/capture-conversations.py` — all five scenarios must complete. It rewrites
+- [ ] `python3 tools/capture-conversations.py` — all seven scenarios must complete. It rewrites
       `docs/site/sample-conversations.md` and five `conv-*.png`: **read** the diff and the images (CLAUDE.md
       rule 1) and commit them only if the content changed; restore them otherwise. Two signals: exit 0 means every
       scenario completed (this line is met); a `WARNING: … image(s) NOT regenerated` on stderr means the terminal
@@ -124,7 +133,11 @@ over the action socket with a hard per-call timeout, and exits non-zero on any f
 ### 4.1 The release itself
 
 1. GitHub → Actions → **Release** → *Run workflow* → enter the version (e.g. `1.4.2`).
-2. There is no step 2.
+2. Watch the workflow and its explicit Pages dispatch to completion.
+3. Download both public jars and the checksum file; verify hashes, the version manifest and
+   bundled release notes. Confirm the latest-download route and the published release-notes page.
+4. Record the release receipt, update live report statuses, and move fully shipped tracker items
+   to completed. Keep unresolved follow-ups and owner decisions live.
 
 The workflow (§6) then: verifies tests → stamps + commits the changelog → tags `v1.4.2` → builds the
 fatjar with the version stamped in → publishes a GitHub Release with the notes and three assets:
@@ -135,108 +148,29 @@ fatjar with the version stamped in → publishes a GitHub Release with the notes
 | `fluxtion-auditlog-analyser.jar` | **stable-name** copy — `releases/latest/download/…` never changes, which is what the JBang catalog and the website's Download button point at |
 | `*.sha256` | checksums for both jars |
 
-## 5. CI workflow — `.github/workflows/ci.yml`
+## 5. CI workflow
 
-Every push/PR to main must be green before it can be released (and the release workflow re-verifies).
+[The executable CI workflow](../../.github/workflows/ci.yml) is the source of truth, rather than a
+second YAML copy here. Every push and PR to main runs the build, loop bench, display frame gate and
+full fast mutation gate. The mutation job uploads its JSON evidence. Frame suites must appear in
+both registration lists; a skipped display suite is a failure, not a pass. The default headless
+Maven suite alone cannot verify a click or dialog.
 
-```yaml
-name: CI
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '21', cache: maven }
-      - run: mvn -B verify
-```
+The fast mutation engine uses a fresh test JVM per control and a full rebuild when its API guard
+requires one. Local mutation runs still default to the Maven engine for the initial comparison
+cycle. Branch-subset selection is a development aid, not a replacement for CI's full gate.
+Whether checks are required by branch protection is an owner setting.
 
-(The test suite is headless-safe — UI classes are only constructed, never shown — so ubuntu is fine.
-Add a `macos-latest` matrix entry later only if a platform-specific bug ever warrants it.)
+## 6. Release workflow
 
-## 6. Release workflow — `.github/workflows/release.yml`
+[The executable release workflow](../../.github/workflows/release.yml) validates the version and
+remote tag, runs `mvn -B verify`, stamps the changelog, and atomically pushes the changelog commit
+and tag using the release bot identity. It stamps the POM for packaging, publishes both jar names
+and `SHA256SUMS.sha256`, then explicitly dispatches Pages. The explicit dispatch matters because
+pushes made with `GITHUB_TOKEN` do not trigger other push workflows.
 
-```yaml
-name: Release
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g. 1.4.2 — no leading v)'
-        required: true
-
-permissions:
-  contents: write
-
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '21', cache: maven }
-
-      - name: Verify version input
-        run: |
-          [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "bad version"; exit 1; }
-          git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1 && { echo "tag exists"; exit 1; } || true
-
-      - name: Run tests
-        run: mvn -B verify
-
-      - name: Stamp changelog (Unreleased -> version + date), extract notes
-        id: notes
-        run: |
-          DATE=$(date -u +%Y-%m-%d)
-          # extract the Unreleased body as the release notes
-          awk '/^## \[Unreleased\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md > /tmp/notes.md
-          # rename Unreleased -> the version, insert a fresh Unreleased skeleton above it
-          sed -i "s/^## \[Unreleased\]/## [Unreleased]\n\n## [${{ inputs.version }}] - ${DATE}/" CHANGELOG.md
-          echo "Full commit log: https://github.com/${{ github.repository }}/commits/v${{ inputs.version }}" >> /tmp/notes.md
-
-      - name: Commit changelog + tag
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "Release ${{ inputs.version }} — stamp changelog"
-          git tag "v${{ inputs.version }}"
-          git push origin HEAD --tags
-
-      - name: Build fatjar with the release version
-        run: |
-          mvn -B versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
-          mvn -B -DskipTests package
-          cp target/fluxtion-auditlog-analyser-${{ inputs.version }}.jar fluxtion-auditlog-analyser.jar
-          sha256sum fluxtion-auditlog-analyser.jar target/fluxtion-auditlog-analyser-${{ inputs.version }}.jar > SHA256SUMS.sha256
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ inputs.version }}
-          name: v${{ inputs.version }}
-          body_path: /tmp/notes.md
-          files: |
-            target/fluxtion-auditlog-analyser-${{ inputs.version }}.jar
-            fluxtion-auditlog-analyser.jar
-            SHA256SUMS.sha256
-```
-
-Notes on the design:
-
-- **Tests run before anything is mutated**; the changelog commit + tag happen only on green.
-- The **changelog stamp is the only commit** a release adds to main.
-- `versions:set` happens **after** the tag so main's pom stays at the placeholder version (the
-  stamped pom exists only in the workflow workspace — the tag records the changelog commit, and the
-  release is reproducible from it via the same two commands).
-- `GITHUB_TOKEN` with `contents: write` covers the push, the tag and the release — no secrets to manage.
-- Future (not v1): Sigstore/cosign signing of the jars; a `jpackage` matrix producing native
-  installers (macOS `.dmg` needs an Apple signing identity — out of scope until someone asks).
+A concurrent main update can reject the atomic push; inspect the run and remote state before
+retrying. Do not overwrite a published tag or claim success from dispatch alone.
 
 ## 7. Bundling release notes + version into the jar (pom tweaks)
 

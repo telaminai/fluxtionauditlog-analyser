@@ -1,0 +1,20 @@
+  PASS  fresh start: context.handoff is served, and the posture is DERIVED and says it is a guess
+  PASS  with no project open the guess is research/support
+  PASS  open {posture, record} is accepted - the canvas is written through `open`
+  PASS  context reads back the SET posture, attributed to the action socket
+  PASS  and says what the derivation would have been, since they disagree
+  PASS  the record is there - null skill, authoring gap and attribution intact
+  PASS  `handoff` is NOT a verb - it was one for a day and was folded into `open` before it shipped
+  PASS  a malformed record is REFUSED, with the reason
+  PASS  and the posture sent in the same call was NOT applied - refused whole
+  PASS  a `branch` that is not a string is REFUSED, never stringified into a valid-looking record
+  PASS  and neither the record nor the posture beside it changed
+  PASS  a canvas write goes ALONE: combined with a log it is refused whole, and names what it carried
+  PASS  so the posture did not change, and nothing started loading
+  PASS  an undeclared param is never silently honoured: the call is refused and names it
+  PASS  a project switch is a session boundary: the record is gone
+  PASS  and the posture is derived again - authoring now, because a project is open
+  PASS  open {close: "handoff"} takes both off - the same idiom as open {close: "project"}
+  PASS  and it closed ONLY the canvas: the project is still open
+
+all M48.7 handoff checks pass

@@ -1,6 +1,8 @@
 # PR 15 menu guard follow-ups
 
-Status: independently reviewed; F1 corrected before merge on `fix/menu-guard-followups`, based on main `fda14f70`.
+Status: independently reviewed; F1 corrected, merged as PR #17 (`5eac0b8c`), and shipped in 1.20.0.
+[Release receipt](release_analyser_1_20_0_2026_09_24.md). The sections below preserve the pre-merge
+record from `fix/menu-guard-followups`, based on main `fda14f70`.
 Read the complete re-review at `88afe42b` before changes. PR #15 was merged locally as `fda14f70`,
 with the personal author and committer address, after confirming all head checks were green.
 GitHub reports it MERGED. The shared repository email is restored to the personal address as the
