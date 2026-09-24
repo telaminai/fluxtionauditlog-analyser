@@ -149,3 +149,35 @@ name". That was an inference, not a reading, and it is exactly the failure rule 
   changing `StreamEnd`. I intend to expose marker positions through `LogStore` with an empty default.
 - **U5.2** — how the `recordEndTime=true` case splits into two records today. I expect it is the same BOM
   separator, and that the runtime's closing brace is what differs; not verified.
+
+## P6 · Re-review — recorded before these fixes
+
+Re-review `cd063e89` (branch `review/mongoose-independent-rereview-2026-09-24`) against `6998fcc8`: one
+High, three Medium. **All four reproduced** with the re-review's own probe before any change; its output is
+kept beside this file (`rereview-probe-6998fcc8.txt`).
+
+1. **P6.1 — RR-1.** Retiring the identity and the completeness claim BEFORE decoding, and forcing UNKNOWN
+   when the decode throws, makes `C0` after a marker read `UNKNOWN, identities=0, pending=0` and still
+   throw. I expect no existing test to depend on the old post-throw state, because none asserted it.
+2. **P6.2 — RR-2.** Parsing the rendering by its FIXED separators — `EventLogConfig{level=`,
+   `, logRecordProcessor=`, `, sourceId=`, `, groupId=`, `}` — each exactly once and in order, keeps a
+   value's commas, braces and spaces, so `riskMonitor, DEMO`, `riskMonitor}DEMO` and ` riskMonitor ` stop
+   addressing riskMonitor, and `alpha, DEMO` stops matching grouping `alpha`. An EMPTY source is a node
+   named "", which is what the runtime's exact map lookup does with it. **The literal `null` cannot be
+   separated from Java null by any reader of this text**; I expect to keep reading it as "no node" and to
+   say so in the sentence, not to claim a fix.
+3. **P6.3 — RR-3.** Giving every record a context from its OWN `groupingId:` line — a value, declared
+   null, or ABSENT — and letting a change explain, or be closed by, only records of the same declared
+   context closes both mixed-processor cases and the rolled one. An absent grouping cannot establish
+   applicability, so it must be qualified rather than read as ungrouped. **This does not establish
+   processor identity**: two ungrouped processors share a context and will still be read as one stream.
+   I expect to disclose that in the annotation note, not to solve it.
+4. **P6.4 — RR-4.** Splitting the sentence into what holds within the run and what is conditional after a
+   boundary; a scope wholly after the boundary gets no definite suppression claim.
+
+**Unsure:**
+
+- **U6.1** — whether the analyser's `LogRecord` keeps "field absent" apart from "field says null" for
+  `groupingId`. I expect not (`nullLiteral`), and to have to read the raw text.
+- **U6.2** — whether any fixture in the corpus writes `groupingId:` on some records and not others, which
+  RR-3's rule would now treat as two contexts.
