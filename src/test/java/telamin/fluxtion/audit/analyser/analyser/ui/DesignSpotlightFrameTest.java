@@ -32,7 +32,7 @@ class DesignSpotlightFrameTest {
                 assertTrue(refused.toMap().toString().contains("cannot be on screen at the same time"),refused.toMap().toString());
                 assertFalse(((SpotlightOverlay)field(f.frame,"spotlight")).isLit());
                 var first=f.ex.render("spotlight",Map.of("targets",List.of("source:design:bean:node3","status")));
-                assertTrue(first.ok(),first.toMap().toString());
+                assertTrue(first.ok(), () -> first.toMap() + " | " + designGeometry(f, 3));
                 checkEcho(f,first.payload());
                 checkBounds(f);
                 var overlay=(SpotlightOverlay)field(f.frame,"spotlight");
@@ -86,6 +86,18 @@ class DesignSpotlightFrameTest {
             onEdt(()->{});onEdt(()->assertFalse(((SpotlightOverlay)field(f.frame,"spotlight")).isLit(),"design viewport hook must extinguish the partial band"));
         }
     }
+    private static String designGeometry(Frame f, int line) {
+        SourcePanel source = (SourcePanel) field(f.frame, "sourcePanel");
+        DesignSourcePanel design = (DesignSourcePanel) source.designComponent();
+        try {
+            int offset = telamin.fluxtion.audit.analyser.analyser.design.DesignDocument.offset(design.text.getText(), line, 1);
+            return "file=" + design.file() + " visible=" + design.text.getVisibleRect()
+                    + " size=" + design.text.getSize() + " preferred=" + design.text.getPreferredSize()
+                    + " showing=" + design.text.isShowing() + " valid=" + design.isValid()
+                    + " line=" + design.text.modelToView2D(offset) + " bounds=" + design.lineBounds(line);
+        } catch (Exception error) { return error.toString(); }
+    }
+
     private static void checkEcho(Frame f, Map<String,Object> echo) {
         var overlay=(SpotlightOverlay)field(f.frame,"spotlight");
         for(Object item:(List<?>)echo.get("lit")) {
