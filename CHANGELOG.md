@@ -33,8 +33,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A chart's plot style is saved with it.** Stairs, line and points are part of a saved chart and
   survive a reload. Previously the choice was never written to the profile, so a chart deliberately set
   to line or points silently came back as stairs — the reading of the chart changed without anyone
-  touching it. Charts saved before this release have no stored style and open as stairs, exactly as they
-  did before. An unrecognised style in a hand-edited profile is dropped rather than applied.
+  touching it. A chart saved before this release carries no stored style and opens as stairs, exactly as
+  it did before; the first save after upgrading then records every chart's current style, so an older
+  project file does gain a style line per chart once you save it. An unrecognised style in a hand-edited
+  profile is dropped rather than applied.
 
 ## [1.19.1] - 2026-09-24
 
