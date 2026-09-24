@@ -105,24 +105,33 @@ Things this project expects of a review, learned from ones that went wrong:
 - **Swing is not unit-tested** (rule 4, headless CI). UI claims rest on model tests, source-text checks
   and someone actually clicking. If a UI behaviour matters, say so rather than assuming coverage.
 
-## 6. Current review map — 2026-09-19
+## 6. Current review map — 2026-09-24
 
 The [live tracker](../specs/tracker.md) owns current status and delivery order; the changelog distinguishes
-released work from **Unreleased**. The latest release is 1.15.0 (2026-09-18).
+released work from **Unreleased**. **The latest release is 1.19.1 (2026-09-24).** This section was last
+refreshed at 1.15.0 and had gone stale by five releases, which is the reason to check its date against the
+changelog before trusting it.
 
-**M66 design render is independently accepted and merged on main, unreleased.** Start with the
-[spec](../specs/completed/spec-design-render.md) and [implementation handoff](handoff_m66_design_render.md). The tracker
-records the independent implementation review of `b7c82f5`, its reproduced tests and packaged-app checks,
-and the upstream source-location contract intake. Exact producer-delivery integration remains a stated
-boundary; matching a bean name never establishes the loaded log's relationship to the design.
+**In review now: M68.1**, the first slice of [evidence integrity](../specs/spec-evidence-integrity.md), on branch
+`feat/m68-1-coverage-pairing-scope`. It fixes what a held-out client was told on 2026-09-24 — that a declared
+node was absent from a graph that declares it, and that the graph was probably from a different build. Read the
+[brief](handoff_m68_1_coverage_pairing_scope.md) on `main`, then the implementation report
+`report_m68_1_coverage_pairing_scope_2026_09_24.md` **on the branch**. The report names a command for every
+claim; run those rather than reading the tables.
 
-**Separate work remains open:** the Spring-authoring guide pages still need their diagram/claims review.
-The [fresh-session trial](report_spring_authoring_acceptance_2026_09_19.md) predates M66 and records DX-02–DX-05
-on existing surfaces; those findings are preserved in the tracker and were not fixed by the M66 merge.
-M67 remains queued behind the Spring-authoring release, with its M66 merge prerequisite met.
+**Know the review history before you start, because it bears on your independence.** The M68 spec went through
+four review rounds on 2026-09-24, none of them independent: two parties, one of whom wrote the spec and then
+implemented it. Their commits and conflicts are tabled in the spec's review record. An implementation review by
+someone who took no part in those rounds is worth more than any of them, and agreement between them is not
+evidence.
 
-Use the [direct-to-main review ledger](unreviewed-changes.md) alongside the tracker; an empty ledger does
-not close review tasks or correctness findings recorded in the tracker.
+**Direct-to-`main` changes awaiting review** are in the [ledger](unreviewed-changes.md), including a correction of
+a release-gate closure (SG-2) that the M68 session over-read from a CI summary and then split.
+
+**The later M68 slices are not cleared to start.** Rendering needs the original session logs checked for
+publication; the framing diagnostic's trigger rule and the freshness policy were rewritten after review and are
+unreviewed; the whole-or-refused slice needs its disposition table first; the naming slice waits on an owner
+decision.
 
 ## 7. Two habits of the previous sessions to be sceptical of
 
