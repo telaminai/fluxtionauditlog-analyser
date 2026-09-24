@@ -121,13 +121,15 @@ public record GraphPairing(int logged, int matched, boolean applies, String reas
      * graph kept on a partial match — neither of which the comparison showed to fit.
      */
     public String note() {
-        String sc = sampled() ? ", " + scope() : "";
+        // Re-review set 3 (P14): the SCOPE leads a sampled note. At the end, as it was, the clip fell on it, so
+        // a 500-record sample read on screen as "every node id checked is declared" with nothing saying which.
+        String lead = sampled() ? scope() + ": " : "";
         if (!applies) return "\u26a0 DOES NOT FIT THIS LOG \u2014 " + reason;
-        if (!evidenced()) return "kept, not confirmed \u2014 no node output in the records checked" + sc;
+        if (!evidenced()) return lead + "kept, not confirmed \u2014 no node output in the records checked";
         if (!everyObservedIdDeclared()) {
-            return "kept on a partial match (" + matched + "/" + logged + " ids declared" + sc + ")";
+            return lead + "kept on a partial match (" + matched + "/" + logged + " ids declared)";
         }
-        return "every node id checked is declared (" + matched + "/" + logged + sc + ")";
+        return lead + "every node id checked is declared (" + matched + "/" + logged + ")";
     }
 
     /**

@@ -161,3 +161,91 @@ most ids are declared, so the graph is kept, coverage runs, and the warning must
 3. Is the warning wording now factual, or has it moved the conclusion into a different sentence?
 4. Does anything else consume `NodeCoverage.ratio()` as if a zero denominator were full coverage? The only
    production caller found was `CoverageService`.
+
+---
+
+## Addendum — the re-review fixes (2026-09-24)
+
+**Review:** `review/m68-1-coverage-pairing-scope-2026-09-24` at `5c6f865d`, verdict *changes required*.
+**Branch head before:** `efc5decd`. **Evidence:** `evidence/m68-1-rereview-2026-09-24/`, where every trial's
+prediction was committed before it ran (`PREDICTIONS.md`) and every outcome is recorded, wrong ones included
+(`RESULTS.md`, with raw outputs beside it). Counts below are summed from Surefire XML, not read from the console.
+
+**RUN** means I executed it and read the output. **READ** means source or document inspection only.
+
+### What each finding was, and what closed it
+
+| Finding | Cause | Fix | Regression | Witness |
+|---|---|---|---|---|
+| **R1** parity frame test failed; CI never ran on the branch | the frame's pairing carried a scope, discovery's and the session's did not | scope all three identically (R2). The parity test's three equality assertions are **unchanged**; it now reads discovery through the product's own path, a source root plus the frame's `discoverGraphs0`, instead of a hand-built call that could only ever agree with an unscoped verdict, and it asserts discovery's scope | `PairingDuringLoadFrameTest` (display) | M6f, M7f RED at the parity test. **RUN** |
+| **R2a** combined and graph-first opens published a sample as a whole-log claim | `session.node.Pairing.recompute` built `GraphPairing.of(declared, logged)` without scope, though it held `sampled` and `total`. **Confirmed, RUN**: the review's probe reproduced exactly (set 1, P2) | `.withScope(sampled, total)` | `SessionPairingScopeTest`, both orders, plus a whole-log case | M6 RED. **RUN** |
+| **R2b** discovery's candidates unscoped | `discoverGraphs0` passed a sampled id set with no record count | `GraphmlDiscovery.scan(roots, ids, scanned, total)`; the two-argument form still exists and says "scope not recorded" | `PairingScopeSurfacesTest` | M7 RED. **RUN** |
+| **R2c** a whole-log comparison never qualified the published pairing | no path from `coverage` to the pairing the window publishes | `PairingQualification`, built from coverage's own echo and bound to the exact pairing object it qualifies, so it is dropped the moment that pairing is replaced. Stated in `context.graphPairing.qualifiedBy`, the panel note and the `coverage` reply's `qualifiedPublishedPairing` | `PairingScopeSurfacesTest` (supersede, confirm, filtered, already-whole); end-to-end scenario 5 | M9 RED; 17 of the 24 scenario-5 checks fail on a `main` jar. **RUN** |
+| **R2d / O2** discovery gave `appliesToOpenLog` without the facts | `Candidate.toMap` predated the facts | `putAll(pairing.facts())` | `PairingScopeSurfacesTest` | M8 RED. **RUN** |
+| **R2e** the end-to-end script could not see R2 | it opened every scenario combined, and never checked scope | `open_in_order` and scenario 5: all three orders on a 600-record log, then coverage must qualify | the script itself | fails on `main`, passes here. **RUN** |
+| **R3** the build conclusion survived | removed from three surfaces, alive on five | one wording class for the four code sites (finding export, step-through status, both focus-recall messages); help page; `support.md`; **and `user-guide/topology.md:101`, which the review missed** | `MismatchWordingTest`; `UserVisibleWordingGuardTest` over every Java string literal, the help page and the docs site, with its own wrong-result witness | M10, M10g, M11 RED. **RUN** |
+| **R4a** the brief's third mutation unguarded | no test asserted a present ratio when nothing logged | `noOutputKeepsARatioOfZero` | the test | M3b RED. **RUN** |
+| **R4b** the harness could misreport | no baseline, no check that tests ran, no restore check | rewritten: green baseline, only this run's reports, NOT RUN for a build that did not compile, byte-identical restore by SHA-256, and a mutation passes only if its **named** test fails | the harness | set 1 P4: the old harness reported an uncompilable mutation as STILL GREEN. **RUN** |
+| **R5** the merged tree was never tested | `main` moved during review | **merged** `main` into the branch, not rebased — see below | both gates on the merged tree | headless 1,912 = `main`'s 1,894 + 18 before the fixes. **RUN** |
+| **O1** the pairing note unreadable on screen | fifth part of one clipped label, no tooltip | the pairing leads the line; the whole line is the tooltip; **and, from P14, the note leads with whatever qualifies it** — the scope when sampled, the whole-log finding once coverage has one | frame assertion; `TopologyStatusTooltipTest`; `PairingScopeSurfacesTest` (set 3) | M14, M15f, M16, M17 RED. **RUN**, and screenshots |
+| **O3** session audit log wrote `pairing: applies` for an unjudged pairing | the label read `applies()` | `GraphPairing.auditLabel()`: `keptUnjudged`, `keptPartial`, `applies`, `doesNotApply` | `SessionPairingScopeTest` | M12 RED. **RUN** |
+| **O4** one reason hid the level caveat | `CoveragePolicy` returns one sentence | **accepted as a defect and fixed**: a pairing qualification now also states the level caveat when the log was not captured at TRACE. Adding a fact can never change the claim | `CoveragePolicyEvidenceTest` | M13 RED. **RUN** |
+| **O5** focus-recall messages suggested a different build | carried over | changed, through the same wording class | `MismatchWordingTest` | M10 covers the class. **RUN** |
+| **O6** the combined-open drop lands after the reply | — | recorded under M68.4, with the consequence that an acceptance must test the final state | — | **READ** |
+
+### Gates on the final tree, all RUN
+
+| Gate | Result |
+|---|---|
+| Headless `mvn test` | **1,927 tests, 0 failures, 0 errors, 62 skipped** — `main`'s 1,894 + this branch's 33 |
+| All twelve `*FrameTest` classes with a display | **63 tests, 0 failures, 1 skipped.** The skip is a keyboard-focus assumption in `PersonAtTheScreenFrameTest` that aborts rather than pass falsely on this machine, and predates the branch |
+| `tools/mutate-m68-1.py --frame` | baseline **52 green**; **21 of 21** mutations RED at their named test; every restore byte-identical |
+| `tools/verify-m68-1-coverage.py`, branch jar | **46 pass, 0 fail**, all three open orders included |
+| Same script, a jar built from `main` at `90746e83` | **34 failures** (set 2) |
+| The review's own R2 probe, branch jar | *first 500 of 600 records*, `sampled=True`, in all three orders |
+| Screenshots at the default window size | the status line leads with the sample scope before coverage, and with the whole-log finding after |
+
+**Not run:** CI itself, since `ci.yml` still triggers only on `main`; the frame suite under xvfb, where the one
+skipped test would actually run; and a pre-vocabulary graph end to end.
+
+### What I got wrong
+
+- **I claimed acceptance 3 without testing it on the paths that failed.** My unit test replicated the log-first
+  path, and my end-to-end script opened everything combined without checking scope at all. The claim rested on
+  the one path that happened to work.
+- **"Full suite green" was true and not sufficient.** I changed the pairing contract without running the twelve
+  frame classes, which the headless suite skips, and I did not know CI does not run on branches. The review found
+  the red that merging would have put on `main`.
+- **My harness's M3 was the converse of the brief's third mutation**, and I reported the brief's four mutations
+  as done. They were not, as written.
+- **The harness could not tell a run that did not happen.** I predicted this before measuring it (set 1, P4), and
+  it held.
+- **I removed the build conclusion from three surfaces and reported it gone.** It survived on five.
+- **P12 was partly wrong**: two kinds of scenario-5 check pass on `main`, because an older fix already labelled
+  the log-first sentence and coverage always warned about a foreign id. The checks that pass on `main` are the
+  ones that were never the defect.
+- **O1's first fix was incomplete, and my own screenshot showed it (P14).** Leading the line with the note was not
+  enough: the clip fell inside the note, hiding the scope and, after coverage, showing the superseded verdict.
+
+### What the review got wrong, or missed
+
+- **"It would print a stale result as current."** Not quite: the old harness deleted old reports before each run,
+  so it could not print a *stale* one. Its real defects were worse and are what set 1 measured: it reported a
+  *missing* run as STILL GREEN, and with no baseline, one pre-existing failure would have made every mutation read
+  RED. The review's required remedies were right; its description of the failure was not.
+- **It missed a fifth surviving conclusion**, `docs/site/user-guide/topology.md:101`, "Treat the warning as a
+  version mismatch". The repository guard now covers the docs site, so a sixth would fail the build.
+- **Its line numbers are for `efc5decd`**; after the merge they moved (`MainFrame.java:1581`). Not an error.
+- Everything else I checked held: the three-row R2 table reproduced exactly, the frame failure reproduced exactly,
+  and the cause it READ for R2 is the cause.
+
+### One deviation from the instructions
+
+**Merged `main` into the branch rather than rebasing.** The branch is published, a rebase would need a force-push,
+and CLAUDE.md rule 3 forbids force-pushing. A merge gives the review what it asked for — a merged tree, tested —
+without rewriting published history. The one conflict was `CHANGELOG.md`, both sides unreleased entries, kept.
+
+### Left for someone else, as instructed
+
+The ledger disputes on `main` (`tracker.md:1094–1098` and `:557–562`, and archived H8.6, A10.7 and M14.6 with no
+live home) are not this branch's work and are untouched.

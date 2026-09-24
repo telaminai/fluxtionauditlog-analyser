@@ -87,6 +87,12 @@ MUT = [
  ('M14 the tooltip loses the full line (O1)', B + 'ui/TopologyPanel.java',
   'return "<html>" + String.join("<br>", escaped.split("   \\u00b7   ")) + "</html>";', 'return line;',
   'TopologyStatusTooltipTest.theTooltipCarriesEveryPartOnItsOwnLine', False),
+ ('M16 a sampled note loses its leading scope (set 3)', B + 'topology/GraphPairing.java',
+  'String lead = sampled() ? scope() + ": " : "";', 'String lead = "";',
+  'PairingScopeSurfacesTest.theNoteLeadsWithItsScope', False),
+ ('M17 the panel note leads with the superseded sample again (set 3)', B + 'topology/PairingQualification.java',
+  '        if (q.supersedesSample()) {', '        if (false && q.supersedesSample()) {',
+  'PairingScopeSurfacesTest.thePanelNoteLeadsWithWhatQualifiesIt', False),
  ('M15f the pairing note goes back to fifth place (O1)', B + 'ui/TopologyPanel.java',
   '        appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below\n'
   '        appendPart(sb, statusBase);',

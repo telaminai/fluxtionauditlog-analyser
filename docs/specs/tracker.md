@@ -556,6 +556,12 @@ verdict, which is owned jointly.
   **Not asserted, and said so:** the pairing note on screen, which the panel's width cuts off at the default
   window size (the authored-view count *was* checked by screenshot: four nodes on `main`, five here); audit
   readiness through the panel's hide control.
+  **Re-review round, 2026-09-24:** the implementation review (`review/m68-1-coverage-pairing-scope-2026-09-24`,
+  `5c6f865d`) found five required changes — a display test the branch broke and CI never ran, acceptance 3 met in
+  only one of three open orders, the build conclusion alive on five surfaces, the brief's third mutation
+  unguarded, and an untested merged tree. All answered on the branch with `main` merged in; see the report's
+  addendum and `docs/handoff/evidence/m68-1-rereview-2026-09-24/`. Final gates: headless 1,927 / 0 / 0 / 62, frame
+  63 / 0 / 1 skip, 21 of 21 mutations RED at their named test. **Awaiting re-review; still ◧.**
   **Found while testing, belongs to M68.4:** `open {log, graphml}` with a graph that declares only half the logged
   ids reports success and the graph is then no longer loaded — a combined request that silently drops part of
   itself. Reproduced end to end, and **pre-existing**: identical on a jar built from `main`, and only the combined

@@ -4223,8 +4223,8 @@ public final class MainFrame extends JFrame {
         if (!topologyPanel.hasGraph() || lastPairing == null) {
             topologyPanel.setPairingNote(null);
         } else {
-            var q = currentQualification();
-            topologyPanel.setPairingNote(lastPairing.note() + (q == null ? "" : " \u00b7 " + q.note()));
+            topologyPanel.setPairingNote(telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification
+                    .panelNote(lastPairing, currentQualification()));
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }

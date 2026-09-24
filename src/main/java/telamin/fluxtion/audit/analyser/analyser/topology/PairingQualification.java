@@ -67,6 +67,31 @@ public record PairingQualification(String scope, int recordsCompared, boolean es
                 + (supersedesSample ? " — this supersedes the sampled pairing, which could not see them" : "");
     }
 
+    /** The finding in a few words, scope first — what a clipped status line must show before anything else. */
+    public String headline() {
+        if (!established) return scope + ": no node output, membership not established";
+        if (everyObservedIdDeclared()) return scope + ": all " + loggedIds + " logged id(s) declared";
+        return scope + ": " + (loggedIds - declaredOfLogged) + " of " + loggedIds + " logged id(s) not declared ("
+                + String.join(", ", notDeclared) + ")";
+    }
+
+    /**
+     * The Topology panel's pairing note (re-review set 3, from P14). The panel's status line is clipped, so the
+     * FIRST words must be the ones that are currently true: once a whole-log comparison has superseded or confirmed
+     * the sample, its finding leads and the sampled verdict follows; a narrower comparison is appended instead.
+     * Before this, the note led with the sampled verdict, so after coverage the visible words were the superseded
+     * ones and the correction was clipped off the end.
+     */
+    public static String panelNote(GraphPairing published, PairingQualification q) {
+        if (published == null) return null;
+        if (q == null) return published.note();
+        if (q.supersedesSample()) {
+            return q.headline() + (q.everyObservedIdDeclared() ? " \u2014 confirms" : " \u2014 supersedes")
+                    + " the sample taken on open \u00b7 on open: " + published.note();
+        }
+        return published.note() + " \u00b7 " + q.headline();
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("by", "coverage");

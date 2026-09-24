@@ -38,6 +38,45 @@ class PairingScopeSurfacesTest {
     }
 
     @Test
+    @DisplayName("set 3: a sampled note leads with its scope, so a clipped line still says it was a sample")
+    void theNoteLeadsWithItsScope() {
+        GraphPairing sampled = GraphPairing.of(Set.of("a", "b", "c"), Set.of("a", "b", "c")).withScope(500, 600);
+        assertTrue(sampled.note().startsWith("first 500 of 600 records: every node id checked is declared (3/3)"),
+                sampled.note());
+        GraphPairing whole = GraphPairing.of(Set.of("a", "b"), Set.of("a", "b")).withScope(21, 21);
+        assertTrue(whole.note().startsWith("every node id checked is declared (2/2)"),
+                "an unsampled note has nothing to qualify, so it is unchanged: " + whole.note());
+    }
+
+    @Test
+    @DisplayName("set 3: once a whole-log comparison exists, the panel note leads with what is currently true")
+    void thePanelNoteLeadsWithWhatQualifiesIt() {
+        GraphPairing sampled = GraphPairing.of(Set.of("a", "b", "c"), Set.of("a", "b", "c")).withScope(500, 600);
+        PairingQualification superseding = PairingQualification.fromCoverage(sampled, Map.of(
+                "scope", "whole log", "recordsScanned", 600, "loggedButNotInTopology", List.of("foreignAfter500"),
+                "membership", Map.of("scope", "whole log", "established", true, "loggedIds", 4, "declaredOfLogged", 3)));
+        String note = PairingQualification.panelNote(sampled, superseding);
+        assertTrue(note.startsWith("whole log: 1 of 4 logged id(s) not declared (foreignAfter500) \u2014 supersedes"),
+                note);
+        assertTrue(note.contains("on open: first 500 of 600 records"), "the sampled verdict follows: " + note);
+
+        PairingQualification confirming = PairingQualification.fromCoverage(sampled, Map.of(
+                "scope", "whole log", "recordsScanned", 600,
+                "membership", Map.of("scope", "whole log", "established", true, "loggedIds", 3, "declaredOfLogged", 3)));
+        assertTrue(PairingQualification.panelNote(sampled, confirming)
+                .startsWith("whole log: all 3 logged id(s) declared \u2014 confirms"));
+
+        PairingQualification filtered = PairingQualification.fromCoverage(sampled, Map.of(
+                "scope", "current filter", "recordsScanned", 40,
+                "membership", Map.of("scope", "current filter", "established", true, "loggedIds", 2, "declaredOfLogged", 2)));
+        String narrower = PairingQualification.panelNote(sampled, filtered);
+        assertTrue(narrower.startsWith("first 500 of 600 records:"), "a narrower comparison does not lead: " + narrower);
+        assertTrue(narrower.endsWith("current filter: all 2 logged id(s) declared"), narrower);
+
+        assertEquals(sampled.note(), PairingQualification.panelNote(sampled, null));
+    }
+
+    @Test
     @DisplayName("a whole-log comparison that finds a foreign id supersedes the sampled pairing, and says so")
     void aWholeLogComparisonSupersedesTheSample() {
         GraphPairing sampled = GraphPairing.of(Set.of("a", "b", "c"), Set.of("a", "b", "c")).withScope(500, 600);
