@@ -76,10 +76,8 @@ defect.** After the fix, a named profile can use the same portable `workspaceRoo
 ## Related observations (not fixed or re-tested in the UI here)
 
 > **Superseded — all three are resolved. See "Resolution of the three observations" below.** This section
-> is kept as written because it records what was known before the owner ruled on D-L3, including one
-> reading that turned out to be wrong: `Target.NONE` on a saved-chart row was taken as a boundary the
-> spec had drawn. **That dismissal was itself wrong — see the correction below.** The reading recorded
-> here turned out to be right.
+> is kept as written because it records what was known before the owner ruled on D-L3, including the author’s later-withdrawn dismissal of `Target.NONE` as a boundary.
+> The boundary reading recorded here was correct; see the correction below.
 
 Source inspection distinguishes the following cases; they are not three proven instances of one bug:
 
@@ -127,8 +125,7 @@ still cannot reach.
    sets it to the report's **name** while still displaying its **title**. That split was the substance of
    the bug: `ReportsPanel.select` matches on name, so a panel passing its label along would have selected
    nothing even after the identity was threaded through.
-2. **Saved charts** — fixed, and the earlier reading of `Target.NONE` as "consistent with D-L3" was
-   wrong in effect. ~~The rows still rendered an Open button; it was simply wired to nothing, which is not
+2. **Saved charts** — navigation added by the owner’s amendment; the earlier boundary reading was correct. ~~The rows still rendered an Open button; it was simply wired to nothing, which is not
    a boundary, it is a dead control.~~ **Withdrawn — that claim was false; see the correction below.**
    They now carry `Target.CHART`, and `GraphTabs.openSaved` opens a
    saved-but-not-open chart from the profile — reveal, not create, because the definition already exists.
@@ -168,7 +165,7 @@ boundary" is false, and it was used to dismiss the earlier reading — which was
 
 This matters beyond tidiness because the false premise propagated into four places: this note, the
 commit message of `38ecc7f3`, the **D-L3 amendment** in `spec-loaded-panel.md`, and the **shipping
-CHANGELOG**. All four are now corrected. The consequence for the spec: the report leg of the amendment is
+CHANGELOG**. The live documents are corrected; the immutable commit message is contradicted by this correction rather than rewritten. The consequence for the spec: the report leg of the amendment is
 a real defect and justifies the `Navigator` change on its own; the chart leg is a **deliberate widening of
 D-L3** chosen by the owner, not the repair of something broken. The owner's decision stands either way —
 only the argument for it changes.
@@ -177,7 +174,9 @@ The lesson worth keeping is narrower than "check your facts": the claim was neve
 parent commit, only reasoned from a `Target.NONE` in the current source. One `git show 35eeb320^` would
 have settled it before it reached a specification.
 
-### What is still NOT verified — checks for a person at a real display
+### Display checks outstanding when this investigation was written
+
+**Follow-up:** [the review/fix report](../handoff/review_fix_project_chart_lifecycle_2026_09_24.md) records the later real-frame checks and their limits. The account below describes this investigation’s original verification boundary, not the current test suite.
 
 The new test asserts that the panel **asks** for the right thing: a click on report B's Open calls
 `showReport("B")`. Nothing in the suite asserts that `MainFrame`'s implementation of those two methods

@@ -284,7 +284,7 @@ compatible; validate bindings on load. The Project panel **states** these facts 
 row and remains reveal-only; ~~it gains no open/restore control or mutation callback~~. The landing
 (`StartPanel`) displays the same facts and **offers** explicit open/restore actions through the existing
 action/session machinery. ~~Keep `ProjectPanel.Navigator` unchanged.~~ `ProjectPanelIsRevealOnlyTest` gates
-both the no-mutation boundary (D-L3) and context-backed panel facts (D-L1).
+both the no-definition-mutation boundary (D-L3, amended below) and context-backed panel facts (D-L1).
 
 > **Superseded in part by the owner's D-L3 amendment, 2026-09-24 (35eeb320).** The two struck sentences no
 > longer hold. A saved-chart row now carries an Open, and `ProjectPanel.Navigator` gained `showReport` and
@@ -294,8 +294,8 @@ both the no-mutation boundary (D-L3) and context-backed panel facts (D-L1).
 > for other governing documents, and is recorded here rather than left for a future reader to trip over.
 >
 > **What did NOT change**, and is the part of the original requirement still in force: the Project panel
-> may not mutate. It gains no *mutation callback*, still never names `MainFrame`, and creation and
-> deletion stay off it — `Delete chart` lives on the Graph toolbar for exactly this reason (f6e8d7e0). The
+> may not edit or discard definitions. Navigation may persist an existing chart’s open-view flag. It gains no *definition-mutation callback*, still never names `MainFrame`, and creation and
+> deletion stay off it — `Delete chart` lives on the Graph toolbar for exactly this reason (`38ecc7f3`; collision follow-up `f6e8d7e0`). The
 > split with `StartPanel` also stands: the landing **offers** open/restore actions that change the
 > session, while the Project panel only reveals an item that already exists.
 >

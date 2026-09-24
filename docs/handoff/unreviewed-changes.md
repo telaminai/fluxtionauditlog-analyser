@@ -7,7 +7,7 @@ work block.
 
 **For the reviewing session:** on your next pull, review each `☐` entry below — read the commit, sanity
 the change against the codebase and the repo rules (CLAUDE.md), run `mvn test`, and **verify anything the
-entry says was not verified** (Swing UI changes are not unit-tested — build and run the jar). Then tick it
+entry says was not verified** (Swing UI changes need real-display checks — a headless skip is not a pass). Then tick it
 `☑ reviewed <date>` with a one-line verdict, and file any follow-up as a normal review. Fully-reviewed
 entries move to `completed/` when this file is next tidied.
 
@@ -76,7 +76,7 @@ statement of what to check rather than as assurance.
 
 **Unreviewed, and the scope for the next reviewer:**
 
-- ☐ **`f6e8d7e0` — chart name collisions, rename, delete ordering, and testability.** *What & why:* fixes
+- ☑ **reviewed 2026-09-24; see follow-up verdict below — `f6e8d7e0` — chart name collisions, rename, delete ordering, and testability.** *What & why:* fixes
   R1–R5 of the review above. Deleting one chart could silently destroy a different, closed, annotated one:
   `deleteCurrent` ran its fallback `addGraph()` (which ends in a save) before dropping the definition, and
   a generated name could land on a closed chart because `doRestore` resets the counter and skips closed
@@ -90,26 +90,26 @@ statement of what to check rather than as assurance.
   names, project switching and the placeholder fallback; and the author's own admission that reverting the
   delete *ordering* alone does NOT fail a test, because name reservation makes the collision impossible
   either way — judge whether that defence-in-depth argument holds.
-- ☐ **`f1693c93` — the delete path made reachable by a test.** *What & why:* `deleteConfirmed` split from
+- ☑ **reviewed 2026-09-24; see follow-up verdict below — `f1693c93` — the delete path made reachable by a test.** *What & why:* `deleteConfirmed` split from
   the modal dialog. *Files:* `GraphTabs.java`, one test. **Reviewer must still check:** nothing else calls
   `deleteConfirmed` without confirmation.
-- ☐ **`1247aab4` — two false claims by this session, corrected.** *What & why:* the "saved-chart rows
+- ☑ **reviewed 2026-09-24; see follow-up verdict below — `1247aab4` — two false claims by this session, corrected.** *What & why:* the "saved-chart rows
   rendered a dead Open button" history was invented — at `35eeb320^` no button was rendered at all — and it
   had reached the D-L3 amendment and the shipping CHANGELOG; and the restore proposal's central claim (two
   captured roles) was false, there are four, plus an applied `view` map. **Reviewer must still check:** that
   the corrections are complete, and that the D-L3 amendment now rests only on the report leg.
-- ☐ **`6145acdf` — the review landed on `main`, plus R10 and R12.** R10: `spec-project-starter-journey.md`
+- ☑ **reviewed 2026-09-24; see follow-up verdict below — `6145acdf` — the review landed on `main`, plus R10 and R12.** R10: `spec-project-starter-journey.md`
   said "Keep `ProjectPanel.Navigator` unchanged", contradicted by `35eeb320`; the supersession is now
   recorded there. R12: the CHANGELOG's "exactly as they did before" corrected — the first save after
   upgrading does add a style key to every chart. **Reviewer must still check:** the supersession is accurate
   and that no other governing document still contradicts the amendment. The amendment was originally made
   without sweeping for other specs, which is how R10 arose.
-- ☐ **`b8197eb9` — milestone-number clash removed.** This session invented `M68.2`–`M68.5` as labels and
+- ☑ **reviewed 2026-09-24; see follow-up verdict below — `b8197eb9` — milestone-number clash removed.** This session invented `M68.2`–`M68.5` as labels and
   stamped them across 21 files including the D-L3 spec and ONBOARDING, colliding with the **active M68
   evidence-integrity milestone and its named future slices**. Replaced with the commit sha each change
   landed in. *Verified:* the five genuine M68 documents were excluded; suite green. **Reviewer must still
   check:** no sha substitution misattributes a change to a commit that does not contain it.
-- ☐ **`84a8133c` — zoom versus pin, in the restore proposal.** Zoom is a lens and is never persisted; pin is
+- ☑ **reviewed 2026-09-24; see follow-up verdict below — `84a8133c` — zoom versus pin, in the restore proposal.** Zoom is a lens and is never persisted; pin is
   `graph.N.from`/`to` and is. Both sit on one toolbar and nothing says which is kept.
 
 **Known open, carried forward — confirm rather than rediscover:**
@@ -135,3 +135,30 @@ review status header are claims by the author, not findings.
 **Related, not in this ledger:** PR branch `fix/chart-delete-cancel-and-revealer` (`bd5cfe40`) closes the
 review's R9 and the Cancel gap, and touches `GraphTabs` and `MainFrame` — a fix branch cut from `b8197eb9`
 should expect conflicts there.
+
+## Follow-up review/fix at 00b39ce8
+
+The separate [review and fix report](review_fix_project_chart_lifecycle_2026_09_24.md) records the
+pinned baseline, reproduced failures, branch fixes, real-display checks and mutation controls.
+Verdict: `00b39ce8` needs the branch fixes; reviewed does not mean those fixes are on main. The three carried findings are covered by the new importer round trip, import-order correction and real-display frame tests.
+
+It does not review or merge `fix/chart-delete-cancel-and-revealer`. The prior report's historical
+findings and author-added status header are preserved; the new report supplies the checked dispositions.
+
+## PR #10 combined-head review and corrections
+
+The [review at aa49a8f6](review_pr10_aa49a8f6_2026_09_24.md) tested the combined tree and
+found three required corrections: duplicate global charts interrupted log loading, two
+mutation anchors were stale after adapter extraction, and the additional three-case frame
+suite was absent from the display gate and did not assert its claimed behavior.
+The owner asked that session to implement the corrections and leave re-review to someone
+else. This is **implemented, pending re-review**, not a second independent approval.
+
+The fix preserves every ambiguous global definition, withholds the whole chart set with
+a visible explanation and an action refusal, and permits log inspection and valid project
+use. No automatic rename, winner selection or last-tab/placeholder policy is introduced.
+The frame tests now use the loaded-frame fixture and actual modal Cancel; CI registration
+is checked against discovered frame suites. The mutation tool validates all selected
+anchors before a shared green baseline and requires a named failure and restored green
+for each control. Final commands, counts and the remaining owner decision belong in the
+linked report; old evidence and the historical rejection are preserved.

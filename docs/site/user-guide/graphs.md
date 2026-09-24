@@ -234,3 +234,22 @@ pin button or `graph {name: "…", from: null, to: null}`; dimension and text fi
 extraction state, finite series sample counts and empty reason. Pending or failed extraction
 does not report the previous sample counts as current. Counts are series samples, not records
 or markers. Report chart captions carry the scope so it survives PDF export.
+
+## Chart identities and imports
+
+A name identifies one saved chart, whether its tab is open or closed. A named chart action reopens the
+saved definition before editing it. Creating a new tab with an existing name is refused. A profile or
+settings import containing duplicate chart names is refused before application; give those definitions
+distinct names in the file and retry. The analyser does not choose which copy to discard.
+
+Importing a same-name chart replaces its definition as the import summary states, including its style
+and open/closed state. Opening a saved chart from the Project panel persists its open view and preserves
+its notes and settings; opening an already-open chart selects its existing tab.
+
+The current UI keeps at least one graph tab: Close leaves the last tab in place, while deleting the last
+open chart creates an empty placeholder. Closed saved definitions remain in the Project panel; the
+placeholder's name is chosen so it cannot overwrite them.
+
+Delete asks for confirmation and names the chart whose definition will be removed:
+
+![Delete chart confirmation naming the chart and offering Cancel](../assets/chart-delete-confirmation.png)

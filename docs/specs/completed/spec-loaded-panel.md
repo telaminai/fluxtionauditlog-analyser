@@ -102,9 +102,13 @@ someone else's report has already broken the trust this rule exists to protect.
 > a broken control. The report leg stands on its own and is sufficient to justify the `Navigator` change.
 
 The boundary is unchanged where it matters. A `Navigator` method must reveal something that **already
-exists**; one that creates, edits, discards or reorders state belongs on the action surface, which this
+exists**; one that creates, edits, discards or reorders definitions belongs on the action surface, which this
 panel still may not reach. Opening a saved chart that is not currently a tab is reveal, not create: the
 chart is a definition the profile already holds, and the panel asks for it to be shown, not authored.
+Navigation may select a view and persist its open/closed flag. It must leave the saved definition’s
+series, style, notes, explanation and other content unchanged. This distinguishes navigation state from
+editing a definition; it does not permit the panel to load a log or execute recovery. A method-set test
+alone cannot prove the adapter preserves that content; `ChartLifecycleReviewFrameTest` drives the real rows.
 `ProjectPanelIsRevealOnlyTest` pins the exact `Navigator` method set, so the next addition is again a
 deliberate decision rather than a drift.
 

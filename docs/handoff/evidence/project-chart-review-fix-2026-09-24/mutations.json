@@ -1,0 +1,1083 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "explicit-name",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "023797bd91c569fedd3a273c4b3358e3c248af3556e0c6399ed1a92dd6c4ff73",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#closedNamesAreReservedForCreationAndRename",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#closedNamesAreReservedForCreationAndRename",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 1,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "closedNamesAreReservedForCreationAndRename",
+                "message": "java.lang.IllegalArgumentException: Duplicate chart name 'One': give each saved chart a unique name before loading or saving"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.192 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.closedNamesAreReservedForCreationAndRename -- Time elapsed: 1.178 s <<< ERROR!\njava.lang.RuntimeException: java.lang.IllegalArgumentException: Duplicate chart name 'One': give each saved chart a unique name before loading or saving\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.edt(ChartLifecycleReviewFrameTest.java:29)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.closedNamesAreReservedForCreationAndRename(ChartLifecycleReviewFrameTest.java:125)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\nCaused by: java.lang.IllegalArgumentException: Duplicate chart name 'One': give each saved chart a unique name before loading or saving\n\tat telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(SavedGraphMerge.java:64)\n\tat telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.merge(SavedGraphMerge.java:36)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MainFrame.syncOpenGraphsIntoConfig(MainFrame.java:4719)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MainFrame.saveConfigQuietly(MainFrame.java:6843)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MainFrame.onGraphsEdited(MainFrame.java:4608)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.GraphTabs.fireChanged(GraphTabs.java:55)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.GraphTabs.addGraph(GraphTabs.java:171)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.GraphTabs.graphForAction(GraphTabs.java:271)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$closedNamesAreReservedForCreationAndRename$6(ChartLifecycleReviewFrameTest.java:126)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Errors: \n[ERROR]   ChartLifecycleReviewFrameTest.closedNamesAreReservedForCreationAndRename:125->edt:29 Runtime java.lang.IllegalArgumentException: Duplicate chart name 'One': give each saved chart a unique name before loading or saving\n[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: \n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#closedNamesAreReservedForCreationAndRename",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "closed-definition",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "023797bd91c569fedd3a273c4b3358e3c248af3556e0c6399ed1a92dd6c4ff73",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#graphActionOnClosedChartPreservesItsDefinition",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#graphActionOnClosedChartPreservesItsDefinition",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 1,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "graphActionOnClosedChartPreservesItsDefinition",
+                "message": "java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.285 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.graphActionOnClosedChartPreservesItsDefinition -- Time elapsed: 1.273 s <<< ERROR!\njava.lang.RuntimeException: java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.edt(ChartLifecycleReviewFrameTest.java:29)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.graphActionOnClosedChartPreservesItsDefinition(ChartLifecycleReviewFrameTest.java:132)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\nCaused by: java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$graphActionOnClosedChartPreservesItsDefinition$7(ChartLifecycleReviewFrameTest.java:134)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Errors: \n[ERROR]   ChartLifecycleReviewFrameTest.graphActionOnClosedChartPreservesItsDefinition:132->edt:29 Runtime java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null\n[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: \n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#graphActionOnClosedChartPreservesItsDefinition",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "import-before-view",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "c25a2b2be2e274657688a825307bf59b62bb6e3f9e64ee4fe4003e9182ec6f44",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState",
+                "message": "import must win over old tabs before a save ==> expected: <points> but was: <line>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.662 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState -- Time elapsed: 1.646 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: import must win over old tabs before a save ==> expected: <points> but was: <line>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState$8(ChartLifecycleReviewFrameTest.java:147)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState$8:147 import must win over old tabs before a save ==> expected: <points> but was: <line>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "stale-confirmation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "023797bd91c569fedd3a273c4b3358e3c248af3556e0c6399ed1a92dd6c4ff73",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#confirmationCannotDeleteAReplacementTab",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#confirmationCannotDeleteAReplacementTab",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "confirmationCannotDeleteAReplacementTab",
+                "message": "a stale confirmation must not delete the replacement tab ==> expected: not <null>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.518 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.confirmationCannotDeleteAReplacementTab -- Time elapsed: 1.509 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: a stale confirmation must not delete the replacement tab ==> expected: not <null>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertNotNull.failNull(AssertNotNull.java:49)\n\tat org.junit.jupiter.api.AssertNotNull.assertNotNull(AssertNotNull.java:35)\n\tat org.junit.jupiter.api.Assertions.assertNotNull(Assertions.java:312)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$confirmationCannotDeleteAReplacementTab$10(ChartLifecycleReviewFrameTest.java:159)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$confirmationCannotDeleteAReplacementTab$10:159 a stale confirmation must not delete the replacement tab ==> expected: not <null>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#confirmationCannotDeleteAReplacementTab",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "external-import",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SettingsShare.java",
+      "sha256": "0e9598b9a4943453d88b3f3fdecfd7c91462bd844b299c24a02694065a4528fb",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#externalPathsKeepStyleAndClosedState",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#externalPathsKeepStyleAndClosedState",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "externalPathsKeepStyleAndClosedState",
+                "message": "external path rewrite must retain style ==> expected: <points> but was: <step>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.061 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.externalPathsKeepStyleAndClosedState -- Time elapsed: 0.052 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: external path rewrite must retain style ==> expected: <points> but was: <step>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)\n\tat telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.externalPathsKeepStyleAndClosedState(GraphProfileMetadataTest.java:17)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   GraphProfileMetadataTest.externalPathsKeepStyleAndClosedState:17 external path rewrite must retain style ==> expected: <points> but was: <step>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#externalPathsKeepStyleAndClosedState",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "duplicate-profile",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SettingsShare.java",
+      "sha256": "0e9598b9a4943453d88b3f3fdecfd7c91462bd844b299c24a02694065a4528fb",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#duplicateNamesRefuseWithoutChangingProfileOrTarget",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#duplicateNamesRefuseWithoutChangingProfileOrTarget",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "duplicateNamesRefuseWithoutChangingProfileOrTarget",
+                "message": "ambiguous profile must refuse rather than discard one definition ==> expected: <false> but was: <true>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.059 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.duplicateNamesRefuseWithoutChangingProfileOrTarget -- Time elapsed: 0.048 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: ambiguous profile must refuse rather than discard one definition ==> expected: <false> but was: <true>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)\n\tat org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)\n\tat org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)\n\tat telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.duplicateNamesRefuseWithoutChangingProfileOrTarget(GraphProfileMetadataTest.java:30)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   GraphProfileMetadataTest.duplicateNamesRefuseWithoutChangingProfileOrTarget:30 ambiguous profile must refuse rather than discard one definition ==> expected: <false> but was: <true>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#duplicateNamesRefuseWithoutChangingProfileOrTarget",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "duplicate-tabs",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SavedGraphMerge.java",
+      "sha256": "7b5a3683f71ed72f34fdaa740afec84b0070c819fe6cddb8754ee63201fd73bf",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner",
+                "message": "ambiguous tabs must not silently collapse ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown."
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.070 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner -- Time elapsed: 0.049 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: ambiguous tabs must not silently collapse ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)\n\tat org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:73)\n\tat org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:39)\n\tat org.junit.jupiter.api.Assertions.assertThrows(Assertions.java:3131)\n\tat telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner(GraphProfileMetadataTest.java:36)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   GraphProfileMetadataTest.mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner:36 ambiguous tabs must not silently collapse ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=GraphProfileMetadataTest#mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "GraphProfileMetadataTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "merge-preservation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SavedGraphMerge.java",
+      "sha256": "7b5a3683f71ed72f34fdaa740afec84b0070c819fe6cddb8754ee63201fd73bf",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=SavedGraphMergeTest#aChartThatIsNoLongerATabIsKeptAndMarkedClosed",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "SavedGraphMergeTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=SavedGraphMergeTest#aChartThatIsNoLongerATabIsKeptAndMarkedClosed",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "SavedGraphMergeTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "aChartThatIsNoLongerATabIsKeptAndMarkedClosed",
+                "message": "closing a chart must not remove it \u2014 this is the data loss ==> expected: <2> but was: <1>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.027 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMergeTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMergeTest.aChartThatIsNoLongerATabIsKeptAndMarkedClosed -- Time elapsed: 0.015 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: closing a chart must not remove it \u2014 this is the data loss ==> expected: <2> but was: <1>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)\n\tat telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMergeTest.aChartThatIsNoLongerATabIsKeptAndMarkedClosed(SavedGraphMergeTest.java:31)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   SavedGraphMergeTest.aChartThatIsNoLongerATabIsKeptAndMarkedClosed:31 closing a chart must not remove it \u2014 this is the data loss ==> expected: <2> but was: <1>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=SavedGraphMergeTest#aChartThatIsNoLongerATabIsKeptAndMarkedClosed",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "SavedGraphMergeTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "reserved-names",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "023797bd91c569fedd3a273c4b3358e3c248af3556e0c6399ed1a92dd6c4ff73",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#aGeneratedNameSkipsOneAClosedChartStillHolds",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#aGeneratedNameSkipsOneAClosedChartStillHolds",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "aGeneratedNameSkipsOneAClosedChartStillHolds",
+                "message": "Graph 1 and Graph 2 are spoken for by CLOSED definitions \u2014 reusing one lets the name-keyed merge overwrite an annotated chart with an empty placeholder ==> expected: <Graph 3> but was: <Graph 1>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.600 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest.aGeneratedNameSkipsOneAClosedChartStillHolds -- Time elapsed: 0.547 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: Graph 1 and Graph 2 are spoken for by CLOSED definitions \u2014 reusing one lets the name-keyed merge overwrite an annotated chart with an empty placeholder ==> expected: <Graph 3> but was: <Graph 1>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest.lambda$aGeneratedNameSkipsOneAClosedChartStillHolds$1(ChartNamesCannotCollideTest.java:44)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   ChartNamesCannotCollideTest.lambda$aGeneratedNameSkipsOneAClosedChartStillHolds$1:44 Graph 1 and Graph 2 are spoken for by CLOSED definitions \u2014 reusing one lets the name-keyed merge overwrite an annotated chart with an empty placeholder ==> expected: <Graph 3> but was: <Graph 1>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#aGeneratedNameSkipsOneAClosedChartStillHolds",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "restore-closed",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "023797bd91c569fedd3a273c4b3358e3c248af3556e0c6399ed1a92dd6c4ff73",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#restoreReopensOpenChartsAndLeavesClosedOnesClosed",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#restoreReopensOpenChartsAndLeavesClosedOnesClosed",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "restoreReopensOpenChartsAndLeavesClosedOnesClosed",
+                "message": "a chart closed in an earlier session must NOT spring back as a tab \u2014 otherwise closing it was undone by the next reload and the close meant nothing ==> expected: <[Open one]> but was: <[Open one, Closed one]>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.625 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest.restoreReopensOpenChartsAndLeavesClosedOnesClosed -- Time elapsed: 0.614 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: a chart closed in an earlier session must NOT spring back as a tab \u2014 otherwise closing it was undone by the next reload and the close meant nothing ==> expected: <[Open one]> but was: <[Open one, Closed one]>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest.restoreReopensOpenChartsAndLeavesClosedOnesClosed(ChartNamesCannotCollideTest.java:121)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   ChartNamesCannotCollideTest.restoreReopensOpenChartsAndLeavesClosedOnesClosed:121 a chart closed in an earlier session must NOT spring back as a tab \u2014 otherwise closing it was undone by the next reload and the close meant nothing ==> expected: <[Open one]> but was: <[Open one, Closed one]>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#restoreReopensOpenChartsAndLeavesClosedOnesClosed",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "reopen-notifies",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "023797bd91c569fedd3a273c4b3358e3c248af3556e0c6399ed1a92dd6c4ff73",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#reopeningASavedChartAsksToBeSaved",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#reopeningASavedChartAsksToBeSaved",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "reopeningASavedChartAsksToBeSaved",
+                "message": "since 38ecc7f3 the open/closed flag is durable, so reopening changes persisted state and must request a save \u2014 otherwise it sticks only if some later unrelated edit writes ==> expected: <1> but was: <0>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.544 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest.reopeningASavedChartAsksToBeSaved -- Time elapsed: 0.535 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: since 38ecc7f3 the open/closed flag is durable, so reopening changes persisted state and must request a save \u2014 otherwise it sticks only if some later unrelated edit writes ==> expected: <1> but was: <0>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartNamesCannotCollideTest.reopeningASavedChartAsksToBeSaved(ChartNamesCannotCollideTest.java:183)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   ChartNamesCannotCollideTest.reopeningASavedChartAsksToBeSaved:183 since 38ecc7f3 the open/closed flag is durable, so reopening changes persisted state and must request a save \u2014 otherwise it sticks only if some later unrelated edit writes ==> expected: <1> but was: <0>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartNamesCannotCollideTest#reopeningASavedChartAsksToBeSaved",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartNamesCannotCollideTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "report-adapter",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "c25a2b2be2e274657688a825307bf59b62bb6e3f9e64ee4fe4003e9182ec6f44",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#alternatingReportRowsReachesTheRealReportsPanelByIdentity",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#alternatingReportRowsReachesTheRealReportsPanelByIdentity",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "alternatingReportRowsReachesTheRealReportsPanelByIdentity",
+                "message": "second row must select second identity ==> expected: <second-id> but was: <first-id>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.314 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.alternatingReportRowsReachesTheRealReportsPanelByIdentity -- Time elapsed: 1.305 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: second row must select second identity ==> expected: <second-id> but was: <first-id>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$alternatingReportRowsReachesTheRealReportsPanelByIdentity$13(ChartLifecycleReviewFrameTest.java:184)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$alternatingReportRowsReachesTheRealReportsPanelByIdentity$13:184 second row must select second identity ==> expected: <second-id> but was: <first-id>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#alternatingReportRowsReachesTheRealReportsPanelByIdentity",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "chart-adapter",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "c25a2b2be2e274657688a825307bf59b62bb6e3f9e64ee4fe4003e9182ec6f44",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#rowReopenPersistsOpenStateWithoutAnotherEdit",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#rowReopenPersistsOpenStateWithoutAnotherEdit",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "rowReopenPersistsOpenStateWithoutAnotherEdit",
+                "message": "row reveal must persist the open view state ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.626 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.rowReopenPersistsOpenStateWithoutAnotherEdit -- Time elapsed: 1.611 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: row reveal must persist the open view state ==> expected: <true> but was: <false>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)\n\tat org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)\n\tat org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$rowReopenPersistsOpenStateWithoutAnotherEdit$4(ChartLifecycleReviewFrameTest.java:112)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$rowReopenPersistsOpenStateWithoutAnotherEdit$4:112 row reveal must persist the open view state ==> expected: <true> but was: <false>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#rowReopenPersistsOpenStateWithoutAnotherEdit",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "style-dropdown",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphPanel.java",
+      "sha256": "dabef8735f64857bb4a80d6326b87d24da4c3c31caae8ccf3d10534ffa01097f",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=StyleDropdownRequestsASaveTest#choosingAStyleFromTheDropdownAsksToBeSaved",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "StyleDropdownRequestsASaveTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=StyleDropdownRequestsASaveTest#choosingAStyleFromTheDropdownAsksToBeSaved",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "StyleDropdownRequestsASaveTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "choosingAStyleFromTheDropdownAsksToBeSaved",
+                "message": "B-M20-3: choosing a style edits the saved chart, so it must request a save \u2014 without this the choice is lost on the next load and only the verb path persisted ==> expected: <1> but was: <0>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.482 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest.choosingAStyleFromTheDropdownAsksToBeSaved -- Time elapsed: 0.467 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: B-M20-3: choosing a style edits the saved chart, so it must request a save \u2014 without this the choice is lost on the next load and only the verb path persisted ==> expected: <1> but was: <0>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.StyleDropdownRequestsASaveTest.lambda$choosingAStyleFromTheDropdownAsksToBeSaved$1(StyleDropdownRequestsASaveTest.java:53)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   StyleDropdownRequestsASaveTest.lambda$choosingAStyleFromTheDropdownAsksToBeSaved$1:53 B-M20-3: choosing a style edits the saved chart, so it must request a save \u2014 without this the choice is lost on the next load and only the verb path persisted ==> expected: <1> but was: <0>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=StyleDropdownRequestsASaveTest#choosingAStyleFromTheDropdownAsksToBeSaved",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "StyleDropdownRequestsASaveTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    }
+  ]
+}

@@ -68,13 +68,10 @@ class SavedGraphMergeTest {
     }
 
     @Test
-    void aDuplicateNameInTheProfileIsNotMergedTwice() {
-        List<GraphSpec> merged = SavedGraphMerge.merge(
+    void aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded() {
+        assertThrows(IllegalArgumentException.class, () -> SavedGraphMerge.merge(
                 List.of(chart("Same", true, "first"), chart("Same", true, "second")),
-                List.of(chart("Same", true, "live")));
-
-        assertEquals(1, merged.size(), "one name is one chart — keeping both would double on every save");
-        assertEquals("live", merged.get(0).explanation());
+                List.of(chart("Same", true, "live"))), "a name collision must not discard a definition");
     }
 
     @Test
