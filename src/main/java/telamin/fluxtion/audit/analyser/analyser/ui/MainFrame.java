@@ -369,7 +369,7 @@ public final class MainFrame extends JFrame {
         });
         // M37: what is in force — the Project panel, stacked under Event types (owner decision 2). It is a
         // rendering of `context` (D-L1); refreshProjectPanel() is the only writer.
-        // M68.6: the adapter is ProjectRevealer, named and testable. As an anonymous class here, gutting
+        // Chart lifecycle: the adapter is ProjectRevealer, named and testable. As an anonymous class here, gutting
         // its reveal methods to { } left the whole suite green — the panel test stops at the Navigator.
         projectPanel = new ProjectPanel(new ProjectRevealer(new ProjectRevealer.Surface() {
             // MainFrame.this, not selectTab(title) — inside this Surface that name is THIS method
@@ -3995,7 +3995,7 @@ public final class MainFrame extends JFrame {
         // config.savedGraphs in between — belt to GraphTabs' braces.
         List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> savedGraphs = List.copyOf(config.savedGraphs);
         graphTabs.bind(loaded, filter);
-        graphTabs.restore(savedGraphs);          // reopen graphs saved in the profile
+        restoreGraphDefinitions(savedGraphs);    // reopen unambiguous definitions, or state why withheld
         tablePanel.setRowFilter(new RowFilter<LogTableModel, Integer>() {
             @Override
             public boolean include(Entry<? extends LogTableModel, ? extends Integer> entry) {
@@ -4694,7 +4694,12 @@ public final class MainFrame extends JFrame {
         var selected = ImportSettingsDialog.show(this, plan, file.getName());
         if (selected == null || selected.isEmpty()) return;   // cancelled or nothing chosen
 
-        share.apply(plan, selected, config);
+        try {
+            share.apply(plan, selected, config);
+        } catch (IllegalArgumentException ambiguous) {
+            JOptionPane.showMessageDialog(this, ambiguous.getMessage(), "Import settings", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         applyImportedConfig();
         status.setText("Imported settings from " + file.getName());
     }
@@ -4709,7 +4714,7 @@ public final class MainFrame extends JFrame {
      * so charts do not shuffle on every save, with newly created ones appended.
      */
     private void syncOpenGraphsIntoConfig() {
-        if (store == null) return;   // no log → tabs are empty; config already holds the profile's graphs
+        if (store == null || graphTabs.definitionRefusal() != null) return; // withheld definitions are not empty user edits
         // f6e8d7e0: the rule itself lives in SavedGraphMerge, where a test can reach it. Written inline here
         // it was unreachable — MainFrame is not headless-constructible — and reverting it to its old
         // destructive form left the entire suite green.
@@ -4722,7 +4727,7 @@ public final class MainFrame extends JFrame {
     /** Refresh every affected surface after an import merged into {@code config}. */
     private void applyImportedConfig() {
         // Incoming definitions must reach the views before a save can snapshot the old tabs over them.
-        if (store != null) graphTabs.restore(List.copyOf(config.savedGraphs));
+        if (store != null) restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         onConfigChanged();
     }
@@ -5265,13 +5270,28 @@ public final class MainFrame extends JFrame {
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
-        graphTabs.restore(List.copyOf(config.savedGraphs));
+        restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         onConfigChanged();          // source service, processors, menus, and the global save
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
         updateLifecycleMenu();
         refreshProjectPanel();                                        // M37: the project, and everything it owns
+    }
+
+    /** Legacy global settings can contain duplicates that project/import validation now refuses. */
+    private void restoreGraphDefinitions(List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> saved) {
+        try {
+            telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
+        } catch (IllegalArgumentException ambiguous) {
+            String source = project.hasProject() ? project.activeFile().toString() : configStore.path().toString();
+            graphTabs.refuseDefinitions("Charts not loaded: " + ambiguous.getMessage()
+                    + ". All definitions are retained. Edit the chart names in " + source
+                    + " to make them unique, then " + (project.hasProject() ? "reopen the project." : "restart the analyser.")
+                    + " Log inspection remains available.");
+            return;
+        }
+        graphTabs.restore(saved);
     }
 
     /** M38.4: File ▸ Run analysis — one item per saved analysis; the rationale is the tooltip. */

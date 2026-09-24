@@ -306,6 +306,8 @@ public final class ActionExecutor implements RenderExecutor {
     // ---- graph -----------------------------------------------------------------------------------
 
     private ActionResult doGraph(LogStore s, Map<String, Object> p) {
+        String refusal = onEdt(graphTabs::definitionRefusal);
+        if (refusal != null) return ActionResult.error(refusal);
         // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
@@ -464,6 +466,8 @@ public final class ActionExecutor implements RenderExecutor {
         final var extEcho = externalEcho;
         return onEdt(() -> {
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
+            if (panel == null && graphTabs.definitionRefusal() != null)
+                return ActionResult.error(graphTabs.definitionRefusal());
             if (panel == null) return ActionResult.error(graphTabs.hasDefinition(name)
                     ? "a chart named '" + name + "' already exists; omit newTab to edit or reopen it"
                     : "could not open a graph (no log loaded)");

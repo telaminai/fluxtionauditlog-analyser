@@ -144,3 +144,21 @@ Verdict: `00b39ce8` needs the branch fixes; reviewed does not mean those fixes a
 
 It does not review or merge `fix/chart-delete-cancel-and-revealer`. The prior report's historical
 findings and author-added status header are preserved; the new report supplies the checked dispositions.
+
+## PR #10 combined-head review and corrections
+
+The [review at aa49a8f6](review_pr10_aa49a8f6_2026_09_24.md) tested the combined tree and
+found three required corrections: duplicate global charts interrupted log loading, two
+mutation anchors were stale after adapter extraction, and the additional three-case frame
+suite was absent from the display gate and did not assert its claimed behavior.
+The owner asked that session to implement the corrections and leave re-review to someone
+else. This is **implemented, pending re-review**, not a second independent approval.
+
+The fix preserves every ambiguous global definition, withholds the whole chart set with
+a visible explanation and an action refusal, and permits log inspection and valid project
+use. No automatic rename, winner selection or last-tab/placeholder policy is introduced.
+The frame tests now use the loaded-frame fixture and actual modal Cancel; CI registration
+is checked against discovered frame suites. The mutation tool validates all selected
+anchors before a shared green baseline and requires a named failure and restored green
+for each control. Final commands, counts and the remaining owner decision belong in the
+linked report; old evidence and the historical rejection are preserved.

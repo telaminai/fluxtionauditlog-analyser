@@ -37,6 +37,29 @@ public final class GraphTabs extends JPanel {
     private Runnable changeListener = () -> { };
     private boolean restoring;
     private java.util.function.Supplier<List<GraphSpec>> savedDefinitions = List::of;
+    private String definitionRefusal;
+    private final javax.swing.JTextArea definitionNotice = new javax.swing.JTextArea();
+    private final javax.swing.JScrollPane definitionNoticeScroll = new javax.swing.JScrollPane(definitionNotice);
+    private final List<JButton> editingButtons = new ArrayList<>();
+
+    /** No definition is selected or repaired when its name is ambiguous. */
+    public void refuseDefinitions(String reason) {
+        definitionRefusal = java.util.Objects.requireNonNull(reason);
+        clearGraphs();
+        showDefinitionNotice();
+    }
+
+    public String definitionRefusal() {
+        return definitionRefusal;
+    }
+
+    private void showDefinitionNotice() {
+        definitionNotice.setText(definitionRefusal == null ? "" : definitionRefusal);
+        definitionNoticeScroll.setVisible(definitionRefusal != null);
+        editingButtons.forEach(button -> button.setEnabled(definitionRefusal == null));
+        revalidate();
+        repaint();
+    }
 
     public void setSavedDefinitions(java.util.function.Supplier<List<GraphSpec>> definitions) {
         savedDefinitions = definitions == null ? List::of : definitions;
@@ -62,6 +85,7 @@ public final class GraphTabs extends JPanel {
         JButton rename = new JButton("Rename…");
         JButton close = new JButton("Close graph");
         JButton delete = new JButton("Delete chart");
+        editingButtons.addAll(List.of(add, rename, close, delete));
         add.addActionListener(e -> addGraph());
         rename.addActionListener(e -> promptRename(tabs.getSelectedIndex()));
         close.addActionListener(e -> closeCurrent());
@@ -75,6 +99,12 @@ public final class GraphTabs extends JPanel {
         bar.add(delete);
         add(bar, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
+        definitionNotice.setEditable(false);
+        definitionNotice.setLineWrap(true);
+        definitionNotice.setWrapStyleWord(true);
+        definitionNotice.setRows(4);
+        definitionNoticeScroll.setVisible(false);
+        add(definitionNoticeScroll, BorderLayout.SOUTH);
         setBorder(UiTheme.section("Graphs"));
 
         // double-click a tab to rename it
@@ -157,8 +187,12 @@ public final class GraphTabs extends JPanel {
 
     private static final String PIN = "📌";
 
-    /** Add a graph with the given name (blank/null → default "Graph N"); selects it. */
+    /**
+     * Add and select a graph (blank/null name → default "Graph N"). Returns null when unbound,
+     * when definitions are refused, or when an explicit name is already taken.
+     */
     public GraphPanel addGraph(String name) {
+        if (definitionRefusal != null) return null;
         if (name != null && !name.isBlank()
                 && (graphNamed(name.trim()) != null || (!restoring && hasDefinition(name)))) return null;
         GraphPanel panel = newPanel();
@@ -340,8 +374,11 @@ public final class GraphTabs extends JPanel {
 
     /** Rebuild graphs (names + series + formulas + pin) from saved specs (used when a profile is restored). */
     public void restore(List<GraphSpec> saved) {
-        if (saved == null || saved.isEmpty() || store == null) return;
         telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
+        boolean resuming = definitionRefusal != null;
+        definitionRefusal = null;
+        showDefinitionNotice();
+        if (saved == null || store == null || (saved.isEmpty() && !resuming)) return;
         boolean was = restoring;   // rebuilding from persisted state is not a user edit — don't echo it back
         restoring = true;
         try {
@@ -357,7 +394,7 @@ public final class GraphTabs extends JPanel {
      * edits made since the profile was written. Returns false when there is nothing to open.
      */
     public boolean openSaved(GraphSpec spec) {
-        if (spec == null || store == null) return false;
+        if (spec == null || store == null || definitionRefusal != null) return false;
         GraphPanel existing = graphNamed(spec.name());
         if (existing != null) {
             tabs.setSelectedComponent(existing);

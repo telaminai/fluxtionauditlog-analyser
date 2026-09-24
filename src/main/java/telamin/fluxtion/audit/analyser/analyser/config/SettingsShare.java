@@ -469,6 +469,12 @@ public final class SettingsShare {
      * graphs replace by name; scalars overwrite. Nothing else in {@code target} is touched.
      */
     public void apply(ImportPlan plan, Set<Category> selected, AppConfig target) {
+        if (selected.contains(Category.GRAPHS) && plan.graphs() != null) {
+            // A legacy target can be ambiguous even when the incoming file passed preview.
+            // Refuse before ANY category changes rather than replacing the first matching name.
+            SavedGraphMerge.requireUniqueNames(target.savedGraphs);
+            SavedGraphMerge.requireUniqueNames(plan.graphs());
+        }
         if (selected.contains(Category.SOURCE_ROOTS) && plan.sourceRoots() != null) {
             addAllMissing(target.sourceRoots, plan.sourceRoots());
             if (plan.workspaceRoot() != null) target.workspaceRoot = plan.workspaceRoot();   // M38.6

@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Legacy global settings with duplicate chart names no longer interrupt log loading. The Graph panel
+  explains why the whole chart set is withheld, chart actions refuse with that explanation, and all
+  definitions are retained for manual correction. A valid project still opens normally; no chart is
+  silently renamed or chosen over another.
+
 - Chart imports now apply incoming definitions before autosave snapshots the old tabs. Named actions
   reopen saved charts with their metadata; explicit new-tab names cannot overwrite another chart.
   Duplicate chart names in a project/import are refused before applying it instead of choosing one.

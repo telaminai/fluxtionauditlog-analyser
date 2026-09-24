@@ -12,6 +12,17 @@ In `~/.fluxtion-analyser/config` — cleartext properties (this is a local, sing
 your source roots, event processors, saved graphs, hidden columns and your LLM API key. The distinct
 Fluxtion processor-build key uses the builder's established `~/.fluxtion/fluxtion.apiKeyFile` instead.
 
+## Why does the Graph panel say “Charts not loaded”?
+
+Older versions could save two charts with the same name. The analyser cannot tell which definition a
+name refers to, so it withholds that chart set and explains the conflict on the Graph panel. Log
+inspection still works. Both definitions remain saved; the analyser does not rename or discard either.
+
+The message identifies the settings file. Give each chart a unique `graph.N.name` there, keeping its
+other settings, then restart for global settings or reopen the project. You can also open a different,
+valid project while leaving the original definitions intact. An ambiguous project or imported chart set
+is refused before it replaces the current project.
+
 ## Is my API key safe? Does it leave my machine?
 
 There are two unrelated keys. The **LLM key** is stored locally and used only to call the provider you

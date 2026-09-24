@@ -35,4 +35,18 @@ class GraphProfileMetadataTest {
   GraphSpec a=new GraphSpec("Same",List.of(),List.of(),null,null,null,"first",List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),"line",true);
   assertThrows(IllegalArgumentException.class,()->SavedGraphMerge.merge(List.of(),List.of(a,a)),"ambiguous tabs must not silently collapse");
  }
+ @Test void mergingIntoDuplicateTargetRefusesBeforeAnyCategoryChanges() throws Exception {
+  var share=new SettingsShare();
+  AppConfig target=new AppConfig();
+  GraphSpec a=new GraphSpec("Same",List.of(),List.of(),null,null,null,"first",List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),"line",true);
+  target.savedGraphs.addAll(List.of(a,a.withOpen(false)));
+  var before=List.copyOf(target.savedGraphs);
+  String text="share.version=1\nsourceRoot.count=1\nsourceRoot.0=new-source\ngraph.count=1\ngraph.0.name=Same\n";
+  var plan=share.preview(text,target,dir);
+  assertThrows(IllegalArgumentException.class,()->share.apply(plan,
+    java.util.EnumSet.of(SettingsShare.Category.SOURCE_ROOTS,SettingsShare.Category.GRAPHS),target),
+    "an ambiguous existing name must not choose the first definition");
+  assertEquals(before,target.savedGraphs);
+  assertTrue(target.sourceRoots.isEmpty(),"no other category changes before a chart refusal");
+ }
 }
