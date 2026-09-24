@@ -307,6 +307,20 @@ def main():
             check("the page carries the membership warning", "not declared anywhere in the graph" in text,
                   "the warning reached the agent reply but not the page")
             check("the page carries the honest figures", "declared 3" in text and "covered 3" in text, text[:200])
+
+            print("11. M68.4 — a combined open keeps the graph it asked for, on the FINAL state")
+            # Scenario 4's note says why the half-foreign log was avoided there: opened together with this graph, the
+            # request replied ok and the graph was then gone. The log is large so that it is still LOADING when the
+            # graph opens — the order the combined open produces. A one-record log can land first, and then the graph
+            # arrives as ordinary intent and is kept on any build, which made the first version of this check pass on
+            # the unfixed jar. open_in_order waits past review O6's delay: this is the state after the arrival rule.
+            # Last, because it leaves a half-foreign log open, which the PDF check above must not see.
+            log = os.path.join(work, "m68-4-half-foreign.yaml")
+            constructed_log(log, [["checked", "child", "foreignA", "foreignB"]] * 40000)
+            ctx = open_in_order(a, log, "combined")
+            gp = ctx.get("graphPairing") or {}
+            check("M68.4: the graph the request opened is still loaded", gp.get("graph") is not None, gp)
+            check("M68.4: and the mismatch is stated, not hidden", gp.get("applies") is False, gp)
     finally:
         shutil.rmtree(work, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)

@@ -22,6 +22,12 @@ public class OpenGraph implements EventLogSource {
     private boolean open;
     /** M44.4b: incremented whenever a DIFFERENT graph opens, so a snapshot can say which graph a verdict is about. */
     private long revision;
+    /**
+     * M68.4: every open, the same graph again included. Revision answers "is this a different graph?", which is what a
+     * qualification binds to; this answers "did somebody open a graph?", which is what intent is — a request that
+     * re-opens the graph already on screen still asked for it.
+     */
+    private long openings;
     private String graphPath;
     private String source;
 
@@ -60,6 +66,7 @@ public class OpenGraph implements EventLogSource {
                 || !java.util.Objects.equals(source, event.source())
                 || !declaredNodeIds.equals(event.declaredNodeIds()) || !nodeTypes.equals(event.nodeTypes());
         if (moved) revision++;
+        openings++;
         // A reader-supplied graph has no file, and is still a graph: GraphObserved carried a null path for it, so
         // the processor believed no graph was open while one was on screen. Openness is its own fact now.
         open = true;
@@ -85,6 +92,10 @@ public class OpenGraph implements EventLogSource {
         nodeTypes = java.util.List.of();
         auditLog.info("openGraph", "none").info("via", "GraphCleared");
         return true;
+    }
+
+    public long openings() {
+        return openings;
     }
 
     public long revision() {

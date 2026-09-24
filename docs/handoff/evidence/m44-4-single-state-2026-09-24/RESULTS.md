@@ -80,3 +80,20 @@ write it under `target/`, or not at all.
 
 **The limit stated in the predictions, confirmed.** The two parity frame tests' frame-vs-session comparison is now
 equal by construction. They still check session against discovery, and the panel line.
+
+## Set 4 — M44.4 journeys, and M68.4's combined open
+
+The journeys (5 / 0 / 0 / 0, W16–W19 each red) were run before predictions, as `PREDICTIONS.md` set 4 records, and
+are not scored.
+
+| # | Prediction | Result |
+|---|---|---|
+| P18 | seen red: the main case fails at its first assertion; both controls pass | **Held.** `expected: <0> but was: <1>` CloseGraphEffect, at `aGraphOpenedForTheLoggingLogIsKept`; 1 of 3 failed. |
+| P19 | a one-decision fix in `LogArrival`, using the graph revision | **Held in outcome, wrong in mechanism.** The revision-based version passed all three cases. Before the end-to-end run, reasoning about the verifier's scenario order exposed a hole: re-opening the graph ALREADY on screen does not move the revision, because revision counts DIFFERENT graphs for the qualifications, so that open read as residue. Intent is "somebody opened a graph", so `OpenGraph` gained an `openings` count, and `LogArrival` compares that. A fourth case, `reOpeningTheSameGraphIsIntent`, was added. That reasoning turned out not to be what the verifier exercises, since `open_in_order` closes everything first. The case is real regardless. |
+| P20 | W20 and W21 each red at their control | **Held**, re-run against the final condition, plus W22 (openings counting only moved graphs, turning `reOpeningTheSameGraphIsIntent` red). |
+| P21 | nothing else changes; I knew of no frame test opening a mismatching graph mid-load | **Wrong.** `AsyncOpenInterleavingFrameTest.b1_aHumanRecentGraphmlDuringAPendingSocketLoad…` does exactly that, and relied on the arrival closing the graph. Headless held at 1,963 / 0 / 0 / 65 (predicted 1,962; the fourth case was added after the prediction). **Decision taken, for review:** the test's premise changed, and its point did not. The graph is now kept; the arrival still warns, and that warning is still not a dialog for a socket arrival. Frame suite afterwards: 66 / 0 / 0 / 1. |
+| P22 | the new verifier check fails on `8893cb08` and passes on the fix | **Held after one correction.** The first version PASSED on the old jar. A one-record log can finish loading before the graph opens, and then the graph arrives as ordinary intent and is kept on any build. It also broke an unrelated check (the PDF figures), because I inserted it before the PDF scenario and changed the log that scenario exports. **Fix:** a 40,000-record log, so it is still loading when the graph opens, placed last. Then the old jar gave 65 pass, 2 fail (`'graph': None` after the combined open settled), and the fixed jar 67 / 0. `verify-session-transitions.py`: ALL PASS on the fixed jar. |
+
+**What the P22 miss teaches.** The first end-to-end check passed on the defect because it never produced the
+interleaving the defect needs. It passed for the wrong reason. Running it against the old jar is what caught that,
+which is why seen-red runs against a pre-fix build are part of the protocol.

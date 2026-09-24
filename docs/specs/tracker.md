@@ -591,7 +591,16 @@ verdict, which is owned jointly.
   pending frame under follow without accepting the pending record. Format 1 §1 and §1a already settle the legal
   single-record file, the ordinary unterminated tail and the pending record. Needs the original logs. Producer half
   filed against **the starter** (the writer actually at fault) as well as the audit format work.
-- [M68.4] ☐ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
+- [M68.4] ◧ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
+  **The combined open, fixed 2026-09-24 on `feat/m44-single-state-session`** (built on M44.4's session model; not
+  reviewed). `LogArrival` treats as residue only a graph that was open when the log was REQUESTED. An `OPENED` graph
+  opened since, even the same graph again, is intent for that log, so it is kept and the mismatch announced (M35.3;
+  M44.3b's "the last deliberate request wins"). Reader-supplied graphs are judged as before. `CombinedOpenTest`
+  covers four cases and three witnesses. The verifier's new scenario 11 FAILS on a `8893cb08` jar (graph gone
+  after the combined open settles) and passes on the fix. **Changed a reviewed test's premise:**
+  `AsyncOpenInterleavingFrameTest.b1_…` relied on the arrival closing a graph a person re-opened mid-load. Its point,
+  that a socket arrival's warning is not a dialog, is kept and still asserted. **Open for M68.4:** the rolled-set
+  case of acceptance 4, the `record` parameter (acceptance 5) and the D-E3 action-surface audit.
   **Reproduced input from M68.1 (2026-09-24):** `open {log, graphml}` with a graph declaring only half the logged
   ids replies `ok`, and the graph is then no longer loaded; opened separately, the graph is kept and announced.
   **The drop lands after the reply** (M68.1 review O6): `coverage` answered with the graph still present

@@ -341,7 +341,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "8d5333fff1ff72477f6089a8ed472ce983bf5f8933a4687f36b4d562e46d98f3",
+              "c3c17af1c4668481c85feb8d8f36c1beb2734ef98adeeacd1611f8fa386478b0",
               null));
 
   @Override
@@ -987,7 +987,24 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onOpenLogRequested(typedEvent);
     auditInvocation(logOpening, "logOpening", "onOpenLogRequested", typedEvent);
     logOpening.onOpenLogRequested(typedEvent);
-    commonDispatchTail_1(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    auditInvocation(logArrival, "logArrival", "onOpenLogRequested", typedEvent);
+    logArrival.onOpenLogRequested(typedEvent);
+    if (guardCheck_pairingQualifier()) {
+      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
+      pairingQualifier.onPairChanged();
+    }
     afterEvent();
   }
 
@@ -1321,6 +1338,8 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onOpenLogRequested(typedEvent);
       auditInvocation(logOpening, "logOpening", "onOpenLogRequested", typedEvent);
       logOpening.onOpenLogRequested(typedEvent);
+      auditInvocation(logArrival, "logArrival", "onOpenLogRequested", typedEvent);
+      logArrival.onOpenLogRequested(typedEvent);
     } else if (event instanceof OpenProjectRequested) {
       OpenProjectRequested typedEvent = (OpenProjectRequested) event;
       auditEvent(typedEvent);

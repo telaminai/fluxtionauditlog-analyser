@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Opening a log and a graph together no longer loses the graph.** `open {log, graphml}` replied `ok`, then closed the
+  graph a moment later if it did not fit the log. The analyser treated a graph opened while the log was still loading
+  as left over from the previous investigation. A graph somebody opens after asking for a log is now kept for that
+  log, and the mismatch is announced instead. A graph that was already open before the request, or one a log's
+  reader supplied, is still closed when it does not fit (M68.4).
 - **A coverage run can no longer qualify the wrong graph's verdict.** Coverage scans the whole log in the background,
   then records what it found against the graph's pairing verdict. If another log or graph opened while the scan ran,
   the result was recorded against the new pair, although it described the old one. The comparison now carries the
