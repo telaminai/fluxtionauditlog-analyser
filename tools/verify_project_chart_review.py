@@ -252,8 +252,14 @@ CASES.extend([
 MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
 CASES += [
-    ('menu-hint-renamed', MENU_HINTS, '            "reset", "Close log and topology");', '            "reset-not", "x");',
+    ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
+    # PR #19 review R1: dropping every parenthetical (the first version) turns close-both into close-log
+    ('menu-hint-keeps-qualifiers', MENU_HINTS, r'Pattern.compile("\\s*\\(\\w\\)$")', r'Pattern.compile("\\s*\\([^)]*\\)$")',
+     'MenuHintsTest#anUnknownQualifierGetsNoIdentityClaim'),
+    # PR #19 review O1: without the same-menu step, a spelling miss is sent to another menu's copy
+    ('menu-hint-same-menu-first', MENU_HINTS, '            if (!menu.getKey().equalsIgnoreCase(asked)) continue;',
+     '            if (true) continue;', 'MenuHintsTest#aSpellingMissInsideTheAskedMenuStaysInThatMenu'),
     ('menu-hint-wired', MAIN_FRAME, '+ menuItemTexts(m) + " (a submenu\'s items cannot be lit)" + whereIsNote(t)',
      '+ menuItemTexts(m) + " (a submenu\'s items cannot be lit)"',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),

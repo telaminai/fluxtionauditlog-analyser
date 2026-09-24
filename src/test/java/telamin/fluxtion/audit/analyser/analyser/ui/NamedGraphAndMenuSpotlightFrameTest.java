@@ -83,6 +83,9 @@ class NamedGraphAndMenuSpotlightFrameTest {
                 assertTrue(moved.toString().contains("light menu:Sources:Source roots\u2026"), moved.toString());
                 var nothing = attempt(f, "spotlight", Map.of("target", "menu:Project:Frobnicate"));
                 assertFalse(nothing.toString().contains(" — light "), "no hint is invented: " + nothing);
+                // PR #19 review, R1: a qualifier can be the action; close-both must never be pointed at close-log
+                var closeBoth = attempt(f, "spotlight", Map.of("target", "menu:File:Close log (and topology)"));
+                assertFalse(closeBoth.toString().contains(" — light "), "no identity claim for an unknown qualifier: " + closeBoth);
 
                 Map<String, List<String>> menus = (Map<String, List<String>>) find(render(f.ex, "context", Map.of()), "menus");
                 assertNotNull(menus, "context lists the menus");
