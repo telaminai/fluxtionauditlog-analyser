@@ -74,28 +74,6 @@ class PersonAtTheScreenFrameTest {
             // foreground app is the terminal does not — there it is skipped, and CI's skip guard would say so).
             final boolean[] focused = {false};
             onEdt(() -> focused[0] = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusedWindow() == f.frame);
-            System.out.println("focus attempt 1: " + (focused[0] ? "acquired" : "retry needed"));
-            if (!focused[0]) {
-                var acquired = new java.util.concurrent.CountDownLatch(1);
-                var manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-                java.beans.PropertyChangeListener listener = event -> {
-                    if (event.getNewValue() == f.frame) acquired.countDown();
-                };
-                try {
-                    onEdt(() -> {
-                        manager.addPropertyChangeListener("focusedWindow", listener);
-                        f.frame.toFront();
-                        f.frame.requestFocus();
-                        combo.requestFocusInWindow();
-                        if (manager.getFocusedWindow() == f.frame) acquired.countDown();
-                    });
-                    acquired.await(2, java.util.concurrent.TimeUnit.SECONDS); // condition, not a settling sleep
-                    onEdt(() -> focused[0] = manager.getFocusedWindow() == f.frame);
-                } finally {
-                    onEdt(() -> manager.removePropertyChangeListener("focusedWindow", listener));
-                }
-                System.out.println("focus attempt 2: " + (focused[0] ? "acquired" : "skip: still unavailable"));
-            }
             assumeTrue(focused[0], "the display did not give the frame keyboard focus — a posted Escape would be dropped, not tested");
             onEdt(() -> assertTrue(combo.isPopupVisible(), "control: the combo's popup is open"));
 

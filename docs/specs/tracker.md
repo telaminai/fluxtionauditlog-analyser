@@ -20,9 +20,10 @@ Legend for each item: **[id] status — title** · _acceptance_.
   requested no mutation rerun on the combined tree. R1–R3 corrected; O1–O5 taken; D1–D3 remain owner decisions.
   Original 26 demo captures refreshed, then five affected assets recaptured and inspected for the
   review response. Specialized older captures labelled. PR #15 merged after re-review; follow-up guards on
-  `fix/menu-guard-followups` await review: package 1985/0/0/97, display 98/0/0/0,
+  `fix/menu-guard-followups` independently reviewed at `cd2814d0`: package 1985/0/0/97, display 98/0/0/0,
   five targeted controls red/restored green. Repeated focus measurement had two skips after
-  the retry change; no stability improvement or fix for the unreproduced spotlight flake is claimed.
+  the trial retry; that retry was removed for review F1 before merge. No stability improvement
+  or fix for the unreproduced spotlight flake is claimed.
   [Implementation and verification](../handoff/report_project_sources_audit_menus_2026_09_24.md).
   [Optional guard follow-ups](../handoff/report_menu_guard_followups_2026_09_24.md).
 

@@ -1,6 +1,6 @@
 # PR 15 menu guard follow-ups
 
-Status: implemented; ready for review on `fix/menu-guard-followups`, based on main `fda14f70`.
+Status: independently reviewed; F1 corrected before merge on `fix/menu-guard-followups`, based on main `fda14f70`.
 Read the complete re-review at `88afe42b` before changes. PR #15 was merged locally as `fda14f70`,
 with the personal author and committer address, after confirming all head checks were green.
 GitHub reports it MERGED. The shared repository email is restored to the personal address as the
@@ -19,10 +19,9 @@ Predictions: `f98eb66a`, committed before trials. No new test methods were added
   Computed strings and paths assembled across method calls are not evaluated.
 - **O-b implemented:** two named controls remove the Close log and Close graph interactive assignments.
 - **O-c implemented:** README names both Export settings and Import settings, and the changelog records it.
-- **O-d focus retry implemented:** after the original focus check fails, request focus once more and
-  wait for the `focusedWindow` property condition, with a bounded two-second deadline. Log which
-  attempt acquired focus, or that the display still refused it. The test still skips if neither
-  attempt establishes real focus; the full display gate still rejects any skip.
+- **O-d focus retry withdrawn after review:** the retry could dismiss the already-open popup if
+  activation succeeded. Restore the original focus assumption; the full display gate still rejects
+  any skip. The unsuccessful retry measurements below remain historical evidence.
 - **O-d second-menu flake not claimed fixed:** inspection shows the deferred old-menu callback removes
   only targets whose menu name matches its own, and refuses to remove while that popup is showing.
   Ten before runs did not reproduce the failure. That does not identify its cause or establish that
@@ -45,7 +44,7 @@ The ten after runs produced PersonAtTheScreen **30 / 0 / 0 / 2** (28 executed), 
 **60 / 0 / 0 / 0**. Runs 8 and 9 skipped the focus-dependent case: their first request and single retry both
 failed to establish focus. All other first requests succeeded; no retry succeeded in this sample.
 [After results](evidence/menu-guard-followups-2026-09-24/display-after.json). **The all-green after
-prediction was wrong.** The retry exists and records what happened, but these data do not establish
+prediction was wrong.** The trial retry recorded what happened, but these data do not establish
 improved stability. A refused native focus request remains an environmental limitation, and is not
 counted as a pass. The full display gate must still run with zero skips.
 
@@ -91,3 +90,20 @@ Everything labelled RUN above was executed here; the popup-listener diagnosis is
 only. No client session, key, runtime or deployment experiment was used. Linux/Xvfb and the native
 focus retry succeeding on its second attempt were not verified. O-d's unexplained spotlight flake
 remains a follow-up; the existing test was left byte-identical. No owner policy was changed.
+
+## PR #17 review response
+
+Read the full independent review at `cd2814d0`,
+`docs/handoff/review_pr17_menu_guard_followups_2026_09_24_claude.md`. F1 is resolved by removing
+the retry and its attempt logging: `PersonAtTheScreenFrameTest` is byte-identical to main
+`fda14f70`. The existing popup assertion and focus assumption remain. This removes the unverified
+success path instead of claiming to repair focus acquisition. No product code changed.
+
+The earlier evidence and counts above describe `952ad0a7`; they have not been rewritten.
+No mutation gate is repeated for this removal. The optional scanner refinements remain follow-ups.
+
+Post-removal checks (RUN): `JAVA_HOME=<Corretto 21> mvn -q test` passed
+**1985 / 0 / 0 / 97**, 265 source-mapped reports, no orphans. The first sandboxed attempt
+failed because loopback sockets were denied; the unrestricted rerun passed. Strict MkDocs and
+`git diff --check` passed. No local display run was started alongside the separate PR #18
+comparison; the new PR-head CI display gate must pass before merging.
