@@ -89,6 +89,58 @@ Source inspection distinguishes the following cases; they are not three proven i
 
 These observations do not expand this path-resolution fix into Project-panel navigation work.
 
+### Why none of these is a patch: D-L3 is test-enforced — 2026-09-24
+
+An attempt to scope a follow-up fix (give `Row` an item key and add `Navigator.showReport(String)` /
+`showGraph(String)` so a row opens *its own* item) was abandoned on reading the existing tests. The
+boundary is not a convention, it is asserted:
+
+```java
+// ProjectPanelIsRevealOnlyTest
+assertEquals(Set.of("showTab", "openSettings"),
+        Set.of(…ProjectPanel.Navigator.class.getDeclaredMethods()…),
+        "the Navigator moves the eye, not the state; adding a method here is a spec change (D-L3)");
+```
+
+plus a constant-pool check that `ProjectPanel` and `ProjectModel` never name `MainFrame`,
+`ActionExecutor` or `AppControl` — *"it renders, it does not act"*. `docs/ONBOARDING.md` states the
+same rule: *"Every Project-panel button navigates or copies. Nothing on it mutates state."*
+
+So the three observations above are **bounded by design, not broken by accident**:
+
+- Adding **any** item-identity navigation method to `Navigator` fails that assertion by construction —
+  it is a spec change, and the test says so in its failure message.
+- **Saved charts** are the clearest case: instantiating a saved chart changes what the app is showing,
+  which is mutation, not reveal. `Target.NONE` on those rows is consistent with D-L3.
+
+**The decision this needs from the owner** (one question, not an implementation):
+
+> Is revealing a *specific* already-loaded report or chart still "moving the eye" (in scope for D-L3,
+> so `Navigator` may name the item), or is selecting an item a state change (out of scope, so the
+> Project panel should keep revealing the tab only)?
+
+If the answer is "still navigation", the spec, `ProjectPanelIsRevealOnlyTest` and the implementation
+change together as one deliberate change. If it is "state change", the correct outcome is to leave the
+behaviour as-is and, at most, reword the button so it does not promise more than it does.
+
+### UI-test gap to complete
+
+None of the three observations can currently be proven or refuted by an automated test in this repo:
+
+- `tools/verify-m46-agent-api.py` and `tools/verify-m64-spotlight.py` drive the **built jar over the
+  action socket** with an isolated home and hard per-call timeouts — an excellent harness, but it
+  exercises **verbs**, not Swing button presses. The Project panel's "Open" is a button.
+- `ProjectPanelIsRevealOnlyTest` covers the panel **structurally** (bytecode, Navigator shape), not
+  behaviourally — by design, per its own comment: *"a test that merely clicked buttons would pass
+  while a reference sat on a branch it did not take."*
+
+So there is no harness that clicks a Project-panel row action and asserts which navigation resulted.
+Completing one — a headless Swing test that builds the panel from a fixture `ProjectModel`, finds a
+row's action button and asserts the call made on a fake `Navigator` — would let claims like "Open on
+report B reveals report B" be settled by a test rather than by eye. That harness is the prerequisite
+for the decision above; it is **not written**, and the author of this note could not run the GUI to
+verify any of the three observations by hand.
+
 ## Review verification — 2026-09-24
 
 At `c3523506`, the reviewer ran:
