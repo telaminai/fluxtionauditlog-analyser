@@ -143,6 +143,26 @@ class DeleteConfirmationAndRevealerTest {
                 "tab:Graph", "openSaved:Prices"), surface.calls);
     }
 
+    /**
+     * With no log loaded, {@code GraphTabs.openSaved} returns false (there is no store to bind a panel to),
+     * and the row that was clicked said "waiting for input". The tab is revealed and nothing else happens.
+     *
+     * <p>Pinned deliberately rather than changed here. It is the current behaviour and it is defensible —
+     * there is genuinely nothing to plot — but it is also a quiet dead end of the same kind as the Open
+     * that started this work, so it is written down rather than left to be rediscovered. Whether the app
+     * should say "open a log first" is an owner decision, not a fix to slip into a review branch.
+     */
+    @Test
+    void openingASavedChartWithNoLogRevealsTheTabAndCannotOpenIt() {
+        RecordingSurface surface = new RecordingSurface();
+        surface.openSavedSucceeds = false;   // what GraphTabs does when store == null
+        new ProjectRevealer(surface, () -> List.of(spec("Prices"))).showGraph("Prices");
+
+        assertEquals(List.of("tab:Graph", "openSaved:Prices"), surface.calls,
+                "it asks, the frame cannot comply, and nothing further is attempted — no crash, and no "
+                        + "second attempt that would look like it worked");
+    }
+
     @Test
     void aNullSavedListIsNotACrash() {
         RecordingSurface surface = new RecordingSurface();
