@@ -321,6 +321,10 @@ class ControlAddressAndScopeTest {
                                 if (ABSENT.equals(rg) && (note.startsWith("this log sets") || note.contains("either way it sets"))) {
                                     offenders.add("R5-2 " + at + ": " + note);
                                 }
+                                // O5-1: a window whose closing change's applying is open holds AT LEAST until it, and only then
+                                if (note.contains("is not established either") != note.contains("It holds at least until")) {
+                                    offenders.add("O5-1 " + at + ": " + note);
+                                }
                                 if (note.contains("It holds ") && bareIt.matcher(note).find()) {
                                     offenders.add("unnamed condition " + at + ": " + note);
                                 }
