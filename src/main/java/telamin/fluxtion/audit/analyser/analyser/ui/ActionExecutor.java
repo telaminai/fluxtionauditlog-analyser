@@ -353,6 +353,9 @@ public final class ActionExecutor implements RenderExecutor {
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");
+            // M68.6 (D-E5, Q2 = refuse): a name no spotlight address can carry is refused where it is given
+            String problem = SpotlightTarget.chartNameProblem(to);
+            if (problem != null) return ActionResult.error("rename refused, nothing changed: " + problem);
             return onEdt(() -> graphTabs.renameNamed(from, to)
                     ? ActionResult.ok("graph", "applied", Map.of("renamed", from + " → " + to))
                     : ActionResult.error("no graph named '" + from + "'"));
@@ -499,6 +502,12 @@ public final class ActionExecutor implements RenderExecutor {
         final var extNotes = externalNotes;
         final var extEcho = externalEcho;
         return onEdt(() -> {
+            // M68.6 (D-E5, Q2 = refuse): refused BEFORE anything is created or changed. An EXISTING chart is reached by
+            // its name as saved — that is the compatibility promise — so only a name this call would create is judged.
+            if (name != null && (newTab || graphTabs.graphNamed(name) == null)) {
+                String problem = SpotlightTarget.chartNameProblem(name);
+                if (problem != null) return ActionResult.error("graph refused, nothing created: " + problem);
+            }
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
             if (panel == null) return ActionResult.error("could not open a graph (no log loaded)");
             int requestsBefore = panel.extractionRequests();

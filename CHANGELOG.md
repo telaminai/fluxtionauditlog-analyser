@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A chart can no longer be given a name that the assistant cannot point at.** `graph` accepted a name with a colon
+  in it, and `spotlight` then could not address that chart. A name containing `:` or `"`, or exactly `note` or
+  `series`, is now refused when it is given, and nothing is created. Charts already saved under such a name still
+  open and still answer to the `graph` verb. Spotlight reaches them quoted, `graph:"a:b":note:2`, and
+  `context.graphAddresses` lists the address for every chart (M68.6).
 - **Charts in exported reports are drawn at page size, and a section that cannot be drawn says so.** A report's
   chart was a capture of its tab at the tab's current size, controls included. A tab that was not showing made the
   picture a sliver, and the chart inside it then claimed "No data under the current filter" over a series that had

@@ -222,7 +222,10 @@ The targets are a small fixed vocabulary, named as you would say them — `sourc
 `records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `topology:verdict` (the line where the
 analyser states how the graph fits the log), `graph`,
 `graph:note:2`, `graph:series:<label>` (the selected chart) or `graph:<name>:note:2`, `graph:<name>:series:<label>`
-(a chart by name — lighting it selects that chart), `project:log`, `toolbar:flag`, `menu:File` and
+(a chart by name — lighting it selects that chart). A chart name may not contain `:` or `"`, or be exactly `note`
+or `series`, because those would make it unaddressable; naming a chart that way is refused. A chart saved with such a
+name before this rule is reached quoted, `graph:"a:b":note:2`, and `context.graphAddresses` gives every chart's
+address. Then `project:log`, `toolbar:flag`, `menu:File` and
 `menu:File:New project from template…` (the menu opens and the item is lit; a click on it chooses it, and the
 spotlight goes out with the menu), `status`. A target that is off
 screen is brought on screen first (its tab selected, its row scrolled to — a filtered-out record is

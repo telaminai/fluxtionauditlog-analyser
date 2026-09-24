@@ -6611,6 +6611,9 @@ public final class MainFrame extends JFrame {
             List<String> graphs = graphTabs.graphNames();
             if (!graphs.isEmpty()) {
                 out.put("graphs", graphs);
+                // M68.6 (D-E5): how to POINT at each chart. Plain where the grammar carries the name, quoted for one
+                // saved before names were refused — so an agent never has to work out the escape for itself
+                out.put("graphAddresses", graphs.stream().map(SpotlightTarget::graphAddress).toList());
                 out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
             }
 

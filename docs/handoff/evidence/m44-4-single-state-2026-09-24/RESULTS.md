@@ -162,3 +162,12 @@ harness regex, not a missing witness.
 **For M68.4's D-E3 audit, observed here and not changed.** `report` accepted a request containing a malformed
 section, skipped it and replied `ok` with `sections: 0`, naming the skip in `warnings`. That is not silent, but it is
 a request honoured in part, which is D-E3's question.
+
+## Set 9 — M68.6, the naming grammar
+
+| # | Prediction | Result |
+|---|---|---|
+| P47 | `ChartNamingTest` 4 green, at 60% confidence | **Held.** Neither named risk fired: `x:note:2` quoted round-trips, and `series: ["n.v"]` is the verb's shape. |
+| P48 | `SpotlightTargetTest` unchanged and green | **Held.** 86 / 0. |
+| P49 | W34 and W35 red | **Held.** |
+| P50 | headless 2,009 / 0; frame 66 / 0 / 0 / 1; verifier 72 / 0 | **Held.** |

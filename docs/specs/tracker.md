@@ -637,7 +637,11 @@ verdict, which is owned jointly.
   zero failures/errors, 62 skips; strict docs pass. See the
   [investigation](../investigations/profile-project-root-resolution.md). Pending merge/release;
   this does not close M68.5's freshness or unresolved-pointer diagnostic acceptance.
-- [M68.6] ☐ **The naming grammar** — was DX-05; last, because it needs the compatibility decision.
+- [M68.6] ◧ **The naming grammar** — was DX-05. **Q2 answered by the owner 2026-09-24: refuse at creation.** Built the
+  same day on `feat/m44-single-state-session`, awaiting review. A chart name that spotlight cannot address (`:`,
+  `"`, or exactly `note`/`series`) is refused at the `graph` verb's create and rename and at the UI rename. A saved
+  one stays reachable: by the verb as saved, and by spotlight quoted (`graph:"a:b":note:2`). `context.graphAddresses`
+  gives every address. Recorded under D-E5.
 
 Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
 unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate. All three now

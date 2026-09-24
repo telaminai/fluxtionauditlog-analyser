@@ -252,24 +252,32 @@ public final class GraphTabs extends JPanel {
         if (from == null || to == null || to.isBlank()) return false;
         GraphPanel gp = graphNamed(from);
         if (gp == null) return false;
+        if (SpotlightTarget.chartNameProblem(to) != null) return false;   // M68.6: the caller refuses first, and says why
         gp.setGraphName(to.trim());
         refreshTabTitle(gp);
         fireChanged();
         return true;
     }
 
-    private void renameAt(int i, String name) {
+    /** @return why the rename was refused, or null when it was applied (or there was nothing to apply) */
+    private String renameAt(int i, String name) {
         if (i >= 0 && name != null && !name.isBlank() && tabs.getComponentAt(i) instanceof GraphPanel gp) {
+            String problem = SpotlightTarget.chartNameProblem(name);   // M68.6: the same rule as the verb
+            if (problem != null) return problem;
             gp.setGraphName(name.trim());
             refreshTabTitle(gp);
             fireChanged();
         }
+        return null;
     }
 
     private void promptRename(int i) {
         if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = JOptionPane.showInputDialog(this, "Graph name:", gp.graphName());
-        renameAt(i, name);
+        String problem = renameAt(i, name);
+        if (problem != null) {
+            JOptionPane.showMessageDialog(this, "Not renamed: " + problem, "Graph name", JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     /** Name + series + formulas + pinned window of every open graph, for persistence. */

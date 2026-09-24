@@ -152,10 +152,19 @@ Where a grammar cannot express a name, creation refuses at the point of naming r
 that later cannot be referenced. Already-saved names stay reachable; a compatibility path is chosen explicitly and
 recorded.
 
-**Conditional on Q2.** The refusal clause above is one of the two options Q2 still offers. v1 chose refusal in the
-decision while leaving the choice open in the question, which pre-empted the owner. Until Q2 is answered, read
-this decision as: creation refuses **or** the name is accepted and mapped to a stable address, and whichever is
-chosen is recorded here with its migration path for saved names.
+~~**Conditional on Q2.**~~ **Q2 answered by the owner, 2026-09-24: refuse at creation.** As built (M68.6,
+awaiting review):
+
+- **The rule is the grammar's.** `SpotlightTarget.chartNameProblem` refuses a chart name that contains `:` (the
+  part separator) or `"` (which quotes the compatible address), or that is exactly `note` or `series` in any case.
+  For such a name the parts would read as the bare forms.
+- **Where it is enforced.** At the `graph` verb's create and rename, and at the UI rename. The verb refuses before
+  anything is created or changed.
+- **Saved names, the migration path.** A chart saved with such a name loads unchanged, because `restore` is not a
+  naming entrance. The verb reaches it by its name as saved, and spotlight reaches it quoted, exactly:
+  `graph:"a:b"`, `graph:"a:b":note:2`. `context.graphAddresses` publishes every chart's address, so an agent never
+  derives the escape. Renaming it to an addressable name is allowed. **Limit:** a saved name containing `"` has no
+  quoted form.
 
 ## D-E6 · An input that changed underneath is announced, not served stale
 
@@ -480,7 +489,8 @@ responsibilities, and no further client trial: these are contract and acceptance
   recommend annotate, and note it is closer to settled than open: the tool-agreement spec already commits to
   announced-not-forbidden for a deliberately opened graph, so blocking would be a compatibility change against an
   accepted spec and needs its reason on the record.*
-- **Q2** the compatibility choice for names that no grammar can address: refuse at creation, or accept and map.
+- ~~**Q2**~~ **answered 2026-09-24: refuse at creation** (see D-E5). The compatibility choice for names that no
+  grammar can address: refuse at creation, or accept and map.
   *D-E5 and acceptance 5 are conditional until this is answered. Recommended: refuse for the first slice, and
   keep saved names reachable through an explicit compatible address.*
 - **Q3** whether D-E8's inspection requirement becomes a standing release gate or applies only to this milestone.
