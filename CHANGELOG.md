@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.19.2] - 2026-09-24
+
 - Legacy global settings with duplicate chart names no longer interrupt log loading. The Graph panel
   explains why the whole chart set is withheld, chart actions refuse with that explanation, and all
   definitions are retained for manual correction. A valid project still opens normally; no chart is
