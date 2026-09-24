@@ -5,8 +5,17 @@ Reviewed `docs/specs/spec-evidence-integrity.md` and its tracker entry at
 
 **Verdict: CONDITIONAL.** The governing principle, separation from producer work, and delivery order are sound.
 Five requirements need clarification before the affected slices are handed off. These are contract and
-acceptance gaps, not an argument for another client trial or a redesign. M68.1 can start once EI-1 and its
-replay inputs in EI-2 are settled; the later findings need not hold up that fix.
+acceptance gaps, not an argument for another client trial or a redesign. M68.1 can start once EI-1's
+declared-authorship and membership corrections are specified. It does not need the original logs: a labelled
+constructed log against the committed graph can exercise both boundaries. EI-2's original replay inputs
+remain needed for M68.2 and M68.3; the later findings need not hold up the first fix.
+
+**Correction after reviewer G, 2026-09-24:** [response at `7b8d9f51`](https://github.com/telaminai/fluxtionauditlog-analyser/blob/7b8d9f51/docs/handoff/review_m68_evidence_integrity_response_G.md).
+My first review preserved `declared=2, covered=2`. That was wrong. I checked the graph and source again:
+the graph declares three authored, audit-capable nodes, including `checked`, which the package heuristic
+incorrectly hides. EI-1 below now requires 3/3 and keeps the separate full-graph membership correction.
+The original review remains in commit `ed06170c`; this correction does not present its missed fact as an
+original finding. G's five confirmations do not constitute implementation closure.
 
 This review used a separate worktree on `review/m68-evidence-integrity-2026-09-24`. No spec, tracker, source,
 or preserved evidence was changed. The primary checkout was not touched.
@@ -22,10 +31,12 @@ Read-based findings below are identified as such. No new client, UI session, gen
 The governing rule requires a denominator from the complete declared set, while acceptance 1 and the tracker
 explicitly preserve the authored coverage denominator. Those are different populations. In the preserved
 `coverage-response.json`, the denominator is two, two non-node declarations are excluded, and `checked` is
-incorrectly called absent. Including all framework nodes in the coverage denominator would remove that warning
-by changing what coverage means, contrary to acceptance 1.
+incorrectly called absent. Preserving that reported denominator also preserves a defect: the graph declares
+`checked`, `child` and `rootNode` as `fluxtion.framework=false` and `fluxtion.auditCapable=true`, and its
+`fluxtion.authoredNodeCount` is three. `checked` uses the framework class `SinkPublisher` as an authored node.
 
-The source confirms a narrower correction. `CoverageService.assess`, lines 85–87, subtracts the scored and
+The source confirms two corrections. `Scaffolding.isScaffolding` ignores the declared authorship fact and
+classifies `checked` from its framework package prefix. `CoverageService.assess`, lines 85–87, subtracts the scored and
 excluded authored sets from logged IDs. `GraphPairing.declaredNodeIds` already returns every declared ID.
 `CoverageScope` deliberately excludes events, service interfaces and demonstrably silent nodes from its
 authored population. The membership question needs the complete graph; the coverage ratio does not.
@@ -35,14 +46,26 @@ from the same build. `GraphPairing` uses a greater-than-one-half overlap policy 
 are no logged IDs because it cannot judge. Those are compatibility/retention decisions, not build provenance.
 A shared verdict must not turn that policy boolean into a proven relationship.
 
-**Required correction:** name the two sets and their bases separately. Derive missing IDs from the full
-declared graph; preserve the authored, eligible coverage population and disclose exclusions. State that
+**Required correction:** name the two sets and their bases separately. Prefer valid declared authorship
+when `GraphVocabulary.trustedForNodeFacts()` permits it, consistent with `NodeLogging`'s treatment of audit
+capability. Define the fallback for absent, invalid or untrusted facts without calling inference a declaration.
+Derive missing IDs from the full declared graph independently of that classification. Preserve the meaning
+of authored, eligible coverage, not the current erroneous count, and disclose exclusions. State that
 membership agreement is not proof of build identity, and that no logged IDs supplies no pairing evidence.
 
-**Acceptance to add:** the packet retains `declared=2`, `covered=2`, `ratio=1.0`, with no false `checked`
-warning; a foreign ID still warns; changing scaffolding visibility changes neither fact; no-log and
+The accepted tool-agreement spec already requires factual wording without declaring which artefact is
+correct (TA-2 / D-I3a). Remove the unsupported build-provenance inference from the warning as a current
+conformance correction, not merely a future M68 enhancement.
+
+**Acceptance to add:** the committed graph with a labelled constructed log covering its three declared
+authored nodes produces `declared=3`, `covered=3`, `ratio=1.0`, with no false `checked` warning. A separately
+constructed log from a declared framework node, such as `serviceRegistry`, must not create an out-of-topology
+warning or add that framework node to authored coverage. A foreign ID still warns; changing scaffolding
+visibility changes neither fact; no-log and
 zero-eligible-node cases disclose that no meaningful comparison/ratio was established. Preserve the existing
-foreign-graph negative control. A mutation restoring authored-only membership must fail the new regression.
+foreign-graph negative control. Use separate mutations for ignoring declared authorship and for restoring
+authored-only membership. Also check that hiding scaffolding and deriving an authored subgraph keep `checked`
+visible, since those surfaces share the classification.
 
 **Basis:** source and committed response inspection; existing coverage and pairing tests re-run. The recovery
 scenario itself was not re-run during this review.
@@ -59,11 +82,17 @@ also abbreviates graph/report calls; it is not an executable replay of the expor
 A reviewer on another machine can inspect the reported failures but cannot feed this packet's original log
 through `CoverageService`, reproduce its framing, or regenerate its chart/report from the committed files.
 The PDF demonstrates an omission; it does not carry all the inputs needed to test the correction.
+This does not prevent M68.1's constructed regression described above.
 
 **Required correction:** preserve public-safe raw input and exact graph/report requests, with the relevant
 filter, window/pin, series and focus state and file fingerprints. If original inputs cannot be published,
 say so and use a labelled constructed regression case. Do not call that case a replay of the session.
 Do not copy authenticated startup logs to fill this gap.
+
+On the response pass I checked that both original `exchange/run1.log` and `run2.log`, plus
+`exchange/transport.jsonl`, still exist under `/private/tmp/spring-g14-canvas-recovery-2026-09-24/`.
+Their contents were not revalidated for publication on this pass. Prefer preserving those originals after
+inspection; the placeholder graph alone cannot establish that every transcript field is safe to publish.
 
 Define “same inputs” for the chart/series comparison to include the selected log revision, expression,
 record/filter scope and chart window. A series point outside a deliberately pinned window is not by itself
@@ -117,8 +146,9 @@ For example, `ActionExecutor.doOpen` returns immediately for `logs`, dropping a 
 its ordinary log-plus-graph path starts loading the log before attempting the graph. `doGraph` also has
 per-item warning paths. These are different compatibility changes, not one branch-condition correction.
 
-Returning an error after opening a log does not make the request all-or-nothing. Even before verb validation,
-`ActionExecutor.render`, lines 118–122, can clear a spotlight. The proposal does not say whether this is allowed
+Returning an error after opening a log does not make the request all-or-nothing. Before parameter validation
+for a view-changing verb, `ActionExecutor.render`, lines 118–122, can clear a spotlight; an unknown verb does
+not meet that condition. The proposal does not say whether this is allowed
 on a refused request, or whether “whole” requires preserving all pre-request view/session state.
 
 **Required correction:** enumerate the verbs/combinations covered now, or explicitly commit to auditing the
@@ -147,6 +177,9 @@ Metadata may be unchanged after an in-place rewrite, and some filesystems do not
 work is not simply turning an existing proven identity verdict into an announcement. Legitimate append also
 changes metadata and content, and must remain distinct from replacement. “Before any further content” needs
 an observation boundary rather than implying that a desktop reader can know about a write before observing it.
+Concretely, `HeapLogStore.appendFrom` returns zero on equal-length content before updating the store; the
+follow poll has no replacement announcement on that path. A same-length in-place replacement is therefore
+an explicit acceptance case. This conclusion comes from source inspection, not a new filesystem trial.
 
 **Required correction:** define identity and the guarantee: what establishes replacement, what remains
 unknown, how ordinary append differs, and when an observed change invalidates or labels the loaded snapshot.
@@ -213,3 +246,8 @@ this is not a display-suite acceptance claim.
 public-content sweep over tracked and untracked files found no matches outside the two rule documents.
 Publication branch: `review/m68-evidence-integrity-2026-09-24`. Only this review document is included;
 the reviewed spec, tracker, source and evidence remain unchanged.
+
+The response correction checked G's full report, extracted the graph's node and graph facts, and re-read
+`Scaffolding`, `GraphVocabulary`, `NodeLogging`, the action precheck and the heap follow equal-length branch.
+No production code changed and no new runtime claim is made. The test counts above are the previous runs
+on the same production tree; they were not rerun for this prose correction.
