@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * M37 D-L1 and D-L3, both structural.
  *
  * <p>D-L3: nothing on the panel can mutate the app. The panel's only way out is {@link ProjectPanel.Navigator}
- * (two navigation methods), and its bytecode never names MainFrame — the same constant-pool check
+ * (four navigation methods), and its bytecode never names MainFrame — the same constant-pool check
  * McpBridgeHeadlessTest uses, because a test that merely clicked buttons would pass while a reference
  * sat on a branch it did not take.
  *

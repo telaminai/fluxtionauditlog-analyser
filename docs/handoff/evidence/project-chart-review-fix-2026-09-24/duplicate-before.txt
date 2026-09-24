@@ -1,0 +1,39 @@
+[ERROR] Tests run: 3, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 0.073 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner -- Time elapsed: 0.024 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: ambiguous tabs must not silently collapse ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:73)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:39)
+	at org.junit.jupiter.api.Assertions.assertThrows(Assertions.java:3131)
+	at telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner(GraphProfileMetadataTest.java:36)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.duplicateNamesRefuseWithoutChangingProfileOrTarget -- Time elapsed: 0.002 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: ambiguous profile must refuse rather than discard one definition ==> expected: <false> but was: <true>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
+	at org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
+	at org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)
+	at telamin.fluxtion.audit.analyser.analyser.config.GraphProfileMetadataTest.duplicateNamesRefuseWithoutChangingProfileOrTarget(GraphProfileMetadataTest.java:30)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[ERROR] Failures: 
+[ERROR]   GraphProfileMetadataTest.duplicateNamesRefuseWithoutChangingProfileOrTarget:30 ambiguous profile must refuse rather than discard one definition ==> expected: <false> but was: <true>
+[ERROR]   GraphProfileMetadataTest.mergeRefusesAmbiguousOpenTabsWithoutChoosingAWinner:36 ambiguous tabs must not silently collapse ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.
+[ERROR] Tests run: 3, Failures: 2, Errors: 0, Skipped: 0
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.
+[ERROR] 
+[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.
+[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

@@ -32,6 +32,8 @@ public final class SavedGraphMerge {
      * @return the definitions to persist
      */
     public static List<GraphSpec> merge(List<GraphSpec> saved, List<GraphSpec> openTabs) {
+        requireUniqueNames(saved);
+        requireUniqueNames(openTabs);
         Map<String, GraphSpec> open = new LinkedHashMap<>();
         if (openTabs != null) {
             for (GraphSpec g : openTabs) if (g != null && g.name() != null) open.put(g.name(), g);
@@ -52,5 +54,16 @@ public final class SavedGraphMerge {
             if (placed.add(g.name())) merged.add(g.withOpen(true));
         }
         return merged;
+    }
+    /** Refuse ambiguity before a map can choose one definition and discard another. */
+    public static void requireUniqueNames(List<GraphSpec> graphs) {
+        if (graphs == null) return;
+        Set<String> names = new HashSet<>();
+        for (GraphSpec graph : graphs) {
+            if (graph != null && graph.name() != null && !names.add(graph.name())) {
+                throw new IllegalArgumentException("Duplicate chart name '" + graph.name()
+                        + "': give each saved chart a unique name before loading or saving");
+            }
+        }
     }
 }

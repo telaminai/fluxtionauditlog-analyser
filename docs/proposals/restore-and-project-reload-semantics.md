@@ -39,14 +39,16 @@ would have cost less than writing the paragraph that got it wrong.
 
 ## What is genuinely not captured
 
-Three things, and they are the whole of the remaining gap:
+The source inspection identifies these exclusions; this is not a complete inventory of all UI state:
 
 - **Zoom** — `ChartPanel.zoomIn/zoomOut/resetView`, called by the `+`, `−` and `Fit` buttons. Nothing
   writes it and nothing restores it.
 - **Spotlight** — session-scoped by design; a callout is explicitly never saved.
 - **Posture** — session-scoped by design, cleared by a project switch, as the `open` verb documents.
+- **The selected main right-hand tab** — the view map stores the selected chart sub-tab, not whether Source, Graph, Reports or another main tab was selected.
 
-The last two are deliberate and documented. Only zoom is an accident of omission.
+Spotlight and posture are deliberate exclusions. Zoom persistence would be a separate design choice;
+its absence alone does not establish an accidental omission.
 
 ## The one gap worth acting on: zoom versus pin
 

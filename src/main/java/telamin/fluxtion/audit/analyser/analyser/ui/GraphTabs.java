@@ -36,6 +36,16 @@ public final class GraphTabs extends JPanel {
     /** Told after any persistable graph change (see B-M20-3); quiet while {@link #restore} rebuilds. */
     private Runnable changeListener = () -> { };
     private boolean restoring;
+    private java.util.function.Supplier<List<GraphSpec>> savedDefinitions = List::of;
+
+    public void setSavedDefinitions(java.util.function.Supplier<List<GraphSpec>> definitions) {
+        savedDefinitions = definitions == null ? List::of : definitions;
+    }
+
+    public boolean hasDefinition(String name) {
+        return name != null && takenNames().contains(name.trim());
+    }
+
 
     public void setChangeListener(Runnable listener) {
         this.changeListener = listener == null ? () -> { } : listener;
@@ -149,6 +159,8 @@ public final class GraphTabs extends JPanel {
 
     /** Add a graph with the given name (blank/null → default "Graph N"); selects it. */
     public GraphPanel addGraph(String name) {
+        if (name != null && !name.isBlank()
+                && (graphNamed(name.trim()) != null || (!restoring && hasDefinition(name)))) return null;
         GraphPanel panel = newPanel();
         if (panel == null) return null;
         panel.setGraphName((name == null || name.isBlank()) ? nextFreeDefaultName() : name.trim());
@@ -246,14 +258,18 @@ public final class GraphTabs extends JPanel {
 
     /**
      * Resolve the target graph for a {@code graph} action: reuse the named graph when it exists and a new
-     * tab wasn't requested, else create one (named if a name was given). Never returns null once bound.
+     * tab wasn't requested, else create one (named if a name was given). Refuses a new tab whose name is already saved (returns null).
      */
     public GraphPanel graphForAction(String name, boolean newTab) {
+        String target = name == null ? null : name.trim();
         if (!newTab) {
-            GraphPanel existing = graphNamed(name);
+            GraphPanel existing = graphNamed(target);
             if (existing != null) return existing;
+            for (GraphSpec saved : savedDefinitions.get()) {
+                if (java.util.Objects.equals(saved.name(), target) && openSaved(saved)) return graphNamed(target);
+            }
         }
-        return addGraph(name);
+        return addGraph(target);
     }
 
     /** Rename the selected graph (used by the rename button). */
@@ -285,14 +301,7 @@ public final class GraphTabs extends JPanel {
         String to = name.trim();
         String from = gp.graphName();
         if (to.equals(from)) return true;                 // nothing to do, and not a collision with itself
-        if (takenNames().contains(to)) {
-            JOptionPane.showMessageDialog(this,
-                    "There is already a chart called \"" + to + "\".\n\n"
-                            + "Chart names identify a chart in the project, so two cannot share one — the "
-                            + "other chart may be a saved one that is not open right now.",
-                    "Name already used", JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
+        if (takenNames().contains(to)) return false;
         gp.setGraphName(to);
         refreshTabTitle(gp);
         renameListener.accept(from, to);   // move the stored definition BEFORE the list is persisted
@@ -301,9 +310,12 @@ public final class GraphTabs extends JPanel {
     }
 
     private void promptRename(int i) {
-        if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = JOptionPane.showInputDialog(this, "Graph name:", gp.graphName());
-        renameAt(i, name);
+        if (name != null && !name.isBlank() && !rename(gp, name)) {
+            JOptionPane.showMessageDialog(this, "A chart with that name already exists, including closed charts.",
+                    "Name already used", JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     /** Name + series + formulas + pinned window of every open graph, for persistence. */
@@ -329,6 +341,7 @@ public final class GraphTabs extends JPanel {
     /** Rebuild graphs (names + series + formulas + pin) from saved specs (used when a profile is restored). */
     public void restore(List<GraphSpec> saved) {
         if (saved == null || saved.isEmpty() || store == null) return;
+        telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
         boolean was = restoring;   // rebuilding from persisted state is not a user edit — don't echo it back
         restoring = true;
         try {
@@ -494,7 +507,7 @@ public final class GraphTabs extends JPanel {
      */
     private void deleteCurrent() {
         int i = tabs.getSelectedIndex();
-        if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = gp.graphName();
         int answer = JOptionPane.showConfirmDialog(this,
                 "Delete the chart \"" + name + "\"?\n\n"
@@ -503,7 +516,9 @@ public final class GraphTabs extends JPanel {
                         + "To put it away without losing it, use Close graph instead.",
                 "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
         if (answer != JOptionPane.OK_OPTION) return;   // Cancel changes nothing at all
-        deleteConfirmed(i);
+        // A modal runs a nested event loop. Never delete a replacement tab or a renamed item.
+        int current = indexOf(gp);
+        if (current >= 0 && name.equals(gp.graphName())) deleteConfirmed(current);
     }
 
     /**
@@ -512,7 +527,7 @@ public final class GraphTabs extends JPanel {
      * {@link #deleteCurrent()} left the one destructive path in the app untestable.
      */
     void deleteConfirmed(int i) {
-        if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = gp.graphName();
         gp.unbind();
         tabs.removeTabAt(i);

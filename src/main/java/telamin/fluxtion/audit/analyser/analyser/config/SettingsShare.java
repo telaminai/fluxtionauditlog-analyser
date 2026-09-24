@@ -317,6 +317,7 @@ public final class SettingsShare {
             present.add(Category.GRAPHS);
             graphs = new ArrayList<>();
             ConfigStore.readGraphs(p, graphs);
+            SavedGraphMerge.requireUniqueNames(graphs);
             // expand ~ and resolve profile-relative external paths against the file's own directory —
             // the same rule source roots follow (M19.2), so a committed profile works on any machine
             for (int gi = 0; gi < graphs.size(); gi++) {

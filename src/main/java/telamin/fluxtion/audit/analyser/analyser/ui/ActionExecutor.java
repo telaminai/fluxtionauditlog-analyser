@@ -313,9 +313,13 @@ public final class ActionExecutor implements RenderExecutor {
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");
-            return onEdt(() -> graphTabs.renameNamed(from, to)
-                    ? ActionResult.ok("graph", "applied", Map.of("renamed", from + " → " + to))
-                    : ActionResult.error("no graph named '" + from + "'"));
+            return onEdt(() -> {
+                if (graphTabs.graphNamed(from) == null) return ActionResult.error("no open graph named '" + from + "'");
+                if (to == null || to.isBlank()) return ActionResult.error("graph rename needs a non-blank new name");
+                return graphTabs.renameNamed(from, to)
+                        ? ActionResult.ok("graph", "applied", Map.of("renamed", from + " → " + to))
+                        : ActionResult.error("a chart named '" + to.trim() + "' already exists, including saved closed charts");
+            });
         }
 
         List<String> requested = asStringList(p.get("series"));
@@ -460,7 +464,9 @@ public final class ActionExecutor implements RenderExecutor {
         final var extEcho = externalEcho;
         return onEdt(() -> {
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
-            if (panel == null) return ActionResult.error("could not open a graph (no log loaded)");
+            if (panel == null) return ActionResult.error(graphTabs.hasDefinition(name)
+                    ? "a chart named '" + name + "' already exists; omit newTab to edit or reopen it"
+                    : "could not open a graph (no log loaded)");
             int requestsBefore = panel.extractionRequests();
             if (extSpecs != null) panel.setExternalPreloaded(extSpecs, extLoaded, extNotes);   // REPLACE
             panel.addKeys(toAdd);

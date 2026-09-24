@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Chart imports now apply incoming definitions before autosave snapshots the old tabs. Named actions
+  reopen saved charts with their metadata; explicit new-tab names cannot overwrite another chart.
+  Duplicate chart names in a project/import are refused before applying it instead of choosing one.
+  Delete confirmations cannot delete a replacement tab loaded while the question was open. Rename
+  collisions on the action socket return a refusal without opening a blocking dialog.
+
 - **Choosing a plot style from the dropdown is now saved.** Setting a chart to Line or Points from the
   style control kept the change on screen but never asked to be persisted, so it reverted to stairs on the
   next load. Only the assistant's `graph {style}` path saved correctly. Fixes the user-facing half of the

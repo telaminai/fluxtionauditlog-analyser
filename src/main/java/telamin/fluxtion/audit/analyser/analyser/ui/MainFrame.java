@@ -190,6 +190,7 @@ public final class MainFrame extends JFrame {
         graphTabs.setFlagRugSource(this::flagRugMap);                              // M32.6: the rug's seam
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
+        graphTabs.setSavedDefinitions(() -> config.savedGraphs);
         graphTabs.setChangeListener(this::onGraphsEdited);
         // 38ecc7f3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
         // config before the change listener writes the merged list back
@@ -4606,6 +4607,7 @@ public final class MainFrame extends JFrame {
     private void onGraphsEdited() {
         saveConfigQuietly();                       // syncs the open tabs first (see saveConfigQuietly)
         if (project != null) project.requestSave();
+        refreshProjectPanel();
     }
 
     private void onConfigChanged() {
@@ -4722,9 +4724,10 @@ public final class MainFrame extends JFrame {
 
     /** Refresh every affected surface after an import merged into {@code config}. */
     private void applyImportedConfig() {
-        onConfigChanged();   // source roots/EP/maven/search/REST + persist
-        tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));   // View category
-        if (store != null) graphTabs.restore(config.savedGraphs);   // reflect merged graphs live
+        // Incoming definitions must reach the views before a save can snapshot the old tabs over them.
+        if (store != null) graphTabs.restore(List.copyOf(config.savedGraphs));
+        tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
+        onConfigChanged();
     }
 
     private void onFilterChanged() {
@@ -5265,8 +5268,8 @@ public final class MainFrame extends JFrame {
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
+        graphTabs.restore(List.copyOf(config.savedGraphs));
         onConfigChanged();          // source service, processors, menus, and the global save
-        graphTabs.restore(config.savedGraphs);
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
