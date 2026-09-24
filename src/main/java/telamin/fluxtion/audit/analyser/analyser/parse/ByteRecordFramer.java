@@ -110,8 +110,14 @@ public final class ByteRecordFramer {
 
     /** The index after a UTF-8 BOM at the head of this line, or 0 when there is none. */
     private static int skipBom(byte[] b) {
-        return b.length >= 3 && (b[0] & 0xFF) == 0xEF && (b[1] & 0xFF) == 0xBB && (b[2] & 0xFF) == 0xBF
-                ? 3 : 0;
+        int i = 0;
+        // Repeated marks are real: two BOM'd files concatenated, or a tool adding one to a file that
+        // already had it. Skipping only the first left the second as content.
+        while (b.length >= i + 3 && (b[i] & 0xFF) == 0xEF && (b[i + 1] & 0xFF) == 0xBB
+                && (b[i + 2] & 0xFF) == 0xBF) {
+            i += 3;
+        }
+        return i;
     }
 
     private static boolean isWs(byte b) {

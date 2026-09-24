@@ -66,7 +66,11 @@ public final class RecordParser {
             int linePosition = rawPosition;
             rawPosition += raw.length() + 1;
             String line = stripCr(raw);
-            String t = line.strip();
+            // AuditText.strip, not String.strip(): strip() keeps U+FEFF, so a record behind a
+            // byte-order mark never matched the '#' below, lost its header, and with it its thread,
+            // level and logger — which moved auditLevelFinest from DEBUG to INFO and made coverage
+            // say debug calls might be missing. A BOM changed a verdict.
+            String t = AuditText.strip(line);
             if (t.isEmpty()) {
                 if (inNodeLogs) nodeLogs.append('\n');
                 continue;

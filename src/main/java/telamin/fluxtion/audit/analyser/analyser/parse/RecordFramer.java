@@ -118,7 +118,10 @@ public final class RecordFramer {
      */
     private static boolean isSeparator(String s, int start, int end) {
         int a = start, b = end;
-        if (a < b && s.charAt(a) == '\uFEFF') a++;
+        // Repeated marks are real: two BOM'd files concatenated, or a tool adding one to a file that
+        // already had it. Skipping only the first left the second as content, so a healthy leading
+        // separator stopped separating and the head of the file ran together.
+        while (a < b && AuditText.isBom(s.charAt(a))) a++;
         while (a < b && isWs(s.charAt(a))) a++;
         while (b > a && isWs(s.charAt(b - 1))) b--;
         return (b - a) == 3 && s.charAt(a) == '-' && s.charAt(a + 1) == '-' && s.charAt(a + 2) == '-';
@@ -126,7 +129,7 @@ public final class RecordFramer {
 
     /** A lone byte-order mark is not content: a BOM-only file is empty, not a one-record file. */
     private static boolean isBlank(String s, int start, int end) {
-        if (start < end && s.charAt(start) == '\uFEFF') start++;
+        while (start < end && AuditText.isBom(s.charAt(start))) start++;
         for (int k = start; k < end; k++) {
             if (!isWs(s.charAt(k))) return false;
         }

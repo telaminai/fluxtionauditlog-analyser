@@ -94,4 +94,16 @@ class ByteOrderMarkFramingTest {
             assertTrue(kinds(store).contains("EMPTY_LOG"), "it reads as empty: " + kinds(store));
         }
     }
+
+    /**
+     * A DOUBLE leading mark is real — two BOM'd files concatenated, or a tool adding one to a file that
+     * already had it — and stripping only one left the second, so a healthy record read as having no
+     * record key.
+     */
+    @Test
+    void aDoubleByteOrderMarkDoesNotRaiseAFalseWarning() {
+        HeapLogStore store = new HeapLogStore(BOM + BOM + TWO_RECORDS);
+        assertFalse(kinds(store).contains("NO_RECORD_KEY"),
+                "two marks are still not a missing record key: " + kinds(store));
+    }
 }
