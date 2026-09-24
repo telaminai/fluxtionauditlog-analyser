@@ -65,3 +65,37 @@ every append to the session would otherwise break O-i's property, so the two can
   from an earlier coverage comparison therefore survive a same-graph reopen, where before they were dropped. If a frame
   test asserts they drop, it fails, and that is a finding about which behaviour is right, not a test to relax.
 - **P12 — `verify-m68-1-coverage.py` on the rebuilt jar: 65 / 0.** Confidence 70%, for the same named risk.
+
+## Set 3 — M44.4c (the qualifications move into the session; the frame keeps no verdict)
+
+Written after the code compiled and before any test in it ran. This time the code was stashed and the predictions
+commit was gated on a tree without it (set 2's stated remedy).
+
+**Already measured, so not predicted:**
+
+- `MainFrame` is +55 / −94 in this slice, net −39. Across M44.4 so far (since `63518e82`) it is +112 / −158, net −46.
+  The spec predicted −150 or more for the milestone; that is on course to be wrong, and set 4 will score it.
+- The frame's `lastPairing`, `qualifications`, `qualifiedPairing`, `currentQualifications()` and `publishedSnapshot`
+  are gone, and so is `setBusy`'s verdict logic. "Pending" is now the session gate's `inFlightWhat()`, carried on the
+  snapshot.
+
+**A limit stated before the trials:** the two parity frame tests' frame-vs-session comparison is now equal by
+construction, because the frame renders the session's verdict. What they still check independently is session
+against discovery, and the panel status line, as a rendering witness.
+
+**Fixed as a side effect, and claimed only once a test shows it:** the scan-during-open race. The coverage verb
+scanned off the EDT, then qualified whichever pairing was published when the scan finished. The comparison now
+carries the pair identity captured before the scan, and the session refuses a mismatch.
+
+- **P13 — `PairingQualifierTest`, 6 cases, green on first run.** Confidence 70%. Likeliest failure: a `toMap` key name
+  (`stale`, `filterStale`, `everyObservedIdDeclared`) that I have assumed rather than read for the case exercised.
+- **P14 — witnesses:**
+  - W11: `onPairChanged` always clears, turns `aReScopeKeepsItStale` red;
+  - W12: no generation/revision check, turns `aStaleComparisonIsRefused` red;
+  - W13: `pending` always false, turns `aPendingOpenPublishesNoVerdict` red;
+  - W14: a `GraphPairing` field restored in `MainFrame`, turns `theFrameRendersAndDoesNotCompute` red.
+- **P15 — headless 1,953 run** (1,947 + 6), 0 failures, 0 errors, 65 skipped.
+- **P16 — frame 66 / 0 / 0 / 1 skip.** Confidence 55%. Named risk: the note and `context` now read the session's
+  `total` rather than `store.size()`, and "pending" from the gate rather than `loadInFlight`. A frame test that reads
+  `context` between a store change and its fact would see the session lag by one step.
+- **P17 — `verify-m68-1-coverage.py` 65 / 0 on the rebuilt jar.** Confidence 60%, for the same risk.
