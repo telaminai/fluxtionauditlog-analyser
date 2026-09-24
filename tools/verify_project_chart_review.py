@@ -343,6 +343,67 @@ def subset_selftest():
     return {k: {'ok': v} for k, v in checks.items()}
 
 
+# PR #18 re-review R1: the fallback must make a changed compile-time fact reach its CONSUMER. Checking the
+# detector alone passed while Maven's incremental compile left consumers stale, so these probes drive the whole
+# path — FastEngine.control, the fallback, the test run and the restore — in a copy of the build.
+PROBE_MAIN = {
+    'gateprobe/Mark.java': 'package gateprobe; import java.lang.annotation.*;'
+                           ' @Retention(RetentionPolicy.CLASS) public @interface Mark {}\n',
+    'gateprobe/Consumer.java': 'package gateprobe; @Mark public class Consumer {}\n',
+    'gateprobe/Constant.java': 'package gateprobe; public class Constant { public static final int K = 1; }\n',
+    'gateprobe/Reader.java': 'package gateprobe; public class Reader { public static int k() { return Constant.K; } }\n',
+}
+PROBE_TEST = {
+    'gateprobe/GateProbeTest.java':
+        'package gateprobe; import org.junit.jupiter.api.*; import static org.junit.jupiter.api.Assertions.*;\n'
+        'class GateProbeTest {\n'
+        '  @Test void retention() { assertNull(Consumer.class.getAnnotation(Mark.class), "not visible at run time"); }\n'
+        '  @Test void constant() { assertEquals(1, Reader.k(), "the constant Reader inlined"); }\n'
+        '}\n',
+}
+PROBE_CASES = [
+    ('probe-annotation-retention', 'src/main/java/gateprobe/Mark.java', 'RetentionPolicy.CLASS',
+     'RetentionPolicy.RUNTIME', 'GateProbeTest#retention'),
+    ('probe-inlined-constant', 'src/main/java/gateprobe/Constant.java', 'K = 1;', 'K = 2;', 'GateProbeTest#constant'),
+]
+
+
+def fallback_endtoend_selftest():
+    """Both compile-time dependencies, end to end through the fast engine, in a throwaway copy of the build."""
+    import os
+    import shutil
+    import tempfile
+    repo = Path.cwd()
+    tmp = Path(tempfile.mkdtemp(prefix='gate-probe-'))
+    results = {}
+    try:
+        work = tmp / 'repo'
+        work.mkdir()
+        shutil.copy2('pom.xml', work / 'pom.xml')
+        for folder in ('src', 'tools'):
+            shutil.copytree(folder, work / folder)
+        for rel, text in PROBE_MAIN.items():
+            (work / 'src/main/java' / rel).parent.mkdir(parents=True, exist_ok=True)
+            (work / 'src/main/java' / rel).write_text(text)
+        for rel, text in PROBE_TEST.items():
+            (work / 'src/test/java' / rel).parent.mkdir(parents=True, exist_ok=True)
+            (work / 'src/test/java' / rel).write_text(text)
+        os.chdir(work)
+        engine = fast.FastEngine()
+        engine.prepare()
+        baseline, entries = run_gate(PROBE_CASES, engine, fail_fast=False)
+        for e in entries:
+            results['end to end: ' + e['name'] + ' is caught through the full-compile fallback'] = {
+                'baselineGreen': e['baselineGreen'], 'verdict': e['verdict'],
+                'fallback': e['fullCompileFallback'], 'classesRestored': e['classesRestoredByteIdentical'],
+                'ok': (e['baselineGreen'] and e['verdict'] == 'caught' and e['fullCompileFallback']
+                       and e['classesRestoredByteIdentical'] and e['restoredByteIdentical'])}
+    finally:
+        os.chdir(repo)
+        shutil.rmtree(tmp, ignore_errors=True)
+    return results
+
+
 def maven_run_safe(names):
     """The Maven engine's run, but a build that produced no report (e.g. a compile failure) is a result."""
     try:
@@ -433,6 +494,7 @@ def main():
         engine = fast.FastEngine()
         engine.prepare()
         checks.update(fast.launcher_selftest(engine.cp, engine.launcher_dir))
+        checks.update(fallback_endtoend_selftest())
         result['selftest'] = checks
         save()
         for label, r in checks.items():

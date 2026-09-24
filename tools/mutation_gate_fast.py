@@ -160,8 +160,7 @@ class FastEngine:
                 elif needs_full_compile(before, where.class_files()):
                     full_compile = True
                     self.fallbacks += 1
-                    code, out = mvn('test-compile')
-                    assert code == 0, 'fallback test-compile failed:\n' + out
+                    force_full_compile()
             elif where.kind == 'resource':
                 where.runtime_copy().parent.mkdir(parents=True, exist_ok=True)
                 where.runtime_copy().write_bytes(path.read_bytes())
@@ -278,6 +277,24 @@ def needs_full_compile(before, after_files):
     # carries the annotation. None of that shows in javap's member listing, so any edit to a file declaring one
     # recompiles everything. Annotation types are rare as sites; being conservative here costs little.
     return before['annotation'] or after['annotation'] or before['api'] != after['api']
+
+
+def force_full_compile():
+    """Recompile EVERY production and test class from source.
+
+    A plain `mvn test-compile` is incremental: the single-file javac above has just written the mutated class,
+    newer than its source, so Maven reports "Nothing to compile - all classes are up to date" and the classes
+    that inlined a constant or carry an annotation keep their stale bytecode (PR #18 re-review, R1). Deleting
+    both class trees and Maven's incremental state leaves it nothing to trust but the sources. Resources are
+    copied again by the same lifecycle; the snapshot restore afterwards puts every byte back.
+    """
+    import shutil
+    for tree in (*CLASS_TREES, Path('target/maven-status')):
+        if tree.exists():
+            shutil.rmtree(tree)
+    code, out = mvn('test-compile')
+    assert code == 0, 'fallback test-compile failed:\n' + out
+    assert any(CLASS_TREES[0].rglob('*.class')), 'fallback test-compile produced no classes'
 
 
 def compiler_release():
