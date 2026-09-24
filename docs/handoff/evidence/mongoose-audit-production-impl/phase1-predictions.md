@@ -67,3 +67,39 @@ unchanged. Any line inside that text which trims to `---` therefore terminates t
 - **U3.2** — whether MA-8 can distinguish a genuine `EventLogControlEvent` record from a content record
   that merely looks like one, before MA-7's writer half ships. The spec says annotate-never-excuse
   partly for this reason; I may not be able to close it fully in phase 1.
+
+## P4 · Final-review round — recorded before these trials
+
+The final review returned four required items. Two of them are measurements I had not made, and the
+review states its own results for both. **I am recording what I expect BEFORE re-running them**, so
+that agreeing with the reviewer is a result rather than an assumption. Written against branch head
+`7138dc6f`.
+
+1. **P4.1 — the `RecordParser` narrowing.** A record indented with U+3000 (ideographic space) or
+   U+2003 (em space) will, after the F1 consolidation, lose `event` and its node logs, because
+   `AuditText.strip` leaves the mark in place and `splitScalar`'s key then fails `isIdentifier` at
+   character 0. I expect `kind` to stay **OK, not PARSE_ERROR**, because `eventLogRecord:` sits at
+   column 0 and so `sawFields` is still set — which makes the loss *quiet*, which is the part worth
+   pinning. I expect `ProducerDiagnostics` to raise **NO_NODE_LOGS**, and its message to blame
+   `addEventAudit()`, which is the wrong cause.
+2. **P4.2 — the same file before the narrowing.** Under `String.strip()` it parsed fully. I have not
+   run this; it follows from `strip()` removing every Unicode space, and I expect the test to have to
+   assert the *current* behaviour rather than a diff, since the old code is gone.
+3. **P4.3 — the guard's remaining spellings.** The review planted six that get past the text match. I
+   expect all six to reproduce, and I expect that moving the guard onto **integer literal values**
+   closes five of them — lowercase hex, the digit separator, lowercase byte constants, signed bytes
+   and octal are all literals — and does **not** close a constant expression (`0xFE00 + 0xFF`), which
+   is only decidable by evaluation, not by reading a token.
+4. **P4.4 — the rebase.** I expect exactly one test to fail on the rebased tree,
+   `everyByteSensitiveFixtureStillCarriesItsTrailingBytes`, and to pass once the spike file's bytes
+   are restored. I expect **no** conflict, since no file is touched on both sides.
+
+**Unsure:**
+
+- **U4.1** — whether a literal-value guard can be written without a parser. I intend to scan tokens
+  and evaluate each integer literal, which is a lexer, not a parser; I do not yet know whether that
+  is enough to avoid false positives on ordinary code (a `0xBF` in unrelated byte handling would now
+  be caught by *value*, where before it was caught by *text* — same answer, different route).
+- **U4.2** — whether restoring the spike file is the whole of F1, or whether my branch rewrote bytes
+  in any other pre-existing evidence file. The review says it is the only one; I have not verified
+  that independently.
