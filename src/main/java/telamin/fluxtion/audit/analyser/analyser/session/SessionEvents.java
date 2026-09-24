@@ -176,58 +176,50 @@ public final class SessionEvents {
     public record StatusShown(long opId, String kind) implements Result {
     }
 
-    // ---------------------------------------------------------------- observations
+    // ---------------------------------------------------------------- facts
+    //
+    // M44.4a (spec §13, D-S13.2). These replace LogObserved and GraphObserved, which were state snapshots modelled
+    // as events ("here is what is open") and needed a mirror guard and dirty-on-change logic to be safe. A fact says
+    // what HAPPENED. Nobody requested it, so it carries no opId; a fact about a log carries the log GENERATION it
+    // was read from instead, so a fact about a log that has since been closed or replaced is refused as staleFact.
 
     /**
-     * A log arrived, or went — and what it says about itself.
+     * A topology graph is now the one on screen, however it got there: a file opened from a menu or the socket,
+     * a candidate chosen in discovery, or a graph a log's reader supplied. One entrance, one record.
      *
-     * <p><b>Since M44.3 this is the route for CLOSES and menu refreshes only.</b> A log ARRIVING is
-     * {@link LogOpened}, the result of an {@code OpenLogEffect} the processor asked for; {@code LogArrival}
-     * judges on that and never on this, so a refresh cannot re-judge an unchanged log (M44.3a). The
-     * {@code open} flag and the evidence stay until the slice that retires observations altogether.
-     *
-     * @param loggedNodeIds distinct {@code instanceId}s seen in the sampled records — raw, so the
-     *                      graph computes the pairing rather than being handed a verdict
-     * @param sampled       how many records were scanned, and {@code total} how many exist: a pairing
-     *                      drawn from a sample must never be stated as a whole-log claim
+     * @param source          {@code OPENED} / {@code READER_DECLARED} / {@code READER_INFERRED} — the graph's provenance
+     * @param declaredNodeIds every node id the graph declares, raw, so the processor computes the pairing
+     * @param nodeTypes       every node's simple type name, which is how audit installation is read
      */
-    public record LogObserved(boolean open, String logPath, String provenance,
-                              java.util.Set<String> loggedNodeIds, int sampled, int total,
-                              String mostVerboseLevel) {
-
-        public LogObserved {
-            loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
-        }
-
-        /** The shape slice 1 used, for callers with nothing to say about pairing. */
-        public LogObserved(boolean open, String logPath, String provenance) {
-            this(open, logPath, provenance, java.util.Set.of(), 0, 0, null);
-        }
-
-        public LogObserved(boolean open, String logPath, String provenance,
-                           java.util.Set<String> loggedNodeIds, int sampled, int total) {
-            this(open, logPath, provenance, loggedNodeIds, sampled, total, null);
+    public record GraphOpened(String graphPath, String source, java.util.Set<String> declaredNodeIds,
+                              java.util.List<String> nodeTypes) {
+        public GraphOpened {
+            declaredNodeIds = declaredNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(declaredNodeIds);
+            nodeTypes = nodeTypes == null ? java.util.List.of() : java.util.List.copyOf(nodeTypes);
         }
     }
 
     /**
-     * A topology arrived, or went, with the raw facts a decision needs.
-     *
-     * @param declaredNodeIds the authored node ids the graph declares
-     * @param nodeTypes       every node's simple type name, which is how audit installation is read —
-     *                        the compiler installs {@code EventLogManager} as a node, so its presence
-     *                        is the evidence and its absence is the finding
+     * The graph left the screen outside a transition: File ▸ Close graph, a reset, or a reader's graph retired with
+     * its log. Inside a transition the processor already learned it from {@link GraphClosed}, and this one then
+     * arrives after the operation and changes nothing — which the record shows, rather than the frame guessing.
      */
-    public record GraphObserved(boolean open, String graphPath, String source,
-                                java.util.Set<String> declaredNodeIds, java.util.List<String> nodeTypes) {
+    public record GraphCleared() {
+    }
 
-        public GraphObserved {
-            declaredNodeIds = declaredNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(declaredNodeIds);
-            nodeTypes = nodeTypes == null ? java.util.List.of() : java.util.List.copyOf(nodeTypes);
-        }
+    /** The log of {@code generation} closed outside a transition. The counterpart of {@link GraphCleared}. */
+    public record LogCleared(long generation) {
+    }
 
-        public GraphObserved(boolean open, String graphPath, String source) {
-            this(open, graphPath, source, java.util.Set.of(), java.util.List.of());
+    /**
+     * The open log of {@code generation} grew (Follow). Carries the new total and the arrival sample as it now
+     * stands — the sample only changes while the log is shorter than the sample size, so above that only the total
+     * moves, and with it the pairing's scope ("first 500 of 601").
+     */
+    public record LogAppended(long generation, java.util.Set<String> loggedNodeIds, int sampled, int total,
+                              String mostVerboseLevel) {
+        public LogAppended {
+            loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
         }
     }
 }

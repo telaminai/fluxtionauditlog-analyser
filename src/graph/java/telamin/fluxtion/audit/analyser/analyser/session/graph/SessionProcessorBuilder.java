@@ -43,6 +43,17 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  * named above fails the build if it is still there, which is the only version of this instruction that
  * survives someone regenerating in six months without reading this comment.
  *
+ * <p><b>Removing an event type or handler</b> (owner, 2026-09-24). The committed processor still dispatches to
+ * whatever it was generated with, so deleting a handler or event first breaks the compile that regeneration needs.
+ * Do it in three steps, and never hand-edit generated source:
+ * <ol>
+ *   <li>strip the {@code @OnEventHandler} annotation from each retiring handler, keeping the method and the event;</li>
+ *   <li>regenerate — the emitted processor no longer references them, and everything still compiles;</li>
+ *   <li>delete the now-unused methods and event types.</li>
+ * </ol>
+ * (M44.4a bootstrapped by hand-stripping the stale generated file instead; the regeneration overwrote it whole,
+ * so nothing hand-edited survived — but the route above never has a hand-edited state to trust.)
+ *
  * The generated processor and its GraphML are <b>committed</b>, so everyone else — CI, a reviewer
  * without a key, a fresh contributor — builds and tests from a bare checkout.
  *

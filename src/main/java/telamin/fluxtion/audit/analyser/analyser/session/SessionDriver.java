@@ -116,6 +116,8 @@ public final class SessionDriver {
     private final Thread designated = Thread.currentThread();
     private boolean dispatching;
     private long nextOpId = 1;
+    /** M44.4a: facts posted while an operation was running, each to run as its own operation afterwards. */
+    private final java.util.ArrayDeque<Object> posted = new java.util.ArrayDeque<>();
 
     public SessionDriver(Adapter adapter) {
         this(adapter, new SessionAuditSink());
@@ -191,6 +193,39 @@ public final class SessionDriver {
         } finally {
             dispatching = false;
         }
+        // Posted facts run AFTER the operation settles, first in first out, each as an operation of its own. On an
+        // exception the loop is not reached and they wait for the next operation — never dropped, never run inside a
+        // cycle that failed.
+        while (!posted.isEmpty()) {
+            submit(posted.poll());
+        }
+    }
+
+    /**
+     * M44.4a (spec §13, D-S13.3): report a FACT — something that happened, which nobody requested — without having
+     * to know whether an operation is running. Outside one it runs now, exactly as {@link #submit}. During one it is
+     * queued and runs as its own operation once the current one has settled: Fluxtion's own re-entrancy rule
+     * (a same-thread event arriving mid-dispatch is queued, not dropped), applied at operation granularity.
+     *
+     * <p>This is what the frame's observation funnel could not do. It returned early while dispatching, so a close
+     * made by an effect was never reported by the path that made it — it was relied on to arrive as a result
+     * instead, and anything that changed without one went unrecorded.
+     *
+     * <p>A REQUEST must still use {@link #submit}, and an adapter that submits during a cycle is still a protocol
+     * violation: it would start a second operation inside the first. A fact does not start anything; it reports.
+     *
+     * @throws ProtocolViolation off the designated thread — marshalling is the caller's job until M44.4b
+     */
+    public void post(Object fact) {
+        if (Thread.currentThread() != designated) {
+            throw new ProtocolViolation("post(" + fact.getClass().getSimpleName() + ") on "
+                    + Thread.currentThread().getName() + "; the driver is confined to " + designated.getName());
+        }
+        if (dispatching) {
+            posted.add(fact);
+        } else {
+            submit(fact);
+        }
     }
 
     /**
@@ -233,11 +268,8 @@ public final class SessionDriver {
     /**
      * True while a cycle is running.
      *
-     * <p>For adapters that also have a non-transition path into the same state — the analyser's File
-     * menu closes a log directly, as well as a project switch closing one. Those paths tell the
-     * processor by submitting an observation, and must not do so mid-cycle, where the processor is
-     * already being told the same thing by a typed result. Asking is better than a comment saying
-     * "do not call this from the adapter", which is the version that rots.
+     * <p>Since M44.4a nothing needs to ask this in order to decide whether to report: {@link #post} queues a fact
+     * during a cycle instead. It remains for adapters that must refuse to START an operation mid-cycle.
      */
     public boolean isDispatching() {
         return dispatching;

@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Coverage now refuses a graph that a log's reader inferred, as it always said it would.** The session tracked a
+  graph by its file, and a graph supplied by a log's reader has none. So the analyser's session believed no graph
+  was open while one was on screen. The refusal to score coverage against a graph built from what ran therefore
+  never came from the session. Internally, graphs and log closes now reach the session as facts at the place they
+  happen, not through a menu-refresh observation that skipped any change made mid-operation (M44.4a).
 - **Choosing a plot style from the dropdown is now saved.** Setting a chart to Line or Points from the
   style control kept the change on screen but never asked to be persisted, so it reverted to stairs on the
   next load. Only the assistant's `graph {style}` path saved correctly. Fixes the user-facing half of the

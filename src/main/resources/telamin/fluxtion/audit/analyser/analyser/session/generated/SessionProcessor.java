@@ -44,10 +44,12 @@ import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequeste
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed;
-import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested;
@@ -86,7 +88,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  * generation time           : Not available
  * api version               : 1.0.16
  * analyser version          : 1.0.71
- * target generator version  : 1.0.72-SNAPSHOT
+ * target generator version  : 1.0.74
  * </pre>
  *
  * Event classes supported:
@@ -100,10 +102,12 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
- *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed
- *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogRequested
@@ -232,20 +236,28 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished",
                 false),
             new ProcessorDescriptor.Input(
+                "GraphCleared",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared",
+                false),
+            new ProcessorDescriptor.Input(
                 "GraphClosed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed",
                 false),
             new ProcessorDescriptor.Input(
-                "GraphObserved",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved",
+                "GraphOpened",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened",
+                false),
+            new ProcessorDescriptor.Input(
+                "LogAppended",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended",
+                false),
+            new ProcessorDescriptor.Input(
+                "LogCleared",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared",
                 false),
             new ProcessorDescriptor.Input(
                 "LogClosed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed",
-                false),
-            new ProcessorDescriptor.Input(
-                "LogObserved",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved",
                 false),
             new ProcessorDescriptor.Input(
                 "LogOpenFailed",
@@ -309,16 +321,11 @@ public class SessionProcessor
                 false)
           },
           new ProcessorDescriptor.Sink[] {},
-          new ProcessorDescriptor.Service[] {
-            new ProcessorDescriptor.Service(
-                "adapter",
-                "telamin.fluxtion.audit.analyser.analyser.session.SessionDriver$Adapter",
-                ProcessorDescriptor.Service.Direction.REQUIRED)
-          },
+          new ProcessorDescriptor.Service[] {},
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "1b1c106d305742eb340e6c4f916a070324ebcae3b995b10cad5afe790652c55a",
+              "a6595b4116e3bad93ccfbb3b453c4e864fa33135bd9d90b7290fc55a9a6a992c",
               null));
 
   @Override
@@ -494,17 +501,23 @@ public class SessionProcessor
     } else if (event instanceof EffectFailed) {
       EffectFailed typedEvent = (EffectFailed) event;
       handleEvent(typedEvent);
+    } else if (event instanceof GraphCleared) {
+      GraphCleared typedEvent = (GraphCleared) event;
+      handleEvent(typedEvent);
     } else if (event instanceof GraphClosed) {
       GraphClosed typedEvent = (GraphClosed) event;
       handleEvent(typedEvent);
-    } else if (event instanceof GraphObserved) {
-      GraphObserved typedEvent = (GraphObserved) event;
+    } else if (event instanceof GraphOpened) {
+      GraphOpened typedEvent = (GraphOpened) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LogAppended) {
+      LogAppended typedEvent = (LogAppended) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LogCleared) {
+      LogCleared typedEvent = (LogCleared) event;
       handleEvent(typedEvent);
     } else if (event instanceof LogClosed) {
       LogClosed typedEvent = (LogClosed) event;
-      handleEvent(typedEvent);
-    } else if (event instanceof LogObserved) {
-      LogObserved typedEvent = (LogObserved) event;
       handleEvent(typedEvent);
     } else if (event instanceof LogOpenFailed) {
       LogOpenFailed typedEvent = (LogOpenFailed) event;
@@ -597,22 +610,32 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(GraphCleared event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(GraphClosed event) {
     processEvent(event);
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
-  public void onEvent(GraphObserved event) {
+  public void onEvent(GraphOpened event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LogAppended event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LogCleared event) {
     processEvent(event);
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LogClosed event) {
-    processEvent(event);
-  }
-
-  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
-  public void onEvent(LogObserved event) {
     processEvent(event);
   }
 
@@ -781,6 +804,28 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(GraphCleared typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onGraphCleared", typedEvent);
+    isDirty_operationGate = operationGate.onGraphCleared(typedEvent);
+    auditInvocation(openGraph, "openGraph", "onGraphCleared", typedEvent);
+    isDirty_openGraph = openGraph.onGraphCleared(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    afterEvent();
+  }
+
   public void handleEvent(GraphClosed typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -805,17 +850,61 @@ public class SessionProcessor
     afterEvent();
   }
 
-  public void handleEvent(GraphObserved typedEvent) {
+  public void handleEvent(GraphOpened typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
-    auditInvocation(operationGate, "operationGate", "onGraphObserved", typedEvent);
-    isDirty_operationGate = operationGate.onGraphObserved(typedEvent);
-    auditInvocation(openGraph, "openGraph", "onGraphObserved", typedEvent);
-    isDirty_openGraph = openGraph.onGraphObserved(typedEvent);
+    auditInvocation(operationGate, "operationGate", "onGraphOpened", typedEvent);
+    isDirty_operationGate = operationGate.onGraphOpened(typedEvent);
+    auditInvocation(openGraph, "openGraph", "onGraphOpened", typedEvent);
+    isDirty_openGraph = openGraph.onGraphOpened(typedEvent);
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LogAppended typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onLogAppended", typedEvent);
+    isDirty_operationGate = operationGate.onLogAppended(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
+    isDirty_openLog = openLog.onLogAppended(typedEvent);
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    afterEvent();
+  }
+
+  public void handleEvent(LogCleared typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(operationGate, "operationGate", "onLogCleared", typedEvent);
+    isDirty_operationGate = operationGate.onLogCleared(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    auditInvocation(openLog, "openLog", "onLogCleared", typedEvent);
+    isDirty_openLog = openLog.onLogCleared(typedEvent);
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
       isDirty_pairing = pairing.recomputeOnStateChange();
@@ -840,28 +929,6 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
     isDirty_openLog = openLog.onLogClosed(typedEvent);
-    if (guardCheck_pairing()) {
-      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
-      isDirty_pairing = pairing.recomputeOnStateChange();
-    }
-    if (guardCheck_coverageClaim()) {
-      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
-      coverageClaim.recomputeOnStateChange();
-    }
-    afterEvent();
-  }
-
-  public void handleEvent(LogObserved typedEvent) {
-    auditEvent(typedEvent);
-    //Default, no filter methods
-    auditInvocation(operationGate, "operationGate", "onLogObserved", typedEvent);
-    isDirty_operationGate = operationGate.onLogObserved(typedEvent);
-    if (guardCheck_auditInstallation()) {
-      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
-      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
-    }
-    auditInvocation(openLog, "openLog", "onLogObserved", typedEvent);
-    isDirty_openLog = openLog.onLogObserved(typedEvent);
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
       isDirty_pairing = pairing.recomputeOnStateChange();
@@ -1203,6 +1270,13 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
       effectOutcomes.onEffectFailed(typedEvent);
+    } else if (event instanceof GraphCleared) {
+      GraphCleared typedEvent = (GraphCleared) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onGraphCleared", typedEvent);
+      isDirty_operationGate = operationGate.onGraphCleared(typedEvent);
+      auditInvocation(openGraph, "openGraph", "onGraphCleared", typedEvent);
+      isDirty_openGraph = openGraph.onGraphCleared(typedEvent);
     } else if (event instanceof GraphClosed) {
       GraphClosed typedEvent = (GraphClosed) event;
       auditEvent(typedEvent);
@@ -1212,13 +1286,27 @@ public class SessionProcessor
       effectOutcomes.onGraphClosed(typedEvent);
       auditInvocation(openGraph, "openGraph", "onGraphClosed", typedEvent);
       isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
-    } else if (event instanceof GraphObserved) {
-      GraphObserved typedEvent = (GraphObserved) event;
+    } else if (event instanceof GraphOpened) {
+      GraphOpened typedEvent = (GraphOpened) event;
       auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onGraphObserved", typedEvent);
-      isDirty_operationGate = operationGate.onGraphObserved(typedEvent);
-      auditInvocation(openGraph, "openGraph", "onGraphObserved", typedEvent);
-      isDirty_openGraph = openGraph.onGraphObserved(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onGraphOpened", typedEvent);
+      isDirty_operationGate = operationGate.onGraphOpened(typedEvent);
+      auditInvocation(openGraph, "openGraph", "onGraphOpened", typedEvent);
+      isDirty_openGraph = openGraph.onGraphOpened(typedEvent);
+    } else if (event instanceof LogAppended) {
+      LogAppended typedEvent = (LogAppended) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onLogAppended", typedEvent);
+      isDirty_operationGate = operationGate.onLogAppended(typedEvent);
+      auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
+      isDirty_openLog = openLog.onLogAppended(typedEvent);
+    } else if (event instanceof LogCleared) {
+      LogCleared typedEvent = (LogCleared) event;
+      auditEvent(typedEvent);
+      auditInvocation(operationGate, "operationGate", "onLogCleared", typedEvent);
+      isDirty_operationGate = operationGate.onLogCleared(typedEvent);
+      auditInvocation(openLog, "openLog", "onLogCleared", typedEvent);
+      isDirty_openLog = openLog.onLogCleared(typedEvent);
     } else if (event instanceof LogClosed) {
       LogClosed typedEvent = (LogClosed) event;
       auditEvent(typedEvent);
@@ -1228,13 +1316,6 @@ public class SessionProcessor
       effectOutcomes.onLogClosed(typedEvent);
       auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
       isDirty_openLog = openLog.onLogClosed(typedEvent);
-    } else if (event instanceof LogObserved) {
-      LogObserved typedEvent = (LogObserved) event;
-      auditEvent(typedEvent);
-      auditInvocation(operationGate, "operationGate", "onLogObserved", typedEvent);
-      isDirty_operationGate = operationGate.onLogObserved(typedEvent);
-      auditInvocation(openLog, "openLog", "onLogObserved", typedEvent);
-      isDirty_openLog = openLog.onLogObserved(typedEvent);
     } else if (event instanceof LogOpenFailed) {
       LogOpenFailed typedEvent = (LogOpenFailed) event;
       auditEvent(typedEvent);

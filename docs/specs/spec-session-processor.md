@@ -688,12 +688,19 @@ upstream fact stands: the POM says AGPL-3.0 while the source headers say AGPL-3.
 
 | Slice | Moves | Deletes |
 |---|---|---|
-| **M44.4a** | `GraphOpened` fact and result; `LogOpened` from every open path; `SessionSnapshot` published after each operation; `post(fact)` | `LogObserved`, `GraphObserved`, `noteLogState`, `noteGraphState`, the funnel in `updateLifecycleMenu`, the `isDispatching()` drop |
-| **M44.4b** | `LogAppended`, with the log-generation gate; the pairing's scope follows appends inside the graph | `republishPairingAfterAppend`, `refreshSessionIfLogGrew`, `sessionNotedTotal`, the `invokeAndWait` |
+| **M44.4a** | `GraphOpened`, `GraphCleared`, `LogCleared` and `LogAppended` as facts; the log-generation gate; `post(fact)`. *As built: `LogAppended` landed here, not in 4b, because deleting `LogObserved` removed its last consumer's route. The snapshot moved to 4b, since nothing reads it until the frame's copies go.* | `LogObserved`, `GraphObserved`, `noteLogState`, `noteGraphState`, the funnel in `updateLifecycleMenu`, the `isDispatching()` drop |
+| **M44.4b** | `SessionSnapshot` published after each operation; `LogAppended` posted from Follow itself; off-EDT `post` marshalled; the pairing's scope follows appends inside the graph | `republishPairingAfterAppend`, `refreshSessionIfLogGrew`, `sessionNotedTotal`, the `invokeAndWait` |
 | **M44.4c** | `ViewFilterChanged`, `MembershipCompared`, and the `PairingQualifier` node | `lastPairing`, `qualifications`, `qualifiedPairing`, `currentQualifications`, `setBusy`'s restore, the frame's `pairingAgainst` use |
 | **M44.4d** | the audit retention of D-S13.5 and the re-worded O-i test | nothing, because this slice changes retention and not ownership |
 
 ### Acceptance
+
+**The test shape, owner 2026-09-24: "more logical and state driven."** A test of session behaviour is *events in,
+state out*. It submits or posts a sequence of facts, results and requests to `SessionDriver`, then asserts processor
+or snapshot state, with no Swing, no timing and no frame fields. `SessionFactsTest` is the pattern. A frame test is
+kept only for what needs a screen, namely that a surface renders the snapshot it was given, and it never re-derives
+a verdict. When a slice moves a verdict into the processor, the frame tests that checked it move too, and become
+event sequences.
 
 - [ ] **The M68.1 lifecycle, as headless event sequences.** Every `PairingDuringLoadFrameTest` journey
       (log-first, graph-first, combined, Follow append, filter change, close during a pending open) is re-expressed

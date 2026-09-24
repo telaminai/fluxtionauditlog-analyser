@@ -634,6 +634,17 @@ public final class TopologyPanel extends JPanel {
         this.topologyLoaded = listener == null ? f -> { } : listener;
     }
 
+    /**
+     * M44.4a: told whenever the graph on screen becomes a different graph or none — a file load, a reader-supplied
+     * graph taking the slot, or a clear. The ONE place the session learns about graphs, so no opening surface can
+     * forget to report (there are several, and the observation funnel they replace was hung off a menu refresh).
+     */
+    public void onGraphChanged(Runnable listener) {
+        this.graphChanged = listener == null ? () -> { } : listener;
+    }
+
+    private Runnable graphChanged = () -> { };
+
     /** Load a topology from a {@code .graphml}; a bad file reports rather than throwing. */
     /**
      * Drop the loaded graph entirely (M35.1) — the counterpart {@link #load} never had. Also clears
@@ -655,6 +666,7 @@ public final class TopologyPanel extends JPanel {
         refreshCrumbs();
         applyView(false);
         setStatus("No graph loaded — open a .graphml to see the topology.");
+        graphChanged.run();
     }
 
     /**
@@ -756,6 +768,7 @@ public final class TopologyPanel extends JPanel {
                 + candidate.describe
                 + (candidate.supportsCoverage() ? ""
                         : " — coverage cannot find a dead node in a graph built from what ran"));
+        graphChanged.run();
         return true;
     }
 
@@ -795,6 +808,7 @@ public final class TopologyPanel extends JPanel {
             pendingZoom = 0;                        // restore once; later loads fit as usual
         }
         setStatus(summary(topology, file));
+        graphChanged.run();                         // before the load listeners, which may judge the graph
         topologyLoaded.accept(file);
     }
 

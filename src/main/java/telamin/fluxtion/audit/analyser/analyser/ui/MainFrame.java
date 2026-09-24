@@ -265,6 +265,7 @@ public final class MainFrame extends JFrame {
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // one place remembers a loaded topology, whichever entry point loaded it
         topologyPanel.onTopologyLoaded(f -> { rememberGraphml(f); compareGraphCopies(f); refreshProjectPanel(); });
+        topologyPanel.onGraphChanged(this::reportGraphToSession);   // M44.4a: every graph change, one entrance
         // the topology gets its own source viewer, sharing this service — so navigating from the graph
         // keeps the graph on screen instead of switching to the sibling Source tab
         topologyPanel.bindSource(sourceService);
@@ -3795,6 +3796,9 @@ public final class MainFrame extends JFrame {
         topologyPanel.clearSourceGraph();         // M34 review F1: a reader's graph is log-derived state
         lastPairing = null;                // review F2: the verdict was about THIS log — with it gone the
         publishPairing();                  // graph makes no claim, and the panel's note must not keep one
+        // M44.4a: the close is a fact. Inside a CloseLogEffect it is queued behind the LogClosed result and
+        // arrives as a recorded no-op; from the File menu it is how the processor learns the log went.
+        if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared(sessionLogGeneration));
         pendingProjectOffer = null;        // review F3: an offer made for a log that is no longer open
         pendingRolledSetOffer = null;      // M35.9: likewise
         if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
@@ -3836,11 +3840,9 @@ public final class MainFrame extends JFrame {
 
     /** Close items are enabled only when there is something to close. */
     private void updateLifecycleMenu() {
-        // M44: the single place the processor is told what is open. Every path that opens or closes a
-        // log or graph already lands here, which is why the observation hangs off it rather than being
-        // hand-placed at ten call sites that would drift apart.
-        noteLogState();
-        noteGraphState();
+        // M44.4a: this no longer tells the processor what is open. It inferred that from the frame's fields on ten
+        // call sites; the graph now reports each change as a fact at the one place it happens (TopologyPanel's
+        // graph-changed hook, closeLog), and a log's arrival is the LogOpened result.
         syncRecordsCard();          // M36: the start page shows exactly when there is no log
         refreshCloseItems();
     }
@@ -3882,6 +3884,10 @@ public final class MainFrame extends JFrame {
         String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(arrival.levels()).mostVerbose();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, request.provenance(),
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString()));
+        if (driver.processor().operationGate.accepted()) {
+            sessionLogGeneration = driver.processor().openLog.generation();
+            sessionNotedTotal = arrival.total();
+        }
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
             loaded.close();
@@ -4330,7 +4336,9 @@ public final class MainFrame extends JFrame {
         Runnable refresh = () -> {
             if (session != null && store != null && store.size() != sessionNotedTotal) {
                 refreshLoggedNodeSample();
-                noteLogState();
+                sessionNotedTotal = store.size();
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended(sessionLogGeneration, loggedNodeSample,
+                        loggedSampleScanned, store.size(), observedAuditLevel()));
             }
         };
         if (javax.swing.SwingUtilities.isEventDispatchThread()) {
@@ -5049,7 +5057,6 @@ public final class MainFrame extends JFrame {
                         ? ", wrote " + telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME
                         : "")
                     + (selection.graph() == null ? "" : " and opened " + selection.graph().getFileName()));
-            noteGraphState();
         }
     }
 
@@ -5111,10 +5118,10 @@ public final class MainFrame extends JFrame {
         if (session == null) {
             session = new telamin.fluxtion.audit.analyser.analyser.session.SessionDriver(
                     this::performSessionEffect);
-            // The processor starts knowing nothing. Tell it what is already open, or its first
-            // boundary decision would be made against an empty world.
-            noteLogState();
-            noteGraphState();
+            // The processor starts knowing nothing. A graph can already be on screen (the start page's demo, a
+            // command-line graph), so it is told — as a fact, like every other graph change. A LOG cannot be: every
+            // load lands through the LogOpened result, which builds the driver first.
+            if (topologyPanel.hasGraph()) session.post(graphFact());
         }
         return session;
     }
@@ -5274,15 +5281,6 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * Tell the processor what is open. Called from the paths that change it and are <b>not</b> the
-     * session adapter — a log opened from the File menu, a log closed from the File menu, the socket's
-     * own close verbs. Inside a transition the processor learns the same facts from the typed results
-     * ({@code LogClosed}), so calling this from {@code closeLog()} itself would both duplicate them and
-     * re-enter the driver mid-cycle.
-     *
-     * <p>Scheduled for deletion with {@code LogObserved}, when the slice that moves log opening lands.
-     */
-    /**
      * The distinct instanceIds the open log writes, sampled once when it loads.
      *
      * <p>Cached deliberately: {@link #updateLifecycleMenu()} is the observation funnel and has ten
@@ -5310,33 +5308,34 @@ public final class MainFrame extends JFrame {
         observedLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(sample.levels()).mostVerbose();
     }
 
-    private void noteLogState() {
-        if (session == null || session.isDispatching()) return;
-        sessionNotedTotal = store == null ? 0 : store.size();
-        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved(
-                store != null, logDisplayLocation, logProvenance,
-                loggedNodeSample, loggedSampleScanned, store == null ? 0 : store.size(),
-                store == null ? null : observedAuditLevel()));
+    /**
+     * M44.4a (spec §13, D-S13.2): the graph on screen changed — opened, supplied by a reader, or cleared. Reported as
+     * a fact through {@code post}, so a change made by an effect mid-operation is queued and recorded rather than
+     * dropped, which is what the observation funnel did with {@code isDispatching()}.
+     */
+    private void reportGraphToSession() {
+        if (session == null) {
+            session();                               // creation states the graph now on screen
+            return;
+        }
+        session.post(graphFact());
     }
 
-    /** As {@link #noteLogState()}, for the topology graph. */
-    private void noteGraphState() {
-        if (session == null || session.isDispatching()) return;
+    private Object graphFact() {
+        if (!topologyPanel.hasGraph()) return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared();
         Path graphFile = topologyPanel.loadedGraphFile();
-        boolean open = topologyPanel.hasGraph();
         java.util.List<String> types = new java.util.ArrayList<>();
-        if (open) {
-            var full = topologyPanel.fullTopology();
-            if (full != null) {
-                for (var n : full.nodes()) types.add(n.simpleName());
-            }
+        var full = topologyPanel.fullTopology();
+        if (full != null) {
+            for (var n : full.nodes()) types.add(n.simpleName());
         }
-        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved(
-                open, graphFile == null ? null : graphFile.toString(),
-                topologyPanel.graphSource() == null ? null : topologyPanel.graphSource().name(),
-                open ? telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
-                        topologyPanel.fullTopology()) : java.util.Set.of(), types));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened(graphFile == null ? null : graphFile.toString(),
+                topologyPanel.graphSource().name(),
+                telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(full), types);
     }
+
+    /** The processor's generation of the log that is open here, stated on every fact about it (M44.4a). */
+    private long sessionLogGeneration = -1;
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
