@@ -131,3 +131,35 @@ Every restore was byte-identical.
 - **P22 — end to end.** A new verifier check, a half-foreign log opened combined with the committed graph, shows
   the graph still loaded on the final state (after the arrival rule, past review O6's delay), with `applies` false. It
   fails on a jar built from `8893cb08` and passes on the fixed jar.
+
+## Set 5 — M68.5, identity under Follow (heap store)
+
+Written after the code compiled and before any of its tests ran. Gated on a tree without the code.
+
+**Scope, stated before the trials.** Follow runs only on the heap store, which re-reads the whole file each poll,
+so the full-prefix comparison D-E6 requires costs nothing extra there. The mapped store's half of acceptance 7
+(identity at the next read) is **not** in this set. **A deliberate departure:** D-E6 calls "same key, same length,
+changed modification time, matching prefix" unverified, because a prefix SAMPLE cannot prove identity; the heap store
+compares every byte, so identical bytes are UNCHANGED, and the reason says the comparison was complete. **A design
+choice:** the session hears APPEND and UNCHANGED as one state, `VERIFIED`, because they alternate on every
+append-then-idle pair of polls, and reporting them apart would be the non-change churn M44.4 hit twice.
+
+- **P23 — `FollowIdentityTest`, 9 cases, green on first run.** Confidence 85%. It is pure.
+- **P24 — `HeapLogStoreFollowIdentityTest`, 6 cases, green on first run.** Confidence 60%. Likeliest failure: `touched`,
+  if setting the modification time lands inside the read's before/after window and reads as "changed during read"
+  (UNVERIFIED rather than UNCHANGED); or `differentFileSamePath`, if the atomic move keeps the inode on this
+  filesystem.
+- **P25 — `LogIdentityTest`, 4 cases, green on first run.** Confidence 75%.
+- **P26 — witnesses:**
+  - W23: `classify` without the `startsWith` check turns `sameLengthRewrite` (pure) red, and the store's
+    `sameLengthRewrite` too;
+  - W24: `OpenLog.onLogOpened` without the reopened-after-replacement rule turns `aReopenAfterReplacementSaysWhy` red;
+  - W25: the store indexing on UNVERIFIED-moving reads turns `missingOrMoving` red. That one is pure, and it guards
+    `mayIndexGrowth`.
+- **P27 — headless 1,982 run** (1,963 + 9 + 6 + 4), 0 failures, 0 errors, 65 skipped (or 66 if `differentFileSamePath`
+  assumes out).
+- **P28 — frame 66 / 0 / 0 / 1.** Confidence 60%. Named risk: an existing Follow frame test that rewrites the file
+  in place, or whose Follow poll now reads a "changed during read" window and pauses indexing for a poll, making a
+  `wait_records`-style loop time out.
+- **P29 — end to end.** The verifier's new scenario 12 fails on a jar built from `f2e25e80` (no `log.identity` in
+  context) and passes on the fix. The other 67 checks are unchanged.
