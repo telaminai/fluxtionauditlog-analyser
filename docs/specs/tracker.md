@@ -509,20 +509,33 @@ Sibling of the tool-agreement spec, which governs agreement *between* tools. Dis
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
 verdict, which is owned jointly.
 
-- [M68.1] ☐ **The coverage and pairing verdict** — membership against every declared node, the authored denominator
-  unchanged, one verdict on every surface. The recovery packet's own artefacts are the fixture. Was DX-02.
+- [M68.1] ☐ **The coverage and pairing verdict** — declared authorship read before any package heuristic (D-E10),
+  membership against every declared node, the authored population kept for the ratio, one verdict on every surface.
+  The honest figures for the packet's graph are 3 declared and 3 covered, not the 2 the response reported. Fixture
+  is the committed graph plus a labelled constructed log, so this slice is **not** gated on the packet's missing
+  audit logs. Discharges a conformance defect against the tool-agreement spec, which already forbids declaring
+  which artefact is correct. Was DX-02.
 - [M68.2] ☐ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
   data is contradicted by a successful series response over the same inputs; acceptance is by inspecting the
   artefact, not by exit status.
-- [M68.3] ☐ **The framing verdict, analyser half** — a file with record blocks and no separators reported with the
-  same prominence to a person and an assistant, at open and under follow. Producer half filed against the audit
-  format work.
+- [M68.3] ☐ **The framing verdict, analyser half** — **suspected** collapsed framing reported with its basis and
+  with the same prominence to a person and an assistant, at open and under follow; never an inferred record count.
+  A legal single-record file, an ordinary unterminated tail and a pending live record stay correct — format 1 §1
+  and §1a already settle those. Needs the original logs. Producer half filed against **the starter** (the writer
+  actually at fault) as well as the audit format work.
 - [M68.4] ☐ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
 - [M68.5] ☐ **Identity change under follow, and the project root** — was WS-1 and WS-2.
 - [M68.6] ☐ **The naming grammar** — was DX-05; last, because it needs the compatibility decision.
 
 Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
-unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate.
+unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate. All three now
+carry a recommendation from both reviews; Q1 is close to settled by the tool-agreement spec's existing policy.
+
+**Spec is at v2**, corrected after two independent reviews on 2026-09-24 which agree: the first raised EI-1 to
+EI-5 (`review/m68-evidence-integrity-2026-09-24`, corrected at `2f321705`), reviewer G confirmed all five and
+added D-E10, the declared-fact rule, which changes the first correction and the acceptance figures
+(`review/m68-evidence-integrity-response-G`, `7b8d9f51`). v1 contained a contradiction in D-E1 and an error in
+acceptance 9; both are fixed.
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
