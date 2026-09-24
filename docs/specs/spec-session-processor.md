@@ -117,7 +117,7 @@ event**. It says *"here is the current state"* rather than *"this happened"*, wh
 mirror-maintenance guard (`isDispatching()`) and dirty-on-change logic that domain events would not need.
 
 The fix is not a service. It is honest events — `LogOpened(path, ids, level)` and `LogClosed()` — which
-[`spec-async-session-driver.md`](spec-async-session-driver.md) already plans, and which the driver
+[`spec-async-session-driver.md`](completed/spec-async-session-driver.md) already plans, and which the driver
 change unblocks. **The mirror was never the mechanism's fault; it was an event modelled as a snapshot.**
 
 **Where a service IS right here**, and there is a live candidate: the source resolver that
@@ -195,7 +195,7 @@ the throw and asserts it dispatches.
 
 **What is still external, and it is the whole of M44.3.** Opening is asynchronous: no in-graph phase can
 wait for a `Background.run` completion. `batchEnd()` is the right home for a *synchronous* effect batch;
-the `Pending` result of [`spec-async-session-driver.md`](spec-async-session-driver.md) is how an
+the `Pending` result of [`spec-async-session-driver.md`](completed/spec-async-session-driver.md) is how an
 asynchronous one declines to answer inside it. The two compose — the drain does not need to change.
 
 **The general lesson, since the point of this section is to be reusable.** For a graph whose effects are
