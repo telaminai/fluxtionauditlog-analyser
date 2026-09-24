@@ -85,28 +85,42 @@ still to do.
   threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
   index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
   must not be merged; its own entry records the detail.
-- **[MA-0] ☐ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
+- **[MA-0] ◧ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
   the only one here._ Every empty shape returns from `ProducerDiagnostics` before any check, so an empty
   log raises nothing, marked or unmarked. A **finding**, never a seventh state; keyed on zero records only
   (the quiet-level case is already caught by `ONLY_CONTROL_EVENTS`). Acceptance and the six-case table are
   in the spec, adopted from review's run on the published 1.19.0 jar.
+  **PHASE 1 DONE, two clauses open:** the finding fires for all six shapes and an empty file now opens by
+  extension. **D-MA0c** (findings reach the report surface — `ReportRenderer` carries none) and **MA-0.5**
+  (the Follow path) are NOT done. The end-to-end claim is also narrower than it sounds: the tests drive
+  `ReaderRegistry.readerFor`, not `MainFrame.loadFile`.
+  [Phase 1 report](../handoff/report_mongoose_audit_production_phase1_2026_09_23.md).
 - **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
   processor with no `EventLogManager`** — including **AOT processors built without audit**, the
   low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);
   refuse at `start`, not at boot, so a server with one unaudited processor in `autoStart` still boots.
   The level endpoint lives in `svc-admin-web`, not core, and must return 409/422.
-- **[MA-5] ☐ — capture must fan out, and restore on stop** · _live silent-discard path in core._
+- **[MA-5] ◧ — capture must fan out, and restore on stop** · _live silent-discard path in core._
   `ChronicleAuditCaptureService`'s comment promises to compose in front of the existing listener and
   restore it; the code sets `previousListener = null` and, on stop, installs a no-op. `DataFlow` has no
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
-- **[MA-6] ☐ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
+  **PHASE 1 DONE and MERGED to core `develop` (`2c4192e`), including MA-5.4 adopt-on-reattach and the
+  listing-freeze fix** — both witnessed live, the second by reading the Chronicle queue back rather than a
+  counter. **MA-5.7** (the every-backend contract) is open. Two things merging does NOT do: core is not
+  released, and the bundle's mongoose pin is still 1.0.29, so nothing here reaches a developer yet. The
+  new `attach` default overload also **quietly drops fan-out** for any other capture-service
+  implementation — a release note, not a defect.
+- **[MA-6] ◧ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
   contradiction: D-MA0b keeps MA-0 at zero records only, so this check lives here._ Reader half in this
   repo; **writer half in MA-2 — the writer WRITES the record, COUNTS it, and WITHHOLDS the marker**, so
   the file reads `unknown` plus the reader finding. (The earlier "refuses to count or mark" had three
   readings and two broke an invariant: write-but-don't-count reads `more_than_declared`, and
   don't-write-don't-count hides a produced record under `complete`.) **This unblocks MA-2 without waiting
   on AFMT-3.**
-- **[MA-7] ☐ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
+  **READER HALF DONE in phase 1**, keyed on **framing** — the first non-blank, non-comment line — not on a
+  substring search, which was a V1 hole review found: a headerless document that merely mentioned the key
+  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) is open.
+- **[MA-7] ◧ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
   finding in this spec. An event `toString()` carrying a line that **trims to** `---` — space, tab or CR,
   matching the framers' own predicate, **not** an exact match — plus marker lines breaks the framing
   BEFORE §1a recognition runs, so the allow-list cannot defend it. Reproduced twice
@@ -118,10 +132,19 @@ still to do.
   [mongoose-plugins#39](https://github.com/telaminai/mongoose-plugins/issues/39) since the writer-side
   fix cannot reach bytes already shipped. Payloads come from event `toString()`, routinely
   user-controlled. Not previously recorded anywhere.
-- **[MA-8] ☐ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
+  **PRODUCER-SIDE ESCAPE SHIPPED: mongoose-plugins #39, merged and RELEASED as 1.0.45.** Verified against
+  the published 1.19.0 analyser jar: benign and hostile payloads both read `records=3, complete, 3 of 3`,
+  with the indented, tab, CR and node-value variants covered. **The writer half and moving framing into
+  core are phase 2.**
+- **[MA-8] ◧ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
   sibling._ A node at `WARN` runs but reads as never logged, and the control record naming its
   `sourceId` and level is in the log. Measured: `complete`, 6 of 6, no findings, zero entries for a node
   that ran three times. Coverage must say why it is silent instead of listing it as uncovered.
+  **PHASE 1 DONE:** `PerNodeLevelChanges` reads the level changes a log states about itself and
+  `CoverageService` annotates uncovered nodes with them — **annotate, never excuse** (the node stays in
+  the ratio), read **unfiltered**, keyed on the event TYPE, with group-level annotation where the log
+  alone cannot map a group to its nodes. **MA-8's report path is open.** Review found four surviving
+  mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
   one reads `complete` with no finding. **Cause NOT established.** **The tracker repro is stale** — it
@@ -154,8 +177,15 @@ still to do.
   **rejected by name** — it would always read `complete`, the manufactured marker the skill forbids.
   Running the text writer as a second destination needs no Chronicle change once MA-5 lands. OD-2 (refuse) and OD-4 (text
   for developers) are taken; **OD-1 and OD-3 are moot**.
-- **[MA-R] ◧ — spec REWRITTEN at round 3 and out for re-review**, three reviews answered, all committed in
+- **[MA-R] ◧ — spec REWRITTEN at round 3**, five reviews answered plus two addenda, all committed in
   `docs/handoff/`. Implementation is mine.
+  **PHASE 1 IS THROUGH REVIEW.** Six rounds: three analyser rounds, a round-4 additions commit from the
+  reviewer that I reviewed rather than took, and a final round whose one blocker was **evidence I had
+  rewritten** — two trailing spaces stripped from a committed producer capture — now restored
+  byte-identical and gated. Ships: `mongoose-plugins` **1.0.45 released**; core **merged to `develop`**;
+  analyser **ready to merge as a partial** on `feat/mongoose-audit-production-rebased`, rebased onto
+  `610d5777`, suite 1939/0/62. **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and
   [`spec-mongoose-audit-production.md`](spec-mongoose-audit-production.md).** Item 2 shipped in

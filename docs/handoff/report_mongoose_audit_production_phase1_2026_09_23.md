@@ -11,7 +11,17 @@ released or deployed. No Fluxtion API key was used.
 | --- | --- | --- | --- |
 | `mongoose-plugins` | `feat/mongoose-audit-production` | `b208257` | `main` `40f01cf` (post-1.0.44) |
 | `mongoose` core | `feat/mongoose-audit-production` | `2c4192e` | `develop` `17a03b4` |
-| analyser | `feat/mongoose-audit-production` | `b181aa38` | `main` `fda01845` (needs rebase onto `7ecb0c38`) |
+| analyser | `feat/mongoose-audit-production-rebased` | see below | `main` `610d5777` — **rebased, not force-pushed** |
+
+The analyser branch was **rebased onto a new branch name** rather than rewritten in place: CLAUDE.md
+rule 3 forbids force-pushing, and the reviewed history stays reachable at `feat/mongoose-audit-production`
+`7138dc6f` as evidence. Seventeen of eighteen commits replayed untouched; the eighteenth conflicted in
+`CHANGELOG.md`, where main had added an entry under `[Unreleased]` — resolved by keeping both, main's
+line unaltered. `origin/main` had moved twice since review measured it (`7ecb0c38` → `610d5777`).
+
+**Every analyser SHA quoted in this report is a PRE-rebase SHA**, reachable on
+`feat/mongoose-audit-production`. The rebase rewrote all eighteen; the mapping is positional, same order,
+same messages. Quoting the old ones keeps this report and the five reviews talking about the same things.
 
 Predictions were committed before any trial: `07a13bf7`,
 [`evidence/mongoose-audit-production-impl/phase1-predictions.md`](evidence/mongoose-audit-production-impl/phase1-predictions.md).
@@ -283,7 +293,8 @@ witness.
 1. The YAML-reader witness fires in `EmptyFileOpensTest`, not the class the summary implied.
 2. **The structural guard had a hole.** It matched `\uFEFF`, the literal character and the three byte
    constants, but **not the numeric form** — a site written `charAt(0) == 0xFEFF` passed it silently.
-   Now widened to `0xFEFF` and `65279`, and it names file and line.
+   Widened at the time to `0xFEFF` and `65279`. **Superseded in the final round** — widening a text
+   match was still the wrong instrument, and six more spellings got past it; see *The guard rewritten*.
 
 ## Final review — one blocker, and the instrument changed
 
@@ -326,6 +337,17 @@ writer actually emits — precisely the format-faithful detail `TrailingWhitespa
 It went unnoticed for four rounds because the gate that catches it did not yet cover that path: main has
 since added the file to both `EVIDENCE` and `BYTE_SENSITIVE`, so the rebased tree fails without the
 bytes. **Restored byte-identical from `ee2c5148`, the commit that captured it.**
+
+**Why the restore is not on the pre-rebase branch.** The exclusion that makes those bytes legal lives in
+main's `TrailingWhitespaceTest`, which the old base has never seen — restoring there turns the branch
+red, and did. So the restore is the first commit **after** the rebase, where both halves of the rule are
+present. The commit before it says so, rather than leaving a reader to wonder.
+
+**Witnessed:** green baseline on the rebased tree; strip the two spaces again and
+`everyByteSensitiveFixtureStillCarriesItsTrailingBytes:126` fails naming the file — *evidence was
+rewritten, most likely by a formatter or a gate missing its exclusion*; restore, byte-identical, green.
+Which is the answer to review's fourth point from the other direction: **the gate that would have caught
+me now exists and I have seen it fire.**
 
 What this says about the rest of the branch, checked rather than assumed: every file the branch
 *modifies* rather than adds, compared before and after, changes no other line's trailing whitespace.
@@ -401,7 +423,13 @@ a named assertion; the MA-6 framing cases; the five `canOpen` cases. Final suite
 P4.1 including the quiet-`OK` part; the guard witness — thirteen spellings planted into
 `ProducerDiagnostics` one at a time, the guard re-run against each, the source restored between and the
 worktree verified clean afterwards; the before/after trailing-whitespace comparison over every file the
-branch modifies; the full suite on this base and again on the rebased tree.
+branch modifies; the evidence-gate witness, mutated and restored; the rebase itself.
+
+**Suites, final review round.** Pre-rebase base: **1939/0/62**. `origin/main` `610d5777` alone:
+**1876/0/62**. Rebased tree with the restore: **1939/0/62**, green. The branch therefore adds **63**
+tests and changes nothing that main's own suite asserts — which is the measured form of review's
+question 4, *zero SEMANTIC overlap*, and it is weaker than it sounds: it says main's assertions still
+hold, not that no behaviour main relies on changed unasserted.
 
 **Read, not run:**
 
@@ -420,10 +448,26 @@ branch modifies; the full suite on this base and again on the rebased tree.
 
 **Not done:** D-MA0c, MA-0.5, the MA-0.7/MA-6.3 fixtures, MA-5.7, and MA-8's report path. Round 3 added
 no new gaps. AFMT-3 is
-untouched, as instructed, and no `NONE` default was shipped onto that path.
+untouched, as instructed, and no `NONE` default was shipped onto that path. Final review adds two
+**carried, not closed**: `HeapLogStore.fromFile`'s mid-write open, and a tail that can never complete
+(both Low, both above).
 
 ## Public-repo discipline
 
 Sweep clean in the analyser (`git ls-files | xargs grep -ril` over the four terms, excluding the two
-files that state the rule). In both public repos the added lines were checked for local paths, keys and
+files that state the rule), re-run on the rebased branch. `git config user.email` is the personal
+address. In both public repos the added lines were checked for local paths, keys and
 personal data before each push. Only files I authored were committed.
+
+## Where phase 1 stands
+
+- `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
+- `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
+  mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
+- analyser — **ready to merge as a partial**, on `feat/mongoose-audit-production-rebased`, rebased onto
+  `610d5777`, suite green, all four required items answered. Not merged: that call is the owner's.
+
+Three release-note items stand, unchanged by this round: the producer findings are not in the report
+surface yet (D-MA0c); the `attach` default overload quietly drops fan-out for any other capture-service
+implementation; and **OD-5 is still the one open owner decision** — whether Chronicle gets a marker —
+which is why MA-2's Chronicle half was not implemented.
