@@ -174,6 +174,62 @@ class PairingDuringLoadFrameTest {
     }
 
     /**
+     * Round 4, O-i — a Follow append must not spend the session's audit ring. The ring holds 2,000 records, described
+     * as "a long investigation's worth of transitions"; one record per append on a live log would evict them in about
+     * half an hour. The session's copy of the pairing has one consumer, the coverage claim, so it is refreshed when
+     * coverage reads it — and the claim must then count the appended record.
+     */
+    @Test
+    void aFollowAppendWritesNoSessionAuditRecordUntilCoverageReadsIt(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        StringBuilder yaml = new StringBuilder();
+        for (int i = 0; i < 600; i++) {
+            yaml.append("---\neventLogRecord:\n  logTime: ").append(1000 + i).append("\n  event: Tick\n  nodeLogs:\n")
+                .append("    - rootNode: { v: 1}\n    - riskCheck: { v: 1}\n    - output: { v: 1}\n");
+        }
+        Path audit = Files.writeString(tmp.resolve("churn-600.yaml"), yaml.append("---\n").toString());
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graph.toAbsolutePath().toString())));
+            awaitVerdict(ex);
+            var sessionField = MainFrame.class.getDeclaredField("session");
+            sessionField.setAccessible(true);
+            var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
+            render(ex, "open", Map.of("follow", true));
+            Thread.sleep(1500);                                   // let Follow settle before counting
+            long before = onEdtGet(() -> session.auditSink().total());
+            for (int n = 0; n < 5; n++) {
+                Files.writeString(audit, "eventLogRecord:\n  logTime: " + (5000 + n) + "\n  event: Tick\n  nodeLogs:\n"
+                        + "    - rootNode: { v: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
+                long deadline = System.currentTimeMillis() + 15_000;
+                int want = 601 + n;
+                while (System.currentTimeMillis() < deadline) {
+                    Object log = find(onEdtGet(() -> render(ex, "context", Map.of())), "log");
+                    if (log instanceof Map<?, ?> l && Integer.valueOf(want).equals(l.get("records"))) break;
+                    Thread.sleep(100);
+                }
+            }
+            Thread.sleep(1200);                                   // one more poll past the last append
+            long after = onEdtGet(() -> session.auditSink().total());
+            assertEquals(0, after - before, "session audit records written by five Follow appends: " + (after - before));
+            Map<String, Object> reply = render(ex, "coverage", Map.of());
+            String claim = String.valueOf(find(reply, "claimNote"));
+            assertTrue(claim.contains("of 605 records"), "the claim counts the appended records when read: " + claim);
+            render(ex, "open", Map.of("follow", false));
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
+    /**
      * Round 3, N1 — exactly the re-review's reproduction, through Follow on a real store: a 600-record log whose ids are
      * all declared, whole-log coverage, Follow on, one appended record writing an undeclared id. The qualification
      * must stop claiming to confirm the whole log, and the published pairing's scope must count the new record.

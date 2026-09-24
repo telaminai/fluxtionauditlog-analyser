@@ -106,3 +106,30 @@ O-c (one sampling method).
 - **P29.** Screenshots `{scope: "topology"}`, default size: before coverage the status line leads "first 500 of 600
   records: every node…"; after whole-log coverage "whole log: 1 of 4 logged id(s) not de…"; **after the filtered
   coverage, still "whole log: 1 of 4…"**, not the sample.
+
+## Set 6 — reproducing round 3 review's findings on `4251bae3`, before any fix
+
+Review: `review/m68-1-round3-2026-09-24` at `4769d93a`, by the author of both earlier reviews, so not independent.
+Instruments committed with this set, before any trial: end-to-end scenarios 9 (Q5a, Q5b) and 10 (Q2), and a frame
+test counting the session audit records written by five Follow appends (O-i). No product code changed.
+
+Frame runs use exactly: `mvn test -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false" -Dtest=…
+-DfailIfNoTests=false`. `pom.xml:105` forces `-Djava.awt.headless=true` into `argLine`, so the `-DargLine` flag
+alone is ignored; the bare `-Djava.awt.headless=false` is what reaches the forked JVM. Every frame result below
+reports failures, errors and skipped separately.
+
+- **P30 (Q5a).** On a `4251bae3` jar, scenario 9's *A then B* checks **fail**: after filter B's coverage the id
+  filter A found is gone from `context`, and the reply does not mention it.
+- **P31 (Q5b).** After the filter changes to C with no coverage, `qualifiedBy.scope` **still reads "current
+  filter"** and there is no `filterStale` field: both checks **fail**.
+- **P32 (Q2).** After a Follow append, `qualifiedBy.scope` reads **"whole log"** and `supersedesSample` reads
+  **true**: both scenario 10 checks **fail**.
+- **P33 (Q6).** Each of the review's six plants, alone, leaves `UserVisibleWordingGuardTest` **green**.
+- **P34 (Q9).** The review's mutation — the `LogOpened` sample at `MainFrame.java:3876` drawn as
+  `PAIRING_SAMPLE - 1` — leaves both parity tests in `PairingDuringLoadFrameTest` **green**. My reading of why: the
+  session's later observation re-sends the correct sample, and since round 3 the log node propagates a change of
+  sample, so the arrival's wrong sample is overwritten before anything compares it.
+- **P35 (O-i).** The new frame test **fails on today's code**, reporting **5** session audit records for five
+  appends — one per append, because every append now sends the session an observation.
+- **P36 (O-ii).** Removing `set5-p24-headless-first-run.log` from `TrailingWhitespaceTest`'s exemption list leaves
+  that test **green**, because it scans no `.log` file.

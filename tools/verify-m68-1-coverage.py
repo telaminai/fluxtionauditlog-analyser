@@ -265,6 +265,39 @@ def main():
                   and q.get("supersedesSample") is True and "foreignAfter500" in (q.get("notDeclared") or []), q)
             check("…and the earlier, dominated filtered comparison is not carried", not q.get("narrower"), q)
 
+            print("9. Q5a/Q5b — two filtered comparisons must not erase each other, and a changed filter is not current")
+            log = os.path.join(work, "q5-a3.yaml")
+            constructed_log(log, [[ids[i % 3]] for i in range(599)] + [["foreignAfter500"]])
+            open_in_order(a, log, "combined")
+            a.act("filter", **{"from": 6971, "to": 6991})
+            a.act("coverage", filtered=True)
+            a.act("filter", **{"from": 1001, "to": 1011})
+            reply = a.act("coverage", filtered=True)
+            gp = a.context().get("graphPairing") or {}
+            said = str(gp.get("qualifiedBy"))
+            check("A then B: the id filter A found is still in context", "foreignAfter500" in said, gp.get("qualifiedBy"))
+            check("…and the filter-B reply says what it replaced and what that had found",
+                  "foreignAfter500" in str((reply.get("coverage") or {}).get("qualifiedPublishedPairing")), reply.get("coverage"))
+            a.act("filter", **{"from": 2001, "to": 2101})
+            q = (a.context().get("graphPairing") or {}).get("qualifiedBy") or {}
+            check("after the filter changes, a filtered comparison no longer calls itself the current filter",
+                  q.get("scope") != "current filter", q)
+            check("…and says the filter has changed", q.get("filterStale") is True, q)
+            a.act("filter", **{"from": None, "to": None})
+
+            print("10. Q2 — a stale whole-log qualification's fields must not claim the whole log")
+            log = os.path.join(work, "q2-follow.yaml")
+            constructed_log(log, [[ids[i % 3]] for i in range(600)])
+            open_in_order(a, log, "combined")
+            a.act("coverage")
+            a.act("open", follow=True)
+            append_record(log, ["lateForeign"])
+            ctx = wait_records(a, 601)
+            q = (ctx.get("graphPairing") or {}).get("qualifiedBy") or {}
+            check("stale: scope states what was compared", q.get("scope") == "first 600 of 601 records", q)
+            check("stale: supersedesSample is false", q.get("supersedesSample") is False, q)
+            a.act("open", follow=False)
+
             print("6. the exported PDF says what the screen says (D-E2)")
             pdf = os.path.join(exchange, "m68-1-partial.pdf")
             reply = a.act("report", name="m68-1-partial", title="M68.1 verification",
