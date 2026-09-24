@@ -198,7 +198,9 @@ still to do.
   witnesses that guarded the wrong thing — all fixed, suite 1976/0/62, frame tests 63/0.
   A **third re-review** (`8514f91b`) confirmed those and asked for two Low corrections — the closing clause
   still asserting the no-node reading, and an unwitnessed branch — plus six optional items; all taken. Suite
-  1978/0/62. **Awaiting review of those fixes; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  1978/0/62. A **fourth re-review** (`1c706216`) asked for three Low corrections — an unwitnessed closing branch,
+  a closing change stated as applied when that is not established, and a "checked on every branch" claim the tests
+  did not back — all fixed, plus three optional items. Suite 1980/0/62. **Awaiting review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and

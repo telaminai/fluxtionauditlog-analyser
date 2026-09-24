@@ -593,6 +593,51 @@ established here.
 
 **Suite:** 1,978/0/62 — 1,976 plus two new tests (R1 and O-A). R2 and O-D are assertions added to existing tests.
 
+## Fourth re-review — three Low, three optional, all taken
+
+Fourth re-review `1c706216` on `review/mongoose-fourth-rereview-2026-09-24`, against `74d5a009`, by the author of
+the second and third. It found R1, R2 and O-A–O-F fixed, every claimed witness red, and all 84 earlier runs holding.
+*(Round 3 said 86; the reviewer corrects that to 84, their own miscount, and this report takes the 84.)* It asked for
+three small corrections. Predictions `P9` were committed first (`82858d92`), and they include R-B's premise derived
+from the runtime's rule rather than taken from the review.
+
+| | Finding | Cause | Fix | Regression and witness (full protocol: reports deleted, a `<failure>` at the named test, SHA-256 restore, clean `git status -- src`, green again) |
+|---|---|---|---|---|
+| R-A Low | the `closing()` branch for a node named "null" had no witness | **mine, O-A**: I witnessed the opening, not the closing | — | `aNodeNamedNullIsSetUnderBothReadings` now closes the window with a `sourceId=null` INFO: "either way it ends here", never "only the first would". Witness: the branch disabled → red |
+| R-B Low | "It holds until record 3 sets it to INFO" where the closing change's applying is not established | **mine, R1**: R1's class, in the other branch | with an absent grouping and differing `groupId`s, the only case where `c` applying does not imply `next` applied (derived in P9), all three `closing()` branches say the change was addressed to that grouping and "whether that applied here is not established either". The window still closes there, the conservative direction | `aClosingChangeWhoseApplyingIsOpenSaysSo`, the reviewer's four-record log, plus a same-grouping positive control that stays definite. Witness: `closeOpen = false` → red |
+| R-C Low | "checked on every branch" was untrue: plants in `closing()`, the undeclared YES note, the addressed-grouping clause and the post-marker text all stayed green, and the S2 guard caught only the possessive | mine: the claim outran the tests | `noBranchOfTheSentencePresumesAProcessor`: the whole matrix — source × 4 groupings × 3 boundaries × 3 closings, plus a node named "null" — **108 of 108 annotated, none presuming a processor**, and failing if the matrix stops annotating. The S2 guard is widened to "this processor"; the comment now names the test | two witnesses: planted in a `closing()` literal, and in the post-marker text → red |
+| O-1 | "within the run it was made in" followed the closing clause, so "it" could be the closing change | the round-3 wording, the reviewer's suggestion | "before the marker" | witness: the old phrase → red |
+| O-2 | the O-B comment described a different rule from the code | wording | comment only; `MainFrame` has no code change | — |
+| O-3 | probe outputs dropped the runtime's `updating event log config:` lines without saying so | unstated filter | a one-line header naming the filter, prepended to **all five** outputs that used it (the review named one), content verified byte-identical beneath each; this round's `rereview4-probe-after-fixes.txt` carries it from the start | — |
+
+**The frame flake, recorded as the reviewer measured it (REPORT).** `NamedGraphAndMenuSpotlightFrameTest` failed
+**once in 10** display runs at `74d5a009` and **0 in 10** at `fc9b1f9c`. The failing run was the one where
+`PersonAtTheScreenFrameTest` skipped its focus-dependent test, so the window had lost focus. The test never reaches
+`pollFollow`. CI's `ui-frame` job ran 154 times on `main` and PRs without this test failing, but it has **never run
+on this branch**: it triggers only on `main` and on pull requests. If the owner opens a PR, the xvfb job settles
+it. This round changes `MainFrame` in a comment only, so no frame run was required, and none was made.
+
+**What I got wrong this round:**
+1. **R-A and R-B are R1's pattern again.** I disclosed the closing change's `"null"` reading and did not ask whether
+   the closing change had applied at all, or whether my new branch had a witness.
+2. **R-C: I wrote "checked on every branch" in round 3 and checked two.** The matrix test now makes the comment
+   true by construction rather than by assertion.
+3. **O-3 was wider than reported.** The review named one filtered output; five had the same unstated filter,
+   including three from rounds before this reviewer's.
+
+**Ran:**
+- P9 first;
+- five witnesses under the full protocol;
+- the matrix's exact count (108 of 108), read from a temporary threshold and restored byte-identical;
+- `MARereviewProbe` against the published jars, non-annotation lines identical to round 3;
+- headless **1,980 / 0 / 0 / 62** over 258 reports mapped to source classes, matching the console. The one
+  orphan, `DoubleBomDiagTest`, is excluded and named; its XML has now been removed from `target/`.
+
+**Read, not run:** that the O-B jar counter from round 3 still describes the code, which is unchanged but for a
+comment.
+
+**Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
+
 ## Two existing tests changed, both rewritten rather than deleted
 
 - `ProducerDiagnosticsTest.anEmptyLogSaysNothing` asserted **exactly the behaviour MA-0 reverses**. It now
@@ -670,10 +715,9 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the third re-review's fixes are reviewed.** Four review rounds' findings are
-  fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation witness: the
-  independent review's six, the re-review's four, the second re-review's five and the third's two, plus their
-  optional items. Still based on `610d5777`; `origin/main` has moved, and
+- analyser — **NOT ready until the fourth re-review's fixes are reviewed.** Five review rounds' findings are
+  fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation witness. **CI's frame
+  job has never run on this branch**; a pull request is what would run it. Still based on `610d5777`; `origin/main` has moved, and
   the rebase comes after review, not under it. Not merged: the owner's call.
 
 Three release-note items stand, unchanged by this round: the producer findings are not in the report
