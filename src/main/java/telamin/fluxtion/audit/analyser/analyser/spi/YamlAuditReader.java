@@ -52,7 +52,7 @@ public final class YamlAuditReader implements AuditLogReader {
                 String text = new String(head, 0, n, StandardCharsets.UTF_8);
                 // A BOM-only file is empty too: isBlank() treats U+FEFF as a character, so a file
                 // holding nothing but a byte-order mark would otherwise be refused by every reader.
-                if (text.isBlank() || text.replace("﻿", "").isBlank()) {
+                if (telamin.fluxtion.audit.analyser.analyser.parse.AuditText.isBlankIgnoringBoms(text)) {
                     return hasAuditLogExtension(source);
                 }
                 return text.contains("eventLogRecord:");

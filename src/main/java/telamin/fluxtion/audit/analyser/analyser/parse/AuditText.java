@@ -25,7 +25,7 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
  * {@code ByteRecordFramer} necessarily keeps its own — it works on bytes, where the BOM is the sequence
  * {@code EF BB BF} — and says so at its own check.
  */
-final class AuditText {
+public final class AuditText {
 
     private AuditText() {
     }
@@ -38,9 +38,9 @@ final class AuditText {
      */
     static String strip(String s) {
         String t = asciiStrip(s);
-        if (!t.isEmpty() && t.charAt(0) == '﻿') {
-            t = asciiStrip(t.substring(1));
-        }
+        // EVERY leading mark (round 4 additions): `cat bom-only.yaml run.yaml` gives two, and removing one
+        // left the second to hide the record key and a `#` header — the framers already loop, this did not.
+        while (!t.isEmpty() && isBom(t.charAt(0))) t = asciiStrip(t.substring(1));
         return t;
     }
 
@@ -60,6 +60,18 @@ final class AuditText {
     /** True when this character is a byte-order mark. */
     static boolean isBom(char c) {
         return c == '﻿';
+    }
+
+    /**
+     * True when {@code s} holds nothing but whitespace and byte-order marks, wherever they sit. Used only
+     * where a reader decides whether there is anything to sniff at all ({@code YamlAuditReader}).
+     */
+    public static boolean isBlankIgnoringBoms(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (!isBom(c) && !Character.isWhitespace(c)) return false;
+        }
+        return true;
     }
 
     private static boolean isSpace(char c) {

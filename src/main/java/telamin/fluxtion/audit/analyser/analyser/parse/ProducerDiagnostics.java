@@ -304,7 +304,7 @@ public record ProducerDiagnostics(List<Finding> findings) {
     private static java.util.Optional<Finding> onlyControlEvents(LogIndex idx) {
         for (int row = 0; row < idx.size(); row++) {
             String event = idx.event(row);
-            if (event == null || !event.contains(CONTROL_EVENT)) return java.util.Optional.empty();
+            if (!isControlEvent(event)) return java.util.Optional.empty();
         }
         return java.util.Optional.of(new Finding(Kind.ONLY_CONTROL_EVENTS,
                 "Every record here is the framework's own " + CONTROL_EVENT + " — the log contains "
@@ -312,6 +312,18 @@ public record ProducerDiagnostics(List<Finding> findings) {
                         + "dispatches that event THROUGH the graph, so a sink attached before the level "
                         + "is set captures it. Set the level first (setAuditLogLevel then "
                         + "setAuditLogProcessor), or drop the control record in the sink."));
+    }
+
+    /**
+     * The framework's level-change event, matched on its simple class name EXACTLY: a fully-qualified
+     * name is accepted, a lookalike such as {@code FakeEventLogControlEventX} is not. The ONE predicate —
+     * {@code PerNodeLevelChanges} (MA-8) delegates here, so ONLY_CONTROL_EVENTS and coverage cannot
+     * disagree about which records are control records (phase 1 round 4, F4).
+     */
+    public static boolean isControlEvent(String event) {
+        if (event == null) return false;
+        int dot = event.lastIndexOf('.');
+        return (dot < 0 ? event : event.substring(dot + 1)).equals(CONTROL_EVENT);
     }
 
     private static int count(String text, int limit) {
