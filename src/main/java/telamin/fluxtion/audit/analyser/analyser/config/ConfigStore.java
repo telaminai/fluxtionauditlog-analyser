@@ -446,6 +446,9 @@ public final class ConfigStore {
             // whether a value holds between samples or slides. Only a declared style is written, so a
             // profile from before this round is unchanged and still reopens as stairs.
             put(p, "graph." + i + ".style", g.declaredStyle());
+            // M68.3: only a CLOSED chart writes this. Open is the default, so a profile gains no key until
+            // someone closes a chart, and a profile written before this round reopens everything as before.
+            if (!g.open()) p.setProperty("graph." + i + ".open", "false");
             // annotations: the reading of the chart, which is the part worth keeping
             put(p, "graph." + i + ".explanation", g.explanation().isBlank() ? null : g.explanation());
             List<GraphSpec.NoteSpec> notes = g.notes();
@@ -598,7 +601,8 @@ public final class ConfigStore {
                                 ? 0L : longOrNull(p.getProperty(k + ".ext.offset")), p.getProperty(k + ".resolve")));
             }
             out.add(new GraphSpec(name, series, exprs, from, to, note, explanation, notes, right,
-                    guides, bands, ext, mk, styleOrNull(p.getProperty("graph." + i + ".style"))));
+                    guides, bands, ext, mk, styleOrNull(p.getProperty("graph." + i + ".style")),
+                    !"false".equalsIgnoreCase(String.valueOf(p.getProperty("graph." + i + ".open")).trim())));
         }
     }
 

@@ -191,6 +191,9 @@ public final class MainFrame extends JFrame {
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
         graphTabs.setChangeListener(this::onGraphsEdited);
+        // M68.3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
+        // config before the change listener writes the merged list back
+        graphTabs.setDeleteListener(name -> config.savedGraphs.removeIf(g -> g.name().equals(name)));
         project.setPreSave(this::syncOpenGraphsIntoConfig);
         // M27.3: named focuses live in the config's project tier; save/recall/delete persist like graphs
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
@@ -4681,11 +4684,33 @@ public final class MainFrame extends JFrame {
         status.setText("Imported settings from " + file.getName());
     }
 
-    /** Capture the open graph tabs into {@code config.savedGraphs} (so a merge sees current state). */
+    /**
+     * Capture the open graph tabs into {@code config.savedGraphs} (so a merge sees current state).
+     *
+     * <p>M68.3: this MERGES. It used to clear the list and refill it from the open tabs, which made the
+     * profile's saved-chart list a mirror of what was open — so closing a tab silently deleted the chart's
+     * definition, notes and all. A chart that is no longer a tab is now kept and marked closed; only an
+     * explicit Delete removes it (see {@code GraphTabs.deleteCurrent}). Order follows the existing profile
+     * so charts do not shuffle on every save, with newly created ones appended.
+     */
     private void syncOpenGraphsIntoConfig() {
         if (store == null) return;   // no log → tabs are empty; config already holds the profile's graphs
+        java.util.LinkedHashMap<String, telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> open
+                = new java.util.LinkedHashMap<>();
+        for (var g : graphTabs.specs()) open.put(g.name(), g);
+
+        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> merged = new java.util.ArrayList<>();
+        java.util.Set<String> placed = new java.util.HashSet<>();
+        for (var existing : config.savedGraphs) {
+            var live = open.get(existing.name());
+            // an open tab wins (it is the live state); one that is no longer a tab is kept, marked closed
+            merged.add(live != null ? live.withOpen(true) : existing.withOpen(false));
+            placed.add(existing.name());
+        }
+        for (var g : open.values()) if (!placed.contains(g.name())) merged.add(g.withOpen(true));
+
         config.savedGraphs.clear();
-        config.savedGraphs.addAll(graphTabs.specs());
+        config.savedGraphs.addAll(merged);
     }
 
     /** Refresh every affected surface after an import merged into {@code config}. */

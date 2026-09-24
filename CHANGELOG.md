@@ -6,6 +6,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Closing a chart no longer deletes it.** Close now puts a chart away and keeps its definition — series,
+  formulas, right axis, explanation and pinned notes — so it stays listed in the Project panel and reopens
+  from there, and stays closed across a reload rather than reappearing. Previously the project's saved-chart
+  list mirrored the open tabs, so closing a tab silently and unrecoverably destroyed the chart and its
+  annotations.
+
+- **New: Delete chart**, beside Close on the Graph toolbar, for removing a chart's definition on purpose.
+  It names the chart, says what is lost, and asks first. Existing projects are unaffected: a chart that has
+  never been closed carries no new setting and opens exactly as before.
+
 - **Open on a Project-panel row now opens that row's thing.** Open on a saved report reveals *that*
   report instead of whichever one was already selected, and Open on a saved chart works at all — those
   rows previously carried no action, so the button did nothing. A chart that is saved but not currently

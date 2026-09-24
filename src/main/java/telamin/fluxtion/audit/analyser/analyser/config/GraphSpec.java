@@ -11,7 +11,7 @@ import java.util.List;
 public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                         String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
                         List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
-                        List<MarkerSpec> markers, String style) {
+                        List<MarkerSpec> markers, String style, boolean open) {
 
     /**
      * A blank style is no style: the reader omits the key and {@link #style()} answers the default, so a
@@ -21,13 +21,34 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
         style = style == null || style.isBlank() ? null : style.toLowerCase();
     }
 
+    /**
+     * The pre-M68.3 shape — {@code open} defaults TRUE, so a profile written before charts could be
+     * closed without being deleted still reopens every chart it lists, exactly as it did before.
+     */
+    public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
+                     String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
+                     List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
+                     List<MarkerSpec> markers, String style) {
+        this(name, series, exprs, from, to, note, explanation, notes, rightAxis, guides, bands,
+                external, markers, style, true);
+    }
+
     /** The pre-M68.2 shape (style not persisted — a chart's stairs/line/points choice was lost on reload). */
     public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                      String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
                      List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
                      List<MarkerSpec> markers) {
         this(name, series, exprs, from, to, note, explanation, notes, rightAxis, guides, bands,
-                external, markers, null);
+                external, markers, null, true);
+    }
+
+    /**
+     * The same chart, recorded as open or closed. Closing a chart must keep everything else about it —
+     * that is the whole point: the definition and its annotations outlive the tab.
+     */
+    public GraphSpec withOpen(boolean nowOpen) {
+        return new GraphSpec(name, series, exprs, from, to, note, explanation, notes, rightAxis,
+                guides, bands, external, markers, style, nowOpen);
     }
 
     /** The pre-M32.5 shape (no markers). */

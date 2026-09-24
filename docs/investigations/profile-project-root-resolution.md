@@ -198,7 +198,7 @@ chart**, not only deliberately styled ones, because `GraphTabs.specs()` always r
 never null. The value written is always the chart's actual style and nothing reads differently, so this
 is benign — but "existing profiles are untouched" holds only until the first save.
 
-## Closing a chart destroys it — found during the same session (NOT fixed here)
+## Closing a chart destroys it — found during the same session (FIXED, M68.3)
 
 Reported by the owner immediately after the checks: close a chart tab and the chart is gone for good,
 and its row vanishes from the Project panel's *Saved charts* section. Reproduced in the profile bytes —
@@ -231,7 +231,31 @@ while a log is loaded, because the two lists are kept identical.
   closing something, and the flag is already in the model — but it adds state that a hand-edited profile
   can contradict.
 
-Until this is fixed, closing a chart is destructive and there is no undo.
+### What was built (owner decision, 2026-09-24)
+
+The owner chose to **persist the open flag** and to land **Close and Delete together**, on the reasoning
+that without a Delete, charts could never be removed once Close stopped removing them.
+
+- `GraphSpec` gains `open`, defaulting **true**, with a `withOpen` copy. Every pre-M68.3 constructor
+  delegates with `true`, so no existing profile or caller changes behaviour.
+- `ConfigStore` writes `graph.N.open=false` **only for a closed chart**. An untouched profile gains no
+  key, and a missing key reads as open.
+- `syncOpenGraphsIntoConfig` now **merges** rather than clearing: an open tab wins as live state, a chart
+  that is no longer a tab is kept and marked closed, and order follows the existing profile so charts do
+  not shuffle on every save. This single change is what stops the data loss.
+- `GraphTabs.doRestore` skips charts marked closed, so closing one survives a reload instead of being
+  undone by it.
+- **Delete chart** is a new toolbar button beside Close. It confirms first, names the chart, and says what
+  is lost; it tells `MainFrame` to drop the definition before the change listener writes the merged list.
+  It is deliberately NOT on the Project panel: deleting is mutation, and D-L3's amendment covers revealing
+  an item, not destroying one.
+
+`ClosingAChartKeepsItsDefinitionTest` pins the behaviour at the level where the loss happened — the merge
+and the round trip, not the button: a closed chart survives with its explanation and pinned notes, open is
+the default for a legacy profile, only a closed chart writes the key, and `withOpen` changes nothing else
+about a chart. Suite: **1,891 tests, 0 failures, 62 skips**.
+
+Still unverified at a display: that the two toolbar buttons behave as described in a real window.
 
 ### A separate defect found while re-testing: the plot style was never saved
 
