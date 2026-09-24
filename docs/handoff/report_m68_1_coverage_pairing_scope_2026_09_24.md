@@ -25,6 +25,7 @@ command that checks it.
 | Every agent surface states the pairing's facts beside `applies` | `ui/MainFrame.java` — graph-open echo and `context.graphPairing` via `GraphPairing.facts()` | 2, 3 |
 | The panel note distinguishes fit, partial match and unjudged | `MainFrame.publishPairing` via `GraphPairing.note()` | 2, 3 |
 | The graph-open echo says how the authored count was decided | `MainFrame` — `authorshipBasis` | 1 |
+| **An exported PDF prints each table's notes, as the Reports tab does** — added after the report was first written, see below | `report/ReportRenderer.java` — `SectionContent.notes`, `tableNotes`; `MainFrame.renderReportPdf` | 2 (D-E2) |
 
 **One recorded decision, not an omission.** `EntryPointResolver.addSoleExportedService` still calls the node-only
 classifier. It only ever asks about exported-service vertices, where the declared fact is deliberately ignored,
@@ -48,14 +49,15 @@ python3 tools/verify-m68-1-coverage.py <path-to-pre-change-jar>
 
 | Check | Result on 2026-09-24 |
 |---|---|
-| Full suite | 1,894 tests, 0 failures, 0 errors, 62 skips. Was 1,877 before; the difference is the 17 new tests |
-| New tests | 17 pass: 12 coverage and classification, 4 policy, 1 entry-point equivalence |
+| Full suite | 1,895 tests, 0 failures, 0 errors, 62 skips. Was 1,877 before; the difference is the 18 new tests |
+| New tests | 18 pass: 12 coverage and classification, 4 policy, 1 entry-point equivalence, 1 renderer |
 | Mutation: ignore declared authorship | red, 4 tests |
 | Mutation: authored-only membership | red, 3 tests |
 | Mutation: derive membership from the ratio | red, 2 tests |
 | Mutation: let retention reach the downstream claim | red, 1 test |
+| Mutation: the PDF drops a table's notes again | red, 1 test |
 | End to end on the branch jar | every check passes |
-| End to end on the jar built from `main` at `296b5438` | **15 checks fail**, and the first scenario reproduces the client's exact warning: declared 2, covered 2, "the graphml is probably from a different build, which makes every other figure here suspect" |
+| End to end on a jar built from `main` | **17 checks fail**, and the first scenario reproduces the client's exact warning: declared 2, covered 2, "the graphml is probably from a different build, which makes every other figure here suspect". Two of the 17 are the exported-PDF checks added later |
 
 **The fixture is the real artefact.** Tests and the end-to-end script read the committed graph at
 `evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml` directly, not a copy. Every log is constructed and
@@ -79,12 +81,17 @@ check it had. Please confirm no substantive assertion was weakened:
 
 Stated so it is not read as verified by silence.
 
-- **Swing counts on screen.** `TopologyPanel.viewNote` and `cursorState` derive from `Scaffolding.authoredNodes`,
-  so they should follow. Nobody looked at the panel.
+- **Swing counts on screen — now looked at, partly.** Screenshots through the built jar's own `screenshot` verb,
+  under an isolated home, show the authored view going from **four nodes on `main` to five on the branch**, with
+  the sink node now visible, and the raw index reading eighteen on both. **Two limits:** the pairing note is cut
+  off by the panel's width at the default window size, so its on-screen text was not confirmed — it is the same
+  `GraphPairing.note()` the tests assert; and with one more node the fit zoom drops from 56% to 36%, below the
+  level at which node labels are drawn. That is existing rendering behaviour, but this change is what triggers it
+  on this graph.
 - **Audit readiness through the hide control.** Asserted over the full graph as a pure call. The panel is
   documented as passing the full topology; that path was read, not exercised.
-- **A report export.** The report tables share `CoverageService.Result` with the action echo by design. No export
-  was driven, and no rendered artefact was inspected.
+- **A report export — now driven, and it found a defect, fixed in this slice.** See *The exported PDF dropped the
+  warning* below.
 - **Older graphs.** The fallback is unit-tested with a missing key, an invalid value, an unsupported major and no
   vocabulary. No real pre-vocabulary graph file was run end to end.
 - **Whether `fluxtion.framework` is always correct.** It is believed under the trust policy and the recorded
@@ -100,14 +107,45 @@ Stated so it is not read as verified by silence.
   The eligible size appears on `coverage` as `declared`. Adding it to the open echo needs the source resolver the
   echo does not have, so it was left rather than faked.
 
+## The exported PDF dropped the warning — found by the implementer's own follow-up, fixed here
+
+Driving a real export was listed above as unverified, so it was done. A coverage table exported from a log that
+writes one undeclared id rendered **"declared 3 · covered 3" and no warning at all**, on `main` and on the branch
+alike. The **on-screen Reports tab, rendering the same report, did show the warning** as a note under the table.
+The PDF path routed the table's notes only into the reply's `warnings` for an agent and handed the page the bare
+table. One report, two verdicts, is D-E2's defect exactly, and acceptance 2 asks for the report path to be tested,
+so it is fixed in this slice rather than deferred.
+
+The fix makes the page follow the screen's existing rule for **every** table kind, not only coverage: whatever
+notes the tab prints under a table, the page prints under it too. Verified on the real artefact — the re-exported
+PDF now carries the membership warning, the exclusions note and the dispatch note — and guarded three ways: a
+renderer test, a fifth mutation, and a PDF scenario in the end-to-end script, which fails on `main`'s jar.
+
+**Reviewer, please check** that printing notes under every table kind is right. Read, aggregate and series tables
+can carry notes too, so their exported PDFs will now show text they did not show before. That is the same text
+the screen already showed, and nothing changes for a table with no notes.
+
 ## Found while testing, not fixed here
 
 **A combined open silently drops part of itself.** Opening a log and a graph together, where the graph declares
 only half the logged ids, reports success, and the graph is then no longer loaded. The end-to-end witness first
 used exactly that shape, saw no warning, and was investigated rather than trusted: coverage replied that no
-topology was loaded. It belongs to M68.4, whole-or-refused requests, and is recorded there. The mechanism is not
-established; the likeliest reading is that the log-arrival rule closes a graph that does not fit, overriding the
-graph-open rule that keeps one, when both arrive in one request.
+topology was loaded. It belongs to M68.4, whole-or-refused requests, and is recorded there.
+
+**Pre-existing, so it does not block this merge — checked after the report was first written.** The same probe
+was run against a jar built from `main` at `15a9d33a` and one built from this branch at `6c624bd1`, each under
+an isolated `user.home`, with a log writing one declared id and one foreign id:
+
+| Request | `main` | this branch |
+|---|---|---|
+| `open {log, graphml}` in one call | reply `ok`, then no graph loaded | identical |
+| `open {log}`, let it land, then `open {graphml}` | graph kept, `applies=false` | identical |
+
+So the defect is not introduced here, and its trigger is narrower than first written: **only the combined
+request drops the graph.** Opened separately, the existing rule keeps a deliberately opened graph and announces
+the mismatch. The likeliest mechanism is still that the log-arrival rule, which closes a graph that does not fit,
+runs after the graph-open in a combined request and treats a graph the caller just asked for as residue. That is
+read, not traced.
 
 **My own witness was wrong first.** The end-to-end script's wrong-result scenario initially planted a
 half-foreign log, which could never exercise the warning for the reason above. A witness that silently stops

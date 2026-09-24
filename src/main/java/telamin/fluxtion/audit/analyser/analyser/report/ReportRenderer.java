@@ -61,8 +61,18 @@ public final class ReportRenderer {
      * @param table     derived rows under a declared presentation (TABLE sections)
      */
     public record SectionContent(String heading, List<String> monoLines,
-                                 FindingReport.Picture picture, TableData table) {
+                                 FindingReport.Picture picture, TableData table, List<String> notes) {
         public static final SectionContent EMPTY = new SectionContent(null, null, null, null);
+
+        public SectionContent {
+            notes = notes == null ? List.of() : List.copyOf(notes);
+        }
+
+        /** A section with no notes — every caller before M68.1. */
+        public SectionContent(String heading, List<String> monoLines, FindingReport.Picture picture,
+                              TableData table) {
+            this(heading, monoLines, picture, table, List.of());
+        }
     }
 
     /**
@@ -164,6 +174,7 @@ public final class ReportRenderer {
             case TABLE -> {
                 if (body.table() != null) {
                     table(doc, c, body.heading() == null ? "Table" : body.heading(), body.table());
+                    tableNotes(doc, c, body.notes());
                 }
             }
         }
@@ -223,6 +234,26 @@ public final class ReportRenderer {
             c.y += 16;
         }
         c.y += 8;
+    }
+
+    /**
+     * M68.1 (D-E2): the notes the Reports tab shows under a table are shown under it on the page too. They
+     * used to travel only into the reply's warnings for an agent, so an exported coverage table could read
+     * "declared 3 · covered 3" with no sign that the log wrote an id the graph does not declare — while the
+     * on-screen tab, rendering the same report, said so. One report, two verdicts, is the defect.
+     */
+    private static void tableNotes(PdfDoc doc, Cursor c, List<String> notes) {
+        if (notes == null) return;
+        for (String note : notes) {
+            if (note == null || note.isBlank()) continue;
+            List<String> lines = PdfDoc.wrap(note, PdfDoc.Face.HELVETICA, 8f, CONTENT_W);
+            c.ensure(doc, lines.size() * 11 + 4);
+            for (String line : lines) {
+                doc.text(line, MARGIN, c.y + 9, PdfDoc.Face.HELVETICA, 8f, MUTED);
+                c.y += 11;
+            }
+            c.y += 4;
+        }
     }
 
     private static void tableHeader(PdfDoc doc, Cursor c, TableData t, float[] widths) {

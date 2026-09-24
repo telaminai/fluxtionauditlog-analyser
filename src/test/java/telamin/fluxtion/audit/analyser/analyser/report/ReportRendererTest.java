@@ -152,6 +152,27 @@ class ReportRendererTest {
     }
 
     @Test
+    void aTablesNotesAreOnThePageAsTheyAreOnScreen() {
+        // M68.1 (D-E2): the Reports tab renders a table's notes under it; the PDF used to route them only
+        // into the reply's warnings, so an exported coverage table said 3 of 3 while the log wrote an id the
+        // graph does not declare. The same report must say the same thing on both surfaces.
+        String warning = "MEMBERSHIP-NOTE-MARKER 1 node id(s) written in this log are not declared anywhere";
+        ReportSpec spec = spec(SectionSpec.table(Map.of("verb", "coverage"), List.of(), null, null));
+        ReportRenderer.TableData covered = new ReportRenderer.TableData(
+                List.of(new ColumnSpec("instance", "instance", "", "", "")),
+                List.of(List.of("checked")), new boolean[1], null, null, "declared 3 · covered 3", null);
+        String withNotes = body(ReportRenderer.render(spec, resolve(spec, Map.of()),
+                List.of(new ReportRenderer.SectionContent("Table", null, null, covered, List.of(warning))),
+                "demo.yaml", null));
+        assertTrue(withNotes.contains("MEMBERSHIP-NOTE-MARKER"), "the note is printed under its table");
+
+        String without = body(ReportRenderer.render(spec, resolve(spec, Map.of()),
+                List.of(new ReportRenderer.SectionContent("Table", null, null, covered)), "demo.yaml", null));
+        assertFalse(without.contains("MEMBERSHIP-NOTE-MARKER"),
+                "and the marker is not there by accident: the four-argument form carries no notes");
+    }
+
+    @Test
     void declaredFormatsAreApplied() {
         assertEquals("1.50", ReportRenderer.formatCell("1.5", "0.00"));
         assertEquals("1,250", ReportRenderer.formatCell("1250", "0"));

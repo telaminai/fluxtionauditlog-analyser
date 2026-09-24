@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M68.1 regression closure: each of the four corrections must be load-bearing ON ITS OWN.
+"""M68.1 regression closure: each of the five corrections must be load-bearing ON ITS OWN.
 
 Applies one mutation at a time to the source, runs the three M68.1 suites, records which tests go red, and
 restores the file — always, including on failure. A mutation that leaves the suite green means the suite does not
@@ -8,8 +8,8 @@ longer testing what it claims.
 
     python3 tools/mutate-m68-1.py
 
-Result on 2026-09-24: all four RED — ignore declared authorship (4 tests), authored-only membership (3), membership
-derived from the ratio (2), retention reaching the downstream claim (1).
+Result on 2026-09-24: all five RED — ignore declared authorship (4 tests), authored-only membership (3), membership
+derived from the ratio (2), retention reaching the downstream claim (1), the PDF dropping a table's notes (1).
 """
 import sys, subprocess, shutil, re, glob, os
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,8 +27,11 @@ MUT = {
  'M4 retention reaches a downstream claim': (B+'session/CoveragePolicy.java',
    'if (pairing != null && !pairing.evidenced()) {',
    'if (false && pairing != null && !pairing.evidenced()) {'),
+ 'M5 the PDF drops a table\'s notes again': (B+'report/ReportRenderer.java',
+   '                    tableNotes(doc, c, body.notes());',
+   '                    // tableNotes(doc, c, body.notes());'),
 }
-TESTS='EvidenceIntegrityCoverageTest,CoveragePolicyEvidenceTest,EntryPointAuthorshipTest'
+TESTS='EvidenceIntegrityCoverageTest,CoveragePolicyEvidenceTest,EntryPointAuthorshipTest,ReportRendererTest'
 env=dict(os.environ)   # uses your JAVA_HOME; Java 21 required
 for name,(f,old,new) in MUT.items():
     path=os.path.join(ROOT,f); orig=open(path).read()

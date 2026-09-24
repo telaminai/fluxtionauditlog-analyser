@@ -118,7 +118,7 @@ public final class CoverageService {
             echo.put("warning", outOfTopology.size() + " node id(s) written in this log are not declared "
                     + "anywhere in the graph (" + input.topology().nodeCount() + " declared nodes compared). "
                     + "Coverage figures above describe the graph, not those ids. Which artefact is right is "
-                    + "for the reader to decide: a name mismatch does not establish a build");
+                    + "for the reader to decide: a name mismatch does not establish a build.");
         }
 
         // Framework nodes leave the scored population by construction, and until now they left the

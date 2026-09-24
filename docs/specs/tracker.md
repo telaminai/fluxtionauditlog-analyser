@@ -545,18 +545,21 @@ verdict, which is owned jointly.
   pairing carries its scope as data plus `evidenced` / `everyObservedIdDeclared` / `sampled`; the policy no longer
   lets a kept-but-unjudged or partial pairing reach FULL; provenance wording removed from coverage, pairing and
   `Match.describe`. **Evidence:** 17 new tests (`EvidenceIntegrityCoverageTest`, `CoveragePolicyEvidenceTest`,
-  `EntryPointAuthorshipTest`); four existing wording assertions converted into guards that now *forbid* the build
-  conclusion; full suite 1,894 / 0 / 0 / 62 skips. **The four required mutations each turn the suite red alone**
-  (ignore declared authorship: 4 tests; authored-only membership: 3; membership derived from the ratio: 2;
-  retention reaching the claim: 1). **End to end:** `tools/verify-m68-1-coverage.py` drives the built jar through
-  `open` / `coverage` / `context` against the committed packet graph; it passes on the branch and **fails 15 checks
-  on the pre-change jar**, reproducing the client's exact warning text — the seen-red run.
-  **Not asserted, and said so:** the Swing counts (`TopologyPanel.viewNote`, `cursorState`) follow
-  `Scaffolding.authoredNodes` but were not checked on screen; audit readiness is asserted over the full graph but
-  not through the panel's hide control; the report path shares `CoverageService.Result` but no export was driven.
+  `EntryPointAuthorshipTest`, plus one renderer test); four existing wording assertions converted into guards that
+  now *forbid* the build conclusion; full suite 1,895 / 0 / 0 / 62 skips. **Five mutations each turn the suite red
+  alone** (ignore declared authorship: 4 tests; authored-only membership: 3; membership derived from the ratio: 2;
+  retention reaching the claim: 1; the PDF dropping a table's notes: 1). **End to end:** `tools/verify-m68-1-coverage.py` drives the built jar through
+  `open` / `coverage` / `context` against the committed packet graph; it passes on the branch and **fails 17 checks
+  on a jar built from `main`**, reproducing the client's exact warning text — the seen-red run. **Also fixed here, found by
+  driving a real export:** the exported PDF dropped coverage's warning while the on-screen Reports tab showed it; the
+  page now prints each table's notes as the tab does.
+  **Not asserted, and said so:** the pairing note on screen, which the panel's width cuts off at the default
+  window size (the authored-view count *was* checked by screenshot: four nodes on `main`, five here); audit
+  readiness through the panel's hide control.
   **Found while testing, belongs to M68.4:** `open {log, graphml}` with a graph that declares only half the logged
   ids reports success and the graph is then no longer loaded — a combined request that silently drops part of
-  itself. Reproduced end to end; mechanism not established; not fixed here.
+  itself. Reproduced end to end, and **pre-existing**: identical on a jar built from `main`, and only the combined
+  request drops the graph — opened separately, the graph is kept and announced. Not fixed here.
 - [M68.2] ☐ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
   data is contradicted by a successful series response over the same inputs; acceptance is by inspecting the
   artefact, not by exit status.

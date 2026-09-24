@@ -1360,8 +1360,9 @@ public final class MainFrame extends JFrame {
                     var assembled = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
                             .assembleTable(s, store, this::coverageForReport);
                     warnings.addAll(assembled.notes());
+                    // M68.1 (D-E2): and onto the page, under the table, as the Reports tab already shows them
                     yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                            "Table", null, null, assembled.table());
+                            "Table", null, null, assembled.table(), assembled.notes());
                 }
                 case NARRATIVE ->
                         telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent.EMPTY;

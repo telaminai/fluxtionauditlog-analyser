@@ -80,6 +80,11 @@ def main():
     Analyser = import_module("verify-m46-agent-api").Analyser
     home = tempfile.mkdtemp(prefix="m68-1-home-")
     work = tempfile.mkdtemp(prefix="m68-1-logs-")
+    exchange = tempfile.mkdtemp(prefix="m68-1-exchange-")
+    # the report export needs assistant file exchange; enabled only inside this isolated home
+    os.makedirs(os.path.join(home, ".fluxtion-analyser"), exist_ok=True)
+    with open(os.path.join(home, ".fluxtion-analyser", "config"), "w") as cfg:
+        cfg.write(f"assistant.exports=true\nassistant.exportDir={exchange}\n")
     try:
         with Analyser(jars[0], home, "m68-1") as a:
             print("1. the packet graph with its three declared authored nodes")
@@ -138,9 +143,20 @@ def main():
             check("it names the foreign id", "notInTheGraph" in str(cov.get("loggedButNotInTopology")), cov)
             check("it states the fact without a build conclusion",
                   "build" not in str(cov.get("warning")).lower().replace("does not establish a build", ""), cov)
+
+            print("5. the exported PDF says what the screen says (D-E2)")
+            pdf = os.path.join(exchange, "m68-1-partial.pdf")
+            reply = a.act("report", name="m68-1-partial", title="M68.1 verification",
+                          sections=[{"kind": "table", "call": {"verb": "coverage"}}], path=pdf)
+            check("the report exported", reply.get("ok") is True and os.path.exists(pdf), reply)
+            text = open(pdf, "rb").read().decode("latin-1") if os.path.exists(pdf) else ""
+            check("the page carries the membership warning", "not declared anywhere in the graph" in text,
+                  "the warning reached the agent reply but not the page")
+            check("the page carries the honest figures", "declared 3" in text and "covered 3" in text, text[:200])
     finally:
         shutil.rmtree(work, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)
+        shutil.rmtree(exchange, ignore_errors=True)
 
     print()
     if FAILED:
