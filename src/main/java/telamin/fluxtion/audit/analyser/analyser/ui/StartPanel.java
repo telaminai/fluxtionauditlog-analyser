@@ -49,11 +49,11 @@ public final class StartPanel extends JPanel {
         /** Bring a tab forward — the page hands over, it does not drive. */
         void showTab(String name);
 
-        /** The ordinary File ▸ Open, for someone who arrived with their own log. */
+        /** The ordinary Audit log ▸ Open, for someone who arrived with their own log. */
         void openOwnLog();
 
         /**
-         * File ▸ Settings. Reachable from here because the first-run modal that used to DEMAND it was
+         * Project ▸ Settings. Reachable from here because the first-run modal that used to DEMAND it was
          * removed: discoverability was the one thing that gate bought, and it is cheaper to offer than
          * to insist.
          */

@@ -185,6 +185,41 @@ CASES += [
 ]
 
 
+# Resource-menu controls share the existing baseline / named-failure / byte-restore protocol.
+CASES.extend([
+    ('menu-layout', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     'JMenu projectMenu = new JMenu("Project");', 'JMenu projectMenu = new JMenu("File");',
+     'MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions'),
+    ('menu-source-page', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     'this::readerSummaries, page));', 'this::readerSummaries));',
+     'MenuLayoutFrameTest#sourceShortcutsOpenTheNamedSettingsPage'),
+    ('menu-close-log', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     '            closeLog(); });', '            /* drop the human close action */ });',
+     'MenuLayoutFrameTest#closeLogFromItsMenuPreservesTheProjectAndSavedChart'),
+])
+
+
+CASES.extend([
+    ('menu-exit', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     '        projectMenu.add(exit);', '', 'MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions'),
+    ('menu-close-graph-item', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     '        sources.add(closeGraphItem);', '', 'MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions'),
+    ('menu-reset-item', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     '        projectMenu.add(resetItem);', '', 'MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions'),
+    ('menu-recent-log', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     '        audit.add(recentMenu);', '', 'MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions'),
+    ('menu-reset-human', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     'resetItem.addActionListener(e -> { sessionInteractive = true;', 'resetItem.addActionListener(e -> {',
+     'MenuLayoutFrameTest#closeBothFromItsMenuKeepsProjectAndCharts'),
+    ('menu-reset-topology', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     '            resetAll(); });', '            closeLog(); });',
+     'MenuLayoutFrameTest#closeBothFromItsMenuKeepsProjectAndCharts'),
+    ('menu-help-s3', 'src/main/resources/help/help.html',
+     'Audit log → Open log from S3…', 'Audit log → Open from S3…',
+     'MenuDocumentationTest#documentedPathsNameExistingItems'),
+])
+
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')

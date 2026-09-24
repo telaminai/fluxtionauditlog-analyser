@@ -96,7 +96,7 @@ and each **×** is a discrete breach event — a different fact entirely, which 
 ## External series — plotting what the outside world did
 
 The analyser never learns a foreign format: you (or an agent) adapt a FIX log, GC log or venue export
-into a `(timestamp, value)` CSV, and *File ▸ Add series from CSV…* plots it beside the audit-derived
+into a `(timestamp, value)` CSV, and *Audit log ▸ Add series from CSV…* plots it beside the audit-derived
 series. The dialog asks for the time/value **columns**, the **time format** and the **IANA zone** —
 declared, never guessed, because a silently mis-read clock turns "the venue messaged us, then our book
 moved" into its reverse. An optional **offset** applies a deliberate clock correction, always shown.

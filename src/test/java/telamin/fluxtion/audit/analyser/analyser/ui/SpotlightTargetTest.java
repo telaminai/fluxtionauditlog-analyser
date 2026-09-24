@@ -60,7 +60,7 @@ class SpotlightTargetTest {
             "graph:Series A", "graph:Notes on spread:note:2", "graph:Series A:series:x", "graph:note",
             "project", "project:log", "project:graph", "project:processors", "project:roots",
             "toolbar:open", "toolbar:flag", "toolbar:explain", "toolbar:follow",
-            "menu:File", "menu:File:Open log…", "status"})
+            "menu:Audit log", "menu:Audit log:Open log…", "status"})
     void everyVocabularyEntryLightsWhenItsTargetIsVisible(String name) {
         FakeSurface surface = new FakeSurface();
         surface.where.put(name, new Rectangle(10, 20, 100, 30));
@@ -171,12 +171,12 @@ class SpotlightTargetTest {
 
     @Test
     void aMenuTargetNamesTheMenu_andOptionallyOneItem_M64_11() {
-        SpotlightTarget menu = SpotlightTarget.parse("menu:File").target();
+        SpotlightTarget menu = SpotlightTarget.parse("menu:Audit log").target();
         assertEquals(SpotlightTarget.Family.MENU, menu.family());
-        assertEquals("File", menu.menuName());
-        SpotlightTarget item = SpotlightTarget.parse("menu:File:New project from template…").target();
+        assertEquals("Audit log", menu.menuName());
+        SpotlightTarget item = SpotlightTarget.parse("menu:Project:New project from template…").target();
         assertEquals(SpotlightTarget.Family.MENU_ITEM, item.family());
-        assertEquals("File", item.menuName());
+        assertEquals("Project", item.menuName());
         assertEquals("New project from template…", item.menuItem());
         assertEquals(SpotlightTarget.Family.MENU_ITEM, SpotlightTarget.parse("menu:AI:Connect an AI client…").target().family());
         assertFalse(SpotlightTarget.parse("menu:").ok());

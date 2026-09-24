@@ -297,7 +297,7 @@ class ProjectModelTest {
         List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.ANALYSES).rows();
         assertEquals(1, rows.size());
         assertEquals("spread breach", rows.get(0).primary());
-        assertEquals("every breach starts the same way · 3 steps · needs [log] · File ▸ Run analysis", rows.get(0).secondary());
+        assertEquals("every breach starts the same way · 3 steps · needs [log] · Project ▸ Run analysis", rows.get(0).secondary());
         assertEquals(ProjectModel.Target.NONE, rows.get(0).target(), "D-L3: the panel states the offer; recall lives in the menu and the verb");
         assertEquals("No saved analyses", ProjectModel.from(null).section(ProjectModel.ANALYSES).rows().get(0).primary());
     }

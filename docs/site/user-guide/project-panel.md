@@ -16,10 +16,10 @@ It shows what is available even before a log is opened.
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root — *Open* opens it in the Source tab; when it was not found there is no *Open*, and **Add source** opens Settings ▸ Source roots | *project* / *own settings* / *discovered under a root* |
 | **Source roots** | each root with its **stored form** — *project-relative*, *workspace-relative*, *~*, *absolute*; under a project, *absolute* and *~* are a warning that the profile will not resolve on a colleague's machine — and the workspace anchor if declared | *project* / *own settings* / *demo (transient)* |
 | **Saved charts** | named chart definitions, including those waiting for input; an open chart still needs its data bindings checked | *saved* / *open* |
-| **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *File ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
+| **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *Project ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
 | **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
 
-An empty section is a sentence, not a blank — *"No graph — File ▸ Open topology, or a reader may
+An empty section is a sentence, not a blank — *"No graph — Sources ▸ Open GraphML…, or a reader may
 supply one with its log"* — so you never have to go elsewhere to learn why it is empty.
 
 ## What it will and will not do

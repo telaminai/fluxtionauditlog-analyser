@@ -69,13 +69,13 @@ java -jar target/fluxtion-auditlog-analyser-*.jar [optional-log-file]
 
 ## Opening a log
 
-- **File ▸ Open log…**, or drag a log file onto the window.
-- **File ▸ Open from S3…** for `s3://bucket/key` (uses your local `aws` CLI credentials).
+- **Audit log ▸ Open log…**, or drag a log file onto the window.
+- **Audit log ▸ Open log from S3…** for `s3://bucket/key` (uses your local `aws` CLI credentials).
 - Pass a path (local or `s3://…`) as the first command-line argument.
 
 **First run:** the **start page** opens — no configuration dialog appears. It offers a demo set that
 ships in the jar, so you can be looking at real records in one click, and it links to *Connect an AI
 client* when you want an LLM driving the analyser. Point it at your own source roots and event processor
-whenever you like, from **File ▸ Settings** or a project profile — see
+whenever you like, from **Project ▸ Settings** or a project profile — see
 [Getting started](getting-started.md). No log yet? Grab the
 [sample audit log](assets/sample-audit-log.yaml).

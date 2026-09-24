@@ -32,7 +32,7 @@ event, the callback, the thread and a node-count.
 
 ## Flagging & focus
 
-Flagging turns the log into a working set of findings. Press **F** (or *Records ▸ Flag / unflag*, or
+Flagging turns the log into a working set of findings. Press **F** (or *Records ▸ Flag / unflag selected (F)*, or
 right-click ▸ *Flag*) to bookmark the selected rows — flagged rows are **tinted** so they stand out in
 context.
 

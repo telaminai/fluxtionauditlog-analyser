@@ -8,7 +8,7 @@ import java.nio.file.Path;
  * Verb-initiated writes are <b>opt-in</b> (Settings ▸ Assistant ▸ "Allow assistant file exchange"
  * — one opt-in covers writes AND M29's external reads, deliberately) and <b>confined</b>
  * to one user-chosen exchange directory; existing files are never overwritten. Human-driven exports
- * (File ▸ choosers) are not routed through here — a person picking a location in a dialog <i>is</i> the
+ * (menu choosers) are not routed through here — a person picking a location in a dialog <i>is</i> the
  * authorisation; this guard exists for the path where no person is in the loop.
  *
  * <p>Pure and headless: resolution + policy only, no UI. The FAQ's security answer states this contract;

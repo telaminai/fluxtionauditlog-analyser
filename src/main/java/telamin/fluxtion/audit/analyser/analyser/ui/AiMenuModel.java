@@ -37,7 +37,7 @@ public final class AiMenuModel {
     public static Item pointers(boolean hasProject) {
         return hasProject
                 ? new Item(true, "Pointers stored in this project's profile — locations only, never contents")
-                : new Item(false, "Needs an open project — File ▸ Open project");
+                : new Item(false, "Needs an open project — Project ▸ Open project");
     }
 
     /** Show exchange directory — needs the exchange to be on AND to have somewhere to point. */

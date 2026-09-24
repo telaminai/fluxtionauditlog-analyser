@@ -99,7 +99,7 @@ eventLogRecord:
 
 That is the whole contract: `thermostat` is the name the graph gave the node, and `sensor`, `celsius`
 and `heating` are the keys it logged — so in the analyser you filter on `thermostat` and plot
-`thermostat.celsius` over time. Open the file with **File ▸ Open log…**, or drag it onto the window.
+`thermostat.celsius` over time. Open the file with **Audit log ▸ Open log…**, or drag it onto the window.
 
 !!! success "The analyser will tell you before you even run it"
     Open your processor's `.graphml` and the analyser reads whether audit logging was installed at

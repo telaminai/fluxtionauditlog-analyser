@@ -22,7 +22,7 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
 import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.render;
 
 /**
- * {@code screenshot {scope: "menu:File"}} opens the menu for a native capture — and says WHERE each item is,
+ * {@code screenshot {scope: "menu:Project"}} opens the menu for a native capture — and says WHERE each item is,
  * relative to the window it reports, so a caller can point at "New project from template…" rather than describe
  * it. The docs harness rings that item in the tutorial from these numbers; a wrong rectangle would publish an
  * arrow pointing at the wrong command.
@@ -44,7 +44,7 @@ class MenuScreenshotFrameTest {
                 f.frame.validate();
             });
             AtomicReference<Map<String, Object>> shot = new AtomicReference<>();
-            onEdt(() -> shot.set(render(f.ex, "screenshot", Map.of("path", exchange.resolve("menu.png").toString(), "scope", "menu:File"))));
+            onEdt(() -> shot.set(render(f.ex, "screenshot", Map.of("path", exchange.resolve("menu.png").toString(), "scope", "menu:Project"))));
             try {
                 List<Map<String, Object>> items = (List<Map<String, Object>>) find(shot.get(), "menuItems");
                 Map<String, Object> window = (Map<String, Object>) find(shot.get(), "windowBounds");
