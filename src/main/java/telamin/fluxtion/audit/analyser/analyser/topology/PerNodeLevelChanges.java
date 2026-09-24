@@ -338,9 +338,10 @@ public final class PerNodeLevelChanges {
             case NO -> throw new IllegalStateException("an inapplicable change never reaches a sentence");
         }
         // Never "this processor's records": RR-3 reads records that share a grouping as one stream, and nothing
-        // in a record establishes that they came from one processor (S2 — checked on every branch).
+        // in a record establishes that they came from one processor (S2). Checked on every branch of this sentence
+        // and of closing() by ControlAddressAndScopeTest.noBranchOfTheSentencePresumesAProcessor, the full matrix.
         String scope = declared ? "the records sharing its grouping" : "the records that, like it, state no grouping";
-        s.append(next == null ? ". Nothing later in " + scope + " changes it" : ". " + closing(nodeId, next));
+        s.append(next == null ? ". Nothing later in " + scope + " changes it" : ". " + closing(nodeId, c, next));
         String lines = nodeId + "'s lines below " + c.level() + " are not in this log";
         if (boundary == null) {
             s.append(premises.isEmpty() ? ", so " + lines
@@ -352,8 +353,10 @@ public final class PerNodeLevelChanges {
             if (firstInView < boundary) {
                 // RR-4: definite only within the run the change was made in; conditional after the marker.
                 // Third re-review O-C: "that run" had no antecedent — the marker is only introduced after this.
-                s.append(premises.isEmpty() ? ", so within the run it was made in " + lines
-                        : ". Within the run it was made in, if " + all(premises) + ", " + lines);
+                // Fourth re-review O-1: "the run it was made in" followed the closing clause, so "it" could read as
+                // the closing change, made in the LATER run. Name the boundary instead.
+                s.append(premises.isEmpty() ? ", so before the marker " + lines
+                        : ". Before the marker, if " + all(premises) + ", " + lines);
                 s.append(". ").append(capitalise(marker)).append(" begins a later run, and the log does not say ")
                         .append("whether the level survived into it: for the records in view from record ")
                         .append(boundary + 1).append(" on, those lines are absent only if ").append(all(later));
@@ -374,15 +377,30 @@ public final class PerNodeLevelChanges {
      * no-node reading asserted as fact. The window still ends at such a change: that only withholds annotations
      * after it, the conservative direction. What the sentence must not do is say why as if it were known.
      */
-    private static String closing(String nodeId, Change next) {
-        if (next.sourceId() != null) return "It holds until " + at(next) + " sets it to " + next.level();
+    private static String closing(String nodeId, Change c, Change next) {
+        // Fourth re-review R-B: did the CLOSING change apply? With a declared context, yes: it shares c's context
+        // and affects the node, so it is YES. With an absent context it is as open as c was — and it is not
+        // implied by c having applied only when their groupIds differ: c addressed to 'alpha' applied under a null
+        // or 'alpha' grouping, and under 'alpha' a change addressed elsewhere (or to no grouping) did not. Derived
+        // from the runtime's rule (grouping null or equal), not taken on trust; see P9.
+        boolean closeOpen = !c.context().declared() && c.groupId() != null && !c.groupId().equals(next.groupId());
+        String addressed = next.groupId() == null ? "no processor grouping" : "processor grouping '" + next.groupId() + "'";
+        String open = "; whether that applied here is not established either";
+        if (next.sourceId() != null) {
+            return closeOpen
+                    ? "It holds until " + at(next) + ", which records a change to " + next.level() + " addressed to "
+                    + addressed + open
+                    : "It holds until " + at(next) + " sets it to " + next.level();
+        }
         if ("null".equals(nodeId)) {
             return "It holds until " + at(next) + " records a change to " + next.level() + " that names no node or "
-                    + "this node, which is named \"null\" — either way it ends here";
+                    + "this node, which is named \"null\" — "
+                    + (closeOpen ? "either way it would end here if it applied, addressed as it was to " + addressed + open
+                    : "either way it ends here");
         }
         return "It holds until " + at(next) + ", which records a change to " + next.level() + " that names no node — "
                 + "or a node literally called \"null\"; the log renders both identically, and only the first would "
-                + "end it there";
+                + "end it there" + (closeOpen ? ", if it applied — it was addressed to " + addressed + open : "");
     }
 
     /** "a", "a and b", "a, b and c" — one condition, every premise in it. */

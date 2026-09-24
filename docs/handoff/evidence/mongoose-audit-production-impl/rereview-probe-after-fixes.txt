@@ -1,3 +1,4 @@
+# Filtered with grep -v '^updating event log config': the runtime's own stdout lines are removed; every other line is verbatim (header added in the fourth re-review round, O-3).
 before invalid append: COMPLETE identities=1
 invalid append throws MalformedInputException
 after invalid append: UNKNOWN pending=0 identities=0

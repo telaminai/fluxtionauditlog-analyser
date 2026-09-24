@@ -4301,8 +4301,9 @@ public final class MainFrame extends JFrame {
             // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
             // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on
             // EVERY tick, so the fault never reached context's producer list or the tooltip — only this one
-            // status line. Refresh them here too — keyed on the source DAMAGE having changed (third re-review
-            // O-B), because after the first failure nothing moves and a rebuild every second is pure cost.
+            // status line. Refresh them here too — but only when the current findings do not already carry the
+            // damage (third re-review O-B; wording corrected in the fourth, O-2), because after the first failure
+            // nothing moves and a rebuild every second is pure cost.
             refreshFollowDiagnostics(store.streamEnd(), 0, true);
             return;
         }

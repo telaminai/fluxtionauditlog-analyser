@@ -158,7 +158,7 @@ class ControlAddressAndScopeTest {
                 "S2: one condition, both premises: " + note);
         assertFalse(note.contains("If it survived the marker, riskMonitor's"),
                 "S2: survival alone is never enough while applicability is not established: " + note);
-        assertFalse(note.contains("this processor's"), "S2: no processor is presumed: " + note);
+        assertFalse(note.contains("this processor"), "S2: no processor is presumed: " + note);
         assertTrue(note.contains("the records that, like it, state no grouping"), note);
     }
 
@@ -167,7 +167,7 @@ class ControlAddressAndScopeTest {
         var change = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
         String log = control(1, ABSENT, change) + row(2, ABSENT) + MARKER_1 + row(3, ABSENT) + MARKER_1;
         String note = annotate(log, "riskMonitor", 1, 2);
-        assertTrue(note.contains("Within the run it was made in, if it applied here, riskMonitor's lines below WARN are not in this log"),
+        assertTrue(note.contains("Before the marker, if it applied here, riskMonitor's lines below WARN are not in this log"),
                 "S2: even within the run the claim waits on applicability: " + note);
         assertTrue(note.contains("those lines are absent only if it applied here and it survived the marker"),
                 "S2: after the marker, both premises: " + note);
@@ -215,6 +215,86 @@ class ControlAddressAndScopeTest {
         assertFalse(note.contains("otherwise this change explains nothing here"), "O-A: the otherwise was false: " + note);
         assertTrue(note.contains("either way it sets this node"), note);
         assertTrue(note.contains("so null's lines below WARN are not in this log"), "O-A: a definite conclusion: " + note);
+
+        // Fourth re-review R-A: the CLOSING branch for that node. An INFO change rendered sourceId=null sets this node
+        // under both readings, so it ends the window either way — "only the first would end it" would be false.
+        var closeNull = new EventLogControlEvent(null, null, LogLevel.INFO);
+        String closed = annotate(control(1, "null", change) + row(2, "null") + control(3, "null", closeNull) + row(4, "null"),
+                "null", 1);
+        assertNotNull(closed, "record 2 is inside the window");
+        assertTrue(closed.contains("either way it ends here"), "R-A: both readings end it: " + closed);
+        assertFalse(closed.contains("only the first would end it"), "R-A: the one-reading clause is false here: " + closed);
+    }
+
+    /**
+     * Fourth re-review R-B. With no grouping declared, a closing change addressed to a DIFFERENT grouping than the
+     * change it closes is not shown to have applied: if the processor was grouped 'alpha', a change to 'beta' did
+     * nothing. The window still closes there — the conservative direction — but the clause must not say it "sets it".
+     */
+    @Test
+    void aClosingChangeWhoseApplyingIsOpenSaysSo() {
+        var warnAlpha = new EventLogControlEvent("riskMonitor", "alpha", LogLevel.WARN);
+        var infoBeta = new EventLogControlEvent("riskMonitor", "beta", LogLevel.INFO);
+        String note = annotate(control(1, ABSENT, warnAlpha) + row(2, ABSENT) + control(3, ABSENT, infoBeta) + row(4, ABSENT),
+                "riskMonitor", 1);
+        assertNotNull(note);
+        assertFalse(note.contains("sets it to INFO"), "R-B: that the closing change applied is not established: " + note);
+        assertTrue(note.contains("addressed to processor grouping 'beta'; whether that applied here is not established either"),
+                "R-B: disclosed: " + note);
+        // …and where it IS established — the same groupId — the clause stays definite
+        var infoAlpha = new EventLogControlEvent("riskMonitor", "alpha", LogLevel.INFO);
+        String same = annotate(control(1, ABSENT, warnAlpha) + row(2, ABSENT) + control(3, ABSENT, infoAlpha) + row(4, ABSENT),
+                "riskMonitor", 1);
+        assertTrue(same.contains("sets it to INFO"), "positive control: same grouping, so if c applied, so did this: " + same);
+    }
+
+    /**
+     * Fourth re-review R-C: "never this processor's" is checked on EVERY branch of the sentence, not only the ones a
+     * test happened to reach. The whole matrix the reviewers probed: source × grouping × boundary × closing, plus a
+     * node literally named "null". Counts its annotations, so it cannot pass by annotating nothing.
+     */
+    @Test
+    void noBranchOfTheSentencePresumesAProcessor() {
+        record G(String recordGrouping, String gid) { }
+        java.util.List<G> groupings = java.util.List.of(new G("null", null), new G(ABSENT, null),
+                new G("alpha", "alpha"), new G(ABSENT, "alpha"));
+        int notes = 0;
+        java.util.List<String> offenders = new java.util.ArrayList<>();
+        for (String node : new String[]{"riskMonitor", "null"}) {
+            for (boolean nullSource : new boolean[]{false, true}) {
+                if ("null".equals(node) && !nullSource) continue;           // a per-node change to "null" is the same case
+                for (G g : groupings) {
+                    for (String boundary : new String[]{"none", "spanning", "whollyAfter"}) {
+                        for (String closing : new String[]{"none", "perNode", "null"}) {
+                            var open = new EventLogControlEvent(nullSource ? null : node, g.gid(), LogLevel.WARN);
+                            String close = switch (closing) {
+                                case "perNode" -> control(90, g.recordGrouping(), new EventLogControlEvent(node, g.gid(), LogLevel.INFO));
+                                case "null" -> control(90, g.recordGrouping(), new EventLogControlEvent(null, g.gid(), LogLevel.INFO));
+                                default -> "";
+                            };
+                            String log;
+                            int[] view;
+                            switch (boundary) {
+                                case "spanning" -> { log = control(1, g.recordGrouping(), open) + row(2, g.recordGrouping()) + MARKER_1
+                                        + row(3, g.recordGrouping()) + close + row(95, g.recordGrouping()); view = new int[]{1, 2}; }
+                                case "whollyAfter" -> { log = control(1, g.recordGrouping(), open) + MARKER_1 + row(2, g.recordGrouping())
+                                        + close + row(95, g.recordGrouping()); view = new int[]{1}; }
+                                default -> { log = control(1, g.recordGrouping(), open) + row(2, g.recordGrouping()) + close
+                                        + row(95, g.recordGrouping()); view = new int[]{1}; }
+                            }
+                            String note = annotate(log, node, view);
+                            if (note == null) continue;
+                            notes++;
+                            if (note.contains("this processor")) {
+                                offenders.add(node + "/" + (nullSource ? "null" : "perNode") + "/" + g + "/" + boundary + "/" + closing);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assertTrue(notes >= 60, "the matrix must actually produce annotations to check: " + notes);
+        assertEquals(java.util.List.of(), offenders, "R-C: a branch of the sentence presumes a processor");
     }
 
     // ------------------------------------------------------------------ RR-3: which processor

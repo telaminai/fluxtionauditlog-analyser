@@ -1,3 +1,4 @@
+# Filtered with grep -v '^updating event log config': the runtime's own stdout lines are removed; every other line is verbatim (header added in the fourth re-review round, O-3).
 runtime after per-node WARN canLogINFO=false
 runtime after global INFO canLogINFO=true
 healthy binary through SPI count=1 end=StreamEnd[state=UNKNOWN, declaredRecords=-1, emittedRecords=1, segment=null, member=null, runs=[]] findings=[]

@@ -551,7 +551,7 @@ class CoveragePerNodeLevelTest {
         String node = anUncoveredNode(assess(plainRecord(1000)));
         String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
         String spanning = annotations(assess(seq, true, window(1001, 2000))).get(node);
-        assertTrue(spanning.contains("so within the run it was made in " + node + "'s lines below WARN are not in this log"),
+        assertTrue(spanning.contains("so before the marker " + node + "'s lines below WARN are not in this log"),
                 "definite within the run the change was made in: " + spanning);
         assertTrue(spanning.contains("from record 3 on, those lines are absent only if it survived the marker"),
                 "conditional after the boundary: " + spanning);
