@@ -12,13 +12,13 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * M68.2 — Open on a Project-panel row reveals THAT row's item.
+ * 35eeb320 — Open on a Project-panel row reveals THAT row's item.
  *
  * <p>The gap this closes was named in {@code docs/investigations/profile-project-root-resolution.md}:
  * {@code ProjectPanelIsRevealOnlyTest} covers the panel structurally (bytecode, Navigator shape) and the
  * python harnesses drive verbs over the action socket, so nothing clicked a row's button and asserted
  * which navigation resulted. Both reported defects lived precisely in that gap — Open on any report
- * revealed whichever report was already selected, and Open on a saved chart was wired to nothing.
+ * revealed whichever report was already selected, while saved charts had no Open button before the navigation amendment.
  *
  * <p>So these assertions are on the BUTTON, deliberately. A test of the model alone ("does the row carry
  * the right target?") passes while the panel drops the identity on the way to the Navigator, which is the
@@ -81,7 +81,7 @@ class ProjectPanelOpenRevealsTheRowsItemTest {
             openIn(panel, "Tick rate").doClick();
             assertEquals(List.of("showGraph:Tick rate"), nav.calls,
                     "a saved chart that is not open must still be openable from its row — these rows carried "
-                            + "Target.NONE, so the button the person clicked was wired to nothing");
+                            + "Target.NONE, so no Open button was rendered");
         });
     }
 
@@ -111,7 +111,7 @@ class ProjectPanelOpenRevealsTheRowsItemTest {
 
         for (ProjectModel.Row r : rowsOf(ProjectModel.from(context()), ProjectModel.SAVED_GRAPHS)) {
             assertEquals(ProjectModel.Target.CHART, r.target(),
-                    "a saved chart row must offer an action; Target.NONE is why its Open did nothing");
+                    "a saved chart row must offer an action; Target.NONE previously provided no Open action");
             assertNotNull(r.item(), "and it must say which chart");
         }
     }

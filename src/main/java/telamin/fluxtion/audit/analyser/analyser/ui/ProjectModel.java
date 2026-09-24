@@ -24,13 +24,13 @@ public record ProjectModel(List<Section> sections) {
      *
      * <p>{@code item} is the row's IDENTITY where the thing has one the app can address — a report's name, a
      * saved chart's name. It is not the label: a report row shows its TITLE, and {@code ReportsPanel.select}
-     * matches on the name, so revealing the row the person clicked needs the two kept apart (M68.2). Null
+     * matches on the name, so revealing the row the person clicked needs the two kept apart (35eeb320). Null
      * for every row whose target is a tab or a settings page rather than a thing.
      */
     public record Row(String primary, String secondary, String path, String provenance, Tone tone,
                       Target target, String item) {
 
-        /** A row that names no addressable item — the shape every pre-M68.2 caller uses. */
+        /** A row that names no addressable item — the shape every pre-35eeb320 caller uses. */
         public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) {
             this(primary, secondary, path, provenance, tone, target, null);
         }
@@ -52,7 +52,7 @@ public record ProjectModel(List<Section> sections) {
         /** A pointed-at file a PERSON may read in the app (runbook, glossary): a read-only viewer — never executed, never served to an agent. */
         VIEW_FILE,
         /**
-         * A saved chart, revealed by name in the Graphs tab (M68.2). Before this these rows were
+         * A saved chart, revealed by name in the Graphs tab (35eeb320). Before this these rows were
          * {@link #NONE} — no action at all, so the row's Open did nothing because nothing was wired.
          */
         CHART }
@@ -380,7 +380,7 @@ public record ProjectModel(List<Section> sections) {
             Map<String, Object> r = map(o);
             Object n = r.get("sections");
             String detail = (n == null ? "0" : n) + " section" + ("1".equals(String.valueOf(n)) ? "" : "s") + " · saved report";
-            // the row shows the TITLE; the report is addressed by its NAME — hence the separate item (M68.2)
+            // the row shows the TITLE; the report is addressed by its NAME — hence the separate item (35eeb320)
             rows.add(new Row(str(r.get("title") != null ? r.get("title") : r.get("name")), detail, null, str(r.get("from")),
                     Tone.NORMAL, Target.REPORTS, str(r.get("name"))));
         }

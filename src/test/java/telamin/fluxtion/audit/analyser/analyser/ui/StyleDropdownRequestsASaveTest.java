@@ -10,9 +10,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * M68.4 — the style DROPDOWN must request a save, not just the verb.
+ * 90746e83 — the style DROPDOWN must request a save, not just the verb.
  *
- * <p>M68.2 persisted a chart's plot style and was reported as verified. It was not: the verification was
+ * <p>35eeb320 persisted a chart's plot style and was reported as verified. It was not: the verification was
  * driven entirely through {@code setStyleByName}, the action-socket path, which calls {@code mutated()}
  * itself. The {@code styleCombo} listener — the only way a PERSON changes the style — called
  * {@code chart.setStyle(...)} and nothing else, so the choice repainted the plot and was then lost on the

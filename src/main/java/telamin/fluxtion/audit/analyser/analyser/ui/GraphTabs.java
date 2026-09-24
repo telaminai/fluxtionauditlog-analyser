@@ -36,6 +36,39 @@ public final class GraphTabs extends JPanel {
     /** Told after any persistable graph change (see B-M20-3); quiet while {@link #restore} rebuilds. */
     private Runnable changeListener = () -> { };
     private boolean restoring;
+    private java.util.function.Supplier<List<GraphSpec>> savedDefinitions = List::of;
+    private String definitionRefusal;
+    private final javax.swing.JTextArea definitionNotice = new javax.swing.JTextArea();
+    private final javax.swing.JScrollPane definitionNoticeScroll = new javax.swing.JScrollPane(definitionNotice);
+    private final List<JButton> editingButtons = new ArrayList<>();
+
+    /** No definition is selected or repaired when its name is ambiguous. */
+    public void refuseDefinitions(String reason) {
+        definitionRefusal = java.util.Objects.requireNonNull(reason);
+        clearGraphs();
+        showDefinitionNotice();
+    }
+
+    public String definitionRefusal() {
+        return definitionRefusal;
+    }
+
+    private void showDefinitionNotice() {
+        definitionNotice.setText(definitionRefusal == null ? "" : definitionRefusal);
+        definitionNoticeScroll.setVisible(definitionRefusal != null);
+        editingButtons.forEach(button -> button.setEnabled(definitionRefusal == null));
+        revalidate();
+        repaint();
+    }
+
+    public void setSavedDefinitions(java.util.function.Supplier<List<GraphSpec>> definitions) {
+        savedDefinitions = definitions == null ? List::of : definitions;
+    }
+
+    public boolean hasDefinition(String name) {
+        return name != null && takenNames().contains(name.trim());
+    }
+
 
     public void setChangeListener(Runnable listener) {
         this.changeListener = listener == null ? () -> { } : listener;
@@ -52,6 +85,7 @@ public final class GraphTabs extends JPanel {
         JButton rename = new JButton("Rename…");
         JButton close = new JButton("Close graph");
         JButton delete = new JButton("Delete chart");
+        editingButtons.addAll(List.of(add, rename, close, delete));
         add.addActionListener(e -> addGraph());
         rename.addActionListener(e -> promptRename(tabs.getSelectedIndex()));
         close.addActionListener(e -> closeCurrent());
@@ -65,6 +99,12 @@ public final class GraphTabs extends JPanel {
         bar.add(delete);
         add(bar, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
+        definitionNotice.setEditable(false);
+        definitionNotice.setLineWrap(true);
+        definitionNotice.setWrapStyleWord(true);
+        definitionNotice.setRows(4);
+        definitionNoticeScroll.setVisible(false);
+        add(definitionNoticeScroll, BorderLayout.SOUTH);
         setBorder(UiTheme.section("Graphs"));
 
         // double-click a tab to rename it
@@ -147,12 +187,17 @@ public final class GraphTabs extends JPanel {
 
     private static final String PIN = "📌";
 
-    /** Add a graph with the given name (blank/null → default "Graph N"); selects it. */
+    /**
+     * Add and select a graph (blank/null name → default "Graph N"). Returns null when unbound,
+     * when definitions are refused, or when an explicit name is already taken.
+     */
     public GraphPanel addGraph(String name) {
+        if (definitionRefusal != null) return null;
+        if (name != null && !name.isBlank()
+                && (graphNamed(name.trim()) != null || (!restoring && hasDefinition(name)))) return null;
         GraphPanel panel = newPanel();
         if (panel == null) return null;
-        counter++;   // keep the counter ahead so later default names never collide with a chosen name
-        panel.setGraphName((name == null || name.isBlank()) ? "Graph " + counter : name.trim());
+        panel.setGraphName((name == null || name.isBlank()) ? nextFreeDefaultName() : name.trim());
         panel.setOnPinChanged(() -> refreshTabTitle(panel));   // 📌 indicator tracks the pin state
         panel.setOnMutation(this::fireChanged);                // B-M20-3: edits persist as you make them
         panel.onNotesChanged(this::fireChanged);               // interactive note pins/edits too
@@ -160,6 +205,21 @@ public final class GraphTabs extends JPanel {
         tabs.setSelectedComponent(panel);
         fireChanged();
         return panel;
+    }
+
+    /**
+     * "Graph N" for the lowest N that nothing already answers to — a tab OR a closed definition.
+     *
+     * <p>f6e8d7e0: the counter alone was not enough. {@code doRestore} resets it to 0 and skips closed charts,
+     * so after a reload "New graph" would hand out a name a closed, annotated chart still held, and the
+     * name-keyed merge would then replace that chart with the empty new one.
+     */
+    String nextFreeDefaultName() {
+        java.util.Set<String> taken = takenNames();
+        do {
+            counter++;
+        } while (taken.contains("Graph " + counter));
+        return "Graph " + counter;
     }
 
     /** The display title = the logical name with a 📌 prefix when pinned (name stays clean for persistence). */
@@ -232,14 +292,18 @@ public final class GraphTabs extends JPanel {
 
     /**
      * Resolve the target graph for a {@code graph} action: reuse the named graph when it exists and a new
-     * tab wasn't requested, else create one (named if a name was given). Never returns null once bound.
+     * tab wasn't requested, else create one (named if a name was given). Refuses a new tab whose name is already saved (returns null).
      */
     public GraphPanel graphForAction(String name, boolean newTab) {
+        String target = name == null ? null : name.trim();
         if (!newTab) {
-            GraphPanel existing = graphNamed(name);
+            GraphPanel existing = graphNamed(target);
             if (existing != null) return existing;
+            for (GraphSpec saved : savedDefinitions.get()) {
+                if (java.util.Objects.equals(saved.name(), target) && openSaved(saved)) return graphNamed(target);
+            }
         }
-        return addGraph(name);
+        return addGraph(target);
     }
 
     /** Rename the selected graph (used by the rename button). */
@@ -251,32 +315,48 @@ public final class GraphTabs extends JPanel {
     public boolean renameNamed(String from, String to) {
         if (from == null || to == null || to.isBlank()) return false;
         GraphPanel gp = graphNamed(from);
-        if (gp == null) return false;
-        if (SpotlightTarget.chartNameProblem(to) != null) return false;   // M68.6: the caller refuses first, and says why
-        gp.setGraphName(to.trim());
+        return gp != null && rename(gp, to);
+    }
+
+    private void renameAt(int i, String name) {
+        if (i >= 0 && tabs.getComponentAt(i) instanceof GraphPanel gp) rename(gp, name);
+    }
+
+    /**
+     * Rename one chart, keeping the stored definition with it.
+     *
+     * <p>f6e8d7e0: this used to change the tab title and nothing else. Since the name IS the identity, the
+     * definition under the OLD name was then orphaned — kept by the merge as a closed ghost that could
+     * never be reopened — and renaming onto a name something else already held silently merged the two
+     * into one. Both are refused or repaired here, not in the merge, which cannot see intent.
+     */
+    boolean rename(GraphPanel gp, String name) {
+        if (name == null || name.isBlank()) return false;
+        if (SpotlightTarget.chartNameProblem(name) != null) return false;   // M68.6: callers refuse first, and say why
+        String to = name.trim();
+        String from = gp.graphName();
+        if (to.equals(from)) return true;                 // nothing to do, and not a collision with itself
+        if (takenNames().contains(to)) return false;
+        gp.setGraphName(to);
         refreshTabTitle(gp);
+        renameListener.accept(from, to);   // move the stored definition BEFORE the list is persisted
         fireChanged();
         return true;
     }
 
-    /** @return why the rename was refused, or null when it was applied (or there was nothing to apply) */
-    private String renameAt(int i, String name) {
-        if (i >= 0 && name != null && !name.isBlank() && tabs.getComponentAt(i) instanceof GraphPanel gp) {
-            String problem = SpotlightTarget.chartNameProblem(name);   // M68.6: the same rule as the verb
-            if (problem != null) return problem;
-            gp.setGraphName(name.trim());
-            refreshTabTitle(gp);
-            fireChanged();
-        }
-        return null;
-    }
-
     private void promptRename(int i) {
-        if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = JOptionPane.showInputDialog(this, "Graph name:", gp.graphName());
-        String problem = renameAt(i, name);
+        // M68.6 first, so the person is told the RIGHT reason: main's collision message would otherwise be shown for a
+        // name refused by the address grammar
+        String problem = name == null || name.isBlank() ? null : SpotlightTarget.chartNameProblem(name);
         if (problem != null) {
             JOptionPane.showMessageDialog(this, "Not renamed: " + problem, "Graph name", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (name != null && !name.isBlank() && !rename(gp, name)) {
+            JOptionPane.showMessageDialog(this, "A chart with that name already exists, including closed charts.",
+                    "Name already used", JOptionPane.WARNING_MESSAGE);
         }
     }
 
@@ -302,7 +382,11 @@ public final class GraphTabs extends JPanel {
 
     /** Rebuild graphs (names + series + formulas + pin) from saved specs (used when a profile is restored). */
     public void restore(List<GraphSpec> saved) {
-        if (saved == null || saved.isEmpty() || store == null) return;
+        telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
+        boolean resuming = definitionRefusal != null;
+        definitionRefusal = null;
+        showDefinitionNotice();
+        if (saved == null || store == null || (saved.isEmpty() && !resuming)) return;
         boolean was = restoring;   // rebuilding from persisted state is not a user edit — don't echo it back
         restoring = true;
         try {
@@ -313,12 +397,12 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
-     * M68.2: open ONE saved chart and select it — what the Project panel's Open does for a chart that is
+     * 35eeb320: open ONE saved chart and select it — what the Project panel's Open does for a chart that is
      * not currently a tab. A chart already open is selected rather than rebuilt, so Open never discards
      * edits made since the profile was written. Returns false when there is nothing to open.
      */
     public boolean openSaved(GraphSpec spec) {
-        if (spec == null || store == null) return false;
+        if (spec == null || store == null || definitionRefusal != null) return false;
         GraphPanel existing = graphNamed(spec.name());
         if (existing != null) {
             tabs.setSelectedComponent(existing);
@@ -326,22 +410,29 @@ public final class GraphTabs extends JPanel {
         }
         boolean was = restoring;   // building from persisted state is not a user edit
         restoring = true;
+        boolean opened;
         try {
             GraphPanel panel = addGraph(spec.name());
-            if (panel == null) return false;
-            applySpec(panel, spec);
-            tabs.setSelectedComponent(panel);
-            return true;
+            opened = panel != null;
+            if (opened) {
+                applySpec(panel, spec);
+                tabs.setSelectedComponent(panel);
+            }
         } finally {
             restoring = was;
         }
+        // f6e8d7e0: reopening IS a change to persisted state — since 38ecc7f3 the open/closed flag is durable, so
+        // a reopen that never asks to be saved sticks only if some later unrelated edit happens to write.
+        // Fired outside the guard above, which exists to suppress the REBUILD, not the outcome.
+        if (opened) fireChanged();
+        return opened;
     }
 
     private void doRestore(List<GraphSpec> saved) {
         clearGraphs();
         counter = 0;
         for (GraphSpec g : saved) {
-            // M68.3: a chart closed in an earlier session stays a DEFINITION and does not reopen as a tab.
+            // 38ecc7f3: a chart closed in an earlier session stays a DEFINITION and does not reopen as a tab.
             // It is still listed in the Project panel, and its Open reopens it through openSaved.
             if (!g.open()) continue;
             GraphPanel panel = addGraph(g.name());
@@ -374,7 +465,7 @@ public final class GraphTabs extends JPanel {
             panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
                     g.rightAxis()));
         }
-        // M68.2: last, so the style the profile declared survives everything added above
+        // 35eeb320: last, so the style the profile declared survives everything added above
         panel.setStyleByName(g.style());
     }
 
@@ -406,7 +497,7 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
-     * Close the tab. M68.3: this KEEPS the chart's definition — the profile still lists it, the Project
+     * Close the tab. 38ecc7f3: this KEEPS the chart's definition — the profile still lists it, the Project
      * panel still shows it, and its Open reopens it. Removing a chart for good is {@link #deleteCurrent()},
      * a separate action that says so and asks first.
      */
@@ -426,26 +517,95 @@ public final class GraphTabs extends JPanel {
         this.deleteListener = listener == null ? name -> { } : listener;
     }
 
+    /** Told (from, to) when a chart is renamed, so the stored definition is renamed rather than orphaned. */
+    private java.util.function.BiConsumer<String, String> renameListener = (from, to) -> { };
+
+    public void setRenameListener(java.util.function.BiConsumer<String, String> listener) {
+        this.renameListener = listener == null ? (from, to) -> { } : listener;
+    }
+
     /**
-     * M68.3 — remove the chart's DEFINITION, not just its tab. Destructive and unrecoverable (a chart
+     * Every chart name the PROJECT knows, including definitions that are closed and therefore not tabs.
+     *
+     * <p>f6e8d7e0: a chart is identified by its name, but this class could only see the open tabs. A closed
+     * definition reserved nothing, so a generated "Graph N" or a rename could land on top of one and the
+     * name-keyed merge would then overwrite it — destroying an annotated chart nobody named.
+     */
+    private java.util.function.Supplier<java.util.Set<String>> knownNames = java.util.Set::of;
+
+    public void setKnownNames(java.util.function.Supplier<java.util.Set<String>> names) {
+        this.knownNames = names == null ? java.util.Set::of : names;
+    }
+
+    /** Names that are spoken for: open tabs plus the project's closed definitions. Visible for tests. */
+    java.util.Set<String> takenNames() {
+        java.util.Set<String> taken = new java.util.HashSet<>(graphNames());
+        java.util.Set<String> known = knownNames.get();
+        if (known != null) taken.addAll(known);
+        return taken;
+    }
+
+    /**
+     * 38ecc7f3 — remove the chart's DEFINITION, not just its tab. Destructive and unrecoverable (a chart
      * carries its explanation and pinned notes, which is the part worth keeping), so it confirms first and
      * names the chart in the question. Close is the non-destructive neighbour.
      */
-    private void deleteCurrent() {
-        int i = tabs.getSelectedIndex();
-        if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
-        String name = gp.graphName();
-        int answer = JOptionPane.showConfirmDialog(this,
+    /**
+     * Asks the person whether to delete the named chart. Replaceable so a test can answer it: the real one
+     * is a modal {@link JOptionPane}, which cannot run headless, and leaving it hard-wired meant the one
+     * branch that must change NOTHING — Cancel — was verified by nothing at all.
+     */
+    private java.util.function.Predicate<String> confirmDelete = this::askWhetherToDelete;
+
+    void setConfirmDelete(java.util.function.Predicate<String> ask) {
+        this.confirmDelete = ask == null ? this::askWhetherToDelete : ask;
+    }
+
+    private boolean askWhetherToDelete(String name) {
+        return JOptionPane.showConfirmDialog(this,
                 "Delete the chart \"" + name + "\"?\n\n"
                         + "This removes its definition from the project — series, formulas, notes and the\n"
                         + "explanation written on it. It cannot be undone.\n\n"
                         + "To put it away without losing it, use Close graph instead.",
-                "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (answer != JOptionPane.OK_OPTION) return;
+                "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)
+                == JOptionPane.OK_OPTION;
+    }
+
+    private void deleteCurrent() {
+        int i = tabs.getSelectedIndex();
+        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        String name = gp.graphName();
+        if (!confirmDelete.test(name)) return;   // Cancel changes nothing at all
+        // Asking may run a nested event loop (the real dialog does), so the index captured above can be
+        // stale by now — a tab may have closed, been renamed or been replaced under it. Re-resolve the
+        // PANEL and re-check its name, or a confirmed delete lands on a chart nobody was asked about.
+        int current = indexOf(gp);
+        if (current >= 0 && name.equals(gp.graphName())) deleteConfirmed(current);
+    }
+
+    /** The Delete button's whole path, from the question to the consequence — for tests to drive. */
+    void deleteSelected() {
+        deleteCurrent();
+    }
+
+    /**
+     * The delete itself, once a person has confirmed it — separated from the modal dialog so a test can
+     * reach it. f6e8d7e0: a {@code JOptionPane} cannot run headless, so leaving this inside
+     * {@link #deleteCurrent()} left the one destructive path in the app untestable.
+     */
+    void deleteConfirmed(int i) {
+        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        String name = gp.graphName();
         gp.unbind();
         tabs.removeTabAt(i);
-        if (tabs.getTabCount() == 0) addGraph();
-        deleteListener.accept(name);   // drop the definition BEFORE the change listener persists the list
+        // f6e8d7e0: drop the definition FIRST. This used to run after the fallback below, and addGraph ends in
+        // fireChanged() — a save — so the list was persisted while the deleted chart was still in it and a
+        // fresh placeholder had just taken a name a CLOSED chart still held. The name-keyed merge then
+        // overwrote that closed chart's definition with the empty placeholder: deleting one chart destroyed
+        // a different one the dialog never named. The comment that used to sit here claimed this ordering
+        // while the code did the opposite.
+        deleteListener.accept(name);
+        if (tabs.getTabCount() == 0) addGraph();   // safe now: the name is free and the definition is gone
         fireChanged();
     }
 }

@@ -12,7 +12,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * M68.3 — closing a chart must not delete it.
+ * 38ecc7f3 — closing a chart must not delete it.
  *
  * <p>The defect, found by the owner at a real display on 2026-09-24: closing a chart tab removed the
  * chart for good and its row vanished from the Project panel. {@code syncOpenGraphsIntoConfig} cleared
@@ -61,7 +61,7 @@ class ClosingAChartKeepsItsDefinitionTest {
         Path dir = Files.createTempDirectory("cfg");
         ConfigStore store = new ConfigStore(dir.resolve("config"));
         AppConfig cfg = new AppConfig();
-        // the pre-M68.3 constructor — what every existing profile and caller produces
+        // the pre-38ecc7f3 constructor — what every existing profile and caller produces
         cfg.savedGraphs.add(new GraphSpec("legacy", List.of(), List.of(), null, null, null, null,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
         store.save(cfg);

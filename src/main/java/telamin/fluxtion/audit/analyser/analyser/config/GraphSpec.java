@@ -22,7 +22,7 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
     }
 
     /**
-     * The pre-M68.3 shape — {@code open} defaults TRUE, so a profile written before charts could be
+     * The pre-38ecc7f3 shape — {@code open} defaults TRUE, so a profile written before charts could be
      * closed without being deleted still reopens every chart it lists, exactly as it did before.
      */
     public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
@@ -33,7 +33,7 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
                 external, markers, style, true);
     }
 
-    /** The pre-M68.2 shape (style not persisted — a chart's stairs/line/points choice was lost on reload). */
+    /** The pre-35eeb320 shape (style not persisted — a chart's stairs/line/points choice was lost on reload). */
     public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                      String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,
                      List<GuideSpec> guides, List<BandSpec> bands, List<ExternalSpec> external,
@@ -53,10 +53,20 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
 
     /**
      * The same chart with re-pointed external series and markers — what settings sharing does when it
-     * rewrites a path. M68.4: this exists because doing it by hand through a shorter constructor silently
+     * rewrites a path. 90746e83: this exists because doing it by hand through a shorter constructor silently
      * reset the style and revived a closed chart. Copy through a wither, never by re-listing components:
      * an omitted component takes its DEFAULT, and the compiler cannot tell that apart from an intention.
      */
+    /**
+     * The same chart under a new name. f6e8d7e0: a rename must MOVE the definition, because the name is the
+     * identity the profile and the merge key on — renaming the tab alone orphaned the old entry as a
+     * closed ghost that could never be reopened.
+     */
+    public GraphSpec withName(String newName) {
+        return new GraphSpec(newName, series, exprs, from, to, note, explanation, notes, rightAxis,
+                guides, bands, external, markers, style, open);
+    }
+
     public GraphSpec withExternal(List<ExternalSpec> newExternal, List<MarkerSpec> newMarkers) {
         return new GraphSpec(name, series, exprs, from, to, note, explanation, notes, rightAxis,
                 guides, bands, newExternal, newMarkers, style, open);
@@ -223,7 +233,7 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
 
     /**
      * {@code step|line|points} — never null, so a caller restoring a chart does not have to know the
-     * default. A chart saved before M68.2 has no stored style and answers {@link #DEFAULT_STYLE}.
+     * default. A chart saved before 35eeb320 has no stored style and answers {@link #DEFAULT_STYLE}.
      */
     public String style() {
         return style == null ? DEFAULT_STYLE : style;

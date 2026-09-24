@@ -1,0 +1,159 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "closed-definition",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "d1e4c401fda069c96ff321fa8287ea7be33c8c368f5051e5b569b7ea32fc6cf9",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#graphActionOnClosedChartPreservesItsDefinition",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#graphActionOnClosedChartPreservesItsDefinition",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 1,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "graphActionOnClosedChartPreservesItsDefinition",
+                "message": "java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.752 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.graphActionOnClosedChartPreservesItsDefinition -- Time elapsed: 1.731 s <<< ERROR!\njava.lang.RuntimeException: java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.edt(ChartLifecycleReviewFrameTest.java:29)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.graphActionOnClosedChartPreservesItsDefinition(ChartLifecycleReviewFrameTest.java:133)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\nCaused by: java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$graphActionOnClosedChartPreservesItsDefinition$7(ChartLifecycleReviewFrameTest.java:135)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Errors: \n[ERROR]   ChartLifecycleReviewFrameTest.graphActionOnClosedChartPreservesItsDefinition:133->edt:29 Runtime java.lang.NullPointerException: Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel.notes()\" because \"p\" is null\n[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: \n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#graphActionOnClosedChartPreservesItsDefinition",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "duplicate-saved",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SavedGraphMerge.java",
+      "sha256": "7b5a3683f71ed72f34fdaa740afec84b0070c819fe6cddb8754ee63201fd73bf",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=SavedGraphMergeTest#aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "SavedGraphMergeTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=SavedGraphMergeTest#aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "SavedGraphMergeTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded",
+                "message": "a name collision must not discard a definition ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown."
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.018 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMergeTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMergeTest.aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded -- Time elapsed: 0.009 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: a name collision must not discard a definition ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)\n\tat org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:73)\n\tat org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:39)\n\tat org.junit.jupiter.api.Assertions.assertThrows(Assertions.java:3131)\n\tat telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMergeTest.aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded(SavedGraphMergeTest.java:72)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   SavedGraphMergeTest.aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded:72 a name collision must not discard a definition ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=SavedGraphMergeTest#aDuplicateNameInTheProfileIsRefusedInsteadOfDiscarded",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "SavedGraphMergeTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    }
+  ]
+}

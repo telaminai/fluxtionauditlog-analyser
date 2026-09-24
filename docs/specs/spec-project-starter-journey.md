@@ -281,10 +281,27 @@ Add `context.savedGraphs`, sourced from `AppConfig.savedGraphs` above the no-fil
 each saved definition and distinguish it from a currently open tab. Keep `context.graphs` with its existing
 open-tab meaning. With no loaded log a saved definition is waiting for input, not missing or proven
 compatible; validate bindings on load. The Project panel **states** these facts in a **Saved charts**
-row and remains reveal-only; it gains no open/restore control or mutation callback. The landing
+row and remains reveal-only; ~~it gains no open/restore control or mutation callback~~. The landing
 (`StartPanel`) displays the same facts and **offers** explicit open/restore actions through the existing
-action/session machinery. Keep `ProjectPanel.Navigator` unchanged. `ProjectPanelIsRevealOnlyTest` gates
-both the no-mutation boundary (D-L3) and context-backed panel facts (D-L1). Update
+action/session machinery. ~~Keep `ProjectPanel.Navigator` unchanged.~~ `ProjectPanelIsRevealOnlyTest` gates
+both the no-definition-mutation boundary (D-L3, amended below) and context-backed panel facts (D-L1).
+
+> **Superseded in part by the owner's D-L3 amendment, 2026-09-24 (35eeb320).** The two struck sentences no
+> longer hold. A saved-chart row now carries an Open, and `ProjectPanel.Navigator` gained `showReport` and
+> `showGraph` so a row can reveal *its own* item; see the amendment in `spec-loaded-panel.md` D-L3, which
+> is the governing statement. This requirement was recorded 2026-09-20 and the amendment is later, so the
+> amendment wins — but the contradiction stood undetected because the amendment was made without sweeping
+> for other governing documents, and is recorded here rather than left for a future reader to trip over.
+>
+> **What did NOT change**, and is the part of the original requirement still in force: the Project panel
+> may not edit or discard definitions. Navigation may persist an existing chart’s open-view flag. It gains no *definition-mutation callback*, still never names `MainFrame`, and creation and
+> deletion stay off it — `Delete chart` lives on the Graph toolbar for exactly this reason (`38ecc7f3`; collision follow-up `f6e8d7e0`). The
+> split with `StartPanel` also stands: the landing **offers** open/restore actions that change the
+> session, while the Project panel only reveals an item that already exists.
+>
+> Still open for the owner, and deliberately not decided here: whether a Project-panel row may offer
+> navigation to the **restore** decision (a log load changes the session, which is not the same as
+> bringing an existing view forward). See `docs/proposals/restore-and-project-reload-semantics.md` B1. Update
 `docs/site/user-guide/projects.md`, `project-panel.md` and `assistant.md` in the same implementation
 commit. Swing reads these facts rather than constructing a second model.
 

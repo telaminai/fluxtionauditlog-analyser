@@ -179,7 +179,7 @@ public final class GraphPanel extends JPanel {
                 case 2 -> ChartPanel.Style.POINTS;
                 default -> ChartPanel.Style.STEP;
             });
-            // M68.4: the DROPDOWN is the only way a person changes the style, and it did not ask to be
+            // 90746e83: the DROPDOWN is the only way a person changes the style, and it did not ask to be
             // saved — so the choice was lost on the next load while the verb path persisted correctly.
             // B-M20-3: an edit that changes the saved chart must say so. Quiet during restore, because
             // GraphTabs suppresses the change listener while it rebuilds.

@@ -71,6 +71,30 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   was open while one was on screen. The refusal to score coverage against a graph built from what ran therefore
   never came from the session. Internally, graphs and log closes now reach the session as facts at the place they
   happen, not through a menu-refresh observation that skipped any change made mid-operation (M44.4a).
+
+- **An assistant that sends a chart series in the wrong shape is now told so.** `graph {series}` takes
+  `"instanceId.key"` strings. An object such as `{expr, label}` used to be turned into a key that could
+  never match, saved with the chart, and answered as a success, leaving an empty chart that looked
+  finished. A bare string instead of a list was silently ignored. Both are now refused with the right
+  shape named (`exprs` for a labelled or computed series), and nothing is changed.
+
+- **An assistant can now read back a chart's plot style.** The `graph` reply and the `context` list of
+  saved charts report each chart's style (step, line or points), and saved charts list their series as
+  `instanceId.key` rather than in the internal stored form.
+
+## [1.19.2] - 2026-09-24
+
+- Legacy global settings with duplicate chart names no longer interrupt log loading. The Graph panel
+  explains why the whole chart set is withheld, chart actions refuse with that explanation, and all
+  definitions are retained for manual correction. A valid project still opens normally; no chart is
+  silently renamed or chosen over another.
+
+- Chart imports now apply incoming definitions before autosave snapshots the old tabs. Named actions
+  reopen saved charts with their metadata; explicit new-tab names cannot overwrite another chart.
+  Duplicate chart names in a project/import are refused before applying it instead of choosing one.
+  Delete confirmations cannot delete a replacement tab loaded while the question was open. Rename
+  collisions on the action socket return a refusal without opening a blocking dialog.
+
 - **Choosing a plot style from the dropdown is now saved.** Setting a chart to Line or Points from the
   style control kept the change on screen but never asked to be persisted, so it reverted to stairs on the
   next load. Only the assistant's `graph {style}` path saved correctly. Fixes the user-facing half of the
@@ -90,16 +114,18 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   never been closed carries no new setting and opens exactly as before.
 
 - **Open on a Project-panel row now opens that row's thing.** Open on a saved report reveals *that*
-  report instead of whichever one was already selected, and Open on a saved chart works at all — those
-  rows previously carried no action, so the button did nothing. A chart that is saved but not currently
+  report instead of whichever one was already selected, and saved charts gain an Open they never had —
+  those rows previously offered no action at all. A chart that is saved but not currently
   a tab is opened from the profile and selected; one already open is selected rather than rebuilt, so
   nothing you changed since is discarded.
 
 - **A chart's plot style is saved with it.** Stairs, line and points are part of a saved chart and
   survive a reload. Previously the choice was never written to the profile, so a chart deliberately set
   to line or points silently came back as stairs — the reading of the chart changed without anyone
-  touching it. Charts saved before this release have no stored style and open as stairs, exactly as they
-  did before. An unrecognised style in a hand-edited profile is dropped rather than applied.
+  touching it. A chart saved before this release carries no stored style and opens as stairs, exactly as
+  it did before; the first save after upgrading then records every chart's current style, so an older
+  project file does gain a style line per chart once you save it. An unrecognised style in a hand-edited
+  profile is dropped rather than applied.
 
 - Coverage no longer tells you a node is missing from a graph that declares it. The analyser now reads the graph's own declaration of which nodes are framework plumbing (`fluxtion.framework`) before falling back to guessing from class names, so a framework class you used as a node and named is counted as yours; and it checks whether a logged node is in the graph against **every** declared node rather than only the authored ones, so a framework node that writes audit output no longer raises a warning. On the recovery-packet graph this changes coverage from 2 declared and 2 covered to the honest 3 and 3. `coverage` and the graph-open echo say how authorship was decided (`authorshipBasis`: declared, inferred or mixed), and framework nodes are listed separately under `frameworkNodesNotScored` rather than vanishing.
 - Mismatch messages state the fact and stop. The three messages that used to conclude, from a node-name mismatch, that a graph and its log came from separate builds — the coverage warning, the topology match line and the pairing's own reason — now name the ids that disagree and leave the judgement to you, because matching node names do not establish which build either file came from.

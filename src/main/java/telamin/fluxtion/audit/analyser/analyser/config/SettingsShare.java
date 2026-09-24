@@ -317,6 +317,7 @@ public final class SettingsShare {
             present.add(Category.GRAPHS);
             graphs = new ArrayList<>();
             ConfigStore.readGraphs(p, graphs);
+            SavedGraphMerge.requireUniqueNames(graphs);
             // expand ~ and resolve profile-relative external paths against the file's own directory —
             // the same rule source roots follow (M19.2), so a committed profile works on any machine
             for (int gi = 0; gi < graphs.size(); gi++) {
@@ -347,7 +348,7 @@ public final class SettingsShare {
                             mk.y(), mk.payload(), path, mk.extTime(), mk.extTimeFormat(),
                             mk.extZone(), mk.extValue(), mk.extPayload(), mk.extOffsetMillis(), mk.resolve()));
                 }
-                // M68.4: rewriting external paths must change ONLY those paths. This was built through a
+                // 90746e83: rewriting external paths must change ONLY those paths. This was built through a
                 // shorter constructor, which silently reset the chart's style to stairs and revived a
                 // closed one — the omitted components took their defaults, and nothing could see it.
                 graphs.set(gi, spec.withExternal(fixed, fixedMarkers));
@@ -468,6 +469,12 @@ public final class SettingsShare {
      * graphs replace by name; scalars overwrite. Nothing else in {@code target} is touched.
      */
     public void apply(ImportPlan plan, Set<Category> selected, AppConfig target) {
+        if (selected.contains(Category.GRAPHS) && plan.graphs() != null) {
+            // A legacy target can be ambiguous even when the incoming file passed preview.
+            // Refuse before ANY category changes rather than replacing the first matching name.
+            SavedGraphMerge.requireUniqueNames(target.savedGraphs);
+            SavedGraphMerge.requireUniqueNames(plan.graphs());
+        }
         if (selected.contains(Category.SOURCE_ROOTS) && plan.sourceRoots() != null) {
             addAllMissing(target.sourceRoots, plan.sourceRoots());
             if (plan.workspaceRoot() != null) target.workspaceRoot = plan.workspaceRoot();   // M38.6

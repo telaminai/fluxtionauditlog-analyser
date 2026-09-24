@@ -12,3 +12,7 @@ docs/handoff/evidence/tool-agreement-2026-09-21/end-marker-integration-resolutio
 # off every check for its file. Round five asked for the narrow form here: this fixture should still be
 # caught if it ever grows a tab-space indent fault, and only its trailing spaces are deliberate.
 src/test/resources/conformance/c21-real-export.yaml whitespace=-blank-at-eol
+
+# Preserve Maven's raw failing output, including its '[ERROR] ' line endings.
+docs/handoff/evidence/project-chart-review-fix-2026-09-24/before.txt whitespace=-blank-at-eol
+docs/handoff/evidence/project-chart-review-fix-2026-09-24/duplicate-before.txt whitespace=-blank-at-eol

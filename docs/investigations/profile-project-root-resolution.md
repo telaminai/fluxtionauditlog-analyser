@@ -76,9 +76,8 @@ defect.** After the fix, a named profile can use the same portable `workspaceRoo
 ## Related observations (not fixed or re-tested in the UI here)
 
 > **Superseded — all three are resolved. See "Resolution of the three observations" below.** This section
-> is kept as written because it records what was known before the owner ruled on D-L3, including one
-> reading that turned out to be wrong: `Target.NONE` on a saved-chart row was taken as a boundary the
-> spec had drawn, when the row still rendered an Open button and simply had nothing behind it.
+> is kept as written because it records what was known before the owner ruled on D-L3, including the author’s later-withdrawn dismissal of `Target.NONE` as a boundary.
+> The boundary reading recorded here was correct; see the correction below.
 
 Source inspection distinguishes the following cases; they are not three proven instances of one bug:
 
@@ -94,7 +93,7 @@ Source inspection distinguishes the following cases; they are not three proven i
 
 These observations do not expand this path-resolution fix into Project-panel navigation work.
 
-## The question this needed, and the answer — 2026-09-24 (M68.2)
+## The question this needed, and the answer — 2026-09-24 (35eeb320)
 
 A first attempt to patch the two Open defects was abandoned on reading the tests: D-L3 is not a
 convention here, it is asserted. `ProjectPanelIsRevealOnlyTest` pins the exact `Navigator` method set —
@@ -126,9 +125,9 @@ still cannot reach.
    sets it to the report's **name** while still displaying its **title**. That split was the substance of
    the bug: `ReportsPanel.select` matches on name, so a panel passing its label along would have selected
    nothing even after the identity was threaded through.
-2. **Saved charts** — fixed, and the earlier reading of `Target.NONE` as "consistent with D-L3" was
-   wrong in effect. The rows still rendered an Open button; it was simply wired to nothing, which is not
-   a boundary, it is a dead control. They now carry `Target.CHART`, and `GraphTabs.openSaved` opens a
+2. **Saved charts** — navigation added by the owner’s amendment; the earlier boundary reading was correct. ~~The rows still rendered an Open button; it was simply wired to nothing, which is not
+   a boundary, it is a dead control.~~ **Withdrawn — that claim was false; see the correction below.**
+   They now carry `Target.CHART`, and `GraphTabs.openSaved` opens a
    saved-but-not-open chart from the profile — reveal, not create, because the definition already exists.
    A chart already open is selected rather than rebuilt, so Open never discards later edits.
 3. **Graph ▸ Open reveals the Topology tab** — re-tested after the profile-root fix, and the tab is
@@ -150,7 +149,34 @@ Suite after the change: **1,887 tests, 0 failures, 0 errors, 62 skips** (1,877 b
 are this class and `GraphStylePersistenceTest`). `ProjectModelTest`'s saved-chart assertion changed with
 the spec and was renamed to say what it now pins.
 
-### What is still NOT verified — checks for a person at a real display
+### Correction: the "dead control" claim was false — 2026-09-24
+
+Found by independent review (`review/project-panel-chart-lifecycle-2026-09-24-indep`) and confirmed here
+by inspection at `35eeb320^`:
+
+- the saved-chart rows had `path == null` and `Target.NONE`;
+- `ProjectPanel`'s target switch fell through to `default -> { }`;
+- the action strip was attached only `if (actions.getComponentCount() > 0)`.
+
+So **no button was rendered on those rows at all**. There was no Open, and therefore no dead control. The
+author's repeated claim that "the rows still rendered an Open button, so it was a dead control, not a
+boundary" is false, and it was used to dismiss the earlier reading — which was, on the corrected facts,
+**right**: `Target.NONE` there was a boundary the spec had genuinely drawn.
+
+This matters beyond tidiness because the false premise propagated into four places: this note, the
+commit message of `38ecc7f3`, the **D-L3 amendment** in `spec-loaded-panel.md`, and the **shipping
+CHANGELOG**. The live documents are corrected; the immutable commit message is contradicted by this correction rather than rewritten. The consequence for the spec: the report leg of the amendment is
+a real defect and justifies the `Navigator` change on its own; the chart leg is a **deliberate widening of
+D-L3** chosen by the owner, not the repair of something broken. The owner's decision stands either way —
+only the argument for it changes.
+
+The lesson worth keeping is narrower than "check your facts": the claim was never verified against the
+parent commit, only reasoned from a `Target.NONE` in the current source. One `git show 35eeb320^` would
+have settled it before it reached a specification.
+
+### Display checks outstanding when this investigation was written
+
+**Follow-up:** [the review/fix report](../handoff/review_fix_project_chart_lifecycle_2026_09_24.md) records the later real-frame checks and their limits. The account below describes this investigation’s original verification boundary, not the current test suite.
 
 The new test asserts that the panel **asks** for the right thing: a click on report B's Open calls
 `showReport("B")`. Nothing in the suite asserts that `MainFrame`'s implementation of those two methods
@@ -198,7 +224,7 @@ chart**, not only deliberately styled ones, because `GraphTabs.specs()` always r
 never null. The value written is always the chart's actual style and nothing reads differently, so this
 is benign — but "existing profiles are untouched" holds only until the first save.
 
-## Closing a chart destroys it — found during the same session (FIXED, M68.3)
+## Closing a chart destroys it — found during the same session (FIXED, 38ecc7f3)
 
 Reported by the owner immediately after the checks: close a chart tab and the chart is gone for good,
 and its row vanishes from the Project panel's *Saved charts* section. Reproduced in the profile bytes —
@@ -212,8 +238,8 @@ a file backup; without one it would have been unrecoverable.
 a list of saved charts at all — it is a mirror of what is currently open. Closing a tab is therefore a
 silent, unconfirmed delete of persistent annotated state.
 
-**This is pre-existing and not caused by M68.2** — closing a chart has always destroyed its notes. But
-M68.2 makes it matter more, and made it visible: the *Saved charts* rows now offer an Open, which
+**This is pre-existing and not caused by 35eeb320** — closing a chart has always destroyed its notes. But
+35eeb320 makes it matter more, and made it visible: the *Saved charts* rows now offer an Open, which
 promises a recoverability the model does not provide. `SessionFacts.savedGraphs` already reports an
 `open` flag per chart, so the vocabulary for "saved but not open" exists; today it can only ever be false
 while a log is loaded, because the two lists are kept identical.
@@ -236,7 +262,7 @@ while a log is loaded, because the two lists are kept identical.
 The owner chose to **persist the open flag** and to land **Close and Delete together**, on the reasoning
 that without a Delete, charts could never be removed once Close stopped removing them.
 
-- `GraphSpec` gains `open`, defaulting **true**, with a `withOpen` copy. Every pre-M68.3 constructor
+- `GraphSpec` gains `open`, defaulting **true**, with a `withOpen` copy. Every pre-38ecc7f3 constructor
   delegates with `true`, so no existing profile or caller changes behaviour.
 - `ConfigStore` writes `graph.N.open=false` **only for a closed chart**. An untouched profile gains no
   key, and a missing key reads as open.

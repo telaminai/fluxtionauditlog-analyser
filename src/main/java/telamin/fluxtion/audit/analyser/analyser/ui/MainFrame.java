@@ -190,10 +190,27 @@ public final class MainFrame extends JFrame {
         graphTabs.setFlagRugSource(this::flagRugMap);                              // M32.6: the rug's seam
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
+        graphTabs.setSavedDefinitions(() -> config.savedGraphs);
         graphTabs.setChangeListener(this::onGraphsEdited);
-        // M68.3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
+        // 38ecc7f3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
         // config before the change listener writes the merged list back
         graphTabs.setDeleteListener(name -> config.savedGraphs.removeIf(g -> g.name().equals(name)));
+        // f6e8d7e0: a chart's name is its identity in the profile, so the tabs must see the names of CLOSED
+        // definitions too — otherwise a generated name or a rename lands on one and the merge overwrites it
+        graphTabs.setKnownNames(() -> {
+            java.util.Set<String> names = new java.util.LinkedHashSet<>();
+            for (var g : config.savedGraphs) names.add(g.name());
+            return names;
+        });
+        // and a rename must MOVE the stored definition, not orphan it under the old name
+        graphTabs.setRenameListener((from, to) -> {
+            for (int i = 0; i < config.savedGraphs.size(); i++) {
+                if (config.savedGraphs.get(i).name().equals(from)) {
+                    config.savedGraphs.set(i, config.savedGraphs.get(i).withName(to));
+                    return;
+                }
+            }
+        });
         project.setPreSave(this::syncOpenGraphsIntoConfig);
         // M27.3: named focuses live in the config's project tier; save/recall/delete persist like graphs
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
@@ -366,27 +383,24 @@ public final class MainFrame extends JFrame {
         });
         // M37: what is in force — the Project panel, stacked under Event types (owner decision 2). It is a
         // rendering of `context` (D-L1); refreshProjectPanel() is the only writer.
-        projectPanel = new ProjectPanel(new ProjectPanel.Navigator() {
-            @Override public void showTab(String title) { selectTab(title); }
+        // Chart lifecycle: the adapter is ProjectRevealer, named and testable. As an anonymous class here, gutting
+        // its reveal methods to { } left the whole suite green — the panel test stops at the Navigator.
+        projectPanel = new ProjectPanel(new ProjectRevealer(new ProjectRevealer.Surface() {
+            // MainFrame.this, not selectTab(title) — inside this Surface that name is THIS method
+            @Override public void selectTab(String title) { MainFrame.this.selectTab(title); }
             @Override public void openSettings(String page) {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries, page);
             }
-            // M68.2: reveal the item the row is about, not merely the tab that owns it
-            @Override public void showReport(String name) {
-                selectTab("Reports");
-                if (name != null && reportsPanel != null) reportsPanel.select(name);
+            // the tab selection lives in ProjectRevealer now; this Surface only does the frame's part
+            @Override public void selectReport(String name) {
+                if (reportsPanel != null) reportsPanel.select(name);
             }
-            @Override public void showGraph(String name) {
-                selectTab("Graph");
-                if (name == null) return;
-                // already a tab → select it; saved but not open → open it from the profile, then select
-                for (telamin.fluxtion.audit.analyser.analyser.config.GraphSpec g : config.savedGraphs) {
-                    if (name.equals(g.name())) { graphTabs.openSaved(g); return; }
-                }
-                graphTabs.selectGraph(name);
+            @Override public boolean openSaved(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec spec) {
+                return graphTabs.openSaved(spec);
             }
-        });
+            @Override public void selectGraph(String name) { graphTabs.selectGraph(name); }
+        }, () -> config.savedGraphs));
         projectPanel.setVisible(!config.projectPanelCollapsed);
         projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
             projectPanel.setVisible(showing);
@@ -3981,7 +3995,7 @@ public final class MainFrame extends JFrame {
         // config.savedGraphs in between — belt to GraphTabs' braces.
         List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> savedGraphs = List.copyOf(config.savedGraphs);
         graphTabs.bind(loaded, filter);
-        graphTabs.restore(savedGraphs);          // reopen graphs saved in the profile
+        restoreGraphDefinitions(savedGraphs);    // reopen unambiguous definitions, or state why withheld
         tablePanel.setRowFilter(new RowFilter<LogTableModel, Integer>() {
             @Override
             public boolean include(Entry<? extends LogTableModel, ? extends Integer> entry) {
@@ -4712,6 +4726,7 @@ public final class MainFrame extends JFrame {
     private void onGraphsEdited() {
         saveConfigQuietly();                       // syncs the open tabs first (see saveConfigQuietly)
         if (project != null) project.requestSave();
+        refreshProjectPanel();
     }
 
     private void onConfigChanged() {
@@ -4801,7 +4816,12 @@ public final class MainFrame extends JFrame {
         var selected = ImportSettingsDialog.show(this, plan, file.getName());
         if (selected == null || selected.isEmpty()) return;   // cancelled or nothing chosen
 
-        share.apply(plan, selected, config);
+        try {
+            share.apply(plan, selected, config);
+        } catch (IllegalArgumentException ambiguous) {
+            JOptionPane.showMessageDialog(this, ambiguous.getMessage(), "Import settings", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         applyImportedConfig();
         status.setText("Imported settings from " + file.getName());
     }
@@ -4809,37 +4829,29 @@ public final class MainFrame extends JFrame {
     /**
      * Capture the open graph tabs into {@code config.savedGraphs} (so a merge sees current state).
      *
-     * <p>M68.3: this MERGES. It used to clear the list and refill it from the open tabs, which made the
+     * <p>38ecc7f3: this MERGES. It used to clear the list and refill it from the open tabs, which made the
      * profile's saved-chart list a mirror of what was open — so closing a tab silently deleted the chart's
      * definition, notes and all. A chart that is no longer a tab is now kept and marked closed; only an
      * explicit Delete removes it (see {@code GraphTabs.deleteCurrent}). Order follows the existing profile
      * so charts do not shuffle on every save, with newly created ones appended.
      */
     private void syncOpenGraphsIntoConfig() {
-        if (store == null) return;   // no log → tabs are empty; config already holds the profile's graphs
-        java.util.LinkedHashMap<String, telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> open
-                = new java.util.LinkedHashMap<>();
-        for (var g : graphTabs.specs()) open.put(g.name(), g);
-
-        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> merged = new java.util.ArrayList<>();
-        java.util.Set<String> placed = new java.util.HashSet<>();
-        for (var existing : config.savedGraphs) {
-            var live = open.get(existing.name());
-            // an open tab wins (it is the live state); one that is no longer a tab is kept, marked closed
-            merged.add(live != null ? live.withOpen(true) : existing.withOpen(false));
-            placed.add(existing.name());
-        }
-        for (var g : open.values()) if (!placed.contains(g.name())) merged.add(g.withOpen(true));
-
+        if (store == null || graphTabs.definitionRefusal() != null) return; // withheld definitions are not empty user edits
+        // f6e8d7e0: the rule itself lives in SavedGraphMerge, where a test can reach it. Written inline here
+        // it was unreachable — MainFrame is not headless-constructible — and reverting it to its old
+        // destructive form left the entire suite green.
+        var merged = telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.merge(
+                config.savedGraphs, graphTabs.specs());
         config.savedGraphs.clear();
         config.savedGraphs.addAll(merged);
     }
 
     /** Refresh every affected surface after an import merged into {@code config}. */
     private void applyImportedConfig() {
-        onConfigChanged();   // source roots/EP/maven/search/REST + persist
-        tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));   // View category
-        if (store != null) graphTabs.restore(config.savedGraphs);   // reflect merged graphs live
+        // Incoming definitions must reach the views before a save can snapshot the old tabs over them.
+        if (store != null) restoreGraphDefinitions(List.copyOf(config.savedGraphs));
+        tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
+        onConfigChanged();
     }
 
     private void onFilterChanged() {
@@ -5371,13 +5383,30 @@ public final class MainFrame extends JFrame {
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
+        restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         onConfigChanged();          // source service, processors, menus, and the global save
-        graphTabs.restore(config.savedGraphs);
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
         updateLifecycleMenu();
         refreshProjectPanel();                                        // M37: the project, and everything it owns
+    }
+
+    /** Legacy global settings can contain duplicates that project/import validation now refuses. */
+    private void restoreGraphDefinitions(List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> saved) {
+        try {
+            telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
+        } catch (IllegalArgumentException ambiguous) {
+            String source = project.hasProject() ? project.activeFile().toString() : configStore.path().toString();
+            graphTabs.refuseDefinitions("Charts not loaded: " + ambiguous.getMessage()
+                    + ". All definitions are retained. "
+                    + (project.hasProject() ? "Close the project" : "Close the analyser")
+                    + " before editing the chart names in " + source
+                    + " to make them unique, then " + (project.hasProject() ? "reopen the project." : "restart the analyser.")
+                    + " Log inspection remains available.");
+            return;
+        }
+        graphTabs.restore(saved);
     }
 
     /** M38.4: File ▸ Run analysis — one item per saved analysis; the rationale is the tooltip. */
