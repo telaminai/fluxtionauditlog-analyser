@@ -155,7 +155,7 @@ public final class HeapLogStore implements LogStore {
         // A snapshot may include an EOF record. It cannot safely become an append-only index:
         // later fields would change an existing row. The adapter reloads it as an explicit live read.
         if (includesEofRecord) return -1;
-        String full = Files.readString(p, StandardCharsets.UTF_8);
+        String full = completeUtf8(Files.readAllBytes(p));
         if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
         if (full.length() == file.length()) return 0;    // no growth
         final int before = index.size();
@@ -190,6 +190,26 @@ public final class HeapLogStore implements LogStore {
         this.streamEnd = tracker.resolve();
         if (trailingPending) streamEnd = pendingOverride(streamEnd, index.size());
         return index.size() - before;
+    }
+
+    /**
+     * Decode only up to the last COMPLETE UTF-8 character (phase 1 round 4, F2).
+     *
+     * <p>Follow polls a file while a writer appends to it, so a poll can land between the bytes of one
+     * multi-byte character — a split BOM, or any non-ASCII text. {@code Files.readString} threw
+     * {@code MalformedInputException} for that tick and the status bar showed "Follow read failed". A
+     * half-written character is simply not there yet: it is left for the next poll, like any other
+     * pending tail. Bytes malformed anywhere else still throw, as before.
+     */
+    static String completeUtf8(byte[] b) throws java.nio.charset.CharacterCodingException {
+        int n = b.length, lead = n - 1;
+        while (lead >= 0 && lead >= n - 4 && (b[lead] & 0xC0) == 0x80) lead--;   // back over continuation bytes
+        if (lead >= 0 && lead >= n - 4) {
+            int v = b[lead] & 0xFF;
+            int need = v < 0x80 ? 1 : (v & 0xE0) == 0xC0 ? 2 : (v & 0xF0) == 0xE0 ? 3 : (v & 0xF8) == 0xF0 ? 4 : 1;
+            if (lead + need > n) n = lead;                                      // incomplete: leave it pending
+        }
+        return StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(b, 0, n)).toString();
     }
 
     @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }

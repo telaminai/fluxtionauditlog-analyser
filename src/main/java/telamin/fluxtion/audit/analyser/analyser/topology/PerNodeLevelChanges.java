@@ -106,9 +106,8 @@ public final class PerNodeLevelChanges {
      * fully-qualified name. So: the simple name, after the last dot, must equal it exactly.
      */
     static boolean isControlEvent(String event) {
-        if (event == null) return false;
-        int dot = event.lastIndexOf('.');
-        return (dot < 0 ? event : event.substring(dot + 1)).equals(CONTROL_EVENT);
+        // One predicate, shared with ProducerDiagnostics.onlyControlEvents (phase 1 round 4, F4).
+        return telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.isControlEvent(event);
     }
 
     /**
@@ -208,7 +207,11 @@ public final class PerNodeLevelChanges {
         };
     }
 
-    /** Every change the log states, for the {@code context} echo and the report. */
+    /**
+     * Every change the log states. NOT yet wired to the {@code context} echo or the report — that is
+     * D-MA0c / MA-8's report path, still open. Stated so the comment does not promise what the code does
+     * not do (phase 1 round 4, F4).
+     */
     public List<Change> all() {
         List<Change> out = new ArrayList<>();
         bySource.values().forEach(out::addAll);
