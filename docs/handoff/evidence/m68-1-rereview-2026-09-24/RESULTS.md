@@ -35,3 +35,16 @@ Counts are summed from Surefire XML, not read from the console. Java 21 (Corrett
 | P16 — after a superseding comparison the panel note starts with "whole log: 1 of 4 logged id(s) not declared"; after a confirming one it starts with the sampled note | superseding: **yes**. Confirming: **no, by a design change made while implementing** — a whole-log confirmation also leads ("whole log: all 3 logged id(s) declared — confirms the sample taken on open"), because the broader fact is the one a clipped line should show, and after confirmation the sample adds nothing. A *narrower* comparison (a filter) is appended, as predicted | **Half right; the other half changed deliberately and is recorded here** |
 | P17 — screenshots lead with "first 500 of 600 records" before coverage and "whole log: 1 of 4" after, the rest clipped | exactly that: "first 500 of 600 records: every node…" and "whole log: 1 of 4 logged id(s) not de…". `set3-p17-*.png` | **Yes** |
 | P18 — headless 1,927 / 0 / 0 / 62; frame 63 / 0 / 1 skip; harness all RED plus two new | headless **1,927 / 0 / 0 / 62**; frame **63 tests, 0 failures, 1 skip** (the same focus assumption); harness with `--frame`: baseline **52 green**, **21 of 21** RED at the named test, every restore byte-identical, M16 and M17 new. End to end on the branch jar: **46 pass, 0 fail**. `set3-p18-harness-frame.txt`, `set3-e2e-branch.txt` | **Yes** |
+
+## Set 4 — the re-review's findings reproduced on `550f98d8`, before any fix
+
+| Prediction | Result | Right? |
+|---|---|---|
+| P19 (N1) — scenario 7 fails its three staleness checks | the store reaches **601**; `qualifiedBy` still reads `whole log`, `recordsCompared: 600`, `notDeclared: []`, "confirms the sampled pairing for the whole log"; **and `pairingScope` still reads "first 500 of 600 records"** — the same defect one level down. A fresh coverage finds `lateForeign`. `set4-p19-p20-e2e-before.txt` | **Yes** |
+| P20 (N2) — whole then filtered fails all three; the reverse passes both | exactly: after the filtered run `qualifiedBy` is `current filter`, `recordsCompared: 2`, `notDeclared: []`, and the whole-log finding is gone | **Yes** |
+| P21 (N3) — three plants each leave the guard green | text block, split literal and assistant-prompt line: **all STILL GREEN**, each restored byte-identical. `set4-p21-p22-plants.txt` | **Yes** — the re-review's N3 reproduces, and its third surface too |
+| P22 (O-b) — a crash is reported as a guarded mutation | "RED at `aWholeLogComparisonSupersedesTheSample`" for a mutation that only made it throw | **Yes** |
+| P23 (O-c) — the sampled parity test passes on today's code | **1 / 0 / 0** with a display | **Yes** |
+
+The re-review's findings all reproduce. It is not independent — its author wrote the first review — and nothing
+here depended on that: each was checked by running it.
