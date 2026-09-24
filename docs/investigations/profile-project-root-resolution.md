@@ -179,6 +179,60 @@ The new test asserts that the panel **asks** for the right thing: a click on rep
 
 Checks 1–2 are the reported defect; 4 is the regression risk the fix introduces; 5 is the style fix.
 
+### Verification record — 2026-09-24, against a build of `main` at `43ce82fc`
+
+All five checks were run by the owner at a real display, on a locally built jar (not the 1.19.1
+release). **Checks 1–4 pass**: Open on the second report reveals the second report, alternating between
+the two rows alternates correctly, a saved chart that is not an open tab opens with its series and
+annotations intact, and Open on an already-open chart selects it without discarding a series added since.
+
+**Check 5 passes**, driven over the action socket and confirmed in the profile bytes: setting a chart to
+Line writes `graph.0.style=line`; closing the project, reopening it and reopening the log then forcing a
+save from live panel state leaves `line` in place. That last step is the one that proves the restore
+path — a save writes from the panel, so had `applySpec` not applied the style the panel would have been
+at stairs and would have overwritten `line` with `step`. The same sequence on 1.19.1 wrote no style key
+at all.
+
+One consequence worth stating plainly: **the first save after upgrading adds a style key to every
+chart**, not only deliberately styled ones, because `GraphTabs.specs()` always reports `styleName()` and
+never null. The value written is always the chart's actual style and nothing reads differently, so this
+is benign — but "existing profiles are untouched" holds only until the first save.
+
+## Closing a chart destroys it — found during the same session (NOT fixed here)
+
+Reported by the owner immediately after the checks: close a chart tab and the chart is gone for good,
+and its row vanishes from the Project panel's *Saved charts* section. Reproduced in the profile bytes —
+`graph.count` went 2 → 1 and every `graph.1.*` key was deleted, taking the chart's series, expressions,
+right-axis assignment, explanation and all three pinned notes with it. The definition was recovered from
+a file backup; without one it would have been unrecoverable.
+
+**Cause.** `GraphTabs.closeCurrent` removes the tab and fires the change listener;
+`MainFrame.syncOpenGraphsIntoConfig` then does `config.savedGraphs.clear()` followed by
+`addAll(graphTabs.specs())`. `specs()` walks the **open tabs**, so the profile's saved-chart list is not
+a list of saved charts at all — it is a mirror of what is currently open. Closing a tab is therefore a
+silent, unconfirmed delete of persistent annotated state.
+
+**This is pre-existing and not caused by M68.2** — closing a chart has always destroyed its notes. But
+M68.2 makes it matter more, and made it visible: the *Saved charts* rows now offer an Open, which
+promises a recoverability the model does not provide. `SessionFacts.savedGraphs` already reports an
+`open` flag per chart, so the vocabulary for "saved but not open" exists; today it can only ever be false
+while a log is loaded, because the two lists are kept identical.
+
+**The shape of a fix** (needs an owner decision before building):
+
+- *Close* should close the tab and keep the definition, so the Project panel's Open can reopen it —
+  which already works, via `GraphTabs.openSaved`.
+- *Delete* becomes a separate, explicit action for removing a definition. The owner has asked for this.
+  It cannot live on the Project panel: deleting is mutation, and D-L3's amendment covers revealing an
+  item, not destroying one. It belongs on the Graph tab's toolbar beside Close.
+- The open question is what a **reload** should do with a chart that was closed but not deleted: reopen
+  every saved chart as a tab (today's `restore` behaviour, which would undo the close), or persist the
+  `open` flag per chart and reopen only those that were open. The second matches what a person means by
+  closing something, and the flag is already in the model — but it adds state that a hand-edited profile
+  can contradict.
+
+Until this is fixed, closing a chart is destructive and there is no undo.
+
 ### A separate defect found while re-testing: the plot style was never saved
 
 Not a navigation issue and not D-L3-bounded. `GraphPanel` has always treated style as a persistable
