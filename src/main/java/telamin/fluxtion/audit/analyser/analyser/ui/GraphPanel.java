@@ -969,6 +969,14 @@ public final class GraphPanel extends JPanel {
 
     // ---- test seams (package-private) ----
     ChartPanel chart() { return chart; }
+
+    /**
+     * M68.2 (D-E8): the PLOT, rendered offscreen at {@code w×h} for a report — not a screenshot of this tab, which
+     * carried its style controls and legend buttons into the PDF at whatever width the tab last had.
+     */
+    public java.awt.image.BufferedImage renderForReport(int w, int h) {
+        return chart.toImage(w, h);
+    }
     void setExtractionRunner(ExtractionRunner runner) { this.extractionRunner = java.util.Objects.requireNonNull(runner); }
     /** Fire the debounce now rather than after {@code EXTRACT_DEBOUNCE_MS}; skips key discovery. Tests only. */
     void runPendingExtractionNow() { extractDebounce.stop(); if (pendingReason != null) startExtraction(); }

@@ -1376,7 +1376,7 @@ public final class MainFrame extends JFrame {
                     yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
                             null, null,
                             new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
-                                    "Trend · " + s.ref(), panel.scopeText(), paintOf(panel)),
+                                    "Trend · " + s.ref(), panel.scopeText(), panel.renderForReport(1200, 600)),
                             mk.table().rows().isEmpty() ? null : mk.table());
                 }
                 case TOPOLOGY ->
@@ -1557,7 +1557,7 @@ public final class MainFrame extends JFrame {
             panel.setRecordMarker(record.logTime(), marker);
             java.awt.image.BufferedImage plot;
             try {
-                plot = paintOf(panel);
+                plot = panel.renderForReport(1200, 600);   // M68.2: offscreen at page size, not the live tab
             } finally {
                 panel.setRecordMarker(null, null);
             }
@@ -1641,16 +1641,6 @@ public final class MainFrame extends JFrame {
             if (bar.getMenu(i) != null) names.add(bar.getMenu(i).getText());
         }
         return names;
-    }
-
-    private static java.awt.image.BufferedImage paintOf(java.awt.Component c) {
-        if (c.getWidth() <= 0 || c.getHeight() <= 0) return null;
-        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
-                c.getWidth(), c.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
-        java.awt.Graphics2D g = img.createGraphics();
-        c.paint(g);
-        g.dispose();
-        return img;
     }
 
     private void exportRecords(boolean yaml) {

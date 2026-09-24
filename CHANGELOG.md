@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Charts in exported reports are drawn at page size, and a section that cannot be drawn says so.** A report's
+  chart was a capture of its tab at the tab's current size, controls included. A tab that was not showing made the
+  picture a sliver, and the chart inside it then claimed "No data under the current filter" over a series that had
+  data. Charts are now drawn off-screen at the page's size. A plot with no room to draw says that, and the no-data
+  sentence is kept for charts that really have no data. A requested topology section, or a chart that produced no
+  picture, used to leave nothing on the page. It now prints NOT RENDERED with the reason (M68.2).
 - **A project pointer that cannot be followed now says which project root it tried.** A runbook or glossary pointer
   whose file was missing said only "NOT found under the project root", without saying which root. One that could not
   be resolved at all showed no warning: either no project was open, or its path left the project folder. The

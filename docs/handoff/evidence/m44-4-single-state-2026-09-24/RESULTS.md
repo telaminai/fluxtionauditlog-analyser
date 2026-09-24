@@ -148,3 +148,17 @@ when both gates exit 0.
 P16, P21, P25), and **2 more held only after a correction** (P19's mechanism, P22's first check). Two of those found real bugs: P25's path comparison, and P21's reviewed
 test whose premise changed. 30 mutation witnesses, W1–W30, each red at its named test. W23's "not caught" was a
 harness regex, not a missing witness.
+
+## Set 8 — M68.2, rendered evidence
+
+| # | Prediction | Result |
+|---|---|---|
+| P42 | `ChartExportRenderTest` 4 green, at 55% confidence | **Held.** Neither named risk fired: `setSize`/`doLayout` on a never-displayed panel laid out as `paint` needs, and an empty `Series` gives NaN. |
+| P43 | the two renderer cases green, at 70% confidence | **Wrong: 1 failure, which found a real flaw.** `aChartWithNoPictureSaysItWasNotRendered` failed on `contains("spread")`. Callout LABELS print upper-cased, so the chart's name reached the page as `SPREAD`, and chart names are case-sensitive. The name now goes in the callout body, exactly. 13 / 0 afterwards. |
+| P44 | W31–W33 each red | **Held.** W31 also turned `realEmptinessIsStillNoData` red: without the off-screen layout even a truly empty chart was judged at the component's zero size, so the old export mislabelled that case too. |
+| P45 | headless 2,005 / 0 / 0 / 65; frame 66 / 0 / 0 / 1 | **Held.** |
+| P46 | scenario 13 fails on `df0b24a5`, passes on the fix | **Held after two corrections to MY check, not the product.** (1) I wrote the section as `{"kind": "topology", "ref": …}`, and the verb takes `focus`. It skipped the section with a warning and replied `ok` with 0 sections. (2) `saveFocusAs` needs a focus APPLIED first (`focus: true`), and a selection alone is not one. Each was diagnosed by making the check report what it found. Final: old jar 71 pass, 1 fail, where the resolved topology section left nothing on the page and the focus is not even mentioned; fixed jar 72 / 0. |
+
+**For M68.4's D-E3 audit, observed here and not changed.** `report` accepted a request containing a malformed
+section, skipped it and replied `ok` with `sections: 0`, naming the skip in `warnings`. That is not silent, but it is
+a request honoured in part, which is D-E3's question.

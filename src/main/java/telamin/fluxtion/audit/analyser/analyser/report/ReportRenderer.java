@@ -164,7 +164,24 @@ public final class ReportRenderer {
                 }
             }
             case CHART, TOPOLOGY -> {
-                if (body.picture() != null) picture(doc, c, body.picture());
+                boolean drawn = body.picture() != null && body.picture().image() != null
+                        && body.picture().image().getWidth() > 0 && body.picture().image().getHeight() > 0;
+                if (drawn) {
+                    picture(doc, c, body.picture());
+                } else {
+                    // M68.2 (D-E8): a requested section renders or SAYS WHY NOT. Both used to vanish in silence: a
+                    // chart whose capture came back empty, and a topology section whose "recorded gap" line was
+                    // built as text that this case never printed — the G14 packet's missing illustration.
+                    // the NAME goes in the body, exactly: callout labels print upper-cased, and a chart name is
+                    // case-sensitive (set 8, P43 — "rootNode.price" would have reached the page as ROOTNODE.PRICE)
+                    callout(doc, c, "NOT RENDERED",
+                            (s.kind() == ReportSpec.Kind.CHART ? "chart '" : "focus '")
+                                    + (s.ref() == null ? "" : s.ref()) + "': "
+                                    + (body.monoLines() == null || body.monoLines().isEmpty()
+                                            ? "the analyser produced no picture for this section"
+                                            : String.join(" ", body.monoLines())),
+                            WARN, WARN_BG);
+                }
                 if (body.table() != null && !body.table().rows().isEmpty()) {
                     // M32.7: the chart's markers as DATA under the picture — glyphs show where,
                     // the table says what, and the record column keeps each row a signpost

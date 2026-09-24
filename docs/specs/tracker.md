@@ -579,9 +579,17 @@ verdict, which is owned jointly.
   ids reports success and the graph is then no longer loaded — a combined request that silently drops part of
   itself. Reproduced end to end, and **pre-existing**: identical on a jar built from `main`, and only the combined
   request drops the graph — opened separately, the graph is kept and announced. Not fixed here.
-- [M68.2] ☐ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
+- [M68.2] ◧ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
   data is contradicted by a successful series response over the same inputs; acceptance is by inspecting the
-  artefact, not by exit status.
+  artefact, not by exit status. **Built 2026-09-24 on `feat/m44-single-state-session`; awaiting review.** Read from
+  the G14 packet's own PDF first. Its "Trend" was the whole chart TAB painted at about 190 px, with a plot sliver
+  saying "No data under the current fi…", and its requested topology section left nothing on the page. Three defects,
+  three fixes: charts render off-screen at page size (`ChartPanel.toImage(w,h)`, `GraphPanel.renderForReport`); a
+  starved plot says it has no room, not that there is no data; and the renderer prints NOT RENDERED with its reason
+  for any CHART/TOPOLOGY section with no picture. The topology gap text had never reached a page. Verifier scenario 13
+  fails on a `df0b24a5` jar and passes on the fix. **Open:** an off-screen render of a named FOCUS, so the section is
+  drawn and not only explained; the D-E8 contradiction test in its general form (chart versus `series` over the same
+  inputs); and SERIES sections, still a stated gap.
 - [M68.3] ☐ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** The producer
   diagnostic already exists, counts raw occurrences of the record-header key inside a frame, and was reproduced in
   round 3 reporting "record 1 alone contains 2 records run together" for a **legal one-record file** whose quoted

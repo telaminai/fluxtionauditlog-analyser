@@ -308,6 +308,24 @@ def main():
                   "the warning reached the agent reply but not the page")
             check("the page carries the honest figures", "declared 3" in text and "covered 3" in text, text[:200])
 
+            print("13. M68.2 — a requested topology section renders or says why not (D-E8)")
+            # The G14 packet's PDF was missing its requested topology illustration, with no statement: the section's
+            # "recorded gap" line was built as text that the renderer's TOPOLOGY case never printed.
+            # a focus is APPLIED (focus: true pushes the selection's scope) before it can be named; one node, so the
+            # focus is smaller than this four-node graph and there is something to push
+            saved = a.act("topology", select="rootNode", scope="node", focus=True, saveFocusAs="m682")
+            check("M68.2: the focus the section names is saved", saved.get("ok") is True, saved)
+            pdf = os.path.join(exchange, "m68-2-topology.pdf")
+            reply = a.act("report", name="m68-2-topology", title="M68.2 verification",
+                          sections=[{"kind": "topology", "focus": "m682"}], path=pdf)
+            check("M68.2: the report exported", reply.get("ok") is True and os.path.exists(pdf), reply)
+            text = open(pdf, "rb").read().decode("latin-1") if os.path.exists(pdf) else ""
+            check("M68.2: the page says the focus was not rendered, and why", "NOT RENDERED" in text
+                  and "recorded gap" in text,
+                  {"notRendered": "NOT RENDERED" in text, "recordedGap": "recorded gap" in text,
+                   "didNotResolve": "DID NOT RESOLVE" in text, "focusMentioned": "m682" in text,
+                   "reply": reply})
+
             print("11. M68.4 — a combined open keeps the graph it asked for, on the FINAL state")
             # Scenario 4's note says why the half-foreign log was avoided there: opened together with this graph, the
             # request replied ok and the graph was then gone. The log is large so that it is still LOADING when the

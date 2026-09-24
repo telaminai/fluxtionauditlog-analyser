@@ -126,6 +126,31 @@ class ReportRendererTest {
                 data, hot, rowWhen, label);
     }
 
+    // ---- M68.2 (D-E8): a requested section renders or says why not -----------------------------------
+
+    @Test
+    void aChartWithNoPictureSaysItWasNotRendered() {
+        // witness: the CHART/TOPOLOGY case back to "if (body.picture() != null) picture(...)" and nothing else
+        ReportSpec spec = spec(SectionSpec.chart("spread"));
+        String pdf = body(ReportRenderer.render(spec, resolve(spec, Map.of()),
+                List.of(new ReportRenderer.SectionContent(null, null,
+                        new FindingReport.Picture("Trend · spread", "scope", null), null)), "demo.yaml", null));
+        assertTrue(pdf.contains("NOT RENDERED"), "a requested chart that produced no picture must say so");
+        assertTrue(pdf.contains("spread"));
+    }
+
+    @Test
+    void aTopologySectionStatesItsGapOnThePage() {
+        // the G14 packet's missing illustration: the gap was built as text that the TOPOLOGY case never printed
+        ReportSpec spec = spec(SectionSpec.topology("checks"));
+        var resolution = ReportResolver.resolve(spec, STORE.index(), Map.of(), Set.of(), Set.of("checks"), new FilterState());
+        String pdf = body(ReportRenderer.render(spec, resolution,
+                List.of(new ReportRenderer.SectionContent("Focus · checks",
+                        List.of("(image export for focus sections is a recorded gap)"), null, null)), "demo.yaml", null));
+        assertTrue(pdf.contains("NOT RENDERED"), pdf.length() + " bytes");
+        assertTrue(pdf.contains("image export for focus sections is a recorded gap"));
+    }
+
     @Test
     void aTablePrintsItsHighlightRule() {   // acceptance 7, the render half
         ReportSpec spec = spec(SectionSpec.table(Map.of("verb", "read"), List.of(),
