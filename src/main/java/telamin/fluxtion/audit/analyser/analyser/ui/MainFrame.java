@@ -385,7 +385,8 @@ public final class MainFrame extends JFrame {
             @Override public boolean openSaved(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec spec) {
                 return graphTabs.openSaved(spec);
             }
-            @Override public void selectGraph(String name) { graphTabs.selectGraph(name); }
+            @Override public boolean selectGraph(String name) { return graphTabs.selectGraph(name); }
+            @Override public void say(String message) { status.setText(message); }
         }, () -> config.savedGraphs));
         projectPanel.setVisible(!config.projectPanelCollapsed);
         projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {

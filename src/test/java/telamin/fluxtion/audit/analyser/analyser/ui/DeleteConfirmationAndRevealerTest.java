@@ -80,12 +80,15 @@ class DeleteConfirmationAndRevealerTest {
     /** Records what the frame was asked to do, in order. */
     private static final class RecordingSurface implements ProjectRevealer.Surface {
         final List<String> calls = new ArrayList<>();
+        final List<String> said = new ArrayList<>();
         boolean openSavedSucceeds = true;
+        boolean selectGraphSucceeds = true;
         @Override public void selectTab(String title) { calls.add("tab:" + title); }
         @Override public void openSettings(String page) { calls.add("settings:" + page); }
         @Override public void selectReport(String name) { calls.add("report:" + name); }
         @Override public boolean openSaved(GraphSpec spec) { calls.add("openSaved:" + spec.name()); return openSavedSucceeds; }
-        @Override public void selectGraph(String name) { calls.add("selectGraph:" + name); }
+        @Override public boolean selectGraph(String name) { calls.add("selectGraph:" + name); return selectGraphSucceeds; }
+        @Override public void say(String message) { said.add(message); }
     }
 
     @Test
@@ -153,14 +156,40 @@ class DeleteConfirmationAndRevealerTest {
      * should say "open a log first" is an owner decision, not a fix to slip into a review branch.
      */
     @Test
-    void openingASavedChartWithNoLogRevealsTheTabAndCannotOpenIt() {
+    void openingASavedChartWithNoLogSaysWhyInsteadOfDoingNothing() {
         RecordingSurface surface = new RecordingSurface();
         surface.openSavedSucceeds = false;   // what GraphTabs does when store == null
         new ProjectRevealer(surface, () -> List.of(spec("Prices"))).showGraph("Prices");
 
         assertEquals(List.of("tab:Graph", "openSaved:Prices"), surface.calls,
-                "it asks, the frame cannot comply, and nothing further is attempted — no crash, and no "
-                        + "second attempt that would look like it worked");
+                "it asks, the frame cannot comply, and nothing further is attempted");
+        assertEquals(1, surface.said.size(), "and it SAYS so — a silent dead end is the defect, not the "
+                + "inability to plot a chart with no data");
+        assertTrue(surface.said.get(0).contains("Prices") && surface.said.get(0).contains("log"),
+                "the message names the chart and the reason: " + surface.said.get(0));
+    }
+
+    @Test
+    void askingForAChartThatIsNeitherOpenNorSavedSaysSo() {
+        RecordingSurface surface = new RecordingSurface();
+        surface.selectGraphSucceeds = false;
+        new ProjectRevealer(surface, List::of).showGraph("Ghost");
+
+        assertEquals(List.of("tab:Graph", "selectGraph:Ghost"), surface.calls);
+        assertEquals(1, surface.said.size(), "revealing an unrelated tab and stopping is the silence again");
+        assertTrue(surface.said.get(0).contains("Ghost"), surface.said.get(0));
+    }
+
+    @Test
+    void whenItCanActItSaysNothing() {
+        RecordingSurface surface = new RecordingSurface();
+        ProjectRevealer revealer = new ProjectRevealer(surface, () -> List.of(spec("Prices")));
+        revealer.showGraph("Prices");
+        revealer.showReport("r");
+        revealer.showTab("Topology");
+
+        assertTrue(surface.said.isEmpty(),
+                "explanations are for when something could NOT happen; narrating success is noise");
     }
 
     @Test
