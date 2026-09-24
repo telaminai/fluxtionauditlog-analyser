@@ -138,7 +138,14 @@ public final class GraphPanel extends JPanel {
         JButton fit = new JButton("Fit");
         JButton export = new JButton("Export CSV");
         JButton exportPng = new JButton("Export PNG");
-        pinButton.setToolTipText("Pin this graph to a fixed time window (stops it following the shared filter)");
+        // Zoom and pin both change the visible window and sit side by side, but only one of them is kept:
+        // zoom is a lens on ChartPanel and is never written, while a pin is graph.N.from/to in the profile
+        // and comes back on reload. Nothing on screen said so, and an owner lost a zoom expecting it back.
+        zoomIn.setToolTipText("Zoom in. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
+        zoomOut.setToolTipText("Zoom out. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
+        fit.setToolTipText("Fit the data to the plot. A view, not part of the chart — it is not saved. Use 📌 to keep a window.");
+        pinButton.setToolTipText("Pin this graph to a fixed time window: it stops following the shared filter, "
+                + "and unlike a zoom the window is SAVED with the chart and restored on reload");
         pinButton.setFocusable(false);
         pinButton.addActionListener(e -> { if (pinButton.isSelected()) pinToCurrentWindow(); else unpin(); });
         row1.add(zoomIn);

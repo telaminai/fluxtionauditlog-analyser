@@ -256,13 +256,14 @@ public final class GraphTabs extends JPanel {
     }
 
     /** Select the named graph's tab (M33.4 — a report's chart section navigates here). No-op if absent. */
-    public void selectGraph(String name) {
+    public boolean selectGraph(String name) {
         for (int i = 0; i < tabs.getTabCount(); i++) {
             if (tabs.getComponentAt(i) instanceof GraphPanel gp && gp.graphName().equals(name)) {
                 tabs.setSelectedIndex(i);
-                return;
+                return true;
             }
         }
+        return false;   // so a caller can SAY it found nothing rather than appear to have done something
     }
 
     /**

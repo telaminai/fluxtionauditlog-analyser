@@ -33,8 +33,17 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
         /** Open a saved chart from its definition, selecting it; false when it could not be opened. */
         boolean openSaved(GraphSpec spec);
 
-        /** Select an already-open chart tab by name. */
-        void selectGraph(String name);
+        /** Select an already-open chart tab by name; false when there is no such tab. */
+        boolean selectGraph(String name);
+
+        /** Why every saved definition is being withheld, or null when they are not. */
+        String definitionRefusal();
+
+        /**
+         * Tell the person something, without changing anything. Still reveal-only under D-L3: a row that
+         * cannot act must say why, or it is the silent Open this whole round of work began with.
+         */
+        void say(String message);
     }
 
     static final String REPORTS_TAB = "Reports";
@@ -72,11 +81,23 @@ final class ProjectRevealer implements ProjectPanel.Navigator {
         // openSaved selects an existing tab rather than rebuilding it and losing edits made since
         for (GraphSpec g : saved()) {
             if (name.equals(g.name())) {
-                surface.openSaved(g);
+                if (!surface.openSaved(g)) {
+                    // R12-1: this used to assume the only cause was a missing log. GraphTabs.openSaved also
+                    // returns false while duplicate names are withholding every definition, so a person
+                    // with a log open was told to open one. Ask which it is rather than guess.
+                    String withheld = surface.definitionRefusal();
+                    surface.say(withheld != null
+                            ? "\"" + name + "\" cannot open yet: " + withheld
+                            : "\"" + name + "\" cannot open until a log is loaded — open one first, "
+                                    + "then use Open on the chart again.");
+                }
                 return;
             }
         }
-        surface.selectGraph(name);   // not in the profile (an unsaved tab): the tab is all there is
+        if (!surface.selectGraph(name)) {
+            surface.say("No chart called \"" + name + "\" is open, and the project has no saved definition "
+                    + "for it.");
+        }
     }
 
     private List<GraphSpec> saved() {

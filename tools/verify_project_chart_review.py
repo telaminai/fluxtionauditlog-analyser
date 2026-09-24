@@ -11,7 +11,17 @@ import subprocess
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-CASES = [('explicit-name',
+CASES = [('follow-hold',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (System.currentTimeMillis() - sayAtMillis >= SAY_HOLD_MILLIS) {',
+  'if (true) {',
+  'StatusExplanationSurvivesFrameTest#anExplanationSurvivesAnIdleFollowTick'),
+ ('report-link-opens-closed',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (graphTabs.selectGraph(gname)) return;',
+  'if (true) { graphTabs.selectGraph(gname); return; }',
+  'StatusExplanationSurvivesFrameTest#aReportLinkToAClosedChartOpensIt'),
+ ('explicit-name',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java',
   '        if (name != null && !name.isBlank()\n'
   '                && (graphNamed(name.trim()) != null || (!restoring && hasDefinition(name)))) return null;',
