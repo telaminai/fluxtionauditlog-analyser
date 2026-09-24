@@ -133,3 +133,26 @@ reports failures, errors and skipped separately.
   appends — one per append, because every append now sends the session an observation.
 - **P36 (O-ii).** Removing `set5-p24-headless-first-run.log` from `TrailingWhitespaceTest`'s exemption list leaves
   that test **green**, because it scans no `.log` file.
+
+## Set 7 — the round 4 fixes, written before they exist
+
+Planned: Q5a — the holder keeps every undeclared id a filtered comparison found, with the filter it was found under,
+until a whole-log comparison replaces them all; the latest filtered comparison is shown beside, and its reply names
+what it replaced and what that had found; with no whole-log run, a filter's finding leads the panel note. Q5b — each
+filtered comparison records its filter; a changed filter makes it "an earlier filter (…)", `filterStale: true`. Q2 —
+a stale qualification publishes `scope` as what it compared and `supersedesSample: false`. Q6 — the guard matches
+normalised text: a paragraph's or text block's lines joined, Markdown emphasis and HTML tags and entities stripped,
+whitespace collapsed including U+00A0. Q9 — the `LogOpened` sample goes through `sampleLoggedIds`, its audit line
+records the sample and total, and the parity test reads that record. O-i — an append sends the session nothing; the
+session's copy is refreshed when coverage reads its claim. O-ii — the dead exemption removed. O-iii — frame mutations
+must fail with an expected message.
+
+- **P37.** End to end on the fixed jar: **every check passes**, scenarios 9 and 10 included.
+- **P38.** The same script on the current, unfixed jar: **exactly the six scenario-9/10 checks fail**, and the rest pass.
+- **P39.** Headless: **0 failures, 0 errors**, and 65 skipped; the count rises by the new headless methods.
+- **P40.** Frame: **0 failures, 0 errors**, 1 skipped (the focus test), across the same twelve classes.
+- **P41.** `tools/mutate-m68-1.py --frame`: baseline green; every mutation RED with a `<failure>` at its named test, and
+  every frame mutation's failure carries its expected message; C1 recognised; every restore green again.
+- **P42.** The six Q6 shapes, planted as harness mutations, each turn the guard **RED**.
+- **P43.** The `LogOpened` sample mutation now turns the sampled parity test **RED**.
+- **P44.** Five Follow appends write **0** session audit records, and the coverage claim then counts **605** records.

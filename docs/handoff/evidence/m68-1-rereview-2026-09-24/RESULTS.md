@@ -60,3 +60,28 @@ here depended on that: each was checked by running it.
 | P29 — after the filtered coverage the status line still leads with the whole-log finding | before: "first 500 of 600 records: every node…"; after whole log: "whole log: 1 of 4 logged id(s) not de…"; **after filtered: the same**. `set5-p29-*.png` | **Yes** |
 | P26 — the harness, attempt 1 | **stopped at M9** on its own assertion: M9's and M17's anchors named lines I had rewritten for N1 and N2, so neither mutation could be applied. It stopped before writing, so no source was touched; the first eight entries had already passed. `set5-p26-harness-attempt1-stale-anchor.txt` | **Not a result.** The harness now checks every anchor before its baseline, so a stale one fails in seconds instead of an hour in |
 | P26 — the harness, attempt 2, `--frame` | anchors all checked first; baseline **58 green**; **33 of 33 mutations RED with a `<failure>` at the named test**; control **C1 reported as ERROR, not a failure, and recognised**; **every restore byte-identical and green again**, 34 of 34. `set5-p26-harness-frame.txt` | **Yes** |
+
+## Set 6 — round 3 review's findings reproduced, before any fix
+
+**One ordering error first.** The set 6 instruments were committed (`efe3eaa1`) **before** both gates were run, the
+same mistake as set 4. The gates were then run on that exact commit: headless **1,934 / 0 / 0 / 65**; frame **66
+tests, 1 failure, 0 errors, 1 skipped** — the failure being the new O-i test, failing by design as P35 predicted.
+
+Frame command, verbatim: `mvn test -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false"
+-Dtest='*FrameTest' -DfailIfNoTests=false`. Per class, skipped: PersonAtTheScreenFrameTest 1 of 3, every other class
+0, so the frame tests executed.
+
+| Prediction | Result | Right? |
+|---|---|---|
+| P30 (Q5a) — A then B loses A's finding | both checks **fail**: after filter B, `qualifiedBy` is `current filter`, `recordsCompared: 2`, `notDeclared: []` | **Yes** |
+| P31 (Q5b) — a changed filter still says "current filter" | both checks **fail**; there is no filter identity at all | **Yes** |
+| P32 (Q2) — stale fields claim the whole log | `scope: "whole log"`, `supersedesSample: true` beside `stale: true` | **Yes** |
+| P33 (Q6) — six plants pass the guard | all six **STILL GREEN**; each baseline green, restore byte-identical, green again | **Yes** |
+| P34 (Q9) — the `LogOpened` sample mutation is invisible | both parity tests **STILL GREEN** under `PAIRING_SAMPLE - 1` | **Yes** — the explanation is still only READ |
+| P35 (O-i) — five appends write five session audit records | **5**, exactly. `set6-p35-frame-failure.txt` | **Yes** |
+| P36 (O-ii) — removing the `.log` exemption changes nothing | `TrailingWhitespaceTest` **STILL GREEN** | **Yes** — so the exemption, and my set 5 note that both entries were needed, were wrong |
+
+**CI and the focus test (RUN, `gh run view` of `main`'s latest CI run, `35999134631`):** the `ui-frame` job passed,
+and under xvfb `PersonAtTheScreenFrameTest` reported `tests="3" errors="0" skipped="0" failures="0"`. So its focus
+skip on this machine would **not** fail CI, whose skip guard fails on any skip. No new `*FrameTest` class has been
+added by this branch — only methods on `PairingDuringLoadFrameTest`, which the job already lists.
