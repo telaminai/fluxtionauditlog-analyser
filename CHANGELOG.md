@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-09-24
+
 - The README names both Export settings and Import settings under Project for sharing setups.
 
 - **Project, Sources and Audit log now have separate menus.** Project holds profiles, saved analyses
