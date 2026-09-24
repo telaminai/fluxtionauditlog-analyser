@@ -54,3 +54,84 @@ archive sweep) were reviewed in rounds 3 and 4 and are not listed.
 The M68.1 **implementation** itself is not on `main` and is not in this ledger: it follows the normal cycle on
 branch `feat/m68-1-coverage-pairing-scope`, with its report at
 `docs/handoff/report_m68_1_coverage_pairing_scope_2026_09_24.md` on that branch.
+
+---
+
+## 2026-09-24 — Project-panel and chart-lifecycle work, straight to `main`
+
+Eight commits from a session working primarily in a downstream repo (maker-fxoc), driving the analyser
+against a live audit log. **Three change application code.** They were not logged here as they landed,
+which they should have been; this entry is written after the fact by the same session, so read it as a
+statement of what to check rather than as assurance.
+
+**Two independent reviews already cover part of this** and are the place to start, not this ledger:
+
+- `docs/handoff/review_project_panel_chart_lifecycle_2026_09_24.md` (on `main`) — covers `35eeb320`,
+  `43ce82fc`, `a27b4d13`, `38ecc7f3`, `1e51545d`. **Verdict: reject.** It found two critical regressions in
+  the very commit written to stop chart loss, and that the fix had no effective test coverage. Its status
+  header tables all twelve findings against the commit claimed to fix each — those claims are the author's
+  and want checking.
+- `review/chart-style-fixes-2026-09-24` (`25dad52b`) — covers `90746e83`. Both fixes confirmed working,
+  two findings left open (below).
+
+**Unreviewed, and the scope for the next reviewer:**
+
+- ☐ **`f6e8d7e0` — chart name collisions, rename, delete ordering, and testability.** *What & why:* fixes
+  R1–R5 of the review above. Deleting one chart could silently destroy a different, closed, annotated one:
+  `deleteCurrent` ran its fallback `addGraph()` (which ends in a save) before dropping the definition, and
+  a generated name could land on a closed chart because `doRestore` resets the counter and skips closed
+  charts. `GraphTabs` now takes a supplier of every name the project knows; rename refuses a taken name and
+  moves the stored definition; `openSaved` fires a change so a reopen persists. The merge moved out of
+  `MainFrame` into `SavedGraphMerge` because `MainFrame` is not headless-constructible — the review had
+  reverted the merge to its destructive form with the whole suite still green. *Files:* `GraphTabs.java`,
+  `MainFrame.java`, `GraphSpec.java`, `SavedGraphMerge.java` (new), two new tests. *Verified:* suite 1,908;
+  mutations — reverting the merge fails 10 assertions, removing the closed-chart skip 3, `openSaved`
+  without its change the named one. **Reviewer must still check:** the merge against renames, duplicate
+  names, project switching and the placeholder fallback; and the author's own admission that reverting the
+  delete *ordering* alone does NOT fail a test, because name reservation makes the collision impossible
+  either way — judge whether that defence-in-depth argument holds.
+- ☐ **`f1693c93` — the delete path made reachable by a test.** *What & why:* `deleteConfirmed` split from
+  the modal dialog. *Files:* `GraphTabs.java`, one test. **Reviewer must still check:** nothing else calls
+  `deleteConfirmed` without confirmation.
+- ☐ **`1247aab4` — two false claims by this session, corrected.** *What & why:* the "saved-chart rows
+  rendered a dead Open button" history was invented — at `35eeb320^` no button was rendered at all — and it
+  had reached the D-L3 amendment and the shipping CHANGELOG; and the restore proposal's central claim (two
+  captured roles) was false, there are four, plus an applied `view` map. **Reviewer must still check:** that
+  the corrections are complete, and that the D-L3 amendment now rests only on the report leg.
+- ☐ **`6145acdf` — the review landed on `main`, plus R10 and R12.** R10: `spec-project-starter-journey.md`
+  said "Keep `ProjectPanel.Navigator` unchanged", contradicted by `35eeb320`; the supersession is now
+  recorded there. R12: the CHANGELOG's "exactly as they did before" corrected — the first save after
+  upgrading does add a style key to every chart. **Reviewer must still check:** the supersession is accurate
+  and that no other governing document still contradicts the amendment. The amendment was originally made
+  without sweeping for other specs, which is how R10 arose.
+- ☐ **`b8197eb9` — milestone-number clash removed.** This session invented `M68.2`–`M68.5` as labels and
+  stamped them across 21 files including the D-L3 spec and ONBOARDING, colliding with the **active M68
+  evidence-integrity milestone and its named future slices**. Replaced with the commit sha each change
+  landed in. *Verified:* the five genuine M68 documents were excluded; suite green. **Reviewer must still
+  check:** no sha substitution misattributes a change to a commit that does not contain it.
+- ☐ **`84a8133c` — zoom versus pin, in the restore proposal.** Zoom is a lens and is never persisted; pin is
+  `graph.N.from`/`to` and is. Both sit on one toolbar and nothing says which is kept.
+
+**Known open, carried forward — confirm rather than rediscover:**
+
+1. **The `SettingsShare` regression test misses its call site.** `StyleDropdownRequestsASaveTest` exercises
+   `GraphSpec.withExternal` directly, never the importer, so reverting `SettingsShare.java:~350` to the
+   shorter constructor leaves the suite green. Needs a round-trip through the real import path;
+   `SettingsShareTest` already has the harness.
+2. **Import refresh loses incoming changes** — importing Points/closed over an open Line chart restores the
+   old Line/open state. Pre-existing, reproduced by the second review, unfixed.
+3. **Nothing here is verified at a real display.** The 62 skips are display-gated `*FrameTest` classes and
+   are not passes. Unverified: the Delete dialog appears and reads correctly; Cancel changes nothing; Close
+   keeps the chart and its row; Open reopens with notes and pin intact and does not discard a series added
+   since; a reload leaves a closed chart closed; alternating two report rows reveals the right one.
+   **Do not substitute an MCP verb for a button press** — this session did exactly that once and reported a
+   false all-clear from it.
+
+**A caution about this session's claims generally.** Three times it asserted something about this repository
+without checking: the dead-Open-button history, the restore proposal's capture model, and the M68 numbering.
+Each was cheap to verify — `git show 35eeb320^`, a fifteen-line file, one `grep`. Commit messages and the
+review status header are claims by the author, not findings.
+
+**Related, not in this ledger:** PR branch `fix/chart-delete-cancel-and-revealer` (`bd5cfe40`) closes the
+review's R9 and the Cancel gap, and touches `GraphTabs` and `MainFrame` — a fix branch cut from `b8197eb9`
+should expect conflicts there.
