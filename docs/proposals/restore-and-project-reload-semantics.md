@@ -1,109 +1,103 @@
-# Proposal: say what "Restore last session" and a project reload actually bring back
+# Proposal: say what a project reload gives you back, and which window control is saved
 
 **Status:** proposal, nothing built. Raised 2026-09-24 by the owner while verifying M68.2/M68.3 at a real
-display: *"reloading a project does not bring the log and graphs back after closing"* and *"a restore last
-session only brings some of the state back"*.
+display: *"reloading a project does not bring the log and graphs back after closing"*, *"a restore last
+session only brings some of the state back"*, and later *"was the zoom ignored"*.
 
-Both behaviours are **pre-existing and deliberate**, dated from history — neither is an M68 regression:
+> **Rewritten 2026-09-24 after independent review. The first version of this document was wrong at its
+> centre** and its central recommendation has been withdrawn. It claimed the recovery model captured only
+> two things, a log and a topology, and proposed either renaming "Restore last session" to match that or
+> widening the capture. Both rested on a false reading. The error and its cause are recorded below,
+> because how it happened is more useful than the conclusion it reached.
 
-- `GraphTabs.restore` early-returns when no log is loaded (`store == null`). That guard dates to
-  `e965afa2`, the initial public release.
-- A project reopen restores settings, not the session. That is stated in the verb echo itself —
-  *"puts it back — the settings, not the session: reopen what `closed` names"* — and dates to `1fab905e`
-  (M35.8 review N1/N3).
+## What the recovery model actually captures
 
-So this proposal is not a bug report. It is about the **distance between what the app promises and what it
-does**, which is the same class of problem M68.2 fixed: an Open that opened nothing read as broken
-software, and so does a Restore that restores two files under a name that suggests a session.
+Read from the code, not from a session:
 
-## What actually happens today (verified, not inferred)
+- **Four input roles**, enumerated and validated in `session/resume/SessionResumeStore.java`:
+  `log`, `topology`, `design`, `diagnostics`. A role outside that set is rejected at construction.
+- **A `view` map**, assembled in `MainFrame.captureSession()`, holding the **filter** (from, to,
+  dimensions, text, group mode), the **findings/flags**, the **selected records**, the **topology view**
+  (including its cursor), the **selected graph**, the log and graph **hashes**, the **provenance** and the
+  **format**.
+- It is **applied**, not merely stored: `applyRecovery` calls `restoreRecoveryView(plan.snapshot().view(), …)`,
+  gated on the captured `loadedLogHashes` still matching. When the bytes have changed the view is
+  deliberately **withheld** rather than applied to a different log — a designed refusal, not a gap.
 
-Measured against a build of `main` at `38ecc7f3`, by reading the profile bytes after each step:
+So "Restore last session" restores considerably more than its name suggests, and the earlier complaint
+that it "only brings some of the state back" has a narrower cause than a thin capture.
 
-| you do | you get |
-|---|---|
-| close a chart | tab closes, definition kept, `graph.N.open=false` written (M68.3) |
-| reopen the project | settings only. No log, so `store == null`, so **no charts** — an empty canvas |
-| then reopen the log | charts rebuild from the profile; open ones return, closed ones stay closed ✅ |
-| Restore last session | reopens the **log** and the **topology**, and charts follow from the log load ✅ |
+### How the first version got this wrong
 
-Restore works well *because* it loads a log. The charts are not in the restoration record at all — they
-come back as a side effect of the log arriving. `context.restoration.inputs` lists exactly two entries,
-`role: log` and `role: topology`.
+It read `context.restoration.inputs` in one live session, saw two entries — `log` and `topology` — and
+concluded the model supported only those two. The session had no design and no diagnostics open, so two
+is what that fixture could ever show. A sample was mistaken for a schema, and the conclusion was then
+written up as fact and committed.
 
-**Not captured, so never restored:** the filter, flags, the selection and step cursor, the spotlight, the
-open/selected tab, and the posture. Everything log-derived that a person set by hand.
+`SessionResumeStore.Input` is fifteen lines long and states the four roles in a `Set.of(...)`. Reading it
+would have cost less than writing the paragraph that got it wrong.
 
-### Zoom versus pin — two controls that look alike and behave oppositely
+## What is genuinely not captured
 
-Found the hard way by the owner on 2026-09-24, reloading and expecting the zoom back:
+Three things, and they are the whole of the remaining gap:
 
-- **Zoom** (`+`, `−`, `Fit`) calls `ChartPanel.zoomIn/zoomOut/resetView`. None of them call `mutated()`, so
-  nothing is written and nothing can return. A lens.
-- **Pin** (📌, "Pin to current window") is `GraphSpec.from`/`to`, written by `ConfigStore` as
-  `graph.N.from`/`graph.N.to` and re-applied by `doRestore` via `panel.pin(...)`. A fact, and it survives.
+- **Zoom** — `ChartPanel.zoomIn/zoomOut/resetView`, called by the `+`, `−` and `Fit` buttons. Nothing
+  writes it and nothing restores it.
+- **Spotlight** — session-scoped by design; a callout is explicitly never saved.
+- **Posture** — session-scoped by design, cleared by a project switch, as the `open` verb documents.
 
-Both set the visible window. They sit on the same toolbar. One is forgotten on reload and the other is
-saved, and nothing on screen distinguishes them — the 📌 marks the tab only *after* the fact. A person who
-zooms and reloads has no way to know they should have pinned.
+The last two are deliberate and documented. Only zoom is an accident of omission.
 
-This is the sharpest case in this document, because the remedy needs no new persisted state and no policy
-decision: **say which control keeps its window**. Options, cheapest first: word the tooltips so zoom reads
-as a lens and pin as something saved; or, when a chart is reloaded unpinned, have the chart's own caption
-line say the window was not kept. Widening capture to include zoom (A2) would make them behave the same,
-but the labelling fix stands on its own and should not wait for it.
+## The one gap worth acting on: zoom versus pin
 
-## The two gaps
+Found by the owner reloading and expecting the zoom back:
 
-**1. "Restore last session" is named for more than it restores.** A person reading it expects to be put
-back where they were. It reopens two files. The state that makes a session feel like *theirs* — the filter
-they narrowed to, the rows they flagged, the record they had selected — is exactly what is missing. The
-honest options are to narrow the name or widen the capture; the current pairing is the only combination
-that misleads.
+- **Zoom** (`+`, `−`, `Fit`) is a lens. Nothing calls `mutated()`, nothing is written, nothing returns.
+- **Pin** (📌, "Pin to current window") is a fact. It is `GraphSpec.from`/`to`, written by `ConfigStore`
+  as `graph.N.from`/`graph.N.to` and re-applied by `doRestore` through `panel.pin(...)`.
 
-**2. Reopening a project silently gives an empty canvas.** The verb echo explains the settings/session
-split to an agent. A person clicking in the UI is told nothing and simply finds their charts gone. It is
-recoverable in one step — open the log — but nothing on screen says so.
+Both set the visible window. They sit on the same toolbar. One is forgotten and one is saved, and nothing
+on screen distinguishes them — 📌 marks the tab only *after* the fact. A person who zooms and reloads has
+no way to know they should have pinned.
 
-## Options
+**Recommended, and the only recommendation in this document:** say which control keeps its window. Word
+the tooltips so zoom reads as a lens and pin as something kept; optionally, when a chart reloads unpinned,
+let its caption line say the window was not kept. No new persisted state, no policy decision, no
+dependency on anything else here. Widening capture to include zoom is a separate question and should not
+hold this up.
 
-Deliberately separated, because they are independent decisions.
+## The second complaint: a project reload shows an empty canvas
 
-### For the restore name/capture mismatch
+Reopening a project applies settings and does not reopen a log; `GraphTabs.restore` then returns early
+because `store == null`, so no chart is rebuilt. Both behaviours are deliberate and pre-date this work —
+the guard dates to `e965afa2` (initial public release) and the settings-not-session split to `1fab905e`
+(M35.8), whose echo says so in as many words.
 
-- **A1 — narrow the promise.** Rename to something that says what it does ("Reopen last log and topology")
-  and let the offer list the two files. Cheapest, honest immediately, zero new persisted state. Loses
-  nothing that works today.
-- **A2 — widen the capture.** Add filter, flags and selection to the restoration record. Closest to what
-  people mean, but it is new persisted state with real questions attached: flags against a log that has
-  since grown, a filter naming a dimension the reopened log no longer has, and D-A2's rule that a restored
-  fact must say where it came from. Each needs a refusal story, not just a field.
-- **A3 — both, staged.** A1 now, A2 as a separate piece of work once the refusal rules are settled.
-  **Recommended.** It removes the misleading promise this week without committing to state the app cannot
-  yet honestly verify.
+The complaint is therefore about **disclosure**, not behaviour: the verb echo explains the split to an
+agent, while a person clicking in the UI simply finds their charts gone, one step from recoverable.
 
-### For the empty canvas after a project reload
-
-- **B1 — say it on screen.** When a project is applied and no log is open, the Project panel's log row says
-  so and offers the reopen. Reveal-only, so it sits inside D-L3 as amended; no behaviour change.
-  **Recommended.**
-- **B2 — reopen the previous log automatically.** Convenient, and wrong for the reason the project switch
-  closes the log in the first place: a project is a session boundary (M35.5), and silently pulling a log
-  from the old session across it is how a person ends up reading one system's log under another's
-  settings. Not recommended.
-- **B3 — offer it, never take it.** A project reload that finds a log in the restoration record offers it
-  the way `projectOffer` already offers settings. Consistent with M35.4/D-AI5 — discovery offers, a person
-  declares. Reasonable alternative to B1, slightly more machinery.
+- **B1 — say it on screen.** When a project is applied with no log open, the Project panel's log row says
+  so and points at the reopen. **Withdrawn as written.** The first version called this "reveal-only and
+  therefore inside D-L3 as amended". That is not established: bringing a chart view forward is not the
+  same as loading a log, which changes the session. Before anything is built, the spec must say which
+  surface may *offer* navigation to the existing restore decision and which may *execute* it — and
+  `spec-project-starter-journey.md` already has text in this area that has to be reconciled first.
+- **B2 — reopen the previous log automatically.** Not recommended, and not the owner's to be talked into:
+  a project is a session boundary (M35.5), and silently carrying a log across it is how someone reads one
+  system's log under another system's settings.
+- **B3 — offer it, never take it**, the way `projectOffer` already offers settings. Consistent with
+  M35.4/D-AI5. The plausible route if disclosure alone proves too quiet.
 
 ## Non-goals
 
-Not proposed: changing the settings/session split itself. Closing the log on a project switch is correct
-and load-bearing, and nothing here argues otherwise. The complaint is about disclosure and naming, not
-about the boundary.
+Not proposed: changing the settings/session split, widening the capture, renaming "Restore last session",
+or approving any automatic restoration. The first version proposed the rename; on the corrected facts the
+current label is **more** accurate than the replacement it suggested, not less.
 
 ## Evidence pointers
 
-- `GraphTabs.restore` / `doRestore` — the `store == null` guard, and (M68.3) the skip for closed charts.
-- `MainFrame.syncOpenGraphsIntoConfig` — why charts survive a close since M68.3.
-- `SessionRecovery` / `context.restoration` — the two captured inputs and `identityScope`.
-- `docs/investigations/profile-project-root-resolution.md` — the M68.2/M68.3 work this was found during.
+- `session/resume/SessionResumeStore.java` — the four roles, `Snapshot.view`, the identity check.
+- `MainFrame.captureSession()` — what the view map actually holds.
+- `MainFrame.applyRecovery` / `restoreRecoveryView` — that it is applied, and the hash gate that withholds it.
+- `GraphTabs.restore` — the `store == null` guard (initial release) and the M68.3 closed-chart skip.
+- `ChartPanel.zoomIn/zoomOut/resetView` versus `ConfigStore` `graph.N.from`/`to` — the lens and the fact.

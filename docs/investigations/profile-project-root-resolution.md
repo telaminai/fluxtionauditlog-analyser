@@ -78,7 +78,8 @@ defect.** After the fix, a named profile can use the same portable `workspaceRoo
 > **Superseded — all three are resolved. See "Resolution of the three observations" below.** This section
 > is kept as written because it records what was known before the owner ruled on D-L3, including one
 > reading that turned out to be wrong: `Target.NONE` on a saved-chart row was taken as a boundary the
-> spec had drawn, when the row still rendered an Open button and simply had nothing behind it.
+> spec had drawn. **That dismissal was itself wrong — see the correction below.** The reading recorded
+> here turned out to be right.
 
 Source inspection distinguishes the following cases; they are not three proven instances of one bug:
 
@@ -127,8 +128,9 @@ still cannot reach.
    the bug: `ReportsPanel.select` matches on name, so a panel passing its label along would have selected
    nothing even after the identity was threaded through.
 2. **Saved charts** — fixed, and the earlier reading of `Target.NONE` as "consistent with D-L3" was
-   wrong in effect. The rows still rendered an Open button; it was simply wired to nothing, which is not
-   a boundary, it is a dead control. They now carry `Target.CHART`, and `GraphTabs.openSaved` opens a
+   wrong in effect. ~~The rows still rendered an Open button; it was simply wired to nothing, which is not
+   a boundary, it is a dead control.~~ **Withdrawn — that claim was false; see the correction below.**
+   They now carry `Target.CHART`, and `GraphTabs.openSaved` opens a
    saved-but-not-open chart from the profile — reveal, not create, because the definition already exists.
    A chart already open is selected rather than rebuilt, so Open never discards later edits.
 3. **Graph ▸ Open reveals the Topology tab** — re-tested after the profile-root fix, and the tab is
@@ -149,6 +151,31 @@ that differ from their names, so a regression that collapses label and identity 
 Suite after the change: **1,887 tests, 0 failures, 0 errors, 62 skips** (1,877 before; the ten new tests
 are this class and `GraphStylePersistenceTest`). `ProjectModelTest`'s saved-chart assertion changed with
 the spec and was renamed to say what it now pins.
+
+### Correction: the "dead control" claim was false — 2026-09-24
+
+Found by independent review (`review/project-panel-chart-lifecycle-2026-09-24-indep`) and confirmed here
+by inspection at `35eeb320^`:
+
+- the saved-chart rows had `path == null` and `Target.NONE`;
+- `ProjectPanel`'s target switch fell through to `default -> { }`;
+- the action strip was attached only `if (actions.getComponentCount() > 0)`.
+
+So **no button was rendered on those rows at all**. There was no Open, and therefore no dead control. The
+author's repeated claim that "the rows still rendered an Open button, so it was a dead control, not a
+boundary" is false, and it was used to dismiss the earlier reading — which was, on the corrected facts,
+**right**: `Target.NONE` there was a boundary the spec had genuinely drawn.
+
+This matters beyond tidiness because the false premise propagated into four places: this note, the
+commit message of `38ecc7f3`, the **D-L3 amendment** in `spec-loaded-panel.md`, and the **shipping
+CHANGELOG**. All four are now corrected. The consequence for the spec: the report leg of the amendment is
+a real defect and justifies the `Navigator` change on its own; the chart leg is a **deliberate widening of
+D-L3** chosen by the owner, not the repair of something broken. The owner's decision stands either way —
+only the argument for it changes.
+
+The lesson worth keeping is narrower than "check your facts": the claim was never verified against the
+parent commit, only reasoned from a `Target.NONE` in the current source. One `git show 35eeb320^` would
+have settled it before it reached a specification.
 
 ### What is still NOT verified — checks for a person at a real display
 

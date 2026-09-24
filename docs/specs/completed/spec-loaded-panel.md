@@ -84,11 +84,22 @@ to trust.
 
 **Amendment, owner 2026-09-24 (M68.2): revealing a SPECIFIC item is navigation.** A row's action may name
 the thing the row is about — *this* report, *this* saved chart — and the `Navigator` may carry that
-identity. Until this round it could not, and the cost was not theoretical: a report row showed its title
-while the Reports panel selects by name, so Open on any report revealed whichever report was already
-selected; and saved-chart rows carried no target at all, so the Open a person could see was wired to
-nothing. Both read as broken software, because a button that says *Open* and reveals someone else's
-report has already broken the trust this rule exists to protect.
+identity.
+
+The case that justifies it is the **report** row, and it is a real defect: the row shows a report's
+*title* while `ReportsPanel.select` matches its *name*, and the row could only ask for a tab. So Open on
+any report revealed whichever report happened to be selected. A button that says *Open* and reveals
+someone else's report has already broken the trust this rule exists to protect.
+
+> **Correction, 2026-09-24.** The first version of this amendment also claimed that saved-chart rows
+> "carried no target at all, so the Open a person could see was wired to nothing", and used that as a
+> second justification. **That was false and is withdrawn.** At `35eeb320^` those rows had `path == null`
+> and `Target.NONE`, `ProjectPanel`'s switch fell to `default -> { }`, and the action strip was attached
+> only when non-empty — so **no button was rendered at all**. There was no dead control. On the corrected
+> facts, `Target.NONE` on those rows was a boundary the spec had genuinely drawn, and the earlier reading
+> of it was right. The chart leg of this amendment is therefore a **deliberate widening of D-L3**, chosen
+> by the owner because a person wants to reopen a saved chart from where it is listed — not the repair of
+> a broken control. The report leg stands on its own and is sufficient to justify the `Navigator` change.
 
 The boundary is unchanged where it matters. A `Navigator` method must reveal something that **already
 exists**; one that creates, edits, discards or reorders state belongs on the action surface, which this

@@ -25,8 +25,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   never been closed carries no new setting and opens exactly as before.
 
 - **Open on a Project-panel row now opens that row's thing.** Open on a saved report reveals *that*
-  report instead of whichever one was already selected, and Open on a saved chart works at all — those
-  rows previously carried no action, so the button did nothing. A chart that is saved but not currently
+  report instead of whichever one was already selected, and saved charts gain an Open they never had —
+  those rows previously offered no action at all. A chart that is saved but not currently
   a tab is opened from the profile and selected; one already open is selected rather than rebuilt, so
   nothing you changed since is discarded.
 
