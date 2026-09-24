@@ -161,12 +161,163 @@ class DuplicateChartRepairFrameTest {
         }
     }
 
+    /**
+     * R13-1: the chooser is a modal, so a nested event loop runs while it is open and the action socket can
+     * switch the chart list underneath it. Applying a repair computed from the list as it WAS would write
+     * it over whatever is there now and destroy those definitions.
+     *
+     * <p>The reviewer's reproduction: with two global charts named "Same", open the dialog, have an agent
+     * open a project holding "Project chart", then answer the dialog. The project profile became
+     * [First, Second] and "Project chart" was gone.
+     */
+    @Test
+    void aListThatChangedWhileTheDialogWasOpenIsRefused(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        seedAmbiguousHome(tmp);
+
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                invokeRestore(f.frame);
+
+                // the chooser stands in for the modal: while it is "open", something else replaces the list
+                setChooser(f.frame, (java.util.function.Function<List<GraphSpec>,
+                        Map<Integer, DuplicateChartRepair.Choice>>) saved -> {
+                    f.frame.config().savedGraphs.clear();
+                    f.frame.config().savedGraphs.add(chart("Project chart", "someone else's work"));
+                    Map<Integer, DuplicateChartRepair.Choice> m = new LinkedHashMap<>();
+                    m.put(0, new DuplicateChartRepair.Choice(DuplicateChartRepair.Action.RENAME, "First"));
+                    m.put(1, new DuplicateChartRepair.Choice(DuplicateChartRepair.Action.RENAME, "Second"));
+                    return m;
+                });
+
+                javax.swing.Timer dismiss = dismissDialogs();
+                try {
+                    tabs(f.frame).repairButton().doClick();
+                } finally {
+                    dismiss.stop();
+                }
+
+                assertEquals(List.of("Project chart"),
+                        f.frame.config().savedGraphs.stream().map(GraphSpec::name).toList(),
+                        "a repair computed from the OLD list must not be written over the new one — "
+                                + "that destroys definitions nobody was asked about");
+            });
+        }
+    }
+
+    /**
+     * R13-2: a chart created during the refusal is never persisted (the save path returns early), and the
+     * repair rebuilds every tab from the config. It used to disappear as a side effect of fixing something
+     * else. It is now carried into the repaired list and saved.
+     */
+    @Test
+    void aChartMadeDuringTheRefusalSurvivesTheRepair(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path config = seedAmbiguousHome(tmp);
+
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            openLog(f, tmp);
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                invokeRestore(f.frame);
+
+                assertNotNull(tabs(f.frame).addGraph("Scratch"), "a new chart is allowed during a refusal");
+
+                setChooser(f.frame, (java.util.function.Function<List<GraphSpec>,
+                        Map<Integer, DuplicateChartRepair.Choice>>) saved -> {
+                    Map<Integer, DuplicateChartRepair.Choice> m = new LinkedHashMap<>();
+                    m.put(0, new DuplicateChartRepair.Choice(DuplicateChartRepair.Action.RENAME, "First"));
+                    m.put(1, new DuplicateChartRepair.Choice(DuplicateChartRepair.Action.DELETE, null));
+                    return m;
+                });
+                tabs(f.frame).repairButton().doClick();
+
+                assertTrue(f.frame.config().savedGraphs.stream().anyMatch(g -> g.name().equals("Scratch")),
+                        "work made during the refusal must not vanish because something else was repaired");
+                assertTrue(new ConfigStore(config).load().savedGraphs.stream()
+                                .anyMatch(g -> g.name().equals("Scratch")),
+                        "and it is now persisted, since the profile is no longer ambiguous");
+            });
+        }
+    }
+
+    /** R13-3: the refusal must name the control that fixes it, not send people to a text editor. */
+    @Test
+    void theRefusalNamesTheRepairControl(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        seedAmbiguousHome(tmp);
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                invokeRestore(f.frame);
+                String refusal = tabs(f.frame).definitionRefusal();
+                assertTrue(refusal.contains("Repair names"),
+                        "the refusal must point at the in-app fix: " + refusal);
+                assertFalse(refusal.toLowerCase().contains("restart the analyser"),
+                        "and must not still send people away to hand-edit: " + refusal);
+            });
+        }
+    }
+
+    /** O13-1: OK with nothing chosen is not the same as Cancel, and must not look like success. */
+    @Test
+    void okWithNothingChosenSaysSo(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        seedAmbiguousHome(tmp);
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                invokeRestore(f.frame);
+                setChooser(f.frame, (java.util.function.Function<List<GraphSpec>,
+                        Map<Integer, DuplicateChartRepair.Choice>>) saved -> Map.of());
+                tabs(f.frame).repairButton().doClick();
+
+                JLabel status = (JLabel) field(f.frame, "status");
+                assertTrue(status.getText().toLowerCase().contains("nothing was chosen"),
+                        "an empty answer is not a silent no-op: " + status.getText());
+                assertNotNull(tabs(f.frame).definitionRefusal());
+            });
+        }
+    }
+
+    /**
+     * Bind a real log, because a chart panel needs a store: {@code GraphTabs.newPanel} returns null without
+     * one, so {@code addGraph} returns null for want of a log rather than because of the refusal. An
+     * earlier version of this class claimed to do this and did not, which is why its "a new chart is
+     * allowed" case proved nothing (review O13-2).
+     */
+    private static void openLog(AsyncOpenInterleavingFrameTest.Frame f, Path tmp) throws Exception {
+        Path log = Files.writeString(tmp.resolve("sample.yml"),
+                "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n    - node: { value: 1}\n---\n");
+        assertTrue(f.ex.render("open", Map.of("log", log.toString())).ok());
+        for (int i = 0; i < 400 && f.status().startsWith("Loading "); i++) Thread.sleep(25);
+        assertFalse(f.status().startsWith("Loading "), "the log must finish loading before the test runs");
+    }
+
+    private static javax.swing.Timer dismissDialogs() {
+        javax.swing.Timer t = new javax.swing.Timer(200, e -> {
+            for (java.awt.Window w : java.awt.Window.getWindows()) {
+                if (w instanceof JDialog d && d.isVisible()) d.dispose();
+            }
+        });
+        t.setRepeats(true);
+        t.start();
+        return t;
+    }
+
+    /** O13-2: this creates a chart, which its previous version claimed to and did not. */
     @Test
     void anAmbiguousProfileNoLongerBlocksMakingANewChart(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         seedAmbiguousHome(tmp);
 
         try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            openLog(f, tmp);
             onEdt(() -> {
                 f.frame.setSize(1300, 850);
                 f.frame.setVisible(true);
@@ -176,6 +327,9 @@ class DuplicateChartRepairFrameTest {
 
                 assertNull(t.addGraph("Same"),
                         "a WITHHELD definition still cannot be opened — that is what the refusal protects");
+                assertNotNull(t.addGraph("Brand new"),
+                        "but an unrelated chart CAN be created — the point of the owner's decision");
+                assertTrue(t.graphNames().contains("Brand new"));
                 assertEquals(2, f.frame.config().savedGraphs.size(),
                         "and the ambiguous definitions are untouched by any of this");
             });
@@ -186,7 +340,7 @@ class DuplicateChartRepairFrameTest {
         try { return Files.readAllBytes(p); } catch (java.io.IOException e) { throw new RuntimeException(e); }
     }
 
-    /** Bind a log so charts can exist, then run the guarded restore that produces the refusal. */
+    /** Run the guarded restore that produces the refusal. No log is bound; none is needed. */
     private static void invokeRestore(MainFrame frame) {
         try {
             var m = MainFrame.class.getDeclaredMethod("restoreGraphDefinitions", List.class);

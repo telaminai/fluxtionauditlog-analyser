@@ -306,8 +306,19 @@ public final class ActionExecutor implements RenderExecutor {
     // ---- graph -----------------------------------------------------------------------------------
 
     private ActionResult doGraph(LogStore s, Map<String, Object> p) {
+        // R13-4: the owner decision allows a NEW chart while definitions are withheld, and the UI does. The
+        // verb refused everything, so the assistant was held to a stricter rule than the person beside it.
+        // A chart that IS withheld is still refused — that is what the ambiguity protects.
         String refusal = onEdt(graphTabs::definitionRefusal);
-        if (refusal != null) return ActionResult.error(refusal);
+        if (refusal != null) {
+            String target = asText(p.get("name"));
+            boolean withheld = target == null || onEdt(() -> graphTabs.hasDefinition(target));
+            if (withheld) {
+                return ActionResult.error(target == null
+                        ? refusal + " Name the new chart to create one while this is unresolved."
+                        : refusal);
+            }
+        }
         String seriesRefusal = seriesShapeRefusal(p.get("series"));
         if (seriesRefusal != null) return ActionResult.error(seriesRefusal);
         // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is

@@ -5332,8 +5332,25 @@ public final class MainFrame extends JFrame {
     /** Run the repair: ask, apply, persist, rebind. Cancel leaves every definition exactly as it was. */
     private void repairDuplicateCharts() {
         var saved = List.copyOf(config.savedGraphs);
+        Path tierWhenAsked = project == null ? null : project.activeFile();
         var choices = repairChooser.apply(saved);
-        if (choices == null || choices.isEmpty()) return;          // cancelled: nothing is touched
+        if (choices == null) return;                                // cancelled: nothing is touched
+        if (choices.isEmpty()) {                                    // OK with every row left on "Choose…"
+            status.setText("Nothing was chosen, so no chart names were changed.");
+            return;
+        }
+        // R13-1: the chooser is a MODAL, so a nested event loop ran while it was up and the action socket
+        // may have switched project underneath it. Applying a repair computed from the old list would write
+        // it over a different tier's charts and destroy them. Same shape as the stale tab index across the
+        // delete dialog: what was read before the question is not what is there after it.
+        Path tierNow = project == null ? null : project.activeFile();
+        if (!java.util.Objects.equals(tierWhenAsked, tierNow) || !saved.equals(config.savedGraphs)) {
+            JOptionPane.showMessageDialog(this,
+                    "The chart list changed while this dialog was open, so nothing was changed.\n\n"
+                            + "Open Repair names… again to see the charts as they are now.",
+                    "Charts not repaired", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> repaired;
         try {
             repaired = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.apply(saved, choices);
@@ -5342,16 +5359,30 @@ public final class MainFrame extends JFrame {
                     JOptionPane.WARNING_MESSAGE);
             return;                                                 // still ambiguous, still all preserved
         }
+        // R13-2: a chart made DURING the refusal was never persisted (the save path returns early while
+        // definitions are withheld), and the rebuild below clears every tab. Carry those tabs into the
+        // repaired list so the person's work is kept and saved, rather than vanishing as a side effect of
+        // fixing something else. Their names cannot collide: nextFreeDefaultName reserves saved names too.
+        var repairedNames = repaired.stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                .collect(java.util.stream.Collectors.toSet());
+        var carried = new java.util.ArrayList<>(repaired);
+        for (var live : graphTabs.specs()) {
+            if (!repairedNames.contains(live.name())) carried.add(live.withOpen(true));
+        }
+
         config.savedGraphs.clear();
-        config.savedGraphs.addAll(repaired);
+        config.savedGraphs.addAll(carried);
         graphTabs.clearRefusal();
         restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         saveConfigQuietly();
         if (project != null) project.requestSave();
         refreshProjectPanel();
+        int kept = carried.size() - repaired.size();
         // sayToStatus, not status.setText: R12-2 landed on main between this branch and here, and an idle
         // follow tick would otherwise wipe the one confirmation that the repair actually happened.
-        sayToStatus("Chart names repaired; definitions loaded.");
+        sayToStatus("Chart names repaired; definitions loaded."
+                + (kept > 0 ? " " + kept + " unsaved chart" + (kept == 1 ? "" : "s") + " kept." : ""));
     }
 
     /** The modal half. Returns null when the person cancels. */
@@ -5413,12 +5444,12 @@ public final class MainFrame extends JFrame {
             telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
         } catch (IllegalArgumentException ambiguous) {
             String source = project.hasProject() ? project.activeFile().toString() : configStore.path().toString();
+            // R13-3: this used to send people away to hand-edit a file. There is now a way out in the app,
+            // and the assistant's graph verb returns this same text, so it must name the control.
             graphTabs.refuseDefinitions("Charts not loaded: " + ambiguous.getMessage()
-                    + ". All definitions are retained. "
-                    + (project.hasProject() ? "Close the project" : "Close the analyser")
-                    + " before editing the chart names in " + source
-                    + " to make them unique, then " + (project.hasProject() ? "reopen the project." : "restart the analyser.")
-                    + " Log inspection remains available.");
+                    + ". All definitions are retained. Use Repair names… on the Graph panel to rename or"
+                    + " delete the duplicates, or edit them in " + source + " yourself."
+                    + " New charts and log inspection remain available.");
             return;
         }
         graphTabs.restore(saved);
