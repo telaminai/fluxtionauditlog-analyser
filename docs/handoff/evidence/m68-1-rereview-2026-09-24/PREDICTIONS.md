@@ -46,3 +46,18 @@ wording class, four code sites, help, two docs pages, a repository guard), R4 (z
   three** open orders.
 - **P14.** A screenshot through the jar's `screenshot` verb at the default window size shows the pairing note as the
   **first readable text** of the Topology status line.
+
+## Set 3 — the note leads with what qualifies it (from P14), written before the fix exists
+
+Planned fix: a sampled pairing's note starts with its scope ("first 500 of 600 records: …"); once a whole-log
+comparison supersedes the sample, the panel note starts with that finding and puts the sampled verdict after it.
+The composition moves into a pure method so it can be tested without a display.
+
+- **P15.** A sampled pairing's `note()` **starts with** "first 500 of 600 records: ". An unsampled one is unchanged,
+  so the existing frame assertion `startsWith("every node id checked is declared (3/3")` still passes.
+- **P16.** The panel note after a superseding whole-log comparison **starts with** "whole log: 1 of 4 logged id(s)
+  not declared". After a confirming one it starts with the sampled note and ends with the confirmation.
+- **P17.** Screenshots at the default size: before coverage the first visible text is "first 500 of 600 records";
+  after coverage it is "whole log: 1 of 4". I expect the rest of each line to be clipped, as before.
+- **P18.** Headless **1,927 / 0 / 0 / 62** (two new test methods). Frame **63 / 0 / 1 skip**. Harness: every
+  mutation still RED at its named test, plus two new ones for this fix.
