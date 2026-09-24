@@ -155,6 +155,11 @@ public interface LogStore extends AutoCloseable {
         return null;
     }
 
+    /** M68.3: the frame still being written under Follow, observable but not a record; null for most stores. */
+    default String pendingFrameText() {
+        return null;
+    }
+
     default boolean supportsFollow() {
         return false;
     }

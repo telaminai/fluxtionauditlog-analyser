@@ -4016,7 +4016,7 @@ public final class MainFrame extends JFrame {
         // the three checks read the index and the third reads a record's text.
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
-                        loaded.completenessDiagnostics(), loaded.completenessIsNote());
+                        loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText());
         String producerWarning = producerWarning();
         status.setText(statusText(loaded.size(), range,
                 logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
@@ -4438,11 +4438,16 @@ public final class MainFrame extends JFrame {
         // was shown nothing at all. The completeness state is re-read on every tick and the human
         // surfaces are refreshed when it moves, whether or not any record came with it.
         var end = store.streamEnd();
-        if (followNeedsDiagnosticRefresh(followStreamEnd, end, added)) {
+        // M68.3: the pending frame is re-scanned when it GROWS. A live log with no separators at all never adds a
+        // record, so without this its collapsed framing would never be suspected while it was being followed.
+        String pending = store.pendingFrameText();
+        int pendingChars = pending == null ? 0 : pending.length();
+        if (followNeedsDiagnosticRefresh(followStreamEnd, end, added) || pendingChars != followPendingChars) {
             followStreamEnd = end;
+            followPendingChars = pendingChars;
             producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                     .of(store.index(), store::rawText, store.sourceDiagnostics(),
-                            store.completenessDiagnostics(), store.completenessIsNote());
+                            store.completenessDiagnostics(), store.completenessIsNote(), pending);
             status.setToolTipText(producerDiagnostics.isClean() ? null
                     : String.join("\n\n", producerDiagnostics.messages()));
         }
@@ -4472,13 +4477,19 @@ public final class MainFrame extends JFrame {
                 : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
     }
 
+    /** M68.3: the pending frame's size at the last diagnostic rebuild under Follow. */
+    private int followPendingChars;
+
     /** The producer warning as the status bar renders it, shared by the load and follow lines. */
     private String producerWarning() {
         // Round five A-5: a COMPLETENESS_NOTE states a limit — "each file says it is whole, and that says
         // nothing about the set" — and must not wear a warning glyph. It still reaches the tooltip and
         // `context`; it simply is not a fault.
         return producerDiagnostics.firstWarning()
-                .map(f -> "  ·  ⚠ " + f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ')
+                // M68.3: a framing finding is a SUSPICION, and the label on the bar says so like the message does
+                .map(f -> "  ·  ⚠ " + (f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.UNSEPARATED
+                                ? "suspected missing record separators"
+                                : f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
                         + " — ask 'context', or hover")
                 .orElse("");
     }

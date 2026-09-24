@@ -394,6 +394,34 @@ def main():
             gp = ctx.get("graphPairing") or {}
             check("M68.4: the graph is still loaded", gp.get("graph") is not None, gp)
             check("M68.4: and its pairing is reported", gp.get("applies") is True, gp)
+
+            print("16. M68.3 — framing: a legal one-record file is not accused; a collapsed one is SUSPECTED, with evidence")
+            # CONSTRUCTED here, like every log in this script. The reproduced false verdict: the key as literal text inside
+            # a quoted value was counted as a second record.
+            legal = os.path.join(work, "m68-3-quoted-key.yaml")
+            with open(legal, "w") as out:
+                out.write("---\neventLogRecord: \n    eventTime: 1000\n    logTime: 1001\n    event: Note\n"
+                          "    eventToString: \"Note{text=eventLogRecord: hello}\"\n    thread: constructed\n"
+                          "    nodeLogs: \n        - checked: { v: 1}\n---\n")
+            a.act("open", close="all")
+            a.act("open", log=legal)
+            ctx = settle(a)
+            producer = " ".join(ctx.get("producer") or [])
+            check("M68.3: a legal one-record file with the key in a quoted value is NOT reported as run together",
+                  "run together" not in producer, producer or "(no producer findings)")
+            collapsed = os.path.join(work, "m68-3-collapsed.yaml")
+            constructed_log(collapsed, [["checked"], ["child"], ["rootNode"]])
+            with open(collapsed) as f:
+                body = "".join(l for l in f if l.strip() != "---")          # the writer that never emits a separator
+            with open(collapsed, "w") as f:
+                f.write(body)
+            a.act("open", close="all")
+            a.act("open", log=collapsed)
+            ctx = settle(a)
+            producer = " ".join(ctx.get("producer") or [])
+            check("M68.3: a collapsed file is suspected, as a suspicion", producer.startswith("Suspected")
+                  and "3 records run together" in producer, producer or "(no producer findings)")
+            check("M68.3: and names the span it inspected", "Inspected lines 1" in producer, producer)
     finally:
         shutil.rmtree(work, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)

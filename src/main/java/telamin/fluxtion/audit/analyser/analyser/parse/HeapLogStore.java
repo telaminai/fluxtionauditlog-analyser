@@ -221,6 +221,27 @@ public final class HeapLogStore implements LogStore {
     @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
 
     /**
+     * M68.3 (acceptance 10): the frame still being written under Follow — the text after the last {@code ---} — or
+     * null when there is none. OBSERVABLE, not accepted: nothing here indexes it, and it is not a record until its
+     * separator arrives whole ("--" then "-\n" on a later poll stays pending until the line is complete).
+     */
+    @Override public String pendingFrameText() {
+        if (!trailingPending) return null;
+        String text = file;
+        int from = 0;
+        int i = 0;
+        while (i < text.length()) {
+            int end = text.indexOf('\n', i);
+            if (end < 0) break;                                   // the last line has no newline: part of the frame
+            String line = text.substring(i, end).strip();
+            if (line.equals("---")) from = end + 1;
+            i = end + 1;
+        }
+        String frame = text.substring(from);
+        return frame.isBlank() ? null : frame;
+    }
+
+    /**
      * M68.5: a change on disk since the content was read. The text is in memory, so nothing on disk alters what this
      * store serves: a change is labelled superseded, never suspended. Under Follow, {@link #followIdentity} decides.
      */

@@ -1,0 +1,22 @@
+---
+eventLogRecord: 
+    eventTime: 4000
+    logTime: 4000
+    groupingId: null
+    event: Tick
+    eventToString: Tick{1}
+    thread: main
+    nodeLogs: 
+        - n: { v: 1}
+    endTime: 4001
+---
+eventLogRecord: 
+    eventTime: 4001
+    logTime: 4001
+    groupingId: null
+    event: Tick
+    eventToString: Tick{2}
+    thread: main
+    nodeLogs: 
+        - n: { v: 2}
+    endTime: 4002

@@ -190,3 +190,18 @@ graph as no graph (set 1, pre-existing, found BY the migration), and `OpenLog`'s
 by me and caught by its test). The rest were at the adapter or verb boundary: the non-change posts (sets 1–3), the
 empty-log goto and the flag clamp (set 10), the upper-cased section name and the export capture (set 8). A first
 draft of this paragraph said all of them were outside the processor, and was wrong.
+
+## Set 11 — M68.3, framing on constructed logs
+
+| # | Prediction | Result |
+|---|---|---|
+| P58 | `FramingScanTest` 5 green, at 75% confidence | **Held.** |
+| P59 | `ProducerFramingTest` 9 green, at 50% confidence | **Held.** None of the three named risks fired. The collapsed live tail stays pending under `forFollow()`; heap and mapped give identical messages; the starter sample's headers are at column 0. |
+| P60 | `ProducerDiagnosticsTest` unchanged and green | **Held.** 9 / 0. |
+| P61 | W41–W43 red | **Held.** W41 turned both its named tests red. |
+| P62 | headless 2,036 / 0; frame 66 / 0 / 0 / 1 | **Held.** |
+| P63 | scenario 16 fails on `ac0efaa0`, passes on the fix | **Held.** Old jar 78 pass, 3 fail. The legal file got "record 1 alone contains 2 records run together", the round-3 false verdict word for word, and the collapse was stated as fact with no span. Fixed jar 81 / 0. |
+
+**A log was not needed.** Every acceptance-10 case was constructed, because the diagnostic reads structure. The client's
+file would have shown only one case: the collapse. The cases that mattered most, the legal file that was accused and the
+pending live collapse, could only be constructed.

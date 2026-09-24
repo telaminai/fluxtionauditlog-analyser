@@ -305,6 +305,15 @@ by the compiler and the playground, not a Mongoose export. The audit format prop
 playground, its plugin repo and this one. Closing only a Mongoose delivery path would not have prevented this
 file. The producer's part is a write-time check in each writer, and needs an entry against the starter as well as
 against the audit format work. Neither half alone closes it.
+
+**As built for the analyser half (M68.3, 2026-09-24, not yet reviewed).** `FramingScan` replaces the substring count.
+A candidate is a column-0 `eventLogRecord:` line outside any quoted value. Quotes are tracked across lines, and open
+only at a value position. Every framing finding says "Suspected" and names the inspected lines and characters and the
+candidate lines. An item beyond the scan bound is `FRAMING_NOT_ASSESSED`, a note and never a clean bill. Under Follow
+the pending frame is scanned, and re-scanned as it grows, without being indexed. It is verified on constructed
+fixtures (`src/test/resources/framing/`), and on the one real collapsed log the repository holds. **Limit:** a plain
+value containing `: '` with an unclosed quote can open a false quote and hide later lines. **The producer half** (the
+writer emitting separators) belongs to the starter and the audit format work, and is not built here.
 ## D-E10 · A declared fact outranks an inference, and an inference says it is one
 
 Where a producer declares a fact about its own output, the instrument reads the declaration. Inference is a

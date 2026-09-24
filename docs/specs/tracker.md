@@ -590,7 +590,13 @@ verdict, which is owned jointly.
   fails on a `df0b24a5` jar and passes on the fix. **Open:** an off-screen render of a named FOCUS, so the section is
   drawn and not only explained; the D-E8 contradiction test in its general form (chart versus `series` over the same
   inputs); and SERIES sections, still a stated gap.
-- [M68.3] ☐ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** The producer
+- [M68.3] ◧ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** **Analyser half
+  built 2026-09-24 on `feat/m44-single-state-session`, awaiting review, on CONSTRUCTED logs** (the original is not
+  in the public packet; the diagnostic judges structure, so each acceptance-10 case was built exactly, and the real
+  starter sample is the cross-check). The legal quoted-key file is no longer accused: the old jar says "record 1
+  alone contains 2 records run together" word for word (verifier scenario 16). Collapses are suspected with span and
+  candidate lines; beyond the bound is "not assessed"; the pending frame is scanned under Follow. **Open:** the
+  producer half, which stays filed against the starter and the audit format. The producer
   diagnostic already exists, counts raw occurrences of the record-header key inside a frame, and was reproduced in
   round 3 reporting "record 1 alone contains 2 records run together" for a **legal one-record file** whose quoted
   value contains that key as literal text. That verdict reaches `context.producer` and the human surface today.

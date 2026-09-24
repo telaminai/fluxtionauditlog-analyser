@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A legal one-record log is no longer reported as several records run together.** The check for missing `---`
+  separators counted the words `eventLogRecord:` anywhere in a record, including inside a quoted value. So a record
+  that mentioned them in its own text was reported as "2 records run together". The check now looks only at lines
+  that start a record, outside quoted values. It reports a real collapse as a suspicion, naming the lines it read and
+  the lines that look like new records. A record too long to check in full now says it was not checked, instead of
+  passing as clean. Under Follow, a log that never writes a separator is noticed before its first record is complete
+  (M68.3).
 - **An assistant request is now honoured whole or refused whole, and a refusal no longer changes the view.**
   - `open` with a rolled set and a graph opened only the logs, and the graph was dropped without a word. It now opens
     both, and the graph stays. The same applies to a log with an explicit `format` together with a graph.
