@@ -314,3 +314,36 @@ first. **Decisions taken that reverse or change a tested or recorded behaviour, 
 - **P56 — headless 2,022** (2,009 + 9 + 3 + 1), 0 failures after any P54 fixes. **Frame 66 / 0 / 0 / 1.**
 - **P57 — end to end.** Scenarios 14 and 15 fail on a jar built from `00fd7773` (14: echo `recordIndex` 0, nothing
   selected; 15: graph gone) and pass on the fix. Everything else stays green, at 72 plus the new checks.
+
+## Set 11 — M68.3, the framing diagnostic (D-E9, acceptance 10), on CONSTRUCTED logs
+
+Written after the code compiled and before any of its tests ran. Gated on a tree without the code.
+
+**No original log is needed, and why.** The diagnostic judges structure: where a record header appears and where
+separators are. So each acceptance case is constructed exactly (`src/test/resources/framing/`, with a README saying
+so), and the one real collapsed log the repository holds (`sg1-release-2026-09-21/sample-run.txt`) is the
+cross-check. The client's `run1.log` is not in the public packet. Its SHAPE, taken from its PDF (nine
+`eventLogRecord:` blocks, no `---`), is reproduced with `DEMO` names.
+
+**The defect, read from the code.** `unseparated` used `indexOf("eventLogRecord:")` anywhere in a record's text,
+quoted values included. **Limit, stated before the trials:** `FramingScan` opens a quote only at a value position. A
+plain value containing `: '` whose quote never closes on its line would open a false quote and could hide later lines
+(a false negative). No fixture exercises that.
+
+- **P58 — `FramingScanTest`, 5 cases, green on first run.** Confidence 75%. Risk: the single-quoted `''` case, or
+  the `- ` list-item handling in `quoteStateAfter`.
+- **P59 — `ProducerFramingTest`, 9 cases, green on first run.** Confidence 50%. The risks:
+  - `aLiveCollapseIsSuspectedFromThePendingFrame`: whether `forFollow()` plus `appendFrom` leaves the collapsed
+    tail as PENDING rather than indexed;
+  - `heapAndMappedAgree`: the mapped store's `rawText` may differ at the trailing newline;
+  - `theRealStarterSampleIsSuspected`: the sample's own first line might not be column-0.
+- **P60 — the existing `ProducerDiagnosticsTest` stays green.** The new message keeps "N records run together",
+  `---` and `record.toString()`.
+- **P61 — witnesses:**
+  - W41: `FramingScan` ignoring quote state turns `aQuotedKeyIsText` red, and `aLegalOneRecordFileIsNotAccused` too;
+  - W42: quotes opening anywhere turns `anApostropheIsNotAQuote` red;
+  - W43: the pending frame ignored turns `aLiveCollapseIsSuspectedFromThePendingFrame` red.
+- **P62 — headless 2,036** (2,022 + 5 + 9), 0 failures. **Frame 66 / 0 / 0 / 1.**
+- **P63 — end to end.** Scenario 16's first check fails on a jar built from `ac0efaa0` (the old count accuses the
+  legal file), and its suspicion checks fail there too (the old message says "This log is missing", not
+  "Suspected"). All pass on the fix.
