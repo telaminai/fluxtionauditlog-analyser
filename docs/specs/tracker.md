@@ -9,7 +9,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 ## Project / Sources / Audit log menus — owner request 2026-09-24
 
 - ◧ **Separate top-level resource menus** — implemented on `feat/project-sources-audit-menus`,
-  based on released 1.19.2; not merged or released. Project owns profiles/settings/analyses, Sources
+  merged as PR #15 (`fda14f70`); menus not yet released. Project owns profiles/settings/analyses, Sources
   owns source configuration and topology/design/diagnostics, Audit log owns acquisition/Follow/export.
   Records, Theme, AI and Help remain separate. Existing action handlers and the reveal-only Project
   panel boundary remain in force. Live docs, offline help, screenshots and menu spotlight examples
@@ -19,8 +19,12 @@ Legend for each item: **[id] status — title** · _acceptance_.
   display 98/0/0/0 (19 suites). The ten menu controls passed before integration; the owner
   requested no mutation rerun on the combined tree. R1–R3 corrected; O1–O5 taken; D1–D3 remain owner decisions.
   Original 26 demo captures refreshed, then five affected assets recaptured and inspected for the
-  review response. Specialized older captures labelled. Review/merge pending.
+  review response. Specialized older captures labelled. PR #15 merged after re-review; follow-up guards on
+  `fix/menu-guard-followups` await review: package 1985/0/0/97, display 98/0/0/0,
+  five targeted controls red/restored green. Repeated focus measurement had two skips after
+  the retry change; no stability improvement or fix for the unreproduced spotlight flake is claimed.
   [Implementation and verification](../handoff/report_project_sources_audit_menus_2026_09_24.md).
+  [Optional guard follow-ups](../handoff/report_menu_guard_followups_2026_09_24.md).
 
 ## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md), revision 9 (2026-09-21)
 

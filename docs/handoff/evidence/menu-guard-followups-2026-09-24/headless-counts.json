@@ -1,0 +1,10 @@
+{
+  "counts": {
+    "tests": 1985,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 97
+  },
+  "mappedSuites": 265,
+  "orphans": []
+}

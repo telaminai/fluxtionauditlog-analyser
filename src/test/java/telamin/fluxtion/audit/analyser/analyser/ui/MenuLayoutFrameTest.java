@@ -48,7 +48,9 @@ class MenuLayoutFrameTest {
                 assertEquals(new HashSet<>(expected), new HashSet<>(relocated), "legacy action inventory is preserved");
                 for (String label : expected) assertEquals(1, Collections.frequency(relocated, label), label + " appears exactly once");
                 assertEquals("Records", bar.getMenu(3).getText());
-                assertEquals(MenuInventory.MENUS.get("Records"), labels(bar.getMenu(3)), "Records inventory also backs the docs check");
+                for (String name : List.of("Records", "AI", "Theme", "Help"))
+                    assertEquals(MenuInventory.MENUS.get(name), labels(menu(f.frame, name)),
+                            name + " inventory also backs the docs check");
             });
         }
     }

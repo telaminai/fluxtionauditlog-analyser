@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- The README names both Export settings and Import settings under Project for sharing setups.
+
 - **Project, Sources and Audit log now have separate menus.** Project holds profiles, saved analyses
   and settings; Sources holds source configuration, topology, design and producer diagnostics;
   Audit log holds acquisition, Follow and record export. Source settings shortcuts open their named

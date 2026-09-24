@@ -220,6 +220,23 @@ CASES.extend([
 ])
 
 
+# Optional PR 15 follow-ups: only these four plus menu-help-s3 form the requested witness run.
+CASES.extend([
+    ('menu-doc-ai', 'docs/site/faq.md',
+     'AI ▸ Fluxtion API key…', 'AI ▸ Nonexistent item…',
+     'MenuDocumentationTest#documentedPathsNameExistingItems'),
+    ('menu-java-path', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ProjectModel.java',
+     'Audit log ▸ Open log…', 'Audit log ▸ Open',
+     'MenuDocumentationTest#documentedPathsNameExistingItems'),
+    ('menu-close-log-human', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     'closeLogItem.addActionListener(e -> { sessionInteractive = true;', 'closeLogItem.addActionListener(e -> {',
+     'MenuLayoutFrameTest#closeLogFromItsMenuPreservesTheProjectAndSavedChart'),
+    ('menu-close-graph-human', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     'closeGraphItem.addActionListener(e -> { sessionInteractive = true;', 'closeGraphItem.addActionListener(e -> {',
+     'MenuLayoutFrameTest#closeGraphFromItsMenuKeepsLogProjectAndCharts'),
+])
+
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')
