@@ -191,3 +191,26 @@ does not. **Not covered:** the human table view is announced on the status line,
   after a test rewrote a heap-loaded file, and changing the status text that test then asserts.
 - **P36 — the verifier stays at 69 / 0.** Its logs are heap-loaded and unchanged while read, apart from scenario 12,
   which is Follow.
+
+## Set 7 — M68.5, acceptance 8's diagnostic (a pointer that fails names the root tried)
+
+Written after the code compiled and before any of its tests ran. Gated on a tree without the code.
+
+**Found while reading, before any trial:** `Runbooks.resolve` returned null both with no project root and for a path
+that leaves the root. `context` then put neither `resolved` nor `exists`, so the Project panel showed such a pointer
+with **no warning at all**. That is more than the named gap, a vague "not found under the project root". Both are in
+scope. **Scope:** the runbook and vocabulary pointers, the two the panel diagnoses. Environment log directories and
+report destinations resolve through other paths and are not covered by this set.
+
+- **P37 — `RunbooksResolutionTest`, 4 cases, green on first run.** Confidence 80%. Risk: a `@TempDir` path on macOS
+  under `/var` → `/private/var` symlinks, if `toAbsolutePath().normalize()` and the test's expectation disagree on the
+  prefix. Neither side resolves symlinks, so I expect agreement.
+- **P38 — `ProjectModelTest.aFailingPointerNamesTheRootItTried` green, and the existing runbook and vocabulary row
+  tests unchanged and green**, because a context without `problem` keeps the old sentence.
+- **P39 — `ProjectPanelIsRevealOnlyTest` stays green** with `runbooks.problem` and `vocabulary.problem` added to
+  `KEYS_READ`, because `MainFrame` puts both keys literally. Confidence 70%; I have not read how that test matches a
+  key.
+- **P40 — witnesses:**
+  - W29: `ProjectModel` ignoring `problem` turns `aFailingPointerNamesTheRootItTried` red;
+  - W30: `resolution` naming no root in the not-found problem turns `notFoundNamesTheRoot` red.
+- **P41 — headless 1,999** (1,994 + 5), 0 failures. **Frame 66 / 0 / 0 / 1.** **Verifier 69 / 0.**
