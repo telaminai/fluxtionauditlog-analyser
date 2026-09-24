@@ -45,6 +45,31 @@ public final class DuplicateChartRepair {
     public record Choice(Action action, String newName) {
     }
 
+    /**
+     * What a dialog row is showing, as an index into the three choices a person can pick from.
+     *
+     * <p>R13-5: this mapping used to live inside the dialog, where nothing could reach it. Mutating it so
+     * an unanswered row meant DELETE left all 25 tests green, because every frame test injects the chooser
+     * and the combo is never read. The refusal of a partial repair is worthless if the dialog quietly
+     * fills the gap, so the step that turns a row into a choice belongs out here with the rest of the
+     * policy.
+     */
+    public static final int UNANSWERED = 0, RENAME_SELECTED = 1, DELETE_SELECTED = 2;
+
+    /**
+     * The choice a row represents, or null when the person has not answered it.
+     *
+     * <p>Null is the point. It reaches {@link #apply} as a missing entry, which refuses the whole repair
+     * and names the row — rather than a default that silently destroys or renames something.
+     */
+    public static Choice choiceFor(int selectedIndex, String typedName) {
+        return switch (selectedIndex) {
+            case RENAME_SELECTED -> new Choice(Action.RENAME, typedName);
+            case DELETE_SELECTED -> new Choice(Action.DELETE, null);
+            default -> null;
+        };
+    }
+
     /** One contested name and the definitions competing for it, in saved order. */
     public record Duplicate(String name, List<Integer> indices) {
         public Duplicate {

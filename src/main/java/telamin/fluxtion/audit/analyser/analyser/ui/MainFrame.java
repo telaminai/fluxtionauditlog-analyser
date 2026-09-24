@@ -5433,18 +5433,13 @@ public final class MainFrame extends JFrame {
 
         var choices = new java.util.LinkedHashMap<Integer,
                 telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>();
+        // R13-5: the row-to-choice step is DuplicateChartRepair.choiceFor, not an if/else here, because
+        // nothing could reach it here — mutating it so "Choose…" meant DELETE left every test green.
+        // A null contributes no entry, so apply() refuses the partial repair and names the unanswered row.
         actions.forEach((index, action) -> {
-            if (action.getSelectedIndex() == 1) {
-                choices.put(index, new telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
-                        .Choice(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Action.RENAME,
-                        names.get(index).getText()));
-            } else if (action.getSelectedIndex() == 2) {
-                choices.put(index, new telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
-                        .Choice(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Action.DELETE,
-                        null));
-            }
-            // "Choose…" contributes nothing, so DuplicateChartRepair.apply refuses the partial repair and
-            // says which one is unanswered. A default here would be the silent winner this all exists to avoid.
+            var choice = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                    .choiceFor(action.getSelectedIndex(), names.get(index).getText());
+            if (choice != null) choices.put(index, choice);
         });
         return choices;
     }

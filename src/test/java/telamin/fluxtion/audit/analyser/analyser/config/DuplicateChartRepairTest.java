@@ -175,4 +175,42 @@ class DuplicateChartRepairTest {
         DuplicateChartRepair.apply(saved, choices(0, rename("A"), 1, DELETE_IT));
         assertEquals(before, saved, "a repair that is refused halfway must leave the profile untouched");
     }
+
+    // ---- R13-5: the dialog's row-to-choice mapping, which used to live where no test could reach it ----
+
+    @Test
+    void anUnansweredRowProducesNoChoiceAtAll() {
+        assertNull(DuplicateChartRepair.choiceFor(DuplicateChartRepair.UNANSWERED, "anything"),
+                "\"Choose…\" must contribute NOTHING — a default here is the silent winner that "
+                        + "refusing a partial repair exists to prevent");
+        assertNull(DuplicateChartRepair.choiceFor(DuplicateChartRepair.UNANSWERED, ""));
+        assertNull(DuplicateChartRepair.choiceFor(-1, "anything"), "an unexpected index is not an answer");
+        assertNull(DuplicateChartRepair.choiceFor(99, "anything"));
+    }
+
+    @Test
+    void ananansweredRowThereforeRefusesTheWholeRepair() {
+        List<GraphSpec> saved = List.of(chart("Same", "a", true), chart("Same", "b", true));
+        Map<Integer, DuplicateChartRepair.Choice> fromDialog = new LinkedHashMap<>();
+        // exactly what the dialog builds when one row is answered and the other is left alone
+        var answered = DuplicateChartRepair.choiceFor(DuplicateChartRepair.RENAME_SELECTED, "A");
+        var unanswered = DuplicateChartRepair.choiceFor(DuplicateChartRepair.UNANSWERED, "Same");
+        if (answered != null) fromDialog.put(0, answered);
+        if (unanswered != null) fromDialog.put(1, unanswered);
+
+        var e = assertThrows(IllegalArgumentException.class,
+                () -> DuplicateChartRepair.apply(saved, fromDialog));
+        assertTrue(e.getMessage().contains("[1]"), e.getMessage());
+    }
+
+    @Test
+    void theAnsweredRowsMapToWhatWasPicked() {
+        var renamed = DuplicateChartRepair.choiceFor(DuplicateChartRepair.RENAME_SELECTED, " New name ");
+        assertEquals(RENAME, renamed.action());
+        assertEquals(" New name ", renamed.newName(), "the raw text; apply() trims and validates it");
+
+        var deleted = DuplicateChartRepair.choiceFor(DuplicateChartRepair.DELETE_SELECTED, "ignored");
+        assertEquals(DELETE, deleted.action());
+        assertNull(deleted.newName(), "a delete carries no name");
+    }
 }
