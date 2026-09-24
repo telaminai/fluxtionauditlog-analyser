@@ -133,6 +133,42 @@ class ChartNamesCannotCollideTest {
                 "and it must not be named after the closed chart, or the merge would overwrite it");
     }
 
+    /**
+     * The reported destruction, driven through the real delete path with the real merge behind it.
+     *
+     * <p>Order is everything here. {@code addGraph} ends in a save, so if the fallback placeholder is
+     * created before the definition is dropped, the list is persisted while the deleted chart is still in
+     * it — and if that placeholder also took a closed chart's name, the merge overwrites an annotated
+     * chart nobody named. This drives {@code deleteConfirmed} (the dialog's other half) and then the merge.
+     */
+    @Test
+    void deletingTheLastChartDoesNotTakeAClosedAnnotatedChartWithIt() {
+        GraphTabs tabs = boundTabs();
+        List<GraphSpec> saved = new ArrayList<>(List.of(
+                spec("Graph 1", true, ""),
+                spec("Graph 2", false, "three months of findings")));
+        tabs.setKnownNames(() -> {
+            Set<String> n = new LinkedHashSet<>();
+            for (GraphSpec g : saved) n.add(g.name());
+            return n;
+        });
+        tabs.setDeleteListener(name -> saved.removeIf(g -> g.name().equals(name)));
+        tabs.restore(List.of(spec("Graph 1", true, "")));   // only the open one becomes a tab
+
+        tabs.deleteConfirmed(0);   // delete the only tab; a placeholder must appear
+
+        assertFalse(saved.stream().anyMatch(g -> g.name().equals("Graph 1")), "the named chart is gone");
+        assertNotEquals("Graph 2", tabs.graphNames().get(0),
+                "the placeholder must NOT take the closed chart's name — that is the collision that let "
+                        + "the merge overwrite an annotated chart the dialog never mentioned");
+
+        List<GraphSpec> merged = SavedGraphMerge.merge(saved, tabs.specs());
+        GraphSpec survivor = merged.stream().filter(g -> g.name().equals("Graph 2")).findFirst()
+                .orElseThrow(() -> new AssertionError("the closed chart was destroyed by deleting another"));
+        assertEquals("three months of findings", survivor.explanation(), "with its annotations intact");
+        assertFalse(survivor.open(), "and still closed");
+    }
+
     @Test
     void reopeningASavedChartAsksToBeSaved() {
         GraphTabs tabs = boundTabs();

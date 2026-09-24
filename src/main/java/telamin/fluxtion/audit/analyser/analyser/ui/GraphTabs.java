@@ -502,7 +502,18 @@ public final class GraphTabs extends JPanel {
                         + "explanation written on it. It cannot be undone.\n\n"
                         + "To put it away without losing it, use Close graph instead.",
                 "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (answer != JOptionPane.OK_OPTION) return;
+        if (answer != JOptionPane.OK_OPTION) return;   // Cancel changes nothing at all
+        deleteConfirmed(i);
+    }
+
+    /**
+     * The delete itself, once a person has confirmed it — separated from the modal dialog so a test can
+     * reach it. M68.5: a {@code JOptionPane} cannot run headless, so leaving this inside
+     * {@link #deleteCurrent()} left the one destructive path in the app untestable.
+     */
+    void deleteConfirmed(int i) {
+        if (i < 0 || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        String name = gp.graphName();
         gp.unbind();
         tabs.removeTabAt(i);
         // M68.5: drop the definition FIRST. This used to run after the fallback below, and addGraph ends in
