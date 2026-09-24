@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Choosing a plot style from the dropdown is now saved.** Setting a chart to Line or Points from the
+  style control kept the change on screen but never asked to be persisted, so it reverted to stairs on the
+  next load. Only the assistant's `graph {style}` path saved correctly. Fixes the user-facing half of the
+  style persistence added earlier in this release.
+
+- **Sharing or importing settings no longer resets a chart's style or reopens a closed chart.** Rewriting
+  an external series or marker path rebuilt the chart and silently dropped both.
+
 - **Closing a chart no longer deletes it.** Close now puts a chart away and keeps its definition — series,
   formulas, right axis, explanation and pinned notes — so it stays listed in the Project panel and reopens
   from there, and stays closed across a reload rather than reappearing. Previously the project's saved-chart

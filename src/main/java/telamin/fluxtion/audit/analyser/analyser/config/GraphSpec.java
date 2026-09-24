@@ -51,6 +51,17 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
                 guides, bands, external, markers, style, nowOpen);
     }
 
+    /**
+     * The same chart with re-pointed external series and markers — what settings sharing does when it
+     * rewrites a path. M68.4: this exists because doing it by hand through a shorter constructor silently
+     * reset the style and revived a closed chart. Copy through a wither, never by re-listing components:
+     * an omitted component takes its DEFAULT, and the compiler cannot tell that apart from an intention.
+     */
+    public GraphSpec withExternal(List<ExternalSpec> newExternal, List<MarkerSpec> newMarkers) {
+        return new GraphSpec(name, series, exprs, from, to, note, explanation, notes, rightAxis,
+                guides, bands, newExternal, newMarkers, style, open);
+    }
+
     /** The pre-M32.5 shape (no markers). */
     public GraphSpec(String name, List<String> series, List<ExprSpec> exprs, Long from, Long to,
                      String note, String explanation, List<NoteSpec> notes, List<String> rightAxis,

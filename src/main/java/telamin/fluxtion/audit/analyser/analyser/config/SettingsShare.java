@@ -347,9 +347,10 @@ public final class SettingsShare {
                             mk.y(), mk.payload(), path, mk.extTime(), mk.extTimeFormat(),
                             mk.extZone(), mk.extValue(), mk.extPayload(), mk.extOffsetMillis(), mk.resolve()));
                 }
-                graphs.set(gi, new GraphSpec(spec.name(), spec.series(), spec.exprs(), spec.from(),
-                        spec.to(), spec.note(), spec.explanation(), spec.notes(), spec.rightAxis(),
-                        spec.guides(), spec.bands(), fixed, fixedMarkers));
+                // M68.4: rewriting external paths must change ONLY those paths. This was built through a
+                // shorter constructor, which silently reset the chart's style to stairs and revived a
+                // closed one — the omitted components took their defaults, and nothing could see it.
+                graphs.set(gi, spec.withExternal(fixed, fixedMarkers));
             }
             focuses = new ArrayList<>();
             ConfigStore.readFocuses(p, focuses);
