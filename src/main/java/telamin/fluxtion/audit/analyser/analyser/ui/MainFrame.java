@@ -4298,6 +4298,11 @@ public final class MainFrame extends JFrame {
             if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
         } catch (java.io.IOException ex) {
             status.setText("Follow read failed: " + rootMessage(ex));
+            // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
+            // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on
+            // EVERY tick, so the fault never reached context's producer list or the tooltip — only this one
+            // status line. Refresh them here too; the state change is what the refresh keys on.
+            refreshFollowDiagnostics(store.streamEnd(), 0, true);
             return;
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
@@ -4313,15 +4318,7 @@ public final class MainFrame extends JFrame {
         // so `context.streamEnd` said "missing_records" to an agent while the person watching the file
         // was shown nothing at all. The completeness state is re-read on every tick and the human
         // surfaces are refreshed when it moves, whether or not any record came with it.
-        var end = store.streamEnd();
-        if (followNeedsDiagnosticRefresh(followStreamEnd, end, added)) {
-            followStreamEnd = end;
-            producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                    .of(store.index(), store::rawText, store.sourceDiagnostics(),
-                            store.completenessDiagnostics(), store.completenessIsNote());
-            status.setToolTipText(producerDiagnostics.isClean() ? null
-                    : String.join("\n\n", producerDiagnostics.messages()));
-        }
+        refreshFollowDiagnostics(store.streamEnd(), added, false);
         if (added == 0) {
             status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
                     store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
@@ -4336,6 +4333,21 @@ public final class MainFrame extends JFrame {
         tablePanel.scrollToLast();
         status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
                 store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+    }
+
+    /**
+     * Recompute the producer findings and the status tooltip when the follow state moved — on a tick that
+     * read, and (second re-review O2) on a tick whose read FAILED, because that is the tick the fault appears.
+     */
+    private void refreshFollowDiagnostics(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int added,
+                                          boolean readFailed) {
+        if (!readFailed && !followNeedsDiagnosticRefresh(followStreamEnd, end, added)) return;
+        followStreamEnd = end;
+        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                .of(store.index(), store::rawText, store.sourceDiagnostics(),
+                        store.completenessDiagnostics(), store.completenessIsNote());
+        status.setToolTipText(producerDiagnostics.isClean() ? null
+                : String.join("\n\n", producerDiagnostics.messages()));
     }
 
     /** The follow line's time range, or the words for a log that carries no timestamps. */

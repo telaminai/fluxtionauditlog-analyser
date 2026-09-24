@@ -161,11 +161,17 @@ class CoveragePerNodeLevelTest {
                   logTime: 1000
                   groupingId: null
                   event: Quote
-                  eventToString: EventLogConfig{level=WARN, sourceId=%s, groupId=null}
+                  eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=%s, groupId=null}
                   nodeLogs:
                 ---
                 """.formatted(node);
 
+        // Second re-review S5.1: this rendering used to lack logRecordProcessor, so parse() refused it before
+        // the event type was ever consulted, and the test stayed green with isControlEvent -> true. It is now
+        // the complete pinned rendering, and the twin below proves the event name is the ONLY thing refusing it.
+        assertTrue(annotations(assess(lookalike.replace("event: Quote", "event: EventLogControlEvent")
+                        + plainRecord(1001))).containsKey(node),
+                "precondition: with the real event name this exact record IS a level change");
         assertFalse(annotations(assess(lookalike + plainRecord(1001))).containsKey(node),
                 "MA-8.5: the event TYPE selects a control record; content that imitates one does not");
     }
@@ -297,7 +303,7 @@ class CoveragePerNodeLevelTest {
         assertTrue(annotations(grouped).containsKey(node),
                 "in a processor grouped 'alpha', beta's change does not apply and alpha's WARN still governs: "
                         + annotations(grouped));
-        assertTrue(annotations(grouped).get(node).contains("'alpha', which is this processor's"),
+        assertTrue(annotations(grouped).get(node).contains("'alpha', which is the grouping the control record itself declares"),
                 "and it says why the change applied: " + annotations(grouped).get(node));
 
         CoverageService.Result ungrouped = assess(controls.formatted("null") + plainRecord(1006));
@@ -321,6 +327,15 @@ class CoveragePerNodeLevelTest {
                 ---
                 """.formatted(node);
 
+        // Second re-review S5.2: RR-3 scopes a change to records of the SAME declared grouping. If this fixture
+        // and plainRecord ever declare different groupings, the record is hidden by scoping and the assertion
+        // below passes whatever the event-name rule does — which it did, under the contains() mutant. Pinned
+        // two ways: the contexts are asserted equal, and the real-name twin must annotate.
+        assertEquals(PerNodeLevelChanges.groupingOf(fake), PerNodeLevelChanges.groupingOf(plainRecord(1001)),
+                "precondition: the control fixture and the record it would explain declare the same grouping");
+        assertTrue(annotations(assess(fake.replace("event: FakeEventLogControlEventX", "event: EventLogControlEvent")
+                        + plainRecord(1001))).containsKey(node),
+                "precondition: with the real event name this exact record IS a level change");
         assertFalse(annotations(assess(fake + plainRecord(1001))).containsKey(node),
                 "contains() accepted this; the simple name must match exactly");
     }
@@ -523,9 +538,9 @@ class CoveragePerNodeLevelTest {
         assertNotNull(later, "the annotation is not dropped — the level may well have survived: " + later);
         assertTrue(later.contains("Every record in view is in a LATER run") && later.contains("survived"),
                 "it says the scope is after the boundary: " + later);
-        assertFalse(later.contains(", so " + node + "'s lines below that level are not in this log"),
+        assertFalse(later.contains(", so " + node + "'s lines below WARN are not in this log"),
                 "RR-4: no definite suppression claim about records the level may not have reached: " + later);
-        assertTrue(later.contains("if it did, " + node + "'s lines below that level are not in this log"),
+        assertTrue(later.contains("If it survived the marker, " + node + "'s lines below WARN are not in this log"),
                 "the claim is made conditional instead: " + later);
     }
 
@@ -534,9 +549,9 @@ class CoveragePerNodeLevelTest {
         String node = anUncoveredNode(assess(plainRecord(1000)));
         String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
         String spanning = annotations(assess(seq, true, window(1001, 2000))).get(node);
-        assertTrue(spanning.contains("so within that run " + node + "'s lines below that level are not in this log"),
+        assertTrue(spanning.contains("so within that run " + node + "'s lines below WARN are not in this log"),
                 "definite within the run the change was made in: " + spanning);
-        assertTrue(spanning.contains("from record 3 on, those lines are absent only if it did"),
+        assertTrue(spanning.contains("from record 3 on, those lines are absent only if it survived the marker"),
                 "conditional after the boundary: " + spanning);
         String same = annotations(assess(seq, true, window(1001, 1001))).get(node);
         assertFalse(same.contains("stream-end marker"), "within the same run there is nothing to qualify: " + same);

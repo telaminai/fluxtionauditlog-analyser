@@ -152,7 +152,7 @@ still to do.
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
   one reads `complete` with no finding. **Cause NOT established.** **The tracker repro is stale** — it
   targets `volumeTotal`, absent from today's bundle, so re-running it wrongly looks clean.
-- **[MA-2] ☐ — the text writer and the marker** · text half needs **MA-5, MA-6 and MA-7**; **Chronicle
+- **[MA-2] ☐ — the text writer and the marker** · **new requirement MA-2.9 (2026-09-24): the writer must carry processor identity** — one file per processor or a declared grouping — because OD-4's configured listener sees every processor, and MA-8 reads records sharing a grouping as one processor's; choosing `groupId` changes which control events apply, so it is a design decision, not a default. Text half needs **MA-5, MA-6 and MA-7**; **Chronicle
   half** waits on **OD-5**. **The MA-5 dependency was found by running:** capture REPLACES the configured
   listener, and OD-4 makes the text writer that listener, so with the bundle's shipped capture on the
   writer got 4 startup records, none of the 8 business events, and the file read `complete, 4 of 4`. Lifecycle ANSWERED from a booted spike: marker after `server.stop()` returns, a new file
@@ -193,7 +193,10 @@ still to do.
   Follow refuses left COMPLETE and the old identity standing) and three Medium in MA-8 (addresses parsed
   lossily; one processor's change explaining or closing another's; a run-boundary caveat after a claim it
   undermines) — all fixed, each checked against the real runtime's loggers. Suite 1971/0/62.
-  **Awaiting a second re-review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  A **second re-review** (`68660535`) found two Medium and three Low — a failed live read never cleared,
+  sentences whose conditions dropped a premise, a `"null"` reading asserted before its disclosure, and two
+  witnesses that guarded the wrong thing — all fixed, suite 1976/0/62, frame tests 63/0.
+  **Awaiting review of those fixes; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and

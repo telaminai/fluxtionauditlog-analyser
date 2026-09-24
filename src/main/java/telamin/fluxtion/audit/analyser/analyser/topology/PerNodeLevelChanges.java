@@ -288,43 +288,92 @@ public final class PerNodeLevelChanges {
         return null;
     }
 
+    /**
+     * The annotation as one sentence whose every conclusion carries ALL the premises the log does not
+     * establish.
+     *
+     * <p><b>Why the premises are collected rather than written inline</b> (second re-review S2, S3). Each
+     * earlier version added its caveat as a clause, and the clauses drifted apart: "…whether this change
+     * applied is not established; if it did, … if it did, riskMonitor's lines are not in this log" had two
+     * "if it did"s with different antecedents — applied, then survived — and the second read as though
+     * survival alone were enough. The {@code "null"} case asserted the no-node reading first and disclosed
+     * the ambiguity in a parenthesis, then concluded from the asserted reading; in the re-review's own probe
+     * that reading was false. So the sentence now STATES what the record says, lists what is not established,
+     * and every conclusion is conditioned on the whole list at once.
+     */
     private static String sentence(String nodeId, Change c, Change next, int firstInView, Integer boundary) {
-        String who = c.sourceId() == null
-                ? "every node's audit level (the change names no node; the log renders that exactly as it would "
-                + "a node literally named \"null\")"
-                : nodeId + "'s audit level";
-        String applied = switch (c.applies()) {
-            case YES -> c.groupId() == null ? ""
-                    : " (addressed to processor grouping '" + c.groupId() + "', "
-                    + (c.context().value() == null ? "which applies because this processor declares no grouping"
-                    : "which is this processor's") + ")";
-            case NOT_ESTABLISHED -> ". The control record states no processor grouping, so whether this change"
-                    + (c.groupId() == null ? "" : " — addressed to processor grouping '" + c.groupId() + "' —")
-                    + " applied is not established; if it did";
-            case NO -> throw new IllegalStateException("an inapplicable change never reaches a sentence");
-        };
-        String span = next == null
-                ? "nothing later in this processor's records changes it"
-                : "it holds until " + at(next) + " sets it to " + next.level()
-                + (next.sourceId() == null ? " for every node" : "");
-        String lines = nodeId + "'s lines below that level are not in this log";
-        StringBuilder s = new StringBuilder("this log sets ").append(who).append(" to ").append(c.level())
-                .append(" at ").append(at(c)).append(applied).append(", ").append(span);
-        if (boundary == null) {
-            s.append(", so ").append(lines);
-        } else if (firstInView < boundary) {
-            // RR-4: definite only within the run the change was made in; conditional after the marker.
-            s.append(", so within that run ").append(lines).append(". A stream-end marker before record ")
-                    .append(boundary + 1).append(" begins a later run, and the log does not say whether the level ")
-                    .append("survived into it: for the records in view from record ").append(boundary + 1)
-                    .append(" on, those lines are absent only if it did");
+        java.util.List<String> premises = new ArrayList<>();
+        StringBuilder s = new StringBuilder();
+        if (c.sourceId() == null) {
+            // S3: lead with the ambiguity. The runtime renders a Java null and the string "null" identically.
+            s.append("at ").append(at(c)).append(" this log records a change to ").append(c.level())
+                    .append(" that names no node — which would set every node's audit level — or a node literally ")
+                    .append("called \"null\"; the log renders both identically");
+            premises.add("it named no node");
         } else {
-            s.append(". Every record in view is in a LATER run — a stream-end marker comes before record ")
-                    .append(boundary + 1).append(" — and the log does not say whether the level survived into it: ")
-                    .append("if it did, ").append(lines).append("; if it did not, this change explains nothing here");
+            s.append("this log sets ").append(nodeId).append("'s audit level to ").append(c.level())
+                    .append(" at ").append(at(c));
+        }
+        boolean declared = c.context().declared();
+        switch (c.applies()) {
+            case YES -> {
+                if (c.groupId() != null) {
+                    s.append(" (addressed to processor grouping '").append(c.groupId()).append("', ")
+                            .append(c.context().value() == null
+                                    ? "which applies because the control record declares no grouping"
+                                    : "which is the grouping the control record itself declares")
+                            .append(")");
+                }
+            }
+            case NOT_ESTABLISHED -> {
+                s.append(". The control record states no processor grouping, so whether this change")
+                        .append(c.groupId() == null ? "" : " — addressed to processor grouping '" + c.groupId() + "' —")
+                        .append(" applied here is not established");
+                premises.add("it applied here");
+            }
+            case NO -> throw new IllegalStateException("an inapplicable change never reaches a sentence");
+        }
+        // Never "this processor's records": RR-3 reads records that share a grouping as one stream, and nothing
+        // in a record establishes that they came from one processor (S2 — checked on every branch).
+        String scope = declared ? "the records sharing its grouping" : "the records that, like it, state no grouping";
+        s.append(next == null
+                ? ". Nothing later in " + scope + " changes it"
+                : ". It holds until " + at(next) + " sets it to " + next.level()
+                + (next.sourceId() == null ? " for every node" : ""));
+        String lines = nodeId + "'s lines below " + c.level() + " are not in this log";
+        if (boundary == null) {
+            s.append(premises.isEmpty() ? ", so " + lines
+                    : ". If " + all(premises) + ", " + lines + "; otherwise this change explains nothing here");
+        } else {
+            String marker = "a stream-end marker before record " + (boundary + 1);
+            java.util.List<String> later = new ArrayList<>(premises);
+            later.add("it survived the marker");
+            if (firstInView < boundary) {
+                // RR-4: definite only within the run the change was made in; conditional after the marker.
+                s.append(premises.isEmpty() ? ", so within that run " + lines
+                        : ". Within that run, if " + all(premises) + ", " + lines);
+                s.append(". ").append(capitalise(marker)).append(" begins a later run, and the log does not say ")
+                        .append("whether the level survived into it: for the records in view from record ")
+                        .append(boundary + 1).append(" on, those lines are absent only if ").append(all(later));
+            } else {
+                s.append(". Every record in view is in a LATER run — ").append(marker)
+                        .append(" begins it — and the log does not say whether the level survived into it. If ")
+                        .append(all(later)).append(", ").append(lines).append("; otherwise this change explains ")
+                        .append("nothing here");
+            }
         }
         return s.append(". It is still counted as uncovered, because a level change is not proof the node ran")
                 .toString();
+    }
+
+    /** "a", "a and b", "a, b and c" — one condition, every premise in it. */
+    private static String all(java.util.List<String> premises) {
+        if (premises.size() == 1) return premises.get(0);
+        return String.join(", ", premises.subList(0, premises.size() - 1)) + " and " + premises.get(premises.size() - 1);
+    }
+
+    private static String capitalise(String s) {
+        return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     /** "record 3 (logTime 1000)", or "(untimed)" — never a stand-in number. */

@@ -103,9 +103,11 @@ class FollowPendingBytesTest {
             assertEquals(0, s.trailingRecordsPending(),
                     label + ": bytes that can never be a character are not presented as one on its way");
             assertEquals(1, s.size(), label + ": the record read before them still stands");
-            assertFalse(s.completenessIsNote(), label + ": a failed live read is a fault, not a note");
-            assertTrue(s.completenessDiagnostics().get(0).contains("not valid UTF-8"),
-                    label + ": and it says what went wrong: " + s.completenessDiagnostics());
+            // Second re-review O1: undecodable bytes are SOURCE DAMAGE, listed first — not a completeness gap.
+            assertTrue(s.sourceDiagnostics().size() == 1 && s.sourceDiagnostics().get(0).contains("not valid UTF-8"),
+                    label + ": the reader could not read part of the source, and says so: " + s.sourceDiagnostics());
+            assertEquals("SOURCE_DAMAGE", ProducerDiagnostics.of(s.index(), s::rawText, s.sourceDiagnostics())
+                    .findings().get(0).kind().name(), label + ": and it is the FIRST thing a reader is told");
             assertEquals(0, s.appendFrom(p), label + ": a re-poll of the same bytes changes nothing ...");
             assertEquals(StreamEnd.State.UNKNOWN, s.streamEnd().state(), label + ": ... and does not restore the claim");
         }
@@ -119,5 +121,50 @@ class FollowPendingBytesTest {
         assertEquals(0, s.appendFrom(p));
         assertEquals(StreamEnd.State.COMPLETE, s.streamEnd().state());
         assertFalse(s.readIdentities().isEmpty(), "no bytes changed, so the identity still describes the file");
+    }
+
+    /**
+     * Second re-review S1: a failed live read was never cleared. A writer that then REPLACED the file with a
+     * longer, valid, marked log was read as an append — the store said COMPLETE while its own diagnostics
+     * still said "unknown until it is reopened". After a failure, a successful decode can only mean the bytes
+     * changed under the store, so it must ask to be reloaded.
+     */
+    @Test
+    void aSuccessfulReadAfterAFailedOneReloadsRatherThanAppends(@TempDir Path dir) throws Exception {
+        Path p = dir.resolve("replaced.yaml");
+        HeapLogStore s = followFromComplete(p);
+        Files.write(p, new byte[]{(byte) 0xC0}, StandardOpenOption.APPEND);
+        assertThrows(MalformedInputException.class, () -> s.appendFrom(p), "precondition: C0 is refused");
+        assertEquals(StreamEnd.State.UNKNOWN, s.streamEnd().state(), "precondition: and the verdict is retired");
+
+        String three = RECORD + RECORD + RECORD
+                + "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 3\n---\n";
+        assertTrue(three.getBytes(StandardCharsets.UTF_8).length > COMPLETE_FILE.length() + 1,
+                "precondition: the replacement is LONGER, so it cannot be mistaken for a truncation");
+        Files.writeString(p, three, StandardCharsets.UTF_8);
+
+        assertEquals(-1, s.appendFrom(p),
+                "S1: after a failed read a clean decode means the file was replaced — reload, do not append");
+        assertFalse(s.streamEnd().state() == StreamEnd.State.COMPLETE && !s.sourceDiagnostics().isEmpty(),
+                "S1: never COMPLETE beside 'unknown until it is reopened'");
+        assertEquals(1, s.size(), "and nothing from the replacement was indexed as though appended");
+    }
+
+    /**
+     * Second re-review S4: RR-1's reset of the pending-byte count had no witness, because every invalid case
+     * appended to a WHOLE file, where the count was already zero. Here a valid partial character is pending
+     * first, and then an impossible byte arrives.
+     */
+    @Test
+    void aRefusedByteAfterAPendingCharacterLeavesNothingPending(@TempDir Path dir) throws Exception {
+        Path p = dir.resolve("pending-then-bad.yaml");
+        HeapLogStore s = followFromComplete(p);
+        Files.write(p, new byte[]{(byte) 0xE2, (byte) 0x82}, StandardOpenOption.APPEND);   // two of the euro's three
+        assertEquals(0, s.appendFrom(p));
+        assertEquals(1, s.trailingRecordsPending(), "precondition: a valid partial character is pending");
+        Files.write(p, new byte[]{(byte) 0xC0}, StandardOpenOption.APPEND);                // cannot continue it
+        assertThrows(MalformedInputException.class, () -> s.appendFrom(p));
+        assertEquals(0, s.trailingRecordsPending(),
+                "S4: the pending character was abandoned by the refusal and must not still be presented as on its way");
     }
 }

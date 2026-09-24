@@ -459,13 +459,17 @@ change. Predictions `P6` committed first (`719b8167`); probe output before and a
 
 **Two limits, stated in advance in P6 and now stated in the product, not presented as fixes.** The
 runtime renders Java `null` and the string `"null"` identically, so a change naming `"null"` is read as
-"no node" and the sentence says the log cannot tell. And records that share a grouping are read as one
+"no node" and the sentence says the log cannot tell. *(Superseded by the second re-review, S3: the sentence
+asserted the no-node reading first and disclosed the ambiguity in a parenthesis. It now leads with both
+readings and conditions its conclusion on one.)* And records that share a grouping are read as one
 processor's, which nothing in a record establishes; that is in the note travelling with every annotation.
 
 **What my own fixtures were hiding.** The coverage tests' fixture records carried no `groupingId:` line,
 where every runtime record carries one. Under RR-3 that made three negative tests — the lookalike and
 fully-qualified event-name tests — pass or fail on grouping rather than on the thing they name. Found
-because one of them failed; every fixture now declares `groupingId: null`, as the runtime does. U6.2 was a
+because one of them failed; every fixture now declares `groupingId: null`, as the runtime does.
+*(Wrong as written — corrected in the second re-review round, below: the fully-qualified test is a POSITIVE
+test, and only ONE negative test, the lookalike, depended on grouping.)* U6.2 was a
 non-issue in practice: no corpus fixture mixes records with and without the line.
 
 **Also corrected:** `isQuiet` listed `FATAL` and `OFF`, which the runtime does not have; the level must now
@@ -475,6 +479,63 @@ cannot change a count or a completeness verdict, which is all F1's closure needs
 precondition is an open follow-up, not a reproduced defect.
 
 **Suite:** 1971/0/62, up from 1961.
+
+## Second re-review — two Medium, three Low, and a witness of mine that passed for the wrong reason
+
+Second re-review `68660535` on `review/mongoose-second-rereview-2026-09-24`, against `3d41c3a7`, by a
+reviewer who wrote neither earlier review. It confirmed all four RR fixes for the cases they named — the probe
+prints every expected line, and the nine claimed witnesses and the first review's fifteen go red — and found
+five things they still got wrong. Predictions `P7` were committed first (`9404a5fc`).
+
+| | Finding | Cause | Fix | Regression and witness (strict runner: surefire `<failure>` at the named test, SHA-256 restore, green again) |
+|---|---|---|---|---|
+| S1 Medium | a failed live read was never cleared: a longer valid replacement read as an append, COMPLETE beside "unknown until reopened" | **mine, RR-1** | after a failure, a decode that SUCCEEDS means the file was replaced: return `-1` and reload | `aSuccessfulReadAfterAFailedOneReloadsRatherThanAppends` — the reviewer's exact reproduction. Witness: remove the return → red |
+| S2 Medium | NOT_ESTABLISHED × a scope after a run boundary: two "if it did"s with different antecedents; "this processor's records" | **mine, RR-4** | every open premise — *named no node*, *applied here*, *survived the marker* — collected and carried in ONE condition per conclusion; "records sharing its grouping" on every branch | wholly-after and spanning sentences asserted. Three witnesses: survival-only (wholly after), survival-only (spanning), "this processor's" back |
+| S3 Low-Med | the `"null"` sentence asserted the no-node reading, then disclosed | **mine, RR-2** — P6's limit, written as an assertion | leads with both readings; concludes "if it named no node" | `theLiteralNull…` asserts the order and the condition; the combined null × not-established case too. Witness: the old form → red |
+| S4 Low | RR-1's reset of the pending count had no witness | mine: every invalid case appended to a whole file | a VALID partial character pending first (`E2 82`), then `C0` | `aRefusedByteAfterAPendingCharacterLeavesNothingPending`. Witness: delete the reset → red |
+| S5 Low | MA-8.5's test was refused by `parse()` first; the lookalike test's validity depended on grouping | mine: fixtures that tested the wrong refusal | complete rendering; a **positive twin** in each (the same record with the real event name MUST annotate); the lookalike's contexts asserted equal | witnesses: `isControlEvent → true` and the `contains()` mutant, each red at its named test |
+| O1 | the fault was a `COMPLETENESS_GAP`; undecodable bytes are `SOURCE_DAMAGE` | category | moved to `sourceDiagnostics()`, listed first | RR-1 test asserts `SOURCE_DAMAGE` first. Witness: empty it → red |
+| O2 | a file growing past the bad byte throws every tick; the fault never reached `context` or the tooltip | `pollFollow` returned before refreshing | the catch refreshes too, through one shared method | **RAN through the jar**, both builds — see below |
+| O3 | "later polls re-decode and hit the same byte" named one route of three | my account, in the re-review prompt | `liveReadFailed`'s javadoc states all three routes | — |
+| O4 | OD-4's text writer sees every processor, so its file mixes ungrouped processors — the shape MA-8's limit cannot separate | a design gap | **recorded, not implemented**: spec MA-2.9 (appended, so no clause number moved) and the tracker | — |
+| O5 | the first review's `F5-empty` mutant is masked by RR-3 | runner maintenance | no runner of that kind is committed here; the all-rows mutant was run instead | red at `anEmptySelectionIsExplainedByNothing` |
+
+**O2, and a witness of mine that passed for the wrong reason.** The review flagged O2 from reading. My first
+probe appended bytes every 1.2 s, and it showed the fault reaching `context` on the PRE-fix jar too — which
+looked like the review was wrong. It was my probe: the follow timer polls every 1000 ms, so quiet ticks fell
+between my writes, and a quiet tick refreshes, which is exactly the case the review said already worked. Rerun
+with the file growing every 200 ms and `context` read while it grows: pre-fix jar **fault never reaches
+context**; this branch **it does**; the branch with the new refresh removed from the catch **it does not
+again**. So the fix is witnessed through the product, and the first probe is kept as a record of how a
+wrong-reason pass looks.
+
+**What I got wrong this round:**
+
+1. **The "three negative tests" claim** (above, now marked). One negative test depended on grouping, not three,
+   and one of the two I named was a positive test. Corrected in P7 before this report was written.
+2. **P7.2 undercounted.** It predicted one test's wording would move; four did, because I also changed "below
+   that level" to name the level, which the run-boundary pair pinned.
+3. **My first witness runner reported three witnesses as missing.** JUnit names a `@TempDir` test
+   `name(Path)`, and I matched the bare name. Fixed in the runner and rerun; the three then held. The runner's
+   first output looked like three broken witnesses, and was not.
+4. **The O2 probe** above.
+5. **I placed MA-2.9 as clause 5 first**, which renumbered every later clause that other documents cite by
+   number. Moved to the end before commit.
+
+**Ran:** the reviewer's `MARereviewProbe` against the published `svc-admin-web-1.0.45.jar` (SHA-256
+`6839817621a57fcb…`) and runtime 1.0.16 — every line as expected, the 315,793-case UTF-8 oracle at 0
+mismatches, output kept as `rereview2-probe-after-fixes.txt`; ten witnesses through the strict runner, all
+holding; the O2 probe on three jars (pre-fix, fixed, fixed-with-mutant); the full suite **1976/0/0/62**,
+summed from 258 surefire XML files written by that run (1971 + 5 new tests); **all twelve frame-test classes
+with a display, 63/0/0** — run because `MainFrame.pollFollow` changed, and because I had just told another
+implementer the headless suite skips them.
+
+**Read, not run:** that the tooltip shows the fault — the O2 probe reads `context`'s producer list, which is
+built from the same `producerDiagnostics` the tooltip is set from, but no screenshot was taken. O4's claim
+about `MongooseServer` installing the listener on every processor is the reviewer's reading, adopted in the
+spec as a requirement to design, not verified here.
+
+**Suite:** 1976/0/62.
 
 ## Two existing tests changed, both rewritten rather than deleted
 
@@ -553,9 +614,9 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the re-review's fixes are themselves re-reviewed.** The independent
-  review's six findings and the re-review's four are fixed on `feat/mongoose-audit-production-rebased`,
-  each with a regression and a mutation witness. Still based on `610d5777`; `origin/main` has moved, and
+- analyser — **NOT ready until the second re-review's fixes are reviewed.** The independent review's six
+  findings, the re-review's four and the second re-review's five (plus four of its five optional items) are
+  fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation witness. Still based on `610d5777`; `origin/main` has moved, and
   the rebase comes after review, not under it. Not merged: the owner's call.
 
 Three release-note items stand, unchanged by this round: the producer findings are not in the report

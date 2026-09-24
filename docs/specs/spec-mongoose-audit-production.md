@@ -377,8 +377,13 @@ with the answer sitting in the file.
    order — so a value keeps its commas, braces and spaces exactly as the runtime's exact map lookup sees
    them; a rendering where a value contains a separator is ambiguous and **skipped**, never read as global,
    and an empty `sourceId` names a node called "", not every node (re-review RR-2). **Stated limit:** the
-   runtime renders Java null and the string `"null"` identically; it is read as "no node" and the sentence
-   says the log cannot tell. A change **applies** only when the
+   runtime renders Java null and the string `"null"` identically, so no reader of the text can tell them
+   apart. The annotation therefore **leads with both readings** — "names no node … or a node literally called
+   `"null"`; the log renders both identically" — and **conditions its conclusion on the no-node reading**
+   ("if it named no node, …"), never asserting that reading first (second re-review S3). More generally,
+   every premise the log leaves open — *named no node*, *applied here*, *survived the marker* — is carried in
+   the ONE condition each conclusion rests on, and no annotation presumes a processor: it speaks of "records
+   sharing this grouping" (S2). A change **applies** only when the
    processor's grouping — the `groupingId:` every runtime record carries — is null or equals the
    change's `groupId`; it then sets **that node** (`sourceId`) or **every node** (`sourceId` null). The
    pin is tested against the runtime jar the build links, not a typed string.
@@ -503,6 +508,14 @@ sees only pre-registration records, so Mongoose warns loudly until MA-5 lands.
 8. **With `auditText` and a still-replacing `auditCapture` both enabled, Mongoose warns loudly** —
    asserted, not assumed. Until MA-5 lands this is the only thing standing between a developer and a
    `complete` file holding none of their events (F1).
+9. **The text writer carries processor identity** (second re-review O4; a design requirement, not yet
+   designed). Under OD-4 the writer is the server's **configured listener**, which `MongooseServer` installs on
+   **every** processor, so the developer-default file interleaves processors — ungrouped by default, which is
+   exactly the shape MA-8's stated limit cannot separate ("records that share a grouping are read as one
+   processor's"). MA-2 must therefore write **one file per processor, or declare a grouping per processor**.
+   **Using `groupId` as that identity is not free:** under the runtime's rule a grouped processor applies only
+   control events addressed to its own grouping, so declaring one changes which level changes take effect.
+   Decide which before implementing; do not implement it as a one-line default.
 
 ### OD-5 — OPEN · Does the Chronicle backend get a marker?
 

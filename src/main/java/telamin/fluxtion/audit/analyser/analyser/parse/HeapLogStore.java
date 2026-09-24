@@ -43,7 +43,11 @@ public final class HeapLogStore implements LogStore {
     private volatile java.util.List<Integer> runBoundaries = java.util.List.of();
     /**
      * Follow saw bytes it could not decode (re-review RR-1). The rows read before them stand; the FILE's
-     * claim does not, and nothing more is read until it is reopened.
+     * claim does not, and nothing more is read until it is reopened. That holds by three different routes,
+     * stated separately because the first account of it named only one (second re-review O3): a poll that
+     * finds MORE bytes re-decodes the whole file and meets the same bad byte again; a QUIET poll never decodes
+     * at all, returning at the byte-length check; and a poll whose decode SUCCEEDS returns {@code -1} so the
+     * caller reloads, because the bad byte cannot vanish by appending — the file was replaced (S1).
      */
     private volatile boolean liveReadFailed;
 
@@ -192,6 +196,12 @@ public final class HeapLogStore implements LogStore {
             this.streamEnd = StreamEnd.unknown(index.size()).withRuns(streamEnd.runs());
             throw unreadable;
         }
+        // A read has already failed on bytes that can never be UTF-8, and those bytes do not go away by
+        // appending. So a decode that now SUCCEEDS means the file was replaced underneath the store — and a
+        // longer replacement looks exactly like an append. Reading it as one showed COMPLETE beside "unknown
+        // until it is reopened" (second re-review S1). Reload instead: the caller's reload is the only path
+        // that builds a store without the failure, which is the only honest way for it to go.
+        if (liveReadFailed) return -1;
         String full = decoded.text();
         if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
         final int before = index.size();
@@ -304,22 +314,19 @@ public final class HeapLogStore implements LogStore {
         return runBoundaries;
     }
 
-    /** A failed live read is a FAULT, stated beside whatever the stream-end state says. */
+    /**
+     * A failed live read is SOURCE DAMAGE: the reader could not read part of the source (second re-review O1).
+     * It was first stated as a completeness gap, whose meaning is "the container's own claim did not check
+     * out" — but no claim was checked; bytes could not be decoded at all. As damage it is listed FIRST by
+     * {@code ProducerDiagnostics}, ahead of anything said about the records that were read. The stream-end
+     * state is UNKNOWN either way.
+     */
     @Override
-    public java.util.List<String> completenessDiagnostics() {
-        java.util.List<String> base = LogStore.super.completenessDiagnostics();
-        if (!liveReadFailed) return base;
-        java.util.List<String> out = new java.util.ArrayList<>();
-        out.add("Follow could not read bytes appended after record " + index.size() + " of this log: they "
-                + "are not valid UTF-8. The records before them are shown; whether this log is complete is "
-                + "unknown until it is reopened.");
-        out.addAll(base);
-        return java.util.List.copyOf(out);
-    }
-
-    @Override
-    public boolean completenessIsNote() {
-        return !liveReadFailed && LogStore.super.completenessIsNote();
+    public java.util.List<String> sourceDiagnostics() {
+        if (!liveReadFailed) return java.util.List.of();
+        return java.util.List.of("Follow could not read bytes appended after record " + index.size()
+                + " of this log: they are not valid UTF-8. The records before them are shown; whether this log "
+                + "is complete is unknown until it is reopened.");
     }
 
     @Override

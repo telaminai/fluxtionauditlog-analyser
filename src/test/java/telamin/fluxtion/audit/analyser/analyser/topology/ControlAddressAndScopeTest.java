@@ -119,8 +119,60 @@ class ControlAddressAndScopeTest {
         assertEquals(literal.toString(), new EventLogControlEvent(null, null, LogLevel.WARN).toString(),
                 "precondition: the two renderings really are identical");
         String note = annotate(control(1, "null", literal) + row(2, "null"), "riskMonitor", 1);
-        assertTrue(note != null && note.contains("literally named \"null\""),
-                "read as every node, and the sentence discloses that it cannot be told apart: " + note);
+        assertNotNull(note, "not dropped: it may well have named no node");
+        // Second re-review S3: the ambiguity LEADS, and the conclusion is conditioned on it.
+        String ambiguity = "names no node — which would set every node's audit level — or a node literally called "
+                + "\"null\"; the log renders both identically";
+        assertTrue(note.contains(ambiguity), "S3: the sentence states what the record says, both readings: " + note);
+        assertTrue(note.contains("If it named no node, riskMonitor's lines below WARN are not in this log; "
+                + "otherwise this change explains nothing here"), "S3: and concludes only on that condition: " + note);
+        assertFalse(note.startsWith("this log sets every node's audit level"),
+                "S3: the no-node reading is not asserted before the disclosure: " + note);
+        assertTrue(note.indexOf("renders both identically") < note.indexOf("lines below"),
+                "S3: disclosure first, conclusion after: " + note);
+    }
+
+    // ------------------------------------------------------------------ S2: every premise in one condition
+
+    private static final String MARKER_1 = "eventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 1\n---\n";
+
+    /**
+     * Second re-review S2. With applicability NOT established and the scope wholly after a run boundary, the
+     * sentence had two "if it did"s with different antecedents, and the second read as though survival alone
+     * were enough. Both premises now travel in one condition, and nothing presumes a processor.
+     */
+    @Test
+    void notEstablishedAndWhollyAfterABoundaryConcludesOnBothPremises() {
+        var change = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        String note = annotate(control(1, ABSENT, change) + MARKER_1 + row(2, ABSENT) + MARKER_1, "riskMonitor", 1);
+        assertNotNull(note);
+        assertTrue(note.contains("If it applied here and it survived the marker, riskMonitor's lines below WARN are "
+                + "not in this log; otherwise this change explains nothing here"),
+                "S2: one condition, both premises: " + note);
+        assertFalse(note.contains("If it survived the marker, riskMonitor's"),
+                "S2: survival alone is never enough while applicability is not established: " + note);
+        assertFalse(note.contains("this processor's"), "S2: no processor is presumed: " + note);
+        assertTrue(note.contains("the records that, like it, state no grouping"), note);
+    }
+
+    @Test
+    void notEstablishedAndSpanningABoundaryConditionsBothHalves() {
+        var change = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        String log = control(1, ABSENT, change) + row(2, ABSENT) + MARKER_1 + row(3, ABSENT) + MARKER_1;
+        String note = annotate(log, "riskMonitor", 1, 2);
+        assertTrue(note.contains("Within that run, if it applied here, riskMonitor's lines below WARN are not in this log"),
+                "S2: even within the run the claim waits on applicability: " + note);
+        assertTrue(note.contains("those lines are absent only if it applied here and it survived the marker"),
+                "S2: after the marker, both premises: " + note);
+        assertFalse(note.contains("so within that run"), "S2: nothing is definite while applicability is open: " + note);
+    }
+
+    @Test
+    void aNullSourceInAnUndeclaredGroupingCarriesBothPremises() {
+        var literal = new EventLogControlEvent("null", null, LogLevel.WARN);
+        String note = annotate(control(1, ABSENT, literal) + row(2, ABSENT), "riskMonitor", 1);
+        assertTrue(note.contains("If it named no node and it applied here, riskMonitor's lines below WARN"),
+                "S2 × S3: every premise the log leaves open, in one condition: " + note);
     }
 
     // ------------------------------------------------------------------ RR-3: which processor
