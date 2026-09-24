@@ -14,6 +14,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   Recent logs and topologies sit beside their open actions. Saved `menu:File…` spotlight steps are
   now refused; update them to the new visible menu names. Guides and screenshots follow the layout.
 
+## [1.19.3] - 2026-09-24
+
 - **An action that cannot happen now says so.** Open on a saved chart that cannot be shown used to bring
   the Graph tab forward and then do nothing at all; it now explains why — no log loaded, duplicate names
   withholding the definitions, or no such chart — naming the chart. Nothing is said when it succeeds.

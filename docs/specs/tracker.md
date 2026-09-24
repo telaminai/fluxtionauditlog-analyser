@@ -15,7 +15,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
   panel boundary remain in force. Live docs, offline help, screenshots and menu spotlight examples
   must match. Acceptance uses actual menu items and Settings dialogs on a real display, CI zero-skip
   registration, and targeted named-red/restored-green controls. Local gates: headless
-  after integration of main `4d787d1b`: 1985/0/0/97 (265 mapped suites, no orphans);
+  after integration of main `cb56c96d` (1.19.3 changelog stamp): 1985/0/0/97 (265 mapped suites, no orphans);
   display 98/0/0/0 (19 suites). The ten menu controls passed before integration; the owner
   requested no mutation rerun on the combined tree. R1–R3 corrected; O1–O5 taken; D1–D3 remain owner decisions.
   Original 26 demo captures refreshed, then five affected assets recaptured and inspected for the

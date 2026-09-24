@@ -210,3 +210,22 @@ The command passes `-Djava.awt.headless=false` directly. `python3 tools/verify-m
 passes **94/94** against the rebuilt jar under an isolated home;
 [output](evidence/project-sources-audit-menus-2026-09-24/main-integration/spotlight.txt).
 Strict docs, diff checks and both public-repository sweeps are clean. No screenshot recapture: main's additions do not alter the captured menu layout.
+
+### Refresh to main's 1.19.3 stamp
+
+Fetched main again at the owner's request: `cb56c96d` adds only the 1.19.3 changelog heading.
+Merge resolution retains the menu entry under Unreleased and puts main's shipped entries under
+1.19.3. No source or test implementation changed. The non-mutation gates are rerun below; the
+mutation gate remains deliberately omitted.
+
+Fresh JDK 21 `mvn -q clean package`: **1985 / 0 / 0 / 97**, 265 mapped suites, no orphans;
+[XML totals](evidence/project-sources-audit-menus-2026-09-24/main-1193-integration/headless-counts.json).
+Display command: `python3 tools/verify_project_chart_review.py --mode display --output
+/private/tmp/pr15-1193-display.json`, using the direct headless=false property: **98 / 0 / 0 / 0**
+across all 19 suites; [result](evidence/project-sources-audit-menus-2026-09-24/main-1193-integration/display.json).
+Five Python verifier tests passed; preflight found all 46 anchors; strict MkDocs passed.
+
+`python3 tools/verify-m64-spotlight.py` against the freshly packaged jar: **94/94**;
+[output](evidence/project-sources-audit-menus-2026-09-24/main-1193-integration/spotlight.txt).
+Diff check, exact rule-one and added-lines sweeps are clean. No mutation rerun, screenshot
+recapture, merge to main, release or shared identity-config change was performed.
