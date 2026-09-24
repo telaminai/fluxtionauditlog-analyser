@@ -69,7 +69,7 @@ class ProjectModelTest {
     }
 
     /**
-     * M68.2, owner 2026-09-24: the row now offers a REVEAL. It previously carried {@link
+     * 35eeb320, owner 2026-09-24: the row now offers a REVEAL. It previously carried {@link
      * ProjectModel.Target#NONE} — read at the time as "no mutation action", which it was, but the
      * consequence was that the Open a person saw on a saved chart was wired to nothing at all. Revealing a
      * specific chart is navigation, so the row names its chart; mutation is still barred, structurally, by

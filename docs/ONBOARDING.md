@@ -112,7 +112,7 @@ why they are collected here.
 |---|---|---|
 | **Declared, never inferred** (D-A2, D-A1a, §E) | With no evidence the answer is UNKNOWN — never "probably fine". A graph, a provenance, an audit verdict is what someone declared, not what we guessed. | `spec-source-adapters.md`, M40's `AuditReadiness` |
 | **A surface renders the model; it is never a second model** (D-L1) | The Project panel reads only keys `context` puts. Enforced by a source-reading test, not by memory. | `spec-loaded-panel.md` |
-| **Reveal-only** (D-L3) | Every Project-panel button navigates or copies. Nothing on it mutates state; a bytecode test asserts it never names `MainFrame`. Since M68.2 a button may name the item it reveals (*this* report, *this* chart) — revealing a specific thing is still navigation; creating or editing one is not. | `spec-loaded-panel.md` |
+| **Reveal-only** (D-L3) | Every Project-panel button navigates or copies. Nothing on it mutates state; a bytecode test asserts it never names `MainFrame`. Since 35eeb320 a button may name the item it reveals (*this* report, *this* chart) — revealing a specific thing is still navigation; creating or editing one is not. | `spec-loaded-panel.md` |
 | **Pointers, never contents; never executed** (D-C2) | A runbook or glossary is a location in the repo. The analyser stores no instructions and runs nothing. | `spec-portable-context.md` |
 | **Discovery offers, and never selects** (M35.4, D-AI5) | Found a graph, a skill, a frontmatter description? Offer it. A person declares it. Applies to facts as well as files. | `spec-ai-menu.md` |
 | **The panel STATES; the menu ACTS** (D-AI1) | Mutation has one home, so a reader never wonders whether a button will change their project. | `spec-ai-menu.md` |

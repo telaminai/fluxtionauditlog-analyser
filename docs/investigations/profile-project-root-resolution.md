@@ -95,7 +95,7 @@ Source inspection distinguishes the following cases; they are not three proven i
 
 These observations do not expand this path-resolution fix into Project-panel navigation work.
 
-## The question this needed, and the answer — 2026-09-24 (M68.2)
+## The question this needed, and the answer — 2026-09-24 (35eeb320)
 
 A first attempt to patch the two Open defects was abandoned on reading the tests: D-L3 is not a
 convention here, it is asserted. `ProjectPanelIsRevealOnlyTest` pins the exact `Navigator` method set —
@@ -225,7 +225,7 @@ chart**, not only deliberately styled ones, because `GraphTabs.specs()` always r
 never null. The value written is always the chart's actual style and nothing reads differently, so this
 is benign — but "existing profiles are untouched" holds only until the first save.
 
-## Closing a chart destroys it — found during the same session (FIXED, M68.3)
+## Closing a chart destroys it — found during the same session (FIXED, 38ecc7f3)
 
 Reported by the owner immediately after the checks: close a chart tab and the chart is gone for good,
 and its row vanishes from the Project panel's *Saved charts* section. Reproduced in the profile bytes —
@@ -239,8 +239,8 @@ a file backup; without one it would have been unrecoverable.
 a list of saved charts at all — it is a mirror of what is currently open. Closing a tab is therefore a
 silent, unconfirmed delete of persistent annotated state.
 
-**This is pre-existing and not caused by M68.2** — closing a chart has always destroyed its notes. But
-M68.2 makes it matter more, and made it visible: the *Saved charts* rows now offer an Open, which
+**This is pre-existing and not caused by 35eeb320** — closing a chart has always destroyed its notes. But
+35eeb320 makes it matter more, and made it visible: the *Saved charts* rows now offer an Open, which
 promises a recoverability the model does not provide. `SessionFacts.savedGraphs` already reports an
 `open` flag per chart, so the vocabulary for "saved but not open" exists; today it can only ever be false
 while a log is loaded, because the two lists are kept identical.
@@ -263,7 +263,7 @@ while a log is loaded, because the two lists are kept identical.
 The owner chose to **persist the open flag** and to land **Close and Delete together**, on the reasoning
 that without a Delete, charts could never be removed once Close stopped removing them.
 
-- `GraphSpec` gains `open`, defaulting **true**, with a `withOpen` copy. Every pre-M68.3 constructor
+- `GraphSpec` gains `open`, defaulting **true**, with a `withOpen` copy. Every pre-38ecc7f3 constructor
   delegates with `true`, so no existing profile or caller changes behaviour.
 - `ConfigStore` writes `graph.N.open=false` **only for a closed chart**. An untouched profile gains no
   key, and a missing key reads as open.

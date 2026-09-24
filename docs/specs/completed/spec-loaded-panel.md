@@ -82,7 +82,7 @@ switching, resetting stay where they are (File menu, Topology, Settings) — the
 it may not do them. Offer, never act; and a display that can mutate state is a display people learn not
 to trust.
 
-**Amendment, owner 2026-09-24 (M68.2): revealing a SPECIFIC item is navigation.** A row's action may name
+**Amendment, owner 2026-09-24 (35eeb320): revealing a SPECIFIC item is navigation.** A row's action may name
 the thing the row is about — *this* report, *this* saved chart — and the `Navigator` may carry that
 identity.
 

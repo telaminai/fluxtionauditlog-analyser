@@ -7,7 +7,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * M68.5 — the rule that decides whether a chart survives.
+ * f6e8d7e0 — the rule that decides whether a chart survives.
  *
  * <p>These assertions exist because the equivalent ones did NOT exist when this logic shipped. It was
  * written inline in {@code MainFrame}, which no headless test can construct, so reverting it to its

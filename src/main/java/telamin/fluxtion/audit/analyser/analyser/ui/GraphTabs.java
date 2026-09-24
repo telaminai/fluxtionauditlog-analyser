@@ -164,7 +164,7 @@ public final class GraphTabs extends JPanel {
     /**
      * "Graph N" for the lowest N that nothing already answers to — a tab OR a closed definition.
      *
-     * <p>M68.5: the counter alone was not enough. {@code doRestore} resets it to 0 and skips closed charts,
+     * <p>f6e8d7e0: the counter alone was not enough. {@code doRestore} resets it to 0 and skips closed charts,
      * so after a reload "New graph" would hand out a name a closed, annotated chart still held, and the
      * name-keyed merge would then replace that chart with the empty new one.
      */
@@ -275,7 +275,7 @@ public final class GraphTabs extends JPanel {
     /**
      * Rename one chart, keeping the stored definition with it.
      *
-     * <p>M68.5: this used to change the tab title and nothing else. Since the name IS the identity, the
+     * <p>f6e8d7e0: this used to change the tab title and nothing else. Since the name IS the identity, the
      * definition under the OLD name was then orphaned — kept by the merge as a closed ghost that could
      * never be reopened — and renaming onto a name something else already held silently merged the two
      * into one. Both are refused or repaired here, not in the merge, which cannot see intent.
@@ -339,7 +339,7 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
-     * M68.2: open ONE saved chart and select it — what the Project panel's Open does for a chart that is
+     * 35eeb320: open ONE saved chart and select it — what the Project panel's Open does for a chart that is
      * not currently a tab. A chart already open is selected rather than rebuilt, so Open never discards
      * edits made since the profile was written. Returns false when there is nothing to open.
      */
@@ -363,7 +363,7 @@ public final class GraphTabs extends JPanel {
         } finally {
             restoring = was;
         }
-        // M68.5: reopening IS a change to persisted state — since M68.3 the open/closed flag is durable, so
+        // f6e8d7e0: reopening IS a change to persisted state — since 38ecc7f3 the open/closed flag is durable, so
         // a reopen that never asks to be saved sticks only if some later unrelated edit happens to write.
         // Fired outside the guard above, which exists to suppress the REBUILD, not the outcome.
         if (opened) fireChanged();
@@ -374,7 +374,7 @@ public final class GraphTabs extends JPanel {
         clearGraphs();
         counter = 0;
         for (GraphSpec g : saved) {
-            // M68.3: a chart closed in an earlier session stays a DEFINITION and does not reopen as a tab.
+            // 38ecc7f3: a chart closed in an earlier session stays a DEFINITION and does not reopen as a tab.
             // It is still listed in the Project panel, and its Open reopens it through openSaved.
             if (!g.open()) continue;
             GraphPanel panel = addGraph(g.name());
@@ -407,7 +407,7 @@ public final class GraphTabs extends JPanel {
             panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
                     g.rightAxis()));
         }
-        // M68.2: last, so the style the profile declared survives everything added above
+        // 35eeb320: last, so the style the profile declared survives everything added above
         panel.setStyleByName(g.style());
     }
 
@@ -439,7 +439,7 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
-     * Close the tab. M68.3: this KEEPS the chart's definition — the profile still lists it, the Project
+     * Close the tab. 38ecc7f3: this KEEPS the chart's definition — the profile still lists it, the Project
      * panel still shows it, and its Open reopens it. Removing a chart for good is {@link #deleteCurrent()},
      * a separate action that says so and asks first.
      */
@@ -469,7 +469,7 @@ public final class GraphTabs extends JPanel {
     /**
      * Every chart name the PROJECT knows, including definitions that are closed and therefore not tabs.
      *
-     * <p>M68.5: a chart is identified by its name, but this class could only see the open tabs. A closed
+     * <p>f6e8d7e0: a chart is identified by its name, but this class could only see the open tabs. A closed
      * definition reserved nothing, so a generated "Graph N" or a rename could land on top of one and the
      * name-keyed merge would then overwrite it — destroying an annotated chart nobody named.
      */
@@ -488,7 +488,7 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
-     * M68.3 — remove the chart's DEFINITION, not just its tab. Destructive and unrecoverable (a chart
+     * 38ecc7f3 — remove the chart's DEFINITION, not just its tab. Destructive and unrecoverable (a chart
      * carries its explanation and pinned notes, which is the part worth keeping), so it confirms first and
      * names the chart in the question. Close is the non-destructive neighbour.
      */
@@ -508,7 +508,7 @@ public final class GraphTabs extends JPanel {
 
     /**
      * The delete itself, once a person has confirmed it — separated from the modal dialog so a test can
-     * reach it. M68.5: a {@code JOptionPane} cannot run headless, so leaving this inside
+     * reach it. f6e8d7e0: a {@code JOptionPane} cannot run headless, so leaving this inside
      * {@link #deleteCurrent()} left the one destructive path in the app untestable.
      */
     void deleteConfirmed(int i) {
@@ -516,7 +516,7 @@ public final class GraphTabs extends JPanel {
         String name = gp.graphName();
         gp.unbind();
         tabs.removeTabAt(i);
-        // M68.5: drop the definition FIRST. This used to run after the fallback below, and addGraph ends in
+        // f6e8d7e0: drop the definition FIRST. This used to run after the fallback below, and addGraph ends in
         // fireChanged() — a save — so the list was persisted while the deleted chart was still in it and a
         // fresh placeholder had just taken a name a CLOSED chart still held. The name-keyed merge then
         // overwrote that closed chart's definition with the empty placeholder: deleting one chart destroyed

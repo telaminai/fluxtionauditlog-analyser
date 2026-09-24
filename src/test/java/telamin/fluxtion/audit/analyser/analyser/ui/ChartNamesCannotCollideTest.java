@@ -13,9 +13,9 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * M68.5 — a chart's NAME is its identity, so nothing may hand out one that is already taken.
+ * f6e8d7e0 — a chart's NAME is its identity, so nothing may hand out one that is already taken.
  *
- * <p>The defect this pins, found by independent review of M68.3: {@code doRestore} resets the name counter
+ * <p>The defect this pins, found by independent review of 38ecc7f3: {@code doRestore} resets the name counter
  * and skips closed charts, so a closed definition reserved nothing. "New graph" — and the placeholder tab
  * created when the last chart is deleted — could therefore be named onto a closed, annotated chart, and
  * the name-keyed merge would replace that chart's definition with the empty new one. Deleting or creating
@@ -181,7 +181,7 @@ class ChartNamesCannotCollideTest {
 
         assertTrue(tabs.graphNames().contains("Closed one"), "it is a tab now");
         assertEquals(1, edits[0],
-                "since M68.3 the open/closed flag is durable, so reopening changes persisted state and must "
+                "since 38ecc7f3 the open/closed flag is durable, so reopening changes persisted state and must "
                         + "request a save — otherwise it sticks only if some later unrelated edit writes");
     }
 }

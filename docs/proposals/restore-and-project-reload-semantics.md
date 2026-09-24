@@ -1,6 +1,6 @@
 # Proposal: say what a project reload gives you back, and which window control is saved
 
-**Status:** proposal, nothing built. Raised 2026-09-24 by the owner while verifying M68.2/M68.3 at a real
+**Status:** proposal, nothing built. Raised 2026-09-24 by the owner while verifying 35eeb320/38ecc7f3 at a real
 display: *"reloading a project does not bring the log and graphs back after closing"*, *"a restore last
 session only brings some of the state back"*, and later *"was the zoom ignored"*.
 
@@ -99,5 +99,5 @@ current label is **more** accurate than the replacement it suggested, not less.
 - `session/resume/SessionResumeStore.java` — the four roles, `Snapshot.view`, the identity check.
 - `MainFrame.captureSession()` — what the view map actually holds.
 - `MainFrame.applyRecovery` / `restoreRecoveryView` — that it is applied, and the hash gate that withholds it.
-- `GraphTabs.restore` — the `store == null` guard (initial release) and the M68.3 closed-chart skip.
+- `GraphTabs.restore` — the `store == null` guard (initial release) and the 38ecc7f3 closed-chart skip.
 - `ChartPanel.zoomIn/zoomOut/resetView` versus `ConfigStore` `graph.N.from`/`to` — the lens and the fact.

@@ -12,7 +12,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * M68.2 — Open on a Project-panel row reveals THAT row's item.
+ * 35eeb320 — Open on a Project-panel row reveals THAT row's item.
  *
  * <p>The gap this closes was named in {@code docs/investigations/profile-project-root-resolution.md}:
  * {@code ProjectPanelIsRevealOnlyTest} covers the panel structurally (bytecode, Navigator shape) and the

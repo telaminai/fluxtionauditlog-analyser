@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Reconciles the charts a person has OPEN with the charts the project has SAVED (M68.3, M68.5).
+ * Reconciles the charts a person has OPEN with the charts the project has SAVED (38ecc7f3, f6e8d7e0).
  *
  * <p>This is the single rule standing between a user and silent chart loss, so it lives here as a pure
  * function rather than inside {@code MainFrame}. It was written there first, where nothing could reach it:

@@ -12,7 +12,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * M68.2 — the plot style is part of a saved chart.
+ * 35eeb320 — the plot style is part of a saved chart.
  *
  * <p>{@code GraphPanel} has always treated style as a persistable mutation (it calls {@code mutated()} and
  * its own doc lists style beside series, pins and notes), but {@link GraphSpec} had no such component and

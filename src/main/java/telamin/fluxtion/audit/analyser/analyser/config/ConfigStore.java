@@ -442,11 +442,11 @@ public final class ConfigStore {
                 put(p, "graph." + i + ".expr." + j + ".expr", exprs.get(j).expr());
                 put(p, "graph." + i + ".expr." + j + ".resolve", exprs.get(j).resolve());
             }
-            // M68.2: the plot style is part of the chart's reading too — stairs vs line is a claim about
+            // 35eeb320: the plot style is part of the chart's reading too — stairs vs line is a claim about
             // whether a value holds between samples or slides. Only a declared style is written, so a
             // profile from before this round is unchanged and still reopens as stairs.
             put(p, "graph." + i + ".style", g.declaredStyle());
-            // M68.3: only a CLOSED chart writes this. Open is the default, so a profile gains no key until
+            // 38ecc7f3: only a CLOSED chart writes this. Open is the default, so a profile gains no key until
             // someone closes a chart, and a profile written before this round reopens everything as before.
             if (!g.open()) p.setProperty("graph." + i + ".open", "false");
             // annotations: the reading of the chart, which is the part worth keeping
@@ -611,7 +611,7 @@ public final class ConfigStore {
     }
 
     /**
-     * M68.2: a hand-edited style the renderer does not know is dropped rather than carried to a panel that
+     * 35eeb320: a hand-edited style the renderer does not know is dropped rather than carried to a panel that
      * would silently fall back — same posture as the non-numeric guide above. Null means "never declared",
      * which {@link GraphSpec#style()} answers as the stairs default.
      */

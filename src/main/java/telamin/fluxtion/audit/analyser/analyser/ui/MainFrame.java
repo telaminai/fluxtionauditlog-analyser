@@ -191,10 +191,10 @@ public final class MainFrame extends JFrame {
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
         graphTabs.setChangeListener(this::onGraphsEdited);
-        // M68.3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
+        // 38ecc7f3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
         // config before the change listener writes the merged list back
         graphTabs.setDeleteListener(name -> config.savedGraphs.removeIf(g -> g.name().equals(name)));
-        // M68.5: a chart's name is its identity in the profile, so the tabs must see the names of CLOSED
+        // f6e8d7e0: a chart's name is its identity in the profile, so the tabs must see the names of CLOSED
         // definitions too — otherwise a generated name or a rename lands on one and the merge overwrites it
         graphTabs.setKnownNames(() -> {
             java.util.Set<String> names = new java.util.LinkedHashSet<>();
@@ -374,7 +374,7 @@ public final class MainFrame extends JFrame {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries, page);
             }
-            // M68.2: reveal the item the row is about, not merely the tab that owns it
+            // 35eeb320: reveal the item the row is about, not merely the tab that owns it
             @Override public void showReport(String name) {
                 selectTab("Reports");
                 if (name != null && reportsPanel != null) reportsPanel.select(name);
@@ -4703,7 +4703,7 @@ public final class MainFrame extends JFrame {
     /**
      * Capture the open graph tabs into {@code config.savedGraphs} (so a merge sees current state).
      *
-     * <p>M68.3: this MERGES. It used to clear the list and refill it from the open tabs, which made the
+     * <p>38ecc7f3: this MERGES. It used to clear the list and refill it from the open tabs, which made the
      * profile's saved-chart list a mirror of what was open — so closing a tab silently deleted the chart's
      * definition, notes and all. A chart that is no longer a tab is now kept and marked closed; only an
      * explicit Delete removes it (see {@code GraphTabs.deleteCurrent}). Order follows the existing profile
@@ -4711,7 +4711,7 @@ public final class MainFrame extends JFrame {
      */
     private void syncOpenGraphsIntoConfig() {
         if (store == null) return;   // no log → tabs are empty; config already holds the profile's graphs
-        // M68.5: the rule itself lives in SavedGraphMerge, where a test can reach it. Written inline here
+        // f6e8d7e0: the rule itself lives in SavedGraphMerge, where a test can reach it. Written inline here
         // it was unreachable — MainFrame is not headless-constructible — and reverting it to its old
         // destructive form left the entire suite green.
         var merged = telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.merge(

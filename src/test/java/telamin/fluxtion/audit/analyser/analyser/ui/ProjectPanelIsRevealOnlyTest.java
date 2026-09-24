@@ -49,7 +49,7 @@ class ProjectPanelIsRevealOnlyTest {
                 Set.of(java.util.Arrays.stream(ProjectPanel.Navigator.class.getDeclaredMethods())
                         .map(java.lang.reflect.Method::getName).toArray(String[]::new)),
                 "the Navigator moves the eye, not the state; adding a method here is a spec change (D-L3). "
-                        + "showReport/showGraph were added deliberately (owner, 2026-09-24, M68.2): revealing a "
+                        + "showReport/showGraph were added deliberately (owner, 2026-09-24, 35eeb320): revealing a "
                         + "SPECIFIC item is still moving the eye. A method that creates, edits or discards "
                         + "state is not, and does not belong here.");
         assertFalse(bytecodeOf(ProjectModel.class).contains("javax/swing"), "the model is pure");
