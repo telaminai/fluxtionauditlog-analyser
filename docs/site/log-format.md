@@ -9,7 +9,7 @@ replayable. See [Producing an audit log](producing-a-log.md) for how a processor
 
 !!! tip "Try it now"
     Download a real sample — [**sample-audit-log.yaml**](assets/sample-audit-log.yaml) (22 records) —
-    and open it with **File ▸ Open log…**. Everything in the [user guide](user-guide/index.md) works
+    and open it with **Audit log ▸ Open log…**. Everything in the [user guide](user-guide/index.md) works
     against it.
 
 ## An example record

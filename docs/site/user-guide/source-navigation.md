@@ -12,7 +12,7 @@ A root or repo that can't be found shows **red** in Settings.
 
 ## Spring design and file glances
 
-**File ▸ Open design…** selects the session's Spring XML. Add its directory to source roots first;
+**Sources ▸ Open design…** selects the session's Spring XML. Add its directory to source roots first;
 opening a project alone grants no file access. **Source ▸ Design** shows highlighted XML, a bean/config
 index, **Follow design**, **Show node** and **Show records**. The latter opens the first record logging the
 selected bean's name. Record and topology context menus offer **Show declaration**. These links are
@@ -78,7 +78,8 @@ name only one Java document; unavailable source and out-of-range lines refuse be
 
 ![A graph node and its Java declaration lit together, with source/run correspondence explicitly unverified](../assets/java-source-spotlight.png)
 
-This image uses a constructed one-node fixture under an isolated home.
+This recorded image uses a constructed one-node fixture under an isolated home and predates the
+Project / Sources / Audit log menu layout. The Java spotlight behaviour shown is unchanged.
 
 The source label and echo state **source-viewer · first-match · relationship unverified**. They disclose
 the chosen file/root or archive/entry and the SHA-256 revision of the rendered text. This identifies the

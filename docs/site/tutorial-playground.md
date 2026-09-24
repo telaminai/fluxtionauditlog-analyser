@@ -1,5 +1,7 @@
 # From playground to analyser in 10 minutes
 
+> The recorded screenshots may show an earlier menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Getting started](getting-started.md#finding-the-right-menu).
+
 Download a runnable event-processing system, inspect its graph, run it, and let the analyser show
 what the compiled processor actually did — on your machine, with code you can edit.
 
@@ -17,13 +19,13 @@ unzip audit-analyser-bundle.zip
 cd audit-analyser-bundle
 ```
 
-**Or get the same bundle without leaving the analyser.** *File ▸ New project from template…* reads the
+**Or get the same bundle without leaving the analyser.** *Project ▸ New project from template…* reads the
 playground's live catalogue, shows each template's description and whether it needs a build key **before
 anything is downloaded**, and unpacks the one you choose into a new or empty directory. The generated project's
 profile becomes the active project, so the first action of step 2 (*Open project…*) is already done when it
 finishes; opening the GraphML is still yours to do, for the reason step 2 gives.
 
-![The File menu open, with an orange ring and the words "start here" marking New project from template… in the project group](assets/tutorial-new-project-menu.png)
+![The Project menu open, with an orange ring and the words "start here" marking New project from template…](assets/tutorial-new-project-menu.png)
 
 In the picker, **①** choose *Audit analyser bundle* — note *Build key: none required* under it — then **②**
 *Use this template*, and pick a new or empty directory when asked.
@@ -64,8 +66,8 @@ plain `java -jar` route.
 
 In the analyser:
 
-1. Choose **File ▸ Open project…** and select the `audit-analyser-bundle` directory.
-2. Choose **File ▸ Open GraphML…** and select
+1. Choose **Project ▸ Open project…** and select the `audit-analyser-bundle` directory.
+2. Choose **Sources ▸ Open GraphML…** and select
    `src/main/resources/com/example/myapp/generated/MarketProcessor.graphml`.
 
 Opening the project loads its portable context, but deliberately does not guess which file you want
@@ -101,7 +103,7 @@ means it observed both the process and registry entry disappear.
 
 ## 4. Read the exported run
 
-Return to the analyser and choose **File ▸ Open log…**, then select
+Return to the analyser and choose **Audit log ▸ Open log…**, then select
 `logs/audit-audit-analyser-bundle.yaml`. If you restarted the analyser, open the project, GraphML and
 log as three separate actions in that order: a project switch is a session boundary and intentionally
 closes any previous log and graph.
@@ -202,7 +204,7 @@ not yet compare two complete runs side by side, so this tutorial does not promis
 The bundle is a demonstration; the point is your processor:
 
 - **[Produce a log](producing-a-log.md)** from your own processor.
-- **[Open a project](user-guide/projects.md)** for your repository. **File ▸ New project…** offers
+- **[Open a project](user-guide/projects.md)** for your repository. **Project ▸ New project…** offers
   source roots, skill-shaped runbooks and GraphML it finds, and adopts only what you confirm — plus an
   unchecked option to create a `CLAUDE.md` pointing at the canonical Fluxtion authoring docs, which is the
   one choice there that writes a file rather than recording a pointer.

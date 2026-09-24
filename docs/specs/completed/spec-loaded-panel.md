@@ -61,7 +61,7 @@ SOURCE ROOTS   ~/projects/demo/src/main/java                project
 listed by display name in load order under the set's row; their directory is the row above.
 
 Empty states are sentences that say what would fill them: *"No project — using your own settings
-(~/.fluxtion-analyser)."* · *"No log loaded."* · *"No graph — File ▸ Open topology, or a reader may
+(~/.fluxtion-analyser)."* · *"No log loaded."* · *"No graph — Sources ▸ Open GraphML…, or a reader may
 supply one with its log."* · *"No event processors configured — Settings ▸ Source."* A blank row is a
 question the user has to go and answer somewhere else, which is the complaint this spec exists for.
 
@@ -78,7 +78,7 @@ attached to every load already carries this; the panel is its first human-facing
 
 Actions on a row are **reveal and navigate only**: *Copy path*, *Show in Finder / folder*, *Open in
 Source tab* (a processor), *Go to Topology* (the graph), *Settings ▸ Source…* (roots). Closing,
-switching, resetting stay where they are (File menu, Topology, Settings) — the panel may link to them,
+switching, resetting stay where they are (Project/Sources/Audit log menus, Topology, Settings) — the panel may link to them,
 it may not do them. Offer, never act; and a display that can mutate state is a display people learn not
 to trust.
 
@@ -168,7 +168,7 @@ first.** M20.5 without it is an offer that fires once at open and is then invisi
 
 ## Non-goals
 
-- Not a file browser and not a recent-files list — the start page and File menu own those.
+- Not a file browser and not a recent-files list — the start page and resource menus own those.
 - Not a settings editor — no field on it is writable.
 - Not a replacement for the status bar's transient messages, only for its role as the one place the
   pairing was stated.

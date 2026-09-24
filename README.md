@@ -53,7 +53,7 @@ to the exact source, and hand to an LLM for a plain-English, code-grounded expla
   preserving flags and filters.
 - **Open from S3** — `s3://bucket/key` via your local `aws` CLI (streamed to a temp file), so large
   objects use the memory-mapped path too.
-- **Shareable setups** — File ▸ Export/Import settings writes a versioned `.fluxtion-settings` file
+- **Shareable setups** — Project ▸ Export/Import settings writes a versioned `.fluxtion-settings` file
   (or clipboard / email) carrying source roots, Maven repos, event processors, **named graphs**
   (formulas and pins included), hidden columns and assistant prefs. Import merges behind a confirmable
   summary (lists add, graphs replace by name). A whitelist enforced **both ways** means the API key,
@@ -104,7 +104,7 @@ mvn test
 
 ## Using it
 
-1. **Open a log** — the toolbar (Open / Open S3), `File` menu, or drag a file onto the window.
+1. **Open a log** — the toolbar (Open / Open S3), `Audit log` menu, or drag a file onto the window.
 2. **Narrow to the moment** — drag the time-range slider (drag the *middle* to pan; double-click to
    reset), tick event types in the left rail, and/or type in the search box (remembers history with
    autocomplete).
@@ -126,7 +126,7 @@ Press **Help → User guide** in the app for the full walkthrough.
 ## Configuration
 
 Settings live in `~/.fluxtion-analyser/config` (cleartext — a local single-user tool) and are editable via
-**File → Settings**:
+**Project → Settings**:
 
 - **Source roots** — Java source dirs (e.g. `.../src/main/java`); a project folder is auto-expanded to its
   `src/main/java` (incl. sub-modules). In the next release, configured roots also authorise design XML and

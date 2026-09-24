@@ -40,7 +40,7 @@ copy-prompt mode).
 
 ## Can I follow a growing log?
 
-Yes — **File ▸ Follow (tail)** polls an open local file and appends newly-completed records live,
+Yes — **Audit log ▸ Follow (tail)** polls an open local file and appends newly-completed records live,
 preserving flags and filters; open graphs re-extract as records arrive (a chart showing the whole log grows with
 it, one at the live edge slides, one zoomed into the middle holds). (Heap-loaded local files only; not S3.)
 

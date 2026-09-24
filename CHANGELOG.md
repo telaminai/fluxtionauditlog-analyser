@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Project, Sources and Audit log now have separate menus.** Project holds profiles, saved analyses
+  and settings; Sources holds source configuration, topology, design and producer diagnostics;
+  Audit log holds acquisition, Follow and record export. Source settings shortcuts open their named
+  page. Records, Theme, AI and Help remain separate. The toolbar and assistant verbs keep their existing
+  behavior; menu spotlight targets use the new visible menu names. Guides and screenshots follow the layout.
+
 ## [1.19.2] - 2026-09-24
 
 - Legacy global settings with duplicate chart names no longer interrupt log loading. The Graph panel

@@ -6,6 +6,19 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Project / Sources / Audit log menus — owner request 2026-09-24
+
+- ◧ **Separate top-level resource menus** — implemented on `feat/project-sources-audit-menus`,
+  based on released 1.19.2; not merged or released. Project owns profiles/settings/analyses, Sources
+  owns source configuration and topology/design/diagnostics, Audit log owns acquisition/Follow/export.
+  Records, Theme, AI and Help remain separate. Existing action handlers and the reveal-only Project
+  panel boundary remain in force. Live docs, offline help, screenshots and menu spotlight examples
+  must match. Acceptance uses actual menu items and Settings dialogs on a real display, CI zero-skip
+  registration, and targeted named-red/restored-green controls. Local gates: headless
+  1941/0/0/81; display 82/0/0/0; three controls red then restored green. Twenty-six demo
+  captures refreshed and inspected; specialized older captures labelled. Review/merge pending.
+  [Implementation and verification](../handoff/report_project_sources_audit_menus_2026_09_24.md).
+
 ## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md), revision 9 (2026-09-21)
 
 Remove the export step between a Mongoose run and the analyser. Owner decisions taken 2026-09-21; the

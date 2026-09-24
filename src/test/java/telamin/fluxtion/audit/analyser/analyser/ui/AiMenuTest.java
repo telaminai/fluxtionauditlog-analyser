@@ -48,7 +48,7 @@ class AiMenuTest {
     void withNoProjectThePointerItemsAreDisabledAndNameTheREMEDY() {
         AiMenuModel.Item item = AiMenuModel.pointers(false);
         assertFalse(item.enabled());
-        assertTrue(item.tooltip().contains("File ▸ Open project"),
+        assertTrue(item.tooltip().contains("Project ▸ Open project"),
                 "a disabled item must say what to DO, not restate that it is disabled: " + item.tooltip());
     }
 

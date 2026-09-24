@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  * boundary — M35.5), and a step naming a verb this build does not know.
  *
  * <p>Recalling one is an OFFER, never automatic: {@code context.analyses} lists them; {@code open
- * {analysis: name, bind: {…}}} or <i>File ▸ Run analysis</i> runs one — exactly as recalling a named
+ * {analysis: name, bind: {…}}} or <i>Project ▸ Run analysis</i> runs one — exactly as recalling a named
  * focus is an act.
  *
  * @param name       short handle

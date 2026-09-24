@@ -58,7 +58,7 @@ public final class LogTablePanel extends JPanel {
                 if (getRowCount() == 0) {
                     g.setColor(java.awt.Color.GRAY);
                     String msg = getModel().getRowCount() == 0
-                            ? "No log loaded — File ▸ Open, drag a file in, or File ▸ Open from S3"
+                            ? "No log loaded — Audit log ▸ Open, drag a file in, or Audit log ▸ Open log from S3"
                             : "No records match the current filter";
                     g.drawString(msg, 24, 40);
                 }

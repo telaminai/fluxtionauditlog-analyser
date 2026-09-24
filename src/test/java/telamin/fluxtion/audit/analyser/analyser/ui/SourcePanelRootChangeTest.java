@@ -76,7 +76,7 @@ class SourcePanelRootChangeTest {
         assertTrue(text.contains("Source roots searched:\n    " + a + "\n    " + b + "\n"), text);
         int roots = text.indexOf("Source roots searched:");
         int hintAt = text.indexOf("These roots come from the project \"one\"");
-        int remedy = text.indexOf("Add one:  File ▸ Settings…");
+        int remedy = text.indexOf("Add one:  Sources ▸ Source roots…");
         assertTrue(roots < hintAt && hintAt < remedy, "roots, then where they came from, then how to add one:\n" + text);
         assertTrue(text.contains("NOT in force:\n    /proj/three"), text);
     }

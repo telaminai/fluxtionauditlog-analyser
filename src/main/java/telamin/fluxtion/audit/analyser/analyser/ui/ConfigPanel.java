@@ -454,7 +454,7 @@ public final class ConfigPanel extends JDialog {
         return form("Logs at or below the <b>memory threshold</b> load into heap; larger files are "
                         + "<b>memory-mapped</b> (index built off-heap, records read on demand — scales past 2 GB). "
                         + "<code>0</code> forces memory-mapped always. Applies to the next file opened.<br><br>"
-                        + "Open <code>s3://bucket/key</code> logs via <b>File → Open from S3…</b> — uses your local "
+                        + "Open <code>s3://bucket/key</code> logs via <b>Audit log → Open log from S3…</b> — uses your local "
                         + "<code>aws</code> CLI &amp; credentials (profiles / SSO); no AWS SDK required. Large S3 objects "
                         + "stream to a temp file and take the memory-mapped path too.",
                 "Memory threshold (MB):", leftWrap(memThresholdSpinner),

@@ -123,6 +123,20 @@ CASES.append(('import-ambiguous-target', 'src/main/java/telamin/fluxtion/audit/a
               'GraphProfileMetadataTest#mergingIntoDuplicateTargetRefusesBeforeAnyCategoryChanges'))
 
 
+# Resource-menu controls share the existing baseline / named-failure / byte-restore protocol.
+CASES.extend([
+    ('menu-layout', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     'JMenu projectMenu = new JMenu("Project");', 'JMenu projectMenu = new JMenu("File");',
+     'MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions'),
+    ('menu-source-page', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     'this::readerSummaries, page));', 'this::readerSummaries));',
+     'MenuLayoutFrameTest#sourceShortcutsOpenTheNamedSettingsPage'),
+    ('menu-close-log', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+     '            closeLog(); });', '            /* drop the human close action */ });',
+     'MenuLayoutFrameTest#closeLogFromItsMenuPreservesTheProjectAndSavedChart'),
+])
+
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')

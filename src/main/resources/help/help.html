@@ -117,8 +117,16 @@ remove any series. You can also <b>right-click an attribute</b> in the record-de
 <i>Add instanceId.key to graph</i> — to the current graph, any named graph, or a new one. The graph
 exports to CSV/PNG.</p>
 
+<h2>Menus</h2>
+<ul>
+<li><b>Project</b>: profiles, saved analyses, settings and settings import/export.</li>
+<li><b>Sources</b>: source roots, event processor, Maven repositories, topology, design and diagnostics.</li>
+<li><b>Audit log</b>: open local/S3 logs, follow new records, add external CSV series and export records.</li>
+</ul>
+<p><b>Records</b>, <b>Theme</b>, <b>AI</b> and <b>Help</b> remain separate. Toolbar shortcuts are unchanged.</p>
+
 <h2>Source navigation</h2>
-<p>Set your <b>source roots</b> in <i>File &rarr; Settings</i> (drag folders in, or Add…). The tool
+<p>Set your <b>source roots</b> in <i>Sources &rarr; Source roots&hellip;</i> (drag folders in, or Add…). The tool
 resolves a node's instanceId to its declaring class through the selected <b>EventProcessor</b>. On
 load it <b>infers</b> the processor by matching the log's instanceIds to each candidate's fields; you
 can override the FQN in Settings. When a class isn't under any source root, the local <b>Maven repos</b>
@@ -128,7 +136,7 @@ colouring.</p>
 
 <h2>Topology &amp; step-through</h2>
 <p>The <b>Topology</b> tab draws the processor's node graph and shows what a cycle did to it. Open a
-processor's <code>.graphml</code> with <i>File &rarr; Open GraphML&hellip;</i>, from <i>Open recent
+processor's <code>.graphml</code> with <i>Sources &rarr; Open GraphML&hellip;</i>, from <i>Open recent
 GraphML</i>, or by dragging it onto the window. Whatever was open when you quit &mdash; and the zoom, pan,
 orientation, spacing and label size &mdash; comes back next time.</p>
 
@@ -222,7 +230,7 @@ paste it into any LLM.</p>
 
  <h2>Sharing your setup</h2>
 <ul>
-<li><b>File → Export settings…</b> writes a shareable <code>.fluxtion-settings</code> file (or
+<li><b>Project → Export settings…</b> writes a shareable <code>.fluxtion-settings</code> file (or
     <b>Copy to clipboard</b> / <b>Email…</b>). Tick what to include: source roots, Maven repos, event
     processors, <b>named graphs</b> (formulas and pinned windows included), hidden columns and assistant
     preferences. The LLM provider/model/base-URL is opt-in and off by default.</li>
@@ -231,7 +239,7 @@ paste it into any LLM.</p>
     can never plant or overwrite a secret.</li>
 <li>Paths under your home are written <code>~</code>-relative so they survive a move to another machine;
     a root that doesn't exist on import simply shows red in Settings.</li>
-<li><b>File → Import settings…</b> shows a per-category <b>summary</b> (what's new, what would be
+<li><b>Project → Import settings…</b> shows a per-category <b>summary</b> (what's new, what would be
     replaced) before anything changes; deselect any category you don't want. Lists <b>merge</b> (nothing
     local is deleted); a graph whose name matches an incoming one is <b>replaced</b>, new names are added.</li>
 <li>To share into Slack/WhatsApp, <b>Copy to clipboard</b> and paste, or <b>Save file…</b> then drag the
@@ -242,7 +250,7 @@ paste it into any LLM.</p>
 <ul>
 <li>Settings persist to <code>~/.fluxtion-analyser/config</code> (cleartext; local single-user tool).</li>
 <li>All date/times are shown in <b>UTC</b>.</li>
-<li><b>Follow (tail)</b>: File → "Follow (tail)" or the toolbar <b>Follow</b> toggle polls the open
+<li><b>Follow (tail)</b>: Audit log → "Follow (tail)" or the toolbar <b>Follow</b> toggle polls the open
     <b>local</b> file (~1&nbsp;s) and appends newly-<i>completed</i> records live, auto-scrolling to the
     newest; flags, filters and selection are preserved, and open graphs re-extract — the view moves only to reveal
     a point that would otherwise be hidden (a chart showing the whole log grows with it, one at the live edge
@@ -252,11 +260,11 @@ paste it into any LLM.</p>
 <li><b>Memory threshold</b> (Settings → <i>Performance &amp; S3</i>): files at/below it load into heap,
     larger ones are memory-mapped (<code>0</code> = always mapped). Applies to the next file opened.</li>
 <li><b>Drag &amp; drop</b> a log file onto the window to open it; drag folders into Settings to add roots.</li>
-<li>Open logs straight from <b>S3</b> via <b>File → Open from S3…</b> (<code>s3://bucket/key</code>) —
+<li>Open logs straight from <b>S3</b> via <b>Audit log → Open from S3…</b> (<code>s3://bucket/key</code>) —
     uses your local <code>aws</code> CLI credentials (profile/region in Settings); no AWS SDK required.</li>
 <li><b>Theme</b> menu: Light / Dark / IntelliJ / Darcula (FlatLaf) — text, code and chart colouring
     adapt automatically. Persisted.</li>
-<li><b>Export</b>: File → Export records (CSV / YAML) writes the filtered set (YAML re-loads here);
+<li><b>Export</b>: Audit log → Export records (CSV / YAML) writes the filtered set (YAML re-loads here);
     graphs export to CSV and PNG.</li>
 <li><b>Bookmarks</b>: press <b>F</b> to flag selected rows; Records → "Show flagged only" to focus on
     them. <b>Search</b> remembers terms (dropdown + inline autocomplete). Settings → History clears

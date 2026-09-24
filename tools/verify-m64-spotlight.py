@@ -293,15 +293,15 @@ def main():
                   r.get("ok") is False and "no graph named 'Nope'" in json.dumps(r) and "Named A" in json.dumps(r), r)
             check("and the standing spotlight is untouched", targets(a.context()) == ["graph:Named A:series:quotePublisher.liveOrders"], a.context())
             # M64.11 - a menu item: the reveal opens the menu; it is lit INSIDE the window; a clear closes the menu
-            r = a.act("spotlight", target="menu:File:Close log", caption="closes the log")
-            check("menu:File:Close log opens the File menu and lights the item, with an area", lit(r) and area(r) > 0, r)
+            r = a.act("spotlight", target="menu:Audit log:Close log", caption="closes the log")
+            check("menu:Audit log:Close log opens the Audit log menu and lights the item, with an area", lit(r) and area(r) > 0, r)
             r = a.act("screenshot", path=os.path.join(exchange, "menu-lit.png"))
             check("a screenshot with a lit menu item is written (the popup is painted into the shot)", r.get("ok") is True, r)
             r = a.act("spotlight", clear=True)
             check("clearing a lit menu item closes the menu with it", r.get("ok") is True and "spotlight" not in a.context(), r)
-            r = a.act("spotlight", target="menu:File:Nope")
+            r = a.act("spotlight", target="menu:Audit log:Nope")
             check("an unknown item is refused naming the menu's items",
-                  r.get("ok") is False and "no item 'Nope' in the File menu" in json.dumps(r), r)
+                  r.get("ok") is False and "no item 'Nope' in the Audit log menu" in json.dumps(r), r)
             r = a.act("spotlight", target="menu:Nope")
             check("an unknown menu is refused naming the menus", r.get("ok") is False and "no menu 'Nope'" in json.dumps(r), r)
 

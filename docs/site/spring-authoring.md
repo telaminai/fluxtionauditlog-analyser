@@ -1,5 +1,7 @@
 # Spring authoring with an LLM design partner
 
+> The recorded screenshots may show an earlier menu layout. Current navigation uses **Project**, **Sources** and **Audit log**; see [Getting started](getting-started.md#finding-the-right-menu).
+
 Describe the system you want to build. Work with an LLM to make its events, state,
 dependencies and boundaries explicit. Spring authoring turns that agreed design into
 a Java project you can inspect and develop. Run the application, then use the analyser
@@ -176,12 +178,12 @@ YAML. See the [bundle walkthrough](tutorial-playground.md#3-run-export-and-stop)
 
 ### Bring the result into the analyser
 
-1. **Open the project** using *File ▸ Open project…*. A bundle includes an analyser
+1. **Open the project** using *Project ▸ Open project…*. A bundle includes an analyser
    profile; for your own project, use [project setup](user-guide/projects.md) to
    record the source roots and processor.
-2. **Open the GraphML** produced with the processor you ran, using *File ▸ Open
+2. **Open the GraphML** produced with the processor you ran, using *Sources ▸ Open
    GraphML…*. The compiled graph and the Spring design serve different purposes.
-3. **Open the audit log** from that run using *File ▸ Open log…*. Check the graph/log
+3. **Open the audit log** from that run using *Audit log ▸ Open log…*. Check the graph/log
    pairing and audit-readiness information before interpreting gaps.
 4. **Ask the LLM to render an investigation** in the analyser: select the relevant
    cycles, plot values, highlight the important nodes and collect the findings in
@@ -216,14 +218,14 @@ build or a plausible chart alone cannot establish all the intended behaviour.
     Design mode and producer findings require analyser 1.16.0 or later. Analyser 1.15.0 does not
     include these surfaces.
 
-Open the XML with **File ▸ Open design…**, or `analyser_open {"design":"src/main/resources/design.xml"}`.
+Open the XML with **Sources ▸ Open design…**, or `analyser_open {"design":"src/main/resources/design.xml"}`.
 Authorise its directory in source roots; include the project's `target` directory to read producer results.
 The Source tab's Design mode shows declarations and a bean index, and follows file changes independently
 of the audit log. `analyser_source {"bean":"gate"}` re-reads and selects a declaration.
 [Source navigation](user-guide/source-navigation.md#spring-design-and-file-glances) lists the selectors and
 spotlight targets.
 
-Use **File ▸ Open producer diagnostics…**, or `analyser_open {"diagnostics":"target/fluxtion-validation.json"}`.
+Use **Sources ▸ Open producer diagnostics…**, or `analyser_open {"diagnostics":"target/fluxtion-validation.json"}`.
 **Reports ▸ Producer findings** retains every finding, including those without a navigable location.
 Validation, reconciliation and compiler result wrappers are detected by shape and version. A new intake
 replaces the previous result; a refused or unreadable file clears it. `open {discover:"diagnostics"}` only

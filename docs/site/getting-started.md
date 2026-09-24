@@ -17,7 +17,7 @@ same door your own log will use.
 ![The analyser with no log open: what it does, three questions a log alone will not answer, where it
 sits in the cycle, and three ways in](assets/start-page.png)
 
-The page is a **state, not a splash**: opening a log replaces it, **File ▸ Close log** brings it back,
+The page is a **state, not a splash**: opening a log replaces it, **Audit log ▸ Close log** brings it back,
 and **Help ▸ Start page** recalls it without closing what you are working on. The three questions each
 open a different demo log, because one log cannot answer all three — coverage needs a *traced* run, and
 a chart needs a series.
@@ -33,15 +33,15 @@ something of yours.
 ## Then: your own log
 
 When you have a log from your own processor — see [Producing an audit log](producing-a-log.md) — open it
-with **File ▸ Open log…** or by dragging it onto the window. Everything below is optional and none of it
+with **Audit log ▸ Open log…** or by dragging it onto the window. Everything below is optional and none of it
 blocks you from reading records:
 
-1. **Source roots** — **File ▸ Settings… ▸ Source roots** → *Add* the source folders for your processor
+1. **Source roots** — **Sources ▸ Source roots…** → *Add* the source folders for your processor
    and its node classes. This is what turns a log line into a click through to its code, and what
    grounds the assistant's explanations in real source.
 2. **Your event processor** — **Settings ▸ Event processor** → its fully-qualified class name, marked
    active. The analyser uses it to map each `instanceId` in the log to a source file.
-3. **The topology** — **File ▸ Open GraphML…**, or **File ▸ Find GraphML in source roots…** to see which
+3. **The topology** — **Sources ▸ Open GraphML…**, or **Sources ▸ Find GraphML in source roots…** to see which
    of your compiled graphs actually fits the log you have open, ranked.
 4. **An LLM key (optional)** — **Settings ▸ LLM** for in-app explanations. No key? Skip it and use
    **Copy prompt** with any agent (see [Assistant](user-guide/assistant.md)).
@@ -62,17 +62,33 @@ Now [filter](user-guide/records-and-filtering.md#the-shared-filter), [graph](use
 Working with an AI? [Connecting an LLM to the analyser](connect-an-llm.md) is the third step — the
 agent drives this same window through MCP, and you review what it renders.
 
+## Finding the right menu
+
+| Menu | What it changes |
+|---|---|
+| **Project** | Open, create, save or close a project; run saved analyses; import/export settings. |
+| **Sources** | Configure source roots, event processors and Maven repositories; open topology, design or diagnostics. |
+| **Audit log** | Open a local or S3 log, follow new records, add external CSV series or export records. |
+
+**Records** still holds flags and selected-record actions; **Theme**, **AI** and **Help** stay separate.
+The toolbar shortcuts continue to use the same actions. Closing a log keeps the project and its saved
+chart definitions. **Project ▸ Close log and topology** clears those inputs while retaining the project.
+
+![Project menu](assets/projects-file-menu.png)
+![Sources menu](assets/sources-menu.png)
+![Audit log menu](assets/audit-log-menu.png)
+
 ## Opening logs
 
-- **Local file** — **File ▸ Open log…**, drag a file onto the window, or pass a path as the first
+- **Local file** — **Audit log ▸ Open log…**, drag a file onto the window, or pass a path as the first
   command-line argument (`java -jar … my-log.yaml`).
-- **Recent** — **File ▸ Open Recent**.
+- **Recent** — **Audit log ▸ Open recent audit log**.
 - **Big files** — files above the memory threshold are memory-mapped instead of loaded into heap, so
   multi-GB logs open fine (see *Performance & S3* below).
 
 ### From S3
 
-**File ▸ Open from S3…** and give an `s3://bucket/key` URL. It streams the object using your local
+**Audit log ▸ Open log from S3…** and give an `s3://bucket/key` URL. It streams the object using your local
 **`aws` CLI** credentials (profiles / SSO) — **no AWS SDK required**. Set a non-default profile or region
 under **Settings ▸ Performance & S3**.
 
@@ -80,7 +96,7 @@ under **Settings ▸ Performance & S3**.
 
 ## Settings — everything to get running
 
-Open **File ▸ Settings…**. The dialog is tabbed — Source roots, Maven repos, Event processor, LLM,
+Open **Project ▸ Settings…**. The dialog is tabbed — Source roots, Maven repos, Event processor, LLM,
 Performance & S3, Assistant and History:
 
 ### Source roots
@@ -134,7 +150,7 @@ Clear remembered **searches**, **saved graphs** and **recent files**.
 
 ## Tailing a live log (Follow)
 
-To watch a log as it grows, turn on **Follow** (the toolbar toggle or **File ▸ Follow (tail)**). It polls
+To watch a log as it grows, turn on **Follow** (the toolbar toggle or **Audit log ▸ Follow (tail)**). It polls
 the open **local, heap-loaded** file, appends newly-completed records and auto-scrolls to the newest —
 preserving your flags, filters and selection. Open graphs re-extract as records arrive, and the view moves only
 to reveal a point that would otherwise be hidden: a chart showing the whole log grows with it, one at the live

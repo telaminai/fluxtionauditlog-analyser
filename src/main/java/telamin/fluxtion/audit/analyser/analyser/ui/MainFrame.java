@@ -94,7 +94,7 @@ public final class MainFrame extends JFrame {
     private final HistoryComboBox searchField = new HistoryComboBox();
     private final JLabel showingLabel = new JLabel();
     private final JProgressBar progress = new JProgressBar();
-    private final JLabel status = new JLabel("Open a log — File ▸ Open (or the toolbar), drag a file in, or File ▸ Open from S3.");
+    private final JLabel status = new JLabel("Open a log — Audit log ▸ Open log… (or the toolbar), drag a file in, or Audit log ▸ Open log from S3….");
     private final JMenu recentMenu = new JMenu("Open recent audit log");
     private final JMenu recentGraphmlMenu = new JMenu("Open recent GraphML");
     private final JMenu recentProjectsMenu = new JMenu("Open recent project");
@@ -148,7 +148,7 @@ public final class MainFrame extends JFrame {
     private boolean following;
     private String followPath;                       // local path being tailed, or null
     private JToggleButton followButton;              // toolbar toggle (kept in sync)
-    private JCheckBoxMenuItem followMenuItem;        // File-menu toggle (kept in sync)
+    private JCheckBoxMenuItem followMenuItem;        // Audit-log-menu toggle (kept in sync)
 
     // assistant actions (M10): the render executor + the opt-in localhost REST transport (slice 4)
     private ActionExecutor actionExecutor;
@@ -1808,40 +1808,47 @@ public final class MainFrame extends JFrame {
 
     private void buildMenu() {
         JMenuBar bar = new JMenuBar();
-        JMenu file = new JMenu("File");
+        JMenu projectMenu = new JMenu("Project");
+        JMenu sources = new JMenu("Sources");
+        JMenu audit = new JMenu("Audit log");
+        for (String page : List.of("Source roots", "Event processor", "Maven repos")) {
+            JMenuItem item = new JMenuItem(page + "…");
+            item.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged,
+                    this::readerSummaries, page));
+            sources.add(item);
+        }
+        sources.addSeparator();
         JMenuItem open = new JMenuItem("Open log…");
         open.addActionListener(e -> chooseFile());
-        file.add(open);
+        audit.add(open);
         JMenuItem openS3 = new JMenuItem("Open log from S3…");
         openS3.addActionListener(e -> chooseS3());
-        file.add(openS3);
-        // opening lives on the File menu with the log actions, not on the Topology tab's own toolbar:
-        // it is the same kind of act, and a toolbar is better spent on controls for what is already open
+        audit.add(openS3);
+        // Acquisition lives on the menu for the resource it changes.
         JMenuItem addCsv = new JMenuItem("Add series from CSV…");
         addCsv.setToolTipText("Plot an external (timestamp, value) CSV — e.g. agent-parsed FIX data — "
                 + "beside the audit-derived series. The clock domain is declared, never guessed.");
         addCsv.addActionListener(e -> addExternalSeries());
-        file.add(addCsv);
+        audit.add(addCsv);
         JMenuItem openGraphml = new JMenuItem("Open GraphML…");
         openGraphml.setToolTipText("Open a processor's .graphml topology");
         openGraphml.addActionListener(e -> {
-            sessionInteractive = true;      // R4-F2: File ▸ Open GraphML goes straight to the chooser, not via the helper
+            sessionInteractive = true;      // R4-F2: Sources ▸ Open GraphML goes straight to the chooser, not via the helper
             topologyPanel.chooseFile();
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
         });
-        file.add(openGraphml);
+        sources.add(openGraphml);
         JMenuItem openDesign = new JMenuItem("Open design…");
         openDesign.addActionListener(e -> chooseDesignFile(false));
-        file.add(openDesign);
+        sources.add(openDesign);
         JMenuItem openDiagnostics = new JMenuItem("Open producer diagnostics…");
         openDiagnostics.addActionListener(e -> chooseDesignFile(true));
-        file.add(openDiagnostics);
+        sources.add(openDiagnostics);
         JMenuItem findGraphml = new JMenuItem("Find GraphML in source roots\u2026");
         findGraphml.setToolTipText("List the .graphml files under your source roots, ranked by how "
                 + "well each fits the open log. Nothing is opened until you pick one.");
         findGraphml.addActionListener(e -> chooseDiscoveredGraph());
-        file.add(findGraphml);
-        file.addSeparator();
+        sources.add(findGraphml);
         // M35.1 — the counterparts the File menu never had. Until now the only way back to a clean
         // app was to restart it, and opening a second log left the first log's graph on screen.
         closeLogItem.setToolTipText("Close the log and everything derived from it. Named graphs, "
@@ -1850,69 +1857,69 @@ public final class MainFrame extends JFrame {
         closeLogItem.addActionListener(e -> { sessionInteractive = true;
             requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.LOG);
             closeLog(); });
-        file.add(closeLogItem);
+        audit.add(closeLogItem);
         closeGraphItem.setToolTipText("Close the loaded .graphml topology, leaving the log open");
         closeGraphItem.addActionListener(e -> { sessionInteractive = true;
             requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.GRAPH);
             closeGraph(); });
-        file.add(closeGraphItem);
+        sources.add(closeGraphItem);
         resetItem.setToolTipText("Close both — back to a fresh start (the project profile is kept)");
         resetItem.addActionListener(e -> { sessionInteractive = true;
             requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.ALL);
             resetAll(); });
-        file.add(resetItem);
         rebuildRecentMenu();
-        file.add(recentMenu);
-        file.add(recentGraphmlMenu);
+        audit.add(recentMenu);
+        sources.add(recentGraphmlMenu);
 
-        // Projects are their own group: the items above open a FILE to look at, these change which
-        // project's settings are in force. Appending them to the end would file "switch my whole
-        // working set" next to "exit".
-        file.addSeparator();
-        file.add(openProjectItem());
-        file.add(recentProjectsMenu);
-        file.add(newProjectFromTemplateItem());
-        file.add(newProjectItem());
+        // Project actions change the profile in force; source and log actions have separate homes.
+        projectMenu.add(openProjectItem());
+        projectMenu.add(recentProjectsMenu);
+        projectMenu.add(newProjectFromTemplateItem());
+        projectMenu.add(newProjectItem());
         saveProjectAsItem.addActionListener(e -> saveProjectAs());
         saveProjectAsItem.setToolTipText("Fork these settings to another project. There is no plain "
                                          + "Save — project edits persist as you make them.");
-        file.add(saveProjectAsItem);
+        projectMenu.add(saveProjectAsItem);
         closeProjectItem.addActionListener(e -> closeProject());
-        file.add(closeProjectItem);
-        file.add(analysesMenu);          // M38.4: recall a saved analysis — the UI half of the offer
+        projectMenu.add(closeProjectItem);
+        resetItem.setText("Close log and topology");
+        projectMenu.add(resetItem);
+        projectMenu.addSeparator();
+        projectMenu.add(analysesMenu);          // M38.4: recall a saved analysis — the UI half of the offer
         rebuildAnalysesMenu();
 
-        file.addSeparator();
         followMenuItem = new JCheckBoxMenuItem("Follow (tail)");
         followMenuItem.setToolTipText("Poll the open local file for newly-appended records and auto-scroll");
         followMenuItem.setEnabled(false);
         followMenuItem.addActionListener(e -> setFollowing(followMenuItem.isSelected()));
-        file.add(followMenuItem);
-        file.addSeparator();
+        audit.add(followMenuItem);
+        audit.addSeparator();
         JMenuItem exportCsv = new JMenuItem("Export records (CSV)…");
         exportCsv.addActionListener(e -> exportRecords(false));
-        file.add(exportCsv);
+        audit.add(exportCsv);
         JMenuItem exportYaml = new JMenuItem("Export records (YAML)…");
         exportYaml.addActionListener(e -> exportRecords(true));
-        file.add(exportYaml);
-        file.addSeparator();
+        audit.add(exportYaml);
+        projectMenu.addSeparator();
         JMenuItem settings = new JMenuItem("Settings…");
         settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries));
-        file.add(settings);
+        projectMenu.add(settings);
         JMenuItem exportSettings = new JMenuItem("Export settings…");
         exportSettings.setToolTipText("Share your analysis setup — roots, event processors, graphs (never your API key)");
         exportSettings.addActionListener(e -> exportSettings());
-        file.add(exportSettings);
+        projectMenu.add(exportSettings);
         JMenuItem importSettings = new JMenuItem("Import settings…");
         importSettings.setToolTipText("Load a shared analysis setup from a .fluxtion-settings file");
         importSettings.addActionListener(e -> importSettings());
-        file.add(importSettings);
-        file.addSeparator();
+        projectMenu.add(importSettings);
+        projectMenu.addSeparator();
         JMenuItem exit = new JMenuItem("Exit");
         exit.addActionListener(e -> onExit());
-        file.add(exit);
-        bar.add(file);
+        projectMenu.add(exit);
 
+        bar.add(projectMenu);
+        bar.add(sources);
+        bar.add(audit);
         bar.add(buildRecordsMenu());
         // Columns is no longer a top-level menu: it lives on the nav rail and on the table's right-click,
         // which is where you are when you notice a column is missing
@@ -2809,7 +2816,7 @@ public final class MainFrame extends JFrame {
             sb.append("The open log sits inside a project whose settings are NOT in force:\n")
               .append("    ").append(root).append('\n')
               .append("Load it and its own source roots are searched instead:\n")
-              .append("    File ▸ Open project…  and choose  ").append(pendingProjectOffer).append('\n')
+              .append("    Project ▸ Open project…  and choose  ").append(pendingProjectOffer).append('\n')
               .append("    or over the socket:  open {project: \"").append(pendingProjectOffer).append("\"}\n");
         }
         return sb.toString();
@@ -3322,7 +3329,7 @@ public final class MainFrame extends JFrame {
         return sessionFileGrants;
     }
 
-    /** File ▸ Add series from CSV… (M29.2): declared columns/clock, loaded onto the current graph tab. */
+    /** Audit log ▸ Add series from CSV… (M29.2): declared columns/clock, loaded onto the current graph tab. */
     private void addExternalSeries() {
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("External series CSV");
@@ -4148,7 +4155,7 @@ public final class MainFrame extends JFrame {
             JOptionPane.showMessageDialog(this,
                     config.sourceRoots.isEmpty()
                             ? "No source roots are configured — add one in Settings, or use "
-                                    + "File \u25b8 Open GraphML\u2026"
+                                    + "Sources \u25b8 Open GraphML\u2026"
                             : "No .graphml found under the configured source roots."
                                     + (result.notes().isEmpty() ? ""
                                             : "\n\n" + String.join("\n", result.notes())),
@@ -4581,7 +4588,7 @@ public final class MainFrame extends JFrame {
      * <p>So the modal is gone for the human too, and what M19.7 added stays: under {@code --rest} the
      * endpoint file is named on stdout, which is the one thing an agent actually needed from this
      * method. Keeping only the narrower fix would have left the human case still gated; keeping only
-     * the wider one would have dropped the note the loop bench asserts. Settings is on the File menu
+     * the wider one would have dropped the note the loop bench asserts. Settings is on the Project menu
      * and one click from the start page's footer, for when there is a reason to want it.
      */
     public void showFirstRunSettingsIfNeeded() {
@@ -5015,7 +5022,7 @@ public final class MainFrame extends JFrame {
      * so the list is stated exactly: a project transition declares from its {@code interactive} argument; a
      * log arrival from its {@link OpenRequest}; the socket verbs {@code close}, {@code openGraphml} and
      * {@code selectProcessor} declare {@code false} on entry ({@code openLogs} and {@code discoverGraphs} raise
-     * no warning and declare nothing); the File-menu close/reset listeners, File ▸ Open GraphML, a file drop and
+     * no warning and declare nothing); the resource-menu close/reset listeners, Sources ▸ Open GraphML, a file drop and
      * the Recent-GraphML helper declare {@code true} — at the entrance, never inside the shared
      * {@code closeLog}/{@code closeGraph}, which session effects and socket verbs also call.
      */
@@ -5195,7 +5202,7 @@ public final class MainFrame extends JFrame {
 
     /**
      * Tell the processor what is open. Called from the paths that change it and are <b>not</b> the
-     * session adapter — a log opened from the File menu, a log closed from the File menu, the socket's
+     * session adapter — a log opened from the Audit log menu, a log closed from the Audit log menu, the socket's
      * own close verbs. Inside a transition the processor learns the same facts from the typed results
      * ({@code LogClosed}), so calling this from {@code closeLog()} itself would both duplicate them and
      * re-enter the driver mid-cycle.
@@ -5296,7 +5303,7 @@ public final class MainFrame extends JFrame {
         graphTabs.restore(saved);
     }
 
-    /** M38.4: File ▸ Run analysis — one item per saved analysis; the rationale is the tooltip. */
+    /** M38.4: Project ▸ Run analysis — one item per saved analysis; the rationale is the tooltip. */
     private final JMenu analysesMenu = new JMenu("Run analysis");
 
     private void rebuildAnalysesMenu() {
@@ -6396,7 +6403,7 @@ public final class MainFrame extends JFrame {
                 if (pendingProjectOffer != null) {
                     // M35.7: the offer the agent path did not show as a dialog. Reported, never applied
                     // — loading a project replaces source roots, graphs and hidden columns, which is a
-                    // human's decision (File ▸ Open project).
+                    // human's decision (Project ▸ Open project).
                     out.put("projectOffer", Map.of(
                             "settings", pendingProjectOffer.toString(),
                             "note", "this log sits inside a project with analyser settings; loading "

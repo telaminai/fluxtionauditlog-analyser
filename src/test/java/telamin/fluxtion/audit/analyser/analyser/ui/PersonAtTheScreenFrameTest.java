@@ -33,7 +33,7 @@ import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingF
  *   <li>The Project-panel row for a log RESTORED at startup: the same {@code openFile(path, atStartup(true))}
  *       the launcher makes, and the attribution the row and {@code context} then carry.</li>
  * </ul>
- * What is left for a person: File ▸ Close log during a slow first load as a physical click (its listener is
+ * What is left for a person: Audit log ▸ Close log during a slow first load as a physical click (its listener is
  * held by {@code AsyncOpenInterleavingFrameTest}), AI ▸ Place mode-selector record… (a file chooser), and
  * the two checks that need a context-free LLM client.
  */

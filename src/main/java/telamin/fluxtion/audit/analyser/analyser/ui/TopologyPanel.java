@@ -554,7 +554,7 @@ public final class TopologyPanel extends JPanel {
 
     // ---- loading ----------------------------------------------------------------------------------
 
-    /** Ask for a {@code .graphml} and load it. Public because the File menu owns opening, not the tab. */
+    /** Ask for a {@code .graphml} and load it. Public because the Sources menu owns opening, not the tab. */
     public void chooseFile() {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Open processor GraphML");
