@@ -20,14 +20,15 @@ cleanly (selected processor, named graphs, focuses, reports). But in the named p
 
 ## Evidence — the same project, two files, only the NAME differs
 
-`analyser_context` with each profile active, identical root values in both files:
+`analyser_context` with each profile active, identical root values in both files.
+Project and workspace directory names below are placeholders; the path relationships are preserved:
 
 | | canonical `project.fluxtion-settings` | named `project.ws-feed.fluxtion-settings` |
 |---|---|---|
-| `project.root` | `…/maker-fxoc` ✅ | `…/maker-fxoc/.analyser` ✗ |
-| `workspaceDir` (`workspaceRoot=..`) | `…/IdeaProjects` ✅ | `…/maker-fxoc` ✗ |
-| `sourceRoot.0=src/main/java` | `…/maker-fxoc/src/main/java` ✅ | `…/maker-fxoc/.analyser/src/main/java` ✗ |
-| `sourceRoot.1=../market-maker-lib/…` | `…/IdeaProjects/market-maker-lib/…` ✅ | `…/maker-fxoc/market-maker-lib/…` ✗ |
+| `project.root` | `…/demo-project` ✅ | `…/demo-project/.analyser` ✗ |
+| `workspaceDir` (`workspaceRoot=..`) | `…/demo-workspace` ✅ | `…/demo-project` ✗ |
+| `sourceRoot.0=src/main/java` | `…/demo-project/src/main/java` ✅ | `…/demo-project/.analyser/src/main/java` ✗ |
+| `sourceRoot.1=../demo-shared-lib/…` | `…/demo-workspace/demo-shared-lib/…` ✅ | `…/demo-project/demo-shared-lib/…` ✗ |
 | processors resolved | **6 / 6** ✅ | **0 / 6** ✗ |
 | runbooks resolved | **8 / 8** ✅ | **0 / 8** ✗ |
 
@@ -64,36 +65,48 @@ at the project root, the canonical form still does, and the name rule rejects `o
 
 ## Consequence for users (why this mattered more than it looks)
 
-The only way to make a named profile work locally was `~`-form absolute source roots, which resolve
+The observed workaround used `~`-form absolute source roots, which resolve
 regardless of anchor. But `ui/ProjectModel` correctly flags `~`/absolute roots as **not portable**
 (the red rows, *"will not resolve it on a colleague's machine; declare a workspace anchor or move it
 under the project"*). So the bug forced users into the exact form the panel warns about — and runbook
-pointers, which must stay project-relative (D-C2), could not be worked around at all: `~`-forming them
-gets them pruned on autosave. **The red source roots were a symptom of this bug, not a separate
+pointers must stay project-relative (D-C2), so that same `~` workaround is refused for them. **The red source roots were a symptom of this bug, not a separate
 defect.** After the fix, a named profile can use the same portable `workspaceRoot=..` +
 `../sibling/…` forms as the canonical file.
 
-## Related findings (separate defects, NOT fixed here)
+## Related observations (not fixed or re-tested in the UI here)
 
-Found while diagnosing the above; all are the same shape — `ui/ProjectPanel`'s `Target` switch
-navigates to a **tab** but never selects the **item**:
+Source inspection distinguishes the following cases; they are not three proven instances of one bug:
 
-```java
-case REPORTS  -> small("Open", …, () -> navigator.showTab("Reports"));    // no report identity
-case TOPOLOGY -> small("Open", …, () -> navigator.showTab("Topology"));   // no graph identity
+1. **Reports ▸ Open reveals the Reports tab without selecting the named report.**
+   `ProjectPanel` calls `navigator.showTab("Reports")` without passing the row's report identity.
+   This explains why the currently selected report remains visible; it does not establish that the
+   first report always opens. Selecting an already-loaded report by identity is a possible follow-up.
+2. **Saved charts have no per-row Open action.** `ProjectModel` assigns `Target.NONE` to saved-chart
+   rows, so there is no failing Open handler on those rows. Adding an action needs a design decision:
+   the Project panel is reveal-only (D-L3), and instantiating a saved chart is not merely revealing it.
+3. **Graph ▸ Open reveals the Topology tab.** The reported empty tab should be re-tested after the
+   profile-root fix. This action alone neither loads a graph nor establishes why the tab is empty.
+
+These observations do not expand this path-resolution fix into Project-panel navigation work.
+
+## Review verification — 2026-09-24
+
+At `c3523506`, the reviewer ran:
+
+```sh
+JAVA_HOME=/path/to/jdk21 mvn -q -Dtest=ProjectProfileTest,ProjectSessionTest,PathFormTest,SettingsShareTest test
 ```
 
-1. **Reports ▸ Open always opens the first report.** Every report row carries its title as `primary`
-   but the action is the identity-free `showTab("Reports")`, so you land on whichever report is
-   already showing. Needs an item-aware navigation (e.g. `showReport(name)`) and the name on the row.
-2. **Saved charts ▸ open does nothing.** Same gap for the `SAVED_GRAPHS` section — no way to open a
-   specific chart.
-3. **Graph ▸ Open appears to do nothing.** It is `Target.TOPOLOGY` → `showTab("Topology")`, which does
-   resolve (the tab exists), but with this profile bug active the Topology tab is empty, so the click
-   looks dead. Worth re-testing after the fix; the identity gap above still applies.
+**52 tests passed, zero failures/errors/skips:** ProjectProfileTest 20, ProjectSessionTest 16,
+PathFormTest 3, SettingsShareTest 13. Restoring the canonical-only lookup made
+`ProjectProfileTest.baseDirForAnchorsNamedProfilesToTheProjectRoot` fail at its first named-profile
+assertion: the actual base was the `.analyser` directory instead of its parent. Restoring the source
+byte-for-byte returned all 52 tests to green. No UI reproduction of the related observations was run.
 
-Suggested direction: give `Target` an optional item key and extend the `Navigator` interface with
-`showReport(String)` / `showGraph(String)` so a row can open *its own* thing.
+After the documentation corrections, `JAVA_HOME=/path/to/jdk21 mvn -q test` passed:
+**1,877 tests, zero failures/errors, 62 skips**. The initial sandboxed run had 29 socket-permission
+errors and zero assertion failures; the run with loopback permission passed. `mkdocs build --strict`
+also passed. The skips are retained in the count; this was not a real-display run.
 
 ## Evidence pointers
 
@@ -101,4 +114,3 @@ Suggested direction: give `Target` an optional item key and extend the `Navigato
 - `ui/ProjectModel.java` — the `notPortable` badge (`form` is `absolute`/`~`), report rows
   (`Target.REPORTS`), graph pairing row (`Target.TOPOLOGY`), `SAVED_GRAPHS` section.
 - `ui/ProjectPanel.java` — the `Target` → action switch.
-- See the sibling `topology-focus-vs-logged-highlight.md` for the other open Project/Topology item.
