@@ -414,10 +414,15 @@ public final class MainFrame extends JFrame {
         Path root = project.hasProject()
                 ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
         v.put("path", config.vocabularyPath);
-        Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, config.vocabularyPath);
+        // M68.5 (acceptance 8): resolved and diagnosed — a failure names the root tried and where it landed
+        var pointer = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolution(root, config.vocabularyPath);
+        if (pointer.root() != null) v.put("root", pointer.root());
+        if (pointer.problem() != null) v.put("problem", pointer.problem());
+        Path abs = pointer.resolved();
+        if (abs == null) v.put("exists", false);
         if (abs != null) {
             v.put("resolved", abs.toString());
-            boolean exists = java.nio.file.Files.isRegularFile(abs);
+            boolean exists = pointer.exists();
             v.put("exists", exists);
             if (exists) {
                 String text = vocabularyText();
@@ -458,11 +463,12 @@ public final class MainFrame extends JFrame {
             // without opening every file. Served from the profile, never read from the file — a pointer
             // whose file changes must not silently change what context says.
             if (ptr.description() != null) one.put("description", ptr.description());
-            Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, rel);
-            if (abs != null) {
-                one.put("resolved", abs.toString());
-                one.put("exists", java.nio.file.Files.isRegularFile(abs));
-            }
+            // M68.5 (acceptance 8): a pointer that fails names the root that was tried, and why it failed
+            var pointer = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolution(root, rel);
+            if (pointer.root() != null) one.put("root", pointer.root());
+            if (pointer.resolved() != null) one.put("resolved", pointer.resolved().toString());
+            one.put("exists", pointer.exists());
+            if (pointer.problem() != null) one.put("problem", pointer.problem());
             one.put("from", project.hasProject() ? "project" : "own settings");
             one.put("note", "a pointer — read the file from the repository; the analyser stores no instructions and executes nothing");
             rbs.add(one);

@@ -255,6 +255,32 @@ class ProjectModelTest {
     }
 
     @Test
+    void aFailingPointerNamesTheRootItTried() {
+        // M68.5 (acceptance 8). The wrong-result witness is the old context shape for an unresolvable pointer:
+        // no `exists`, no `resolved`, and therefore a row with NO warning. Context now always states the failure.
+        Map<String, Object> ctx = full();
+        ctx.put("runbooks", List.of(
+                Map.of("name", "restart", "path", "ops/restart.md", "resolved", "/work/demo/ops/restart.md", "exists", false,
+                        "root", "/work/demo", "problem", "no file at /work/demo/ops/restart.md (resolved against the project root /work/demo)",
+                        "from", "project"),
+                Map.of("name", "escape", "path", "../x.md", "exists", false, "root", "/work/demo",
+                        "problem", "refused: it points outside the project root /work/demo", "from", "project")));
+        ctx.put("vocabulary", Map.of("path", "docs/glossary.md", "exists", false,
+                "problem", "not resolved: there is no project root to resolve it against — open the project it belongs to",
+                "from", "own settings"));
+        List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.PROJECT).rows();
+        var restart = rows.stream().filter(r -> r.primary().equals("restart runbook")).findFirst().orElseThrow();
+        assertTrue(restart.secondary().contains("project root /work/demo"), restart.secondary());
+        assertEquals(ProjectModel.Tone.WARN, restart.tone());
+        var escape = rows.stream().filter(r -> r.primary().equals("escape runbook")).findFirst().orElseThrow();
+        assertEquals(ProjectModel.Tone.WARN, escape.tone(), "a refused pointer warns");
+        assertTrue(escape.secondary().contains("outside the project root /work/demo"), escape.secondary());
+        var vocab = rows.stream().filter(r -> r.primary().equals("vocabulary")).findFirst().orElseThrow();
+        assertEquals(ProjectModel.Tone.WARN, vocab.tone());
+        assertTrue(vocab.secondary().contains("no project root"), vocab.secondary());
+    }
+
+    @Test
     void theVocabularyPointerIsARowOfTheProjectSection() {
         Map<String, Object> ctx = full();
         ctx.put("vocabulary", Map.of("path", "docs/glossary.md", "resolved", "/work/demo/docs/glossary.md", "exists", true,

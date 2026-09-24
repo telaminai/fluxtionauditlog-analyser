@@ -129,3 +129,22 @@ to `(` or `"`.
 
 The first set this session in which every prediction held. The sets before it are why the confidence figures were
 where they were.
+
+## Set 7 — M68.5, acceptance 8's diagnostic
+
+| # | Prediction | Result |
+|---|---|---|
+| P37 | `RunbooksResolutionTest` 4 green, at 80% confidence | **Held.** The `/var` → `/private/var` risk did not fire: neither side resolves symlinks. |
+| P38 | the new model test green, the old row tests unchanged and green | **Held.** `ProjectModelTest` 24 / 0. |
+| P39 | `ProjectPanelIsRevealOnlyTest` green with the two new keys, at 70% confidence | **Held.** 2 / 0. |
+| P40 | W29 and W30 each red | **Held.** |
+| P41 | headless 1,999 / 0; frame 66 / 0 / 0 / 1; verifier 69 / 0 | **Held.** |
+
+**A process correction.** Set 6's gate-and-commit script committed the predictions whatever the gate result was. The
+gates were green, so nothing wrong was committed, but the script could not have stopped it. Set 7's commits only
+when both gates exit 0.
+
+**The branch in total.** Seven sets across M44.4 and M68: 41 predictions. **5 were wrong outright** (P7, P11,
+P16, P21, P25), and **2 more held only after a correction** (P19's mechanism, P22's first check). Two of those found real bugs: P25's path comparison, and P21's reviewed
+test whose premise changed. 30 mutation witnesses, W1–W30, each red at its named test. W23's "not caught" was a
+harness regex, not a missing witness.

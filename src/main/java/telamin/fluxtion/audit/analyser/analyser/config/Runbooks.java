@@ -129,6 +129,32 @@ public final class Runbooks {
         return target.startsWith(root) ? target : null;
     }
 
+    /**
+     * M68.5 (spec-evidence-integrity acceptance 8): a pointer resolved AND diagnosed. A pointer that fails names the
+     * root that was tried and what it resolved to, so the cause can be seen from what is on screen. There are three
+     * failures, and they have different remedies: no project root to resolve against; a path that leaves the root
+     * (refused, never followed); and no file where it lands. {@link #resolve} returned null for the first two, and the
+     * Project panel then showed the pointer with no warning at all.
+     *
+     * @param problem null when the file is there
+     */
+    public record Resolution(String root, Path resolved, boolean exists, String problem) { }
+
+    public static Resolution resolution(Path projectRoot, String relative) {
+        if (projectRoot == null) {
+            return new Resolution(null, null, false,
+                    "not resolved: there is no project root to resolve it against — open the project it belongs to");
+        }
+        String root = projectRoot.toAbsolutePath().normalize().toString();
+        Path target = resolve(projectRoot, relative);
+        if (target == null) {
+            return new Resolution(root, null, false, "refused: it points outside the project root " + root);
+        }
+        boolean exists = Files.isRegularFile(target);
+        return new Resolution(root, target, exists,
+                exists ? null : "no file at " + target + " (resolved against the project root " + root + ")");
+    }
+
     public static boolean exists(Path projectRoot, String relative) {
         Path p = resolve(projectRoot, relative);
         return p != null && Files.isRegularFile(p);

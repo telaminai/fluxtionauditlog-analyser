@@ -607,7 +607,11 @@ verdict, which is owned jointly.
   immediately after the combined open settled, and two seconds later it was gone. So an acceptance that checks the
   first echo, or even the first settled context, passes on a request that will still lose part of itself —
   test on the final state after the log-arrival rule has run.
-- [M68.5] ◧ **Identity change under follow, and the project root** — was WS-1 and WS-2.
+- [M68.5] ◧ **Identity change under follow, and the project root** — was WS-1 and WS-2. **Built 2026-09-24 on
+  `feat/m44-single-state-session`; awaiting review, so ◧ not ☑.** All three parts below are in, with their stated
+  limits. Acceptance 8's diagnostic: `Runbooks.resolution` names the root tried, and the resolved path, for the
+  runbook and vocabulary pointers, including the two cases that used to show no warning (no project root, and a
+  path out of the root). Environment log directories and report destinations are not covered.
   **Heap-store Follow identity built 2026-09-24 on `feat/m44-single-state-session`** (not reviewed).
   `FollowIdentity.classify` covers every acceptance-7 case, with one departure recorded under D-E6 (full-byte
   comparison makes a touched identical file UNCHANGED). The heap store decides before indexing; a replacement
@@ -617,8 +621,7 @@ verdict, which is owned jointly.
   changed in place under the mapped store (which reads through its channel), and labels superseded-but-retained
   content (the heap store's text; the mapped store's open channel after a replace). `context` and window focus
   observe as well. **Limits, stated:** an in-place rewrite that restores size, time and key is invisible to a
-  metadata check; the human table is announced, not suspended. **Open:** the project-root diagnostic (acceptance
-  8's remaining half).
+  metadata check; the human table is announced, not suspended.
   Related narrow correction: [PR #7](https://github.com/telaminai/fluxtionauditlog-analyser/pull/7),
   `fix/named-profile-project-root` at `c3523506`, fixes relative-path anchoring for named profiles.
   Reviewed: 52 configuration tests pass; restoring the canonical-only lookup fails the named-profile

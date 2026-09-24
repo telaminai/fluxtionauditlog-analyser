@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A project pointer that cannot be followed now says which project root it tried.** A runbook or glossary pointer
+  whose file was missing said only "NOT found under the project root", without saying which root. One that could not
+  be resolved at all showed no warning: either no project was open, or its path left the project folder. The
+  Project panel and `context` now state the failure. A missing file names the root and the path it resolved to. A
+  path outside the root is refused, naming the root. With no project open, the pointer says there is no root to
+  resolve it against (M68.5).
 - **A log you are not following now says when its file has changed, before it answers anything else.** Before, the
   assistant's record verbs (`read`, `aggregate`, `series`, `coverage` and others) kept serving rows after the file
   changed on disk. For a large log read directly from the file, an in-place rewrite could make those rows describe
