@@ -171,3 +171,22 @@ a request honoured in part, which is D-E3's question.
 | P48 | `SpotlightTargetTest` unchanged and green | **Held.** 86 / 0. |
 | P49 | W34 and W35 red | **Held.** |
 | P50 | headless 2,009 / 0; frame 66 / 0 / 0 / 1; verifier 72 / 0 | **Held.** |
+
+## Set 10 — M68.4, whole-or-refused and the record parameter
+
+| # | Prediction | Result |
+|---|---|---|
+| P51 | `WholeOrRefusedTest` 9 green, at 45% confidence | **Held.** The proxy stand-in application worked first time. |
+| P52 | `TopologyWholeOrRefusedTest` 3 green, at 55% confidence | **Held.** |
+| P53 | `SpotlightEndsWhenTheViewChangesTest` green | **Wrong: 1 failure, a real product bug.** `aRefusedCallLeavesItLit` expected `goto {recordIndex: 3}` on an EMPTY log to be refused. It "succeeded": `clampRow` gives `max(0, min(3, -1)) = 0`, so goto replied ok for record 0 of a log with no records. Fixed: goto refuses when there are no records. 10 / 0 afterwards. |
+| P54 | at least one existing test breaks on a changed behaviour | **Wrong: none did.** None of the changed behaviours was pinned by any test: a rename with other fields, flag's clamp, the formatted-log echo. That is itself a finding about coverage. |
+| P55 | W36–W40 each red | **Held.** W39's mutation also broke `theQueryAndCanvasVerbsLeaveItLit` (the mutation was cruder than the original). |
+| P56 | headless 2,022 / 0; frame 66 / 0 / 0 / 1 | **Held.** |
+| P57 | scenarios 14 and 15 fail on `00fd7773`, pass on the fix | **Held.** Old jar 73 pass, 5 fail. Scenario 14's reply was `recordIndex: 0`, "no record selected", and an out-of-range index was accepted: DX-04 exactly. Scenario 15 had `graph: None` after the rolled-set open: DX-03. Fixed jar 78 / 0. |
+
+**Where the defects were.** Both real bugs this set found, goto on an empty log and flag's clamp, are in the verb
+layer. Across sets 1–10 the real defects split. **Two were in session nodes:** `OpenGraph` treating a file-less
+graph as no graph (set 1, pre-existing, found BY the migration), and `OpenLog`'s path comparison (set 5, introduced
+by me and caught by its test). The rest were at the adapter or verb boundary: the non-change posts (sets 1–3), the
+empty-log goto and the flag clamp (set 10), the upper-cased section name and the export capture (set 8). A first
+draft of this paragraph said all of them were outside the processor, and was wrong.

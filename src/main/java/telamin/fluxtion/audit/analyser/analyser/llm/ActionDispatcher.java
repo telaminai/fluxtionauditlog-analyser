@@ -131,11 +131,19 @@ public final class ActionDispatcher {
      * a verb that gains a param can never be accused of ignoring it.
      */
     private static ActionResult withIgnoredParams(ActionResult result, String action, Map<String, Object> params) {
-        if (!result.ok() || params.isEmpty() || result.payload() == null) return result;
+        if (params.isEmpty()) return result;
         if (!(VerbSchemas.all().get(action) instanceof Map<?, ?> schema)
                 || !(schema.get("properties") instanceof Map<?, ?> props)) return result;
         List<String> ignored = params.keySet().stream().filter(k -> !props.containsKey(k)).sorted().toList();
         if (ignored.isEmpty()) return result;
+        if (!result.ok()) {
+            // M68.4 (D-E3): a refusal names them too. A misspelled key is often WHY a call failed, and it used to be
+            // named only on success — the one reply that did not need it
+            Object why = result.toMap().get("error");
+            return ActionResult.error(why + " (also not read — not parameters of '" + action + "': "
+                    + String.join(", ", ignored) + ")");
+        }
+        if (result.payload() == null) return result;
         Map<String, Object> payload = new java.util.LinkedHashMap<>(result.payload());
         payload.put("ignoredParams", ignored);
         return ActionResult.ok(result.action(), result.payloadKey(), payload);

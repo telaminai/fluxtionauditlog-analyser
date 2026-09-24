@@ -131,6 +131,37 @@ parameters, including one reported after execution · saved-analysis steps · a 
 parameter honoured with a warning · an early success followed by a later failure · a parameter whose effect depends
 on state another established in the same call.
 
+**The disposition table, M68.4 (2026-09-24, not yet reviewed).** The audit read the code for every row before any
+behaviour changed (`docs/handoff/evidence/m44-4-single-state-2026-09-24/`, set 10). The table is written after the
+changes, which is recorded there. An **exception** keeps its current behaviour, and the reason is why the rule is
+not applied. **Under the rule** means changed so the call is honoured whole or refused whole.
+
+| Row | Before | Disposition |
+|---|---|---|
+| `open` rolled set + graphml | early return, graphml dropped silently (DX-03) | **under the rule:** both opened, and the graph opened for the arriving log is kept |
+| `open` log + format + graphml / processor / design / diagnostics | early return, the rest dropped silently | **under the rule:** the same sequence as log + graphml |
+| `open` discover + anything else | the rest dropped silently | **under the rule:** named in `ignored`/`ignoredWhy` (discover opens nothing) |
+| `open` log + graphml, graphml fails | error, log already loading, unsaid | **under the rule:** the error says the log stays open and only the graphml was refused |
+| `open` project + log, close + open | named in `ignored` (M26.4) | **exception, already conforming:** named, and the reason given |
+| `open` format with a file its reader cannot read | accepted, fails when the load lands | **exception — accepted is not applied:** the reply says `loading`, and the failure arrives as the load's result |
+| `topology` multi-field, one invalid | earlier fields applied, then refused | **under the rule:** every field validated before any is applied, the tab switch included |
+| `topology` orientation other than left_right | silently became top-down | **under the rule:** refused unless `left_right` or `top_down` |
+| `topology` recordIndex, nothing selected | ignored, echo said 0 (DX-04) | **under the rule (D-E4):** establishes the state (selects the row), or refuses naming what is missing (not in the log, hidden by the filter) |
+| `topology` saveFocusAs after focus in the same call | the name depends on the focus just applied | **exception — state established in the same call:** ordered and documented (M27) |
+| report valid sections beside a rejected one | kept, each skip named in `warnings` | **exception:** sections are independent evidence and each skip is named (`ReportVerbTest`) |
+| report saved, then the write fails | error, but the report was saved, unsaid | **under the rule:** the error says the report was saved |
+| graph series, markers, bands, per-item failures | valid items applied, each failure named | **exception:** items are independent and each is named (`GraphGuidesBandsTest`, `GraphEchoWarningsTest`) |
+| graph rename + other fields | renamed; the others dropped silently | **under the rule:** refused, and nothing changed |
+| source_root mixed add and remove | failed add named; failed remove dropped silently | **exception after one fix:** items are independent; `notRemoved` now names a failed remove |
+| goto with several anchors | byteOffset > recordIndex > at, the losers unsaid | **under the rule:** the losers named in `ignored` |
+| goto clamped recordIndex | clamped, the echo shows only the result | **exception after one fix:** goto only moves the view; `clamped` names asked and used |
+| flag out-of-log index or offset | clamped onto the first or last record | **under the rule:** refused, naming them; nothing is flagged, because a finding never attaches to a record nobody named |
+| unknown or misspelled parameters | named in `ignoredParams`, success only | **exception after one fix:** the verb runs and the extra keys are named, now on refusals too. Refusing would break callers that send harmless extra keys |
+| saved-analysis steps | stops at the first failing step, earlier steps kept | **exception:** the reply names `stoppedAt`, `skipped` and that earlier steps changed the view (`AnalysisSpecTest`) |
+| spotlight put out before validation | a refused call already cleared it | **under the rule:** put out only when a view-changing verb succeeded. **This reverses M64's recorded rationale** (see `SpotlightEndsWhenTheViewChangesTest`) |
+
+**Not audited, stated:** keys nested inside items (sections, markers, notes) are not checked against a schema.
+
 **What a refusal preserves.** A refused request leaves pre-request view and session state as it was. Today a
 view-changing verb puts the spotlight out before its parameters are validated, so a refused call has already
 destroyed context the caller was relying on. That ordering is a defect under this rule. An unknown verb does not

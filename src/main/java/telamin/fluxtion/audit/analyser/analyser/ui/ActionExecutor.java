@@ -128,19 +128,32 @@ public final class ActionExecutor implements RenderExecutor {
 
     @Override
     public ActionResult render(String action, Map<String, Object> params) {
-        // M64 D-SP3: a verb that changes the view puts the spotlight out FIRST. A spotlight that outlives its
-        // context points at the wrong thing, which is worse than none. The list is SpotlightTarget's, so
-        // what ends a spotlight is stated once; `screenshot` and `context` are deliberately not on it —
-        // they are how the tutor checks what it lit.
-        // …except `open`'s canvas form (M48.7): posture and the selector's record change no view.
-        boolean changesTheView = SpotlightTarget.VIEW_CHANGING_VERBS.contains(action)
-                && !("open".equals(action) && params != null && isCanvasWrite(params));
-        if (app != null && changesTheView) {
+        // M64 D-SP3: a verb that changes the view puts the spotlight out. A spotlight that outlives its context points
+        // at the wrong thing, which is worse than none. The list is SpotlightTarget's, so what ends a spotlight is
+        // stated once; `screenshot` and `context` are deliberately not on it — they are how the tutor checks what it
+        // lit. …except `open`'s canvas form (M48.7): posture and the selector's record change no view.
+        //
+        // M68.4 (D-E3, "what a refusal preserves"): put out when the verb SUCCEEDED, not before it was validated. It
+        // used to go out first, so a refused call — no log loaded, a bad anchor, a malformed follow — had already
+        // destroyed the context the caller was pointing at, and the view it refused to change was left unlit.
+        ActionResult result = renderVerb(action, params);
+        if (app != null && putsOutSpotlight(action, params, result)) {
             onEdt(() -> {
                 app.clearSpotlight();
                 return null;
             });
         }
+        return result;
+    }
+
+    /** The policy, stated once and tested per verb: a view-changing verb that SUCCEEDED puts the spotlight out. */
+    static boolean putsOutSpotlight(String action, Map<String, Object> params, ActionResult result) {
+        boolean changesTheView = SpotlightTarget.VIEW_CHANGING_VERBS.contains(action)
+                && !("open".equals(action) && params != null && isCanvasWrite(params));
+        return changesTheView && result != null && result.ok();
+    }
+
+    private ActionResult renderVerb(String action, Map<String, Object> params) {
         // these three do not read the records table, and two of them exist precisely to get a log open —
         // requiring one first would make them useless
         switch (action) {
@@ -241,6 +254,13 @@ public final class ActionExecutor implements RenderExecutor {
             case "flag" -> doFlag(s, params);
             default -> ActionResult.error("unknown render verb '" + action + "'");
         };
+    }
+
+    /** Whether an open reply says its load is still running — under {@code log} (openLog) or at the top (openLogs). */
+    private static boolean isLoading(ActionResult r) {
+        if (r.payload() == null) return false;
+        if (Boolean.TRUE.equals(r.payload().get("loading"))) return true;
+        return r.toMap().get("log") instanceof Map<?, ?> lm && Boolean.TRUE.equals(lm.get("loading"));
     }
 
     // ---- coverage --------------------------------------------------------------------------------
@@ -353,6 +373,14 @@ public final class ActionExecutor implements RenderExecutor {
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");
+            // M68.4 (D-E3): a rename renames and does nothing else, so anything else in the call is refused with it
+            // rather than dropped — it used to reply "renamed" and silently skip series, style and the rest
+            List<String> alsoAsked = new java.util.ArrayList<>(p.keySet());
+            alsoAsked.removeAll(List.of("name", "rename"));
+            if (!alsoAsked.isEmpty()) {
+                return ActionResult.error("a rename does only the rename — send " + alsoAsked
+                        + " as a separate graph call; nothing was changed");
+            }
             // M68.6 (D-E5, Q2 = refuse): a name no spotlight address can carry is refused where it is given
             String problem = SpotlightTarget.chartNameProblem(to);
             if (problem != null) return ActionResult.error("rename refused, nothing changed: " + problem);
@@ -595,6 +623,9 @@ public final class ActionExecutor implements RenderExecutor {
     // ---- goto ------------------------------------------------------------------------------------
 
     private ActionResult doGoto(LogStore s, Map<String, Object> p) {
+        // M68.4 (set 10, P53): clampRow on an EMPTY log gives max(0, -1) = 0, so goto replied ok for record 0 of a log
+        // that has no records. Found by the refused-call spotlight test, which expected this call to be refused.
+        if (s.index().size() == 0) return ActionResult.error("this log has no records to go to");
         int row = targetRow(s.index(), p, "byteOffset", "recordIndex");
         if (row == -3) return ActionResult.error("this source has no byte anchors — anchor by "
                 + "recordIndex or at instead");
@@ -604,11 +635,25 @@ public final class ActionExecutor implements RenderExecutor {
                 ? "'at' cannot resolve — no record carries a log time"
                 : "goto needs a byteOffset, recordIndex or at (epoch millis)");
         boolean reveal = Boolean.TRUE.equals(p.get("reveal"));
+        // M68.4 (D-E3): with several anchors, byteOffset beats recordIndex beats at — and the losers are now NAMED
+        List<String> anchors = new java.util.ArrayList<>();
+        for (String k : List.of("byteOffset", "recordIndex", "at")) if (p.get(k) != null) anchors.add(k);
+        List<String> unusedAnchors = anchors.size() > 1 ? anchors.subList(1, anchors.size()) : List.of();
         return onEdt(() -> {
             FilterState f = filter.get();
             boolean visible = tablePanel.selectModelRow(row);
             Map<String, Object> applied = new LinkedHashMap<>();
             applied.put("recordIndex", row);
+            // M68.4 (D-E3): goto keeps its documented clamp — it only moves the view, and the echo says where — but
+            // a clamped index is now NAMED rather than left for the caller to spot in a different number
+            if (p.get("recordIndex") instanceof Number asked && anchors.get(0).equals("recordIndex")
+                    && asked.longValue() != row) {
+                applied.put("clamped", Map.of("asked", asked, "used", row));
+            }
+            if (!unusedAnchors.isEmpty()) {
+                applied.put("ignored", unusedAnchors);
+                applied.put("ignoredWhy", "one anchor chooses the record; " + anchors.get(0) + " was used");
+            }
             applied.put("byteOffset", s.index().offset(row));
             if (s.index().fileCount() > 1) applied.put("file", s.index().files().get(s.index().fileId(row)));
             if (p.get("at") instanceof Number && timeOrderNote.get() != null) {
@@ -682,13 +727,25 @@ public final class ActionExecutor implements RenderExecutor {
             return ActionResult.error("this log is a rolled set — offsets are file-local; flag by "
                     + "recordIndexes instead");
         }
+        // M68.4 (D-E3): a flag attaches a FINDING to a record, so it never lands on a record nobody named. An index or
+        // offset outside the log used to be clamped to the first or last record, and an entry that was not a number
+        // was skipped: `flag {recordIndexes: [1000]}` on a ten-record log flagged record 9. Now the call is refused,
+        // naming them, and nothing is flagged — the rule spotlight already applies to rows (SpotlightSetTest).
+        List<Object> notInThisLog = new ArrayList<>();
+        long lastByte = idx.size() == 0 ? -1 : idx.offset(idx.size() - 1) + idx.length(idx.size() - 1);
         for (Object o : asList(p.get("byteOffsets"))) {
             Long off = asLong(o);
-            if (off != null) rows.add(floorRow(idx, off));
+            if (off == null || off < 0 || off >= lastByte) notInThisLog.add(o);
+            else rows.add(floorRow(idx, off));
         }
         for (Object o : asList(p.get("recordIndexes"))) {
             Long ri = asLong(o);
-            if (ri != null) rows.add(clampRow(idx, ri.intValue()));
+            if (ri == null || ri < 0 || ri >= idx.size()) notInThisLog.add(o);
+            else rows.add(ri.intValue());
+        }
+        if (!notInThisLog.isEmpty()) {
+            return ActionResult.error("not in this log: " + notInThisLog + " (it has " + idx.size()
+                    + " records, numbered 0 to " + (idx.size() - 1) + "); nothing was flagged");
         }
         if (rows.isEmpty()) return ActionResult.error("flag needs byteOffsets[] or recordIndexes[]");
         String note = asText(p.get("note"));
@@ -984,13 +1041,30 @@ public final class ActionExecutor implements RenderExecutor {
             }
             return r;
         }
-        if (params.get("log") != null && params.get("format") != null) {
+        // M68.4 (D-E3): what ELSE this call opens alongside a log. A log with an explicit format, and a rolled set, used
+        // to return early here, and a graphml, processor, design or diagnostics in the same call was dropped without a
+        // word (DX-03). They now go through the same sequence as log + graphml below, so both halves are honoured.
+        boolean alsoOpens = params.get("graphml") != null || params.get("processor") != null
+                || params.get("design") != null || params.get("diagnostics") != null;
+        if (params.get("log") != null && params.get("format") != null && !alsoOpens) {
             // §E + M35.9: the declaration travels WITH the open — one call, nothing set beforehand
             return onEdt(() -> app.openLog(str(params.get("log")), str(params.get("format")), str(params.get("provenance"))));
         }
         if (params.get("discover") != null) {
-            if ("diagnostics".equals(str(params.get("discover")))) return onEdt(() -> app.discoverDiagnostics());
-            return onEdt(() -> app.discoverGraphs());   // lists, never opens — M35.4
+            ActionResult found = "diagnostics".equals(str(params.get("discover")))
+                    ? onEdt(() -> app.discoverDiagnostics())
+                    : onEdt(() -> app.discoverGraphs());   // lists, never opens — M35.4
+            // M68.4 (D-E3): discover lists and opens nothing, so anything else this call asked to open is NAMED as not
+            // done — it used to be dropped silently, the same defect the project and close branches already avoid
+            List<String> notDone = new ArrayList<>();
+            for (String k : List.of("log", "logs", "graphml", "processor", "design", "diagnostics")) {
+                if (params.get(k) != null) notDone.add(k);
+            }
+            if (!found.ok() || notDone.isEmpty() || found.payload() == null) return found;
+            Map<String, Object> echo = new LinkedHashMap<>(found.payload());
+            echo.put("ignored", notDone);
+            echo.put("ignoredWhy", "discover lists candidates and opens nothing; send the open as its own call");
+            return ActionResult.ok(found.action(), found.payloadKey(), echo);
         }
         if (params.get("close") != null) {
             // the counterpart of open, on the same verb: closing is a lifecycle act, not a new concept
@@ -1007,36 +1081,55 @@ public final class ActionExecutor implements RenderExecutor {
             }
             return r;
         }
+        List<String> rolledSet = null;
         if (params.get("logs") instanceof List<?> list && !list.isEmpty()) {
             List<String> paths = new ArrayList<>();
             for (Object o : list) if (o != null) paths.add(o.toString());
-            return onEdt(() -> app.openLogs(paths, str(params.get("provenance"))));   // M30: an explicit set — content orders it
+            if (!alsoOpens) {
+                return onEdt(() -> app.openLogs(paths, str(params.get("provenance"))));   // M30: an explicit set — content orders it
+            }
+            rolledSet = paths;                           // M68.4: opened first, below, then the rest of this call
         }
         String log = str(params.get("log"));
         String graphml = str(params.get("graphml"));
         String processor = str(params.get("processor"));
         String design = str(params.get("design"));
         String diagnostics = str(params.get("diagnostics"));
-        if (log == null && graphml == null && processor == null && design == null && diagnostics == null) {
+        String format = str(params.get("format"));
+        if (log == null && rolledSet == null && graphml == null && processor == null && design == null && diagnostics == null) {
             return ActionResult.error(
                     "'open' needs 'design', 'diagnostics', 'log', 'graphml', 'processor', 'project', 'analysis', 'posture', 'record', "
                             + "'close' or 'discover'");
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         boolean logLoading = false;
-        if (log != null) {
-            // §E + M35.9: provenance rides the same call as the path
-            ActionResult r = onEdt(() -> app.openLog(log, null, str(params.get("provenance"))));
+        if (rolledSet != null) {
+            // M68.4 (acceptance 4): the rolled set opens first, exactly as on its own; the graph below then lands
+            // mid-load, and the session keeps a graph opened FOR the arriving log (LogArrival, M68.4)
+            final List<String> set = rolledSet;
+            ActionResult r = onEdt(() -> app.openLogs(set, str(params.get("provenance"))));
+            if (!r.ok()) return r;
+            echo.put("logs", set);
+            logLoading = isLoading(r);
+            if (logLoading) echo.put("logLoading", true);
+        } else if (log != null) {
+            // §E + M35.9: provenance rides the same call as the path — and, since M68.4, so does an explicit format
+            ActionResult r = onEdt(() -> app.openLog(log, format, str(params.get("provenance"))));
             if (!r.ok()) return r;
             echo.put("log", log);
             // the frame loads a log in the background and says so; anything judged later in THIS call
             // was judged before that log existed
-            Object logEcho = r.toMap().get("log");
-            logLoading = logEcho instanceof Map<?, ?> lm && Boolean.TRUE.equals(lm.get("loading"));
+            logLoading = isLoading(r);
             if (logLoading) echo.put("logLoading", true);
         }
         if (graphml != null) {
             ActionResult r = onEdt(() -> app.openGraphml(graphml));
+            if (!r.ok() && (echo.containsKey("log") || echo.containsKey("logs"))) {
+                // M68.4 (D-E3, "an early success followed by a later failure"): the log half has already started, and a
+                // bare error would read as "nothing happened". Say which half did.
+                return ActionResult.error(r.toMap().get("error") + " — the log in this call "
+                        + (logLoading ? "is loading" : "was opened") + " and stays open; only the graphml was refused");
+            }
             if (!r.ok()) return r;
             // carry the inner echo up rather than replacing it with the path we already knew:
             // openGraphml answers "does this graph fit the open log?" (M35.3) and that verdict is
@@ -1092,8 +1185,10 @@ public final class ActionExecutor implements RenderExecutor {
             else rejected.add(path);
         }
         List<String> removed = new java.util.ArrayList<>();
+        List<String> notRemoved = new java.util.ArrayList<>();
         for (String path : strList(params.get("remove"))) {
             if (app.removeSourceRoot(path)) removed.add(path);
+            else notRemoved.add(path);          // M68.4 (D-E3): it used to be left out without a word
         }
         Map<String, Object> echo = new java.util.LinkedHashMap<>();
         echo.put("roots", app.sourceRoots());
@@ -1102,6 +1197,7 @@ public final class ActionExecutor implements RenderExecutor {
         // a path that is not a source root is reported rather than silently ignored: the caller would
         // otherwise go on to wonder why source navigation still finds nothing
         if (!rejected.isEmpty()) echo.put("notASourceRoot", rejected);
+        if (!notRemoved.isEmpty()) echo.put("notRemoved", notRemoved);
         return ActionResult.ok("source_root", "sourceRoots", echo);
     }
 
@@ -1110,6 +1206,12 @@ public final class ActionExecutor implements RenderExecutor {
         if (!topology.hasTopology()) {
             return ActionResult.error("no topology is loaded — use 'open' with a graphml first");
         }
+        // M68.4 (D-E3): VALIDATE EVERY FIELD FIRST, then apply. Each check below used to run after the fields before it
+        // had been applied, so a bad scope, an unknown node, a missing focus or a bad routeBound was refused after
+        // scaffolding, sync and the selection had already changed — a refusal that had half-happened. The tab switch
+        // waits too: a refused call leaves the view where it was.
+        String problem = topologyProblem(params);
+        if (problem != null) return ActionResult.error(problem + " — nothing was changed");
         if (app != null) app.showTab("Topology");
 
         if (params.containsKey("scaffolding")) topology.setScaffoldingVisible(bool(params.get("scaffolding")));
@@ -1176,14 +1278,69 @@ public final class ActionExecutor implements RenderExecutor {
                     : telamin.fluxtion.audit.analyser.analyser.topology.LayeredLayout.Orientation.TOP_DOWN);
         }
         Integer record = intOrNull(params.get("recordIndex"));
-        if (record != null) topology.moveToRecord(record);
+        if (record != null) {
+            // M68.4 (D-E4, acceptance 5): the record parameter ESTABLISHES the state it needs. With no record bound the
+            // step cursor ignored it, and the reply stated the cursor's default of 0 whatever was asked (DX-04). A
+            // record is bound the way goto binds one — by selecting its row — and the cursor then moves to it.
+            if (!topology.hasBoundRecord()) tablePanel.selectModelRow(record);
+            topology.moveToRecord(record);
+        }
         Integer step = intOrNull(params.get("step"));
         if (step != null && step != 0) topology.step(step);
         if (params.containsKey("fit") && bool(params.get("fit"))) topology.fit();
 
         java.util.Map<String, Object> echo = topology.cursorState();
+        if (record != null && !Integer.valueOf(record).equals(echo.get("recordIndex"))) {
+            // D-E4: the echo and the visible result agree, or the call says it did not do what it was asked
+            return ActionResult.error("recordIndex " + record + " could not be shown in the topology (the cursor is at "
+                    + echo.get("recordIndex") + ")");
+        }
         if (!topology.lastRecallNote().isEmpty()) echo.put("recallNote", topology.lastRecallNote());
         return ActionResult.ok("topology", "topology", echo);
+    }
+
+    /** M68.4 (D-E3): why this topology call must be refused whole, or null — checked before anything is applied. */
+    private String topologyProblem(Map<String, Object> params) {
+        if (params.containsKey("select")) {
+            String id = str(params.get("select"));
+            if (id != null && !topology.hasNode(id)) return "no node '" + id + "' in this topology";
+        }
+        Object routeBound = params.get("routeBound");
+        if (routeBound != null && !(routeBound instanceof Boolean)) {
+            return "routeBound must be true or false, got '" + routeBound + "'";
+        }
+        String scope = str(params.get("scope"));
+        if (scope != null) {
+            try {
+                telamin.fluxtion.audit.analyser.analyser.topology.TopologyFocus.Scope.valueOf(scope.toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                return "unknown scope '" + scope + "'";
+            }
+        }
+        if (params.get("focus") instanceof String namedFocus) {
+            String why = topology.recallFocusProblem(namedFocus);
+            if (why != null) return why;
+        }
+        String orientation = str(params.get("orientation"));
+        if (orientation != null && !orientation.equalsIgnoreCase("left_right") && !orientation.equalsIgnoreCase("top_down")) {
+            // it used to become top-down silently: a declared parameter that did something other than it said
+            return "orientation must be 'left_right' or 'top_down', got '" + orientation + "'";
+        }
+        if (params.containsKey("recordIndex")) {
+            Integer record = intOrNull(params.get("recordIndex"));
+            LogStore s = store.get();
+            if (record == null) return "recordIndex must be a number";
+            if (s == null) return "recordIndex needs an open log — nothing is loaded";
+            if (record < 0 || record >= s.size()) {
+                return "recordIndex " + record + " is not a record of this log (it has " + s.size() + ", numbered 0 to "
+                        + (s.size() - 1) + ")";
+            }
+            if (!tablePanel.isModelRowVisible(record)) {
+                return "record " + record + " is hidden by the current filter — goto {recordIndex: " + record
+                        + ", reveal: true} first, or widen the filter";
+            }
+        }
+        return null;
     }
 
     /**

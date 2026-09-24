@@ -203,6 +203,12 @@ public final class LogTablePanel extends JPanel {
         return -1;
     }
 
+    /** M68.4: whether a model row is in the filtered view — without scanning it, and false for a row the model lacks. */
+    public boolean isModelRowVisible(int modelRow) {
+        if (modelRow < 0 || modelRow >= table.getModel().getRowCount()) return false;
+        return table.convertRowIndexToView(modelRow) >= 0;
+    }
+
     public boolean selectModelRow(int modelRow) {
         if (modelRow < 0 || modelRow >= table.getModel().getRowCount()) return false;
         int view = table.convertRowIndexToView(modelRow);

@@ -6,6 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **An assistant request is now honoured whole or refused whole, and a refusal no longer changes the view.**
+  - `open` with a rolled set and a graph opened only the logs, and the graph was dropped without a word. It now opens
+    both, and the graph stays. The same applies to a log with an explicit `format` together with a graph.
+  - `topology` checks every field before applying any. A bad scope or unknown node used to be refused after the
+    selection had already changed. An orientation it did not know silently became top-down, and is now refused.
+  - `topology {recordIndex}` with nothing selected did nothing and replied with record 0. It now selects that record,
+    or refuses saying why (no log, not in the log, hidden by the filter).
+  - `flag` refuses a record that is not in the log instead of attaching the finding to the last record.
+  - `goto` on an empty log is refused, where it used to answer "record 0".
+  - A refused call leaves the spotlight lit. Dropped anchors, a failed source-root removal, a rename's extra fields
+    and misspelled parameters are now named (M68.4).
 - **A chart can no longer be given a name that the assistant cannot point at.** `graph` accepted a name with a colon
   in it, and `spotlight` then could not address that chart. A name containing `:` or `"`, or exactly `note` or
   `series`, is now refused when it is given, and nothing is created. Charts already saved under such a name still

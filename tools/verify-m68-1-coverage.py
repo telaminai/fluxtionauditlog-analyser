@@ -363,6 +363,37 @@ def main():
             check("M68.5: and it says the content already read changed",
                   "content already read has changed" in str(identity.get("reason")), identity)
             a.act("open", follow=False)
+
+            print("14. M68.4 acceptance 5 — topology {recordIndex} from a fresh load selects the record, and says so")
+            # DX-04: with nothing selected the step cursor ignored the index, and the echo stated its default of 0
+            log = os.path.join(work, "m68-4-records.yaml")
+            constructed_log(log, [["checked"], ["child"], ["rootNode"], ["checked"]])
+            open_in_order(a, log, "log first")
+            reply = a.act("topology", recordIndex=2)
+            topo = reply.get("topology") or {}
+            check("M68.4: the reply names the record asked for", reply.get("ok") is True and topo.get("recordIndex") == 2,
+                  reply)
+            check("M68.4: and the record is really selected", len((a.context().get("selection") or [])) == 1,
+                  a.context().get("selection"))
+            refused = a.act("topology", recordIndex=40)
+            check("M68.4: a record the log does not have is refused, naming the range",
+                  refused.get("ok") is False and "not a record of this log" in str(refused.get("error")), refused)
+
+            print("15. M68.4 acceptance 4 — a rolled set opened with a graph keeps both, pairing reported, on the FINAL state")
+            # DX-03: the rolled-set branch returned early and the graphml was dropped without a word
+            first = os.path.join(work, "m68-4-roll.1.yaml")
+            second = os.path.join(work, "m68-4-roll.2.yaml")
+            constructed_log(first, [["checked", "child", "rootNode"]] * 20)
+            constructed_log(second, [["checked", "child", "rootNode"]] * 20)
+            a.act("open", close="all")
+            reply = a.act("open", logs=[first, second], graphml=GRAPH)
+            check("M68.4: the combined rolled-set open replies ok", reply.get("ok") is True, reply)
+            ctx = settle(a)
+            time.sleep(1.5)                                   # past review O6's delay: the state after the arrival rule
+            ctx = a.context()
+            gp = ctx.get("graphPairing") or {}
+            check("M68.4: the graph is still loaded", gp.get("graph") is not None, gp)
+            check("M68.4: and its pairing is reported", gp.get("applies") is True, gp)
     finally:
         shutil.rmtree(work, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)

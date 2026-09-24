@@ -380,6 +380,31 @@ public final class TopologyPanel extends JPanel {
      * surfaced, never silently dropped: a partial resolve usually means a different build.
      * Returns an error message, or null.
      */
+    /**
+     * M68.4 (D-E3): why {@link #recallFocus} would refuse, WITHOUT changing anything — so a call carrying several
+     * fields can be refused whole, before any of them is applied. Null when the recall would succeed.
+     */
+    public String recallFocusProblem(String name) {
+        if (name == null || name.isBlank()) return "'focus' needs a name";
+        telamin.fluxtion.audit.analyser.analyser.config.FocusSpec spec = namedFocuses.get().stream()
+                .filter(f -> f.name().equals(name.trim())).findFirst().orElse(null);
+        if (spec == null) {
+            java.util.List<String> known = namedFocuses.get().stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.FocusSpec::name).toList();
+            return "no focus named '" + name + "'" + (known.isEmpty() ? "" : " — available: " + known);
+        }
+        if (spec.nodeIds().stream().noneMatch(fullTopology::contains)) {
+            return telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                    .focusNoneDeclared(spec.name(), spec.nodeIds().size());
+        }
+        return null;
+    }
+
+    /** M68.4: whether the step cursor is bound to a record — {@link #moveToRecord} does nothing until it is. */
+    public boolean hasBoundRecord() {
+        return !cursor.isEmpty();
+    }
+
     public String recallFocus(String name) {
         lastRecallNote = "";
         if (name == null || name.isBlank()) return "'focus' needs a name";

@@ -1312,8 +1312,10 @@ public final class MainFrame extends JFrame {
                     Files.write(out, render);
                     echo.put("path", out.toAbsolutePath().toString());
                 } catch (java.io.IOException e) {
+                    // M68.4 (D-E3): the report WAS saved above — say so, so a refusal is not read as "nothing happened"
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                            "could not write " + resolvedPath + ": " + e.getMessage());
+                            "report '" + spec.name() + "' was saved, but could not write " + resolvedPath + ": "
+                                    + e.getMessage());
                 }
             }
         }
