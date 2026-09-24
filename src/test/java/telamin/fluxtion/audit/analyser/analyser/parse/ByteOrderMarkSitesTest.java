@@ -173,7 +173,11 @@ class ByteOrderMarkSitesTest {
                     n++;
                     String t = line.strip();
                     if (t.startsWith("*") || t.startsWith("//") || t.startsWith("/*")) continue;
-                    if (t.contains("\\uFEFF") || t.contains("﻿") || t.contains("0xEF") || t.contains("0xBB")
+                    // 0xFEFF and 65279 are the NUMERIC forms of the same character. Without them a new
+                    // site written as `charAt(0) == 0xFEFF` slipped through this guard entirely —
+                    // found by re-running the witness for this very test rather than by reading it.
+                    if (t.contains("\\uFEFF") || t.contains("﻿") || t.contains("0xFEFF")
+                            || t.contains("65279") || t.contains("0xEF") || t.contains("0xBB")
                             || t.contains("0xBF")) {
                         offenders.add(root.relativize(f) + ":" + n);
                     }
