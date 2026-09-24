@@ -94,13 +94,33 @@ Source inspection distinguishes the following cases; they are not three proven i
 
 These observations do not expand this path-resolution fix into Project-panel navigation work.
 
-## Resolution of the three observations — 2026-09-24 (M68.2)
+## The question this needed, and the answer — 2026-09-24 (M68.2)
 
-The owner answered the decision question above with **"still navigation"**, so the spec,
-`ProjectPanelIsRevealOnlyTest` and the implementation changed together as one deliberate change, exactly
-as this note said they would have to. `spec-loaded-panel.md` D-L3 now carries the amendment and its
-limit: a `Navigator` method must reveal something that already exists; creating, editing or discarding
-belongs on the action surface the panel still cannot reach.
+A first attempt to patch the two Open defects was abandoned on reading the tests: D-L3 is not a
+convention here, it is asserted. `ProjectPanelIsRevealOnlyTest` pins the exact `Navigator` method set —
+
+```java
+assertEquals(Set.of("showTab", "openSettings"),
+        Set.of(…ProjectPanel.Navigator.class.getDeclaredMethods()…),
+        "the Navigator moves the eye, not the state; adding a method here is a spec change (D-L3)");
+```
+
+— plus a constant-pool check that `ProjectPanel` and `ProjectModel` never name `MainFrame`,
+`ActionExecutor` or `AppControl`: *"it renders, it does not act"*. So giving a row the ability to open
+*its own* report or chart would fail that assertion **by construction**. It was a spec change, and the
+test said so in its own failure message. The question put to the owner was therefore:
+
+> Is revealing a *specific* already-loaded report or chart still "moving the eye" (in scope for D-L3, so
+> `Navigator` may name the item), or is selecting an item a state change (out of scope, so the Project
+> panel should keep revealing the tab only)?
+
+**The owner answered "still navigation"** (2026-09-24), so the spec, `ProjectPanelIsRevealOnlyTest` and
+the implementation changed together as one deliberate change, exactly as that question anticipated.
+`spec-loaded-panel.md` D-L3 now carries the amendment and its limit: a `Navigator` method must reveal
+something that already exists; creating, editing or discarding belongs on the action surface the panel
+still cannot reach.
+
+## Resolution of the three observations
 
 1. **Reports ▸ Open** — fixed. `Row` gained an `item` carrying the row's identity, and the report row
    sets it to the report's **name** while still displaying its **title**. That split was the substance of
