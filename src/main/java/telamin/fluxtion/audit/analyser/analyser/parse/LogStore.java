@@ -147,6 +147,14 @@ public interface LogStore extends AutoCloseable {
         return null;
     }
 
+    /**
+     * M68.5 (D-E6): what changed about the file behind this log since it was opened, observed now; null when no change
+     * was observed (metadata only — never proof of unchanged bytes) or for a store with no file.
+     */
+    default ReadThroughIdentity readThroughIdentity() {
+        return null;
+    }
+
     default boolean supportsFollow() {
         return false;
     }

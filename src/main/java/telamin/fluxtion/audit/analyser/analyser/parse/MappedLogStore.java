@@ -28,6 +28,8 @@ public final class MappedLogStore implements LogStore {
     private final Path path;
     private final FileReadIdentity readIdentity;
     private final boolean includesEofRecord;
+    /** M68.5: the file's metadata when it was indexed, so a request can see a change before it reads rows. */
+    private final ReadThroughIdentity.Meta atOpen;
     private final Map<Integer, LogRecord> cache = new LinkedHashMap<>(CACHE, 0.75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<Integer, LogRecord> e) {
             return size() > CACHE;
@@ -37,6 +39,7 @@ public final class MappedLogStore implements LogStore {
     public MappedLogStore(Path path) throws IOException {
         this.path = path;
         this.index = new LogIndex();
+        this.atOpen = ReadThroughIdentity.metaOf(path);
         var capture = FileReadIdentity.begin(path);
         StreamEndTracker tracker = new StreamEndTracker();
         try (var in = capture.open()) {
@@ -83,6 +86,11 @@ public final class MappedLogStore implements LogStore {
     }
 
     @Override public java.util.List<FileReadIdentity> readIdentities() { return java.util.List.of(readIdentity); }
+
+    /** M68.5: rows are read through the channel on demand, so an in-place change suspends reads (D-E6). */
+    @Override public ReadThroughIdentity readThroughIdentity() {
+        return path == null ? null : ReadThroughIdentity.classify(atOpen, ReadThroughIdentity.metaOf(path), false);
+    }
 
     @Override public int trailingRecordsIncluded() { return includesEofRecord ? 1 : 0; }
     @Override public int trailingRecordsPending() { return 0; }

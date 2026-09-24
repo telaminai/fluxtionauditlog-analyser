@@ -145,7 +145,7 @@ public final class MainFrame extends JFrame {
     // follow / tail mode (H8.7): poll a growing local file and append new records live
     private static final int FOLLOW_POLL_MS = 1000;
     private Timer followTimer;
-    private boolean following;
+    private volatile boolean following;       // M68.5: read off the EDT by the request-time identity check
     private String followPath;                       // local path being tailed, or null
     private JToggleButton followButton;              // toolbar toggle (kept in sync)
     private JCheckBoxMenuItem followMenuItem;        // File-menu toggle (kept in sync)
@@ -212,6 +212,14 @@ public final class MainFrame extends JFrame {
         // M44.4b: read from the SNAPSHOT. The coverage verb runs on the socket thread, which used to read the processor's
         // live fields — and, since round 4, to invokeAndWait a refresh onto the EDT first. Follow now reports every
         // append as it lands, so the snapshot is current, immutable and safe to read here.
+        // M68.5 (D-E6): at each record-reading request, off the EDT. Under Follow the poll decides (FollowIdentity), so
+        // this observes only a log that is not being followed; what it sees reaches the session and the status line.
+        actionExecutor.bindReadIdentity(this::observeReadIdentity);
+        addWindowFocusListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                observeReadIdentity();              // a person coming back to the window is the next observation
+            }
+        });
         actionExecutor.bindSessionSnapshot(() -> {
             var driver = session;
             return driver == null ? null : driver.snapshot();
@@ -4324,6 +4332,28 @@ public final class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * M68.5: observe the open log's file now (any thread), and report a CHANGE to the session and the status line on the
+     * EDT. Returns what was observed, so the caller can refuse or label what it was about to serve.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity observeReadIdentity() {
+        var s = store;
+        if (s == null || following) return null;
+        var identity = s.readThroughIdentity();
+        if (identity != null) {
+            long generation = sessionLogGeneration;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                var snap = sessionSnapshot();
+                if (session == null || generation != snap.logGeneration()) return;       // a newer log since
+                String verdict = identity.verdict().name();
+                if (verdict.equals(snap.logIdentity()) && identity.reason().equals(snap.logIdentityReason())) return;
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved(generation, verdict, identity.reason()));
+                status.setText("⚠ " + displayName(logDisplayLocation) + ": " + identity.reason());
+            });
+        }
+        return identity;
+    }
+
     private void reportAppendToSession() {
         if (session == null || store == null) return;
         refreshLoggedNodeSample();
@@ -6221,7 +6251,11 @@ public final class MainFrame extends JFrame {
                 log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
                 // M68.5 (D-E6): what Follow established about the FILE, from the session; absent before the first poll
                 var identitySnap = sessionSnapshot();
-                if (identitySnap.logIdentity() != null) {
+                var observedNow = observeReadIdentity();       // not following: observed at THIS request (D-E6)
+                if (observedNow != null) {
+                    log.put("identity", Map.of("state", observedNow.verdict().name().toLowerCase(java.util.Locale.ROOT),
+                            "reason", observedNow.reason(), "readsSuspended", observedNow.suspendsReads()));
+                } else if (identitySnap.logIdentity() != null) {
                     log.put("identity", Map.of("state", identitySnap.logIdentity().toLowerCase(java.util.Locale.ROOT),
                             "reason", String.valueOf(identitySnap.logIdentityReason())));
                 }

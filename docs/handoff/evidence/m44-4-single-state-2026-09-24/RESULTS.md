@@ -114,3 +114,18 @@ which is why seen-red runs against a pre-fix build are part of the protocol.
 test methods without parameters, so they were unaffected. Any future witness against a parameterised test would
 have reported NOT CAUGHT for a real catch, the safe direction, but a false alarm all the same. Match on the name up
 to `(` or `"`.
+
+## Set 6 — M68.5, identity at the next request
+
+| # | Prediction | Result |
+|---|---|---|
+| P30 | `ReadThroughIdentityTest` 6 green, at 85% confidence | **Held.** |
+| P31 | `MappedLogStoreReadIdentityTest` 3 green, at 60% confidence | **Held.** Both named risks were unfounded on APFS. `Files.writeString` rewrote in place (the channel read `zzz`), and after an atomic replace the old channel still read the opened file (`aaa`). That is now measured, not assumed. |
+| P32 | `ActionDispatcherReadIdentityTest` 3 green, at 75% confidence | **Held.** |
+| P33 | W26–W28 each red | **Held**, with the corrected name pattern. |
+| P34 | headless 1,994 / 0 / 0 / 65 | **Held.** `atomicReplace` did not assume out. |
+| P35 | frame 66 / 0 / 0 / 1, at 55% confidence | **Held.** The window-focus listener disturbed no frame test. |
+| P36 | verifier 69 / 0 | **Held.** |
+
+The first set this session in which every prediction held. The sets before it are why the confidence figures were
+where they were.

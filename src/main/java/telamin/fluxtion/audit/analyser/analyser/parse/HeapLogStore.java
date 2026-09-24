@@ -33,6 +33,8 @@ public final class HeapLogStore implements LogStore {
     /** M68.5: the file key of the content read, or null when the filesystem has none — never compared as equal. */
     private Object fileKey;
     private volatile FollowIdentity followIdentity;
+    /** M68.5: the file's metadata when the content in memory was read. */
+    private ReadThroughIdentity.Meta atOpen;
 
     public HeapLogStore(String file) {
         this(file, false);
@@ -124,6 +126,7 @@ public final class HeapLogStore implements LogStore {
         s.readIdentity = identity;
         s.source = path;
         s.fileKey = keyOf(path);
+        s.atOpen = ReadThroughIdentity.metaOf(path);
         return s;
     }
 
@@ -134,6 +137,7 @@ public final class HeapLogStore implements LogStore {
         live.source = source;
         live.readIdentity = readIdentity;
         live.fileKey = fileKey;
+        live.atOpen = atOpen;
         return live;
     }
 
@@ -191,6 +195,7 @@ public final class HeapLogStore implements LogStore {
         // could throw meanwhile (impl review F2).
         this.readIdentity = null; // follow changes the indexed view; no stale opening digest may describe it
         this.file = full;
+        this.atOpen = ReadThroughIdentity.metaOf(p);   // M68.5: the content in memory is now what was just read
         // Require a terminator so a record still being written isn't indexed until complete; the first
         // `before` records are byte-identical (append-only) so we skip them and add the rest.
         //
@@ -214,6 +219,15 @@ public final class HeapLogStore implements LogStore {
     }
 
     @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
+
+    /**
+     * M68.5: a change on disk since the content was read. The text is in memory, so nothing on disk alters what this
+     * store serves: a change is labelled superseded, never suspended. Under Follow, {@link #followIdentity} decides.
+     */
+    @Override public ReadThroughIdentity readThroughIdentity() {
+        return source == null || atOpen == null ? null
+                : ReadThroughIdentity.classify(atOpen, ReadThroughIdentity.metaOf(source), true);
+    }
 
     /** M68.5: what the last Follow poll established about the file's identity, or null before the first poll. */
     @Override public FollowIdentity followIdentity() { return followIdentity; }

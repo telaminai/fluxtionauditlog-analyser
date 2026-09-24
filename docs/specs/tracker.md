@@ -612,8 +612,13 @@ verdict, which is owned jointly.
   `FollowIdentity.classify` covers every acceptance-7 case, with one departure recorded under D-E6 (full-byte
   comparison makes a touched identical file UNCHANGED). The heap store decides before indexing; a replacement
   reopens as a new generation and `context.log.identity` says why. The verifier's scenario 12 FAILS on a
-  `f2e25e80` jar (the same-length rewrite ignored) and passes on the fix. **Open:** the mapped store's identity at
-  the next read (acceptance 7's second store), and the project-root diagnostic (acceptance 8's remaining half).
+  `f2e25e80` jar (the same-length rewrite ignored) and passes on the fix. **The next request, both stores, built the
+  same day:** the dispatcher observes the file before any record-reading verb. It refuses while the opened file
+  changed in place under the mapped store (which reads through its channel), and labels superseded-but-retained
+  content (the heap store's text; the mapped store's open channel after a replace). `context` and window focus
+  observe as well. **Limits, stated:** an in-place rewrite that restores size, time and key is invisible to a
+  metadata check; the human table is announced, not suspended. **Open:** the project-root diagnostic (acceptance
+  8's remaining half).
   Related narrow correction: [PR #7](https://github.com/telaminai/fluxtionauditlog-analyser/pull/7),
   `fix/named-profile-project-root` at `c3523506`, fixes relative-path anchoring for named profiles.
   Reviewed: 52 configuration tests pass; restoring the canonical-only lookup fails the named-profile

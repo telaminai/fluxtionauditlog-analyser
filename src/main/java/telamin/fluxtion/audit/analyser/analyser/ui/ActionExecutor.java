@@ -71,6 +71,19 @@ public final class ActionExecutor implements RenderExecutor {
     public static final String PAIR_LOG_GENERATION = "pairLogGeneration";
     public static final String PAIR_GRAPH_REVISION = "pairGraphRevision";
 
+    private java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity> readIdentity;
+
+    /** M68.5: what changed about the open log's file, observed at each record-reading request. */
+    public void bindReadIdentity(
+            java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity> identity) {
+        this.readIdentity = identity;
+    }
+
+    @Override
+    public telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity readIdentity() {
+        return readIdentity == null ? null : readIdentity.get();
+    }
+
     public void bindSessionSnapshot(
             java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot> snapshot) {
         this.sessionSnapshot = snapshot;

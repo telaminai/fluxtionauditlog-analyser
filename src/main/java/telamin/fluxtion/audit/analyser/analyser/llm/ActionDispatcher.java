@@ -86,6 +86,13 @@ public final class ActionDispatcher {
         Map<String, Object> params = req.get("params") instanceof Map<?, ?> p
                 ? (Map<String, Object>) p : Map.of();
 
+        // M68.5 (D-E6): observed BEFORE anything is served. A verb that reads records is refused while the opened file
+        // has changed in place under a store that reads through to it, and labelled when what it reads is the
+        // opened content of a file that has since been replaced.
+        var identity = READS_RECORDS.contains(action) && render != null ? render.readIdentity() : null;
+        if (identity != null && identity.suspendsReads()) {
+            return ActionResult.error(identity.reason() + ".");
+        }
         try {
             ActionResult result = switch (action) {
                 case "aggregate" -> ActionResult.ok("aggregate", "result",
@@ -99,10 +106,22 @@ public final class ActionDispatcher {
                 case "" -> ActionResult.error("missing 'action'");
                 default -> ActionResult.error("unknown verb '" + action + "'");
             };
-            return withIgnoredParams(result, action, params);
+            return withIdentityNote(withIgnoredParams(result, action, params), identity);
         } catch (RuntimeException e) {
             return ActionResult.error(action + " failed: " + e.getMessage());
         }
+    }
+
+    /** The verbs whose answers are made of records; the rest describe the view, the graph or the transport. */
+    static final java.util.Set<String> READS_RECORDS = java.util.Set.of(
+            "aggregate", "read", "filter", "graph", "goto", "flag", "coverage", "series", "report");
+
+    private static ActionResult withIdentityNote(ActionResult result,
+                                                 telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity identity) {
+        if (identity == null || !result.ok() || result.payload() == null) return result;
+        Map<String, Object> payload = new java.util.LinkedHashMap<>(result.payload());
+        payload.put("identityNote", identity.reason());
+        return ActionResult.ok(result.action(), result.payloadKey(), payload);
     }
 
     /**
