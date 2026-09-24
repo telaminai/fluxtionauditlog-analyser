@@ -505,20 +505,42 @@ public final class GraphTabs extends JPanel {
      * carries its explanation and pinned notes, which is the part worth keeping), so it confirms first and
      * names the chart in the question. Close is the non-destructive neighbour.
      */
-    private void deleteCurrent() {
-        int i = tabs.getSelectedIndex();
-        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
-        String name = gp.graphName();
-        int answer = JOptionPane.showConfirmDialog(this,
+    /**
+     * Asks the person whether to delete the named chart. Replaceable so a test can answer it: the real one
+     * is a modal {@link JOptionPane}, which cannot run headless, and leaving it hard-wired meant the one
+     * branch that must change NOTHING — Cancel — was verified by nothing at all.
+     */
+    private java.util.function.Predicate<String> confirmDelete = this::askWhetherToDelete;
+
+    void setConfirmDelete(java.util.function.Predicate<String> ask) {
+        this.confirmDelete = ask == null ? this::askWhetherToDelete : ask;
+    }
+
+    private boolean askWhetherToDelete(String name) {
+        return JOptionPane.showConfirmDialog(this,
                 "Delete the chart \"" + name + "\"?\n\n"
                         + "This removes its definition from the project — series, formulas, notes and the\n"
                         + "explanation written on it. It cannot be undone.\n\n"
                         + "To put it away without losing it, use Close graph instead.",
-                "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (answer != JOptionPane.OK_OPTION) return;   // Cancel changes nothing at all
-        // A modal runs a nested event loop. Never delete a replacement tab or a renamed item.
+                "Delete chart", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)
+                == JOptionPane.OK_OPTION;
+    }
+
+    private void deleteCurrent() {
+        int i = tabs.getSelectedIndex();
+        if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
+        String name = gp.graphName();
+        if (!confirmDelete.test(name)) return;   // Cancel changes nothing at all
+        // Asking may run a nested event loop (the real dialog does), so the index captured above can be
+        // stale by now — a tab may have closed, been renamed or been replaced under it. Re-resolve the
+        // PANEL and re-check its name, or a confirmed delete lands on a chart nobody was asked about.
         int current = indexOf(gp);
         if (current >= 0 && name.equals(gp.graphName())) deleteConfirmed(current);
+    }
+
+    /** The Delete button's whole path, from the question to the consequence — for tests to drive. */
+    void deleteSelected() {
+        deleteCurrent();
     }
 
     /**

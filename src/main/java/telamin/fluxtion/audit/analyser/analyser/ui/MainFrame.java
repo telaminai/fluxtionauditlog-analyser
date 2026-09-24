@@ -369,27 +369,24 @@ public final class MainFrame extends JFrame {
         });
         // M37: what is in force — the Project panel, stacked under Event types (owner decision 2). It is a
         // rendering of `context` (D-L1); refreshProjectPanel() is the only writer.
-        projectPanel = new ProjectPanel(new ProjectPanel.Navigator() {
-            @Override public void showTab(String title) { selectTab(title); }
+        // M68.6: the adapter is ProjectRevealer, named and testable. As an anonymous class here, gutting
+        // its reveal methods to { } left the whole suite green — the panel test stops at the Navigator.
+        projectPanel = new ProjectPanel(new ProjectRevealer(new ProjectRevealer.Surface() {
+            // MainFrame.this, not selectTab(title) — inside this Surface that name is THIS method
+            @Override public void selectTab(String title) { MainFrame.this.selectTab(title); }
             @Override public void openSettings(String page) {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries, page);
             }
-            // 35eeb320: reveal the item the row is about, not merely the tab that owns it
-            @Override public void showReport(String name) {
-                selectTab("Reports");
-                if (name != null && reportsPanel != null) reportsPanel.select(name);
+            // the tab selection lives in ProjectRevealer now; this Surface only does the frame's part
+            @Override public void selectReport(String name) {
+                if (reportsPanel != null) reportsPanel.select(name);
             }
-            @Override public void showGraph(String name) {
-                selectTab("Graph");
-                if (name == null) return;
-                // already a tab → select it; saved but not open → open it from the profile, then select
-                for (telamin.fluxtion.audit.analyser.analyser.config.GraphSpec g : config.savedGraphs) {
-                    if (name.equals(g.name())) { graphTabs.openSaved(g); return; }
-                }
-                graphTabs.selectGraph(name);
+            @Override public boolean openSaved(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec spec) {
+                return graphTabs.openSaved(spec);
             }
-        });
+            @Override public void selectGraph(String name) { graphTabs.selectGraph(name); }
+        }, () -> config.savedGraphs));
         projectPanel.setVisible(!config.projectPanelCollapsed);
         projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
             projectPanel.setVisible(showing);
