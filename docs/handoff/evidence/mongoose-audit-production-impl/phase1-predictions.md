@@ -218,3 +218,33 @@ witness run could reproduce the grouping dependency for only one negative test, 
 
 - **U7.1** — whether `pollFollow`'s catch (O2) can refresh producer diagnostics without re-entering the load
   path; it is Swing, so it will be READ plus a source-text check, not a unit test.
+
+## P8 · Third re-review — recorded before these fixes
+
+Third re-review `8514f91b` (branch `review/mongoose-third-rereview-2026-09-24`) against `fc9b1f9c`: two Low
+required, six optional. All six optional items are planned, and any I end up skipping will be said so. Recorded
+before any change.
+
+1. **P8.1 — R1.** Describing a closing change rendered `sourceId=null` as "records a change to INFO that names no
+   node — or a node literally called "null"" changes no existing assertion, because no test pins the " for every
+   node" suffix. The reviewer's four-record log will read the disclosure in the closing clause. The window's end
+   stays where it is: closing it on the ambiguous change is the conservative direction, since it only withholds
+   annotations after that record, and the sentence will say that only the no-node reading would end it.
+2. **P8.2 — R2.** Adding `assertFalse(note.contains("this processor"))` to
+   `positiveControls_aRealPerNodeAndARealGlobalChange` makes the declared-branch mutant go red there; nothing else
+   changes.
+3. **P8.3 — O-A.** For a node literally named "null", dropping the *named no node* premise makes both readings
+   conclude the same way, with no "otherwise" clause. No existing test uses a node named "null".
+4. **P8.4 — O-D.** Making the YES parenthetical its own sentence ("It was addressed to processor grouping 'alpha',
+   which is…") keeps `aChangeAddressedToAnotherGrouping…`'s `contains` assertion passing, because the quoted words
+   are unchanged.
+5. **P8.5 — O-C.** "within that run" becomes "within the run it was made in", which breaks the two tests that pin
+   "so within that run" / "Within that run, if": `aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt` and
+   `notEstablishedAndSpanningABoundaryConditionsBothHalves`.
+6. **P8.6 — O-B.** Refreshing on a failed tick only when the source diagnostics differ from those the cached
+   findings were built from keeps the fault reaching `context` on a growing file (the O2 probe stays green) and
+   stops the per-tick rebuild. This is Swing; its evidence is the jar probe plus the frame suite, not a unit test.
+
+**Verified before writing this, by me:** O4's premise. At mongoose `2c4192e`, `MongooseServer.java:116` declares
+one `private static LogRecordListener`, and `addEventProcessor` installs it with `setAuditLogProcessor` at `:758`
+for every processor it adds (READ, source).
