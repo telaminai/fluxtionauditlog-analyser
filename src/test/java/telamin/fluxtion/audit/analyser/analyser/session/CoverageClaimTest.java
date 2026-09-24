@@ -88,7 +88,8 @@ class CoverageClaimTest {
                 log(Set.of("priceListener", "quotePublisher", "orderTracker"), "TRACE", 3, 3));
 
         assertEquals(CoveragePolicy.Claim.REFUSED, a.claim());
-        assertTrue(a.reason().contains("different system or build"), a.reason());
+        assertTrue(a.reason().contains("disagree about which nodes exist"), a.reason());
+        assertFalse(a.reason().toLowerCase().contains("build"), "M68.1: no build conclusion: " + a.reason());
         // M35.3 keeps a graph a person opened against a mismatched log — announce, never forbid. That
         // is right, and it left a gap: coverage would score against it in silence. Keeping the graph
         // and refusing the NUMBER are not in tension; they are the same respect for intent.

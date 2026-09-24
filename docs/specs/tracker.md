@@ -527,7 +527,7 @@ Sibling of the tool-agreement spec, which governs agreement *between* tools. Dis
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
 verdict, which is owned jointly.
 
-- [M68.1] ☐ **The coverage, pairing and scope verdicts — and it completes M45.4.** **Start here:**
+- [M68.1] ◧ **The coverage, pairing and scope verdicts — and it completes M45.4.** **Start here:**
   [`handoff_m68_1_coverage_pairing_scope.md`](../handoff/handoff_m68_1_coverage_pairing_scope.md) is the cold-start brief.
   Declared authorship read before
   any package heuristic (D-E10), membership against every declared node vertex, the authored eligible population
@@ -539,6 +539,24 @@ verdict, which is owned jointly.
   500 records while coverage scans the whole log. Fixture is the committed graph plus a labelled constructed log,
   so this slice is **not** gated on the packet's missing audit logs. **This was authorised on 2026-09-01 as M45.4
   and lost in an archive sweep** — see that entry, restored above. Was DX-02.
+  **IMPLEMENTED 2026-09-24 on branch `feat/m68-1-coverage-pairing-scope` — not merged, not independently
+  reviewed, so ◧ and not ☑.** Declared authorship read first (`Scaffolding.classify`, node-scoped, every answer
+  carrying DECLARED/INFERRED); membership against every declared node; no ratio for an empty population; the
+  pairing carries its scope as data plus `evidenced` / `everyObservedIdDeclared` / `sampled`; the policy no longer
+  lets a kept-but-unjudged or partial pairing reach FULL; provenance wording removed from coverage, pairing and
+  `Match.describe`. **Evidence:** 17 new tests (`EvidenceIntegrityCoverageTest`, `CoveragePolicyEvidenceTest`,
+  `EntryPointAuthorshipTest`); four existing wording assertions converted into guards that now *forbid* the build
+  conclusion; full suite 1,894 / 0 / 0 / 62 skips. **The four required mutations each turn the suite red alone**
+  (ignore declared authorship: 4 tests; authored-only membership: 3; membership derived from the ratio: 2;
+  retention reaching the claim: 1). **End to end:** `tools/verify-m68-1-coverage.py` drives the built jar through
+  `open` / `coverage` / `context` against the committed packet graph; it passes on the branch and **fails 15 checks
+  on the pre-change jar**, reproducing the client's exact warning text — the seen-red run.
+  **Not asserted, and said so:** the Swing counts (`TopologyPanel.viewNote`, `cursorState`) follow
+  `Scaffolding.authoredNodes` but were not checked on screen; audit readiness is asserted over the full graph but
+  not through the panel's hide control; the report path shares `CoverageService.Result` but no export was driven.
+  **Found while testing, belongs to M68.4:** `open {log, graphml}` with a graph that declares only half the logged
+  ids reports success and the graph is then no longer loaded — a combined request that silently drops part of
+  itself. Reproduced end to end; mechanism not established; not fixed here.
 - [M68.2] ☐ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
   data is contradicted by a successful series response over the same inputs; acceptance is by inspecting the
   artefact, not by exit status.
@@ -1688,7 +1706,8 @@ retrieval-dated evidence table, because those are live documents that can change
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
 
-- [M45.4] ☐ **RESTORED TO THE LIVE ORDER 2026-09-24 — consume `fluxtion.framework`; now delivered as M68.1.**
+- [M45.4] ◧ **RESTORED TO THE LIVE ORDER 2026-09-24 — consume `fluxtion.framework`; now delivered as M68.1,
+  implemented on branch `feat/m68-1-coverage-pairing-scope`, unmerged.**
   It was swept into the completed tracker with the shipped detail on 2026-09-03 and **should not have been**: the
   entry carries a ☑ on the sentence recording that *our half* was verified and unparked on 2026-09-01 against the
   real session graph at released 1.0.65, while the item as a whole is ◧ and the consumption was never built. A ☑ on

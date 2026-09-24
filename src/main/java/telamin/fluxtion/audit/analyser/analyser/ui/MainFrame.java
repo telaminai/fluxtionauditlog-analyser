@@ -4156,14 +4156,10 @@ public final class MainFrame extends JFrame {
         var p = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
                 telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
                         topologyPanel.fullTopology()), logged);
-        if (log.size() > PAIRING_SAMPLE) {
-            // review F1: the numbers describe the SAMPLE, and the sentence must say so — "the N node(s)
-            // this log writes" is a whole-log claim this method never checked
-            p = new telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing(
-                    p.logged(), p.matched(), p.applies(),
-                    p.reason() + " (judged on the first " + PAIRING_SAMPLE + " of " + log.size() + " records)");
-        }
-        return p;
+        // review F1, then M68.1 (D-E2): the numbers describe the SAMPLE. The scope used to live only in the
+        // sentence; it is now data on the verdict, so every surface that publishes it can state it, and a
+        // later whole-log comparison (coverage) can say that it qualifies this one.
+        return p.withScope(scan, log.size());
     }
 
     /**
@@ -4205,12 +4201,16 @@ public final class MainFrame extends JFrame {
         if (!topologyPanel.hasGraph() || lastPairing == null) {
             topologyPanel.setPairingNote(null);
         } else {
-            topologyPanel.setPairingNote(lastPairing.applies()
-                    ? "fits this log (" + lastPairing.matched() + "/" + lastPairing.logged() + ")"
-                    : "\u26a0 DOES NOT FIT THIS LOG \u2014 " + lastPairing.reason());
+            topologyPanel.setPairingNote(lastPairing.note());
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }
+
+    /**
+     * The persistent pairing note, in the three states the verdict can actually be in (M68.1, D-E1/D-E2).
+     * "fits this log" used to cover all of them, including a graph kept against a log with no node output
+     * and a graph kept on a partial match — neither of which the comparison showed to fit.
+     */
 
     // File observations only: no automatic selection or session transition follows a copy comparison.
     private telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology comparedGraph;
@@ -5739,6 +5739,10 @@ public final class MainFrame extends JFrame {
             // and corroborated a wrong verdict. Two facts, two names; no key left that means either.
             echo.put("graphNodes", topologyPanel.graphNodeCount());
             echo.put("authoredNodes", topologyPanel.authoredNodeIds().size());
+            // M68.1 (D-E10): say how "authored" was decided — declared by the graph, inferred from class
+            // names, or mixed — so the count can be checked rather than taken on trust
+            echo.put("authorshipBasis", telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding
+                    .authorshipBasis(topologyPanel.fullTopology()));
             echo.put("copyComparison", graphCopyComparison());
             if (loadInFlight) {
                 // A log is still loading (openLog returns before its load lands). Judging now would
@@ -5765,6 +5769,7 @@ public final class MainFrame extends JFrame {
                 echo.put("appliesToOpenLog", pairing.applies());
                 echo.put("loggedNodes", pairing.logged());
                 echo.put("declaredByGraph", pairing.matched());
+                echo.putAll(pairing.facts());
                 echo.put("verdict", pairing.reason() + (pairing.applies() ? ""
                         : " — kept anyway, because you opened it deliberately (M35.3). A stale "
                                 + "graph is only closed when a LOG arrives and finds it there."));
@@ -6176,6 +6181,7 @@ public final class MainFrame extends JFrame {
                     pair.put("applies", lastPairing.applies());
                     pair.put("loggedNodes", lastPairing.logged());
                     pair.put("declaredByGraph", lastPairing.matched());
+                    pair.putAll(lastPairing.facts());
                     pair.put("verdict", lastPairing.reason());
                 }
                 // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs
