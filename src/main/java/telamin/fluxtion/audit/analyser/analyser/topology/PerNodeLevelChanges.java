@@ -179,10 +179,10 @@ public final class PerNodeLevelChanges {
             if (to != null && !untimedClose && to < scopeStart) continue;
             String window = untimedClose
                     ? (from == Long.MIN_VALUE
-                    ? "for this whole log (both changes are untimed)"
+                    ? "at some point in this log (both changes are untimed, so the window is unknown)"
                     : "from " + from + " until an untimed change")
                     : from == Long.MIN_VALUE
-                    ? (to == null ? "for this whole log (the change is untimed)"
+                    ? (to == null ? "from an untimed change to the end of this log"
                     : "from an untimed change until " + to)
                     : to == null
                     ? "from " + from + " to the end of this log"

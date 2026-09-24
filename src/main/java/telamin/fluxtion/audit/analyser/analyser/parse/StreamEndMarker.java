@@ -104,8 +104,7 @@ public record StreamEndMarker(String reason, long records) {
      * this project has now made often enough to name.
      */
     static String strip(String line) {
-        String t = asciiStrip(line);
-        return t.isEmpty() || t.charAt(0) != '﻿' ? t : asciiStrip(t.substring(1));
+        return AuditText.strip(line);
     }
 
     /**
@@ -120,14 +119,7 @@ public record StreamEndMarker(String reason, long records) {
      * conforming reader would not claim. There is now one definition and one function.
      */
     private static String asciiStrip(String s) {
-        int a = 0, b = s.length();
-        while (a < b && isSpace(s.charAt(a))) a++;
-        while (b > a && isSpace(s.charAt(b - 1))) b--;
-        return s.substring(a, b);
-    }
-
-    private static boolean isSpace(char c) {
-        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+        return AuditText.asciiStrip(s);
     }
 
     /**
