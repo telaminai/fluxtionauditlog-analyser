@@ -275,3 +275,31 @@ every change; if the two `groupId`s are equal, the condition is the same. **Only
 4. **P9.4 — O-1.** "Before the marker" in place of "Within the run it was made in" breaks the two tests and the O-C
    witness that pin the old phrase, and nothing else.
 5. **P9.5 — O-2 and O-3** are a comment and probe-file headers; no test changes.
+
+## P10 · Fifth re-review — recorded before these fixes
+
+Fifth re-review `79a51d27` (branch `review/mongoose-fifth-rereview-2026-09-24`) against `98148175`: two Low
+required (R5-1, R5-2), three optional (O5-1–O5-3). All five are planned. Recorded before any change.
+
+**R5-2's class, re-read clause by clause before fixing.** One more instance is predicted, in the opening for a
+node literally named "null": "— either way it sets this node" is appended whatever `applies()` says, so with an
+absent grouping it asserts the setting the next sentence says is not established. It is fixed with R5-2 ("either
+way it addresses this node") and held to the same regression.
+
+1. **P10.1 — R5-1.** Adding `G("null", "alpha")` and a closing-`groupId` dimension {same, "beta", none} grows the
+   matrix to 3 openings × 5 groupings × 3 boundaries × 7 closings = **315 logs, all 315 annotated** (the closing
+   change sits after the in-view records, so it never removes the annotation). With the guard
+   `processor(?! grouping)` it is green on the fixed code, and red at `noBranchOfTheSentencePresumesAProcessor`
+   for a plant at the declared-null YES note, in each of the three `closeOpen` strings, and for "for its processor"
+   in the per-node closing.
+2. **P10.2 — R5-2.** "this log records a change setting riskMonitor's audit level to WARN" for NOT_ESTABLISHED
+   breaks no existing assertion: no test pins "this log sets" for an absent grouping. Restoring the old opening is
+   red at the matrix's new absent-grouping assertion and at `aClosingChangeWhoseApplyingIsOpenSaysSo`.
+3. **P10.3 — O5-1 and O5-2.** "It holds at least until" and the de-duplicated disclosure change no assertion except
+   none: R-B's pinned phrase ("addressed to processor grouping 'beta'; whether that applied here is not established
+   either") is the per-node branch, whose wording is kept apart from "at least".
+4. **P10.4 — O5-3.** Naming the marker where it is first used breaks the two tests that pin "before the marker":
+   `CoveragePerNodeLevelTest.aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt` and
+   `ControlAddressAndScopeTest.notEstablishedAndSpanningABoundaryConditionsBothHalves`; nothing else.
+5. **P10.5.** No `MainFrame` change; the headless suite grows by zero tests (R5-1 and R5-2 extend existing tests)
+   and stays at 1,980 run.
