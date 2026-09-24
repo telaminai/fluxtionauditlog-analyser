@@ -48,3 +48,35 @@ is right. The rewrite also leaves them stronger. The old frame leg checked a rec
 deliberate, because the gate would have run the very tests those predictions are about, which were already in the
 working tree. From set 3 on, the code is stashed, the predictions commit is gated on the tree without it, and the
 code is then restored, so both rules hold.
+
+## Set 3 — M44.4c
+
+| # | Prediction | Result |
+|---|---|---|
+| P13 | `PairingQualifierTest` 6 green on first run, at 70% confidence | **Held.** 6 / 0 / 0 / 0. The assumed `toMap` keys were right. |
+| P14 | W11–W14 each red at the named test | **Held, all four.** Byte-identical restores, and green afterwards. |
+| P15 | headless 1,953 / 0 / 0 / 65 | **Held**, both before and after the P16 fix. |
+| P16 | frame 66 / 0 / 0 / 1, at 55% confidence | **Wrong on first run: 1 failure**, `aFollowAppendEvictsNoTransitionRecordAndTheClaimIsCurrent`. The cause was not the lag I named. `pollFollow` calls `onFilterChanged()` after each append, which posted an **unchanged** `ViewFilterChanged` twice per append; with tracing on, that wrote ten transition records over five appends. Diagnosed by counting event types in the two record lists (`Counter({'ViewFilterChanged': 10})`), not by reading code. **Fix:** post only when the key differs from the session's own `filterKey`. A non-change is not a fact. After the fix, 66 / 0 / 0 / 1. |
+| P17 | `verify-m68-1-coverage.py` 65 / 0, at 60% confidence | **Held.** |
+
+**Added after the predictions, with its own witness.** Spec §13 asks `SessionGraphShapeTest` to pin the new node.
+`theQualifierFollowsThePairAndActsOnNothing` pins `openLog`/`openGraph`/`pairing → pairingQualifier` and forbids
+`pairingQualifier → effectQueue`. Witness W15, deleting the `openLog → pairingQualifier` edge from the committed
+GraphML, turned it red. The restore was byte-identical.
+
+**The class P16 belongs to.** It is the second defect of one kind in this milestone: the adapter reporting something
+that did not change. The first was M44.4a's re-scopes, which M44.4b met by retention. With tracing on, a non-change
+still costs a record, so the adapter must report only changes. The O-i frame test is what caught both. Rule 8's cheap
+check for the class is that test. A headless version, asserting transitions unchanged across N no-op facts from each
+adapter entrance, would catch it without a window, and is not yet written.
+
+**A process error, caught before it counted.** The first gate for the set 3 predictions commit ran with `git stash --
+src/`. That left the three new untracked files in place, so the tree did not compile and the run was void. It was
+redone with `stash -u`, and the commit (`296467ad`) was gated on 1,947 / 0 / 0 / 65 headless and 66 / 0 / 0 / 1 frame.
+
+**A small upstream finding.** The refused regeneration (`FLX-1009`) left an empty `SessionProcessor.java.failed` in
+`src/main/java`, which `git status` showed as untracked. It was moved out rather than committed. The generator could
+write it under `target/`, or not at all.
+
+**The limit stated in the predictions, confirmed.** The two parity frame tests' frame-vs-session comparison is now
+equal by construction. They still check session against discovery, and the panel line.

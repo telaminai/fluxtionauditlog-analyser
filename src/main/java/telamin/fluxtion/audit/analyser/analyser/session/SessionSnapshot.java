@@ -2,6 +2,7 @@ package telamin.fluxtion.audit.analyser.analyser.session;
 
 import telamin.fluxtion.audit.analyser.analyser.session.generated.SessionProcessor;
 import telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing;
+import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
 
 /**
  * M44.4b (spec §13, D-S13.1/.3): what the session has decided, as of the last operation that completed.
@@ -15,21 +16,33 @@ import telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing;
  * unchanged is the same log and graph re-scoped (a Follow append), so anything qualifying the earlier verdict still
  * describes this one; a change in either means a different pair.
  *
- * @param pairing null when either artefact is missing — "cannot say" is a verdict, not a gap
+ * @param pairing        null when either artefact is missing — "cannot say" is a verdict, not a gap
+ * @param pending        a log open is in flight (M44.4c): the verdict in force is about the log being replaced, so a
+ *                       surface states it as pending rather than as current (review B1)
+ * @param qualifications what wider comparisons say about {@code pairing}, or null — an independent copy (M44.4c)
+ * @param filterKey      the view filter in force, by identity, so a comparison made under another reads as stale
  */
 public record SessionSnapshot(boolean logOpen, String logPath, long logGeneration, int sampled, int total,
                               boolean graphOpen, String graphPath, String graphSource, long graphRevision,
-                              GraphPairing pairing, CoveragePolicy.Assessment claim) {
+                              GraphPairing pairing, CoveragePolicy.Assessment claim, boolean pending,
+                              PairingQualifications qualifications, String filterKey) {
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
     public static final SessionSnapshot EMPTY =
-            new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null);
+            new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
                 p.openLog.sampled(), p.openLog.total(),
                 p.openGraph.isOpen(), p.openGraph.graphPath(), p.openGraph.source(), p.openGraph.revision(),
-                p.pairing.verdict(), p.coverageClaim.assessment());
+                p.pairing.verdict(), p.coverageClaim.assessment(),
+                p.operationGate.inFlightWhat() != null,
+                p.pairingQualifier.qualifications(), p.pairingQualifier.filterKey());
+    }
+
+    /** The verdict a surface may state as CURRENT: none while a log open is pending. */
+    public GraphPairing publishedPairing() {
+        return pending ? null : pairing;
     }
 
     /** Whether {@code other} is about the same log and the same graph — the qualifications' binding. */

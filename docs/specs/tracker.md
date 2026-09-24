@@ -1777,8 +1777,11 @@ of the originals is in `057a069a`.)*
     `post(fact)`. Deleted the observation funnel (`2fbfee04`).
   - [M44.4b] ☑ `SessionSnapshot` and its listener; Follow reports appends; coverage reads the snapshot. Deleted the
     frame's scorer, the append republish and the `invokeAndWait`.
-  - [M44.4c] ☐ `ViewFilterChanged`, `MembershipCompared` and a `PairingQualifier` node. Deletes the frame's
-    pairing and qualification fields.
+  - [M44.4c] ☑ `ViewFilterChanged`, `MembershipCompared` and the `PairingQualifier` node. "Pending" comes from the
+    gate, on the snapshot. Deleted the frame's pairing and qualification fields; a static test forbids them. Closed
+    the scan-during-open race.
+  - [M44.4] ☐ **Open acceptance** (spec §13): the remaining `PairingDuringLoadFrameTest` journeys re-expressed as
+    headless event sequences; §13's four predictions scored; the reviewers' pass on §13.
   - [M44.4d] ☑ Folded into M44.4b: re-scopes are held in a separate ring and tracing stays on. The DEBUG half was
     not built (spec §13).
 

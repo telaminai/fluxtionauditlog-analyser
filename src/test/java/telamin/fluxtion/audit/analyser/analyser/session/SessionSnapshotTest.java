@@ -114,7 +114,7 @@ class SessionSnapshotTest {
     @Test
     @DisplayName("no UI class computes a pairing, and the coverage claim is read from the snapshot")
     void theFrameRendersAndDoesNotCompute() throws Exception {
-        // witness: restore MainFrame.pairingAgainst's GraphPairing.of, or read processor() in bindCoverageClaim
+        // witness: restore MainFrame.pairingAgainst's GraphPairing.of, or read processor() in bindSessionSnapshot
         Path ui = Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui");
         List<String> offenders = new ArrayList<>();
         try (var files = Files.list(ui)) {
@@ -128,9 +128,21 @@ class SessionSnapshotTest {
         assertEquals(List.of(), offenders, "the session owns the pairing (spec §13 D-S13.1); a surface renders it");
 
         String frame = Files.readString(ui.resolve("MainFrame.java"));
-        int at = frame.indexOf("actionExecutor.bindCoverageClaim(");
+        int at = frame.indexOf("actionExecutor.bindSessionSnapshot(");
         String binding = frame.substring(at, frame.indexOf("});", at));
         assertFalse(binding.contains("processor()"), "the socket thread must read the snapshot, not live processor fields");
         assertFalse(binding.contains("invokeAndWait"), "and must not block on the EDT to do it");
+
+        // M44.4c: the frame holds no verdict STATE either — a field of these types is a second copy waiting to drift
+        List<String> held = new ArrayList<>();
+        for (var field : telamin.fluxtion.audit.analyser.analyser.ui.MainFrame.class.getDeclaredFields()) {
+            var type = field.getType();
+            if (type == telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.class
+                    || type == telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications.class
+                    || type == telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification.class) {
+                held.add(field.getName() + ": " + type.getSimpleName());
+            }
+        }
+        assertEquals(List.of(), held, "MainFrame renders the session snapshot; it keeps no pairing or qualification");
     }
 }

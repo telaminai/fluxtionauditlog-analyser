@@ -333,7 +333,7 @@ class PairingDuringLoadFrameTest {
             // M44.4b: the frame no longer computes a pairing (pairingAgainst is deleted); it PUBLISHES the session's.
             // The frame leg of the parity is therefore what it publishes — the verdict context and the panel render —
             // which is the stronger comparison: the old one checked a recomputation nothing on screen displayed.
-            var publishedField = MainFrame.class.getDeclaredField("lastPairing");
+            var publishedField = MainFrame.class.getDeclaredMethod("sessionSnapshot");   // M44.4c: the frame keeps no copy
             publishedField.setAccessible(true);
             var sessionField = MainFrame.class.getDeclaredField("session");
             sessionField.setAccessible(true);
@@ -353,7 +353,8 @@ class PairingDuringLoadFrameTest {
                             .filter(r -> r.contains("via: LogOpened")).findFirst().orElse("");
                     assertTrue(arrival.contains("sampled: 500") && arrival.contains("total: 600"),
                             "arrival sample: the LogOpened record must show the same 500 of 600: " + arrival);
-                    assertEquals(discovered, publishedField.get(frame.get()), "frame/discovery, sampled");
+                    assertEquals(discovered, ((telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot)
+                            publishedField.invoke(frame.get())).publishedPairing(), "frame/discovery, sampled");
                     assertEquals(discovered, session.snapshot().pairing(), "session/discovery, sampled");
                 } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
             });
@@ -404,11 +405,12 @@ class PairingDuringLoadFrameTest {
             sessionField.setAccessible(true);
             var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
             // M44.4b: the frame leg is the verdict it PUBLISHES; it no longer computes one (see the sampled case above)
-            var publishedField = MainFrame.class.getDeclaredField("lastPairing");
+            var publishedField = MainFrame.class.getDeclaredMethod("sessionSnapshot");   // M44.4c: the frame keeps no copy
             publishedField.setAccessible(true);
             onEdt(() -> {
                 try {
-                    assertEquals(discovered, publishedField.get(frame.get()), "frame/discovery parity");
+                    assertEquals(discovered, ((telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot)
+                            publishedField.invoke(frame.get())).publishedPairing(), "frame/discovery parity");
                     assertEquals(discovered, session.snapshot().pairing(), "session/discovery parity");
                 } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
             });

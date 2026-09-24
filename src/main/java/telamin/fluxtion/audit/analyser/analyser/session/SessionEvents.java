@@ -222,4 +222,22 @@ public final class SessionEvents {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
         }
     }
+
+    /**
+     * M44.4c: a whole-scope membership comparison was made (the {@code coverage} verb). It carries the identity of the
+     * pair it was made against, CAPTURED BEFORE THE SCAN, because the scan runs off the EDT: a comparison of one log
+     * must never qualify the verdict about another that opened while it ran. {@code echo} is the coverage result.
+     */
+    public record MembershipCompared(long logGeneration, long graphRevision, java.util.Map<String, Object> echo) {
+        public MembershipCompared {
+            echo = echo == null ? java.util.Map.of() : java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(echo));
+        }
+    }
+
+    /**
+     * M44.4c: the view filter changed. A comparison made under another filter is then stale, and the snapshot must know
+     * which filter is in force to say so. {@code filterKey} is null for no filter.
+     */
+    public record ViewFilterChanged(String filterKey) {
+    }
 }

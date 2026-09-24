@@ -17,6 +17,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
+import telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
@@ -88,6 +89,8 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         LogOpening logOpening = new LogOpening(gate, effects);
         CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
         IgnoredParameters ignoredParameters = new IgnoredParameters();
+        // M44.4c: what wider comparisons say about the pairing, bound to the pair by generation and revision
+        PairingQualifier pairingQualifier = new PairingQualifier(openLog, openGraph, pairing);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -104,6 +107,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(logOpening, "logOpening");
         cfg.addNode(coverageClaim, "coverageClaim");
         cfg.addNode(ignoredParameters, "ignoredParameters");
+        cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate), "designSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
 

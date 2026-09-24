@@ -60,15 +60,20 @@ public final class ActionExecutor implements RenderExecutor {
     }
 
     /**
-     * What the session processor says may be asserted about coverage (M44.2). Optional: an unwired
-     * executor scores as before, because a missing opinion must not become a refusal.
+     * The session's decided state (M44.4b/c): what may be asserted about coverage (M44.2), and the identity of the pair
+     * a comparison is made against. Read from the socket thread — the snapshot is immutable and published after each
+     * completed operation. Optional: an unwired executor scores as before, because a missing opinion must not become a
+     * refusal.
      */
-    private java.util.function.Supplier<
-            telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Assessment> coverageClaim;
+    private java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot> sessionSnapshot;
 
-    public void bindCoverageClaim(java.util.function.Supplier<
-            telamin.fluxtion.audit.analyser.analyser.session.CoveragePolicy.Assessment> claim) {
-        this.coverageClaim = claim;
+    /** The pair identity a coverage comparison carries to the session (M44.4c). */
+    public static final String PAIR_LOG_GENERATION = "pairLogGeneration";
+    public static final String PAIR_GRAPH_REVISION = "pairGraphRevision";
+
+    public void bindSessionSnapshot(
+            java.util.function.Supplier<telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot> snapshot) {
+        this.sessionSnapshot = snapshot;
     }
 
     /** Wire the verbs that reach beyond the records table. Optional: unwired verbs report unavailable. */
@@ -246,7 +251,11 @@ public final class ActionExecutor implements RenderExecutor {
         // to check one of the four ways coverage stops meaning anything: an INFERRED graph. The other
         // three — a processor that cannot log, a graph that does not describe this log, and a capture
         // level below TRACE — went unchecked here, and two of them had no home at all.
-        var claim = coverageClaim == null ? null : coverageClaim.get();
+        // M44.4c: captured BEFORE the scan. The scan runs here, off the EDT; if another log or graph opens while it runs,
+        // the comparison names the pair it was actually made against and the session refuses it as stale — it used to
+        // qualify whatever pairing was published when the scan finished.
+        var snap = sessionSnapshot == null ? null : sessionSnapshot.get();
+        var claim = snap == null ? null : snap.claim();
         if (claim != null && !claim.allowed()) {
             return ActionResult.error(claim.reason() + ".");
         }
@@ -265,6 +274,10 @@ public final class ActionExecutor implements RenderExecutor {
         if (app != null) {
             // round 4, Q5b: a filtered comparison carries the identity of the filter it was made under
             Map<String, Object> forQualification = new LinkedHashMap<>(assessed.echo());
+            if (snap != null) {
+                forQualification.put(PAIR_LOG_GENERATION, snap.logGeneration());
+                forQualification.put(PAIR_GRAPH_REVISION, snap.graphRevision());
+            }
             if (filtered && filter.get() != null) {
                 var snapshot = telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter.get());
                 forQualification.put("filterKey", snapshot.toString());

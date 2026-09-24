@@ -60,6 +60,30 @@ public final class PairingQualifications {
         return said.toString();
     }
 
+    /**
+     * M44.4c: an independent copy, so the session snapshot can hold these without sharing the node's mutable state.
+     * The comparisons are immutable records, so copying the three holders is a deep copy.
+     */
+    public PairingQualifications copy() {
+        PairingQualifications c = new PairingQualifications();
+        c.widest = widest;
+        c.narrower = narrower;
+        c.filterFindings.putAll(filterFindings);
+        return c;
+    }
+
+    /** Value equality, so an unchanged snapshot is recognised as unchanged and nothing repaints. */
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof PairingQualifications q && Objects.equals(widest, q.widest)
+                && Objects.equals(narrower, q.narrower) && filterFindings.equals(q.filterFindings);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(widest, narrower, filterFindings);
+    }
+
     public void clear() {
         widest = null;
         narrower = null;

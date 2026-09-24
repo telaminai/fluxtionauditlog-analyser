@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A coverage run can no longer qualify the wrong graph's verdict.** Coverage scans the whole log in the background,
+  then records what it found against the graph's pairing verdict. If another log or graph opened while the scan ran,
+  the result was recorded against the new pair, although it described the old one. The comparison now carries the
+  log and graph it was made against, and the analyser refuses to apply it to anything else (M44.4c).
 - **Following a live log no longer pushes the analyser's own session history out of its audit record.** Each Follow
   update is kept in a small ring of its own. Opening, closing and switching projects therefore stay on the record however
   long a log is followed. The export interleaves both rings and says how many of each it dropped. The coverage verb

@@ -212,9 +212,9 @@ public final class MainFrame extends JFrame {
         // M44.4b: read from the SNAPSHOT. The coverage verb runs on the socket thread, which used to read the processor's
         // live fields — and, since round 4, to invokeAndWait a refresh onto the EDT first. Follow now reports every
         // append as it lands, so the snapshot is current, immutable and safe to read here.
-        actionExecutor.bindCoverageClaim(() -> {
+        actionExecutor.bindSessionSnapshot(() -> {
             var driver = session;
-            return driver == null ? null : driver.snapshot().claim();
+            return driver == null ? null : driver.snapshot();
         });
         actionExecutor.bindIgnoredParameters(supplied -> {
             var driver = session();
@@ -3157,18 +3157,9 @@ public final class MainFrame extends JFrame {
         loadInFlight = busy;
         progress.setVisible(busy);
         refreshCloseItems();        // a pending load is something to close: at start, supersede and completion
-        if (busy) {
-            // review B1: a verdict is about a PAIR. The log half is being replaced, so the verdict
-            // retires with it; context says pending until the load lands (or fails, below).
-            lastPairing = null;
-            publishPairing();
-        } else if (lastPairing == null && store != null && topologyPanel.hasGraph() && session != null) {
-            // the load did not land (onLoaded sets the verdict before clearing busy): the previous
-            // log is still the open one, and the session's verdict about it is still true
-            lastPairing = session.snapshot().pairing();
-            publishedSnapshot = session.snapshot();
-            publishPairing();
-        }
+        // M44.4c: nothing to do for the verdict. Whether it is PENDING is the session's fact (its gate knows an open is in
+        // flight), so the snapshot published at the end of this operation says so, and the listener renders it. Review
+        // B1's rule still holds — no verdict about the previous pair while a log loads — it just has one owner now.
     }
 
     private JPanel buildFilterBar() {
@@ -3797,8 +3788,8 @@ public final class MainFrame extends JFrame {
         topologyPanel.clearExecution();
         topologyPanel.setOrderMeaningful(true);   // M34 review F3: "ARRIVAL ORDER" described THAT source
         topologyPanel.clearSourceGraph();         // M34 review F1: a reader's graph is log-derived state
-        lastPairing = null;                // review F2: the verdict was about THIS log — with it gone the
-        publishPairing();                  // graph makes no claim, and the panel's note must not keep one
+        // review F2: the verdict was about THIS log, and with it gone the graph makes no claim. The LogCleared fact below
+        // (or the LogClosed result, inside an effect) changes the snapshot, and the listener clears the note (M44.4c).
         // M44.4a: the close is a fact. Inside a CloseLogEffect it is queued behind the LogClosed result and
         // arrives as a recorded no-op; from the File menu it is how the processor learns the log went.
         if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared(sessionLogGeneration));
@@ -3826,9 +3817,7 @@ public final class MainFrame extends JFrame {
 
     /** Close the loaded topology, leaving the log alone (M35.1). */
     private void closeGraph() {
-        topologyPanel.clearGraph();
-        lastPairing = null;
-        publishPairing();
+        topologyPanel.clearGraph();                   // GraphCleared → snapshot → the listener clears the note
         status.setText(store == null ? "No log open" : "Graph closed · " + store.size() + " records");
         updateLifecycleMenu();
         refreshProjectPanel();                                        // M37
@@ -3953,9 +3942,7 @@ public final class MainFrame extends JFrame {
             status.setText(status.getText() + "  ·  the previous log's source-supplied graph closed with it");
         }
         refreshLoggedNodeSample();     // the observation fields, for the menu funnel's later refreshes
-        lastPairing = session.snapshot().pairing();          // judged in the LogOpened submit above
-        publishedSnapshot = session.snapshot();
-        publishPairing();
+        publishPairing();                                     // the arrival's verdict, judged in the LogOpened submit above
         offerSourceGraph(loaded);      // M34.1 — after the re-pair, so a stale graph is gone first
         maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
         flaggedRows.clear();       // flags are per-file (model row indices)
@@ -4201,24 +4188,15 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing judgeOpenedGraph() {
         if (store == null || !topologyPanel.hasGraph()) {
-            lastPairing = null;
             publishPairing();
             return null;
         }
         // M44.4b: the SESSION's verdict. GraphOpened was posted by the panel's hook when the graph loaded; every caller
         // is a menu or socket entrance, outside any operation, so it has already run and the snapshot is current. The
         // frame used to compute the same pairing again here, from the same sample — the duplicate D-E2 forbids.
-        var snap = session().snapshot();
-        var pairing = snap.pairing();
-        if (pairing == null) {
-            lastPairing = null;
-            publishPairing();
-            return null;
-        }
-        // the snapshot listener has already run for this graph and decided whether the qualifications carry over
-        lastPairing = pairing;
-        publishedSnapshot = snap;
+        var pairing = session().snapshot().publishedPairing();
         publishPairing();
+        if (pairing == null) return null;
         String name = topologyPanel.graphLabel();     // may have no FILE — a source can supply one
         // review M34 F5: "you opened it deliberately" is false for a graph the SOURCE supplied — nobody
         // opened it. It is kept because it arrived with this log and is the source's own claim.
@@ -4234,15 +4212,20 @@ public final class MainFrame extends JFrame {
 
     /**
      * M35.6 — push the verdict onto the Topology panel, where it stays. Called wherever
-     * {@code lastPairing} changes, so the panel and {@code context} can never disagree.
+     * the session snapshot changes (M44.4c), so the panel and {@code context} can never disagree.
      */
     private void publishPairing() {
-        if (!topologyPanel.hasGraph() || lastPairing == null) {
+        // M44.4c: rendered from the snapshot, whole. The pairing, its qualifications, the log size and the filter they
+        // are read against all come from ONE completed operation, so the note cannot mix a verdict with another
+        // moment's staleness.
+        var snap = sessionSnapshot();
+        var published = snap.publishedPairing();
+        if (!topologyPanel.hasGraph() || published == null) {
             topologyPanel.setPairingNote(null);
         } else {
-            var held = currentQualifications();
-            topologyPanel.setPairingNote(held == null ? lastPairing.note()
-                    : held.panelNote(lastPairing, storeRecords(), filterKeyNow()));
+            var held = snap.qualifications();
+            topologyPanel.setPairingNote(held == null ? published.note()
+                    : held.panelNote(published, snap.total(), snap.filterKey()));
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }
@@ -4292,30 +4275,14 @@ public final class MainFrame extends JFrame {
         });
     }
 
-    /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
-    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing lastPairing;
-
     /**
-     * M68.1 re-review R2: what the last whole-scope membership comparison said about {@link #lastPairing}.
-     * Bound to the exact pairing OBJECT it qualifies ({@link #qualifiedPairing}); read through
-     * {@link #currentQualification()}, which drops it the moment the published pairing is replaced, so it can
-     * never describe a different log or graph than the verdict beside it.
+     * M44.4c: the session's decided state. The frame keeps no verdict of its own — not the pairing (M44.4b), not the
+     * comparisons that qualify it, not which pair they are bound to — and reads this instead. Before the driver exists,
+     * nothing has been decided, which is what {@link telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot#EMPTY} says.
      */
-    private final telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications qualifications =
-            new telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications();
-    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing qualifiedPairing;
-
-    /**
-     * The qualifications, if they still describe the published pairing. Round 3: they are read at the store's
-     * CURRENT size, so a Follow append shows them as stale instead of letting them speak for a log they never saw.
-     */
-    private telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications currentQualifications() {
-        return lastPairing != null && qualifiedPairing == lastPairing && !qualifications.isEmpty()
-                ? qualifications : null;
-    }
-
-    private int storeRecords() {
-        return store == null ? 0 : store.size();
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot sessionSnapshot() {
+        var driver = session;
+        return driver == null ? telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot.EMPTY : driver.snapshot();
     }
 
     /** Round 4, Q5b: the identity of the filter in force, so a filtered comparison knows when it stopped being current. */
@@ -4338,25 +4305,14 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * M44.4b: the one place the published pairing changes after a load. The snapshot is the session's verdict; the frame
-     * renders it. The qualifications stay bound when the snapshot is about the same pair (same log generation, same
-     * graph revision) — a re-scope — and are left behind, so {@link #currentQualifications()} drops them, when it is not.
+     * M44.4b/c: the snapshot changed, so render it. The driver calls this only when something differs, on the EDT,
+     * outside any operation. There is nothing to decide here — which comparisons still describe the pairing is the
+     * session's {@code pairingQualifier}, bound by log generation and graph revision.
      */
     private void onSessionSnapshot(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
-        var before = publishedSnapshot;
-        publishedSnapshot = next;
-        // review B1: while a log is loading the verdict in force is about the log being replaced, so it is PENDING, and
-        // onLoaded publishes the arrival's own verdict when the load lands
-        if (loadInFlight) return;
-        if (java.util.Objects.equals(next.pairing(), lastPairing)) return;
-        if (qualifiedPairing != null && qualifiedPairing == lastPairing && next.samePairAs(before)) {
-            qualifiedPairing = next.pairing();
-        }
-        lastPairing = next.pairing();
         publishPairing();
     }
 
-    private telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot publishedSnapshot;
 
     /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
     private void setFollowing(boolean on) {
@@ -4812,7 +4768,14 @@ public final class MainFrame extends JFrame {
     }
 
     private void onFilterChanged() {
-        if (currentQualifications() != null) publishPairing();   // round 4, Q5b: a changed filter makes it stale
+        // round 4, Q5b: a changed filter makes a filtered comparison stale. M44.4c: the session is told, and the snapshot
+        // listener repaints if that changes what the note says. Only a CHANGE is a fact: this method also runs on every
+        // Follow append, and posting an unchanged key there wrote two transition records per append (set 3, caught by
+        // the O-i frame test). Compared against the session's own key, so the frame keeps no copy of it.
+        String key = filterKeyNow();
+        if (session != null && !java.util.Objects.equals(key, sessionSnapshot().filterKey())) {
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged(key));
+        }
         tablePanel.reFilter();
         if (store != null) {
             showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
@@ -5619,14 +5582,16 @@ public final class MainFrame extends JFrame {
 
         @Override
         public String qualifyPublishedPairing(java.util.Map<String, Object> coverageEcho) {
-            if (lastPairing == null) return null;
-            // round 3, N2: held per published pairing, and a narrower comparison never replaces a wider one
-            if (qualifiedPairing != lastPairing) qualifications.clear();
-            qualifiedPairing = lastPairing;
-            String said = qualifications.record(telamin.fluxtion.audit.analyser.analyser.topology
-                    .PairingQualification.fromCoverage(lastPairing, coverageEcho));
-            publishPairing();
-            return said;
+            // M44.4c: the comparison is a fact for the session, which binds it to the pair it names — the identity the
+            // coverage verb captured BEFORE its scan — or refuses it as stale. Round 3's N2 rules (a narrower comparison
+            // never replaces a wider one) live in PairingQualifications, now held by the session's pairingQualifier.
+            var driver = session;
+            if (driver == null || !(coverageEcho.get(ActionExecutor.PAIR_LOG_GENERATION) instanceof Long generation)
+                    || !(coverageEcho.get(ActionExecutor.PAIR_GRAPH_REVISION) instanceof Long revision)) {
+                return null;                          // no pair identity, no qualification: never bind by guesswork
+            }
+            driver.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.MembershipCompared(generation, revision, coverageEcho));
+            return driver.processor().pairingQualifier.lastSaid();
         }
 
         @Override
@@ -5877,8 +5842,7 @@ public final class MainFrame extends JFrame {
                 // re-open. onLoaded re-judges the opened graph against the log that lands.
                 // Review B1: the verdict in force was about the previous pair, so it goes with it —
                 // otherwise context and the topology note attached graph A's verdict to graph B.
-                lastPairing = null;
-                publishPairing();
+                publishPairing();                     // the snapshot is pending: no verdict about the previous pair
                 updateLifecycleMenu();
                 echo.put("pairing", PAIRING_PENDING);
                 echo.put("loading", true);
@@ -6299,18 +6263,20 @@ public final class MainFrame extends JFrame {
                 // only describe a graph that is actually there: a verdict beside "graph": null is
                 // the tool asserting something about an artefact it does not have, which is the
                 // defect class this milestone is about
-                if (loadInFlight) {
+                var snap = sessionSnapshot();         // M44.4c: one completed operation's verdict, whole
+                var published = snap.publishedPairing();
+                if (snap.pending()) {
                     // review B1: while a log loads, ANY verdict here would be about the previous pair
                     pair.put("pairing", PAIRING_PENDING_CONTEXT);
                     pair.put("loading", true);
-                } else if (gf && lastPairing != null) {
-                    pair.put("applies", lastPairing.applies());
-                    pair.put("loggedNodes", lastPairing.logged());
-                    pair.put("declaredByGraph", lastPairing.matched());
-                    pair.putAll(lastPairing.facts());
-                    var held = currentQualifications();
-                    if (held != null) pair.put("qualifiedBy", held.toMap(storeRecords(), filterKeyNow()));
-                    pair.put("verdict", lastPairing.reason());
+                } else if (gf && published != null) {
+                    pair.put("applies", published.applies());
+                    pair.put("loggedNodes", published.logged());
+                    pair.put("declaredByGraph", published.matched());
+                    pair.putAll(published.facts());
+                    var held = snap.qualifications();
+                    if (held != null) pair.put("qualifiedBy", held.toMap(snap.total(), snap.filterKey()));
+                    pair.put("verdict", published.reason());
                 }
                 // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs
                 // beside the pairing, not inside the topology block — that block sits below a
