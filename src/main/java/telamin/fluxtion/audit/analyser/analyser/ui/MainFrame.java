@@ -194,6 +194,22 @@ public final class MainFrame extends JFrame {
         // M68.3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
         // config before the change listener writes the merged list back
         graphTabs.setDeleteListener(name -> config.savedGraphs.removeIf(g -> g.name().equals(name)));
+        // M68.5: a chart's name is its identity in the profile, so the tabs must see the names of CLOSED
+        // definitions too — otherwise a generated name or a rename lands on one and the merge overwrites it
+        graphTabs.setKnownNames(() -> {
+            java.util.Set<String> names = new java.util.LinkedHashSet<>();
+            for (var g : config.savedGraphs) names.add(g.name());
+            return names;
+        });
+        // and a rename must MOVE the stored definition, not orphan it under the old name
+        graphTabs.setRenameListener((from, to) -> {
+            for (int i = 0; i < config.savedGraphs.size(); i++) {
+                if (config.savedGraphs.get(i).name().equals(from)) {
+                    config.savedGraphs.set(i, config.savedGraphs.get(i).withName(to));
+                    return;
+                }
+            }
+        });
         project.setPreSave(this::syncOpenGraphsIntoConfig);
         // M27.3: named focuses live in the config's project tier; save/recall/delete persist like graphs
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
@@ -4695,20 +4711,11 @@ public final class MainFrame extends JFrame {
      */
     private void syncOpenGraphsIntoConfig() {
         if (store == null) return;   // no log → tabs are empty; config already holds the profile's graphs
-        java.util.LinkedHashMap<String, telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> open
-                = new java.util.LinkedHashMap<>();
-        for (var g : graphTabs.specs()) open.put(g.name(), g);
-
-        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> merged = new java.util.ArrayList<>();
-        java.util.Set<String> placed = new java.util.HashSet<>();
-        for (var existing : config.savedGraphs) {
-            var live = open.get(existing.name());
-            // an open tab wins (it is the live state); one that is no longer a tab is kept, marked closed
-            merged.add(live != null ? live.withOpen(true) : existing.withOpen(false));
-            placed.add(existing.name());
-        }
-        for (var g : open.values()) if (!placed.contains(g.name())) merged.add(g.withOpen(true));
-
+        // M68.5: the rule itself lives in SavedGraphMerge, where a test can reach it. Written inline here
+        // it was unreachable — MainFrame is not headless-constructible — and reverting it to its old
+        // destructive form left the entire suite green.
+        var merged = telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.merge(
+                config.savedGraphs, graphTabs.specs());
         config.savedGraphs.clear();
         config.savedGraphs.addAll(merged);
     }

@@ -151,8 +151,7 @@ public final class GraphTabs extends JPanel {
     public GraphPanel addGraph(String name) {
         GraphPanel panel = newPanel();
         if (panel == null) return null;
-        counter++;   // keep the counter ahead so later default names never collide with a chosen name
-        panel.setGraphName((name == null || name.isBlank()) ? "Graph " + counter : name.trim());
+        panel.setGraphName((name == null || name.isBlank()) ? nextFreeDefaultName() : name.trim());
         panel.setOnPinChanged(() -> refreshTabTitle(panel));   // 📌 indicator tracks the pin state
         panel.setOnMutation(this::fireChanged);                // B-M20-3: edits persist as you make them
         panel.onNotesChanged(this::fireChanged);               // interactive note pins/edits too
@@ -160,6 +159,21 @@ public final class GraphTabs extends JPanel {
         tabs.setSelectedComponent(panel);
         fireChanged();
         return panel;
+    }
+
+    /**
+     * "Graph N" for the lowest N that nothing already answers to — a tab OR a closed definition.
+     *
+     * <p>M68.5: the counter alone was not enough. {@code doRestore} resets it to 0 and skips closed charts,
+     * so after a reload "New graph" would hand out a name a closed, annotated chart still held, and the
+     * name-keyed merge would then replace that chart with the empty new one.
+     */
+    String nextFreeDefaultName() {
+        java.util.Set<String> taken = takenNames();
+        do {
+            counter++;
+        } while (taken.contains("Graph " + counter));
+        return "Graph " + counter;
     }
 
     /** The display title = the logical name with a 📌 prefix when pinned (name stays clean for persistence). */
@@ -251,19 +265,39 @@ public final class GraphTabs extends JPanel {
     public boolean renameNamed(String from, String to) {
         if (from == null || to == null || to.isBlank()) return false;
         GraphPanel gp = graphNamed(from);
-        if (gp == null) return false;
-        gp.setGraphName(to.trim());
-        refreshTabTitle(gp);
-        fireChanged();
-        return true;
+        return gp != null && rename(gp, to);
     }
 
     private void renameAt(int i, String name) {
-        if (i >= 0 && name != null && !name.isBlank() && tabs.getComponentAt(i) instanceof GraphPanel gp) {
-            gp.setGraphName(name.trim());
-            refreshTabTitle(gp);
-            fireChanged();
+        if (i >= 0 && tabs.getComponentAt(i) instanceof GraphPanel gp) rename(gp, name);
+    }
+
+    /**
+     * Rename one chart, keeping the stored definition with it.
+     *
+     * <p>M68.5: this used to change the tab title and nothing else. Since the name IS the identity, the
+     * definition under the OLD name was then orphaned — kept by the merge as a closed ghost that could
+     * never be reopened — and renaming onto a name something else already held silently merged the two
+     * into one. Both are refused or repaired here, not in the merge, which cannot see intent.
+     */
+    boolean rename(GraphPanel gp, String name) {
+        if (name == null || name.isBlank()) return false;
+        String to = name.trim();
+        String from = gp.graphName();
+        if (to.equals(from)) return true;                 // nothing to do, and not a collision with itself
+        if (takenNames().contains(to)) {
+            JOptionPane.showMessageDialog(this,
+                    "There is already a chart called \"" + to + "\".\n\n"
+                            + "Chart names identify a chart in the project, so two cannot share one — the "
+                            + "other chart may be a saved one that is not open right now.",
+                    "Name already used", JOptionPane.WARNING_MESSAGE);
+            return false;
         }
+        gp.setGraphName(to);
+        refreshTabTitle(gp);
+        renameListener.accept(from, to);   // move the stored definition BEFORE the list is persisted
+        fireChanged();
+        return true;
     }
 
     private void promptRename(int i) {
@@ -318,15 +352,22 @@ public final class GraphTabs extends JPanel {
         }
         boolean was = restoring;   // building from persisted state is not a user edit
         restoring = true;
+        boolean opened;
         try {
             GraphPanel panel = addGraph(spec.name());
-            if (panel == null) return false;
-            applySpec(panel, spec);
-            tabs.setSelectedComponent(panel);
-            return true;
+            opened = panel != null;
+            if (opened) {
+                applySpec(panel, spec);
+                tabs.setSelectedComponent(panel);
+            }
         } finally {
             restoring = was;
         }
+        // M68.5: reopening IS a change to persisted state — since M68.3 the open/closed flag is durable, so
+        // a reopen that never asks to be saved sticks only if some later unrelated edit happens to write.
+        // Fired outside the guard above, which exists to suppress the REBUILD, not the outcome.
+        if (opened) fireChanged();
+        return opened;
     }
 
     private void doRestore(List<GraphSpec> saved) {
@@ -418,6 +459,34 @@ public final class GraphTabs extends JPanel {
         this.deleteListener = listener == null ? name -> { } : listener;
     }
 
+    /** Told (from, to) when a chart is renamed, so the stored definition is renamed rather than orphaned. */
+    private java.util.function.BiConsumer<String, String> renameListener = (from, to) -> { };
+
+    public void setRenameListener(java.util.function.BiConsumer<String, String> listener) {
+        this.renameListener = listener == null ? (from, to) -> { } : listener;
+    }
+
+    /**
+     * Every chart name the PROJECT knows, including definitions that are closed and therefore not tabs.
+     *
+     * <p>M68.5: a chart is identified by its name, but this class could only see the open tabs. A closed
+     * definition reserved nothing, so a generated "Graph N" or a rename could land on top of one and the
+     * name-keyed merge would then overwrite it — destroying an annotated chart nobody named.
+     */
+    private java.util.function.Supplier<java.util.Set<String>> knownNames = java.util.Set::of;
+
+    public void setKnownNames(java.util.function.Supplier<java.util.Set<String>> names) {
+        this.knownNames = names == null ? java.util.Set::of : names;
+    }
+
+    /** Names that are spoken for: open tabs plus the project's closed definitions. Visible for tests. */
+    java.util.Set<String> takenNames() {
+        java.util.Set<String> taken = new java.util.HashSet<>(graphNames());
+        java.util.Set<String> known = knownNames.get();
+        if (known != null) taken.addAll(known);
+        return taken;
+    }
+
     /**
      * M68.3 — remove the chart's DEFINITION, not just its tab. Destructive and unrecoverable (a chart
      * carries its explanation and pinned notes, which is the part worth keeping), so it confirms first and
@@ -436,8 +505,14 @@ public final class GraphTabs extends JPanel {
         if (answer != JOptionPane.OK_OPTION) return;
         gp.unbind();
         tabs.removeTabAt(i);
-        if (tabs.getTabCount() == 0) addGraph();
-        deleteListener.accept(name);   // drop the definition BEFORE the change listener persists the list
+        // M68.5: drop the definition FIRST. This used to run after the fallback below, and addGraph ends in
+        // fireChanged() — a save — so the list was persisted while the deleted chart was still in it and a
+        // fresh placeholder had just taken a name a CLOSED chart still held. The name-keyed merge then
+        // overwrote that closed chart's definition with the empty placeholder: deleting one chart destroyed
+        // a different one the dialog never named. The comment that used to sit here claimed this ordering
+        // while the code did the opposite.
+        deleteListener.accept(name);
+        if (tabs.getTabCount() == 0) addGraph();   // safe now: the name is free and the definition is gone
         fireChanged();
     }
 }

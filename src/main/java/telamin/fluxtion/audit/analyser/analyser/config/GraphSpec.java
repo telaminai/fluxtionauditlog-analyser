@@ -57,6 +57,16 @@ public record GraphSpec(String name, List<String> series, List<ExprSpec> exprs, 
      * reset the style and revived a closed chart. Copy through a wither, never by re-listing components:
      * an omitted component takes its DEFAULT, and the compiler cannot tell that apart from an intention.
      */
+    /**
+     * The same chart under a new name. M68.5: a rename must MOVE the definition, because the name is the
+     * identity the profile and the merge key on — renaming the tab alone orphaned the old entry as a
+     * closed ghost that could never be reopened.
+     */
+    public GraphSpec withName(String newName) {
+        return new GraphSpec(newName, series, exprs, from, to, note, explanation, notes, rightAxis,
+                guides, bands, external, markers, style, open);
+    }
+
     public GraphSpec withExternal(List<ExternalSpec> newExternal, List<MarkerSpec> newMarkers) {
         return new GraphSpec(name, series, exprs, from, to, note, explanation, notes, rightAxis,
                 guides, bands, newExternal, newMarkers, style, open);
