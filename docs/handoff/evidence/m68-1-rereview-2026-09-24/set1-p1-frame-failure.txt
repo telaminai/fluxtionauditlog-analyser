@@ -1,0 +1,3 @@
+[ERROR] Tests run: 9, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.440 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.PairingDuringLoadFrameTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(Path) -- Time elapsed: 0.125 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: frame/discovery parity ==> expected: <GraphPairing[logged=3, matched=3, applies=true, reason=the graph declares all 3 node(s) this log writes, recordsScanned=-1, recordsTotal=-1]> but was: <GraphPairing[logged=3, matched=3, applies=true, reason=the graph declares all 3 node(s) this log writes, recordsScanned=1, recordsTotal=1]>
