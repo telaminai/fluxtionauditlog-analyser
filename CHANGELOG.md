@@ -14,6 +14,35 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   Recent logs and topologies sit beside their open actions. Saved `menu:File…` spotlight steps are
   now refused; update them to the new visible menu names. Guides and screenshots follow the layout.
 
+- **An action that cannot happen now says so.** Open on a saved chart that cannot be shown used to bring
+  the Graph tab forward and then do nothing at all; it now explains why — no log loaded, duplicate names
+  withholding the definitions, or no such chart — naming the chart. Nothing is said when it succeeds.
+
+- **Zoom and pin now say which one keeps its window.** Both set the visible time range and sit side by
+  side, but a zoom is a view and is forgotten, while a pin is saved with the chart and comes back on
+  reload. The zoom controls had no tooltip at all and the pin's did not mention that it persists.
+
+- **Duplicate chart names can now be repaired in the app.** A project holding two charts under one name
+  still withholds both rather than guessing, but the Graph panel now offers **Repair names…**, which
+  names each contested chart, says what it contains, and offers rename or delete for each. Nothing is
+  chosen by default and a partial answer is refused, so no definition is removed without being asked for.
+
+- **An ambiguous project no longer blocks unrelated chart work.** Only Delete is withheld while duplicate
+  names are unresolved; New graph, Rename and Close work as usual, both in the app and through the
+  assistant's `graph` action, and a chart made while names are unresolved is kept when they are repaired.
+  Nothing is written to the project until then. Duplicates were creatable by earlier releases, so this
+  affected people who had done nothing wrong.
+
+- **An assistant that sends a chart series in the wrong shape is now told so.** `graph {series}` takes
+  `"instanceId.key"` strings. An object such as `{expr, label}` used to be turned into a key that could
+  never match, saved with the chart, and answered as a success, leaving an empty chart that looked
+  finished. A bare string instead of a list was silently ignored. Both are now refused with the right
+  shape named (`exprs` for a labelled or computed series), and nothing is changed.
+
+- **An assistant can now read back a chart's plot style.** The `graph` reply and the `context` list of
+  saved charts report each chart's style (step, line or points), and saved charts list their series as
+  `instanceId.key` rather than in the internal stored form.
+
 ## [1.19.2] - 2026-09-24
 
 - Legacy global settings with duplicate chart names no longer interrupt log loading. The Graph panel

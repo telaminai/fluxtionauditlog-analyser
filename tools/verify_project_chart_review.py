@@ -11,7 +11,47 @@ import subprocess
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-CASES = [('explicit-name',
+CASES = [('follow-hold',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (System.currentTimeMillis() - sayAtMillis >= SAY_HOLD_MILLIS) {',
+  'if (true) {',
+  'StatusExplanationSurvivesFrameTest#anExplanationSurvivesAnIdleFollowTick'),
+ ('report-link-opens-closed',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (graphTabs.selectGraph(gname)) return;',
+  'if (true) { graphTabs.selectGraph(gname); return; }',
+  'StatusExplanationSurvivesFrameTest#aReportLinkToAClosedChartOpensIt'),
+ ('dialog-unanswered-row',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/DuplicateChartRepair.java',
+  '            default -> null;',
+  '            default -> new Choice(Action.DELETE, null);',
+  'DuplicateChartRepairTest#anUnansweredRowProducesNoChoiceAtAll'),
+ ('repair-tier-guard',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (!java.util.Objects.equals(tierWhenAsked, tierNow) || !saved.equals(config.savedGraphs)) {',
+  'if (false) {',
+  'DuplicateChartRepairFrameTest#aListThatChangedWhileTheDialogWasOpenIsRefused'),
+ ('repair-carry-unsaved',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (!repairedNames.contains(live.name())) carried.add(live.withOpen(true));',
+  '',
+  'DuplicateChartRepairFrameTest#aChartMadeDuringTheRefusalSurvivesTheRepair'),
+ ('repair-unsaved-name-taken',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/DuplicateChartRepair.java',
+  'if (alsoTaken.contains(to)) {',
+  'if (false) {',
+  'DuplicateChartRepairFrameTest#renamingOntoAnUnsavedChartIsRefusedRatherThanDestroyingIt'),
+ ('verb-withheld-only',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java',
+  'onEdt(() -> graphTabs.isWithheldDefinition(target))',
+  'onEdt(() -> graphTabs.hasDefinition(target))',
+  'DuplicateChartRepairFrameTest#theAssistantCanEditAChartItCreatedDuringTheRefusal'),
+ ('repair-nothing-chosen',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'status.setText("Nothing was chosen, so no chart names were changed.");',
+  '',
+  'DuplicateChartRepairFrameTest#okWithNothingChosenSaysSo'),
+ ('explicit-name',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java',
   '        if (name != null && !name.isBlank()\n'
   '                && (graphNamed(name.trim()) != null || (!restoring && hasDefinition(name)))) return null;',
@@ -121,6 +161,28 @@ CASES = [('explicit-name',
 CASES.append(('import-ambiguous-target', 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/SettingsShare.java',
               'SavedGraphMerge.requireUniqueNames(target.savedGraphs);', '',
               'GraphProfileMetadataTest#mergingIntoDuplicateTargetRefusesBeforeAnyCategoryChanges'))
+# The graph verb's series shape and style read-back (GraphSeriesShapeAndStyleEchoTest, a headless class).
+GRAPH_VERB = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java'
+SESSION_FACTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/SessionFacts.java'
+ECHO_TEST = 'GraphSeriesShapeAndStyleEchoTest#'
+CASES += [
+    ('series-object', GRAPH_VERB, '            if (o instanceof String) continue;',
+     '            if (o instanceof String || o instanceof Map<?, ?>) continue;',
+     ECHO_TEST + 'anObjectInSeriesIsRefusedAndNothingIsCreated'),
+    ('series-null', GRAPH_VERB, '            if (o instanceof String) continue;',
+     '            if (o == null || o instanceof String) continue;',
+     ECHO_TEST + 'aNullSeriesEntryIsRefused'),
+    ('series-not-a-list', GRAPH_VERB,
+     '        if (!(series instanceof List<?> list)) {\n            return "series is a list',
+     '        if (!(series instanceof List<?> list)) {\n            if (true) return null;\n            return "series is a list',
+     ECHO_TEST + 'aSeriesThatIsNotAListIsRefused'),
+    ('style-echo', GRAPH_VERB, '            applied.put("style", panel.styleName());', '',
+     ECHO_TEST + 'theEchoReportsTheStyleTheChartHas'),
+    ('saved-graphs-style', SESSION_FACTS, '            m.put("style", g.style());', '',
+     ECHO_TEST + 'savedGraphsShowTheKeyAsSentAndTheStyle'),
+    ('saved-graphs-key', SESSION_FACTS, 'map(SessionFacts::displayKey)', 'map(s -> s)',
+     ECHO_TEST + 'savedGraphsShowTheKeyAsSentAndTheStyle'),
+]
 
 
 # Resource-menu controls share the existing baseline / named-failure / byte-restore protocol.

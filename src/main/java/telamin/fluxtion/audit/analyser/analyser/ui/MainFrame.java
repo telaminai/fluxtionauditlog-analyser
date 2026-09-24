@@ -191,6 +191,7 @@ public final class MainFrame extends JFrame {
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
         graphTabs.setSavedDefinitions(() -> config.savedGraphs);
+        graphTabs.setRepairHandler(this::repairDuplicateCharts);   // the in-app way out of an ambiguous profile
         graphTabs.setChangeListener(this::onGraphsEdited);
         // 38ecc7f3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
         // config before the change listener writes the merged list back
@@ -385,7 +386,9 @@ public final class MainFrame extends JFrame {
             @Override public boolean openSaved(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec spec) {
                 return graphTabs.openSaved(spec);
             }
-            @Override public void selectGraph(String name) { graphTabs.selectGraph(name); }
+            @Override public boolean selectGraph(String name) { return graphTabs.selectGraph(name); }
+            @Override public String definitionRefusal() { return graphTabs.definitionRefusal(); }
+            @Override public void say(String message) { sayToStatus(message); }
         }, () -> config.savedGraphs));
         projectPanel.setVisible(!config.projectPanelCollapsed);
         projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
@@ -2922,7 +2925,7 @@ public final class MainFrame extends JFrame {
                         : telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
                                 .assembleTable(sec, store, this::coverageForReport),
                 row -> openRecordFromReport(row),
-                gname -> { sideTabs.setSelectedComponent(graphTabs); graphTabs.selectGraph(gname); },
+                gname -> { sideTabs.setSelectedComponent(graphTabs); revealGraphByName(gname); },
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name));
@@ -4361,8 +4364,13 @@ public final class MainFrame extends JFrame {
                     : String.join("\n\n", producerDiagnostics.messages()));
         }
         if (added == 0) {
-            status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
-                    store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+            // R12-2: a tick with nothing new used to overwrite whatever the status bar was saying, so an
+            // explanation of why an action did nothing vanished about a second later while Follow was on.
+            // Idle ticks carry no news; they must not erase news someone is still reading.
+            if (System.currentTimeMillis() - sayAtMillis >= SAY_HOLD_MILLIS) {
+                status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
+                        store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+            }
             return;
         }
         if (tableModel != null) tableModel.rowsAppended(before);
@@ -5286,18 +5294,175 @@ public final class MainFrame extends JFrame {
         refreshProjectPanel();                                        // M37: the project, and everything it owns
     }
 
+    /**
+     * R12-3: a report's chart link called selectGraph and ignored its result. Since a closed chart keeps
+     * its definition, a link to one brought the Graph tab forward and did nothing. Open it from the
+     * profile when it is saved, and say why when it cannot be opened at all.
+     */
+    private void revealGraphByName(String gname) {
+        if (graphTabs.selectGraph(gname)) return;
+        for (var g : config.savedGraphs) {
+            if (g.name().equals(gname)) {
+                if (!graphTabs.openSaved(g)) {
+                    String withheld = graphTabs.definitionRefusal();
+                    sayToStatus("\"" + gname + "\" cannot open yet: "
+                            + (withheld != null ? withheld : "no log is loaded."));
+                }
+                return;
+            }
+        }
+        sayToStatus("No chart called \"" + gname + "\" is open, and the project has no saved definition for it.");
+    }
+
+    /** How long an explanation holds the status bar against idle follow ticks (R12-2). */
+    private static final long SAY_HOLD_MILLIS = 12_000;
+    private long sayAtMillis = Long.MIN_VALUE / 4;
+
+    /** Put an explanation on the status bar and protect it briefly from idle overwrites. */
+    void sayToStatus(String message) {
+        sayAtMillis = System.currentTimeMillis();
+        status.setText(message);
+    }
+
+    /**
+     * Owner decision 2026-09-24: the way out of an ambiguous profile, in the app.
+     *
+     * <p>Asks for a choice per contested definition and applies them together through
+     * {@link telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair}, which refuses a partial
+     * or colliding repair. Replaceable so a test can answer it: the real one is a modal, and the branch
+     * that must change nothing — cancel — is the one a modal makes untestable.
+     */
+    java.util.function.Function<List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec>,
+            java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>>
+            repairChooser = this::askHowToRepairDuplicates;
+
+    /** Run the repair: ask, apply, persist, rebind. Cancel leaves every definition exactly as it was. */
+    private void repairDuplicateCharts() {
+        var saved = List.copyOf(config.savedGraphs);
+        Path tierWhenAsked = project == null ? null : project.activeFile();
+        var choices = repairChooser.apply(saved);
+        if (choices == null) return;                                // cancelled: nothing is touched
+        if (choices.isEmpty()) {                                    // OK with every row left on "Choose…"
+            status.setText("Nothing was chosen, so no chart names were changed.");
+            return;
+        }
+        // R13-1: the chooser is a MODAL, so a nested event loop ran while it was up and the action socket
+        // may have switched project underneath it. Applying a repair computed from the old list would write
+        // it over a different tier's charts and destroy them. Same shape as the stale tab index across the
+        // delete dialog: what was read before the question is not what is there after it.
+        Path tierNow = project == null ? null : project.activeFile();
+        if (!java.util.Objects.equals(tierWhenAsked, tierNow) || !saved.equals(config.savedGraphs)) {
+            JOptionPane.showMessageDialog(this,
+                    "The chart list changed while this dialog was open, so nothing was changed.\n\n"
+                            + "Open Repair names… again to see the charts as they are now.",
+                    "Charts not repaired", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> repaired;
+        try {
+            // R13-2b: names held by open tabs with no saved definition are taken too — a rename onto one
+            // would destroy unsaved work, which the carry-forward below cannot detect because the name is
+            // already in the repaired list by then.
+            var savedNames = saved.stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                    .collect(java.util.stream.Collectors.toSet());
+            var liveUnsaved = graphTabs.specs().stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                    .filter(n -> !savedNames.contains(n))
+                    .collect(java.util.stream.Collectors.toSet());
+            repaired = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                    .apply(saved, choices, liveUnsaved);
+        } catch (IllegalArgumentException refused) {
+            JOptionPane.showMessageDialog(this, refused.getMessage(), "Charts not repaired",
+                    JOptionPane.WARNING_MESSAGE);
+            return;                                                 // still ambiguous, still all preserved
+        }
+        // R13-2: a chart made DURING the refusal was never persisted (the save path returns early while
+        // definitions are withheld), and the rebuild below clears every tab. Carry those tabs into the
+        // repaired list so the person's work is kept and saved, rather than vanishing as a side effect of
+        // fixing something else. Their names cannot collide: nextFreeDefaultName reserves saved names too.
+        var repairedNames = repaired.stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                .collect(java.util.stream.Collectors.toSet());
+        var carried = new java.util.ArrayList<>(repaired);
+        for (var live : graphTabs.specs()) {
+            if (!repairedNames.contains(live.name())) carried.add(live.withOpen(true));
+        }
+
+        config.savedGraphs.clear();
+        config.savedGraphs.addAll(carried);
+        graphTabs.clearRefusal();
+        restoreGraphDefinitions(List.copyOf(config.savedGraphs));
+        saveConfigQuietly();
+        if (project != null) project.requestSave();
+        refreshProjectPanel();
+        int kept = carried.size() - repaired.size();
+        // sayToStatus, not status.setText: R12-2 landed on main between this branch and here, and an idle
+        // follow tick would otherwise wipe the one confirmation that the repair actually happened.
+        sayToStatus("Chart names repaired; definitions loaded."
+                + (kept > 0 ? " " + kept + " unsaved chart" + (kept == 1 ? "" : "s") + " kept." : ""));
+    }
+
+    /** The modal half. Returns null when the person cancels. */
+    private java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>
+            askHowToRepairDuplicates(List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> saved) {
+        var duplicates = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.find(saved);
+        if (duplicates.isEmpty()) return null;
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.add(new JLabel("<html>Two or more charts share a name, so none of them can be loaded.<br>"
+                + "Choose what happens to each. Nothing is changed until you press OK.</html>"));
+        java.util.Map<Integer, JComboBox<String>> actions = new java.util.LinkedHashMap<>();
+        java.util.Map<Integer, JTextField> names = new java.util.LinkedHashMap<>();
+        for (var duplicate : duplicates) {
+            form.add(Box.createVerticalStrut(UiTheme.GAP));
+            form.add(new JLabel("\"" + duplicate.name() + "\""));
+            for (int index : duplicate.indices()) {
+                JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+                // what is in it, so a person is not asked to destroy something unnamed
+                row.add(new JLabel(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                        .describe(saved.get(index)) + " →"));
+                JComboBox<String> action = new JComboBox<>(new String[]{"Choose…", "Rename to", "Delete"});
+                JTextField field = new JTextField(duplicate.name(), 16);
+                field.setEnabled(false);
+                action.addActionListener(e -> field.setEnabled(action.getSelectedIndex() == 1));
+                row.add(action);
+                row.add(field);
+                actions.put(index, action);
+                names.put(index, field);
+                form.add(row);
+            }
+        }
+        int answer = JOptionPane.showConfirmDialog(this, new JScrollPane(form), "Repair chart names",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) return null;
+
+        var choices = new java.util.LinkedHashMap<Integer,
+                telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>();
+        // R13-5: the row-to-choice step is DuplicateChartRepair.choiceFor, not an if/else here, because
+        // nothing could reach it here — mutating it so "Choose…" meant DELETE left every test green.
+        // A null contributes no entry, so apply() refuses the partial repair and names the unanswered row.
+        actions.forEach((index, action) -> {
+            var choice = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                    .choiceFor(action.getSelectedIndex(), names.get(index).getText());
+            if (choice != null) choices.put(index, choice);
+        });
+        return choices;
+    }
+
     /** Legacy global settings can contain duplicates that project/import validation now refuses. */
     private void restoreGraphDefinitions(List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> saved) {
         try {
             telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
         } catch (IllegalArgumentException ambiguous) {
             String source = project.hasProject() ? project.activeFile().toString() : configStore.path().toString();
+            // R13-3: this used to send people away to hand-edit a file. There is now a way out in the app,
+            // and the assistant's graph verb returns this same text, so it must name the control.
             graphTabs.refuseDefinitions("Charts not loaded: " + ambiguous.getMessage()
-                    + ". All definitions are retained. "
-                    + (project.hasProject() ? "Close the project" : "Close the analyser")
-                    + " before editing the chart names in " + source
-                    + " to make them unique, then " + (project.hasProject() ? "reopen the project." : "restart the analyser.")
-                    + " Log inspection remains available.");
+                    + ". All definitions are retained. Use Repair names… on the Graph panel to rename or"
+                    + " delete the duplicates, or edit them in " + source + " yourself."
+                    + " New charts and log inspection remain available.");
             return;
         }
         graphTabs.restore(saved);

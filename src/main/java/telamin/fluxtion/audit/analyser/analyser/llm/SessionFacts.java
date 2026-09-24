@@ -71,10 +71,17 @@ public record SessionFacts(LogFileInfo file, String eventProcessorFqn, List<Path
             m.put("name", g.name());
             m.put("open", openNames.contains(g.name()));
             m.put("input", hasLog ? "loaded; bindings require validation" : "waiting for input");
-            m.put("series", g.series());
+            // the persisted form separates instanceId and key with U+0001; a caller reads and sends "instanceId.key"
+            m.put("series", g.series().stream().map(SessionFacts::displayKey).toList());
             m.put("expressions", g.exprs().stream().map(GraphSpec.ExprSpec::expr).toList());
+            m.put("style", g.style());   // step|line|points — before this, a chart's style could be set but never read
             return m;
         }).toList();
+    }
+
+    private static String displayKey(String spec) {
+        int sep = spec.indexOf('\u0001');
+        return sep < 0 ? spec : spec.substring(0, sep) + "." + spec.substring(sep + 1);
     }
 
     // ---- JSON rendering (the `context` verb) -------------------------------------------------------

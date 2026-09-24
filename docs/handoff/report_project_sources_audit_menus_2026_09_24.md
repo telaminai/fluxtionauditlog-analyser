@@ -186,3 +186,27 @@ python3 tools/verify_project_chart_review.py --mode mutations \
 The chooser/network actions and Exit were inspected as retained listeners, not clicked. Pending-load
 close interleavings are not newly claimed by these tests. The local display is macOS; Linux/xvfb
 results belong to CI and will be stated separately from local runs.
+
+## Main integration — 2026-09-24
+
+Integrated fetched main `4d787d1b` into the feature branch after review-response commit `e1eec2e4`,
+using a merge as authorised, so the pushed PR history does not need a force-push. The two textual
+conflicts were CHANGELOG and CI: retain both sets of unreleased entries, and both sets of frame
+suites in both lists. `MainFrame` and the verifier merged automatically; inspection against main
+confirms the menu relocation and close listeners remain, alongside the newly merged chart fixes.
+
+Per owner instruction, **the mutation gate was not rerun** on this combined tree. Earlier mutation
+results above apply to their recorded pre-integration tree; no new mutation claim is made. Preflight
+checks all 46 anchors and both CI lists (19 suites), without running a mutation.
+
+JDK 21 `mvn -q clean package`: **1985 total / 0 failures / 0 errors / 97 skips**,
+265 source-mapped XML reports, no orphans (1888 executed).
+[Counts](evidence/project-sources-audit-menus-2026-09-24/main-integration/headless-counts.json).
+`python3 tools/test_project_chart_review.py`: five tests pass. Strict MkDocs passed.
+Display: **98 / 0 / 0 / 0**, all 19 suites, using
+`python3 tools/verify_project_chart_review.py --mode display --output /private/tmp/pr15-main-display.json`.
+[Result](evidence/project-sources-audit-menus-2026-09-24/main-integration/display.json).
+The command passes `-Djava.awt.headless=false` directly. `python3 tools/verify-m64-spotlight.py`
+passes **94/94** against the rebuilt jar under an isolated home;
+[output](evidence/project-sources-audit-menus-2026-09-24/main-integration/spotlight.txt).
+Strict docs, diff checks and both public-repository sweeps are clean. No screenshot recapture: main's additions do not alter the captured menu layout.

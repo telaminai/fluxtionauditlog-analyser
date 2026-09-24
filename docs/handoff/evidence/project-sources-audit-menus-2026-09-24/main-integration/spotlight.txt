@@ -1,0 +1,108 @@
+with NOTHING open - a tutor's first 'look here' happens on a fresh start
+  PASS  status lights with nothing open
+  PASS  toolbar:open lights with nothing open
+  PASS  tab:topology lights with nothing open
+  PASS  project lights with nothing open
+  PASS  context reports the live spotlight, on a fresh start (above the early return)
+  PASS  a node with no topology open is REFUSED with a reason to act on, never lit on nothing
+  PASS  and the refused request left the standing spotlight alone
+an unknown target names the vocabulary
+  PASS  a misspelt target is an error that teaches the vocabulary
+  PASS  a two-line caption is refused - the sentence belongs in the chat
+with a log, a graph and a chart open - every M64 family (M66 design families: tools/check-design-render.py)
+  PASS  opening put the spotlight out (a view-changing verb)
+  PASS  (setup) the chart drew its series - a spotlight test that lit an EMPTY chart proves nothing
+  PASS  tab:summary lights
+  PASS  tab:source lights
+  PASS  tab:graph lights
+  PASS  tab:reports lights
+  PASS  tab:assistant lights
+  PASS  tab:topology lights
+  PASS  records lights
+  PASS  records:row:15 lights
+  PASS  detail lights
+  PASS  detail:node:quotePublisher lights
+  PASS  topology lights
+  PASS  topology:node:priceListener lights
+  PASS  topology:verdict lights
+  PASS  graph lights
+  PASS  graph:series:quotePublisher.spread lights
+  PASS  graph:note:1 lights
+  PASS  project lights
+  PASS  project:log lights
+  PASS  project:graph lights
+  PASS  project:processors lights
+  PASS  project:roots lights
+  PASS  toolbar:open lights
+  PASS  toolbar:flag lights
+  PASS  toolbar:explain lights
+  PASS  toolbar:follow lights
+  PASS  status lights
+a series is named EXACTLY - never bound to the first label that starts with it (review F1)
+  PASS  graph:series:quote is REFUSED - it is a prefix of quotePublisher.spread, not a series
+  PASS  with TWO series sharing a prefix, the prefix lights neither
+  PASS  and each is still lit by its own exact label
+a target that is off screen is REVEALED first
+  PASS  a node on a tab that was not showing is revealed and lit
+  PASS  a FILTERED-OUT row is revealed through the goto path, then lit
+the tutor's own check: context, then a screenshot
+  PASS  context names the target and carries the caption
+  PASS  a screenshot can be taken WITHOUT putting the spotlight out
+each view-changing verb puts it out
+  PASS  filter puts the spotlight out
+  PASS  goto puts the spotlight out
+  PASS  graph puts the spotlight out
+  PASS  topology puts the spotlight out
+  PASS  open puts the spotlight out
+SEVERAL at once - a finding is usually a relation (M64.6)
+  PASS  four things on screen together light as ONE call, every one with an area
+  PASS  they are numbered in the order asked, in the echo and in context
+  PASS  a callout is optional per target
+  PASS  a screenshot leaves all four lit
+  PASS  a set with ONE bad member is refused whole, naming the member
+  PASS  and the four that were lit are still lit
+  PASS  two things on DIFFERENT tabs are refused: they cannot be on screen together
+  PASS  and the refusal says which standing spotlights its reveal took off screen
+  PASS  {add: true} keeps what is lit and numbers the new one after it
+  PASS  adding a target ALREADY lit re-lights it in place - same number, never twice
+  PASS  without add, a call REPLACES the set
+  PASS  {clear: true, target} puts out exactly that one, and the others KEEP their numbers
+stable numbers: putting out the HIGHEST does not free its number (review F1)
+  PASS  status=1, detail=2, detail out, records added -> records is 3, NOT a reused 2
+a call that is WRONG touches nothing - judged whole before any row is revealed (review F2)
+  PASS  a misspelt member beside a row is refused
+  PASS  and the filter, the selection and the standing spotlights are exactly as they were
+  PASS  a SEVENTH that is a row is refused with the bound
+  PASS  and it did not clear the filter or select record 10 on its way to being refused
+  PASS  a row this log does NOT HAVE is refused, naming the range (goto would have clamped it to the last record)
+  PASS  and it neither cleared the filter nor selected the last record
+  PASS  control: a VALID row is still revealed through goto's path - the filter is relaxed for it
+  PASS  a seventh is refused with the bound, not silently dropped
+  PASS  and add cannot take the lit set past the bound either
+  PASS  a top-level caption beside a list is refused - it would belong to none of them
+  PASS  an unknown field in an entry is refused, never ignored
+  PASS  a view-changing verb puts ALL of them out
+the point-at-the-fault skill's WORKED EXAMPLE, call for call - a skill's numbers must not rot (M64.8)
+  PASS  series finds ONE crossing above 1: record 15, value 2, over 160 points
+  PASS  and the record bears the claim out: liveOrders 2, limit 2
+  PASS  the evidence lights as ONE numbered call: the record and the node that reported it
+  PASS  and flagging it (note + fix) leaves the spotlights lit - flag changes no view
+  PASS  the SAME runbook finding nothing: no crossings above 99, max 6 - and then it lights nothing
+a label must name exactly ONE series (re-review R4)
+  PASS  the SAME external given twice: the later entry applies and the echo says so (ledger review F2, 1.14.2)
+  PASS  so the label names ONE series, and lights it
+  PASS  a FORMULA labelled with the legend's own suffix collides with the external series - refused too
+  PASS  and the unambiguous series on that same graph still lights
+  PASS  on the SELECTED chart (Named B) the series is absent: refused naming the selected chart
+  PASS  and the refusal names a chart that HAS it, in the form to send next
+  PASS  graph:<name>:series:<label> selects that chart and lights the series
+  PASS  an unknown chart name is refused, naming the open charts
+  PASS  and the standing spotlight is untouched
+  PASS  menu:Audit log:Close log opens the Audit log menu and lights the item, with an area
+  PASS  a screenshot with a lit menu item is written (the popup is painted into the shot)
+  PASS  clearing a lit menu item closes the menu with it
+  PASS  an unknown item is refused naming the menu's items
+  PASS  an unknown menu is refused naming the menus
+  PASS  {clear: true} puts it out and context reports nothing after
+
+all M64 spotlight checks pass
