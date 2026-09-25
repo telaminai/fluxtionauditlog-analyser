@@ -20,6 +20,9 @@ or a G14 pass. The running project remains untouched.
 - ☐ **Recovery provenance investigation** — spec §E, feedback 5: extend the existing journey
   recovery acceptance with cross-project capture and pending I/O. Project-key isolation
   already exists; an external log path alone does not prove a foreign recovery offer.
+- ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
+  add the emitted Spring design directory to template roots, verify topology/source with no
+  log, and offer only the matching reachable console. No automatic server control or token disclosure.
 - ☐ **Project input grants, proposed** — spec §E, feedback 11: retain M68.5's canonical root
   diagnostics work. A separate role-scoped grant policy needs approval; opening a profile
   does not implicitly authorise the project root or target directory.
@@ -1604,6 +1607,11 @@ call the LLM is waiting on; would be M64.14, the tour its first user.
   callback/packaging checks, not generated-dispatch or receipt-integrity evidence.
   D-X7's remote was unavailable at intake; G18 now provides the [source repository](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`. Independently source-reviewed by G at `e559c424`; binary publication/integration remain open.
   Public resolution, owner-built provenance and the tour remain open. [Evidence](../handoff/evidence/spring-side-2026-09-23/jars/summary.json).
+  **Owner extension 2026-09-25:** [edit-loop §I](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars)
+  specifies shared market-event compatibility, a real valueMapper, sources packaging and
+  a staged market-data tour. Source head `3a89391` remains the inspected baseline; no binary
+  publication or generated/hosted integration is claimed. Preserve risk A as the labelled
+  incorrect control. The design-first/admin-console journey is specified alongside it.
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
 - [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).

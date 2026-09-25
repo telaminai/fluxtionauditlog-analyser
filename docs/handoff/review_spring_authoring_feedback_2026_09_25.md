@@ -182,3 +182,34 @@ is not assumed to exist or added to the analyser's responsibility.
 passed. No display or mutation checks were run for this documentation-only revision. Public
 pages were fetched and read; plugin/core examples were inspected at the reported versions,
 not executed. The updated feedback hash was unchanged when checks finished.
+
+
+## Owner additions: design-first journey, console and vendor integration
+
+**READ, not a UI run:** the inspected playground release's bundle model and generic profile
+emitter include only `src/main/java`. The current participant profile has later-added designer
+and target roots. Analyser `openDesign` and `openGraphml` do not require a log; GraphML opening
+explicitly states that there is nothing to compare against when no log is open. XML is exposed
+in Source/Design rather than being automatically embedded in the GraphML canvas. §I1 now
+requires a no-log real-frame journey and the explicit design directory in the generated profile.
+
+**READ:** plugins 1.0.44 writes server-registry records before HTTP binding and can leave them
+after crashes. §I2 therefore requires project/server identity and an actual bounded read-only
+probe before offering a browser link. No live registry, token or running server was accessed.
+
+**READ from a fresh public clone:** vendor collection head `3a89391` is source-only by its
+own publication contract. `QuoteView` and the demo's concrete PriceEvent are different
+contracts, and the supplied CSV adapter is callback-based rather than a valueMapper Function.
+§I3–I4 specify compatible shared types, mapper/wiring, source jars, binary resolution and
+M67's staged tour, preserving the deliberately incorrect risk A and its independent oracle.
+No vendor source or binary was changed and no guided tour was run by this inspection.
+
+These additions extend the specification. They do not claim the requested UI or vendor/demo
+changes are implemented. The canonical M67 tracker entries remain open.
+
+
+**Revision 3 documentation gate RUN:** JDK 21 `mvn -q test`: **1,996 / 0 / 0 / 98**
+(total/failures/errors/skips), 266 reports. Strict MkDocs, diff whitespace and the tracked-file
+public-data sweep pass. No display acceptance is claimed for the newly proposed journey.
+The owner authorised reusable demo implementation on branches, leaving publication for review;
+that authorisation is not a claim that implementation has started or passed these acceptances.

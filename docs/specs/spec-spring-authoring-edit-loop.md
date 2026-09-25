@@ -1,6 +1,9 @@
 # Spring authoring: make the second edit routine
 
-Status: **PROPOSED v2**, 2026-09-25. No implementation or release acceptance is claimed.
+Status: **PROPOSED v3**, 2026-09-25. No implementation or release acceptance is claimed.
+
+Revision 3 adds the owner's design-first walkthrough, admin-console offer and M67 vendor
+integration requirements (§I). These remain proposed work, not implemented product changes.
 
 Revision 2 incorporates feedback 21–24 and the addition to 19, received during the first
 review. These additions came primarily from documentation inspection, not further runtime
@@ -384,6 +387,132 @@ Test menu-only, pairing-with-basis, empty/unknown selection, project transition 
 compatibility. Record bytes for a fixed fixture, not an invented token saving. Mutate projection
 or drop a verdict's qualification and require separate assertions to fail. Update schemas,
 assistant guidance and portable-context tests together; no new verb is required.
+
+## I. Design-first market-data tour and existing vendor jars
+
+Owner additions, 2026-09-25. This extends the current demo/journey and **M67.1–M67.6**;
+it does not open a second vendor catalogue. The existing D-X8 dedicated extension-template
+entry may share the market-data base and assets. These are proposed implementation requirements.
+
+### I1. Open the design before collecting evidence
+
+The inspected template profile supplies only `src/main/java`; its Spring XML lives under
+`src/main/fluxtion/designer`. The participant's profile now includes that directory and
+`target`, but those later additions do not fix the template. Add the actual emitted design
+directory to the Spring template's explicit source roots, with a visible project-load summary.
+This is a narrow generated-profile default, not an implicit grant to the entire project.
+Generic producer-result grants remain the separate §E policy decision.
+
+Give the generated guide a direct design-open step and, if supported by the profile contract,
+a typed design pointer. Do not invent an ignored profile key. The UI must distinguish authored
+XML (**Source → Design**) from compiled **Topology** (GraphML). XML is not automatically proof
+of the compiled graph. Offer navigation between the design and the loaded topology with the
+existing relationship qualification; explain the distinct views at the point of use.
+
+The first tour step needs no audit log: inspect XML, shipped GraphML and generated Java,
+then a node's Java beside the topology. No artificial empty log, background application run
+or restored old session is needed. Current open-design and open-GraphML paths already permit
+no-log operation; improve discovery and test the complete journey instead of inventing a new
+mode. With no log, pairing/coverage must say unavailable/not compared, never matched or executed.
+
+**Acceptance I1:** extract the real Spring download under an isolated home, open its profile
+through the normal UI, then use the actual Sources actions to open design and GraphML and
+show Java beside topology. Assert no log is loaded, readable design/source, the visible
+no-comparison qualification, and no unexpected recovery. Removing the emitted design root
+must fail the design-read assertion; requiring a log must fail the no-log UI assertion.
+Use real-frame button/menu checks for visibility, not just a socket echo. Preserve the
+no-log frame and matching generated guides as the first tour screenshot.
+
+### I2. Offer the matching, reachable Mongoose console
+
+After the caller's normal start command, offer **Open Mongoose admin console** if the selected
+project's server is identified and its console is reachable. Prefer the existing server-registry
+record; a fixed `localhost:8181` guess or an existing registry file alone is insufficient.
+The plugin writes a registry record before binding and can leave it after a crash. Probe
+read-only, off the UI thread, with a short deadline. Establish matching server identity using
+the supported server metadata. Multiple candidates require selection; absent/ambiguous
+project association is disclosed, not guessed. Do not browse arbitrary registry URLs silently.
+
+A successful HTTP response from an unrelated service is not a successful match. Distinguish
+starting, unavailable, authentication required and identified/reachable. Offer a refresh/retry,
+not a green link on stale state. Use the supported browser login route; never put registry
+tokens in a URL, screenshot, context response or shareable profile. The offer opens only on
+user action, does not restart/configure a server, and disappears or becomes unavailable when
+its identity is no longer current. The assistant may offer the same route using existing
+runbook discovery; this adds no server-mutating analyser verb. A native analyser affordance
+is a journey enhancement, not a change to M67's no-new-surface constraint for its initial slices.
+
+**Acceptance I2:** fake local services/registry fixtures for success, refused connection,
+pre-bind record, stale process, unrelated responder, authentication and ambiguous servers.
+Switch projects while the probe is blocked: no old offer may appear. Click the offer with a
+browser-opener seam and assert the verified destination and no token. Mutate identity and
+reachability checks independently; each must fail. A live console check is additional evidence,
+not a substitute for these tests. Nothing in this spec authorises controlling the live session.
+
+### I3. Improve the existing collection before making it the guided default
+
+Inspect and extend [fluxtion-vendor-jars](https://github.com/telaminai/fluxtion-vendor-jars),
+source head `3a89391` at intake. Its public source is available; its README/catalogue explicitly
+say binary publication is still pending. Do not emit a customer POM pointing at an empty
+`main/libs` path or treat source availability as successful dependency resolution.
+
+Concrete compatibility work:
+
+- **Shared market-event contract:** the demo currently handles concrete `PriceEvent` with
+  symbol/price/volume, whereas `QuoteView` exposes symbol/size. Define units and meaning first:
+  traded volume is not automatically order size or position. Prefer an additive shared market
+  event interface in `component-api`, implemented by the demo event and any vendor DTO, with
+  handlers typed to that interface. Keep the original API or version an intentional break.
+  No casts to demo classes in vendor jars and no duplicate same-FQN API classes.
+- **A Mongoose-compatible feed mapper:** the existing `CsvFeedAdapter` accepts a callback;
+  it is not a `Function` for `valueMapper`. Supply a compatible mapper alongside it, preserving
+  callback users. Return the shared market-event shape that the processor actually handles.
+  Define malformed/unmatched input and rejection accounting under §B/G1. Do not claim that
+  implementing an interface alone makes concrete-class handlers receive new DTOs.
+- **One useful first component:** a clearly named per-event volume check or another explicitly
+  agreed market-data rule, with caller-set threshold, public wiring, audit state and a named
+  breach sink. Keep this rule distinct from the existing quote-size contract and the one-day
+  risk calculation. Boundary inputs below/equal/above the threshold get frozen expected values.
+- **Notifier:** demonstrate the actual supported exported-service or subscription connection.
+  The current notifier's existence does not prove it receives a limit component's sink events;
+  provide and test that wiring, or leave it as a separate exercise.
+- **Inspectable packaging:** deterministic binaries, POM dependencies and matching source jars,
+  immutable versioned catalogue entries, source revision/licence and digests. Include the
+  sources in the configured local Maven layout so the analyser's existing resolver can show
+  vendor Java; do not promise binary/source equivalence from a matching FQN alone.
+- **Keep the authentic wrong component:** risk A deliberately violates the consuming one-day
+  contract while risk B meets it. Preserve A's logic, original fixtures and independent oracle.
+  Use the pair in a labelled advanced comparison, never silently “fix” A or make it the default.
+  Load only one of their shared-FQN alternatives at a time; isolate build/classloader outputs.
+
+Freeze an additive compatibility plan and expected results before editing jars. Existing
+callback tests remain useful but must be joined by generated-dispatch and real hosted-feed
+integration. Exercise app and vendor inputs on the same supported ordered route; compare
+business outputs and audit facts independently. Include unhandled/malformed rows, duplicate
+node names, missing transitive dependency, wrong interface wiring and absent source archives.
+A mutation dropping the vendor handler call must fail the output assertion; a wrong threshold
+must fail the independent table; a broken mapper must fail input accounting. Publication
+checks use an empty dependency cache against the actual chosen public binary route.
+
+### I4. Tour sequence and release boundary
+
+1. Open the downloaded project; inspect design, topology and Java **without a log** (§I1).
+2. State expected baseline results, run the existing keyless bundle, and offer the identified
+   admin console (§I2). Inspect its inputs/processor/capture without changing them implicitly.
+3. Add the compatible vendor component through the supported dependency/XML route. Declare
+   any one-time shared-interface adaptation explicitly; do not promise “XML only” until the
+   shipped base already implements that contract. Run local checks before generation.
+4. Re-run the same preserved inputs plus boundary cases; inspect the new vendor node/source,
+   sink output and audit values, then save a comparison report. No rerun-for-neater-numbers.
+5. Optional advanced exercise: switch risk A/B in separate builds and compare each with the
+   specification-derived oracle. A matching jar digest never becomes a correctness verdict.
+
+M67.1 owns collection/packaging; M67.2 owns the downloadable project; M67.3–M67.6 own skill,
+verification and the witnessed tour beats. Preserve existing declaration/refusal spotlights
+and D-X9's still-open historical-component provenance. Release the compatible jars first,
+then pin and verify the customer archive, then publish the tour and current screenshots.
+An improved local collection is not a published integrated demo. Actual graph regeneration
+may need a provider; no key use or publication is authorised by this proposal alone.
 
 ## Acceptance and release discipline
 
