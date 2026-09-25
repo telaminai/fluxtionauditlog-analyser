@@ -1937,3 +1937,15 @@ No compiler implementation details or private repository material are published 
 owners must record accepted changes in their canonical entries before implementation. The analyser
 tracks source freshness, recovery, read-grant policy and context projection separately; it does not
 build or run the customer's application.
+
+
+**Mid-cycle additions (feedback 21–24; 19 expanded):** the same handoff now includes
+[§G1–G4](../specs/spec-spring-authoring-edit-loop.md#g1-teach-the-mapper-extension-point-with-examples-that-run-feedback-21).
+Mongoose/plugin documentation owners supply a tested mapper/composition example, one replay
+capability statement for the actual configuration, a three-route loading comparison and
+version-matched documentation. The playground consumes those contracts in generated guides.
+The JSONL example needs correction or a matching plugin change before being recommended:
+inspected 1.0.44 implementation and docs disagree on the discriminator/configuration. Null
+parse results also need the real feed rejection check under §B, not a success-only demo.
+Use the already-pinned `mongoose-test-support` for starter hosted behavioural tests. These
+are documentation/source observations and proposed acceptances, not new runtime trial results.

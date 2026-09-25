@@ -4,6 +4,10 @@
 common failure is the second structural edit: stale generated code prevents regeneration,
 a rename leaves ownership debt, and the analyser can retain a previous Java snapshot.
 The default malformed-input fallback also merits an early fix: it manufactures business data.
+
+**Updated during review:** feedback grew from twenty to twenty-four items; the addition
+to item 19 and items 21–24 are assessed below. No new client trial was run.
+
 The [proposed specification](../specs/spec-spring-authoring-edit-loop.md) sets the contracts,
 acceptances and wrong-result controls. Nothing is implemented or declared closed by this review.
 
@@ -33,7 +37,7 @@ website deployment. Session-reported pins: BOM/starter 1.0.74, runtime 1.0.16, p
 Mongoose 1.0.29, plugins 1.0.44, GraalVM 25.0.2. Exact analyser binary and ZIP are unknown.
 No live-service or later-release behaviour is inferred from those source reads.
 
-## All twenty observations, disposition and owner
+## All twenty-four observations, disposition and owner
 
 **READ** means code/files inspected, not reproduced behaviour. **REPORTED** means the
 participant's account; a plausible diagnosis has not been promoted to a reproduced result.
@@ -59,8 +63,12 @@ Specification letters refer to the linked proposal.
 | 16 — canonical deduped id | **REPORTED**, not independently established in this pass. Changing naming precedence could break consumers. | **F**, expose aliases/selected id; owner decision on compatibility after a reversed-order fixture. |
 | 17 — large context | **REPORTED**; existing read projection does not solve context overhead. No byte/token measurements made here. | **H**, opt-in context sections with same-state equivalence and verdict qualifications; preserve default compatibility. |
 | 18 — descriptor copy drift | **READ**: hosting guide links the config and also calls its copied YAML effective. Historical drift is **REPORTED**. | **G**, link the actual file, label any example historical; do not duplicate mutable authority. |
-| 19 — vacuous starter test | **READ**: current supplied test only asserts a non-null processor. A successful build does not assert scenario results. | **G**, small independent behavioural table and a wrong-result control, keyless on shipped processor. |
+| 19 — vacuous starter test | **READ**: supplied test only asserts a non-null processor; POM already declares mongoose-test-support. The update correctly points to existing infrastructure. | **G**, use the actual hosted wiring with the harness plus an independent behavioural table and wrong-result control; keyless on the shipped processor. |
 | 20 — vendor sources | **READ**: MavenSourceResolver already searches local source jars. Current vendor POM has no source-archive attachment configuration; that alone does not prove none was installed. | **C/G**, source availability/discovery/refresh and supplier instructions, not a new resolver by assumption. |
+| 21 — mapper extension/discovery | **READ**: core 1.0.29 exposes a generic per-feed mapper; plugins 1.0.44 has TypeSerialiser. Its documented discriminator/configuration differs from its implementation. | **G1**, teach composition with executable pinned examples and visible rejection; not just an extra link to the current recipe. |
+| 22 — replay contradictions | **READ**: current runbook disclaims a supplied replay command/recorder but its descriptor comment promises deterministic replay. Connector capabilities do not resolve that conflict. | **G2 / H**, a configuration-specific capability table and actual replay acceptance; keep audit inspection distinct from input reconstruction. |
+| 23 — runtime loading versus AOT | **READ**: plugins 1.0.44 Spring loader has compile and interpreter branches and is preview-marked. No route was run. | **G3**, compare build-time AOT, load-time compile and load-time interpretation, with measured prerequisites and narrowly tested equivalence. |
+| 24 — plugin-site version | **READ / live page fetched**: overview advertises 1.0.37; current project POM pins 1.0.44. Latest release not independently established here. | **G4**, versioned documentation and generated labels, not a one-off “latest” number replacement. |
 
 ## Corrections that matter before implementation
 
@@ -130,3 +138,47 @@ this companion review, so its link check correctly caught the then-missing file;
 socket restrictions caused the 29 errors. After completing the packet, I reran the full
 suite with permission for local socket tests; the counts above are that completed green
 run. No test assertion was weakened or product source changed to obtain it.
+
+
+## Mid-cycle update: feedback 21–24 and expanded 19
+
+Re-read at **2026-09-25 09:07 UTC**: `FLUXTION-FEEDBACK.md` now has **30,284 bytes**, SHA-256
+`cddd724011bc79eab5bf11386a84960650481413ea8c8ecb115e7c54b9b708c3`.
+`SESSION-NOTES.md` is unchanged from the hash above. The original fingerprint is retained to
+make the evidence boundary of the first review explicit. The new feedback itself says items
+21–24 came from documentation reading, not a new runtime trial.
+
+Additional inspections, **not executed examples**:
+
+- Core 1.0.29 `EventFeedConfig` declares `Function<IN, ?> valueMapper` and passes it to the
+  event source. This supports the generic extension-point claim, not every suggested
+  composition/error-handling behaviour.
+- Plugins 1.0.44 (`117ce80c`) `MongooseTestHarness` supplies lifecycle/await helpers and an
+  adapter for an already-created server. The project's test dependency is present; the
+  existing test does not exercise the harness. §G now requires the real hosted route.
+- The same release's Spring loader selects `compileAot` or `interpret`, then initialises
+  and registers the processor. It is preview-marked. Neither dispatch equivalence nor key
+  requirements were established by this read; §G3 requires evidence before those claims.
+- **Additional mismatch found while checking item 21:** release source
+  [TypeSerialiser](https://github.com/telaminai/mongoose-plugins/blob/117ce80ceec49afb5564eb75f34d1b3b3c7149f0/library/lib-jsonserialiser/src/main/java/com/telamin/mongoose/plugin/lib/json/TypeSerialiser.java)
+  reads a `type` key through class lookup, whereas the release's documentation and fetched
+  [public JSONL page](https://telaminai.github.io/mongoose-plugins/libraries/jsonserialiser/)
+  teach `@type` plus `typeMap`. The implementation has no such configuration field and
+  returns null for some parsing/class-lookup errors. This is a source/document discrepancy,
+  not a reproduced feed failure. §G1 gates any recommendation on running the real example
+  and testing visible rejection; it does not assume the mapping is safe for arbitrary inputs.
+- The fetched [plugin overview](https://telaminai.github.io/mongoose-plugins/) shows 1.0.37
+  as latest. This was read from live HTML on 2026-09-25; it may change. §G4 separates
+  documentation version, published-artifact version and consumer pin.
+
+These additions strengthen documentation and cheap example checks without moving the first
+priorities: compile ordering, fabricated values, source freshness and explicit ownership
+migration. Replay guidance is corrected now as a requirement; a new replay implementation
+is not assumed to exist or added to the analyser's responsibility.
+
+**Revision checks RUN:** JDK 21 `mvn -q test` again produced **1,996 total / 0 failures /
+0 errors / 98 skipped**, 266 source-mapped reports and no orphans. `mkdocs build --strict`,
+`git diff --check`, all nine local packet file links and the exact tracked-file rule-one sweep
+passed. No display or mutation checks were run for this documentation-only revision. Public
+pages were fetched and read; plugin/core examples were inspected at the reported versions,
+not executed. The updated feedback hash was unchanged when checks finished.

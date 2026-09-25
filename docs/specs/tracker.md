@@ -9,7 +9,7 @@ Legend for each item: **[id] status — title** · _acceptance_.
 ## Spring authoring edit loop — session intake 2026-09-25
 
 **PROPOSED; no fixes accepted or shipped by this intake.** A guided website-template session
-reported twenty friction points, chiefly on editing an existing graph. Read the
+reported twenty-four friction points, chiefly on editing an existing graph. Read the
 [review and evidence limits](../handoff/review_spring_authoring_feedback_2026_09_25.md) and
 [fix specification](spec-spring-authoring-edit-loop.md). This is not another client battery
 or a G14 pass. The running project remains untouched.
@@ -1005,7 +1005,10 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   1.0.73 ([issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3)).
   **Additional 2026-09-25 intake:** [edit-loop §G](spec-spring-authoring-edit-loop.md#g-make-the-downloaded-project-teach-the-supported-path)
   adds executable archive checks, accurate help, immutable matching contract, non-drifting hosting
-  instructions, authoring patterns and a meaningful keyless starter test. These are proposed, not verified fixes.
+  instructions, authoring patterns and a meaningful keyless starter test. Mid-cycle feedback 21–24
+  adds mapper composition with executable JSONL examples, consistent configuration-specific replay
+  guidance, build-time AOT versus loader compile/interpreter comparison, and versioned plugin docs.
+  Item 19 now explicitly uses the already-declared hosted test harness. These are proposed, not verified fixes.
 - ☐ **Staged feedback — next chart capabilities** — record-order x-axis (17) before same-record entity
   grouping (11), with record identity, filtering, selection, marker/note/export consistency and cardinality
   limits. The full-speed hosted fixture must be useful without pacing the application or logging a new

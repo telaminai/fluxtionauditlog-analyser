@@ -1,6 +1,11 @@
 # Spring authoring: make the second edit routine
 
-Status: **PROPOSED**, 2026-09-25. No implementation or release acceptance is claimed.
+Status: **PROPOSED v2**, 2026-09-25. No implementation or release acceptance is claimed.
+
+Revision 2 incorporates feedback 21–24 and the addition to 19, received during the first
+review. These additions came primarily from documentation inspection, not further runtime
+trials. Prior acceptance remains; §G now covers mapper composition, replay terminology,
+loader choices and versioned plugin documentation.
 
 This is the fix specification for a guided session that started from the analyser website's
 prompt and `audit-analyser-bundle` download. The first run worked; changing existing nodes
@@ -8,7 +13,7 @@ needed expert intervention. The goal is a repeatable loop: intent → XML/Java e
 checks → generation → independent behavioural check → discuss the recorded result.
 
 Read the [feedback review](../handoff/review_spring_authoring_feedback_2026_09_25.md) for
-all twenty items, evidence limits and corrections to the participant's proposed remedies.
+all twenty-four items, evidence limits and corrections to the participant's proposed remedies.
 The [tracker](tracker.md#spring-authoring-edit-loop--session-intake-2026-09-25) owns new
 analyser work. Existing items below retain their ownership and status; this document supplies
 additional acceptance, not parallel completion boxes. Upstream work stays with its producer.
@@ -39,7 +44,7 @@ read-only conflict refusal, vendor composition and source/run qualification inta
 | 3 | Support explicit ownership-preserving rename | 2 | Compiler/starter generated-member contract; §D |
 | 4 | Clarify recovery provenance and authorise project inputs deliberately | 5, 11 | Existing journey recovery and M68.5 root diagnostics, plus scoped grant decision; §E |
 | 5 | Separate XML validation, model preflight and provider accounting | 14–16 | Compiler/starter + public authoring contract; §F |
-| Parallel | Repair downloaded guides, executable scripts and example tests | 8–10, 14, 18–20 | Existing authoring-route intake; compiler/starter + playground; §G |
+| Parallel | Repair downloaded guides, executable scripts and example tests | 8–10, 14, 18–24 | Existing authoring-route intake; compiler/starter + playground; §G |
 | Existing queue | Run-scoped audit, fan-out, record-order charts, economical context | 7, 12, 13, 17 | MA-2/MA-5 and OD-5; existing chart item; new context projection; §H |
 
 Order 1 includes a data-correctness fix, not just onboarding polish. Documentation repairs
@@ -252,8 +257,98 @@ Required changes and checks:
   through the shipped processor. Cover a rejection and a boundary case; a wrong business
   threshold must fail. Assert actual state/sink output, with audit as additional evidence when
   available, not only construction or a successful build. Freeze expected results before code.
+  Prefer the already-declared `mongoose-test-support` for the hosted test: wrap a server built
+  from the real descriptor or customise the harness so the actual mapper and processor are
+  exercised, not a substitute echo handler. Use isolated temporary inputs, condition-based
+  awaits and guaranteed teardown. The direct processor test and hosted wiring test prove
+  different things; keep both claims explicit.
 - **Vendor source guide:** explain existing local source-archive lookup, attaching sources to a
   dependency and what a missing-source result means; verify it using a placeholder component.
+
+### G1. Teach the mapper extension point with examples that run (feedback 21)
+
+Document `EventFeedConfig.valueMapper` as a per-feed transformation, including the concrete
+input/output types and wrapping mode used by each example. Show single-type mapping, a vendor
+mapper configured without application glue, and composition of app/vendor mappers on one
+ordered feed. Freeze the composition rule: which mapper receives the original versus mapped
+value, how “not mine” differs from malformed input, what wins if two accept, and how a rejected
+row is accounted for. Do not generalise the session's first-match helper into an existing
+framework composition API. State ordering within this feed, not across unrelated feeds.
+
+`lib-jsonserialiser` is an existing candidate, not a proven drop-in recipe. Inspection of
+plugins 1.0.44 found a material documentation mismatch: the example uses `@type`/`typeMap`,
+while `TypeSerialiser` reads `type` as a class name, returns a map without that key, and returns
+null for some parsing/class-lookup failures. Do not promise a registered type allow-list that
+this version does not implement, or recommend arbitrary input-selected classes for untrusted
+feeds. Decide whether to document the supported version accurately or repair the plugin;
+any incompatible discriminator change needs a versioned migration note.
+
+**Acceptance G1:** extract the published JSONL and YAML example verbatim and run it with the
+pinned artifact, asserting the actual typed outputs. Include two event types, absent/unknown
+class discriminator, malformed JSON, mapper overlap, unchanged input and exceptions. Run
+through the real feed route so null/silent drops cannot pass merely because the mapper returned.
+Apply §B's visible-rejection requirement. Controls substitute the wrong discriminator and
+disable rejection accounting; each must fail a named assertion. No new generic mapper or
+analyser verb is needed merely to make this capability discoverable.
+
+### G2. One replay statement for the selected configuration (feedback 22)
+
+Remove the unconditional deterministic-replay promise from emitted capture comments as well
+as the hosting guide; fixing only the copied block leaves the contradictory source intact.
+Distinguish four capabilities: reread original input; replay a connector's input archive;
+inspect exported execution records; reproduce a previous application run. A connector's
+replay feature does not establish a replay service for an arbitrary bundle. A loader restoring
+persisted processor configurations is also not event replay.
+
+Publish a short capability table for the selected pins/configuration: source of replayable
+inputs, exact supported command or unavailable status, ordering domain, start/end position,
+initial application state, dependency/configuration identity, and external/time inputs that
+remain uncontrolled. Captured audit records need not contain reconstructible input events.
+No invented admin replay command; no claim that installing capture enables incident replay.
+When reproduction is unsupported, say which evidence/input is missing and preserve the audit
+inspection path. Link this to §H's run-scope work without closing MA-2 or OD-5.
+
+**Acceptance G2:** build the chosen minimal example, preserve its inputs and expectations,
+then replay through the documented route from a specified clean state and compare outputs.
+Separately assert the documented refusal/unavailable result for the default bundle if it has
+no such route. An audit-only export must not qualify as replayable input without a tested
+reconstruction contract. Mutate the capability/configuration or remove the required input
+and require the acceptance to fail rather than silently falling back to hand-built events.
+A generated-doc check must reject contradictory replay claims across descriptor and runbook.
+
+### G3. Compare three loading routes, not “runtime” versus “deterministic” (feedback 23)
+
+The inspected Spring loader supports both a compile branch and an interpreter branch. Teach
+three choices: deploy a processor generated during the build; compile a Spring graph while
+loading it into a server; interpret a Spring graph while loading it. For each, identify when
+classes are instantiated, when generation occurs, provider/key requirements for the selected
+versions, emitted/persisted Java and GraphML, audit options, startup/reload behaviour and
+failure boundaries. Retain the loader's preview qualification where applicable. A UI or
+service loading something at runtime does not by itself establish keyless operation.
+
+**Acceptance G3:** a small common graph and frozen event table must exercise each advertised
+route on the named versions, with the actual provider boundary observed or explicitly marked
+unverified. Assert outputs, relevant dispatch/audit observations and failure handling. Scope
+any equivalence claim to those tested properties and graph; do not promise universal identical
+dispatch, regeneration reproducibility or pricing from a shared XML input. Do not switch the
+starter's default route as a documentation fix. Fake-provider tests may establish request
+routing, not public provisioning or charging. No key use is authorised by this spec.
+
+### G4. State what version the plugin documentation describes (feedback 24)
+
+Separate the documented version, the latest published artifact and the project's pin. The
+live overview inspected for this revision advertised 1.0.37, while the participant project's
+plugin pin is 1.0.44. This establishes a mismatch, not which later version is currently latest.
+Serve immutable version-compatible documentation (or explicitly state its absence), generate
+version labels/snippets from one release metadata source, and link the generated project's
+hosting guide to its matching contract. Do not fix this by merely hard-coding 1.0.44 as latest.
+
+**Acceptance G4:** inspect built site output and dependency snippets against the documentation
+build's declared version; check the matching-version links in an actual generated bundle.
+A synthetic newer release/version input must update the labels, while older versioned docs
+remain unchanged. A stale “latest” label or broken matching-version route must fail the
+release/docs check. A version label alone does not prove that its examples work: G1/G3 supply
+that behavioural acceptance. Preserve an explicit unsupported-version outcome.
 
 Update screenshots only if their depicted behaviour changes, using isolated demo data. These
 checks run before a new hosted client trial. Plain `mvn package` remains keyless for the bundle.
