@@ -31,7 +31,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   states each thing the log leaves open — whether the change named no node or a node literally called
   "null", whether it applied, whether it survived a marker — in the one condition its conclusion rests on,
   and the change that ends a window is described with the same care as the one that began it. A change
-  the log does not show to have applied is described as recorded, never as having set the level.
+  the log does not show to have applied is described as recorded, never as having set the level; one
+  described as setting the level applied whenever the change before it did. A control record the analyser
+  cannot read ends the explanation there and says so, rather than being passed over as if it changed
+  nothing, and a change after a stream-end marker is named without claiming the level lasted until it.
 - An empty or blank file now opens by its extension rather than being refused as unreadable.
 
 ### Fixed

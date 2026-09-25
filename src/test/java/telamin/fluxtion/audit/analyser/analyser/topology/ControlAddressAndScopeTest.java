@@ -69,6 +69,21 @@ class ControlAddressAndScopeTest {
                 + "  event: EventLogControlEvent\n  eventToString: " + change + "\n  nodeLogs:\n---\n";
     }
 
+    /**
+     * A control record this reader cannot read (sixth re-review R6-1): a listener whose {@code toString} contains a
+     * separator makes the rendering ambiguous, so {@code parse()} refuses it; the other two forms are a level the
+     * runtime does not have and a record with no {@code eventToString} at all.
+     */
+    private static String unreadable(int t, String grouping, String form) {
+        String body = switch (form) {
+            case "unknownLevel" -> "  eventToString: EventLogConfig{level=FINE, logRecordProcessor=null, sourceId=riskMonitor, groupId=null}\n";
+            case "missing" -> "";
+            default -> "  eventToString: EventLogConfig{level=INFO, logRecordProcessor=Proc{a, sourceId=x}, sourceId=riskMonitor, groupId=null}\n";
+        };
+        return "eventLogRecord:\n  logTime: " + t + "\n" + groupingLine(grouping)
+                + "  event: EventLogControlEvent\n" + body + "  nodeLogs:\n---\n";
+    }
+
     private static String annotate(String log, String node, int... inView) {
         return PerNodeLevelChanges.of(new HeapLogStore(log)).annotationFor(node, inView);
     }
@@ -250,6 +265,67 @@ class ControlAddressAndScopeTest {
     }
 
     /**
+     * Sixth re-review R6-1. A control record this reader cannot read was skipped, and the window ran on past it:
+     * "Nothing later … changes it, so riskMonitor's lines below WARN are not in this log" — false if that record
+     * restored INFO. It now ends the window, and the clause says why.
+     */
+    @Test
+    void anUnreadableControlRecordEndsTheWindowAndSaysWhy() {
+        var warn = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        for (String form : new String[]{"ambiguous", "unknownLevel", "missing"}) {
+            String log = control(1, "null", warn) + row(2, "null") + unreadable(3, "null", form) + row(4, "null");
+            String before = annotate(log, "riskMonitor", 1);
+            assertNotNull(before, form + ": record 2 is inside the window");
+            assertTrue(before.contains("It holds at least until record 3 (logTime 3), a control record this reader "
+                    + "could not read; whether that record changed riskMonitor's audit level is not established"),
+                    "R6-1 " + form + ": the window ends at the unreadable record, and says why: " + before);
+            assertFalse(before.contains("Nothing later"), "R6-1 " + form + ": nothing is claimed past it: " + before);
+            assertTrue(before.contains("is not established. Before record 3, riskMonitor's lines below WARN are not in "
+                    + "this log"), "R6-1 " + form + ": the conclusion is bounded by the record, not drawn from it: " + before);
+            assertNull(annotate(log, "riskMonitor", 3), "R6-1 " + form + ": record 4 is not explained by the WARN");
+        }
+        // …and an unreadable record in ANOTHER grouping does not touch this one (the same rule as a readable change)
+        String other = control(1, "null", warn) + row(2, "null") + unreadable(3, "beta", "ambiguous") + row(4, "null");
+        assertTrue(annotate(other, "riskMonitor", 3).contains("Nothing later"), "another grouping's record: "
+                + annotate(other, "riskMonitor", 3));
+    }
+
+    /**
+     * Sixth re-review R6-2. "It holds until record 4 sets it to INFO" asserted that the level survived a stream-end
+     * marker, and the next sentence of the same note said that is not established.
+     */
+    @Test
+    void aClosingChangeAcrossAMarkerIsNamedNotHeldUntil() {
+        var warn = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        var info = new EventLogControlEvent("riskMonitor", null, LogLevel.INFO);
+        String across = control(1, "null", warn) + row(2, "null") + MARKER_1 + row(3, "null") + control(5, "null", info)
+                + row(6, "null");
+        String note = annotate(across, "riskMonitor", 1, 2);
+        assertNotNull(note);
+        assertFalse(note.contains("It holds"), "R6-2: survival across the marker is not asserted: " + note);
+        assertTrue(note.contains("The next change to riskMonitor's audit level in the same grouping is at record 4 "
+                + "(logTime 5), which sets it to INFO"), "R6-2: the next change is named: " + note);
+        assertTrue(note.contains("That marker begins a later run, and the log does not say whether the level survived"),
+                note);
+        // viewing only the record before the marker: the conclusion is bounded by the MARKER, not by record 4
+        String onlyBefore = annotate(across, "riskMonitor", 1);
+        assertTrue(onlyBefore.contains("which sets it to INFO. Before the stream-end marker preceding record 3, "
+                + "riskMonitor's lines below WARN are not in this log"), "R6-2: bounded by the marker: " + onlyBefore);
+        assertFalse(onlyBefore.contains("Before record 4"), onlyBefore);
+        // positive control: with no marker between them, it does hold until then
+        String within = control(1, "null", warn) + row(2, "null") + row(3, "null") + control(5, "null", info) + row(6, "null");
+        assertTrue(annotate(within, "riskMonitor", 1, 2).contains("It holds until record 4 (logTime 5) sets it to INFO"),
+                annotate(within, "riskMonitor", 1, 2));
+        // and the same for an unreadable closer across a marker
+        String unread = control(1, "null", warn) + row(2, "null") + MARKER_1 + row(3, "null") + unreadable(5, "null", "missing")
+                + row(6, "null");
+        String u = annotate(unread, "riskMonitor", 1, 2);
+        assertFalse(u.contains("It holds"), "R6-2 × R6-1: " + u);
+        assertTrue(u.contains("The next control record in the same grouping, record 4 (logTime 5), could not be read by "
+                + "this reader"), u);
+    }
+
+    /**
      * Fourth re-review R-C, fifth re-review R5-1 and R5-2: no branch of the sentence presumes a processor, and none
      * says a change "sets" a level while its applying is open. The matrix is source × grouping × boundary × closing,
      * plus a node literally named "null", and it REACHES every branch: each branch's wording must appear in some note,
@@ -262,9 +338,9 @@ class ControlAddressAndScopeTest {
         record G(String recordGrouping, String gid) { }
         java.util.List<G> groupings = java.util.List.of(new G("null", null), new G("null", "alpha"), new G(ABSENT, null),
                 new G("alpha", "alpha"), new G(ABSENT, "alpha"));
-        java.util.regex.Pattern presumes = java.util.regex.Pattern.compile("processor(?! grouping)");
+        java.util.regex.Pattern presumes = java.util.regex.Pattern.compile("(?i)processor(?! grouping)");   // O6-1
         // after a closing clause, a condition on "it" could read as the closing change: name the change instead
-        java.util.regex.Pattern bareIt = java.util.regex.Pattern.compile("(?i)\\bif it (applied here[,.]|survived|named)");
+        java.util.regex.Pattern bareIt = java.util.regex.Pattern.compile("(?i)\\bif it (applied|survived|named)\\b(?! here:)");   // O6-2
         java.util.Map<String, Integer> reached = new java.util.LinkedHashMap<>();
         for (String branch : new String[]{
                 "this log sets ", "this log records a change setting ", "that names no node — which would set every node's",
@@ -275,12 +351,22 @@ class ControlAddressAndScopeTest {
                 "— addressed to processor grouping 'alpha' — applied here",
                 "Nothing later in the records sharing its grouping", "Nothing later in the records that, like it, state no grouping",
                 " sets it to INFO", "which records a change to INFO addressed to ",
-                "either way it ends here", "either way it would end it there, and only if it applied here",
+                "either way it ends here", "either way it would end the window there, and only if it applied here",
                 "only the first would end it there.", "only the first would end it there, and only if it applied here",
-                ", so riskMonitor's lines", "; otherwise this change explains nothing here",
+                ", so riskMonitor's lines", "applied here, riskMonitor's lines below WARN are not in this log; otherwise",
                 ", so before the stream-end marker", ". Before the stream-end marker",
-                "If the change at record 1 (logTime 1) applied here", "only if the change at record 1 (logTime 1) survived",
-                "Every record in view is in a LATER run"}) {
+                "If the change at record 1 (logTime 1) applied here, riskMonitor's",
+                "only if the change at record 1 (logTime 1) survived",
+                "Every record in view is in a LATER run",
+                // R6-3: a phrase only the other-node null opening produces
+                "the log renders both identically. ",
+                // R6-1 and R6-2
+                ", a control record this reader could not read; ", "could not be read by this reader; ",
+                "The next change to riskMonitor's audit level in the same grouping is at ",
+                "among the records that likewise state no grouping is at ",
+                "either way it would change this node, and only if", "either way it changes this node",
+                // the conclusion as its own sentence after an unreadable or cross-marker closer
+                "is not established. Before record ", "which sets it to INFO. Before the stream-end marker", "only the first would change it"}) {
             reached.put(branch, 0);
         }
         int logs = 0;
@@ -291,14 +377,16 @@ class ControlAddressAndScopeTest {
                 if ("null".equals(node) && !nullSource) continue;           // a per-node change to "null" is the same case
                 for (G g : groupings) {
                     for (String boundary : new String[]{"none", "spanning", "whollyAfter"}) {
-                        for (String closing : new String[]{"none", "perNode", "null"}) {
-                            for (String closeGid : closing.equals("none") ? new String[]{"-"} : new String[]{"same", "beta", "none"}) {
+                        for (String closing : new String[]{"none", "perNode", "null", "unreadable"}) {
+                            for (String closeGid : closing.equals("none") || closing.equals("unreadable") ? new String[]{"-"}
+                                    : new String[]{"same", "beta", "none"}) {
                                 String gid = switch (closeGid) { case "same" -> g.gid(); case "beta" -> "beta"; default -> null; };
                                 String rg = g.recordGrouping();
                                 var open = new EventLogControlEvent(nullSource ? null : node, g.gid(), LogLevel.WARN);
                                 String close = switch (closing) {
                                     case "perNode" -> control(90, rg, new EventLogControlEvent(node, gid, LogLevel.INFO));
                                     case "null" -> control(90, rg, new EventLogControlEvent(null, gid, LogLevel.INFO));
+                                    case "unreadable" -> unreadable(90, rg, "ambiguous");
                                     default -> "";
                                 };
                                 String log;
@@ -322,10 +410,24 @@ class ControlAddressAndScopeTest {
                                     offenders.add("R5-2 " + at + ": " + note);
                                 }
                                 // O5-1: a window whose closing change's applying is open holds AT LEAST until it, and only then
-                                if (note.contains("is not established either") != note.contains("It holds at least until")) {
+                                boolean either = note.contains("is not established either");
+                                boolean atLeast = note.contains("It holds at least until");
+                                boolean named = note.contains("The next change to") || note.contains("The next control record");
+                                boolean unreadableClause = note.contains("a control record this reader could not read");
+                                if ((either && !(atLeast || named)) || (atLeast && !(either || unreadableClause))) {
                                     offenders.add("O5-1 " + at + ": " + note);
                                 }
-                                if (note.contains("It holds ") && bareIt.matcher(note).find()) {
+                                // R6-2: a closer past a marker is named, never held until
+                                if (!boundary.equals("none") && !closing.equals("none") && note.contains("It holds")) {
+                                    offenders.add("R6-2 " + at + ": " + note);
+                                }
+                                // R6-1: an unreadable closer ends the window and says so
+                                if (closing.equals("unreadable") && (note.contains("Nothing later")
+                                        || !(note.contains("could not read") || note.contains("could not be read")))) {
+                                    offenders.add("R6-1 " + at + ": " + note);
+                                }
+                                boolean closedClause = note.contains("It holds ") || named;
+                                if (closedClause && bareIt.matcher(note).find()) {
                                     offenders.add("unnamed condition " + at + ": " + note);
                                 }
                                 reached.replaceAll((branch, n) -> note.contains(branch) ? n + 1 : n);
@@ -335,11 +437,12 @@ class ControlAddressAndScopeTest {
                 }
             }
         }
-        assertEquals(315, logs, "the matrix: 3 openings × 5 groupings × 3 boundaries × 7 closings");
-        assertEquals(315, notes, "every log in the matrix annotates, so every one is checked");
+        assertEquals(360, logs, "the matrix: 3 openings × 5 groupings × 3 boundaries × 8 closings");
+        assertEquals(360, notes, "every log in the matrix annotates, so every one is checked");
         assertEquals(java.util.List.of(), reached.entrySet().stream().filter(e -> e.getValue() == 0).map(java.util.Map.Entry::getKey)
                 .toList(), "R5-1: a branch of the sentence the matrix no longer reaches");
-        assertEquals(java.util.List.of(), offenders, "R-C/R5-1/R5-2: a branch presumes a processor, says an open change sets, or leaves the condition's subject open");
+        assertEquals(java.util.List.of(), offenders, "R-C/R5/R6: a branch presumes a processor, says an open change sets, leaves the condition's subject open, "
+                + "holds across a marker, or runs past an unreadable control record");
     }
 
     // ------------------------------------------------------------------ RR-3: which processor
