@@ -6,6 +6,35 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Spring authoring edit loop — session intake 2026-09-25
+
+**PROPOSED; no fixes accepted or shipped by this intake.** A guided website-template session
+reported twenty friction points, chiefly on editing an existing graph. Read the
+[review and evidence limits](../handoff/review_spring_authoring_feedback_2026_09_25.md) and
+[fix specification](spec-spring-authoring-edit-loop.md). This is not another client battery
+or a G14 pass. The running project remains untouched.
+
+- ☐ **Java snapshot freshness** — spec §C, feedback 3/20: ordinary same-FQN navigation must
+  revalidate text and selected model together, off the EDT, with stale/deleted/cancelled
+  reads disclosed. Reuse the source-spotlight resolver; local Maven source lookup already exists.
+- ☐ **Recovery provenance investigation** — spec §E, feedback 5: extend the existing journey
+  recovery acceptance with cross-project capture and pending I/O. Project-key isolation
+  already exists; an external log path alone does not prove a foreign recovery offer.
+- ☐ **Project input grants, proposed** — spec §E, feedback 11: retain M68.5's canonical root
+  diagnostics work. A separate role-scoped grant policy needs approval; opening a profile
+  does not implicitly authorise the project root or target directory.
+- ☐ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
+  default, same-state equality, and basis/qualification carried with every selected verdict.
+- ☐ **Upstream handoff** — new asks and existing ownership are routed through
+  [upstream asks](../proposals/upstream-asks.md#spring-authoring-edit-loop--2026-09-25-intake).
+  First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
+  preflight, matching contract and archive/script/documentation checks. No producer implementation
+  belongs in the analyser. New canonical-id and rename policies remain proposed.
+
+The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
+**Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.
+The spec adds acceptance to them; it does not create second completion claims.
+
 ## Project / Sources / Audit log menus — remaining follow-ups
 
 Implementation and guard follow-ups shipped in **1.20.0** (PRs #15 and #17);
@@ -118,6 +147,10 @@ still to do.
   `ChronicleAuditCaptureService`'s comment promises to compose in front of the existing listener and
   restore it; the code sets `previousListener = null` and, on stop, installs a no-op. `DataFlow` has no
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
+  **Recurring intake 2026-09-25:** feedback 13 reports silent stdout on the bundle's older pins;
+  [edit-loop §H](spec-spring-authoring-edit-loop.md#h-existing-auditchart-work-and-a-smaller-context-response)
+  requires acceptance against the actually released and consumed producer. This intake does not
+  re-test or close the separate in-progress MA implementation.
 - **[MA-6] ☐ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
   contradiction: D-MA0b keeps MA-0 at zero records only, so this check lives here._ Reader half in this
   repo; **writer half in MA-2 — the writer WRITES the record, COUNTS it, and WITHHOLDS the marker**, so
@@ -970,10 +1003,15 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   the documented `template=analyser-bundle` shortcut ([release report](../handoff/report_release_journey_2026_09_21.md)).
   That is this item's "short entry point" ask, observed. New-owned-class auditing (6) was re-observed on public
   1.0.73 ([issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3)).
+  **Additional 2026-09-25 intake:** [edit-loop §G](spec-spring-authoring-edit-loop.md#g-make-the-downloaded-project-teach-the-supported-path)
+  adds executable archive checks, accurate help, immutable matching contract, non-drifting hosting
+  instructions, authoring patterns and a meaningful keyless starter test. These are proposed, not verified fixes.
 - ☐ **Staged feedback — next chart capabilities** — record-order x-axis (17) before same-record entity
   grouping (11), with record identity, filtering, selection, marker/note/export consistency and cardinality
   limits. The full-speed hosted fixture must be useful without pacing the application or logging a new
   key per entity. Formula documentation exists; improve discovery (15) rather than introduce another parser.
+  **Recurrence:** feedback 12 in the [2026-09-25 edit-loop intake](spec-spring-authoring-edit-loop.md)
+  reports pacing input to avoid overlapping timestamps. §H adds a same-timestamp regression; status unchanged.
 - ☐ **Staged feedback — presentation and maintenance** — reserved annotation/legend space (14/21),
   explicit note anchoring/remapping (18), optional held tails (13), compiler formatting/output (7/8,
   overlapping F5/G13/F10), stable runtime control text (16), and documented nodeTypes scope (10).

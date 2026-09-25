@@ -360,6 +360,15 @@ _Filed: https://github.com/telaminai/fluxtion/issues/15_
 
 **Target** `fluxtion` (maven plugin) · **Priority** medium · supersedes the round-1 note on F6
 
+**2026-09-25 recurrence and stronger acceptance (proposed):** a guided Spring bundle session
+reports the same trap after constructor and class-name changes. Its POM phase ordering was
+inspected, not the failure rerun. [Edit-loop §A](../specs/spec-spring-authoring-edit-loop.md#a-compile-the-edited-model-without-depending-on-the-obsolete-processor)
+now requires model preparation, generation and final dispatcher/consumer compilation as a complete
+pipeline, keeping keyless ordinary builds and prior usable output on failure. Merely moving a goal
+before compilation, or deleting the old processor, is not established as sufficient when generation
+needs compiled nodes and a supplier imports that processor. The older proposed remedies below are
+historical candidates, not approved customer instructions. No new duplicate issue is opened.
+
 **Evidence — measured, twice, and it scales with the size of the change.** The generated processor is
 checked in and compiled as ordinary source, but the plugin regenerates it at `process-classes` — *after*
 `compile`. So any change to a node constructor breaks the build against the stale generated file before
@@ -1903,3 +1912,28 @@ makes the catalogue honest while UP-PG-04 is built. The analyser's `File ▸ New
 **Cost to us if unfixed.** The analyser's template picker cannot tell a user which template to start
 from for native work, so the recommendation has to live in prose that nobody reads at the moment of
 choosing.
+
+
+## Spring authoring edit loop — 2026-09-25 intake
+
+**Status: proposed handoff, not implemented.** Canonical acceptance is the
+[edit-loop specification](../specs/spec-spring-authoring-edit-loop.md); the
+[review](../handoff/review_spring_authoring_feedback_2026_09_25.md) separates inspected defects
+from participant reports. Existing IDs retain their own status and owner. This block owns only
+new upstream asks until the producer accepts them into its existing authoring contract/tracker.
+
+| Ask | Owner | Acceptance / dependencies |
+|---|---|---|
+| Structural-edit pipeline and diagnostic repairs | Compiler/starter and template producer | Existing **UP-FLX-21**, spec §A; related wiring explanations **UP-FLX-32**. Do not open another compile-order issue. |
+| No fabricated event on malformed CSV | Hosted template producer | New, §B; D-T9/D-T8 invariants. Prove visible rejection through the real feed adapter and preserve valid inputs. |
+| Explicit rename/ownership migration | Compiler/starter | New, §D; settle the generated-member contract first, preserve bodies and original hashes, prove subsequent default regeneration. `link` is not this operation. |
+| Local model preflight and request/billing evidence | Compiler/starter, compiler client/provider boundary | New, §F; XML validation stays inert, reuse authoritative checks after current model compilation. No inferred charge or false zero. |
+| Equality-shared node aliases and selected-id disclosure | Compiler/GraphML producer | New, §F; reproduce order dependence before choosing a compatibility policy. No analyser identity guess. |
+| Delivered scripts, matching guides and example behaviour | Playground/template producer plus starter documentation owner | §G; extends existing authoring-route intake. Check actual archives, command help, conflict guidance, versioned contract, hosting links and independent starter assertions. |
+| Discoverable authoring patterns and supplier sources | Documentation/template producer | §G; reuse **UP-FLX-32** and existing vendor-composition guidance; executable examples before presenting owner tips as supported rules. |
+| Run-scoped export and original listener fan-out | Mongoose/core/capture owner | Existing **MA-2 / MA-5 / OD-5**, §H; no second implementation item here. Verify published versions before changing bundle promises. |
+
+No compiler implementation details or private repository material are published here. Producer
+owners must record accepted changes in their canonical entries before implementation. The analyser
+tracks source freshness, recovery, read-grant policy and context projection separately; it does not
+build or run the customer's application.
