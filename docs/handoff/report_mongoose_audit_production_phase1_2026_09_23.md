@@ -638,6 +638,57 @@ comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
 
+## Sixth re-review — three required, four optional, all taken
+
+Sixth re-review `1c3173ae` on `review/mongoose-sixth-rereview-2026-09-24`, against `4bb68d08`. The integration review
+of the main merge (`99f9ec47`, on the merged tree `e82808e7`) confirmed all three findings still reproduce and found
+no merge defect; its one optional item, stale status prose, is taken below. Predictions `P11` were committed first
+(`ba743a29`). **The owner asked for no mutation witnesses this round**, so every regression below is an ordinary
+test, run green on the fixed code; none has been shown red by planting.
+
+| | Finding | Cause | Fix | Regression |
+|---|---|---|---|---|
+| R6-1 Low–Medium | a control record this reader cannot parse was skipped, and the window ran on past it: "Nothing later … changes it, so riskMonitor's lines below WARN are not in this log", false if that record restored INFO | **mine, since RR-2**: skipping an unreadable rendering was right; the window logic was never told a record had been skipped | `of()` keeps unreadable control records (missing `eventToString`, an ambiguous rendering, a level the runtime does not have) with their context. The first one in the same context, before any readable change, ends the window: "It holds at least until record 3 …, a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. Before record 3, riskMonitor's lines below WARN are not in this log." An unreadable record in another grouping does not touch this one | `anUnreadableControlRecordEndsTheWindowAndSaysWhy`: the reviewer's four-record log in all three unreadable forms; record 2 carries the clause, record 4 is not explained; another grouping's unreadable record changes nothing. The matrix gains an unreadable closing and asserts it never says "Nothing later" |
+| R6-2 Low | "It holds until record 4 sets it to INFO" asserted the level survived a stream-end marker, and the next sentence said that is not established | **mine, since RR-4**: the closing clause never looked for a marker between the change and its closer | when a marker lies between them the closer is **named, not held until**: "The next change to riskMonitor's audit level in the same grouping is at record 4 (logTime 5), which sets it to INFO." The same for an unreadable closer ("The next control record in the same grouping, record 4 …, could not be read by this reader") | `aClosingChangeAcrossAMarkerIsNamedNotHeldUntil`: the reviewer's six-record log, a within-run positive control that still says "It holds until", and the unreadable case. The matrix asserts no note whose closer is past a marker says "It holds" |
+| R6-3 Low | two reach phrasings were also produced by another branch, and two round-5 witnesses went red through reach rather than their labelled check | mine: phrasings chosen without checking they were unique | tightened to `"If the change at record 1 (logTime 1) applied here, riskMonitor's"` and `"applied here, riskMonitor's lines below WARN are not in this log; otherwise"` (the no-boundary conditional only), plus `"the log renders both identically. "` for the other-node null opening. The round-5 rows and the "24 wordings" sentence are corrected in place | the matrix, green with the tightened phrasings. **Not shown red**: the reviewer's loose-phrasing rewrite is a mutation, and none was run this round |
+| O6-1 | the processor guard was case-sensitive | — | `(?i)processor(?! grouping)` | the matrix |
+| O6-2 | `bareIt` missed "if it applied here and …", and ran only on notes containing "It holds " | — | `(?i)\bif it (applied|survived|named)\b(?! here:)`, run on every note with a closing clause, including the two new lead forms | the matrix |
+| O6-3 | "either way it would end it there" had two referents | — | "either way it would end the window there" | the matrix's reach entry |
+| O6-4 | the CHANGELOG did not cover the conditional definite closing | — | the line now also says a change described as setting the level applied whenever the change before it did, and covers R6-1 and R6-2 | — |
+| integration, optional | the report and tracker still described the branch as based on `610d5777`, before the main merge | stale prose | both now name the merge `e82808e7` | — |
+
+**Found while reading this round's own sentences, beyond the review:**
+1. After an unreadable closer or a cross-marker closer, ", so riskMonitor's lines …" read as if the conclusion
+   followed from the clause before it (the uncertainty, or the later INFO). The conclusion is now its own sentence,
+   bounded by where the window ends: "Before record 3, …".
+2. That bound was itself wrong when every record in view comes before the marker: "Before record 4" would take in
+   post-marker records the level is not known to reach. Past a marker the bound is the marker: "Before the
+   stream-end marker preceding record 3, …". Asserted in `aClosingChangeAcrossAMarkerIsNamedNotHeldUntil`.
+3. A first draft wrote "either way it sets this node" in the cross-marker closer for a node named "null"; the
+   existing R5-2 check caught it, because in an ungrouped context "sets" is exactly what may not be said. It now
+   reads "changes".
+
+**The matrix:** 3 openings × 5 groupings × 3 boundaries × 8 closings = **360 logs, all 360 annotated**, both
+asserted exactly, with every branch phrasing reached.
+
+**What I got wrong this round:** R6-1 and R6-2 are the class this thread has chased since RR-2 — a sentence saying
+more than the log establishes — found this time in what the window does *not* see (a record it could not read, a
+marker it did not look for). My first drafts of the fixes repeated it twice more (items 1 and 2 above), caught only
+by printing and reading the output. P11.2 predicted the lead "in these records"; I changed it to "in the same
+grouping" / "among the records that likewise state no grouping" before committing, because "these records" had no
+antecedent.
+
+**Ran:**
+- P11 first;
+- the three MA-8 classes after each change (47 tests, the 360-log matrix included);
+- every new sentence form printed and read in full (`R6Read`, eight cases);
+- `MARereviewProbe` on the merged, fixed build: identical to round 5's output (`rereview6-probe-after-fixes.txt`);
+  none of its cases reaches the new branches;
+- the full headless suite, **2102 / 0 / 0 / 98** over 278 reports mapped to source classes, no orphans —
+  2100 plus the two new tests, as P11.6 predicted.
+
+**Not run:** mutation witnesses (the owner's instruction); the display suite (`MainFrame` unchanged).
+
 ## Fifth re-review — two Low, three optional, all taken
 
 Fifth re-review `79a51d27` on `review/mongoose-fifth-rereview-2026-09-24`, against `98148175`, by the author of
@@ -647,12 +698,12 @@ are `8200c4ab` and `7fd8d6a8`.
 
 | | Finding | Cause | Fix | Regression and witness (strict protocol: reports deleted, a `<failure>` at the named test, SHA-256 restore, clean `git status -- src`, green again) |
 |---|---|---|---|---|
-| R5-1 Low | R-C's "every branch" matrix missed four branches — the declared-null YES note and the three open closings — and its guard passed "for its processor" | **mine, R-C**: the matrix was built from my list of branches, not from the code, and inherited the round-4 mislabel of the declared-null note | the matrix gains `G("null", "alpha")` and a closing-`groupId` dimension {same, `beta`, none}: **315 logs, 315 annotated**, both asserted exactly. It now also asserts that it **reaches** each of 24 branch wordings, so a branch the inputs stop reaching fails rather than going unchecked. The guard is `processor(?! grouping)`. The comment says what the matrix covers and why round 4's did not | six witnesses, all red at `noBranchOfTheSentencePresumesAProcessor`: a plant at the declared-null YES note; "for its processor" in each open-closing literal (per-node, the shared disclosure, the null-node clause) and in the per-node definite closing; and the YES note's wording changed, so the matrix no longer reaches it |
-| R5-2 Low | the opening said "this log sets riskMonitor's audit level to WARN" while the next sentence said its applying is not established | **mine, since RR-3**: the opening was written before NOT_ESTABLISHED existed and no round re-read it | while applying is open the opening says "this log records a change setting …". **Re-reading every clause for the same flaw found one more:** for a node named "null", "— either way it sets this node" was appended whatever `applies()` said; it now says "addresses" when applying is open | the matrix asserts no absent-grouping note starts "this log sets" or says "either way it sets". Two witnesses, one per opening, red there |
+| R5-1 Low | R-C's "every branch" matrix missed four branches — the declared-null YES note and the three open closings — and its guard passed "for its processor" | **mine, R-C**: the matrix was built from my list of branches, not from the code, and inherited the round-4 mislabel of the declared-null note | the matrix gains `G("null", "alpha")` and a closing-`groupId` dimension {same, `beta`, none}: **315 logs, 315 annotated**, both asserted exactly. It now also asserts that it **reaches** each of 24 branch wordings, so a branch the inputs stop reaching fails rather than going unchecked. **Corrected in round 6 (R6-3): two of the 24 were loose — each was also produced by another branch — so those two branches could change unnoticed; both are tightened.** The guard is `processor(?! grouping)`. The comment says what the matrix covers and why round 4's did not | six witnesses, all red at `noBranchOfTheSentencePresumesAProcessor`: a plant at the declared-null YES note; "for its processor" in each open-closing literal (per-node, the shared disclosure, the null-node clause) and in the per-node definite closing; and the YES note's wording changed, so the matrix no longer reaches it |
+| R5-2 Low | the opening said "this log sets riskMonitor's audit level to WARN" while the next sentence said its applying is not established | **mine, since RR-3**: the opening was written before NOT_ESTABLISHED existed and no round re-read it | while applying is open the opening says "this log records a change setting …". **Re-reading every clause for the same flaw found one more:** for a node named "null", "— either way it sets this node" was appended whatever `applies()` said; it now says "addresses" when applying is open | the matrix asserts no absent-grouping note starts "this log sets" or says "either way it sets". Two witnesses, one per opening, red there. **Corrected in round 6 (R6-3): they went red at the matrix's *reach* assertion, not at this check;** with reach disabled the check catches the mutation too (the sixth re-reviewer's diagnostic run) |
 | O5-1 | "It holds until" said the level ends at a change whose applying is open | wording | "It holds at least until" in the open case, and only there | the matrix asserts "at least until" appears exactly where "not established either" does — **added after the first fix commit**, when setting up the witnesses showed the wording had no assertion. Witness: "It holds until" restored → red |
 | O5-2 | the generic open closing said "if it applied" twice | wording | "…and only the first would end it there, and only if it applied here: it was addressed to …, and whether it applied is not established either", shared with the null-node clause | the matrix's reach assertion pins it. Witness: the round-4 wording restored → red |
 | O5-3 | "before the marker" came one sentence before the marker was introduced | wording | "before the stream-end marker preceding record N"; the next sentence says "That marker". ("preceding", because "before the stream-end marker before record 3" read badly) | the two tests that pin the phrase, rewritten. Witness: "the marker" restored → red at `aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt` |
-| found, mine | after a closing clause, the condition "if it applied here" could read as the CLOSING change — O-1's ambiguity, in the condition rather than the conclusion | found reading the new sentences, not in the review | when a closing clause intervenes the condition names "the change at record N" | the matrix asserts no bare "if it applied/survived/named" in a note with a closing clause. Witness: the bare "it" restored → red |
+| found, mine | after a closing clause, the condition "if it applied here" could read as the CLOSING change — O-1's ambiguity, in the condition rather than the conclusion | found reading the new sentences, not in the review | when a closing clause intervenes the condition names "the change at record N" | the matrix asserts no bare "if it applied/survived/named" in a note with a closing clause. Witness: the bare "it" restored → red. **Corrected in round 6 (R6-3): through reach, as above** |
 
 **R-A and R-B re-run** under the same protocol, because their code sits beside this change: both red at their named
 tests. **14 witnesses in all, every one holding** (`witness10.py`). I did not re-run the 84 earlier witnesses.
@@ -762,10 +813,11 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the fifth re-review's fixes are reviewed.** Six review rounds' findings are
-  fixed on `feat/mongoose-audit-production-rebased`, each with a regression and a mutation witness. **CI's frame
-  job has never run on this branch**; a pull request is what would run it. Still based on `610d5777`; `origin/main` has moved, and
-  the rebase comes after review, not under it. Not merged: the owner's call.
+- analyser — **NOT ready until the sixth re-review's fixes are reviewed.** Seven review rounds' findings are
+  fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5 also have mutation
+  witnesses, round 6 by the owner's choice does not. `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
+  integration (`99f9ec47`, no merge defect). **CI's frame job has never run on this branch**; a pull request is
+  what would run it. Not merged: the owner's call.
 
 Three release-note items stand, unchanged by this round: the producer findings are not in the report
 surface yet (D-MA0c); the `attach` default overload quietly drops fan-out for any other capture-service

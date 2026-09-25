@@ -221,7 +221,10 @@ still to do.
   a closing change stated as applied when that is not established, and a "checked on every branch" claim the tests
   did not back — all fixed, plus three optional items. Suite 1980/0/62. A **fifth re-review** (`79a51d27`) found
   that matrix still missed four branches, and an opening that said "sets" while applying was open; both fixed, plus
-  three optional items. **Awaiting review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  three optional items. `main` 1.20.1 merged in (`e82808e7`; integration review `99f9ec47`, no merge defect). A
+  **sixth re-review** (`1c3173ae`) found an unreadable control record passed over as if it changed nothing, and a
+  closing clause asserting the level held across a stream-end marker; both fixed, with two loose test phrasings and
+  four optional items. Suite 2102/0/98. **Awaiting review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and
