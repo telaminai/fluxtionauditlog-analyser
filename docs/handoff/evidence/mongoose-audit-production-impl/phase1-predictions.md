@@ -303,3 +303,35 @@ way it addresses this node") and held to the same regression.
    `ControlAddressAndScopeTest.notEstablishedAndSpanningABoundaryConditionsBothHalves`; nothing else.
 5. **P10.5.** No `MainFrame` change; the headless suite grows by zero tests (R5-1 and R5-2 extend existing tests)
    and stays at 1,980 run.
+
+## P11 · Sixth re-review — recorded before these fixes
+
+Sixth re-review `1c3173ae` (branch `review/mongoose-sixth-rereview-2026-09-24`) against `4bb68d08`, confirmed
+still reproducible on the main merge `e82808e7` by the integration review (`99f9ec47`): three required (R6-1, R6-2,
+R6-3), four optional (O6-1–O6-4), plus the integration review's optional status-prose item. All planned. **The owner
+has asked for no mutation witnesses this round**: regressions are ordinary tests, and every claim below is checked
+by running them, not by planting.
+
+1. **P11.1 — R6-1.** Recording unreadable control records (an `EventLogControlEvent` whose `eventToString` is
+   missing or does not parse) with their context, and closing a window at the first one in the same context,
+   makes the reviewer's four-record log (WARN, Quote, unreadable control, Quote) annotate record 2 with "It holds
+   at least until record 3 …, a control record this reader could not read" and leave record 4 unannotated. It
+   breaks no existing assertion: no current test contains an unreadable control record.
+2. **P11.2 — R6-2.** When a stream-end marker lies between the change and the record that closes it, the closing
+   clause becomes "The next change to it in these records is at record N …, which …" and never says "holds". The
+   reviewer's six-record log loses "It holds until record 4". No existing assertion breaks: the only tests that
+   pin "It holds" have no marker between the change and its closer.
+3. **P11.3 — R6-3.** Tightening the two loose reach phrasings to the reviewer's
+   (`"If the change at record 1 (logTime 1) applied here, riskMonitor's"` and `"the log renders both identically. "`)
+   keeps the matrix green, because each is produced by exactly one branch; the loose `"; otherwise this change
+   explains nothing here"` entry is replaced by the no-boundary-specific `"applied here, riskMonitor's lines below
+   WARN are not in this log; otherwise"`.
+4. **P11.4 — the matrix.** Adding an "unreadable" closing (one variant) grows it from 315 to **360** logs, all 360
+   annotated. New assertions: a note whose closer lies after a marker never says "It holds"; a note closed by an
+   unreadable record says so and never says "Nothing later". Both green on the fixed code.
+5. **P11.5 — optional.** O6-1 (`(?i)` on the processor guard), O6-2 (`bareIt` widened with `(?! here:)`, applied to
+   every note that has a closing clause), O6-3 ("end the window there") and O6-4 (CHANGELOG) change no existing
+   assertion except the two that pin "either way it would end it there" (the matrix reach entry and its prefix in
+   no other test).
+6. **P11.6 — suite.** Headless grows by exactly the two new tests (R6-1, R6-2) from 2100 to **2102**; skips stay 98.
+   `MainFrame` is not touched, so no display run is required.
