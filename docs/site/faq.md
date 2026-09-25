@@ -12,6 +12,18 @@ In `~/.fluxtion-analyser/config` — cleartext properties (this is a local, sing
 your source roots, event processors, saved graphs, hidden columns and your LLM API key. The distinct
 Fluxtion processor-build key uses the builder's established `~/.fluxtion/fluxtion.apiKeyFile` instead.
 
+## Why does the Graph panel say “Charts not loaded”?
+
+Older versions could save two charts with the same name. The analyser cannot tell which definition a
+name refers to, so it withholds that chart set and explains the conflict on the Graph panel. Log
+inspection still works. Both definitions remain saved; the analyser does not rename or discard either.
+
+The message identifies the settings file. Close the analyser before editing global settings, or close
+the project before editing its profile, so autosave cannot overwrite the correction. Give each chart a
+unique `graph.N.name` there, keeping its other settings, then restart or reopen the project. You can also open a different,
+valid project while leaving the original definitions intact. An ambiguous project or imported chart set
+is refused before it replaces the current project.
+
 ## Is my API key safe? Does it leave my machine?
 
 There are two unrelated keys. The **LLM key** is stored locally and used only to call the provider you
@@ -28,7 +40,7 @@ copy-prompt mode).
 
 ## Can I follow a growing log?
 
-Yes — **File ▸ Follow (tail)** polls an open local file and appends newly-completed records live,
+Yes — **Audit log ▸ Follow (tail)** polls an open local file and appends newly-completed records live,
 preserving flags and filters; open graphs re-extract as records arrive (a chart showing the whole log grows with
 it, one at the live edge slides, one zoomed into the middle holds). (Heap-loaded local files only; not S3.)
 

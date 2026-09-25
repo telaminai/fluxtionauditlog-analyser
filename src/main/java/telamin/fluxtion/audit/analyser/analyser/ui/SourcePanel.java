@@ -313,7 +313,7 @@ public final class SourcePanel extends JPanel {
             sb.append('\n');
         }
         if (hint != null && !hint.isBlank()) sb.append(hint.strip()).append("\n\n");
-        sb.append("Add one:  File ▸ Settings… ▸ Source roots ▸ Add…\n")
+        sb.append("Add one:  Sources ▸ Source roots… ▸ Add…\n")
           .append("or drag a project folder onto that tab — a project expands to its src/main/java,\n")
           .append("sub-modules included.\n\n")
           .append("A source root is the folder that directly contains your top-level package directory.");

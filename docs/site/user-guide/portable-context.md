@@ -86,7 +86,7 @@ so an agent and a person read one set of facts.
 
 ### Sharing it
 
-*File ▸ Export settings…* has a **Runbook LOCATIONS (paths in your repository — never their contents)**
+*Project ▸ Export settings…* has a **Runbook LOCATIONS (paths in your repository — never their contents)**
 checkbox. It is **off by default**: a path such as `ops/deploy.md` says something about how your
 repository is laid out, so it leaves only when you tick it.
 
@@ -202,7 +202,7 @@ directory. Closing a log or a graph is a legitimate step.
 **Recall is an offer.** `context.analyses` lists each analysis with its rationale and the parameters it
 declares; nothing runs by itself. To run one:
 
-- **File ▸ Run analysis ▸ *name*** — a small dialog asks for the parameters (defaults prefilled).
+- **Project ▸ Run analysis ▸ *name*** — a small dialog asks for the parameters (defaults prefilled).
 - `open {analysis: "spread breach", bind: {log: "/path/to/audit.yaml"}}` over the socket.
 
 Steps run in order through the same dispatcher the socket uses, so every guard a verb has applies, and

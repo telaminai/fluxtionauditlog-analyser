@@ -8,7 +8,7 @@ import java.nio.file.Path;
  *
  * <p>Holds the three things the UI would otherwise scatter: the active profile path, the settings that
  * were in play <b>before</b> any project was opened, and whether there are unsaved project edits.
- * Headless on purpose — a File menu should be a thin caller of this, not the place the rules live.
+ * Headless on purpose — a Project menu should be a thin caller of this, not the place the rules live.
  *
  * <h2>Auto-persist, debounced</h2>
  *

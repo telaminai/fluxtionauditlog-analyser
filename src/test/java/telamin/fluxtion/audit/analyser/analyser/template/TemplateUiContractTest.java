@@ -11,10 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TemplateUiContractTest {
 
     @Test
-    void fileMenuOffersTemplateProjectAndUsesBackgroundIo() throws Exception {
+    void projectMenuOffersTemplateProjectAndUsesBackgroundIo() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
-        assertTrue(source.contains("file.add(newProjectFromTemplateItem())"));
+        assertTrue(source.contains("projectMenu.add(newProjectFromTemplateItem())"));
         assertTrue(source.contains("new JMenuItem(\"New project from template…\")"));
         String flow = source.substring(source.indexOf("private void chooseTemplateProject()"),
                 source.indexOf("private void chooseAndOpenProject()"));

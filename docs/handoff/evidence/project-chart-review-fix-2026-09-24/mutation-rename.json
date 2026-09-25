@@ -1,0 +1,82 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "rename-modal",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/GraphTabs.java",
+      "sha256": "d1e4c401fda069c96ff321fa8287ea7be33c8c368f5051e5b569b7ea32fc6cf9",
+      "baseline": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#closedNamesAreReservedForCreationAndRename",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      },
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#closedNamesAreReservedForCreationAndRename",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": [
+              {
+                "test": "closedNamesAreReservedForCreationAndRename",
+                "message": "programmatic rename must refuse without a modal ==> expected: <false> but was: <true>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 4.385 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.closedNamesAreReservedForCreationAndRename -- Time elapsed: 4.360 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: programmatic rename must refuse without a modal ==> expected: <false> but was: <true>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)\n\tat org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)\n\tat org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$closedNamesAreReservedForCreationAndRename$9(ChartLifecycleReviewFrameTest.java:144)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$closedNamesAreReservedForCreationAndRename$9:144 programmatic rename must refuse without a modal ==> expected: <false> but was: <true>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=ChartLifecycleReviewFrameTest#closedNamesAreReservedForCreationAndRename",
+          "-Djava.awt.headless=false",
+          "-DargLine=-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "ChartLifecycleReviewFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    }
+  ]
+}

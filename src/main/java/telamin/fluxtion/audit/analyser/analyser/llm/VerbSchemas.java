@@ -223,7 +223,7 @@ public final class VerbSchemas {
                 props(
                         p("path", string(), "where to write the .png"),
                         p("scope", string(), "\"window\" (default), \"topology\", \"records\", or "
-                                + "\"menu:File\" to open a top-level menu and leave it open so a native "
+                                + "\"menu:Audit log\" to open a top-level menu and leave it open so a native "
                                 + "screen capture includes the popup — \"menu:close\" puts it back. The "
                                 + "painted PNG never contains a popup; a Swing menu is a separate layer. With "
                                 + "a menu open the echo adds menuItems: [{text, enabled, bounds}] — where each "
@@ -347,6 +347,9 @@ public final class VerbSchemas {
                         + "A repeated Java spotlight rereads source; preparation expires after ten seconds without lighting late. "
                         + "One Java document per set; combine with topology targets to open source beside the graph. "
                         + "Java line partial means a clipped logical line; source/run relationship is unverified. "
+                        + "Menus: context.menus lists every menu and its items, exactly as menu:<Menu>:<item> names "
+                        + "them, and context.menuChanges says what was renamed or retired; a miss says where the item "
+                        + "is if it moved or was renamed. "
                         + "Targets: " + SpotlightVocabulary.TEXT,
                 props(
                         p("target", string(), "one of the targets above, e.g. tab:topology, records:row:12, "

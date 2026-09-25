@@ -90,15 +90,38 @@ public final class ProjectProfile {
     }
 
     /**
+     * Is {@code fileName} a project profile kept in a project's {@code .analyser/} directory?
+     *
+     * <p>Two forms, both owned by the project: the canonical {@code project.fluxtion-settings}, and a
+     * NAMED profile {@code project.<name>.fluxtion-settings} saved beside it — several set-ups for one
+     * project that you switch between (e.g. {@code project.ws-feed.fluxtion-settings}). A file with any
+     * other name that happens to sit in {@code .analyser/} is not a profile: it is a loose settings file
+     * someone saved there, and keeps its own directory as its anchor.
+     */
+    public static boolean isProjectProfileFileName(String fileName) {
+        return fileName != null
+                && fileName.startsWith("project.")
+                && fileName.endsWith(".fluxtion-settings");
+    }
+
+    /**
      * What a RELATIVE path inside {@code file} is relative to (M35.10).
      *
-     * <p>For the canonical profile — {@code <project>/.analyser/project.fluxtion-settings} — it is the
-     * <b>project root</b>, not the {@code .analyser/} directory the file happens to sit in: a committed
-     * profile is {@code .vscode/settings.json}'s kind of file, and nobody writes {@code ../src} in one
-     * of those. The M19 bundle contract says {@code sourceRoot.0=src/main/java} lands at
+     * <p>For a project profile — {@code <project>/.analyser/project.fluxtion-settings} or a named
+     * {@code <project>/.analyser/project.<name>.fluxtion-settings} — it is the <b>project root</b>, not
+     * the {@code .analyser/} directory the file happens to sit in: a committed profile is
+     * {@code .vscode/settings.json}'s kind of file, and nobody writes {@code ../src} in one of those.
+     * The M19 bundle contract says {@code sourceRoot.0=src/main/java} lands at
      * {@code <bundle>/src/main/java}; until this method, {@link #load} handed the importer the file's
      * own directory and it landed at {@code <bundle>/.analyser/src/main/java} — a directory that does
      * not exist, found by opening a hand-written fixture during M35.8.
+     *
+     * <p>Named profiles were matched on the canonical file NAME alone until now, so every relative path
+     * in one anchored a directory too deep: {@code src/main/java} became
+     * {@code <project>/.analyser/src/main/java} and {@code ../sibling} became {@code <project>/sibling}.
+     * The visible symptom was a profile in which every event processor reported "source not found" and
+     * every runbook {@code exists:false}, while the canonical profile beside it — same roots, same
+     * values — resolved perfectly. The anchor is the profile's ROLE, not its exact file name.
      *
      * <p>For any other {@code .fluxtion-settings} file — one exported and imported by hand from
      * wherever it was saved — it stays the file's own directory, which is the only sensible anchor a
@@ -109,10 +132,10 @@ public final class ProjectProfile {
         Path dir = file.toAbsolutePath().normalize().getParent();
         if (dir == null) return null;
         Path dirName = dir.getFileName();
-        boolean canonical = dirName != null && dirName.toString().equals(".analyser")
-                && file.getFileName() != null
-                && file.getFileName().toString().equals(Path.of(CANONICAL_RELATIVE).getFileName().toString());
-        return canonical && dir.getParent() != null ? dir.getParent() : dir;
+        Path fileName = file.getFileName();
+        boolean projectProfile = dirName != null && dirName.toString().equals(".analyser")
+                && fileName != null && isProjectProfileFileName(fileName.toString());
+        return projectProfile && dir.getParent() != null ? dir.getParent() : dir;
     }
 
     /**

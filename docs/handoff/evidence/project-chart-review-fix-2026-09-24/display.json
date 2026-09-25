@@ -1,0 +1,123 @@
+{
+  "mode": "display",
+  "runs": [
+    {
+      "command": [
+        "mvn",
+        "-q",
+        "test",
+        "-Dtest=PairingDuringLoadFrameTest,AsyncOpenInterleavingFrameTest,SpotlightFrameTest,WestColumnStartsCollapsedFrameTest,MenuScreenshotFrameTest,PersonAtTheScreenFrameTest,NamedGraphAndMenuSpotlightFrameTest,SessionRecoveryFrameTest,TemplateCatalogueFrameTest,DesignSpotlightFrameTest,JavaSourceSpotlightFrameTest,LoadedFileObservationFrameTest,ChartLifecycleReviewFrameTest",
+        "-Djava.awt.headless=false",
+        "-DargLine=-Djava.awt.headless=false"
+      ],
+      "exit": 0,
+      "suites": [
+        {
+          "name": "PairingDuringLoadFrameTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "AsyncOpenInterleavingFrameTest",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "SpotlightFrameTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "WestColumnStartsCollapsedFrameTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "MenuScreenshotFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "PersonAtTheScreenFrameTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "NamedGraphAndMenuSpotlightFrameTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "SessionRecoveryFrameTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "TemplateCatalogueFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "DesignSpotlightFrameTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "JavaSourceSpotlightFrameTest",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "LoadedFileObservationFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        },
+        {
+          "name": "ChartLifecycleReviewFrameTest",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "assertions": []
+        }
+      ],
+      "output": ""
+    }
+  ]
+}

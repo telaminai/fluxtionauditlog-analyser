@@ -12,18 +12,37 @@ import java.nio.file.Files;
  *
  * <p>Every action here REVEALS or NAVIGATES (D-L3): copy a path, show it in the file manager, go to the
  * tab that owns the thing. Nothing here closes, switches, or edits — a display that can mutate state is
- * a display people learn not to trust. The only way out of this class is {@link Navigator}, whose two
- * methods both move the eye, not the state; a bytecode test proves this class never names MainFrame.
+ * a display people learn not to trust. The only way out of this class is {@link Navigator}, whose methods
+ * all move the eye, not the state; a bytecode test proves this class never names MainFrame.
+ *
+ * <p><b>D-L3 amended, owner 2026-09-24.</b> Revealing a SPECIFIC item is navigation, not mutation, so the
+ * Navigator may name the thing a row is about. Until this round it could not: a report row and a chart row
+ * could only ask for a TAB, so Open on any report revealed whichever report was already selected, and Open
+ * on a saved chart was wired to nothing at all. Both looked broken to the person clicking them, because
+ * both promised more than "show me that tab". The boundary that remains is unchanged and is the one worth
+ * keeping: the panel still cannot close, switch, edit or delete anything, and still never names MainFrame.
  */
 public final class ProjectPanel extends JPanel {
 
-    /** How the panel asks the frame to show something. Navigation only — see class doc. */
+    /**
+     * How the panel asks the frame to show something. Navigation only — see class doc.
+     *
+     * <p>Adding a method here is a spec change, and {@code ProjectPanelIsRevealOnlyTest} asserts the exact
+     * set so it cannot happen by accident. A new method must REVEAL something that already exists; one that
+     * creates, edits or discards state belongs on the action surface, which this panel may not reach.
+     */
     public interface Navigator {
         /** Bring a right-hand tab forward by title ("Topology", "Source"). */
         void showTab(String title);
 
         /** Open Settings on the named page ("Source roots", "Event processor", "Assistant"). */
         void openSettings(String page);
+
+        /** Reveal one saved report by NAME (not its title) in the Reports tab. */
+        void showReport(String name);
+
+        /** Reveal one saved chart by name in the Graph tab, opening its tab if it is not already open. */
+        void showGraph(String name);
     }
 
     private final Navigator navigator;
@@ -142,7 +161,12 @@ public final class ProjectPanel extends JPanel {
         switch (r.target()) {
             case TOPOLOGY -> actions.add(small("Open", "Open in the Topology tab", () -> navigator.showTab("Topology")));
             case SOURCE -> actions.add(small("Open", "Open in the Source tab", () -> navigator.showTab("Source")));
-            case REPORTS -> actions.add(small("Open", "Open in the Reports tab", () -> navigator.showTab("Reports")));
+            // a row that names its item reveals THAT item; the placeholder rows ("No saved reports") name
+            // none, and still just bring the tab forward
+            case REPORTS -> actions.add(r.item() == null
+                    ? small("Open", "Open in the Reports tab", () -> navigator.showTab("Reports"))
+                    : small("Open", "Show this report in the Reports tab", () -> navigator.showReport(r.item())));
+            case CHART -> actions.add(small("Open", "Show this chart in the Graph tab", () -> navigator.showGraph(r.item())));
             case VIEW_FILE -> actions.add(small("Open", "Read the file here, as written — nothing is run", () -> viewFile(r.path(), r.primary())));
             case SETTINGS_SOURCE -> actions.add(small("Settings…", "Settings ▸ Source roots", () -> navigator.openSettings("Source roots")));
             case SETTINGS_PROCESSORS -> actions.add(small("Settings…", "Settings ▸ Event processor", () -> navigator.openSettings("Event processor")));

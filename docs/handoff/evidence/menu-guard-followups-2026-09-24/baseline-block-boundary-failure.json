@@ -1,0 +1,50 @@
+{
+  "mode": "mutations",
+  "runs": [],
+  "baseline": {
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=MenuDocumentationTest,MenuLayoutFrameTest",
+      "-Djava.awt.headless=false"
+    ],
+    "exit": 1,
+    "suites": [
+      {
+        "name": "MenuDocumentationTest",
+        "tests": 2,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "extractsHtmlMarkdownAndReportsLocations",
+          "documentedPathsNameExistingItems"
+        ],
+        "assertions": [
+          {
+            "test": "extractsHtmlMarkdownAndReportsLocations",
+            "kind": "failure",
+            "message": "expected: <[Block.java:3: no menu item AI \u2192 Missing]> but was: <[Block.java:2: no menu item Help \u2192 About AI, Block.java:3: no menu item AI \u2192 Missing]>"
+          }
+        ]
+      },
+      {
+        "name": "MenuLayoutFrameTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "projectSourcesAndAuditHaveTheirOwnActions",
+          "closeBothFromItsMenuKeepsProjectAndCharts",
+          "closeGraphFromItsMenuKeepsLogProjectAndCharts",
+          "closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "sourceShortcutsOpenTheNamedSettingsPage"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": "[ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.977 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.extractsHtmlMarkdownAndReportsLocations -- Time elapsed: 0.116 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: expected: <[Block.java:3: no menu item AI \u2192 Missing]> but was: <[Block.java:2: no menu item Help \u2192 About AI, Block.java:3: no menu item AI \u2192 Missing]>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1145)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuDocumentationTest.extractsHtmlMarkdownAndReportsLocations(MenuDocumentationTest.java:156)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   MenuDocumentationTest.extractsHtmlMarkdownAndReportsLocations:156 expected: <[Block.java:3: no menu item AI \u2192 Missing]> but was: <[Block.java:2: no menu item Help \u2192 About AI, Block.java:3: no menu item AI \u2192 Missing]>\n[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+  }
+}

@@ -306,6 +306,21 @@ public final class ActionExecutor implements RenderExecutor {
     // ---- graph -----------------------------------------------------------------------------------
 
     private ActionResult doGraph(LogStore s, Map<String, Object> p) {
+        // R13-4: the owner decision allows a NEW chart while definitions are withheld, and the UI does. The
+        // verb refused everything, so the assistant was held to a stricter rule than the person beside it.
+        // A chart that IS withheld is still refused — that is what the ambiguity protects.
+        String refusal = onEdt(graphTabs::definitionRefusal);
+        if (refusal != null) {
+            String target = asText(p.get("name"));
+            boolean withheld = target == null || onEdt(() -> graphTabs.isWithheldDefinition(target));
+            if (withheld) {
+                return ActionResult.error(target == null
+                        ? refusal + " Name the new chart to create one while this is unresolved."
+                        : refusal);
+            }
+        }
+        String seriesRefusal = seriesShapeRefusal(p.get("series"));
+        if (seriesRefusal != null) return ActionResult.error(seriesRefusal);
         // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
@@ -313,9 +328,13 @@ public final class ActionExecutor implements RenderExecutor {
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");
-            return onEdt(() -> graphTabs.renameNamed(from, to)
-                    ? ActionResult.ok("graph", "applied", Map.of("renamed", from + " → " + to))
-                    : ActionResult.error("no graph named '" + from + "'"));
+            return onEdt(() -> {
+                if (graphTabs.graphNamed(from) == null) return ActionResult.error("no open graph named '" + from + "'");
+                if (to == null || to.isBlank()) return ActionResult.error("graph rename needs a non-blank new name");
+                return graphTabs.renameNamed(from, to)
+                        ? ActionResult.ok("graph", "applied", Map.of("renamed", from + " → " + to))
+                        : ActionResult.error("a chart named '" + to.trim() + "' already exists, including saved closed charts");
+            });
         }
 
         List<String> requested = asStringList(p.get("series"));
@@ -460,7 +479,11 @@ public final class ActionExecutor implements RenderExecutor {
         final var extEcho = externalEcho;
         return onEdt(() -> {
             GraphPanel panel = graphTabs.graphForAction(name, newTab);
-            if (panel == null) return ActionResult.error("could not open a graph (no log loaded)");
+            if (panel == null && graphTabs.definitionRefusal() != null)
+                return ActionResult.error(graphTabs.definitionRefusal());
+            if (panel == null) return ActionResult.error(graphTabs.hasDefinition(name)
+                    ? "a chart named '" + name + "' already exists; omit newTab to edit or reopen it"
+                    : "could not open a graph (no log loaded)");
             int requestsBefore = panel.extractionRequests();
             if (extSpecs != null) panel.setExternalPreloaded(extSpecs, extLoaded, extNotes);   // REPLACE
             panel.addKeys(toAdd);
@@ -486,6 +509,8 @@ public final class ActionExecutor implements RenderExecutor {
             if (p.containsKey("bands")) applied.put("bands", panel.bandSpecs().size());
             if (extEcho != null) applied.put("external", extEcho);
             applied.put("name", name == null ? "(current)" : name);
+            // the style the chart now HAS, so a caller can confirm a {style} it sent (or learn the one it did not)
+            applied.put("style", panel.styleName());
             applied.put("resolved", requested.stream().filter(found::contains).toList());
             applied.put("unresolved", unresolved);
             if (!exprEcho.isEmpty()) applied.put("exprs", exprEcho);
@@ -493,7 +518,8 @@ public final class ActionExecutor implements RenderExecutor {
                 applied.put("availableKeysSample", availableSample.stream().limit(40).toList());
                 applied.put("note", "graphable keys are TOP-LEVEL numeric/boolean nodeLog values "
                         + "(instanceId.key); a value nested inside a toString (e.g. MutableOrder(price=..)) "
-                        + "is not itself a key. Unresolved series are still added (they plot when/if the key fires).");
+                        + "is not itself a key. A well-formed but unresolved key is still added (it plots if the "
+                        + "key ever fires); one without an instanceId.key dot is not added.");
             }
             if (panel.isPinned()) {
                 Map<String, Object> pinned = new LinkedHashMap<>();
@@ -1370,6 +1396,34 @@ public final class ActionExecutor implements RenderExecutor {
         if (o == null) return null;
         String s = o.toString();
         return s.isBlank() ? null : s;
+    }
+
+    /**
+     * Why a {@code series} argument cannot be applied, or null when it can. Each entry is an
+     * {@code "instanceId.key"} string. An object used to be stringified — {@code {expr=a.b, label=x}} has a
+     * dot, so it parsed as a key that could never fire — then added, persisted, and echoed as {@code ok}
+     * with "unresolved series are still added (they plot when/if the key fires)". Two models in four virgin
+     * runs sent the {@code exprs} shape here and one reported the empty chart as "resolved but no data".
+     * Refused whole, before anything changes: unlike a malformed guide, a wrong series leaves a chart that
+     * looks built and plots nothing.
+     */
+    static String seriesShapeRefusal(Object series) {
+        if (series == null) return null;
+        if (!(series instanceof List<?> list)) {
+            return "series is a list of \"instanceId.key\" strings, e.g. [\"quotePublisher.spread\"]; got a "
+                    + series.getClass().getSimpleName() + ". Nothing was changed";
+        }
+        for (Object o : list) {
+            if (o instanceof String) continue;
+            // a null entry was dropped by asStringList and echoed ok — the same empty chart (PR #14 review, F2)
+            String got = o == null ? "null"
+                    : o instanceof Map<?, ?> m && m.containsKey("expr")
+                    ? "an object with 'expr' — for a labelled or computed series use exprs: [{expr, label}]"
+                    : "a " + o.getClass().getSimpleName();
+            return "series entries are \"instanceId.key\" strings, e.g. \"quotePublisher.spread\"; got " + got
+                    + ". Nothing was changed";
+        }
+        return null;
     }
 
     private static List<?> asList(Object o) {

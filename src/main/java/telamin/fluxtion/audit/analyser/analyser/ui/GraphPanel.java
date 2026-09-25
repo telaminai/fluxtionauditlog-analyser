@@ -138,7 +138,14 @@ public final class GraphPanel extends JPanel {
         JButton fit = new JButton("Fit");
         JButton export = new JButton("Export CSV");
         JButton exportPng = new JButton("Export PNG");
-        pinButton.setToolTipText("Pin this graph to a fixed time window (stops it following the shared filter)");
+        // Zoom and pin both change the visible window and sit side by side, but only one of them is kept:
+        // zoom is a lens on ChartPanel and is never written, while a pin is graph.N.from/to in the profile
+        // and comes back on reload. Nothing on screen said so, and an owner lost a zoom expecting it back.
+        zoomIn.setToolTipText("Zoom in. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
+        zoomOut.setToolTipText("Zoom out. A zoom is a view, not part of the chart — it is not saved. Use 📌 to keep a window.");
+        fit.setToolTipText("Fit the data to the plot. A view, not part of the chart — it is not saved. Use 📌 to keep a window.");
+        pinButton.setToolTipText("Pin this graph to a fixed time window: it stops following the shared filter, "
+                + "and unlike a zoom the window is SAVED with the chart and restored on reload");
         pinButton.setFocusable(false);
         pinButton.addActionListener(e -> { if (pinButton.isSelected()) pinToCurrentWindow(); else unpin(); });
         row1.add(zoomIn);
@@ -173,11 +180,18 @@ public final class GraphPanel extends JPanel {
 
         export.addActionListener(e -> exportCsv());
         exportPng.addActionListener(e -> exportPng());
-        styleCombo.addActionListener(e -> chart.setStyle(switch (styleCombo.getSelectedIndex()) {
-            case 1 -> ChartPanel.Style.LINE;
-            case 2 -> ChartPanel.Style.POINTS;
-            default -> ChartPanel.Style.STEP;
-        }));
+        styleCombo.addActionListener(e -> {
+            chart.setStyle(switch (styleCombo.getSelectedIndex()) {
+                case 1 -> ChartPanel.Style.LINE;
+                case 2 -> ChartPanel.Style.POINTS;
+                default -> ChartPanel.Style.STEP;
+            });
+            // 90746e83: the DROPDOWN is the only way a person changes the style, and it did not ask to be
+            // saved — so the choice was lost on the next load while the verb path persisted correctly.
+            // B-M20-3: an edit that changes the saved chart must say so. Quiet during restore, because
+            // GraphTabs suppresses the change listener while it rebuilds.
+            mutated();
+        });
         zoomIn.addActionListener(e -> chart.zoomIn());
         zoomOut.addActionListener(e -> chart.zoomOut());
         fit.addActionListener(e -> chart.resetView());
@@ -985,8 +999,22 @@ public final class GraphPanel extends JPanel {
             case "points" -> 2;
             default -> 0;   // step
         };
-        styleCombo.setSelectedIndex(idx);   // fires the listener → chart.setStyle
-        mutated();
+        // JComboBox fires its action event even when the selection is unchanged, so the listener always
+        // runs and is the single place that calls setStyle and mutated. Calling mutated here too would
+        // report one edit twice.
+        styleCombo.setSelectedIndex(idx);
+    }
+
+    /**
+     * The plot style as {@code step|line|points} — the form {@link #setStyleByName} takes, so the pair
+     * round-trips. Read from the combo, which is the one place the choice lives.
+     */
+    public String styleName() {
+        return switch (styleCombo.getSelectedIndex()) {
+            case 1 -> "line";
+            case 2 -> "points";
+            default -> "step";
+        };
     }
 
     private void onFilterChanged() {

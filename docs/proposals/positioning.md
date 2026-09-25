@@ -302,6 +302,208 @@ that describes a buyer with a budget and a deadline.
 
 ---
 
+## Hero options — four framings (added 2026-09-24)
+
+**Nothing above is replaced.** The claim, its subtitle and the wording decisions stand. These are framings for a
+hero slot, one per audience, drafted and then attacked twice for claims the product does not support. They exist
+so the choice of audience is made deliberately rather than by whoever writes the page.
+
+Every option below respects the same accuracy constraints, which are listed once at the end. Each was rewritten
+at least once to get there, so do not "simplify" one without checking it against that list.
+
+### A · Engineers, which is who buys it
+
+> **Trust the evidence, not the author.**
+> "Works on my machine" is testimony. Fluxtion derives the running order from your code, then records what ran,
+> in what order, and what never reported. Open that record in the analyser and work the evidence like a notebook,
+> whoever, or whatever, wrote the code.
+
+The opening three words do a paragraph's work, and every engineer has said them. Recommended default.
+
+### B · The AI-authored-code wave
+
+> **Trust the evidence, not the author.**
+> Something wrote this code. You, a model, or someone who left three years ago. Fluxtion works out the running
+> order itself. Switch auditing on and it records what actually ran and what never reported, then opens it as a
+> notebook you can question, rerun and argue with. Stop taking the author's word for it.
+
+Stronger if the page is aimed squarely at AI-written code. Two costs: it dates faster, and the closing line is a
+sharper elbow than a homepage usually throws.
+
+### C · Shortest, for a tight hero slot
+
+> **Trust the evidence, not the author.**
+> Fluxtion knows the order your logic runs in, because it derived it. Turn auditing on and the run becomes a
+> notebook: what ran, what stayed quiet, and whether that matches what you expected. Whoever, or whatever,
+> wrote it.
+
+Fits the slot, loses the hook.
+
+### D · Support and on-call — the person who knows nothing about the system
+
+> **Trust the evidence, not the author.**
+> It is 3am, you have never seen this system, and something threw. Fluxtion's audit log tells you what ran, in
+> what order, and what never reported, so you can find the fault without reading the code or waking whoever
+> wrote it. Hand the evidence to an assistant, get a fix proposed against that evidence, then open your report
+> against the next run to show the fault is gone. The report is what you file.
+
+Short form, for a tight slot:
+
+> **Trust the evidence, not the author.**
+> Never seen the system, and it just threw? The audit log says what ran, in what order, and what never reported.
+> Diagnose it without reading the code, let an assistant propose the fix against that evidence, and re-open your
+> report against the next run to show it is gone.
+
+### Why D may be the strongest, and what gates it
+
+The gold dust is not "the analyser helps with incidents". It is that **the audit log is the only artefact that
+lets someone who knows nothing about a system reason about it correctly.** For a stateful event-driven
+application the current answer to *what happened* is read the code and ask the author. Tracing gives spans
+between services and cannot say which callbacks fired inside a processor, in what order, or what stayed silent.
+At 3am the author is asleep or left years ago, so for this reader the headline is not a position, it is their
+operating condition.
+
+Two things compound it. Ruling things out is most of triage, and the denominator is the only feature that
+supports ruling out. And an assistant debugging a system it has never seen fails for want of evidence it cannot
+invent, not for want of intelligence, which is exactly what a bounded machine-readable record supplies.
+
+The whole journey is already supported rather than proposed: reports ship with typed sections and stored
+authoring context, the stored report call re-issues exactly against a new log, and the staleness banner
+announces when the newer run does not match what the report was written against. The agent-brokered dev-loop
+spec already calls the report the regression oracle, so D describes the designed path.
+
+**Three limits decide whether it converts.**
+
+1. **Audit has to be compiled in**, and the low-latency production profile is precisely the one that runs
+   without it. An operations buyer asks this first. Answer it as a packaging decision — does the supported
+   production build ship with audit on, at what level, at what cost — before this framing goes public.
+2. **It only helps systems already built on the framework.** This is not a horizontal incident tool with its
+   own market. Treat it as the argument that makes the framework buyable, and as the expansion story inside
+   existing accounts.
+3. **A support engineer is the reader least able to detect a false verdict**, having no model of the system to
+   check it against. That makes them the highest-stakes audience for the evidence-integrity milestone, and it
+   is why the 2026-09-24 client incident matters more than its size suggests.
+
+**Commercial consequence, which is the useful part.** The before-and-after step — showing the fault is gone — is
+exactly where a cross-run delta is worth money, and it is the step D currently has to describe as re-opening a
+report rather than diffing two runs. That is where a paid delta feature naturally sits, and this framing also
+explains what a long-running production customer is really paying for. It is not the compiler. It is being able
+to operate what they built.
+
+### The notebook: what is claimable today
+
+The tracker's product-discovery section (2026-09-22) calls *cells, kernel, canvas* the clearest category anchor
+this product has found, and says none of its three gaps needs a new engine. The framing is therefore claimable
+now, and two of its lines are better copy than anything drafted here:
+
+> Telemetry is evidence **about** a system. The audit log is evidence **from** it.
+
+> What you explore with **is** the production artefact.
+
+Hold to that section's direction: never let the analyser be described as a scratchpad, because the risk in the
+word notebook is that it reads as disposable while the claim here is the opposite.
+
+**One clause is not claimable yet: handing one artefact to a colleague.** ND-2 states in as many words that the
+components all exist and there is no wrapper, so nobody can hand someone a single thing that opens to the same
+view, the same evidence and the same story. *Rerun* is fine, because repeatable analyses shipped on 2026-08-27
+and the stored report call re-issues exactly. *Hand to someone else* waits for ND-2.
+
+### Further variants under consideration (another session, 2026-09-24)
+
+Recorded verbatim, because each contains a phrase worth taking even though neither carries the hook.
+
+**Variant 1 — more marketing**
+
+> Trust the evidence, not the author.
+>
+> Turn intent into working logic, then bring the design, code and recorded behaviour together in one notebook.
+>
+> Compare what happened with what you expected. Discuss the differences with the author — human or AI — and
+> improve the design.
+>
+> Fluxtion makes that conversation concrete: recorded facts, explicit expectations and checks someone else can
+> repeat.
+
+**Variant 2 — leans technical**
+
+> Trust the evidence, not the author.
+>
+> Fluxtion derives an event processor's dispatch order at compile time from its code and declarations.
+> Integrated audit capture records execution and the state exposed by participating nodes.
+>
+> Compare that record against independent expectations, keeping what was observed distinct from what logging
+> cannot establish.
+>
+> Design, code, expectations and recorded behaviour meet in one notebook: a shared working record for reviewing
+> the implementation, investigating differences and refining the design, whoever — or whatever — wrote the code.
+
+**What to take from them.**
+
+- **"Keeping what was observed distinct from what logging cannot establish."** The best single clause anyone has
+  drafted for this page. It carries the denominator and its limit together, and it is the epistemics of the whole
+  product in nine words. Strong candidate for the method section as well as a hero.
+- **"The state exposed by participating nodes."** Precise where earlier drafts overstated: it is what nodes chose
+  to expose, and *participating* carries the opt-in without a disclaimer. Dry, but accurate.
+- **Variant 1's discussion framing resolves a tension worth naming.** Earlier drafts were criticised for making
+  the author the interlocutor when the headline says not to trust them. The resolution is that the headline is
+  not anti-author, it is pro-evidence: the conversation becomes productive *because* it is grounded. Say
+  *settle the differences against the record* rather than *discuss the differences with the author*, and the
+  headline and the body stop pulling in opposite directions.
+- **"Checks someone else can repeat" is claimable, and is narrower than a handoff.** Repeatable analyses live in
+  the project profile, which is portable context by design. What ND-2 lacks is one artefact carrying the view,
+  the evidence and the narrative together. So a check someone else can repeat is fair; handing them a single
+  document is not. Keep that line where it is.
+
+**What each still misses.**
+
+- **Neither carries the denominator in the hero.** *Recorded behaviour* and *records execution* are tracing's
+  sentences. The variant that fixes this is variant 2, and only in its third line rather than its first.
+- **Variant 1 has no mechanism at all**, which puts it on the same shelf as every AI coding product shipping
+  this year, and *turn intent into working logic* is the crowded-shelf phrasing the alternatives section already
+  ruled out.
+- **Both drop "you never declare the order."** *From its code and declarations* is accurate and describes every
+  dependency-injection framework ever shipped. The order clause is the cheap differentiator; keep it.
+- **Variant 2's closing line is three gerunds in a row.** Reviewing, investigating, refining reads as committee
+  prose. The notebook sentence is where the category is won, so it should be the liveliest line on the page, not
+  the flattest.
+
+### Accuracy constraints every version must respect
+
+Each of these was a real error in a draft, caught in review. They are recorded so the same sentence is not
+written again.
+
+- **"The order is derived, not declared"**, never *no graph description is supplied*. The latter is true of the
+  annotation route and false of the Spring authoring path, where declarations define the graph. What is true on
+  both paths, and still differentiating, is that you never declare the **order**.
+- **Auditing is opt-in.** A processor built without it records nothing, and the supported low-latency profile is
+  built that way. Say *with auditing on*, or fold it in as *switch auditing on and…*.
+- **"What never reported", never "what never ran".** Coverage deliberately reports never-logged rather than
+  never-ran, because a node can be silent by design, and a per-node level can leave a node that ran with
+  nothing written. Claiming never-ran on the front page would be the exact defect the evidence-integrity
+  milestone exists to fix, printed in the largest type on the site.
+- **Split the mechanism from the values.** Which callbacks fired, and in what order, is recorded by the
+  generated dispatch. The values each node reports come from audit calls its author wrote, so they are the
+  author's own claims, and the comparison is what tests them. This strengthens the pitch rather than weakening
+  it, and it keeps the headline honest about its own record.
+- **Prefer "evidence" to "proof".** Proof invites a demand for tamper resistance. Runtime value escaping is
+  still open, so no stronger integrity claim than provenance should be published until it lands.
+- **"Correctness" survives as the subject**, per the wording decisions above. Do not weaken it to *conformance*
+  or *whether it did what you expected* as the headline noun. The fix for the fair objection is to name who
+  supplies the expectation, which *a comparison you can run* already does. What does overreach is making
+  evidence the direct object of correctness, as in *correctness becomes evidence rather than testimony*.
+- **Assistant fixes arrive as evidence-linked pull requests, never direct edits.** Say *get a fix proposed
+  against that evidence*, not *fix it here*. It is also the more credible claim to an operations buyer.
+- **Do not claim the analyser diffs two runs and reports the difference.** Cross-run delta is a wanted feature,
+  not a shipped one. Do not claim a generated fix brief either; that item is open and gated on pairing the
+  journal to the log.
+
+**One reopened decision, recorded so it is not silently relitigated.** The technical framings use *evidence
+rather than testimony* in body copy. The wording decisions above reject that form as a headline for a cold
+reader, on the grounds that it is inside-baseball. In body copy, to a technical audience, it earns its place —
+but it is the same form, and this note exists so the next reader knows it was a choice.
+
+---
+
 ## The first ten minutes
 
 Every model and every evaluator arrives unimpressed, because the value is invisible in the API — it lives in

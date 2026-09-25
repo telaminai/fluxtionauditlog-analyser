@@ -94,7 +94,7 @@ public final class MainFrame extends JFrame {
     private final HistoryComboBox searchField = new HistoryComboBox();
     private final JLabel showingLabel = new JLabel();
     private final JProgressBar progress = new JProgressBar();
-    private final JLabel status = new JLabel("Open a log — File ▸ Open (or the toolbar), drag a file in, or File ▸ Open from S3.");
+    private final JLabel status = new JLabel("Open a log — Audit log ▸ Open log… (or the toolbar), drag a file in, or Audit log ▸ Open log from S3….");
     private final JMenu recentMenu = new JMenu("Open recent audit log");
     private final JMenu recentGraphmlMenu = new JMenu("Open recent GraphML");
     private final JMenu recentProjectsMenu = new JMenu("Open recent project");
@@ -103,7 +103,7 @@ public final class MainFrame extends JFrame {
     private final JMenuItem closeProjectItem = new JMenuItem("Close project");
     private final JMenuItem closeLogItem = new JMenuItem("Close log");
     private final JMenuItem closeGraphItem = new JMenuItem("Close graph");
-    private final JMenuItem resetItem = new JMenuItem("Reset (close log + graph)");
+    private final JMenuItem resetItem = new JMenuItem("Close log and topology");
     private telamin.fluxtion.audit.analyser.analyser.config.ProjectSession project;
     /**
      * Coalesces project writes. A profile is often a committed file, so a burst of graph tweaks should
@@ -148,7 +148,7 @@ public final class MainFrame extends JFrame {
     private boolean following;
     private String followPath;                       // local path being tailed, or null
     private JToggleButton followButton;              // toolbar toggle (kept in sync)
-    private JCheckBoxMenuItem followMenuItem;        // File-menu toggle (kept in sync)
+    private JCheckBoxMenuItem followMenuItem;        // Audit-log-menu toggle (kept in sync)
 
     // assistant actions (M10): the render executor + the opt-in localhost REST transport (slice 4)
     private ActionExecutor actionExecutor;
@@ -190,7 +190,28 @@ public final class MainFrame extends JFrame {
         graphTabs.setFlagRugSource(this::flagRugMap);                              // M32.6: the rug's seam
         // B-M20-3: graph edits (UI or verb) persist as they happen, to the ACTIVE tier — and every
         // profile write first captures the live tabs, so no flush can ever write a stale graph list.
+        graphTabs.setSavedDefinitions(() -> config.savedGraphs);
+        graphTabs.setRepairHandler(this::repairDuplicateCharts);   // the in-app way out of an ambiguous profile
         graphTabs.setChangeListener(this::onGraphsEdited);
+        // 38ecc7f3: Close keeps a chart's definition, so removing one is an explicit act that must reach the
+        // config before the change listener writes the merged list back
+        graphTabs.setDeleteListener(name -> config.savedGraphs.removeIf(g -> g.name().equals(name)));
+        // f6e8d7e0: a chart's name is its identity in the profile, so the tabs must see the names of CLOSED
+        // definitions too — otherwise a generated name or a rename lands on one and the merge overwrites it
+        graphTabs.setKnownNames(() -> {
+            java.util.Set<String> names = new java.util.LinkedHashSet<>();
+            for (var g : config.savedGraphs) names.add(g.name());
+            return names;
+        });
+        // and a rename must MOVE the stored definition, not orphan it under the old name
+        graphTabs.setRenameListener((from, to) -> {
+            for (int i = 0; i < config.savedGraphs.size(); i++) {
+                if (config.savedGraphs.get(i).name().equals(from)) {
+                    config.savedGraphs.set(i, config.savedGraphs.get(i).withName(to));
+                    return;
+                }
+            }
+        });
         project.setPreSave(this::syncOpenGraphsIntoConfig);
         // M27.3: named focuses live in the config's project tier; save/recall/delete persist like graphs
         topologyPanel.bindNamedFocuses(() -> config.namedFocuses, this::onGraphsEdited);
@@ -349,13 +370,26 @@ public final class MainFrame extends JFrame {
         });
         // M37: what is in force — the Project panel, stacked under Event types (owner decision 2). It is a
         // rendering of `context` (D-L1); refreshProjectPanel() is the only writer.
-        projectPanel = new ProjectPanel(new ProjectPanel.Navigator() {
-            @Override public void showTab(String title) { selectTab(title); }
+        // Chart lifecycle: the adapter is ProjectRevealer, named and testable. As an anonymous class here, gutting
+        // its reveal methods to { } left the whole suite green — the panel test stops at the Navigator.
+        projectPanel = new ProjectPanel(new ProjectRevealer(new ProjectRevealer.Surface() {
+            // MainFrame.this, not selectTab(title) — inside this Surface that name is THIS method
+            @Override public void selectTab(String title) { MainFrame.this.selectTab(title); }
             @Override public void openSettings(String page) {
                 ConfigPanel.show(MainFrame.this, config, MainFrame.this::onConfigChanged,
                         MainFrame.this::readerSummaries, page);
             }
-        });
+            // the tab selection lives in ProjectRevealer now; this Surface only does the frame's part
+            @Override public void selectReport(String name) {
+                if (reportsPanel != null) reportsPanel.select(name);
+            }
+            @Override public boolean openSaved(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec spec) {
+                return graphTabs.openSaved(spec);
+            }
+            @Override public boolean selectGraph(String name) { return graphTabs.selectGraph(name); }
+            @Override public String definitionRefusal() { return graphTabs.definitionRefusal(); }
+            @Override public void say(String message) { sayToStatus(message); }
+        }, () -> config.savedGraphs));
         projectPanel.setVisible(!config.projectPanelCollapsed);
         projectRailToggle = rail.addToggle("Project", !config.projectPanelCollapsed, showing -> {
             projectPanel.setVisible(showing);
@@ -1777,40 +1811,49 @@ public final class MainFrame extends JFrame {
 
     private void buildMenu() {
         JMenuBar bar = new JMenuBar();
-        JMenu file = new JMenu("File");
+        JMenu projectMenu = new JMenu("Project");
+        JMenu sources = new JMenu("Sources");
+        JMenu audit = new JMenu("Audit log");
+        for (String page : List.of("Source roots", "Event processor", "Maven repos")) {
+            JMenuItem item = new JMenuItem(page + "…");
+            item.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged,
+                    this::readerSummaries, page));
+            sources.add(item);
+        }
+        sources.addSeparator();
         JMenuItem open = new JMenuItem("Open log…");
         open.addActionListener(e -> chooseFile());
-        file.add(open);
+        audit.add(open);
+        audit.add(recentMenu);
         JMenuItem openS3 = new JMenuItem("Open log from S3…");
         openS3.addActionListener(e -> chooseS3());
-        file.add(openS3);
-        // opening lives on the File menu with the log actions, not on the Topology tab's own toolbar:
-        // it is the same kind of act, and a toolbar is better spent on controls for what is already open
+        audit.add(openS3);
+        // Acquisition lives on the menu for the resource it changes.
         JMenuItem addCsv = new JMenuItem("Add series from CSV…");
         addCsv.setToolTipText("Plot an external (timestamp, value) CSV — e.g. agent-parsed FIX data — "
                 + "beside the audit-derived series. The clock domain is declared, never guessed.");
         addCsv.addActionListener(e -> addExternalSeries());
-        file.add(addCsv);
+        audit.add(addCsv);
         JMenuItem openGraphml = new JMenuItem("Open GraphML…");
         openGraphml.setToolTipText("Open a processor's .graphml topology");
         openGraphml.addActionListener(e -> {
-            sessionInteractive = true;      // R4-F2: File ▸ Open GraphML goes straight to the chooser, not via the helper
+            sessionInteractive = true;      // R4-F2: Sources ▸ Open GraphML goes straight to the chooser, not via the helper
             topologyPanel.chooseFile();
             if (sideTabs != null) sideTabs.setSelectedComponent(topologyPanel);
         });
-        file.add(openGraphml);
+        sources.add(openGraphml);
+        sources.add(recentGraphmlMenu);
         JMenuItem openDesign = new JMenuItem("Open design…");
         openDesign.addActionListener(e -> chooseDesignFile(false));
-        file.add(openDesign);
+        sources.add(openDesign);
         JMenuItem openDiagnostics = new JMenuItem("Open producer diagnostics…");
         openDiagnostics.addActionListener(e -> chooseDesignFile(true));
-        file.add(openDiagnostics);
+        sources.add(openDiagnostics);
         JMenuItem findGraphml = new JMenuItem("Find GraphML in source roots\u2026");
         findGraphml.setToolTipText("List the .graphml files under your source roots, ranked by how "
                 + "well each fits the open log. Nothing is opened until you pick one.");
         findGraphml.addActionListener(e -> chooseDiscoveredGraph());
-        file.add(findGraphml);
-        file.addSeparator();
+        sources.add(findGraphml);
         // M35.1 — the counterparts the File menu never had. Until now the only way back to a clean
         // app was to restart it, and opening a second log left the first log's graph on screen.
         closeLogItem.setToolTipText("Close the log and everything derived from it. Named graphs, "
@@ -1819,69 +1862,67 @@ public final class MainFrame extends JFrame {
         closeLogItem.addActionListener(e -> { sessionInteractive = true;
             requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.LOG);
             closeLog(); });
-        file.add(closeLogItem);
+        audit.add(closeLogItem);
         closeGraphItem.setToolTipText("Close the loaded .graphml topology, leaving the log open");
         closeGraphItem.addActionListener(e -> { sessionInteractive = true;
             requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.GRAPH);
             closeGraph(); });
-        file.add(closeGraphItem);
+        sources.add(closeGraphItem);
         resetItem.setToolTipText("Close both — back to a fresh start (the project profile is kept)");
         resetItem.addActionListener(e -> { sessionInteractive = true;
             requestClose(telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested.Target.ALL);
             resetAll(); });
-        file.add(resetItem);
         rebuildRecentMenu();
-        file.add(recentMenu);
-        file.add(recentGraphmlMenu);
 
-        // Projects are their own group: the items above open a FILE to look at, these change which
-        // project's settings are in force. Appending them to the end would file "switch my whole
-        // working set" next to "exit".
-        file.addSeparator();
-        file.add(openProjectItem());
-        file.add(recentProjectsMenu);
-        file.add(newProjectFromTemplateItem());
-        file.add(newProjectItem());
+        // Project actions change the profile in force; source and log actions have separate homes.
+        projectMenu.add(openProjectItem());
+        projectMenu.add(recentProjectsMenu);
+        projectMenu.add(newProjectFromTemplateItem());
+        projectMenu.add(newProjectItem());
         saveProjectAsItem.addActionListener(e -> saveProjectAs());
         saveProjectAsItem.setToolTipText("Fork these settings to another project. There is no plain "
                                          + "Save — project edits persist as you make them.");
-        file.add(saveProjectAsItem);
+        projectMenu.add(saveProjectAsItem);
         closeProjectItem.addActionListener(e -> closeProject());
-        file.add(closeProjectItem);
-        file.add(analysesMenu);          // M38.4: recall a saved analysis — the UI half of the offer
+        projectMenu.add(closeProjectItem);
+        projectMenu.addSeparator();
+        projectMenu.add(resetItem);
+        projectMenu.addSeparator();
+        projectMenu.add(analysesMenu);          // M38.4: recall a saved analysis — the UI half of the offer
         rebuildAnalysesMenu();
 
-        file.addSeparator();
         followMenuItem = new JCheckBoxMenuItem("Follow (tail)");
         followMenuItem.setToolTipText("Poll the open local file for newly-appended records and auto-scroll");
         followMenuItem.setEnabled(false);
         followMenuItem.addActionListener(e -> setFollowing(followMenuItem.isSelected()));
-        file.add(followMenuItem);
-        file.addSeparator();
+        audit.add(followMenuItem);
+        audit.addSeparator();
         JMenuItem exportCsv = new JMenuItem("Export records (CSV)…");
         exportCsv.addActionListener(e -> exportRecords(false));
-        file.add(exportCsv);
+        audit.add(exportCsv);
         JMenuItem exportYaml = new JMenuItem("Export records (YAML)…");
         exportYaml.addActionListener(e -> exportRecords(true));
-        file.add(exportYaml);
-        file.addSeparator();
+        audit.add(exportYaml);
+        projectMenu.addSeparator();
         JMenuItem settings = new JMenuItem("Settings…");
         settings.addActionListener(e -> ConfigPanel.show(this, config, this::onConfigChanged, this::readerSummaries));
-        file.add(settings);
+        projectMenu.add(settings);
         JMenuItem exportSettings = new JMenuItem("Export settings…");
         exportSettings.setToolTipText("Share your analysis setup — roots, event processors, graphs (never your API key)");
         exportSettings.addActionListener(e -> exportSettings());
-        file.add(exportSettings);
+        projectMenu.add(exportSettings);
         JMenuItem importSettings = new JMenuItem("Import settings…");
         importSettings.setToolTipText("Load a shared analysis setup from a .fluxtion-settings file");
         importSettings.addActionListener(e -> importSettings());
-        file.add(importSettings);
-        file.addSeparator();
+        projectMenu.add(importSettings);
+        projectMenu.addSeparator();
         JMenuItem exit = new JMenuItem("Exit");
         exit.addActionListener(e -> onExit());
-        file.add(exit);
-        bar.add(file);
+        projectMenu.add(exit);
 
+        bar.add(projectMenu);
+        bar.add(sources);
+        bar.add(audit);
         bar.add(buildRecordsMenu());
         // Columns is no longer a top-level menu: it lives on the nav rail and on the table's right-click,
         // which is where you are when you notice a column is missing
@@ -2371,14 +2412,15 @@ public final class MainFrame extends JFrame {
                             : "'" + t.name() + "' is not on " + chartWord(t) + alsoOn(t);
                 }
                 case MENU -> topLevelMenu(t.menuName()) == null
-                        ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames()
+                        ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames() + retiredNote(t.menuName())
                         : "the " + t.menuName() + " menu opened as a separate window here — it does not fit inside the "
                         + "analyser window, so it cannot be lit. Enlarge the window and try again";
                 case MENU_ITEM -> {
                     javax.swing.JMenu m = topLevelMenu(t.menuName());
                     yield m == null ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames()
+                            + retiredNote(t.menuName()) + whereIsNote(t)
                             : menuItemFor(t) == null ? "no item '" + t.menuItem() + "' in the " + m.getText() + " menu — its items are "
-                            + menuItemTexts(m) + " (a submenu's items cannot be lit)"
+                            + menuItemTexts(m) + " (a submenu's items cannot be lit)" + whereIsNote(t)
                             : "the " + m.getText() + " menu opened as a separate window here — it does not fit inside the "
                             + "analyser window, so it cannot be lit. Enlarge the window and try again";
                 }
@@ -2493,6 +2535,28 @@ public final class MainFrame extends JFrame {
             if (c instanceof JMenuItem item && item.getText() != null && item.getText().trim().equalsIgnoreCase(t.menuItem().trim())) return item;
         }
         return null;
+    }
+
+    /** Every top-level menu and its item texts, in menu-bar order — context's `menus`, and MenuHints' input. */
+    java.util.Map<String, java.util.List<String>> menuMap() {
+        java.util.Map<String, java.util.List<String>> out = MenuHints.ordered();
+        javax.swing.JMenuBar bar = getJMenuBar();
+        for (int i = 0; bar != null && i < bar.getMenuCount(); i++) {
+            javax.swing.JMenu m = bar.getMenu(i);
+            if (m != null && m.getText() != null) out.put(m.getText(), menuItemTexts(m));
+        }
+        return out;
+    }
+
+    /** " — <where the item is>" when a missed item exists elsewhere or was renamed; otherwise nothing. */
+    private String whereIsNote(SpotlightTarget t) {
+        String hint = MenuHints.whereIs(t.menuName(), t.menuItem(), menuMap());
+        return hint == null ? "" : ". " + hint;
+    }
+
+    private static String retiredNote(String menu) {
+        String note = MenuHints.retired(menu);
+        return note == null ? "" : " (" + note + ")";
     }
 
     private static java.util.List<String> menuItemTexts(javax.swing.JMenu m) {
@@ -2778,7 +2842,7 @@ public final class MainFrame extends JFrame {
             sb.append("The open log sits inside a project whose settings are NOT in force:\n")
               .append("    ").append(root).append('\n')
               .append("Load it and its own source roots are searched instead:\n")
-              .append("    File ▸ Open project…  and choose  ").append(pendingProjectOffer).append('\n')
+              .append("    Project ▸ Open project…  and choose  ").append(pendingProjectOffer).append('\n')
               .append("    or over the socket:  open {project: \"").append(pendingProjectOffer).append("\"}\n");
         }
         return sb.toString();
@@ -2884,7 +2948,7 @@ public final class MainFrame extends JFrame {
                         : telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
                                 .assembleTable(sec, store, this::coverageForReport),
                 row -> openRecordFromReport(row),
-                gname -> { sideTabs.setSelectedComponent(graphTabs); graphTabs.selectGraph(gname); },
+                gname -> { sideTabs.setSelectedComponent(graphTabs); revealGraphByName(gname); },
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name));
@@ -3291,7 +3355,7 @@ public final class MainFrame extends JFrame {
         return sessionFileGrants;
     }
 
-    /** File ▸ Add series from CSV… (M29.2): declared columns/clock, loaded onto the current graph tab. */
+    /** Audit log ▸ Add series from CSV… (M29.2): declared columns/clock, loaded onto the current graph tab. */
     private void addExternalSeries() {
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("External series CSV");
@@ -3809,7 +3873,7 @@ public final class MainFrame extends JFrame {
     private void resetAll() {
         closeLog();
         closeGraph();
-        status.setText("Reset — no log, no graph");
+        status.setText("Close log and topology — no log, no topology");
     }
 
     /** Close items are enabled only when there is something to close. */
@@ -3964,7 +4028,7 @@ public final class MainFrame extends JFrame {
         // config.savedGraphs in between — belt to GraphTabs' braces.
         List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> savedGraphs = List.copyOf(config.savedGraphs);
         graphTabs.bind(loaded, filter);
-        graphTabs.restore(savedGraphs);          // reopen graphs saved in the profile
+        restoreGraphDefinitions(savedGraphs);    // reopen unambiguous definitions, or state why withheld
         tablePanel.setRowFilter(new RowFilter<LogTableModel, Integer>() {
             @Override
             public boolean include(Entry<? extends LogTableModel, ? extends Integer> entry) {
@@ -4117,7 +4181,7 @@ public final class MainFrame extends JFrame {
             JOptionPane.showMessageDialog(this,
                     config.sourceRoots.isEmpty()
                             ? "No source roots are configured — add one in Settings, or use "
-                                    + "File \u25b8 Open GraphML\u2026"
+                                    + "Sources \u25b8 Open GraphML\u2026"
                             : "No .graphml found under the configured source roots."
                                     + (result.notes().isEmpty() ? ""
                                             : "\n\n" + String.join("\n", result.notes())),
@@ -4322,8 +4386,13 @@ public final class MainFrame extends JFrame {
         // surfaces are refreshed when it moves, whether or not any record came with it.
         refreshFollowDiagnostics(store.streamEnd(), added, false);
         if (added == 0) {
-            status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
-                    store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+            // R12-2: a tick with nothing new used to overwrite whatever the status bar was saying, so an
+            // explanation of why an action did nothing vanished about a second later while Follow was on.
+            // Idle ticks carry no news; they must not erase news someone is still reading.
+            if (System.currentTimeMillis() - sayAtMillis >= SAY_HOLD_MILLIS) {
+                status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
+                        store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+            }
             return;
         }
         if (tableModel != null) tableModel.rowsAppended(before);
@@ -4574,7 +4643,7 @@ public final class MainFrame extends JFrame {
      * <p>So the modal is gone for the human too, and what M19.7 added stays: under {@code --rest} the
      * endpoint file is named on stdout, which is the one thing an agent actually needed from this
      * method. Keeping only the narrower fix would have left the human case still gated; keeping only
-     * the wider one would have dropped the note the loop bench asserts. Settings is on the File menu
+     * the wider one would have dropped the note the loop bench asserts. Settings is on the Project menu
      * and one click from the start page's footer, for when there is a reason to want it.
      */
     public void showFirstRunSettingsIfNeeded() {
@@ -4597,6 +4666,7 @@ public final class MainFrame extends JFrame {
     private void onGraphsEdited() {
         saveConfigQuietly();                       // syncs the open tabs first (see saveConfigQuietly)
         if (project != null) project.requestSave();
+        refreshProjectPanel();
     }
 
     private void onConfigChanged() {
@@ -4686,23 +4756,42 @@ public final class MainFrame extends JFrame {
         var selected = ImportSettingsDialog.show(this, plan, file.getName());
         if (selected == null || selected.isEmpty()) return;   // cancelled or nothing chosen
 
-        share.apply(plan, selected, config);
+        try {
+            share.apply(plan, selected, config);
+        } catch (IllegalArgumentException ambiguous) {
+            JOptionPane.showMessageDialog(this, ambiguous.getMessage(), "Import settings", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         applyImportedConfig();
         status.setText("Imported settings from " + file.getName());
     }
 
-    /** Capture the open graph tabs into {@code config.savedGraphs} (so a merge sees current state). */
+    /**
+     * Capture the open graph tabs into {@code config.savedGraphs} (so a merge sees current state).
+     *
+     * <p>38ecc7f3: this MERGES. It used to clear the list and refill it from the open tabs, which made the
+     * profile's saved-chart list a mirror of what was open — so closing a tab silently deleted the chart's
+     * definition, notes and all. A chart that is no longer a tab is now kept and marked closed; only an
+     * explicit Delete removes it (see {@code GraphTabs.deleteCurrent}). Order follows the existing profile
+     * so charts do not shuffle on every save, with newly created ones appended.
+     */
     private void syncOpenGraphsIntoConfig() {
-        if (store == null) return;   // no log → tabs are empty; config already holds the profile's graphs
+        if (store == null || graphTabs.definitionRefusal() != null) return; // withheld definitions are not empty user edits
+        // f6e8d7e0: the rule itself lives in SavedGraphMerge, where a test can reach it. Written inline here
+        // it was unreachable — MainFrame is not headless-constructible — and reverting it to its old
+        // destructive form left the entire suite green.
+        var merged = telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.merge(
+                config.savedGraphs, graphTabs.specs());
         config.savedGraphs.clear();
-        config.savedGraphs.addAll(graphTabs.specs());
+        config.savedGraphs.addAll(merged);
     }
 
     /** Refresh every affected surface after an import merged into {@code config}. */
     private void applyImportedConfig() {
-        onConfigChanged();   // source roots/EP/maven/search/REST + persist
-        tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));   // View category
-        if (store != null) graphTabs.restore(config.savedGraphs);   // reflect merged graphs live
+        // Incoming definitions must reach the views before a save can snapshot the old tabs over them.
+        if (store != null) restoreGraphDefinitions(List.copyOf(config.savedGraphs));
+        tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
+        onConfigChanged();
     }
 
     private void onFilterChanged() {
@@ -4988,7 +5077,7 @@ public final class MainFrame extends JFrame {
      * so the list is stated exactly: a project transition declares from its {@code interactive} argument; a
      * log arrival from its {@link OpenRequest}; the socket verbs {@code close}, {@code openGraphml} and
      * {@code selectProcessor} declare {@code false} on entry ({@code openLogs} and {@code discoverGraphs} raise
-     * no warning and declare nothing); the File-menu close/reset listeners, File ▸ Open GraphML, a file drop and
+     * no warning and declare nothing); the resource-menu close/reset listeners, Sources ▸ Open GraphML, a file drop and
      * the Recent-GraphML helper declare {@code true} — at the entrance, never inside the shared
      * {@code closeLog}/{@code closeGraph}, which session effects and socket verbs also call.
      */
@@ -5168,7 +5257,7 @@ public final class MainFrame extends JFrame {
 
     /**
      * Tell the processor what is open. Called from the paths that change it and are <b>not</b> the
-     * session adapter — a log opened from the File menu, a log closed from the File menu, the socket's
+     * session adapter — a log opened from the Audit log menu, a log closed from the Audit log menu, the socket's
      * own close verbs. Inside a transition the processor learns the same facts from the typed results
      * ({@code LogClosed}), so calling this from {@code closeLog()} itself would both duplicate them and
      * re-enter the driver mid-cycle.
@@ -5243,8 +5332,8 @@ public final class MainFrame extends JFrame {
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
+        restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         onConfigChanged();          // source service, processors, menus, and the global save
-        graphTabs.restore(config.savedGraphs);
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
         updateProjectMenuState();
         setTitleForProject();
@@ -5252,7 +5341,181 @@ public final class MainFrame extends JFrame {
         refreshProjectPanel();                                        // M37: the project, and everything it owns
     }
 
-    /** M38.4: File ▸ Run analysis — one item per saved analysis; the rationale is the tooltip. */
+    /**
+     * R12-3: a report's chart link called selectGraph and ignored its result. Since a closed chart keeps
+     * its definition, a link to one brought the Graph tab forward and did nothing. Open it from the
+     * profile when it is saved, and say why when it cannot be opened at all.
+     */
+    private void revealGraphByName(String gname) {
+        if (graphTabs.selectGraph(gname)) return;
+        for (var g : config.savedGraphs) {
+            if (g.name().equals(gname)) {
+                if (!graphTabs.openSaved(g)) {
+                    String withheld = graphTabs.definitionRefusal();
+                    sayToStatus("\"" + gname + "\" cannot open yet: "
+                            + (withheld != null ? withheld : "no log is loaded."));
+                }
+                return;
+            }
+        }
+        sayToStatus("No chart called \"" + gname + "\" is open, and the project has no saved definition for it.");
+    }
+
+    /** How long an explanation holds the status bar against idle follow ticks (R12-2). */
+    private static final long SAY_HOLD_MILLIS = 12_000;
+    private long sayAtMillis = Long.MIN_VALUE / 4;
+
+    /** Put an explanation on the status bar and protect it briefly from idle overwrites. */
+    void sayToStatus(String message) {
+        sayAtMillis = System.currentTimeMillis();
+        status.setText(message);
+    }
+
+    /**
+     * Owner decision 2026-09-24: the way out of an ambiguous profile, in the app.
+     *
+     * <p>Asks for a choice per contested definition and applies them together through
+     * {@link telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair}, which refuses a partial
+     * or colliding repair. Replaceable so a test can answer it: the real one is a modal, and the branch
+     * that must change nothing — cancel — is the one a modal makes untestable.
+     */
+    java.util.function.Function<List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec>,
+            java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>>
+            repairChooser = this::askHowToRepairDuplicates;
+
+    /** Run the repair: ask, apply, persist, rebind. Cancel leaves every definition exactly as it was. */
+    private void repairDuplicateCharts() {
+        var saved = List.copyOf(config.savedGraphs);
+        Path tierWhenAsked = project == null ? null : project.activeFile();
+        var choices = repairChooser.apply(saved);
+        if (choices == null) return;                                // cancelled: nothing is touched
+        if (choices.isEmpty()) {                                    // OK with every row left on "Choose…"
+            status.setText("Nothing was chosen, so no chart names were changed.");
+            return;
+        }
+        // R13-1: the chooser is a MODAL, so a nested event loop ran while it was up and the action socket
+        // may have switched project underneath it. Applying a repair computed from the old list would write
+        // it over a different tier's charts and destroy them. Same shape as the stale tab index across the
+        // delete dialog: what was read before the question is not what is there after it.
+        Path tierNow = project == null ? null : project.activeFile();
+        if (!java.util.Objects.equals(tierWhenAsked, tierNow) || !saved.equals(config.savedGraphs)) {
+            JOptionPane.showMessageDialog(this,
+                    "The chart list changed while this dialog was open, so nothing was changed.\n\n"
+                            + "Open Repair names… again to see the charts as they are now.",
+                    "Charts not repaired", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> repaired;
+        try {
+            // R13-2b: names held by open tabs with no saved definition are taken too — a rename onto one
+            // would destroy unsaved work, which the carry-forward below cannot detect because the name is
+            // already in the repaired list by then.
+            var savedNames = saved.stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                    .collect(java.util.stream.Collectors.toSet());
+            var liveUnsaved = graphTabs.specs().stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                    .filter(n -> !savedNames.contains(n))
+                    .collect(java.util.stream.Collectors.toSet());
+            repaired = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                    .apply(saved, choices, liveUnsaved);
+        } catch (IllegalArgumentException refused) {
+            JOptionPane.showMessageDialog(this, refused.getMessage(), "Charts not repaired",
+                    JOptionPane.WARNING_MESSAGE);
+            return;                                                 // still ambiguous, still all preserved
+        }
+        // R13-2: a chart made DURING the refusal was never persisted (the save path returns early while
+        // definitions are withheld), and the rebuild below clears every tab. Carry those tabs into the
+        // repaired list so the person's work is kept and saved, rather than vanishing as a side effect of
+        // fixing something else. Their names cannot collide: nextFreeDefaultName reserves saved names too.
+        var repairedNames = repaired.stream()
+                .map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
+                .collect(java.util.stream.Collectors.toSet());
+        var carried = new java.util.ArrayList<>(repaired);
+        for (var live : graphTabs.specs()) {
+            if (!repairedNames.contains(live.name())) carried.add(live.withOpen(true));
+        }
+
+        config.savedGraphs.clear();
+        config.savedGraphs.addAll(carried);
+        graphTabs.clearRefusal();
+        restoreGraphDefinitions(List.copyOf(config.savedGraphs));
+        saveConfigQuietly();
+        if (project != null) project.requestSave();
+        refreshProjectPanel();
+        int kept = carried.size() - repaired.size();
+        // sayToStatus, not status.setText: R12-2 landed on main between this branch and here, and an idle
+        // follow tick would otherwise wipe the one confirmation that the repair actually happened.
+        sayToStatus("Chart names repaired; definitions loaded."
+                + (kept > 0 ? " " + kept + " unsaved chart" + (kept == 1 ? "" : "s") + " kept." : ""));
+    }
+
+    /** The modal half. Returns null when the person cancels. */
+    private java.util.Map<Integer, telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>
+            askHowToRepairDuplicates(List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> saved) {
+        var duplicates = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.find(saved);
+        if (duplicates.isEmpty()) return null;
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.add(new JLabel("<html>Two or more charts share a name, so none of them can be loaded.<br>"
+                + "Choose what happens to each. Nothing is changed until you press OK.</html>"));
+        java.util.Map<Integer, JComboBox<String>> actions = new java.util.LinkedHashMap<>();
+        java.util.Map<Integer, JTextField> names = new java.util.LinkedHashMap<>();
+        for (var duplicate : duplicates) {
+            form.add(Box.createVerticalStrut(UiTheme.GAP));
+            form.add(new JLabel("\"" + duplicate.name() + "\""));
+            for (int index : duplicate.indices()) {
+                JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+                // what is in it, so a person is not asked to destroy something unnamed
+                row.add(new JLabel(telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                        .describe(saved.get(index)) + " →"));
+                JComboBox<String> action = new JComboBox<>(new String[]{"Choose…", "Rename to", "Delete"});
+                JTextField field = new JTextField(duplicate.name(), 16);
+                field.setEnabled(false);
+                action.addActionListener(e -> field.setEnabled(action.getSelectedIndex() == 1));
+                row.add(action);
+                row.add(field);
+                actions.put(index, action);
+                names.put(index, field);
+                form.add(row);
+            }
+        }
+        int answer = JOptionPane.showConfirmDialog(this, new JScrollPane(form), "Repair chart names",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) return null;
+
+        var choices = new java.util.LinkedHashMap<Integer,
+                telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair.Choice>();
+        // R13-5: the row-to-choice step is DuplicateChartRepair.choiceFor, not an if/else here, because
+        // nothing could reach it here — mutating it so "Choose…" meant DELETE left every test green.
+        // A null contributes no entry, so apply() refuses the partial repair and names the unanswered row.
+        actions.forEach((index, action) -> {
+            var choice = telamin.fluxtion.audit.analyser.analyser.config.DuplicateChartRepair
+                    .choiceFor(action.getSelectedIndex(), names.get(index).getText());
+            if (choice != null) choices.put(index, choice);
+        });
+        return choices;
+    }
+
+    /** Legacy global settings can contain duplicates that project/import validation now refuses. */
+    private void restoreGraphDefinitions(List<telamin.fluxtion.audit.analyser.analyser.config.GraphSpec> saved) {
+        try {
+            telamin.fluxtion.audit.analyser.analyser.config.SavedGraphMerge.requireUniqueNames(saved);
+        } catch (IllegalArgumentException ambiguous) {
+            String source = project.hasProject() ? project.activeFile().toString() : configStore.path().toString();
+            // R13-3: this used to send people away to hand-edit a file. There is now a way out in the app,
+            // and the assistant's graph verb returns this same text, so it must name the control.
+            graphTabs.refuseDefinitions("Charts not loaded: " + ambiguous.getMessage()
+                    + ". All definitions are retained. Use Repair names… on the Graph panel to rename or"
+                    + " delete the duplicates, or edit them in " + source + " yourself."
+                    + " New charts and log inspection remain available.");
+            return;
+        }
+        graphTabs.restore(saved);
+    }
+
+    /** M38.4: Project ▸ Run analysis — one item per saved analysis; the rationale is the tooltip. */
     private final JMenu analysesMenu = new JMenu("Run analysis");
 
     private void rebuildAnalysesMenu() {
@@ -6242,6 +6505,10 @@ public final class MainFrame extends JFrame {
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
             out.put("processorDeclarations", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.processorDeclarations(config.processorDeclarations));
+            // The menu bar, as spotlight targets name it: an assistant can READ where an action lives instead of
+            // provoking a refusal to learn it, or guessing (1.20.0 virgin-LLM check).
+            out.put("menus", menuMap());
+            out.put("menuChanges", MenuHints.changes(menuMap()));
             out.put("savedGraphs", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.savedGraphs(
                     config.savedGraphs, graphTabs.specs().stream().map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
                             .collect(java.util.stream.Collectors.toSet()), store != null));
@@ -6352,7 +6619,7 @@ public final class MainFrame extends JFrame {
                 if (pendingProjectOffer != null) {
                     // M35.7: the offer the agent path did not show as a dialog. Reported, never applied
                     // — loading a project replaces source roots, graphs and hidden columns, which is a
-                    // human's decision (File ▸ Open project).
+                    // human's decision (Project ▸ Open project).
                     out.put("projectOffer", Map.of(
                             "settings", pendingProjectOffer.toString(),
                             "note", "this log sits inside a project with analyser settings; loading "

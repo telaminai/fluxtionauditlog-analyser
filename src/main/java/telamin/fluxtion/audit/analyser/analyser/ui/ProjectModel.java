@@ -19,8 +19,22 @@ import java.util.Set;
  */
 public record ProjectModel(List<Section> sections) {
 
-    /** A row: what it is, where it is (a path, copyable; may be null), where it came from, and how it should read. */
-    public record Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) { }
+    /**
+     * A row: what it is, where it is (a path, copyable; may be null), where it came from, and how it should read.
+     *
+     * <p>{@code item} is the row's IDENTITY where the thing has one the app can address — a report's name, a
+     * saved chart's name. It is not the label: a report row shows its TITLE, and {@code ReportsPanel.select}
+     * matches on the name, so revealing the row the person clicked needs the two kept apart (35eeb320). Null
+     * for every row whose target is a tab or a settings page rather than a thing.
+     */
+    public record Row(String primary, String secondary, String path, String provenance, Tone tone,
+                      Target target, String item) {
+
+        /** A row that names no addressable item — the shape every pre-35eeb320 caller uses. */
+        public Row(String primary, String secondary, String path, String provenance, Tone tone, Target target) {
+            this(primary, secondary, path, provenance, tone, target, null);
+        }
+    }
 
     public enum Tone { NORMAL, MUTED, WARN }
 
@@ -36,7 +50,12 @@ public record ProjectModel(List<Section> sections) {
          */
         ADD_SOURCE,
         /** A pointed-at file a PERSON may read in the app (runbook, glossary): a read-only viewer — never executed, never served to an agent. */
-        VIEW_FILE }
+        VIEW_FILE,
+        /**
+         * A saved chart, revealed by name in the Graphs tab (35eeb320). Before this these rows were
+         * {@link #NONE} — no action at all, so the row's Open did nothing because nothing was wired.
+         */
+        CHART }
 
     public record Section(String title, List<Row> rows) { }
 
@@ -173,7 +192,7 @@ public record ProjectModel(List<Section> sections) {
         Map<String, Object> log = map(ctx.get("log"));
         rows = new ArrayList<>();
         if (log.isEmpty()) {
-            rows.add(new Row("No log loaded", "File ▸ Open, drag a file in, or open {path} from the socket",
+            rows.add(new Row("No log loaded", "Audit log ▸ Open log…, drag a file in, or open {path} from the socket",
                     null, null, Tone.MUTED, Target.NONE));
         } else {
             // Review C2: the ORIGIN the user named is the row — `s3://bucket/key`, not the temp file it was
@@ -212,7 +231,7 @@ public record ProjectModel(List<Section> sections) {
         Map<String, Object> pair = map(ctx.get("graphPairing"));
         rows = new ArrayList<>();
         if (pair.get("graph") == null) {
-            rows.add(new Row("No graph", "File ▸ Open topology, or a reader may supply one with its log",
+            rows.add(new Row("No graph", "Sources ▸ Open GraphML…, or a reader may supply one with its log",
                     null, null, Tone.MUTED, Target.NONE));
         } else {
             String src = str(pair.get("graphSource"));
@@ -334,7 +353,8 @@ public record ProjectModel(List<Section> sections) {
         for (Object o : list(ctx.get("savedGraphs"))) {
             Map<String, Object> saved = map(o);
             rows.add(new Row(str(saved.get("name")), str(saved.get("input")), null,
-                    Boolean.TRUE.equals(saved.get("open")) ? "open" : "saved", Tone.NORMAL, Target.NONE));
+                    Boolean.TRUE.equals(saved.get("open")) ? "open" : "saved", Tone.NORMAL, Target.CHART,
+                    str(saved.get("name"))));
         }
         if (rows.isEmpty()) rows.add(new Row("No saved charts", "Save a chart definition to keep its series and expressions", null, null, Tone.MUTED, Target.NONE));
         out.add(new Section(SAVED_GRAPHS, rows));
@@ -354,8 +374,9 @@ public record ProjectModel(List<Section> sections) {
             Map<String, Object> r = map(o);
             Object n = r.get("sections");
             String detail = (n == null ? "0" : n) + " section" + ("1".equals(String.valueOf(n)) ? "" : "s") + " · saved report";
+            // the row shows the TITLE; the report is addressed by its NAME — hence the separate item (35eeb320)
             rows.add(new Row(str(r.get("title") != null ? r.get("title") : r.get("name")), detail, null, str(r.get("from")),
-                    Tone.NORMAL, Target.REPORTS));
+                    Tone.NORMAL, Target.REPORTS, str(r.get("name"))));
         }
         if (reps.isEmpty()) {
             rows.add(new Row("No saved reports", "Reports tab ▸ New report, or report {…} from the socket",
@@ -371,7 +392,7 @@ public record ProjectModel(List<Section> sections) {
         }
         out.add(new Section(REPORTS, rows));
 
-        // ---- analyses (M38.4): the offer, stated. Recall lives in File ▸ Run analysis and open {analysis} —
+        // ---- analyses (M38.4): the offer, stated. Recall lives in Project ▸ Run analysis and open {analysis} —
         // not here, because a button that runs verbs would change what the app shows (D-L3) ------------------
         rows = new ArrayList<>();
         for (Object o : list(ctx.get("analyses"))) {
@@ -380,12 +401,12 @@ public record ProjectModel(List<Section> sections) {
             String detail = (a.get("rationale") == null || str(a.get("rationale")).isBlank() ? "" : a.get("rationale") + " · ")
                     + list(a.get("steps")).size() + " step" + (list(a.get("steps")).size() == 1 ? "" : "s")
                     + (params.isEmpty() ? "" : " · needs " + params.stream().map(p -> str(map(p).get("name"))).toList())
-                    + " · File ▸ Run analysis";
+                    + " · Project ▸ Run analysis";
             rows.add(new Row(str(a.get("name")), detail, null, str(a.get("from")), Tone.NORMAL, Target.NONE));
         }
         if (rows.isEmpty()) {
             rows.add(new Row("No saved analyses", "declare one in the project profile (analysis.N.*) — a named sequence of analyser "
-                    + "verbs with its reason; recall it from File ▸ Run analysis or open {analysis}", null, null, Tone.MUTED, Target.NONE));
+                    + "verbs with its reason; recall it from Project ▸ Run analysis or open {analysis}", null, null, Tone.MUTED, Target.NONE));
         }
         out.add(new Section(ANALYSES, rows));
         return new ProjectModel(List.copyOf(out));

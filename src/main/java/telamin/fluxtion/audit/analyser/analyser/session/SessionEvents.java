@@ -74,7 +74,7 @@ public final class SessionEvents {
     }
 
     /**
-     * M44.3b: someone asked for something to be CLOSED — File ▸ Close log, Reset, or {@code open {close}}
+     * M44.3b: someone asked for something to be CLOSED — Audit log ▸ Close log, Reset, or {@code open {close}}
      * over the socket. The close itself is still performed by the adapter, as it always was; what this
      * event adds is that the processor HEARS the request, because a request is what supersedes.
      *

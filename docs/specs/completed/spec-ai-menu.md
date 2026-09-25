@@ -21,7 +21,7 @@ because adding a runbook through a dialog is precisely where a `description` has
 
 ## D-AI1 — the Project panel STATES; the AI menu ACTS
 
-M37's D-L3 makes the Project panel reveal-only: every button navigates or copies, nothing changes state.
+M37's D-L3 makes the Project panel reveal-only: every button navigates or copies; none edits or discards a definition. The 2026-09-24 amendment in `spec-loaded-panel.md` permits revealing a specific saved item and persisting its open-view flag.
 That is worth keeping, so the mutation goes somewhere else rather than eroding it.
 
 The split is the whole architecture of this milestone: **the panel is where you see what is in force, the

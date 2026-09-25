@@ -36,7 +36,7 @@ With **no project open**, the analyser behaves exactly as it always has. Project
 
 ## Start from a playground template
 
-Choose **File ▸ New project from template…** to start inside the analyser instead of visiting the
+Choose **Project ▸ New project from template…** to start inside the analyser instead of visiting the
 playground first, or choose **Author a new project** on the start page. The analyser lists the whole
 versioned catalogue. Entries tagged for onboarding are marked **Recommended starting points**, without
 hiding the others. A recommendation is advice, not a promise of a walkthrough or keyless generation.
@@ -71,29 +71,29 @@ of leaving an empty picker.
 
 ## Opening and switching
 
-![The File menu with the project group, including New project from template, in its own section below the log and GraphML openers](../assets/projects-file-menu.png)
+![The Project menu, including New project from template and project settings](../assets/projects-file-menu.png)
 
-Project actions are a group of their own. The items above them open a *file to look at*; these change
-*which project's settings are in force*. **Save project as…** and **Close project** are greyed out until
+Project actions have their own top-level menu: they change *which project's settings are in force*.
+Use Sources and Audit log for the inputs you inspect. **Save project as…** and **Close project** are greyed out until
 a project is open.
 
-**File ▸ Open project…** — pick the project directory, or its `.fluxtion-settings` file directly.
+**Project ▸ Open project…** — pick the project directory, or its `.fluxtion-settings` file directly.
 
-- **File ▸ Open recent project** — the last ten, most recent first.
-- **File ▸ New project from template…** — downloads a catalogue-selected starter into a destination
+- **Project ▸ Open recent project** — the last ten, most recent first.
+- **Project ▸ New project from template…** — downloads a catalogue-selected starter into a destination
   you approve, safely extracts it and opens its bundled profile. It shows commands but runs none. Its
   destination dialog carries one unchecked option to **create a `CLAUDE.md`** of canonical authoring links
   in a legacy or support-disabled project. Current support-enabled templates ship agent entry files; a template that does
   ship one keeps it — the file is never overwritten, and the status line says which happened.
-- **File ▸ New project…** — chooses a directory, then offers the Java source roots, `SKILL.md` runbooks
+- **Project ▸ New project…** — chooses a directory, then offers the Java source roots, `SKILL.md` runbooks
   and GraphML it can already see there, plus one option that is different in kind: **creating a
   `CLAUDE.md`** in that directory pointing at the canonical Fluxtion authoring documentation. Every box
   starts off: finding is not adding. Confirm only the facts this analyser should adopt; an empty directory
   produces an ordinary empty offer and can still become an empty profile — the `CLAUDE.md` offer appears
   there too, since it is the case where it helps most. It never inherits whatever you happened to have
   open, or "new project" would just be a slow way to copy one.
-- **File ▸ Save project as…** — forks the current settings to another project, which becomes active.
-- **File ▸ Close project** — returns to the settings you had **before you ever opened a project**.
+- **Project ▸ Save project as…** — forks the current settings to another project, which becomes active.
+- **Project ▸ Close project** — returns to the settings you had **before you ever opened a project**.
 
 ![The analyser with a project open — the project name appears in the window title after the app name](../assets/projects-active.png)
 
@@ -102,7 +102,7 @@ never a guess.
 
 ### The day-two journey
 
-After trying a prepared example, use **File ▸ New project…** on your own repository. The one offer is
+After trying a prepared example, use **Project ▸ New project…** on your own repository. The one offer is
 the hand-off from demo to real work:
 
 1. review the detected `src/main/java` roots (including one-level Maven modules);
@@ -171,6 +171,13 @@ This includes edits made by an **assistant over the socket**. If an agent adds a
 the repo, open the analyser, and the project's source roots, event processor and curated graphs are
 already configured.
 
+For alternative configurations of the same project, keep named profiles alongside it, such as
+`.analyser/project.demo.fluxtion-settings`. Open a named profile explicitly with
+`open {project: "path/to/project/.analyser/project.demo.fluxtion-settings"}`. Canonical and named
+profiles both resolve relative paths from the directory containing `.analyser/`. Automatic discovery
+still looks for `project.fluxtion-settings`; other settings filenames retain their own directory as
+the relative-path base.
+
 !!! success "Why it's safe to commit"
 
     **A profile cannot contain either your LLM API key or your Fluxtion build-key value.** The LLM key
@@ -211,13 +218,13 @@ project is in force (`context.project`) and leaves one with `open {close: "proje
 The verb **applies rather than asks**, because a question nobody can answer over the socket would
 freeze the app. What makes that safe is the answer it gives back: every project-owned category with
 its count before and after the switch, the log and graph it closed and where they were (an explicit
-switch is a session boundary, exactly as it is from the File menu), the project that was active before,
+switch is a session boundary, exactly as it is from the Project menu), the project that was active before,
 and the one call that undoes it. Your MCP client's own approval prompt on `open` is where a human says
 yes or no.
 
 ## Import: merge or open?
 
-**File ▸ Import settings…** now asks which of two different things you mean:
+**Project ▸ Import settings…** now asks which of two different things you mean:
 
 | Choice | What it does | Use it when |
 |---|---|---|

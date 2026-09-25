@@ -1,0 +1,214 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "menu-layout",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "b36f6f39154593fb9f1ecd630b9e9daf6a6d0d12af64606eec47e9d44151e2d9",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "projectSourcesAndAuditHaveTheirOwnActions"
+            ],
+            "assertions": [
+              {
+                "test": "projectSourcesAndAuditHaveTheirOwnActions",
+                "kind": "failure",
+                "message": "expected: <[Project, Sources, Audit log]> but was: <[File, Sources, Audit log]>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.266 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.projectSourcesAndAuditHaveTheirOwnActions -- Time elapsed: 1.255 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: expected: <[Project, Sources, Audit log]> but was: <[File, Sources, Audit log]>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1145)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.lambda$projectSourcesAndAuditHaveTheirOwnActions$3(MenuLayoutFrameTest.java:30)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.lambda$onEdt$44(AsyncOpenInterleavingFrameTest.java:481)\n\tat java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)\n\tat java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)\n\tat java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)\n\tat java.base/java.security.AccessController.doPrivileged(AccessController.java:400)\n\tat java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)\n\tat java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)\n\tat java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)\n\tat java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)\n\tat java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)\n\n[ERROR] Failures: \n[ERROR]   MenuLayoutFrameTest.lambda$projectSourcesAndAuditHaveTheirOwnActions$3:30 expected: <[Project, Sources, Audit log]> but was: <[File, Sources, Audit log]>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#projectSourcesAndAuditHaveTheirOwnActions",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "projectSourcesAndAuditHaveTheirOwnActions"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "menu-source-page",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "b36f6f39154593fb9f1ecd630b9e9daf6a6d0d12af64606eec47e9d44151e2d9",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#sourceShortcutsOpenTheNamedSettingsPage",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "sourceShortcutsOpenTheNamedSettingsPage"
+            ],
+            "assertions": [
+              {
+                "test": "sourceShortcutsOpenTheNamedSettingsPage",
+                "kind": "failure",
+                "message": "shortcut must open its own page in the actual Settings dialog ==> expected: <Event processor> but was: <Source roots>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.290 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.sourceShortcutsOpenTheNamedSettingsPage -- Time elapsed: 1.280 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: shortcut must open its own page in the actual Settings dialog ==> expected: <Event processor> but was: <Source roots>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)\n\tat org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)\n\tat org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.sourceShortcutsOpenTheNamedSettingsPage(MenuLayoutFrameTest.java:82)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   MenuLayoutFrameTest.sourceShortcutsOpenTheNamedSettingsPage:82 shortcut must open its own page in the actual Settings dialog ==> expected: <Event processor> but was: <Source roots>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#sourceShortcutsOpenTheNamedSettingsPage",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "sourceShortcutsOpenTheNamedSettingsPage"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    },
+    {
+      "name": "menu-close-log",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "b36f6f39154593fb9f1ecd630b9e9daf6a6d0d12af64606eec47e9d44151e2d9",
+      "baselineGreen": true,
+      "mutated": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 1,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "closeLogFromItsMenuPreservesTheProjectAndSavedChart"
+            ],
+            "assertions": [
+              {
+                "test": "closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+                "kind": "failure",
+                "message": "expected: <null> but was: <telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore@1190200a>"
+              }
+            ]
+          }
+        ],
+        "output": "[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 2.120 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest\n[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.closeLogFromItsMenuPreservesTheProjectAndSavedChart -- Time elapsed: 2.112 s <<< FAILURE!\norg.opentest4j.AssertionFailedError: expected: <null> but was: <telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore@1190200a>\n\tat org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)\n\tat org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)\n\tat org.junit.jupiter.api.AssertNull.failNotNull(AssertNull.java:50)\n\tat org.junit.jupiter.api.AssertNull.assertNull(AssertNull.java:35)\n\tat org.junit.jupiter.api.AssertNull.assertNull(AssertNull.java:30)\n\tat org.junit.jupiter.api.Assertions.assertNull(Assertions.java:279)\n\tat telamin.fluxtion.audit.analyser.analyser.ui.MenuLayoutFrameTest.closeLogFromItsMenuPreservesTheProjectAndSavedChart(MenuLayoutFrameTest.java:93)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\n[ERROR] Failures: \n[ERROR]   MenuLayoutFrameTest.closeLogFromItsMenuPreservesTheProjectAndSavedChart:93 expected: <null> but was: <telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore@1190200a>\n[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0\n[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.\n[ERROR] \n[ERROR] Please refer to /private/tmp/analyser-menu-completion-2026-09-24/target/surefire-reports for the individual test results.\n[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.\n[ERROR] -> [Help 1]\n[ERROR] \n[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.\n[ERROR] Re-run Maven using the -X switch to enable full debug logging.\n[ERROR] \n[ERROR] For more information about the errors and possible solutions, please read the following articles:\n[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException\n"
+      },
+      "restoredByteIdentical": true,
+      "restored": {
+        "command": [
+          "mvn",
+          "-q",
+          "test",
+          "-Dtest=MenuLayoutFrameTest#closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "-Djava.awt.headless=false"
+        ],
+        "exit": 0,
+        "suites": [
+          {
+            "name": "MenuLayoutFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "closeLogFromItsMenuPreservesTheProjectAndSavedChart"
+            ],
+            "assertions": []
+          }
+        ],
+        "output": ""
+      }
+    }
+  ],
+  "baseline": {
+    "command": [
+      "mvn",
+      "-q",
+      "test",
+      "-Dtest=MenuLayoutFrameTest",
+      "-Djava.awt.headless=false"
+    ],
+    "exit": 0,
+    "suites": [
+      {
+        "name": "MenuLayoutFrameTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "projectSourcesAndAuditHaveTheirOwnActions",
+          "closeLogFromItsMenuPreservesTheProjectAndSavedChart",
+          "sourceShortcutsOpenTheNamedSettingsPage"
+        ],
+        "assertions": []
+      }
+    ],
+    "output": ""
+  }
+}

@@ -1,0 +1,110 @@
+[ERROR] Tests run: 7, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 3.948 s <<< FAILURE! -- in telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest
+[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.closedNamesAreReservedForCreationAndRename -- Time elapsed: 2.425 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: newTab must not duplicate an open name ==> expected: <null> but was: <telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel[,0,0,0x0,invalid,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=9,maximumSize=,minimumSize=,preferredSize=]>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertNull.failNotNull(AssertNull.java:50)
+	at org.junit.jupiter.api.AssertNull.assertNull(AssertNull.java:35)
+	at org.junit.jupiter.api.Assertions.assertNull(Assertions.java:287)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$closedNamesAreReservedForCreationAndRename$6(ChartLifecycleReviewFrameTest.java:119)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.graphActionOnClosedChartPreservesItsDefinition -- Time elapsed: 0.233 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: named action must load the closed definition before editing ==> expected: <keep this explanation> but was: <>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$graphActionOnClosedChartPreservesItsDefinition$7(ChartLifecycleReviewFrameTest.java:127)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState -- Time elapsed: 0.192 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: import must win over old tabs before a save ==> expected: <points> but was: <line>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState$8(ChartLifecycleReviewFrameTest.java:140)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)
+
+[ERROR] telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.confirmationCannotDeleteAReplacementTab -- Time elapsed: 0.353 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: a stale confirmation must not delete the replacement tab ==> expected: not <null>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertNotNull.failNull(AssertNotNull.java:49)
+	at org.junit.jupiter.api.AssertNotNull.assertNotNull(AssertNotNull.java:35)
+	at org.junit.jupiter.api.Assertions.assertNotNull(Assertions.java:312)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$confirmationCannotDeleteAReplacementTab$10(ChartLifecycleReviewFrameTest.java:152)
+	at telamin.fluxtion.audit.analyser.analyser.ui.ChartLifecycleReviewFrameTest.lambda$edt$0(ChartLifecycleReviewFrameTest.java:27)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:773)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:720)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:714)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:742)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)
+
+[ERROR] Failures: 
+[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$closedNamesAreReservedForCreationAndRename$6:119 newTab must not duplicate an open name ==> expected: <null> but was: <telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel[,0,0,0x0,invalid,layout=java.awt.BorderLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=9,maximumSize=,minimumSize=,preferredSize=]>
+[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$confirmationCannotDeleteAReplacementTab$10:152 a stale confirmation must not delete the replacement tab ==> expected: not <null>
+[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$graphActionOnClosedChartPreservesItsDefinition$7:127 named action must load the closed definition before editing ==> expected: <keep this explanation> but was: <>
+[ERROR]   ChartLifecycleReviewFrameTest.lambda$edt$0:27->lambda$importingOverAnOpenChartKeepsIncomingDefinitionAndOpenState$8:140 import must win over old tabs before a save ==> expected: <points> but was: <line>
+[ERROR] Tests run: 8, Failures: 4, Errors: 0, Skipped: 0
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project fluxtion-auditlog-analyser: There are test failures.
+[ERROR] 
+[ERROR] Please refer to /private/tmp/review-fix-project-chart-2026-09-24/target/surefire-reports for the individual test results.
+[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

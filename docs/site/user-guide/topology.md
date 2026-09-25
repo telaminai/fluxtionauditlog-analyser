@@ -51,12 +51,12 @@ log never mentions it. The silent order-handling branch remains unknown: this gr
 Fluxtion emits a `.graphml` for the processor when it builds — typically beside the generated processor
 source in your build output. Three ways in:
 
-- **File ▸ Open GraphML…**
-- **File ▸ Open recent GraphML** — kept separately from recent logs, so you're not scrolling past logs
+- **Sources ▸ Open GraphML…**
+- **Sources ▸ Open recent GraphML** — kept separately from recent logs, so you're not scrolling past logs
   to find a graph
 - **drag the `.graphml` onto the window** — it routes to the Topology tab by extension, and dropping a
   log and a graphml *together* opens both: the cycle and the graph it ran on, in one gesture
-- **File ▸ Find GraphML in source roots…** — when you don't know where the build put it. Every
+- **Sources ▸ Find GraphML in source roots…** — when you don't know where the build put it. Every
   `.graphml` under your configured source roots is listed, **ranked by how well each fits the open
   log**: node count, and how many of the log's nodes that graph declares. Nothing opens until you
   pick one — a graph chosen for you is a graph nobody checked.
@@ -103,10 +103,10 @@ see from the picture.
 
 ## Close and switch
 
-- **File ▸ Close graph** drops the topology and leaves the log alone.
-- **File ▸ Close log** does the reverse — records, filters, flags and shading go; your named graphs,
+- **Sources ▸ Close graph** drops the topology and leaves the log alone.
+- **Audit log ▸ Close log** does the reverse — records, filters, flags and shading go; your named graphs,
   focuses and reports stay, because those are yours, not the log's.
-- **File ▸ Reset** does both.
+- **Project ▸ Close log and topology** does both.
 - Opening a *different* processor's `.graphml` switches straight to it. A multi-processor server
   emits one graph each, and analysing the second one against the same log doesn't mean starting over.
 

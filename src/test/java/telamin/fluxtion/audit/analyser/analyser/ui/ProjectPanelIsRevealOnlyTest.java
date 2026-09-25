@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * M37 D-L1 and D-L3, both structural.
  *
  * <p>D-L3: nothing on the panel can mutate the app. The panel's only way out is {@link ProjectPanel.Navigator}
- * (two navigation methods), and its bytecode never names MainFrame — the same constant-pool check
+ * (four navigation methods), and its bytecode never names MainFrame — the same constant-pool check
  * McpBridgeHeadlessTest uses, because a test that merely clicked buttons would pass while a reference
  * sat on a branch it did not take.
  *
@@ -45,10 +45,13 @@ class ProjectPanelIsRevealOnlyTest {
             assertFalse(bytes.contains("ActionExecutor") || bytes.contains("AppControl"),
                     c.getSimpleName() + " must not reach the action surface — it renders, it does not act");
         }
-        assertEquals(Set.of("showTab", "openSettings"),
+        assertEquals(Set.of("showTab", "openSettings", "showReport", "showGraph"),
                 Set.of(java.util.Arrays.stream(ProjectPanel.Navigator.class.getDeclaredMethods())
                         .map(java.lang.reflect.Method::getName).toArray(String[]::new)),
-                "the Navigator moves the eye, not the state; adding a method here is a spec change (D-L3)");
+                "the Navigator moves the eye, not the state; adding a method here is a spec change (D-L3). "
+                        + "showReport/showGraph were added deliberately (owner, 2026-09-24, 35eeb320): revealing a "
+                        + "SPECIFIC item is still moving the eye. A method that creates, edits or discards "
+                        + "state is not, and does not belong here.");
         assertFalse(bytecodeOf(ProjectModel.class).contains("javax/swing"), "the model is pure");
     }
 

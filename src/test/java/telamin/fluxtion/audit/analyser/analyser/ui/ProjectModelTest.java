@@ -68,8 +68,15 @@ class ProjectModelTest {
         assertEquals(8, ProjectModel.from(null).sections().size());
     }
 
+    /**
+     * 35eeb320, owner 2026-09-24: the row now offers a REVEAL. It previously carried {@link
+     * ProjectModel.Target#NONE} — read at the time as "no mutation action", which it was, but the
+     * consequence was that the Open a person saw on a saved chart was wired to nothing at all. Revealing a
+     * specific chart is navigation, so the row names its chart; mutation is still barred, structurally, by
+     * {@code ProjectPanelIsRevealOnlyTest}.
+     */
     @Test
-    void savedChartsRemainVisibleWithoutInputAndHaveNoMutationAction() {
+    void savedChartsRemainVisibleWithoutInputAndRevealTheirOwnChart() {
         var ctx = empty();
         ctx.put("savedGraphs", List.of(Map.of("name", "Positions", "open", false,
                 "input", "waiting for input")));
@@ -77,7 +84,8 @@ class ProjectModelTest {
         assertEquals("Positions", row.primary());
         assertEquals("waiting for input", row.secondary());
         assertEquals("saved", row.provenance());
-        assertEquals(ProjectModel.Target.NONE, row.target());
+        assertEquals(ProjectModel.Target.CHART, row.target());
+        assertEquals("Positions", row.item(), "the row must say WHICH chart, or Open cannot reveal it");
     }
 
     @Test
@@ -289,7 +297,7 @@ class ProjectModelTest {
         List<ProjectModel.Row> rows = ProjectModel.from(ctx).section(ProjectModel.ANALYSES).rows();
         assertEquals(1, rows.size());
         assertEquals("spread breach", rows.get(0).primary());
-        assertEquals("every breach starts the same way · 3 steps · needs [log] · File ▸ Run analysis", rows.get(0).secondary());
+        assertEquals("every breach starts the same way · 3 steps · needs [log] · Project ▸ Run analysis", rows.get(0).secondary());
         assertEquals(ProjectModel.Target.NONE, rows.get(0).target(), "D-L3: the panel states the offer; recall lives in the menu and the verb");
         assertEquals("No saved analyses", ProjectModel.from(null).section(ProjectModel.ANALYSES).rows().get(0).primary());
     }

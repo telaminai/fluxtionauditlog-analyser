@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * File → Export settings… (M15, spec-settings-share §5). Pick which categories to share, then hand the
+ * Project → Export settings… (M15, spec-settings-share §5). Pick which categories to share, then hand the
  * result off by clipboard, a saved {@code .fluxtion-settings} file (revealed in the file manager for
  * drag-drop into Slack/WhatsApp), or an email draft. The headless {@link SettingsShare} does the real
  * work; this is a thin transport wrapper.

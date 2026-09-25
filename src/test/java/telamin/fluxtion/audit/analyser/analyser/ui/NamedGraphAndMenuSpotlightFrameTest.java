@@ -58,6 +58,57 @@ class NamedGraphAndMenuSpotlightFrameTest {
         });
     }
 
+    /**
+     * 1.20.0 virgin-LLM check: a model asked for "File > Reset" learned only that there is no File menu, and
+     * concluded Reset no longer exists; another guessed paths it never lit. A miss now says where the item went,
+     * and context lists the menu bar so it can be read rather than provoked.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void aMenuMissSaysWhereTheItemIs_andContextListsTheMenus(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        javax.swing.LookAndFeel previous = flatLafLikeTheApp();   // the app's own look, whose menus open inside the window
+        try (Frame f = new Frame(tmp)) {
+            show(f, Files.createDirectories(tmp.resolve("exchange")));
+            onEdt(() -> render(f.ex, "open", Map.of("log", Path.of(SERIES_LOG).toAbsolutePath().toString())));
+            awaitLoaded(f);
+            onEdt(() -> {
+                var reset = attempt(f, "spotlight", Map.of("target", "menu:File:Reset"));
+                assertEquals(false, reset.get("ok"));
+                assertTrue(reset.toString().contains("renamed in 1.20.0")
+                        && reset.toString().contains("menu:Project:Close log and topology"), reset.toString());
+                var file = attempt(f, "spotlight", Map.of("target", "menu:File"));
+                assertTrue(file.toString().contains("split in 1.20.0 into Project, Sources and Audit log"), file.toString());
+                var moved = attempt(f, "spotlight", Map.of("target", "menu:Records:Source roots\u2026"));
+                assertTrue(moved.toString().contains("light menu:Sources:Source roots\u2026"), moved.toString());
+                var nothing = attempt(f, "spotlight", Map.of("target", "menu:Project:Frobnicate"));
+                assertFalse(nothing.toString().contains(" — light "), "no hint is invented: " + nothing);
+                // PR #19 review, R1: a qualifier can be the action; close-both must never be pointed at close-log
+                var closeBoth = attempt(f, "spotlight", Map.of("target", "menu:File:Close log (and topology)"));
+                assertFalse(closeBoth.toString().contains(" — light "), "no identity claim for an unknown qualifier: " + closeBoth);
+
+                Map<String, List<String>> menus = (Map<String, List<String>>) find(render(f.ex, "context", Map.of()), "menus");
+                assertNotNull(menus, "context lists the menus");
+                assertEquals(List.of("Project", "Sources", "Audit log", "Records", "Theme", "AI", "Help"),
+                        List.copyOf(menus.keySet()), "in menu-bar order");
+                assertTrue(menus.get("Project").contains("Close log and topology"), menus.toString());
+                // a model that reads the menus first never asks for File > Reset, so the rename must be readable too
+                List<String> changes = (List<String>) find(render(f.ex, "context", Map.of()), "menuChanges");
+                assertTrue(changes != null && changes.contains(
+                        "File > Reset was renamed in 1.20.0: it is now Project > Close log and topology"), String.valueOf(changes));
+                // what a hint names really lights — the renamed item and a moved one
+                var follow = attempt(f, "spotlight", Map.of("target", "menu:File:Follow (tail)"));
+                assertTrue(follow.toString().contains("light menu:Audit log:Follow (tail)"), follow.toString());
+                for (String target : List.of("menu:Project:Close log and topology", "menu:Audit log:Follow (tail)")) {
+                    var lights = attempt(f, "spotlight", Map.of("target", target));
+                    assertEquals(true, lights.get("ok"), target + " " + lights);
+                }
+            });
+        } finally {
+            restoreLaf(previous);
+        }
+    }
+
     private static void show(Frame f, Path exchange) throws Exception {
         onEdt(() -> {
             AppConfig config = (AppConfig) field(f.frame, "config");
@@ -189,17 +240,17 @@ class NamedGraphAndMenuSpotlightFrameTest {
             show(f, exchange);
             onEdt(() -> render(f.ex, "open", Map.of("log", Path.of(SERIES_LOG).toAbsolutePath().toString())));
             awaitLoaded(f);
-            JMenu file = (JMenu) f.frame.getJMenuBar().getComponent(0);
-            assertEquals("File", file.getText());
+            JMenu file = (JMenu) f.frame.getJMenuBar().getComponent(2);
+            assertEquals("Audit log", file.getText());
 
             // 1. light an item: the reveal OPENS the menu; the item is measured inside the window
             final java.awt.Rectangle[] itemBounds = new java.awt.Rectangle[1];
             onEdt(() -> {
-                Map<String, Object> r = render(f.ex, "spotlight", Map.of("target", "menu:File:Close log", "caption", "closes the log"));
+                Map<String, Object> r = render(f.ex, "spotlight", Map.of("target", "menu:Audit log:Close log", "caption", "closes the log"));
                 assertEquals(true, r.get("ok"), r::toString);
                 assertTrue(file.getPopupMenu().isShowing(), "lighting a menu item opened the menu");
                 assertEquals(f.frame, SwingUtilities.getWindowAncestor(file.getPopupMenu()), "as a LIGHTWEIGHT popup, inside the window");
-                assertEquals("menu:File:Close log", lit(f).get(0).get("target"));
+                assertEquals("menu:Audit log:Close log", lit(f).get(0).get("target"));
                 Map<String, Object> one = ((List<Map<String, Object>>) find(r, "lit")).get(0);   // the verb's echo carries bounds
                 Map<String, Object> b = (Map<String, Object>) one.get("bounds");
                 itemBounds[0] = new java.awt.Rectangle(((Number) b.get("x")).intValue(), ((Number) b.get("y")).intValue(),
@@ -235,7 +286,7 @@ class NamedGraphAndMenuSpotlightFrameTest {
             });
 
             // 4. a lit menu that closes for any other reason takes its spotlight with it
-            onEdt(() -> assertEquals(true, render(f.ex, "spotlight", Map.of("target", "menu:File")).get("ok")));
+            onEdt(() -> assertEquals(true, render(f.ex, "spotlight", Map.of("target", "menu:Audit log")).get("ok")));
             onEdt(() -> assertEquals(1, lit(f).size()));
             onEdt(() -> javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath());   // what Escape or a click elsewhere does
             pump();
@@ -243,9 +294,9 @@ class NamedGraphAndMenuSpotlightFrameTest {
 
             // 5. an unknown item is refused naming the menu's items; an unknown menu names the menus
             onEdt(() -> {
-                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:File:Nope"));
+                Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:Audit log:Nope"));
                 assertEquals(false, r.get("ok"));
-                assertTrue(String.valueOf(r.get("error")).contains("no item 'Nope' in the File menu"), String.valueOf(r.get("error")));
+                assertTrue(String.valueOf(r.get("error")).contains("no item 'Nope' in the Audit log menu"), String.valueOf(r.get("error")));
                 assertFalse(file.getPopupMenu().isShowing(), "a refused item does not leave the menu open");
                 Map<String, Object> r2 = attempt(f, "spotlight", Map.of("target", "menu:Nope"));
                 assertTrue(String.valueOf(r2.get("error")).contains("no menu 'Nope'"), String.valueOf(r2.get("error")));
@@ -330,7 +381,7 @@ class NamedGraphAndMenuSpotlightFrameTest {
         javax.swing.LookAndFeel previous = flatLafLikeTheApp();
         try (Frame f = new Frame(tmp)) {
             show(f, Files.createDirectories(tmp.resolve("exchange")));
-            JMenu file = (JMenu) f.frame.getJMenuBar().getComponent(0);
+            JMenu file = (JMenu) f.frame.getJMenuBar().getComponent(2);
             JMenu ai = null;
             for (int i = 0; i < f.frame.getJMenuBar().getMenuCount(); i++) {
                 if ("AI".equals(f.frame.getJMenuBar().getMenu(i).getText())) ai = f.frame.getJMenuBar().getMenu(i);
@@ -338,8 +389,8 @@ class NamedGraphAndMenuSpotlightFrameTest {
             assertNotNull(ai);
             JMenu aiMenu = ai;
 
-            // REPLACE: File item lit, then a call for an AI item
-            onEdt(() -> assertEquals(true, attempt(f, "spotlight", Map.of("target", "menu:File:Close log")).get("ok")));
+            // REPLACE: Audit log item lit, then a call for an AI item
+            onEdt(() -> assertEquals(true, attempt(f, "spotlight", Map.of("target", "menu:Audit log:Close log")).get("ok")));
             pump();
             onEdt(() -> {
                 Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:AI:Posture"));
@@ -350,32 +401,32 @@ class NamedGraphAndMenuSpotlightFrameTest {
             pump();
             onEdt(() -> {
                 assertEquals(List.of("menu:AI:Posture"), lit(f).stream().map(m -> m.get("target")).toList(),
-                        "what the echo said is what is lit, after the File menu's close listener has run");
+                        "what the echo said is what is lit, after the Audit log menu's close listener has run");
                 assertTrue(aiMenu.getPopupMenu().isShowing(), "the AI menu is open");
-                assertFalse(file.getPopupMenu().isShowing(), "the File menu closed when the AI menu opened");
+                assertFalse(file.getPopupMenu().isShowing(), "the Audit log menu closed when the AI menu opened");
             });
             onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));
             pump();
             onEdt(() -> assertFalse(aiMenu.getPopupMenu().isShowing(), "clear closed the menu the spotlight opened"));
 
-            // ADD: File item + status lit, then ADD an AI item — the File item goes out (its menu closed) and says so;
+            // ADD: Audit log item + status lit, then ADD an AI item — the Audit log item goes out (its menu closed) and says so;
             // status and the AI item stay
             onEdt(() -> {
-                assertEquals(true, attempt(f, "spotlight", Map.of("target", "menu:File:Close log")).get("ok"));
+                assertEquals(true, attempt(f, "spotlight", Map.of("target", "menu:Audit log:Close log")).get("ok"));
                 assertEquals(true, attempt(f, "spotlight", Map.of("target", "status", "add", true)).get("ok"));
             });
             pump();
             onEdt(() -> {
                 Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:AI:Posture", "add", true));
                 assertEquals(true, r.get("ok"), r::toString);
-                assertEquals(List.of("menu:File:Close log"), find(r, "wentOut"), "the File item went out when its menu closed, and the echo says so");
+                assertEquals(List.of("menu:Audit log:Close log"), find(r, "wentOut"), "the Audit log item went out when its menu closed, and the echo says so");
             });
             pump();
             Thread.sleep(200);
             pump();
             onEdt(() -> {
                 assertEquals(List.of("status", "menu:AI:Posture"), lit(f).stream().map(m -> m.get("target")).toList(),
-                        "the non-menu spotlight survived the File menu closing; the AI item is lit");
+                        "the non-menu spotlight survived the Audit log menu closing; the AI item is lit");
                 assertTrue(aiMenu.getPopupMenu().isShowing());
             });
             onEdt(() -> render(f.ex, "spotlight", Map.of("clear", true)));

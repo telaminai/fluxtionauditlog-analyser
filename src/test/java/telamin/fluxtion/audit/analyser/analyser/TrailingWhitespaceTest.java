@@ -43,6 +43,11 @@ class TrailingWhitespaceTest {
             "docs/handoff/evidence/spring-authoring-feedback-2026-09-19/src/main/java/com/example/myapp/node/RootNode.java",
             "docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21/AlertNode.as-generated.java",
             "docs/handoff/evidence/stub-reconcile-1.0.73-2026-09-21/AlertNode.hand-finished.java",
+            // Captured surefire output from the chart-lifecycle review: "[ERROR] Failures: " and its
+            // siblings end in a space because Maven printed them that way. Reformatting would edit
+            // evidence, which is the same reason the spike output above is listed.
+            "docs/handoff/evidence/project-chart-review-fix-2026-09-24/before.txt",
+            "docs/handoff/evidence/project-chart-review-fix-2026-09-24/duplicate-before.txt",
             "/generated/",
             ".diff");
 

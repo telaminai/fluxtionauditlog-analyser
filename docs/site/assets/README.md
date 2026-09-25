@@ -21,6 +21,9 @@ thread, logger or account names** — use neutral placeholders (e.g. `DEMO`, `ma
 |------|---------|
 | `screenshot-dark.png` | Home — hero (the tool photographs better dark: the canvas, source panes and plots all use a recessed dark surface, and light flattens all three) |
 | `screenshot-light.png` | User guide — index (the light theme) |
+| `projects-file-menu.png` | Getting started, Projects — current Project menu (legacy asset filename) |
+| `sources-menu.png` | Getting started — Sources menu |
+| `audit-log-menu.png` | Getting started — Audit log menu |
 | `audit-loop.svg` | Home — the closed-loop diagram (inlined via a snippet) |
 | `records-overview.png` | Records, detail & filtering — the surfaces at a glance |
 | `flagged-only.png` | Records, detail & filtering — flagging & focus |
@@ -101,3 +104,31 @@ evidence image is deliberately retained unchanged.
 
 Review-response refresh at `b6633048`: main/demo 24 plus conversation 5 assets and real echoes were
 regenerated and visually inspected. The four Spring design-only captures remain from `7df316c8`.
+
+## Capture audit — menu layout, 2026-09-24
+
+The menu branch refreshes the 26-image main/demo capture suite from the branch build, including
+Project, Sources and Audit log menus, chart controls, the Project panel, AI menu, and light/dark
+spotlights. Every image was inspected. The first Audit log capture lost its popup; it was rejected
+and captured again after moving window activation before opening the popup. A native image file
+alone does not establish that the intended popup was present.
+
+The capture uses only repository demo fixtures and an isolated home. Screenshots establish appearance;
+menu behaviour is checked separately by real-display tests clicking Swing menu items.
+
+Retained separately: recorded conversation images/echoes, Spring design/validation images, the Java
+spotlight fixture image, MCP dialogs, and the bundle-specific tutorial/picker images. Pages containing
+older main-window captures now say they may show the prior menu layout and link to current navigation.
+Those captures are not claimed to be reruns of their authoring or acquisition experiments. The
+owner-witnessed browser preview and vendor image remain historical evidence, unchanged.
+
+### PR #15 review-response captures
+
+After moving the two recent-file menus and separating the Project close actions, only the five
+affected assets were recaptured: `projects-file-menu.png`, `sources-menu.png`,
+`audit-log-menu.png`, `tutorial-new-project-menu.png`, and `start-page.png`. Commands were
+`python3 tools/capture-docs.py --projects-menu` and `python3 tools/capture-docs.py --start-page`,
+using the rebuilt branch jar, repository demo, and the harness's isolated home. All five are
+3360×2100. Every image was opened and its visible strings inspected; each menu popup is visible,
+the recents follow their open action, and the start page shows the renamed close status and
+Open log guidance. The other images were not recaptured during this response.

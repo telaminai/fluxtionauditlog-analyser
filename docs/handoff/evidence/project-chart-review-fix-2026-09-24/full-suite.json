@@ -1,0 +1,9 @@
+{
+  "command": "JAVA_HOME=<JDK21> mvn -q test",
+  "counts": {
+    "tests": 1923,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 73
+  }
+}

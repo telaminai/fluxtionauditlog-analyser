@@ -1,3 +1,46 @@
+## Project / Sources / Audit log menus — ☑ SHIPPED in 1.20.0 — 2026-09-24
+
+- ☑ **Separate top-level resource menus** — implemented on `feat/project-sources-audit-menus`,
+  merged as PR #15 (`fda14f70`), follow-ups PR #17 (`5eac0b8c`); released in 1.20.0. Project owns profiles/settings/analyses, Sources
+  owns source configuration and topology/design/diagnostics, Audit log owns acquisition/Follow/export.
+  Records, Theme, AI and Help remain separate. Existing action handlers and the reveal-only Project
+  panel boundary remain in force. Live docs, offline help, screenshots and menu spotlight examples
+  must match. Acceptance uses actual menu items and Settings dialogs on a real display, CI zero-skip
+  registration, and targeted named-red/restored-green controls. Local gates: headless
+  after integration of main `cb56c96d` (1.19.3 changelog stamp): 1985/0/0/97 (265 mapped suites, no orphans);
+  display 98/0/0/0 (19 suites). The ten menu controls passed before integration; the owner
+  requested no mutation rerun on the combined tree. R1–R3 corrected; O1–O5 taken; D1–D3 remain owner decisions.
+  Original 26 demo captures refreshed, then five affected assets recaptured and inspected for the
+  review response. Specialized older captures labelled. PR #15 merged after re-review; follow-up guards on
+  `fix/menu-guard-followups` independently reviewed at `cd2814d0`: package 1985/0/0/97, display 98/0/0/0,
+  five targeted controls red/restored green. Repeated focus measurement had two skips after
+  the trial retry; that retry was removed for review F1 before merge. No stability improvement
+  or fix for the unreproduced spotlight flake is claimed.
+  [Implementation and verification](../../handoff/report_project_sources_audit_menus_2026_09_24.md).
+  [Optional guard follow-ups](../../handoff/report_menu_guard_followups_2026_09_24.md).
+
+Release candidate `2a15f0ba`, tag `v1.20.0` at `67c672cc`. Local package 1985/0/0/97;
+main CI display 98/0/0/0 and full fast mutation gate 50 controls caught. Built-jar API, handoff,
+spotlight, restart and seven conversation scenarios passed. Five conversation images refreshed
+and inspected. Public jars, checksums, version and notes verified; Pages passed.
+[Release receipt](../../handoff/release_analyser_1_20_0_2026_09_24.md).
+Unresolved optional items and owner decisions remain in the live tracker below its menu heading.
+
+---
+
+## Fast mutation gate — ☑ MERGED with the 1.20.0 main tree — 2026-09-24
+
+PR #18 merged as `7254c29d`, proposal PR #16 as `2a15f0ba`.
+[Proposal and implementation status](../../proposals/faster-mutation-gate.md).
+The engine uses a fresh JVM per control, restores byte snapshots, forces a clean rebuild on API or
+constant changes, and records partial results on failure. CI runs the full fast gate; Maven remains
+the local default for the initial comparison cycle. Main CI at the release candidate passed the
+21-case selftest and caught all 50 controls (327.6 s). Private nested-class fallback remains safely
+conservative; branch subsets are heuristic, not a release gate. Branch-protection policy remains live.
+[Release receipt and run links](../../handoff/release_analyser_1_20_0_2026_09_24.md).
+
+---
+
 ## Java source spotlight — ☑ SHIPPED in 1.19.0 — 2026-09-23
 
 [Proposal](../../proposals/source-spotlight.md), [round-four response](../../handoff/completed/response_source_spotlight_r4_2026_09_21.md).
@@ -2794,7 +2837,7 @@ agents does — and that learning is the raw material for the template bootstrap
   try/finally, so a throw escaping the method would wedge the processor silently; `EffectQueue` catches
   everything and the driver rethrows once the flag is clear. All 1272 tests green and 23/23 on the built
   jar with no behaviour change; seven new tests cover the properties the old shape got for free.
-- [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](../spec-async-session-driver.md)** — the
+- [M44.3] ☐ **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
   driver change that lets log/graph OPENING become a decision. Declined twice on the same ground, which
   is the right ground: the load is `Background.run` and the driver is synchronous single-in-flight by
   design, so forcing it would have meant lying about when a load finished.
@@ -3800,7 +3843,7 @@ throw left `extracting` set; all landed, [response](../../handoff/completed/revi
   test fail and both controls still pass. Display suites 16/16 locally with CI's flags, no skips. Original entry:
   `close {log}` during a pending open closed the previous log and the pending one still landed and was accepted
   (finish-first review F6).
-- [M44.3] ☑ **IMPLEMENTED 2026-09-16; independent pass 3 at `d78a0144`: READY, 2026-09-17 — B2's immediate busy/pairing projection CLOSED; earlier B1/B3, export F4 and call-boundary F5 acceptance stands.** The adapter now follows the gate at a successful or failed project boundary, before the retired reader returns. Existing/current-graph pairing, progress visibility and newer-pending controls independently verified; exactly two boundary tests fail on the pre-fix jar. Full verify 1,431/0/0/14; local and exact-tip CI display suites 14/14 with no skips. See [pass-3 review](../../handoff/completed/review_analyser_finish_first_pass3_2026-09-17.md). M44.3b and the separate owner/dependency decision below remain open. (Spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; processor regenerated, 38 nodes.) Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](../spec-async-session-driver.md)** — the
+- [M44.3] ☑ **IMPLEMENTED 2026-09-16; independent pass 3 at `d78a0144`: READY, 2026-09-17 — B2's immediate busy/pairing projection CLOSED; earlier B1/B3, export F4 and call-boundary F5 acceptance stands.** The adapter now follows the gate at a successful or failed project boundary, before the retired reader returns. Existing/current-graph pairing, progress visibility and newer-pending controls independently verified; exactly two boundary tests fail on the pre-fix jar. Full verify 1,431/0/0/14; local and exact-tip CI display suites 14/14 with no skips. See [pass-3 review](../../handoff/completed/review_analyser_finish_first_pass3_2026-09-17.md). M44.3b and the separate owner/dependency decision below remain open. (Spec's *As built* block: request → `Pending` → `LogOpened`, supersede by opId, thread confinement, `context.inFlight`; processor regenerated, 38 nodes.) Original entry: **SPEC'D 2026-08-31: [`spec-async-session-driver.md`](spec-async-session-driver.md)** — the
   ☐ **New surface it unblocks:** a hung load is today indistinguishable from no load; the processor will
 
 ### Suggested delivery order — shipped
@@ -4283,3 +4326,67 @@ person's:** *File ▸ Close log* during a slow FIRST load as a physical click (i
 `coverage` target this analyser refuses). Still open after that, not gating: the valid `add` + `detail:node`
 end-to-end scenario, callout arrow routing, shortening the spotlight GUIDANCE (147 words) against a held-out run,
 M64.10, M46.11.
+
+## Tidy 2026-09-24 — swept after the M68 v2 review (rule 7)
+**Two fully-ticked blocks moved verbatim from the live tracker**, with relative links re-expressed for this
+file's depth. Nothing partial was moved. **The rule this sweep now follows, written down because breaking it cost
+three weeks:** an item marked ◧ never leaves the live tracker, whatever ☑ marks appear inside its text. M45.4 was
+swept on 2026-09-03 because a ☑ on one clause — *our half verified and unparked* — made a ◧ item read as finished;
+its consumption was never built, it left the delivery order, and on 2026-09-24 a held-out client met the exact
+failure the archived entry already described. M45.4 is restored to the live tracker.
+
+**One spec retired with this tidy:** [`spec-async-session-driver.md`](spec-async-session-driver.md), whose status
+block reads IMPLEMENTED 2026-09-16 and whose scope — M44.3 and M44.3a — shipped in 1.14.0 and is already archived
+here. Its inbound references were updated rather than left dangling. **Four other shipped-looking specs were
+checked and deliberately left live**, each because something inside their scope is still open: the spotlight spec
+(M64.13), the follow-refresh spec (M65.5, which is its own D-F5 measurement), the guided-start spec (M19.19 is ◧),
+and the tool-agreement spec (TA-5b/5c/9/B). Under the rule above, a spec whose milestone still carries an open or
+partial item stays where the work is read.
+
+**SG-2 reconciled in the same pass, and then corrected the same day.** It was ☑ in the getting-started round and ☐
+in the Spring-side work block. The first reconciliation resolved that in favour of the tick and called the item
+closed. **That over-read the evidence.** Round 4 inspected the cited CI run rather than the claim copied from it:
+its three jobs are two `spring-provisioning` jobs and a `customer-download` job, the mongoose provisioning result
+reports `generationAttempted: false`, and the build/run/export/stop evidence comes from the `analyser-bundle`
+template, which is the keyless regression check. So the closed half is acquisition, setup and validation on the
+real hosted archive — playground 1.0.74 at `5d6a38a`, 97 classpath entries, 36 originals unchanged — and the
+**hosted changed-graph generation/run clause remains open**, tracked live in the Spring-side work block. The
+work block's preamble had read NOT READY for two revisions after the authoring files shipped, so this item has now
+been wrong in both directions within four days, which is why the split is recorded rather than a single verdict.
+
+### Spring getting-started guide — 2026-09-21 (swept 2026-09-24)
+
+- ☑ Illustrated guided path: website/analyser acquisition, default-on support, project runbooks,
+  client connection and copy-ready prompt, design inspection, real validation refusal/correction,
+  generation prerequisites and explicit session restore. Four native analyser screenshots plus the
+  owner-witnessed website preview. The analyser remains a read-only canvas, not an application runner.
+- ☑ SG-1 fixed and released in starter **1.0.73**; public standalone setup/validate and changed-graph
+  generation/run pass. Closure and regression checks are in the [completed tracker](tracker.md).
+- ☑ **SG-2 — hosted Spring authoring files shipped in 1.0.74 (playground).** **In the Spring-side work block (▸ 3).** The expanded
+  preflight found no authoring record or local scripts in `fluxtion-spring-mongoose`; its generator
+  emits graph files without the local-tooling wrapper. Separate from the fixed Maven descriptor.
+  Actual hosted ZIP coverage must prove record/scripts, launcher preservation, setup/validate and
+  generation/run without breaking the keyless bundle. **Deployed at `5d6a38a` with published starter 1.0.74.**
+  Public CI 35929392911 verifies the actual hosted archive: shipped setup/validate, 97 classpath
+  entries, 36 originals unchanged; the keyless bundle builds/runs/exports five checked rows/stops.
+  Regression: scaffold `spring-authoring.test.ts` actual-archive cases and named hosted controls.
+  Public provisioning uses no key. Hosted generation/run remains the previously reviewed branch
+  trial below; G14 is the separate fresh public-download acceptance. **Historical implementation:**
+  playground `e85a459`, compiler verification `1073bfb3`. Nine actual-archive cases and five
+  seen-red controls pass. Five fresh downloads pass emitted scripts; both hosted variants
+  export five independently checked records and stop cleanly. **G19:** branch tool 1.0.74-SNAPSHOT substitutes for the emitted POM/record pin 1.0.73; this is not evidence of what a user receives. The pristine bundle separately
+  builds/runs without setup or a key. F9 refuses extended declarations outside AOT; F11 refuses
+  a mismatched BOM/tool pair before download. Full playground gate: 560 tests; production build
+  passes; same four existing type errors and six warnings. Publication now holds; G14 still needs
+  its fresh published-download acceptance. The guide is updated to the new deployed scope.
+
+
+Evidence and regeneration: [guide author report](../../handoff/report_spring_getting_started_2026_09_21.md).
+
+### Tool-agreement documentation capture refresh — 2026-09-21 (swept 2026-09-24)
+
+- ☑ Owner-requested screenshot audit: 24 native demo captures, five conversation shots/echoes and four
+  Spring design/validation shots refreshed and visually inspected. Guides now describe unknown
+  hierarchy and the separate chart legend/commentary regions. The asset README records the separate
+  MCP/picker/tutorial modes not rerun and the historical website/vendor evidence retained unchanged.
+  Full Java suite, tool smoke tests and strict docs pass. See the tool-agreement handoff for scope.

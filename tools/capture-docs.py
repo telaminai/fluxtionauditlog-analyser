@@ -14,9 +14,10 @@ anonymous by construction rather than by inspection.
 Usage
 -----
     python3 tools/capture-docs.py            # regenerate everything into docs/site/assets
+    python3 tools/capture-docs.py --start-page # regenerate only the no-log start page
     python3 tools/capture-docs.py --mcp      # regenerate only the MCP setup/dialog shots
     python3 tools/capture-docs.py --spotlight  # regenerate only the spotlight shots (light AND dark)
-    python3 tools/capture-docs.py --projects-menu     # the File menu shot + the tutorial's ringed copy of it
+    python3 tools/capture-docs.py --projects-menu     # Project, Sources, Audit log + the tutorial's ringed Project shot
     python3 tools/capture-docs.py --template-picker   # the template picker + the tutorial's ringed copy of it
     python3 tools/capture-docs.py --keep     # leave the app running afterwards
 
@@ -151,13 +152,15 @@ def menu_capture(ep, menu, name):
     content pane's paint. So this shot needs the native path, and is skipped rather than faked without it.
     """
     _attempted.append(name)
+    # Raising a window after opening its popup can dismiss that popup on macOS.
+    # Bring the frame forward first, then open the menu that the image must show.
+    raise_window(ep.get("pid"))
     res = act(ep, "screenshot", {"path": f"menu-{menu}.png", "scope": f"menu:{menu}"})
     if not res.get("ok"):
         _failed.append(name)                # a verb failure produced no image either — count it
         return False
     b = res["wrote"]["windowBounds"]
     _menu_items[menu] = (b, res["wrote"].get("menuItems") or [])     # where each item is, for annotate()
-    raise_window(ep.get("pid"))
     time.sleep(0.8)                     # let the popup lay out before the shutter
     target = ASSETS / name
     # scratch path, not the asset — see capture(): aiming at an existing asset makes exists() a
@@ -581,16 +584,16 @@ def capture_tutorial():
 
 
 def mark_new_project_item():
-    """The tutorial's copy of the File-menu shot, with *New project from template…* ringed.
+    """The tutorial's copy of the Project-menu shot, with *New project from template…* ringed.
 
-    The item's position comes from the app (`screenshot {scope: "menu:File"}` reports `menuItems`), and the image
+    The item's position comes from the app (`screenshot {scope: "menu:Project"}` reports `menuItems`), and the image
     scale from the capture itself — a Retina native capture is 2x the window's logical size.
     """
     source = ASSETS / "projects-file-menu.png"
-    bounds, items = _menu_items.get("File", (None, []))
+    bounds, items = _menu_items.get("Project", (None, []))
     item = next((i for i in items if i.get("text", "").startswith("New project from template")), None)
     if not (source.exists() and bounds and item):
-        print("  ! tutorial-new-project-menu.png NOT made — no File-menu capture, or the app reported no such item")
+        print("  ! tutorial-new-project-menu.png NOT made — no Project-menu capture, or the app reported no such item")
         _attempted.append("tutorial-new-project-menu.png")
         _failed.append("tutorial-new-project-menu.png")
         return
@@ -606,8 +609,10 @@ def capture_projects_menu():
     """The project actions after M19.5 — including the live-catalogue template picker entry point."""
     print("project menu (light)")
     ep = launch("Light")
-    menu_capture(ep, "File", "projects-file-menu.png")
+    menu_capture(ep, "Project", "projects-file-menu.png")
     mark_new_project_item()
+    menu_capture(ep, "Sources", "sources-menu.png")
+    menu_capture(ep, "Audit log", "audit-log-menu.png")
     finish_capture()
 
 
@@ -659,6 +664,15 @@ def main():
         capture_tutorial()
         return
 
+    if "--start-page" in sys.argv:
+        ep = launch("Light")
+        seed(ep)
+        act(ep, "open", {"close": "all"})
+        time.sleep(1)
+        capture(ep, "start-page.png")
+        finish_capture()
+        return
+
     if "--projects-menu" in sys.argv:
         capture_projects_menu()
         return
@@ -679,7 +693,7 @@ def main():
 
     # M36.5: the START PAGE — what the analyser opens on with no log. Taken FIRST, before seed()'s log
     # is showing, by closing it: the page is a state, so the only way to photograph it is to be in that
-    # state. `open {close: "all"}` is the same door File ▸ Close log uses, so this shoots the real
+    # state. `open {close: "all"}` is the same door Audit log ▸ Close log uses, so this shoots the real
     # thing rather than a mode built for the camera.
     act(ep, "open", {"close": "all"})
     time.sleep(1)
@@ -812,8 +826,10 @@ def main():
     print("project profiles")
     profile = make_demo_project()
     ep = launch("Light")
-    menu_capture(ep, "File", "projects-file-menu.png")
+    menu_capture(ep, "Project", "projects-file-menu.png")
     mark_new_project_item()
+    menu_capture(ep, "Sources", "sources-menu.png")
+    menu_capture(ep, "Audit log", "audit-log-menu.png")
 
     ep = launch("Light", project=profile)      # relaunch WITH the project active
     seed(ep)

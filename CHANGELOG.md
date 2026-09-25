@@ -6,8 +6,6 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- Docs: describe starter 1.0.74 standalone and hosted Spring authoring, generated callback audit facts, matching-version upgrades, and the version-scoped protection for dependency classes. Older-release evidence and remaining limitations stay explicit.
-
 ### Added
 - **An empty log now says it is empty.** A file with no records reads as exactly that, in all six shapes
   it can take, instead of opening silently with nothing in it and leaving you to guess whether the run
@@ -63,6 +61,108 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   specification and the rest of the reader, where one path previously trimmed every Unicode space. A line
   indented with an ideographic or em space is no longer trimmed to its content, and the fields on it are
   lost. YAML permits only the space character for indentation and no known producer emits one.
+
+## [1.20.1] - 2026-09-24
+
+- **An assistant can find its way around the new menus.** Pointing at a menu item that is not where it was asked
+  for now says where it is — "'Follow (tail)' is in the Audit log menu" — and a renamed item names its new name:
+  File > Reset is now Project > Close log and topology. Asking for the old File menu says what replaced it.
+  The assistant's `context` also lists every menu and its items, so an assistant can read where an action
+  lives instead of guessing.
+
+## [1.20.0] - 2026-09-24
+
+- The README names both Export settings and Import settings under Project for sharing setups.
+
+- **Project, Sources and Audit log now have separate menus.** Project holds profiles, saved analyses
+  and settings; Sources holds source configuration, topology, design and producer diagnostics;
+  Audit log holds acquisition, Follow and record export. Source settings shortcuts open their named
+  page. Records, Theme, AI and Help remain separate. The toolbar and assistant verbs keep their existing
+  behavior. Reset is renamed **Close log and topology** and moved to its own group in Project.
+  Recent logs and topologies sit beside their open actions. Saved `menu:File…` spotlight steps are
+  now refused; update them to the new visible menu names. Guides and screenshots follow the layout.
+
+## [1.19.3] - 2026-09-24
+
+- **An action that cannot happen now says so.** Open on a saved chart that cannot be shown used to bring
+  the Graph tab forward and then do nothing at all; it now explains why — no log loaded, duplicate names
+  withholding the definitions, or no such chart — naming the chart. Nothing is said when it succeeds.
+
+- **Zoom and pin now say which one keeps its window.** Both set the visible time range and sit side by
+  side, but a zoom is a view and is forgotten, while a pin is saved with the chart and comes back on
+  reload. The zoom controls had no tooltip at all and the pin's did not mention that it persists.
+
+- **Duplicate chart names can now be repaired in the app.** A project holding two charts under one name
+  still withholds both rather than guessing, but the Graph panel now offers **Repair names…**, which
+  names each contested chart, says what it contains, and offers rename or delete for each. Nothing is
+  chosen by default and a partial answer is refused, so no definition is removed without being asked for.
+
+- **An ambiguous project no longer blocks unrelated chart work.** Only Delete is withheld while duplicate
+  names are unresolved; New graph, Rename and Close work as usual, both in the app and through the
+  assistant's `graph` action, and a chart made while names are unresolved is kept when they are repaired.
+  Nothing is written to the project until then. Duplicates were creatable by earlier releases, so this
+  affected people who had done nothing wrong.
+
+- **An assistant that sends a chart series in the wrong shape is now told so.** `graph {series}` takes
+  `"instanceId.key"` strings. An object such as `{expr, label}` used to be turned into a key that could
+  never match, saved with the chart, and answered as a success, leaving an empty chart that looked
+  finished. A bare string instead of a list was silently ignored. Both are now refused with the right
+  shape named (`exprs` for a labelled or computed series), and nothing is changed.
+
+- **An assistant can now read back a chart's plot style.** The `graph` reply and the `context` list of
+  saved charts report each chart's style (step, line or points), and saved charts list their series as
+  `instanceId.key` rather than in the internal stored form.
+
+## [1.19.2] - 2026-09-24
+
+- Legacy global settings with duplicate chart names no longer interrupt log loading. The Graph panel
+  explains why the whole chart set is withheld, chart actions refuse with that explanation, and all
+  definitions are retained for manual correction. A valid project still opens normally; no chart is
+  silently renamed or chosen over another.
+
+- Chart imports now apply incoming definitions before autosave snapshots the old tabs. Named actions
+  reopen saved charts with their metadata; explicit new-tab names cannot overwrite another chart.
+  Duplicate chart names in a project/import are refused before applying it instead of choosing one.
+  Delete confirmations cannot delete a replacement tab loaded while the question was open. Rename
+  collisions on the action socket return a refusal without opening a blocking dialog.
+
+- **Choosing a plot style from the dropdown is now saved.** Setting a chart to Line or Points from the
+  style control kept the change on screen but never asked to be persisted, so it reverted to stairs on the
+  next load. Only the assistant's `graph {style}` path saved correctly. Fixes the user-facing half of the
+  style persistence added earlier in this release.
+
+- **Sharing or importing settings no longer resets a chart's style or reopens a closed chart.** Rewriting
+  an external series or marker path rebuilt the chart and silently dropped both.
+
+- **Closing a chart no longer deletes it.** Close now puts a chart away and keeps its definition — series,
+  formulas, right axis, explanation and pinned notes — so it stays listed in the Project panel and reopens
+  from there, and stays closed across a reload rather than reappearing. Previously the project's saved-chart
+  list mirrored the open tabs, so closing a tab silently and unrecoverably destroyed the chart and its
+  annotations.
+
+- **New: Delete chart**, beside Close on the Graph toolbar, for removing a chart's definition on purpose.
+  It names the chart, says what is lost, and asks first. Existing projects are unaffected: a chart that has
+  never been closed carries no new setting and opens exactly as before.
+
+- **Open on a Project-panel row now opens that row's thing.** Open on a saved report reveals *that*
+  report instead of whichever one was already selected, and saved charts gain an Open they never had —
+  those rows previously offered no action at all. A chart that is saved but not currently
+  a tab is opened from the profile and selected; one already open is selected rather than rebuilt, so
+  nothing you changed since is discarded.
+
+- **A chart's plot style is saved with it.** Stairs, line and points are part of a saved chart and
+  survive a reload. Previously the choice was never written to the profile, so a chart deliberately set
+  to line or points silently came back as stairs — the reading of the chart changed without anyone
+  touching it. A chart saved before this release carries no stored style and opens as stairs, exactly as
+  it did before; the first save after upgrading then records every chart's current style, so an older
+  project file does gain a style line per chart once you save it. An unrecognised style in a hand-edited
+  profile is dropped rather than applied.
+
+## [1.19.1] - 2026-09-24
+
+- Named project profiles (`.analyser/project.<name>.fluxtion-settings`) now resolve relative paths from the project root, matching the canonical profile. Source roots, runbooks and other project-relative pointers no longer resolve one directory too deep.
+
+- Docs: describe starter 1.0.74 standalone and hosted Spring authoring, generated callback audit facts, matching-version upgrades, and the version-scoped protection for dependency classes. Older-release evidence and remaining limitations stay explicit.
 
 ## [1.19.0] - 2026-09-23
 

@@ -6,6 +6,25 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Project / Sources / Audit log menus — remaining follow-ups
+
+Implementation and guard follow-ups shipped in **1.20.0** (PRs #15 and #17);
+[verification and historical counts](completed/tracker.md)
+are in the completed tracker. The release is not a claim that these optional issues are resolved:
+
+- ☐ **Display stability:** the second-menu spotlight flake was not reproduced; the trial focus retry
+  did not demonstrate improvement and was removed. Keep the zero-skip display gate.
+- ☐ **Optional menu guard refinements:** computed Java menu strings and the prose-boundary heuristic
+  remain limited; see the [guard report](../handoff/report_menu_guard_followups_2026_09_24.md).
+- ☐ **D1 / D2 owner decisions:** CSV placement under Audit log and whether to add a legacy File
+  spotlight alias. Current shipped behaviour and the saved-step compatibility consequence are
+  documented; this release does not choose a different policy.
+- ☐ **D3 identity:** GitHub web merges bypass the local email pin. In addition to the earlier report,
+  `7254c29d` and `2a15f0ba` have non-personal metadata. Local email is personal at this release;
+  history is not rewritten. The owner still needs to settle the web-merge identity setting.
+- ☐ **CI policy:** whether the new full mutation gate is required by branch protection is an owner
+  setting; the job already runs on every PR and push to main.
+
 ## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md), revision 9 (2026-09-21)
 
 Remove the export step between a Mongoose run and the analyser. Owner decisions taken 2026-09-21; the
@@ -492,9 +511,25 @@ those seams, so the order below groups by what a single change set can close.
   integrator cannot read this message is the whole conversation, and **M67 beat 4 improves when it lands**.
 
 **3. The download must carry its own tooling** (playground).
-- **SG-2** (▸ *Spring getting-started guide*): the hosted download omits the authoring record and local scripts.
-  Until it does not, standalone Spring is the only template with a verified local route, which is what **BETA-B3**'s
-  recommendation rests on. Closing SG-2 widens that choice rather than being independent of it.
+- **SG-2 — SPLIT 2026-09-24. Provisioning closed; hosted generation/run still open.** On 2026-09-24 this was
+  reconciled as fully closed, and **that was wrong** — corrected the same day after round 4 inspected the CI log
+  rather than the claim copied from it.
+  - ☑ **Closed: acquisition, setup and validation on the actual hosted archive.** Playground **1.0.74** deployed at
+    `5d6a38a`; public CI 35929392911 — setup/validate shipped, 97 classpath entries, 36 originals unchanged. The
+    keyless bundle separately builds, runs, exports five independently checked records and stops cleanly.
+  - ☐ **Still open: changed-graph generation and run on the hosted ZIP**, which the written requirement includes.
+    **Verified here, not taken on trust:** that CI run has three jobs — `spring-provisioning (fluxtion-spring)`,
+    `spring-provisioning (fluxtion-spring-mongoose)` and `customer-download`. There is no hosted generation job,
+    the mongoose provisioning result reports `generationAttempted: false`, and the build/run/export/stop evidence
+    comes from the `analyser-bundle` template, which is the keyless regression check. Hosted generation/run remains
+    the earlier **branch** trial, and a later provisioning pass does not retroactively change that trial's artefact
+    identity. This clause needs its own acceptance naming the **hosted** template; G14 remaining open does not
+    establish that its standalone extended-design trial will exercise the hosted archive.
+  - **Consequence for BETA-B3, restated honestly:** hosted Spring is now a genuine candidate, because its
+    acquisition, setup and validation are verified on the real archive, so the recommendation may be reconsidered
+    on merit rather than by elimination. That is **not** evidence that the hosted guided journey has been
+    verified. **BETA-B3's template decision and its dry run stay open.**
+  - Evidence in [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-24*.
 - **F9** extended declarations in interpreted mode pin the carrying release with no setup files and nothing naming the
   coordinate. **F11** a user version override splits the tool from the dependency set.
 
@@ -515,8 +550,10 @@ defects rather than the policy work.
 
 1. **The new-node stub policy (BETA-B2).** Nothing in the beta can be judged until it lands, because the central task
    measures the tester rather than the product without it.
-2. **SG-2, the hosted download.** It decides whether the template choice is made on merit or by elimination, and it is
-   what makes the guided path true for every route rather than one.
+2. **SG-2, the hosted download — part done.** Acquisition, setup and validation are closed on the real hosted
+   archive; **changed-graph generation and run on that archive are not.** The template choice can now be argued on
+   merit rather than by elimination, which was the point of this item, but the guided path is not yet proven true
+   for the hosted route end to end. What remains is a single acceptance naming the hosted template.
 3. **The jars**, built once for both BETA-B4 and M67.1.
 4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
 5. **G14**, the acceptance run from a real download, once the rest is in.
@@ -557,33 +594,53 @@ Sibling of the tool-agreement spec, which governs agreement *between* tools. Dis
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
 verdict, which is owned jointly.
 
-- [M68.1] ☐ **The coverage and pairing verdict** — declared authorship read before any package heuristic (D-E10),
-  membership against every declared node, the authored population kept for the ratio, one verdict on every surface.
-  The honest figures for the packet's graph are 3 declared and 3 covered, not the 2 the response reported. Fixture
-  is the committed graph plus a labelled constructed log, so this slice is **not** gated on the packet's missing
-  audit logs. Discharges a conformance defect against the tool-agreement spec, which already forbids declaring
-  which artefact is correct. Was DX-02.
+- [M68.1] ☐ **The coverage, pairing and scope verdicts — and it completes M45.4.** **Start here:**
+  [`handoff_m68_1_coverage_pairing_scope.md`](../handoff/handoff_m68_1_coverage_pairing_scope.md) is the cold-start brief.
+  Declared authorship read before
+  any package heuristic (D-E10), membership against every declared node vertex, the authored eligible population
+  kept for the ratio, and the three states — membership, ratio, retention — never derived from one another. The
+  honest figures for the packet's graph are 3 declared and 3 covered, not the 2 the response reported. Also: a
+  zero-denominator population still has established membership; with no logged ids no pairing is established and
+  no downstream verdict may claim the graph describes the log, asserted on the coverage/context/report path rather
+  than the pure comparison; and every verdict discloses its observation scope, because the pairing on open samples
+  500 records while coverage scans the whole log. Fixture is the committed graph plus a labelled constructed log,
+  so this slice is **not** gated on the packet's missing audit logs. **This was authorised on 2026-09-01 as M45.4
+  and lost in an archive sweep** — see that entry, restored above. Was DX-02.
 - [M68.2] ☐ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
   data is contradicted by a successful series response over the same inputs; acceptance is by inspecting the
   artefact, not by exit status.
-- [M68.3] ☐ **The framing verdict, analyser half** — **suspected** collapsed framing reported with its basis and
-  with the same prominence to a person and an assistant, at open and under follow; never an inferred record count.
-  A legal single-record file, an ordinary unterminated tail and a pending live record stay correct — format 1 §1
-  and §1a already settle those. Needs the original logs. Producer half filed against **the starter** (the writer
-  actually at fault) as well as the audit format work.
+- [M68.3] ☐ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** The producer
+  diagnostic already exists, counts raw occurrences of the record-header key inside a frame, and was reproduced in
+  round 3 reporting "record 1 alone contains 2 records run together" for a **legal one-record file** whose quoted
+  value contains that key as literal text. That verdict reaches `context.producer` and the human surface today.
+  Replace the substring count with a physical-line predicate excluding quoted scalars, publish the inspected span
+  and candidate locations, phrase it as suspicion, report beyond-bound frames as not assessed, and supply the
+  pending frame under follow without accepting the pending record. Format 1 §1 and §1a already settle the legal
+  single-record file, the ordinary unterminated tail and the pending record. Needs the original logs. Producer half
+  filed against **the starter** (the writer actually at fault) as well as the audit format work.
 - [M68.4] ☐ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
 - [M68.5] ☐ **Identity change under follow, and the project root** — was WS-1 and WS-2.
+  Related narrow correction: [PR #7](https://github.com/telaminai/fluxtionauditlog-analyser/pull/7),
+  `fix/named-profile-project-root` at `c3523506`, fixes relative-path anchoring for named profiles.
+  Reviewed: 52 configuration tests pass; restoring the canonical-only lookup fails the named-profile
+  regression, then restoring the source returns all 52 to green. Full headless gate: 1,877 tests,
+  zero failures/errors, 62 skips; strict docs pass. See the
+  [investigation](../investigations/profile-project-root-resolution.md). Pending merge/release;
+  this does not close M68.5's freshness or unresolved-pointer diagnostic acceptance.
 - [M68.6] ☐ **The naming grammar** — was DX-05; last, because it needs the compatibility decision.
 
 Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
 unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate. All three now
 carry a recommendation from both reviews; Q1 is close to settled by the tool-agreement spec's existing policy.
 
-**Spec is at v2**, corrected after two independent reviews on 2026-09-24 which agree: the first raised EI-1 to
-EI-5 (`review/m68-evidence-integrity-2026-09-24`, corrected at `2f321705`), reviewer G confirmed all five and
-added D-E10, the declared-fact rule, which changes the first correction and the acceptance figures
-(`review/m68-evidence-integrity-response-G`, `7b8d9f51`). v1 contained a contradiction in D-E1 and an error in
-acceptance 9; both are fixed.
+**Spec is at v3**, after three review rounds on 2026-09-24. **None of them was independent, and calling them
+independent was wrong:** round 1 (`review/m68-evidence-integrity-2026-09-24`, corrected `2f321705`) also prepared
+the client evidence the spec cites; round 2 (`review/m68-evidence-integrity-response-G`, `7b8d9f51`) was reviewer G,
+who wrote the spec, and added D-E10; round 3 (`review/m68-v2-2026-09-24`, `d1e58bc9`) was round 1's reviewer again,
+and narrowed a conformance claim it had itself endorsed. Their value is that each found errors the previous missed,
+not that they agree. v1 held a contradiction in D-E1 and an error in acceptance 9; v2 introduced a new conflation
+in acceptance 2 and over-read the tool-agreement spec; all are fixed. Round 3 also **reproduced two false verdicts
+in shipped code**, so part of this milestone corrects what the product says today rather than adding anything.
 
 ## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
 
@@ -719,35 +776,6 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   newlines, for every node. Observed on the bundle's processor (fluxtion-runtime 1.0.16); global levels and per-node
   DEBUG are unaffected. Cause not diagnosed. Repro: `…/audit-format-review-2026-09-21/rev5/LevelTest3.java`._
 
-
-## Spring getting-started guide — 2026-09-21
-
-- ☑ Illustrated guided path: website/analyser acquisition, default-on support, project runbooks,
-  client connection and copy-ready prompt, design inspection, real validation refusal/correction,
-  generation prerequisites and explicit session restore. Four native analyser screenshots plus the
-  owner-witnessed website preview. The analyser remains a read-only canvas, not an application runner.
-- ☑ SG-1 fixed and released in starter **1.0.73**; public standalone setup/validate and changed-graph
-  generation/run pass. Closure and regression checks are in the [completed tracker](completed/tracker.md).
-- ☑ **SG-2 — hosted Spring authoring files shipped in 1.0.74 (playground).** **In the Spring-side work block (▸ 3).** The expanded
-  preflight found no authoring record or local scripts in `fluxtion-spring-mongoose`; its generator
-  emits graph files without the local-tooling wrapper. Separate from the fixed Maven descriptor.
-  Actual hosted ZIP coverage must prove record/scripts, launcher preservation, setup/validate and
-  generation/run without breaking the keyless bundle. **Deployed at `5d6a38a` with published starter 1.0.74.**
-  Public CI 35929392911 verifies the actual hosted archive: shipped setup/validate, 97 classpath
-  entries, 36 originals unchanged; the keyless bundle builds/runs/exports five checked rows/stops.
-  Regression: scaffold `spring-authoring.test.ts` actual-archive cases and named hosted controls.
-  Public provisioning uses no key. Hosted generation/run remains the previously reviewed branch
-  trial below; G14 is the separate fresh public-download acceptance. **Historical implementation:**
-  playground `e85a459`, compiler verification `1073bfb3`. Nine actual-archive cases and five
-  seen-red controls pass. Five fresh downloads pass emitted scripts; both hosted variants
-  export five independently checked records and stop cleanly. **G19:** branch tool 1.0.74-SNAPSHOT substitutes for the emitted POM/record pin 1.0.73; this is not evidence of what a user receives. The pristine bundle separately
-  builds/runs without setup or a key. F9 refuses extended declarations outside AOT; F11 refuses
-  a mismatched BOM/tool pair before download. Full playground gate: 560 tests; production build
-  passes; same four existing type errors and six warnings. Publication now holds; G14 still needs
-  its fresh published-download acceptance. The guide is updated to the new deployed scope.
-
-
-Evidence and regeneration: [guide author report](../handoff/report_spring_getting_started_2026_09_21.md).
 
 ## Spring authoring documentation — 2026-09-19
 
@@ -1104,7 +1132,44 @@ unverified. The local-fixture fresh-client trial is complete, with failures pres
 pass. **G14 remains a release gate:** after artifact publication, repeat a fresh session from a real download
 through `setup.sh`, without a pre-provisioned tool/classpath. Upstream review acceptance does not close that gate.
 
+## Archived obligations restored to the live order — 2026-09-24
+
+**Found by asking the systemic version of the M45.4 question**, which is the check that would have caught the
+original loss: not *is M45.4 back*, but *what else left the live order while unfinished*. Round 4 searched both
+trackers and found three clauses sitting inside entries marked DONE or COMPLETE with no live home. The historical
+entries stay exactly as written — the record is not edited — and these lines are the live dispositions they lacked.
+None is a dependency of M68.1.
+
+- [OBL-1] ☐ **Background file load has no progress or cancel surface** — inside M7.3, under a heading reading
+  *M7 DONE*, where background load is marked ◧ and progress-percent and cancel are deferred. The ordinary file-open
+  path still uses background work with no file-load progress or cancel. Template-download cancellation is a
+  different operation and does not cover it. Predates this tidy; it was never newly lost.
+- [OBL-2] ☐ **Autoscale-Y rescans every point on a slider drag** — inside *Refinements round 11*, marked DONE,
+  where the O(points) drag scan is explicitly recorded as *Not built*. Still true:
+  `ChartPanel.setViewWindow` loops the series on each window change. It was deliberately low priority, which is
+  not the same as delivered.
+- [OBL-3] ☐ **First-key-seen iteration-order acceptance** — inside M55.2, marked COMPLETE, where the acceptance is
+  explicitly *Still open* until a downstream construct exposes iteration order. Cross-repository verification debt
+  with no closure evidence and no recorded transfer. Round 4 did not inspect the current implementation, so this
+  says the tracker lacks the evidence, **not** that the behaviour is absent.
+
+**Distinguish genuinely unfinished work from obsolete wording.** This is not a mandate to reopen every historical
+partial label; it is a mandate to give each surviving obligation a live home or an explicit withdrawal.
+
 ## Shipped — archived
+
+**Tidied 2026-09-24, after the M68 v2 review (rule 7).** Two fully-ticked blocks moved verbatim to
+[`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-24*: the **Spring getting-started guide** round
+(three ☑ items — the illustrated guided path, SG-1 released in starter 1.0.73, SG-2 shipped in playground 1.0.74)
+and the **tool-agreement documentation capture refresh**. Their residual references — G14 and G19 — are recorded in
+many other live places, which was checked before moving rather than assumed. **SG-2 was reconciled in the same
+pass**: it was ☑ here and ☐ in the Spring-side work block, and the tick won on evidence.
+
+**The rule this sweep now follows, and the reason it is written down.** *An item marked ◧ never leaves the live
+tracker, whatever ☑ marks appear inside its text.* M45.4 was swept on 2026-09-03 because a ☑ on one clause made a
+◧ item read as finished. Its consumption was never built, it fell out of the delivery order, and three weeks later
+a held-out client was told a declared node was absent from a graph that declares it — the exact failure the
+archived entry already named. M45.4 is restored above and is now delivered as M68.1.
 
 **Tidied 2026-09-21, after 1.16.0 and 1.17.0 (rule 7).** Thirty-one ☑ items and two completed sections moved verbatim to
 [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-21*: the whole **M66 · Design render** milestone (shipped in
@@ -1653,7 +1718,7 @@ retrieval-dated evidence table, because those are live documents that can change
   ☐ **Idiom 2a not applied, and it is our own named smell.** `LogObserved(boolean open, …)` and
   `GraphObserved` are state snapshots pretending to be events — the exact shape the doc warns about,
   still in the app. Sequenced, not ignored: the honest events (`LogOpened`/`LogClosed`) come from the
-  open path, which [M44.3](spec-async-session-driver.md) unblocks.
+  open path, which [M44.3](completed/spec-async-session-driver.md) unblocks.
   ☐ **Idiom 2b not applied, and actionable now.** The source resolver is hand-threaded as a
   `Function<String, Optional<String>>` across **8 call sites** — already service-shaped, and the doc's
   own live candidate.
@@ -1689,6 +1754,18 @@ retrieval-dated evidence table, because those are live documents that can change
 ## M45 · Consuming the GraphML vocabulary — ◧ .1/.2/.3/.5 SHIPPED 2026-08-31
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
+
+- [M45.4] ☐ **RESTORED TO THE LIVE ORDER 2026-09-24 — consume `fluxtion.framework`; now delivered as M68.1.**
+  It was swept into the completed tracker with the shipped detail on 2026-09-03 and **should not have been**: the
+  entry carries a ☑ on the sentence recording that *our half* was verified and unparked on 2026-09-01 against the
+  real session graph at released 1.0.65, while the item as a whole is ◧ and the consumption was never built. A ☑ on
+  one clause made the whole item read as finished, so it left the delivery order and nobody saw it for three weeks.
+  **What it cost:** on 2026-09-24 a held-out client was told a declared node was absent from a graph that declares
+  it, because the package-prefix heuristic overrode the declared fact — the exact failure mode the archived entry
+  already names. See [`spec-evidence-integrity.md`](spec-evidence-integrity.md) ▸ M45.4 reconciliation, and D-E10.
+  The archived entry stays where it is and remains the authority and measurement basis; this line is the live
+  pointer to it. **Lesson for future sweeps:** an item marked ◧ never leaves the live tracker, whatever ☑ marks
+  appear inside its text.
 
 - [M45] ☐ **The vocabulary answers as DATA what we answer by HEURISTIC** — framework-generated nodes,
 - [M45.1c] ☐ **Original slice text, for the record — prove reachability, and measure the ceiling.** Install the branch, point `-Pregen` at it
@@ -2153,12 +2230,15 @@ is **no longer queued** — the gate the owner set was the Spring-authoring rele
 tool is published in **1.0.73**; the public standalone setup/validate and changed-graph generation/run pass; both pass-4
 reviewers judged the compiler and playground branches READY WITH FOLLOW-UPS. That closes the two gates those reviews held
 open — a version pin naming a release that did not contain the module, and an acceptance-13 run that had only ever happened
-on a provisioned local fixture. **Still open upstream:** SG-2, the hosted Spring download that omits the local authoring
-files (playground owner).
+on a provisioned local fixture. **Still open upstream:** SG-2's hosted **generation/run** clause only. The authoring files themselves shipped in
+playground 1.0.74 at `5d6a38a`, with public CI 35929392911 verifying acquisition, setup and validation on the real
+hosted archive, so this line's earlier NOT READY was stale for two revisions. It was then briefly recorded as fully
+closed on 2026-09-24, which over-read the same evidence: that run attempted no generation.
 
 1. ☐ **The beta blockers** — the active push (▸ *Beta*, sixth draft). **Read with the *Spring-side work block* first:
-   B1 is already answered by the released starter, B2 is starter work rather than analyser work, B3's recommendation
-   rests on SG-2, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
+   B1 is already answered by the released starter, B2 is starter work rather than analyser work, B3's recommendation is no longer
+   forced by elimination, since SG-2's provisioning half closed on 2026-09-24, though its hosted generation/run
+   half is still open, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
    fewer efforts than the numbering implies.** BETA-B2 new-node stubs must audit before A2 measures
    the product rather than the tester; BETA-B3 the template decision plus a dry run of A1–A2 by someone other than the
    author; BETA-B4 the shared jars and spec-derived check, now implemented and source-reviewed (G18 closed; binary publication/integration remain open). BETA-B1's key journey passed with a
@@ -2171,8 +2251,12 @@ files (playground owner).
    no longer optional: it is what a held-out client was told wrongly on 2026-09-24 and what holds G14 open. Formerly — DX-02 the false graph/log mismatch first, then DX-03/04/05, and the
    report-integrity slice (every requested section renders or says why). This is the order the observed trial argued for and
    two reviewers endorsed.
-4. ☐ **SG-2** — the hosted Spring download must carry the authoring record and local scripts, proven on an actual hosted ZIP
-   without breaking the keyless bundle. Playground owner; it is what stops the guided path being true for every route.
+4. ◧ **SG-2 — provisioning closed, hosted generation/run open.** The hosted download carries the authoring record
+   and local scripts without breaking the keyless bundle: playground 1.0.74 at `5d6a38a`, public CI 35929392911,
+   97 classpath entries, 36 originals unchanged. **What is not closed** is changed-graph generation and run on that
+   hosted archive: the cited run has two provisioning jobs and a customer-download job, no generation job, and
+   reports `generationAttempted: false`. Needs one acceptance naming the hosted template. This item was briefly
+   marked ☑ on 2026-09-24 on the strength of the provisioning evidence; round 4 read the CI log and corrected it.
 5. ☐ **M67 the extension tour** (`spec-extension-tour.md`) — **unblocked**: extend a running application with a jar you
    already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats. The owner's
    four calls are made. M67.1 the vendor-jar catalogue and M67.2 the template are cross-repo and can start; M67.3/.4 the
@@ -2541,14 +2625,6 @@ name in different packages emit uncompilable code with no diagnostic; a componen
 - Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
 
 _(spec-closed-loop O1–O4 all resolved — statuses recorded in the M18 block above; O5 in Decisions.)_
-
-### Tool-agreement documentation capture refresh — 2026-09-21
-
-- ☑ Owner-requested screenshot audit: 24 native demo captures, five conversation shots/echoes and four
-  Spring design/validation shots refreshed and visually inspected. Guides now describe unknown
-  hierarchy and the separate chart legend/commentary regions. The asset README records the separate
-  MCP/picker/tutorial modes not rerun and the historical website/vendor evidence retained unchanged.
-  Full Java suite, tool smoke tests and strict docs pass. See the tool-agreement handoff for scope.
 
 ### Tool-agreement final gate correction
 

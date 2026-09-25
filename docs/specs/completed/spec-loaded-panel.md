@@ -61,7 +61,7 @@ SOURCE ROOTS   ~/projects/demo/src/main/java                project
 listed by display name in load order under the set's row; their directory is the row above.
 
 Empty states are sentences that say what would fill them: *"No project — using your own settings
-(~/.fluxtion-analyser)."* · *"No log loaded."* · *"No graph — File ▸ Open topology, or a reader may
+(~/.fluxtion-analyser)."* · *"No log loaded."* · *"No graph — Sources ▸ Open GraphML…, or a reader may
 supply one with its log."* · *"No event processors configured — Settings ▸ Source."* A blank row is a
 question the user has to go and answer somewhere else, which is the complaint this spec exists for.
 
@@ -78,9 +78,39 @@ attached to every load already carries this; the panel is its first human-facing
 
 Actions on a row are **reveal and navigate only**: *Copy path*, *Show in Finder / folder*, *Open in
 Source tab* (a processor), *Go to Topology* (the graph), *Settings ▸ Source…* (roots). Closing,
-switching, resetting stay where they are (File menu, Topology, Settings) — the panel may link to them,
+switching, resetting stay where they are (Project/Sources/Audit log menus, Topology, Settings) — the panel may link to them,
 it may not do them. Offer, never act; and a display that can mutate state is a display people learn not
 to trust.
+
+**Amendment, owner 2026-09-24 (35eeb320): revealing a SPECIFIC item is navigation.** A row's action may name
+the thing the row is about — *this* report, *this* saved chart — and the `Navigator` may carry that
+identity.
+
+The case that justifies it is the **report** row, and it is a real defect: the row shows a report's
+*title* while `ReportsPanel.select` matches its *name*, and the row could only ask for a tab. So Open on
+any report revealed whichever report happened to be selected. A button that says *Open* and reveals
+someone else's report has already broken the trust this rule exists to protect.
+
+> **Correction, 2026-09-24.** The first version of this amendment also claimed that saved-chart rows
+> "carried no target at all, so the Open a person could see was wired to nothing", and used that as a
+> second justification. **That was false and is withdrawn.** At `35eeb320^` those rows had `path == null`
+> and `Target.NONE`, `ProjectPanel`'s switch fell to `default -> { }`, and the action strip was attached
+> only when non-empty — so **no button was rendered at all**. There was no dead control. On the corrected
+> facts, `Target.NONE` on those rows was a boundary the spec had genuinely drawn, and the earlier reading
+> of it was right. The chart leg of this amendment is therefore a **deliberate widening of D-L3**, chosen
+> by the owner because a person wants to reopen a saved chart from where it is listed — not the repair of
+> a broken control. The report leg stands on its own and is sufficient to justify the `Navigator` change.
+
+The boundary is unchanged where it matters. A `Navigator` method must reveal something that **already
+exists**; one that creates, edits, discards or reorders definitions belongs on the action surface, which this
+panel still may not reach. Opening a saved chart that is not currently a tab is reveal, not create: the
+chart is a definition the profile already holds, and the panel asks for it to be shown, not authored.
+Navigation may select a view and persist its open/closed flag. It must leave the saved definition’s
+series, style, notes, explanation and other content unchanged. This distinguishes navigation state from
+editing a definition; it does not permit the panel to load a log or execute recovery. A method-set test
+alone cannot prove the adapter preserves that content; `ChartLifecycleReviewFrameTest` drives the real rows.
+`ProjectPanelIsRevealOnlyTest` pins the exact `Navigator` method set, so the next addition is again a
+deliberate decision rather than a drift.
 
 ## D-L4 — the pairing verdict is a row, not a footnote
 
@@ -138,7 +168,7 @@ first.** M20.5 without it is an offer that fires once at open and is then invisi
 
 ## Non-goals
 
-- Not a file browser and not a recent-files list — the start page and File menu own those.
+- Not a file browser and not a recent-files list — the start page and resource menus own those.
 - Not a settings editor — no field on it is writable.
 - Not a replacement for the status bar's transient messages, only for its role as the one place the
   pairing was stated.
