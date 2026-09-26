@@ -49,12 +49,23 @@ public final class ContextSections {
     /** The published names — the schema's enum and the refusal's list are this one list. */
     public static final List<String> NAMES = List.copyOf(SECTIONS.keySet());
 
-    /** Key → the sections whose facts it qualifies. Carried with those sections whenever it is present. */
+    /**
+     * Key → the sections whose facts it qualifies. Carried with those sections whenever it is present.
+     * <ul>
+     *   <li>{@code files} (a rolled set's members): the view's selection reports file-local byte offsets, which
+     *       mean nothing without their member file. Charts carry time and record windows, not offsets.</li>
+     *   <li>{@code producer}: a collapsed-framing fault ("record 1 appears to hold 9 records") qualifies the
+     *       topology cursor's record and row count as much as the pairing and the view.</li>
+     *   <li>{@code timeOrder} is not carried with {@code topology}: the cursor reports a record index and row
+     *       position, never a log time, so time disorder does not qualify what it says.</li>
+     * </ul>
+     */
     public static final Map<String, List<String>> QUALIFIERS = Map.of(
             "inFlight", List.of("pairing", "topology", "view", "charts"),
             "dispatchOrder", List.of("topology", "view"),
             "timeOrder", List.of("view", "charts"),
-            "producer", List.of("pairing", "view", "charts"));
+            "producer", List.of("pairing", "topology", "view", "charts"),
+            "files", List.of("view"));
 
     /** Either a selection, the full default ({@code selection == null, error == null}), or a refusal. */
     public record Parsed(Selection selection, String error) {

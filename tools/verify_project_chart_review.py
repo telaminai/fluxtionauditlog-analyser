@@ -274,9 +274,19 @@ CONTEXT_SECTIONS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/C
 CASES += [
     ('context-projection', CONTEXT_SECTIONS, '                if (selects(key)) {', '                if (!key.isEmpty()) {',
      'ContextSectionsTest#menuOnly_isTheMenusAndTheScope_andNothingElse'),
-    ('context-qualification', CONTEXT_SECTIONS, '"producer", List.of("pairing", "view", "charts"));',
-     '"producer", List.of("view", "charts"));',
+    ('context-qualification', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
+     '"producer", List.of("topology", "view", "charts"),',
      'ContextSectionsTest#aSelectedVerdictCarriesItsBasisAndEveryQualification'),
+    # PR #29 review 1: a rolled set's member list travels with the view, whose selection has file-local offsets
+    ('context-files-with-view', CONTEXT_SECTIONS, '            "files", List.of("view"));', '            "files", List.of());',
+     'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
+    # PR #29 review 2: collapsed-framing producer faults qualify the topology cursor's record and row count
+    ('context-producer-with-topology', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
+     '"producer", List.of("pairing", "view", "charts"),',
+     'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
+    # PR #29 review 3: a projection without fluxtionKey reads no key file
+    ('context-key-file-guard', MAIN_FRAME, '            if (need.test("fluxtionKey")) {', '            if (true) {',
+     'ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile'),
 ]
 
 def display_classes(root=Path('.')):

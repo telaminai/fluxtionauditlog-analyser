@@ -6412,12 +6412,15 @@ public final class MainFrame extends JFrame {
             // M19.12 / D-X3: facts this process can observe, not a claim about a future Maven JVM.
             // The credential value never enters this map; the fixed tilde path avoids leaking the local
             // account name into context or screenshots.
-            Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
-            fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
-            fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
-            fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
-                    + "overrides this file; FLUXTION_API_KEY is not read by the builder");
-            out.put("fluxtionKey", fluxtionKey);
+            // §H feedback 17: a projection without fluxtionKey does not read the key file at all
+            if (need.test("fluxtionKey")) {
+                Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
+                fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
+                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
+                fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
+                        + "overrides this file; FLUXTION_API_KEY is not read by the builder");
+                out.put("fluxtionKey", fluxtionKey);
+            }
             // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
             // with the log closed and a graph "still loaded" (closeLog's own words) context disowned it —
             // the disowning defect M34.2 fixed for hasGraph(), one level up.

@@ -106,23 +106,95 @@ class ContextSectionsTest {
         assertFalse(pairing.containsKey("log"));
     }
 
+    /** A two-file rolled set: context adds {@code files}, and the view's selection carries file-local offsets. */
+    static Map<String, Object> rolledSetFixture() {
+        Map<String, Object> ctx = fixture();
+        ctx.put("selection", List.of(Map.of("recordIndex", 6, "byteOffset", 120)));
+        ctx.put("files", List.of(Map.of("path", "/work/demo/logs/demo-quote-audit.yaml", "records", 6),
+                Map.of("path", "/work/demo/logs/demo-quote-audit.1.yaml", "records", 4)));
+        return ctx;
+    }
+
+    /** A topology cursor on a log whose producer framing collapsed several records into one. */
+    static Map<String, Object> topologyWithProducerFixture() {
+        Map<String, Object> ctx = new LinkedHashMap<>();
+        ctx.put("log", Map.of("path", "/work/demo/logs/demo-quote-audit.yaml", "records", 1));
+        ctx.put("topology", Map.of("recordIndex", 0, "rowIndex", 0, "rowCount", 9, "position", "row 1 / 9 (logged nodes)"));
+        ctx.put("filter", Map.of());
+        ctx.put("producer", List.of("record 1 appears to hold 9 records: a missing document separator"));
+        return ctx;
+    }
+
     @Test
     void everySectionEqualsTheSameSectionOfTheFullContext() {
-        Map<String, Object> full = fixture();
-        for (String name : ContextSections.NAMES) {
-            Map<String, Object> part = select(name).project(full);
-            for (Map.Entry<String, Object> e : part.entrySet()) {
-                if (e.getKey().equals("scope")) continue;
-                assertEquals(full.get(e.getKey()), e.getValue(), name + " → " + e.getKey());
-            }
-            for (String key : ContextSections.SECTIONS.get(name)) {
-                assertEquals(full.containsKey(key), part.containsKey(key), name + " keeps " + key + " iff full has it");
+        for (Map<String, Object> full : List.of(fixture(), rolledSetFixture(), topologyWithProducerFixture())) {
+            for (String name : ContextSections.NAMES) {
+                Map<String, Object> part = select(name).project(full);
+                for (Map.Entry<String, Object> e : part.entrySet()) {
+                    if (e.getKey().equals("scope")) continue;
+                    assertEquals(full.get(e.getKey()), e.getValue(), name + " → " + e.getKey());
+                }
+                for (String key : ContextSections.SECTIONS.get(name)) {
+                    assertEquals(full.containsKey(key), part.containsKey(key), name + " keeps " + key + " iff full has it");
+                }
+                // every present qualifier of this section rides along, with the scope saying so
+                for (Map.Entry<String, List<String>> q : ContextSections.QUALIFIERS.entrySet()) {
+                    if (full.containsKey(q.getKey()) && q.getValue().contains(name)) {
+                        assertEquals(full.get(q.getKey()), part.get(q.getKey()), name + " carries " + q.getKey());
+                    }
+                }
             }
         }
+        Map<String, Object> full = fixture();
         // a multi-section selection is the union, in the full payload's order
         Map<String, Object> two = select("view", "log").project(full);
         List<String> order = full.keySet().stream().filter(two::containsKey).toList();
         assertEquals(order, two.keySet().stream().filter(k -> !k.equals("scope")).toList());
+    }
+
+    /**
+     * PR #29 review findings 1–2: on a rolled set the view's selection reports file-local byte offsets, which
+     * mean nothing without the member list; a collapsed-framing producer fault qualifies the topology cursor's
+     * record and row count. Both must travel with the section they qualify, and say why.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology() {
+        Map<String, Object> rolled = rolledSetFixture();
+        Map<String, Object> view = select("view").project(rolled);
+        assertEquals(rolled.get("files"), view.get("files"), "a rolled set's file list travels with the view: " + view.keySet());
+        Map<String, Object> carried = (Map<String, Object>) ((Map<String, Object>) view.get("scope")).get("carried");
+        assertEquals("qualifies view", carried.get("files"));
+        assertFalse(select("charts").project(rolled).containsKey("files"), "charts carry no byte offsets");
+
+        Map<String, Object> cursor = topologyWithProducerFixture();
+        Map<String, Object> topology = select("topology").project(cursor);
+        assertEquals(cursor.get("producer"), topology.get("producer"),
+                "producer faults qualify the topology cursor: " + topology.keySet());
+        carried = (Map<String, Object>) ((Map<String, Object>) topology.get("scope")).get("carried");
+        assertEquals("qualifies topology", carried.get("producer"));
+        Map<String, Object> disordered = fixture();
+        assertFalse(select("topology").project(disordered).containsKey("timeOrder"),
+                "the cursor reports record and row position, not log time, so time disorder does not qualify it");
+    }
+
+    /**
+     * PR #29 review finding 3: the description said a selection skips the key file, but
+     * {@code fluxtionKeyStore.keyPresent()} ran on every projection. It is now built only under the
+     * {@code fluxtionKey} guard. Read from source: the store is final and private to the frame, so the read
+     * itself cannot be counted without a seam that exists only for this test.
+     */
+    @Test
+    void aProjectionWithoutFluxtionKeyReadsNoKeyFile() throws Exception {
+        String mainFrame = Files.readString(Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
+        int start = mainFrame.indexOf("ActionResult context(\n");
+        String body = mainFrame.substring(start, mainFrame.indexOf("public boolean showTab", start));
+        int read = body.indexOf("fluxtionKeyStore.keyPresent()");
+        assertTrue(read > 0 && body.indexOf("fluxtionKeyStore.keyPresent()", read + 1) < 0, "one key-file read in context()");
+        int guard = body.lastIndexOf("if (need.test(\"fluxtionKey\")) {", read);
+        assertTrue(guard > 0 && body.substring(guard, read).indexOf('}') < 0,
+                "the key file is read only inside the fluxtionKey guard, so a projection without it reads no key file");
     }
 
     @Test

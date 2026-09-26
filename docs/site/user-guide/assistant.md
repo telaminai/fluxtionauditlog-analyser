@@ -311,11 +311,14 @@ prompt and is served as `context.vocabulary.text`, so the assistant reads `live`
     only the named sections: `log`, `project` (with the portable context — runbooks, glossary, analyses,
     environments, report destinations), `pairing` (`graphPairing`), `processors`, `source`, `topology`,
     `view` (filter, counts, selection, flags, spotlight), `charts`, `menus`, `design` and `handoff`. The
-    rest is not read. Each returned key is exactly what the full context holds for the same state — a
+    file reads and lookups behind unselected sections are skipped (session facts, processor sources, the
+    glossary and runbook files, source roots, the topology cursor, chart scopes, skills and the key file);
+    cheap in-memory work such as the pairing verdict still runs and is filtered out. Each returned key is exactly what the full context holds for the same state — a
     projection, never a second answer. A warning that qualifies a selected fact travels with it:
-    `inFlight`, `dispatchOrder`, `timeOrder` and `producer` are carried whenever they apply, and
-    `scope.carried` says why, so `sections: ["pairing"]` during a load or on a log with producer faults
-    still says so. `scope` also names what was selected and every available section. An unknown name, an
+    `inFlight`, `dispatchOrder`, `timeOrder` and `producer` are carried whenever they apply (producer
+    faults also qualify `topology`), and a rolled set's member list `files` travels with `view`, whose
+    selection reports file-local byte offsets. `scope.carried` says why each rode along, so
+    `sections: ["pairing"]` during a load or on a log with producer faults still says so. `scope` also names what was selected and every available section. An unknown name, an
     empty list or a non-list is refused before anything is read. The Project panel is drawn only from a
     full `context`. On the fixed test fixture the full response is 1709 bytes, `["menus"]` 541 and
     `["pairing"]` 817 — measured, not a promise about your session.
