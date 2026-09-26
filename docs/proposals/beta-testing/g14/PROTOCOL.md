@@ -124,11 +124,25 @@ and M68 can therefore never be complete in this repository. The answer addresses
 > already knows is superseded. The table stays marked rather than suspended. The detail pane's mark is part of M68.7
 > but does not gate G14.
 
-So M68 shipping does not by itself release G14. **M68.7 is the tracker's next M68 item and is this
-gate's prerequisite.** The detail pane's mark is part of M68.7 too but explicitly does not gate G14,
-because a G14 subject reaches its evidence through the verb path and charts. Confirm M68.7's chart
-marking has landed before sealing predictions — an acceptance run through an instrument that can still
-present superseded content as current produces evidence about the instrument, not about the download.
+So M68 shipping does not by itself release G14. **M68.7 is this gate's prerequisite**, and as of
+2026-09-26 its three facts are separate: reviewed and accepted at `bc16193c`, **merged to main as
+`e02418a8`** (PR #39) — and **not yet released**. Merged is not enough here. The tracker says why, and
+it is the whole reason this gate is still shut:
+
+> *Release:* **not yet released** — no published analyser carries M68.7 until the next release, and
+> G14 tests a published artefact, so the chart mark reaches G14 only then.
+
+The evidence canvas for G14 is an isolated **released** analyser, so until M68.7 ships in one, a run
+would produce a chart with no identity mark and pass condition 3 could not be judged. Fill
+`predictions-template.md`'s M68.7 field with the release that carries it, not with `e02418a8`.
+
+The detail pane's mark is part of M68.7 too but explicitly does not gate G14, because a G14 subject
+reaches its evidence through the verb path and charts.
+
+**A second owner decision now sits in front of this gate**, added with M68.7: the tracker requires
+that "the owner settles how its *chart or report* alternative is assessed" — pass condition 3 accepts
+either, and M68.7's entry lists four distinctions between them. Settle that before sealing
+predictions; a condition that can be met two ways, unassessed, is not a pass condition.
 
 **Ordering.** The tracker puts G14 fifth, after the new-node stub policy (BETA-B2), SG-2's hosted
 acceptance, the jars, and the reconciler follow-ups. M68 removes one blocker, not the queue.
