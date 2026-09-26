@@ -34,9 +34,12 @@ public final class PairingQualifications {
     private PairingQualification narrower;
     /** Undeclared id, and the filtered comparison that first found it. Emptied by a whole-log comparison. */
     private final Map<String, PairingQualification> filterFindings = new LinkedHashMap<>();
+    /** Independent review R4: a published copy is read-only — only the session's own holder records or clears. */
+    private boolean frozen;
 
     /** Record the comparison just made. Returns the sentence the coverage reply states for it. */
     public String record(PairingQualification q) {
+        refuseIfFrozen();
         if (q.wholeLog()) {
             widest = q;
             narrower = null;
@@ -72,7 +75,26 @@ public final class PairingQualifications {
         return c;
     }
 
-    /** Value equality, so an unchanged snapshot is recognised as unchanged and nothing repaints. */
+    /**
+     * Independent review R4: a read-only copy for publication. The session snapshot is shared with every thread and
+     * every surface; a consumer that could {@code clear()} it would change what every later reader saw, with no fact
+     * submitted and no listener told. A frozen copy refuses both mutators.
+     */
+    public PairingQualifications frozenCopy() {
+        if (frozen) return this;
+        PairingQualifications c = copy();
+        c.frozen = true;
+        return c;
+    }
+
+    private void refuseIfFrozen() {
+        if (frozen) {
+            throw new UnsupportedOperationException("published qualifications are read-only: the session changes them, "
+                    + "through a fact, and nothing else does");
+        }
+    }
+
+    /** Value equality (the read-only flag is not a value), so an unchanged snapshot is recognised as unchanged and nothing repaints. */
     @Override
     public boolean equals(Object o) {
         return o instanceof PairingQualifications q && Objects.equals(widest, q.widest)
@@ -85,6 +107,7 @@ public final class PairingQualifications {
     }
 
     public void clear() {
+        refuseIfFrozen();
         widest = null;
         narrower = null;
         filterFindings.clear();

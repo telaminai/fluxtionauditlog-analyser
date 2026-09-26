@@ -145,4 +145,38 @@ class SessionSnapshotTest {
         }
         assertEquals(List.of(), held, "MainFrame renders the session snapshot; it keeps no pairing or qualification");
     }
+
+    /** A pair with one whole-log comparison held against it — something a consumer could try to erase. */
+    private static SessionDriver qualified(FakeSessionAdapter adapter) {
+        SessionDriver d = pairOpen(adapter, 1, 1);
+        d.post(new SessionEvents.MembershipCompared(d.snapshot().logGeneration(), d.snapshot().graphRevision(),
+                java.util.Map.of("scope", "whole log", "recordsScanned", 1, "logRecords", 1,
+                        "loggedButNotInTopology", List.of("foreign"),
+                        "membership", java.util.Map.of("scope", "whole log", "established", true, "loggedIds", 2,
+                                "declaredOfLogged", 1))));
+        return d;
+    }
+
+    @Test
+    @DisplayName("R4: a consumer cannot change the published qualifications — not by clear(), not by record()")
+    void aConsumerCannotChangeThePublishedQualifications() {
+        // witness: SessionSnapshot's compact constructor without the freeze
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        SessionDriver d = qualified(adapter);
+        SessionSnapshot published = d.snapshot();
+        assertNotNull(published.qualifications(), "precondition: a qualification is published");
+        List<SessionSnapshot> heard = new ArrayList<>();
+        d.onSnapshot(heard::add);
+
+        assertThrows(UnsupportedOperationException.class, () -> published.qualifications().clear(),
+                "R4: the published truth is not the consumer's to erase");
+        assertThrows(UnsupportedOperationException.class, () -> published.qualifications().record(
+                telamin.fluxtion.audit.analyser.analyser.topology.PairingQualification.fromCoverage(published.pairing(),
+                        java.util.Map.of("scope", "whole log", "recordsScanned", 1, "logRecords", 1))),
+                "R4: nor to add to");
+        assertFalse(d.snapshot().qualifications().isEmpty(), "R4: later reads are unchanged");
+        assertEquals(published, d.snapshot(), "R4: equality is unchanged");
+        assertEquals(List.of(), heard, "R4: and no listener heard of a change that no fact made");
+    }
+
 }

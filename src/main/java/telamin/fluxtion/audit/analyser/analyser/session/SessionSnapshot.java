@@ -19,7 +19,8 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  * @param pairing        null when either artefact is missing — "cannot say" is a verdict, not a gap
  * @param pending        a log open is in flight (M44.4c): the verdict in force is about the log being replaced, so a
  *                       surface states it as pending rather than as current (review B1)
- * @param qualifications what wider comparisons say about {@code pairing}, or null — an independent copy (M44.4c)
+ * @param qualifications what wider comparisons say about {@code pairing}, or null — an independent, READ-ONLY copy
+ *                       (M44.4c; independent review R4)
  * @param filterKey      the view filter in force, by identity, so a comparison made under another reads as stale
  * @param logIdentity    M68.5: Follow's verdict about the log FILE ({@code VERIFIED}/{@code UNVERIFIED}/{@code REPLACEMENT}),
  *                       {@code REOPENED} after a replacement, or null before Follow has polled
@@ -29,6 +30,15 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               GraphPairing pairing, CoveragePolicy.Assessment claim, boolean pending,
                               PairingQualifications qualifications, String filterKey,
                               String logIdentity, String logIdentityReason) {
+
+    /**
+     * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
+     * its object graph read-only, and the qualifications were an ordinary mutable holder — a consumer's {@code clear()}
+     * erased them from every later read. Whatever is passed in is frozen here.
+     */
+    public SessionSnapshot {
+        if (qualifications != null) qualifications = qualifications.frozenCopy();
+    }
 
     /** Before the first operation: nothing is open and nothing may be claimed. */
     public static final SessionSnapshot EMPTY =
