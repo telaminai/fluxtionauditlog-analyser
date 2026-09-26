@@ -33,9 +33,16 @@ architecture, conventions). This file is only the rules that must never be skipp
    and then read every visible string — title bar, status bar, paths — before committing. **The same rule
    covers transcripts**: `docs/site/sample-conversations.md` is written by `tools/capture-conversations.py` from a
    real run under the same isolated home; a hand-typed transcript is a screenshot the sweep cannot read either.
-   **The sweep cannot see git metadata either.** **214** commits carry an employer-domain author
-   email into the public history — 132 on the third sweep term's domain, 82 on the fourth's. Rewriting
+   **The sweep cannot see git metadata either.** **225** commits carry an employer-domain author
+   email into the public history — 132 on the third sweep term's domain, 93 on the fourth's. Rewriting
    is ruled out by rule 3, so that history is accepted and recorded here.
+   **Counted again 2026-09-26:** the fourth rose from 82 to 93, and all eleven new commits are pull-request
+   merges made through GitHub (PRs between #7 and #26, merged 2026-09-24 to 2026-09-26). **A merge made
+   through GitHub — the web button or `gh pr merge` — is authored with the GitHub account's primary email, not
+   the repo-local `user.email`**, so the pinned config cannot protect it. The account's commit email was
+   changed after #26, and #27 onwards carry the personal address, but check the author of every such
+   merge: `git log -1 --format='%ae' <merge>` must print the personal address. If it cannot be trusted,
+   merge locally instead — `git merge --no-ff` with the personal identity, then push.
    **Counted again 2026-08-25** (M36/M19 release check): the third-term total has not moved since the
    config was pinned, so the mitigation is holding; the fourth is 82, not the 81 this paragraph
    claimed, and the newest such commit is still dated 2026-08-20 — a miscount, not a new leak. The
@@ -46,7 +53,8 @@ architecture, conventions). This file is only the rules that must never be skipp
    so the leak kept growing — every commit made on 2026-08-20 before that check carries it.
    The config is pinned now. Verify it, and do not take this file's word for it:
    `git config user.email` must print the personal address, and
-   `git log --format='%ae' | sort | uniq -c` must show no new employer-domain commits. **Run both
+   `git log --format='%ae' | sort | uniq -c` must show no new employer-domain commits, and that
+   includes merges made through GitHub. **Run both
    before every release**, because a recorded mitigation that stopped being true reads exactly like
    one that is.
 2. **CHANGELOG.md**: every user-visible change adds a line under `## [Unreleased]` in the same commit.
