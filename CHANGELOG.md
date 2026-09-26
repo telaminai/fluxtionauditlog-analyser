@@ -6,7 +6,33 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **A report says what the log itself shows.** An empty file, a damaged one, or one holding a document with no
+  record key is now stated on the exported PDF, on the Reports tab and in the `report` reply, under **Log
+  findings** — the same findings the status bar and `context` give, damage first. A report made over a clean log
+  is unchanged.
+- **A report's coverage table carries level changes.** A node the log set to a quiet audit level is annotated on
+  its row (`levelChange`) and in the notes under the table, exactly as the `coverage` verb returns it. It stays
+  uncovered and in the ratio: the annotation explains, it never excuses.
+- **Six conformance fixtures for the producer findings** (C25–C30): four empty-file shapes, a complete file that
+  still holds a corrupt document, and a per-node level change. Both reading paths must now agree on the producer
+  findings for every fixture, not only on the records.
+
+### Changed
+
+- **The empty-file message reads the same however the file was opened**, and fits what was read. A file that may
+  still be written says "No records in this file yet."; a file whose own stream-end marker says the writer finished
+  with nothing says so instead of suggesting a buffering writer — also when that marker arrives while the file is
+  followed, and when the file is opened as a rolled set of one; an empty rolled set of several files is named as a set.
+  A file being followed and the same file opened cold say the same thing.
+- **A rolled set's completeness note is drawn as a note on the Reports tab**, muted as on the PDF, rather than in the
+  warning banner a fault gets.
+
 ### Fixed
+
+- **Turning Follow on no longer hides the log's warning.** The status line Follow starts with dropped it, so an
+  empty file being followed read "watching for new records…" and nothing else until its first record arrived.
 
 - **Charts and the record detail pane now say when the file behind the log has changed.** After a log was rewritten
   in place, the table warned that its rows were the log as it was indexed, while the charts and the detail pane went

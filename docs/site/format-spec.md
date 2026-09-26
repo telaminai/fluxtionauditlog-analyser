@@ -422,7 +422,9 @@ The fixture set lives at
 `FormatConformanceTest` is what *passing* means. Every fixture runs twice: through the built-in text
 reader (the reference implementation) and through the plugin SPI over a reader that hands the same
 records over unchanged. The two MUST agree record for record — which is the guarantee to an adapter
-author: *emit these records and you get exactly what the native log gets.*
+author: *emit these records and you get exactly what the native log gets.* They must also agree on what the
+analyser says about the **producer** — an empty file, damage, a document with no record key — kind for kind and in
+order, for every fixture.
 
 | fixture | pins |
 |---|---|
@@ -443,6 +445,12 @@ author: *emit these records and you get exactly what the native log gets.*
 | C14 synthesised text | text an adapter *constructs* (no trailing newline, a leading `---`, CRLF) reads exactly as sliced file text |
 | C16 quoted scalars | through a reader that declares `QUOTED_SCALARS`, entirely `"…"` is a string whatever it spells; escapes decode; its insides split nothing; the same bytes through the text reader are legacy |
 | C17 legacy quotes | text is legacy, byte for byte: quotes are data, a backslash is a character, the figure after `prefix "C:\"` is still a figure, and a value line spelled like a field is value data |
+| C25 marker declaring zero | an empty log is a finding, never a state: `complete`, and still "No records in this file yet." |
+| C26 two empty segments | two markers each claiming zero: `complete`, 0 declared, the same finding |
+| C27 whitespace only | blank lines are no records: `unknown`, the finding |
+| C28 zero bytes | also the empty export: `unknown`, the finding |
+| C29 no record key | completeness is not integrity: a headerless run-together line under a marker declaring 3 reads `complete, 3 of 3`, and record 2 is still named |
+| C30 per-node level | a control record setting a node to `WARN` annotates that node on both paths; it stays uncovered |
 | C15 graph provenance | a `SourceGraph` cannot exist without DECLARED/INFERRED; INFERRED forbids coverage; an opened graph outranks a supplied one; dangling edges dropped |
 
 To check an emitter: write its records to a file, open it in the analyser (or run the fixture

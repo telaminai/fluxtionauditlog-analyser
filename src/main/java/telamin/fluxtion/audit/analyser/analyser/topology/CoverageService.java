@@ -111,8 +111,8 @@ public final class CoverageService {
         // this says why the log may be silent about it. Excusing it would hide a node that never ran
         // whenever the qualifying record is wrong — and a control-LOOKING record can be content until
         // every writer escapes (MA-7).
+        Map<String, String> annotations = new LinkedHashMap<>();
         if (levelChanges.any()) {
-            Map<String, String> annotations = new LinkedHashMap<>();
             for (String node : coverage.uncovered()) {
                 String note = levelChanges.annotationFor(node, inView);
                 if (note != null) annotations.put(node, note);
@@ -181,8 +181,18 @@ public final class CoverageService {
         }
 
         List<Map<String, Object>> ledger = ledger(input.topology(), input.authored(), scope, logged);
+        // MA-8's report path: the ledger a report prints carries the same annotations the verb returns. The row
+        // stays `uncovered` — annotate, never excuse (MA-8.2) — and gains the sentence; the notes say what it is not.
+        for (Map<String, Object> row : ledger) {
+            String note = annotations.get(String.valueOf(row.get("instanceId")));
+            if (note != null && "uncovered".equals(row.get("status"))) row.put("levelChange", note);
+        }
         List<String> notes = new ArrayList<>();
         notes.add(EntryPointResolver.HIERARCHY_NOTE);
+        if (!annotations.isEmpty()) {
+            notes.add(String.valueOf(echo.get("levelAnnotationsNote")));
+            annotations.forEach((node, note) -> notes.add(node + ": " + note));
+        }
         if (scope.note() != null) notes.add(scope.note());
         if (!coverage.uncovered().isEmpty() && auditLevel.note() != null) notes.add(auditLevel.note());
         if (echo.get("warning") != null) notes.add(echo.get("warning").toString());

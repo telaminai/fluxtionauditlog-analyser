@@ -638,6 +638,136 @@ comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
 
+## Phase 1 completion — D-MA0c, MA-0.5, MA-8's report path, MA-6.3 (2026-09-26)
+
+Branch `feat/mongoose-audit-phase1-completion`, from `main` `14d04a2f` (1.22.0), one branch for one review at the
+owner's request. Predictions P15 committed first (`2cf3bfe6`); implementation `25d031e1`. **Reviewed once** — behaviour
+accepted, merge refused on protection; fixed below (*Review of phase-1 completion*).
+
+| Item | What changed | Regression |
+| --- | --- | --- |
+| **D-MA0c** | The log's producer findings reach all three report surfaces: the PDF (`ReportRenderer`, a *LOG FINDINGS* callout, damage first), the Reports tab (a banner beside the other announce lines, re-rendered when the findings change under Follow) and the `report` reply (`producer`, the key `context` already uses). Named *Log findings* so it is not confused with the tab's M66 *Producer findings* sub-tab, which is the design producer. | `ReportLogFindingsTest` (PDF, clean-log control); `LogFindingsOnEverySurfaceFrameTest` (reply, tab) |
+| **MA-0.5** | One wording for cold open and Follow: "No records in this file yet." A pending frame under Follow is still not an empty file (V2). **Found by the new frame test, not predicted:** the status line Follow starts with dropped the log's warning — any warning — until the next record arrived. Fixed. | `LogFindingsOnEverySurfaceFrameTest`: five surfaces show it, all five clear after a record; a document still being written is not "empty" |
+| **MA-8's report path** | An annotated uncovered row gains `levelChange`; the table's notes carry `levelAnnotationsNote` and one `node: annotation` line each. Status, reason, count and ratio do not move. | `ReportLogFindingsTest` (row, notes, printed under the table) |
+| **MA-6.3** | Fixtures c25–c30: marker declaring zero, two empty marked segments, whitespace only, zero bytes (also the empty export), good / AFMT-3 / good under a marker declaring 3, a per-node level change. **`bothPathsAgree` now compares the producer findings for every fixture**, with AF-10's completeness sentence (c24) the one tolerated loss. The rolled set of empty members is not one file and stays a unit test. | `FormatConformanceTest` c25–c30 and the strengthened agreement |
+
+**Predictions against outcome.** P15.1 (no existing test breaks) was **wrong**:
+`CoveragePerNodeLevelTest.levelChangesNeverMoveTheDenominatorOrTheLedger` compared whole ledger rows, and the new
+field is a row change by design. It was narrowed, not deleted: the ledger must be identical *apart from*
+`levelChange`, that field must equal the verb's own annotation, and a control asserts the row is annotated inside
+the interval so the comparison is not vacuous. P15.2 held on every fixture. P15.3 held: **eight witnesses, all
+hold** under the strict protocol — PDF callout, reply `producer`, tab banner, the Follow line's warning, the
+ledger's `levelChange`, `EMPTY_LOG`, `noRecordKey`, the MA-8 control-event parse — each a `<failure>` at its named
+test carrying its label, SHA-256 restored, `git status -- src/main` clean, green after
+([output](evidence/mongoose-audit-production-impl/phase1-completion/witness15-output.txt),
+[script](evidence/mongoose-audit-production-impl/phase1-completion/witness15.py)). P15.4 held: headless
+**2405 / 0 / 0 / 110** over 323 reports, no orphans — 2393 + 12, inside 10 ± 2; the two extra skips are the new
+frame class, which runs only with a display.
+
+**Display gate:** 22 frame suites, 110 tests, **0 failures, 0 errors, 1 skip**, and the gate refuses on the skip.
+The skip is `PersonAtTheScreenFrameTest`'s keyboard-focus assumption; `main` `14d04a2f` skips the same test with
+the same message on this desktop, so it is the desktop, not this branch. **CI's Xvfb `ui-frame` job is the
+decisive run** and has not happened
+([summary](evidence/mongoose-audit-production-impl/phase1-completion/display-gate-summary.txt)).
+
+Also: `mkdocs build --strict`, `git diff --check`, the four doc tests and the public-repo sweep pass; the format-spec
+page gains rows C25–C30. **Not fixed, noticed:** that page's fixture table already lacked C19–C24; left for a
+separate change rather than widened into this one.
+
+### Review of phase-1 completion — four required, five optional, all taken
+
+The review accepted the behaviour and refused the merge: the frame's PDF path (H1) and the Reports tab refresh on load
+(H2) and on Follow (H3) had no regression, and none of the eight witnesses was in the CI gate. Predictions P16 first
+(`6725efc1`). `main` 1.22.1 merged INTO this branch (`bd4d2a2d`) because PR #40 was CONFLICTING and ran no CI; only
+`CHANGELOG.md` conflicted. Fixes `ac766a35`, `7bc54231`.
+
+| # | Item | Test | Control | Red at |
+| --- | --- | --- | --- | --- |
+| 1 | H1 — the PDF through the frame | `LogFindingsOnEverySurfaceFrameTest#theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives` (`report {path}` → `renderReportPdf`) | `p16-h1-frame-pdf-gets-findings` | "H1: the exported PDF states what the file itself shows" |
+| 2 | H2 — the tab on load | `…#theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween` (c29 opened over an empty file; waits on frame fields) | `p16-h2-tab-refresh-on-load` | "the new log's finding … is on the tab" |
+| 2 | H3 — the tab on Follow | `…#theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween` | `p16-h3-tab-refresh-on-follow` | "H3: the findings changed with no new record, and the tab must say so" |
+| 3 | Registration | 16 entries in `tools/mutation_controls_session.py`; preflight **167 → 183** anchors, each once | all 16 | [summary](evidence/mongoose-audit-production-impl/phase1-completion/review-controls-summary.txt) |
+| 5 | H4 — MA-8.2 | `CoveragePerNodeLevelTest#levelChangesNeverMoveTheDenominatorOrTheLedger` | `p16-h4-level-change-on-every-row` | "the rows carrying levelChange are the annotated nodes at 1003" |
+| 6 | Messages in `bothPathsAgree` | `FormatConformanceTest` (all 34) | **none** — see below | — |
+| 7 | V2 on every surface | `…#aRecordStillBeingWrittenIsNotAnEmptyFile` | `p16-v2-pending-frame-is-not-empty` | "the status bar: … ⚠ empty log …" |
+| 8 | Wording by shape | `FormatConformanceTest#c25…`, `EmptyLogAndRecordKeyDiagnosticsTest#aRolledSetOfEmptyMembersIsNamedAsASet` (through `RolledLogStore`), `#aFileWhoseMarkerSaysItEndedEmptyIsNotWaitingForAWriter` | `p16-wording-marker-says-ended`, `p16-wording-rolled-set` | "one wording per shape"; "named as a set" |
+| 9 | Note-only muted on the tab | `ReportsPanelLogFindingsTest` (colour against the tab's own muted line; a warning control) | `p16-tab-note-only-muted` | "a statement of a limit is drawn muted, not as a warning" |
+
+**H3 as the review stated it survived, and the test was wrong, not the code.** The first gate run stopped at
+`p16-h3` *survived*. A probe (a stack trace on every render, bytes restored) showed why: a poll that ADDS records
+re-applies the filter, and `onFilterChanged` re-renders the tab (`reportsPanel.rerender()`, D-I3, `:4996`) — so with a
+record appended the Follow refresh is redundant. It is load-bearing only when the findings change with no new record.
+The test now appends a document still being written — the file stops being empty (V2), no row is added, and it asserts
+no row was added — then reads the tab. That was P16.2's named risk, from the other direction.
+
+**Item 6 has no control, deliberately.** Both paths build findings with one `ProducerDiagnostics`, and no fixture
+carries a path-only diagnostic, so any production mutation of a wording changes both paths alike. The comparison
+guards a future divergence; it is recorded as a test change with no witness.
+
+**Item 8's wording**, one sentence per shape, all opening on "No records": a file that may still be written — "No
+records in this file yet." (unchanged); a single file whose marker says it ended with zero —
+"No records in this file, and its stream-end marker says the writer finished having written none.", with no "yet" and
+no buffering; a rolled set — "No records in this rolled set yet: none of its N files holds a record." Cold open and
+Follow pass the same stream-end state, so V2 holds.
+
+**The V2 test's first tab read is vacuous** (no report is selected when it runs); the V2 control went red at the status
+bar instead. The tab under a pending frame is covered by the H3 test, where a report is selected.
+
+**Gates:** headless **2427 / 0 / 0 / 115** over 326 reports, no orphans. Display gate on `7bc54231`: 22 suites, **115
+tests, 0 failures, 0 errors, 0 skips** — the focus skip did not recur
+([summary](evidence/mongoose-audit-production-impl/phase1-completion/review-display-gate-summary.txt)). All sixteen
+controls red at their named assertion, byte-identical restore, green after.
+
+**CI on PR #40, head `2d9cd4f9`** (run 36269199649): build, `ui-frame` under Xvfb (its guard rejects skips, so the
+local PersonAtTheScreen focus skip is settled as the desktop's), `mutation-gate` over the full gate with the sixteen new
+controls (15 m 53 s), loop-bench and static — **all pass**.
+
+**Predictions, the misses.** P16.2 half wrong (H3, above). P16.3 said fifteen controls; sixteen, because the rolled-set
+wording needed its own. P16.9's total was wrong: it counted this branch's tests (+4 run headless and +3 frame tests
+skipped headless — both as predicted) and not the ones `main` 1.22.1 brought in (+15, +2 skipped).
+
+### Targeted re-review of PR #40 — one required, three optional, all taken
+
+Predictions P17 first (`c866901b`); fixes `bbb286fe`. **R1 — cause:** nothing tested that the Follow call site words the
+empty-log finding from the file's stream-end claim, so passing `null` there (X4) survived. **Test:**
+`LogFindingsOnEverySurfaceFrameTest#aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays` — an empty followed file
+gains a marker declaring zero, one poll, and Follow's first warning equals a cold open's of the same bytes AND is the
+ended sentence, on the tooltip and the Reports tab too, read with no verb between. **Control:**
+`p17-v2-follow-passes-stream-end`, red at "V2: Follow says what a cold open of the same bytes says". **Found beside
+it:** the cold-open call site had the same gap — `…#aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo`,
+`p17-cold-open-passes-stream-end`, red at "the frame's cold open words it as the store does".
+
+Optional, all taken. **1** — the V2 test now selects a report before its first tab read, and `p16-v2` goes red at that
+line ("the Reports tab, read before any verb") instead of the status bar. **2** — a one-member rolled set CAN be opened:
+`open {logs: [one path]}` (`ActionExecutor` `:1151` → `openLogs` → `RollSetResolver.resolve`, no count check). The
+empty-log sentence now reads `LogStore.emptyLogClaim()`, which `RolledLogStore` answers with its single member's claim;
+`streamEnd()` is untouched, so the set is still never reported complete. Both frame call sites pass it, so X4 is the
+review's mutation on that text rather than on `store.streamEnd()`. Test
+`EmptyLogAndRecordKeyDiagnosticsTest#aOneMemberRolledSetIsWordedAsItsFile` (through `RolledLogStore`), control
+`p17-one-member-set-is-its-file`, red at "worded from its file". **3** — the empty-log constants and `emptyLogMessage`
+moved above `noRecordKey`'s Javadoc.
+
+**Counts:** preflight **186** anchors (the review's 184, plus the cold-open site and the one-member set). Headless
+**2430 / 0 / 0 / 117** over 326 reports, no orphans — three tests added (one run headless, two frame methods). Display: 22
+suites, **117 tests, 0 failures, 0 skips**. All nineteen `p15`–`p17` controls caught, byte-identical restores
+([summary](evidence/mongoose-audit-production-impl/phase1-completion/rereview-controls-summary.txt)).
+
+**Merge of `main` (M68.7, PR #39) — `a978f7ec`**, re-verified by the reviewer: both CI frame lists at 23 suites with
+`IdentityMarkFrameTest` and `LogFindingsOnEverySurfaceFrameTest` in each; every control set kept; 193 anchors.
+
+**R2 — the load site for a set of one (P18 `daa7b5ef`, fix `7e08b82f`).** *Cause:* the store test calls
+`ProducerDiagnostics` with `set.emptyLogClaim()` directly, and for every single-file store `emptyLogClaim()` equals
+`streamEnd()`, so nothing failed if the frame's load site passed `loaded.streamEnd()` (X5). *Test:*
+`LogFindingsOnEverySurfaceFrameTest#aOneMemberSetOpenedInTheFrameIsWordedAsItsFile` — a report selected over an empty
+file, a zero-marker file opened as a set of one (`open {logs: [path]}`), a wait on frame fields (the store is a
+`RolledLogStore`, the findings object changed), then the first warning, the tooltip and the Reports tab all carry the
+ended sentence. *Control:* `p18-one-member-set-at-load-site`, red at "the frame's first warning is the file's own ended
+sentence: No records in this file yet…"; `p17-cold-open-passes-stream-end` and `p17-one-member-set-is-its-file` still
+caught. **No control at the Follow site, and that is not a gap:** only `HeapLogStore` follows, and its `emptyLogClaim()`
+IS its `streamEnd()`, so reverting that site is an equivalent mutation (the reviewer's X6). *Counts:* preflight **194**
+anchors, 23 suites; headless **2437 / 0 / 0 / 119** over 328 reports (one test added, a frame method); display 23 suites,
+**119 tests, 0 failures, 0 skips**. CHANGELOG unchanged — no user-visible behaviour moved.
+
 ## Tenth re-review — targeted acceptance of the ninth round
 
 Targeted tenth re-review `bcc2bef0` on `review/mongoose-tenth-rereview-2026-09-26`
@@ -1021,7 +1151,8 @@ personal data before each push. Only files I authored were committed.
   integration (`99f9ec47`, no merge defect). **CI's frame job has never run on this branch**; a pull request is
   what would run it. Not merged: the owner's call.
 
-Three release-note items stand, unchanged by this round: the producer findings are not in the report
-surface yet (D-MA0c); the `attach` default overload quietly drops fan-out for any other capture-service
+Three release-note items stood after round ten: the producer findings are not in the report
+surface yet (D-MA0c — **implemented on `feat/mongoose-audit-phase1-completion`, awaiting review**, see *Phase 1
+completion*); the `attach` default overload quietly drops fan-out for any other capture-service
 implementation; and **OD-5 is still the one open owner decision** — whether Chronicle gets a marker —
 which is why MA-2's Chronicle half was not implemented.
