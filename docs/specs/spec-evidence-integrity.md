@@ -594,7 +594,7 @@ responsibilities, and no further client trial: these are contract and acceptance
   a repair journey that asks before renaming, once the affected-name count is shown to be small.**
 - **D-E9 / M68.3, the producer half.** The writer emitting separators is not built here; the reader's diagnostic is.
 
-## Open for the owner
+## Open for the owner — all answered 2026-09-26 (M68 closed as an explicit partial delivery)
 
 - ~~**Q1**~~ **answered by the owner 2026-09-26: annotate, never block**, as both reviews recommend. The
   tool-agreement spec's announced-not-forbidden policy for a deliberately opened graph stands, so no compatibility
