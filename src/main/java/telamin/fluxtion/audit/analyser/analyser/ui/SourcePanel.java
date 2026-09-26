@@ -234,6 +234,16 @@ public final class SourcePanel extends JPanel {
     /** Whether a Ctrl-clicked type has source to open. */
     java.util.function.BiFunction<SourceService.Lookup, String, Boolean> existence = SourceService.Lookup::exists;
     private long typeClickTicket;
+    private java.util.concurrent.Future<?> pendingTypeCheck;
+    private javax.swing.Timer typeCheckDeadline;
+
+    /** Supersede any pending Ctrl-click check: it is cancelled, removed from the queue, and can never navigate. */
+    private void supersedeTypeCheck() {
+        typeClickTicket++;
+        cancelQueued(pendingTypeCheck);
+        pendingTypeCheck = null;
+        if (typeCheckDeadline != null) typeCheckDeadline.stop();
+    }
 
     /**
      * Open {@code fqn} if it has source (a Ctrl-clicked type). The check runs off the EDT (PR #30 review, finding
@@ -242,13 +252,40 @@ public final class SourcePanel extends JPanel {
      */
     void openTypeIfPresent(String fqn) {
         if (service == null || fqn == null) return;
-        long ticket = ++typeClickTicket;
+        supersedeTypeCheck();
+        long ticket = typeClickTicket;
         SourceService.Lookup lookup = service.captureLookup();
         var check = existence;
-        offEdt(() -> check.apply(lookup, fqn), present -> {
-            if (ticket == typeClickTicket && Boolean.TRUE.equals(present) && service.isCurrent(lookup)) openFqn(fqn);
+        // the same bounded deadline as a pane read: past it the check is cancelled and its result, if it ever
+        // arrives, is discarded — a click from long ago must not navigate (PR #30 re-review, R1)
+        typeCheckDeadline = new javax.swing.Timer((int) Math.max(1, readDeadline.toMillis()), e -> {
+            if (ticket != typeClickTicket) return;
+            supersedeTypeCheck();
+            decisions.accept("type-check " + fqn + ": expired");
+        });
+        typeCheckDeadline.setRepeats(false);
+        typeCheckDeadline.start();
+        pendingTypeCheck = offEdt(() -> check.apply(lookup, fqn), present -> {
+            if (ticket != typeClickTicket || !service.isCurrent(lookup)) { decisions.accept("type-check " + fqn + ": discarded"); return; }
+            typeCheckDeadline.stop();
+            pendingTypeCheck = null;
+            decisions.accept("type-check " + fqn + ": " + (Boolean.TRUE.equals(present) ? "opened" : "absent"));
+            if (Boolean.TRUE.equals(present)) openFqn(fqn);
         }, failure -> { });
     }
+
+    /**
+     * Test seam: told, on the EDT, what became of each completed read or type check — "installed X",
+     * "discarded X: …", "type-check X: opened|absent|discarded …" — so a test can wait for a completion to reach
+     * its decision instead of guessing with sleeps (PR #30 review, O1).
+     */
+    java.util.function.Consumer<String> decisions = d -> { };
+
+    /** Queued (not yet running) source work — for tests of the pending-work bound. */
+    static int pendingSourceWork() { return READS.getQueue().size(); }
+
+    /** True when no source work is running or queued — for tests. */
+    static boolean sourceWorkIdle() { return READS.getActiveCount() == 0 && READS.getQueue().isEmpty(); }
 
     /** How long a read may take before the pane says it gave up and ignores the late answer. */
     java.time.Duration readDeadline = java.time.Duration.ofSeconds(5);
@@ -272,7 +309,7 @@ public final class SourcePanel extends JPanel {
      */
     private void load(Pane pane, String fqn, Runnable then, java.util.function.Consumer<String> gaveUp) {
         if (service == null || fqn == null) return;
-        if (pane.pendingRead != null) pane.pendingRead.cancel(true);   // superseded: a queued read never runs
+        cancelQueued(pane.pendingRead);                            // superseded: a queued read never runs
         long ticket = ++pane.readTicket;
         pane.reading = true;
         SourceService.Lookup lookup = service.captureLookup();
@@ -289,7 +326,7 @@ public final class SourcePanel extends JPanel {
             if (pane.readTicket != ticket) return;
             pane.readTicket++;                                   // the late answer is never installed
             pane.reading = false;
-            if (pane.pendingRead != null) pane.pendingRead.cancel(true);
+            cancelQueued(pane.pendingRead);
             pane.label.setText(fqn + "  —  reading the file on disk timed out; "
                     + (pane.source.isEmpty() ? "nothing was read" : "the text below is unchecked"));
             // the body must not go on saying "Reading …" under a header that says it gave up (finding 4)
@@ -306,10 +343,13 @@ public final class SourcePanel extends JPanel {
                     document.map(d -> EventProcessorModel.parse(fqn, d.text())).orElse(null));
         }, read -> {
             deadline.stop();
-            if (pane.readTicket != ticket) return;
+            if (pane.readTicket != ticket) { decisions.accept("discarded " + fqn + ": superseded or expired"); return; }
             pane.reading = false;
-            if (service == null || !service.isCurrent(lookup)) return;   // the switch that caused this reads anew
+            if (service == null || !service.isCurrent(lookup)) {   // the switch that caused this reads anew
+                decisions.accept("discarded " + fqn + ": configuration changed"); return;
+            }
             install(pane, fqn, read, lookup);
+            decisions.accept("installed " + fqn);
             then.run();
         }, failure -> {
             deadline.stop();
@@ -328,11 +368,22 @@ public final class SourcePanel extends JPanel {
      * leave one more blocked thread behind.
      */
     private static final java.util.concurrent.ThreadPoolExecutor READS = readPool();
+    /**
+     * At most this much source work waits behind the two workers (PR #30 re-review, R1). Each pane keeps at most one
+     * pending read and each panel at most one pending type check — a newer request cancels AND removes the older
+     * from the queue — so the limit is reached only if both workers are held and several panels queue at once.
+     * Work refused because the queue is full fails at once with a message rather than waiting unseen.
+     *
+     * <p>Limit, stated plainly: cancellation removes queued work and interrupts running work, but a read that
+     * ignores interruption (a hung network mount) keeps its worker until it returns. Two such reads occupy both
+     * workers; further reads then time out at their deadline, and say so, until one returns.
+     */
+    private static final int SOURCE_QUEUE_LIMIT = 8;
 
     private static java.util.concurrent.ThreadPoolExecutor readPool() {
         var count = new java.util.concurrent.atomic.AtomicInteger();
         var pool = new java.util.concurrent.ThreadPoolExecutor(2, 2, 30, java.util.concurrent.TimeUnit.SECONDS,
-                new java.util.concurrent.LinkedBlockingQueue<>(), r -> {
+                new java.util.concurrent.LinkedBlockingQueue<>(SOURCE_QUEUE_LIMIT), r -> {
                     Thread t = new Thread(r, "analyser-source-read-" + count.incrementAndGet());
                     t.setDaemon(true);
                     return t;
@@ -353,7 +404,20 @@ public final class SourcePanel extends JPanel {
                 SwingUtilities.invokeLater(() -> failed.accept(t));
             }
         };
-        return READS.submit(task);
+        try {
+            return READS.submit(task);
+        } catch (java.util.concurrent.RejectedExecutionException full) {
+            SwingUtilities.invokeLater(() -> failed.accept(new java.io.IOException(
+                    "source reads are backed up behind reads that are not responding; try again shortly")));
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }
+    }
+
+    /** Cancel {@code work} and, if it is still queued, remove it: a cancelled FutureTask otherwise stays queued. */
+    private static void cancelQueued(java.util.concurrent.Future<?> work) {
+        if (work == null) return;
+        work.cancel(true);
+        if (work instanceof Runnable queued) READS.remove(queued);
     }
 
     private void install(Pane pane, String fqn, Read read, SourceService.Lookup lookup) {
@@ -429,6 +493,7 @@ public final class SourcePanel extends JPanel {
      */
     public void showSelectedProcessor() {
         if (service == null) return;
+        supersedeTypeCheck();                                     // a configuration refresh supersedes a pending click
         // Both panes re-read their file (off the EDT): the roots may now resolve the name to something else
         // or to nothing, and a MISS placeholder names roots that changed even when the miss did not (review
         // F4). review R2-F5: a configuration refresh is not a request to navigate — an unchanged hit keeps
@@ -602,7 +667,7 @@ public final class SourcePanel extends JPanel {
 
     private void navigate(String fqn, String method, Runnable instead) {
         if (service == null || fqn == null) return;
-        typeClickTicket++;                                        // a pending Ctrl-click check yields to this navigation
+        supersedeTypeCheck();                                     // a pending Ctrl-click check yields to this navigation
         boolean leavingFile = fileView != null;
         if (fileView != null) {
             backStack.push(new History(null, fileView)); fileView = null; backButton.setEnabled(true);

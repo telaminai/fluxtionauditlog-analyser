@@ -26,9 +26,12 @@ Until a source pane has read the selected processor after a configuration change
 read it on the window's own thread to answer other questions: `context` omits node types and says
 `processorModel: not yet read`, and a design bean without a class says `classLookup: processor source not yet
 read`. When two panes read the processor, the answer from the later request wins even if the earlier one
-arrives last. Source reads share a small pool, so a hung disk holds at most two threads; a read that times
-out says so in the pane, and a node you asked to open says why it did not. Ctrl-click on a type checks that
-it has source in the background. **Back** returns to the last file you actually saw: a "not found" pane is
+arrives last. Source reads share a pool of two workers with a short queue: a newer request cancels and
+removes an older one that has not started, and a read that times out says so in the pane. A read that is stuck
+on an unresponsive disk and ignores cancellation keeps its worker until it returns, so two such reads can
+occupy both workers; further reads then time out and say so. A node you asked to open says why it did not.
+Ctrl-click on a type checks that it has source in the background, within the same time limit; a newer click or
+navigation supersedes it, and a check that runs out of time never opens anything later. **Back** returns to the last file you actually saw: a "not found" pane is
 not added to the history.
 
 ## Spring design and file glances

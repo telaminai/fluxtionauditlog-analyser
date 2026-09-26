@@ -15,7 +15,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   panes reading the processor, an older read that arrived last could put back the pre-rename model; the later
   request now always wins. `context` and the design view no longer read the processor on the window's thread
   (they say "not yet read" instead), Ctrl-click checks existence in the background, a timed-out read says so in
-  the pane body, a node that could not open says why, and at most two threads wait on a hung disk.
+  the pane body, a node that could not open says why, and at most two threads wait on a hung disk. Superseded
+  reads and Ctrl-click checks are removed from the queue rather than left waiting, and a Ctrl-click check has
+  the same time limit as a read, so a stale click can no longer open a class long after it was made.
 - **A rolled set now stops serving a member file that changed in place, and says which one.** A single log whose
   file was rewritten in place is refused until it is reopened, but the same file inside a rolled set was still read,
   through an index that no longer matched it. A rolled set now reports its members' changes, naming the member, and
