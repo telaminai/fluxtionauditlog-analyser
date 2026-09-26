@@ -12,3 +12,9 @@ Subject: 5776e750. Requested comparison base: 93c868a1. Review is of the combina
 8. BOM/severity: expect ByteOrderMarkSitesTest's source walk to include FramingScan and main's isWarning to inspect beyond the leading note. The changed severity assertion should reflect main's intended rule, not an unexplained merge policy change.
 
 Protocol: byte-copy every mutated file; green baseline, named failure (compilation errors are not witnesses), byte-identical restore checked with cmp/hash, then green rerun. Additional probe predictions will be recorded before executing them. Misses and infrastructure failures remain in results. No keys, providers, client sessions or modifications to preserved evidence.
+
+## Additional focused probe predictions (before running them)
+
+9. The newly combined pending-text adapter still uses String.strip to find separators, while MA's framer accepts only ASCII whitespace. Predict that an em-space-prefixed separator-like payload line can make pendingFrameText discard real pending content, and hide a collapsed-header finding that FramingScan sees on the actual full pending frame. Compare the pre-merge main predicate to establish the new incompatibility.
+10. A same-length replacement containing invalid UTF-8 now reaches MA's decoder because main removed the unchanged-length early return. Predict UNKNOWN completeness but a retained opening digest and a stale UNCHANGED followIdentity if a prior quiet poll set it. Compare the parent behaviour before deciding what is newly introduced.
+11. A coverage call with bound=2, over three stored records whose third record restores a quiet node, must not read the third record or name it in the annotation. A wrapper that throws on row >=2 will detect that directly. Marker boundaries at bound are positions after the included rows, so keeping a terminal marker there should not read record bound.
