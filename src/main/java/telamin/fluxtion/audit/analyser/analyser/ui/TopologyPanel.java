@@ -400,6 +400,40 @@ public final class TopologyPanel extends JPanel {
         return null;
     }
 
+    /**
+     * Independent review R5: why {@link #saveFocusAs} would refuse ONCE a request's own {@code select}, {@code pop} and
+     * {@code focus} have been applied — without applying anything — or null. The verb applies those three before the
+     * save, so a request can establish the focus it names ({@code focus: true, saveFocusAs: …}); checking only the state
+     * before the request would refuse that, and checking nothing let a refused save leave its selection behind.
+     *
+     * @param selectGiven whether the request carries {@code select} (a null id clears the selection)
+     * @param pop         the request's {@code pop}, or null
+     * @param focus       the request's {@code focus}: a name (already validated), a boolean, or null
+     */
+    public String saveFocusAsProblem(String name, boolean selectGiven, String selectId, Object pop, Object focus) {
+        if (name == null || name.isBlank()) return "'saveFocusAs' needs a name";
+        if (fullTopology.isEmpty()) return "no topology is loaded";
+        int depth = focusStack.depth();
+        if (pop != null) depth = "all".equalsIgnoreCase(String.valueOf(pop)) ? 0 : Math.max(0, depth - 1);
+        boolean focused = depth > 0;
+        if (focus instanceof String) {
+            focused = true;                                    // a valid named recall always pushes its resolved ids
+        } else if (focus instanceof Boolean on) {
+            if (!on) {
+                focused = false;
+            } else {
+                java.util.Set<String> chosen = selectGiven
+                        ? (selectId == null ? java.util.Set.of() : java.util.Set.of(selectId)) : selection;
+                java.util.Set<String> world = depth == 0 ? fullTopology.ids()
+                        : focusStack.contextsOldestFirst().get(depth - 1).ids();
+                // pushFocus pushes the selection's scope within the world; it pushes something exactly when a selected
+                // node is in that world (every scope includes its seeds)
+                if (chosen.stream().anyMatch(world::contains)) focused = true;
+            }
+        }
+        return focused ? null : "nothing to save — the full graph is not a focus; apply one first";
+    }
+
     /** M68.4: whether the step cursor is bound to a record — {@link #moveToRecord} does nothing until it is. */
     public boolean hasBoundRecord() {
         return !cursor.isEmpty();

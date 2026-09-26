@@ -67,4 +67,59 @@ class TopologyWholeOrRefusedTest {
         assertFalse(outOfRange.ok());
         assertTrue(String.valueOf(outOfRange.toMap()).contains("not a record of this log"), outOfRange.toMap().toString());
     }
+
+    private static java.util.List<?> selected(TopologyPanel panel) {
+        return (java.util.List<?>) panel.cursorState().get("selected");
+    }
+
+    @Test
+    @DisplayName("R5: saveFocusAs with no focus to save refuses the WHOLE call — the selection it carried is not applied")
+    void aRefusedSaveLeavesTheSelection() {
+        // witness: topologyProblem without the saveFocusAs precondition
+        var panel = new TopologyPanel();
+        panel.load(GRAPH);
+        var reply = executor(panel, null).render("topology", Map.of("select", "rootNode", "saveFocusAs", "demo"));
+        assertFalse(reply.ok(), reply.toMap().toString());
+        assertTrue(String.valueOf(reply.toMap()).contains("nothing to save"), reply.toMap().toString());
+        assertTrue(selected(panel).isEmpty(), "R5: a refused call changed the selection: " + selected(panel));
+    }
+
+    @Test
+    @DisplayName("R5: popping to the full graph in the same call as saveFocusAs is refused whole, and the focus stays")
+    void aPopThatLeavesNothingToSaveIsRefusedWhole() {
+        var panel = new TopologyPanel();
+        panel.load(GRAPH);
+        var saved = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>();
+        panel.bindNamedFocuses(() -> saved, () -> { });
+        var ex = executor(panel, null);
+        assertTrue(ex.render("topology", Map.of("select", "rootNode", "scope", "node", "focus", true)).ok());
+        String crumbs = String.valueOf(panel.cursorState());
+        var reply = ex.render("topology", Map.of("pop", "all", "saveFocusAs", "demo"));
+        assertFalse(reply.ok(), reply.toMap().toString());
+        assertEquals(crumbs, String.valueOf(panel.cursorState()), "R5: the focus was not popped by a refused call");
+        assertTrue(saved.isEmpty());
+    }
+
+    @Test
+    @DisplayName("R5: focus:true then saveFocusAs in ONE call still saves — the request establishes what it names")
+    void focusThenSaveInOneCallStillSaves() {
+        var panel = new TopologyPanel();
+        panel.load(GRAPH);
+        var saved = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>();
+        panel.bindNamedFocuses(() -> saved, () -> { });
+        var reply = executor(panel, null).render("topology",
+                Map.of("select", "rootNode", "scope", "node", "focus", true, "saveFocusAs", "demo"));
+        assertTrue(reply.ok(), reply.toMap().toString());
+        assertEquals(java.util.List.of("demo"), saved.stream().map(f -> f.name()).toList());
+    }
+
+    @Test
+    @DisplayName("R5: a blank saveFocusAs name is refused before anything is applied")
+    void aBlankNameIsRefusedWhole() {
+        var panel = new TopologyPanel();
+        panel.load(GRAPH);
+        var reply = executor(panel, null).render("topology", Map.of("select", "rootNode", "saveFocusAs", "  "));
+        assertFalse(reply.ok(), reply.toMap().toString());
+        assertTrue(selected(panel).isEmpty(), "R5: " + selected(panel));
+    }
 }

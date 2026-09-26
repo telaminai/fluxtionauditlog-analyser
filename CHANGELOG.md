@@ -37,6 +37,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
     or refuses saying why (no log, not in the log, hidden by the filter).
   - `flag` refuses a record that is not in the log instead of attaching the finding to the last record.
   - `goto` on an empty log is refused, where it used to answer "record 0".
+  - `topology` with `saveFocusAs` and nothing to save (no focus, or one the same call pops) is refused before anything
+    is applied. It used to select the node it was given and then refuse. `focus: true` with `saveFocusAs` in one call
+    still saves the focus that call applies.
   - A refused call leaves the spotlight lit. Dropped anchors, a failed source-root removal, a rename's extra fields
     and misspelled parameters are now named (M68.4).
 - **A chart can no longer be given a name that the assistant cannot point at.** `graph` accepted a name with a colon

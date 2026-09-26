@@ -1383,6 +1383,15 @@ public final class ActionExecutor implements RenderExecutor {
             String why = topology.recallFocusProblem(namedFocus);
             if (why != null) return why;
         }
+        // Independent review R5: saveFocusAs's own precondition, judged on the state THIS request leaves before the save
+        // runs. It used to be checked only when the save ran, after select had already been applied.
+        if (params.containsKey("saveFocusAs")) {
+            Object focus = params.get("focus");
+            String why = topology.saveFocusAsProblem(str(params.get("saveFocusAs")), params.containsKey("select"),
+                    str(params.get("select")), params.get("pop"), focus instanceof Boolean ? focus
+                            : focus instanceof String ? focus : focus == null ? null : bool(focus));
+            if (why != null) return why;
+        }
         String orientation = str(params.get("orientation"));
         if (orientation != null && !orientation.equalsIgnoreCase("left_right") && !orientation.equalsIgnoreCase("top_down")) {
             // it used to become top-down silently: a declared parameter that did something other than it said
