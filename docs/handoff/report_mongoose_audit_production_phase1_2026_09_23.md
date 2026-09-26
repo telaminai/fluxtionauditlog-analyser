@@ -638,6 +638,68 @@ comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
 
+## Seventh re-review — four required, five optional, all taken
+
+Seventh re-review `43e29973` on `review/mongoose-seventh-rereview-2026-09-26`, against `d8512121`. Before any change
+the reviewer's probes (`rereview7-probe/R7`, `R7b`, `R7Matrix`) were re-run on `d8512121` and reproduced
+**byte-identically**; `R7b` has to be compiled together with `R7`, which it calls. Predictions `P12` were committed
+first (`74460804`); the fix is `1fa55f66`.
+
+**Owner decisions, 2026-09-26.** (1) The conclusion is **bounded** by the change, the window's end and the grouping
+(option a), not restated about the records in view. (2) R-B's rule — a closer applied whenever the change before it
+did — does **not** extend across a stream-end marker. (3) **Targeted mutation witnesses** for R7-1–R7-4 only.
+
+| | Finding | Cause | Fix | Regression and witness |
+|---|---|---|---|---|
+| R7-1 Low–Medium | after an unreadable closer or a closer across a marker, the premise branch concluded "If the change at record 1 applied here, riskMonitor's lines below WARN are not in this log" — past the record that may have restored INFO, or the marker | **mine, round 6**: I bounded only the premise-free branch | every conclusion, with a premise or without: "If …, then after record 1 and before record 3, in the records that, like it, state no grouping, …" | `theConclusionIsBoundedByTheChangeTheWindowAndTheGrouping` (probes A, B); the matrix's bound rule. **Witness:** the premise branch unbounded again → `<failure>` at that test, assertion "R7-1 A" |
+| R7-2 Low–Medium | "Before record 4, riskMonitor's lines …" started at the beginning of the log: false when the node logs before the change (probe D) or in another grouping (probe F) | **mine, round 6**: a bound written from the window's end only | the bound runs **from the change**: "after record C and before E, in <the change's grouping>" | the same test (probes D, F); the matrix's new "lead" dimension puts the node's line before the change and in another grouping. **Witness:** round 6's form restored → `<failure>`, assertion "R7-2 D" |
+| R7-3 Low | the plain closer's ", so X's lines …" and "Nothing later …, so …" were unbounded in the same way (probes I, C) | mine, before round 6 | the same bound; with no closer it stops at the first marker after the change | the same test (probes I, C). **Witness:** the plain ", so" unbounded again → `<failure>`, assertion "R7-3 I" |
+| R7-4 Low | across a marker with no grouping declared, the closer said "which sets it to INFO" definitely (probe L) | mine: R-B's premise applied past a marker | owner decision (2): with no grouping declared a closer past a marker is **open** — "which records a change to INFO addressed to …; whether that applied here is not established either" | `anUngroupedCloserAcrossAMarkerIsOpen` (probe L, with a declared positive control that stays definite); R5-2's check widened to any " sets it to " in an ungrouped note. **Witness:** R-B's rule extended again → `<failure>`, assertion "R7-4 L" |
+| R7-5 | "It holds" was said of a change whose applying is not established | mine | under that condition: "If the change at record 1 applied here, it holds …"; the definite ungrouped closer reads "…, whose change to INFO applied wherever this one did", so no ungrouped note says "sets it" | the matrix (the widened R5-2 check); R-B's positive control rewritten |
+| R7-6 | "The next control record in the same grouping" was false when a readable control record for another node came first (probe J) | mine | "A later control record …" | `anUngroupedCloserAcrossAMarkerIsOpen` (probe J) |
+| O7-1 | a `record == null` row was skipped before it could be marked unreadable | latent: no store here returns null | a null record whose raw text names the control event is unreadable, not nothing | — (no store can produce it; stated rather than tested) |
+| O7-2 | the report's R6-1 row, the "bounded by where the window ends" item, "every branch phrasing reached", the status line, and the tracker's "2102/0/98" | mine | corrected in place, each marked "corrected in round 7" | — |
+| O7-3 | `mvn package` rewrote the committed `dependency-reduced-pom.xml` | stale since the test-scoped `svc-admin-web` dependency was added | regenerated and committed; the only change is that dependency | — |
+
+**The matrix now sees what the reviewer showed it could not.** 3 openings × 5 groupings × **4** boundaries (a view
+wholly before a marker with the closer past it is new) × 8 closings × **3** leads (none; the node logs in a record
+before the change; another grouping's record carries the node's line after it) = **1440 logs, all 1440 annotated**.
+New offender rules: every "not in this log" sentence starts its bound at the change (or, wholly after a marker, at
+that marker) and names its grouping, and a bound that starts at the change stops at the marker after it; no ungrouped
+note says " sets it to ". The reach checks are now **patterns**, one per branch that writes a conclusion, and each was
+checked **cell by cell** with a replay (`rereview7-fixes/R8Matrix.java`, output beside it): every bound pattern maps to
+exactly one (boundary, premise) branch. The replay found one branch the test's list lacked ("before a marker, no
+closer", 42 cells); it was added.
+
+**The witnesses** (`rereview7-fixes/witness12.py`, output beside it), strict protocol: green baseline, reports
+deleted, a `<failure>` (not an `<error>`) at the named test **whose message carries the named assertion's label**,
+SHA-256 restore, clean `git status -- src`, green again. All four hold. The matrix test also went red under each,
+and the table names the dedicated test's assertion; I did not record which of the matrix's own assertions fired.
+
+**Found while doing this, beyond the review:**
+1. `aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt` asserted that a note viewed within one run never mentions a
+   marker. Under R7-3 its bound now correctly stops at the next marker (probe C's case), so the assertion was
+   rewritten — "nothing conditional", plus the bound — not the behaviour relaxed.
+2. My first bound rule demanded that every conclusion end at a marker; wholly after the only marker, with no closer,
+   "then after that marker, in …" is true as it stands. The rule was scoped to bounds that start at the change.
+3. `MARereviewProbe.java`, which the reviewer could not find, is now committed (`rereview7-fixes/`). Re-run on the
+   fix, its non-annotation lines are identical to round 6's; its annotation lines each gain their bound
+   (`rereview7-probe-after-fixes.txt`).
+
+**What I got wrong this round:** R7-1 and R7-2 are this thread's class again, in the text I wrote to fix round 6's —
+I bounded one branch and called the sentence bounded, and I wrote the bound from its end without asking where it
+started. The matrix could not see either because every log began with the change and held one grouping; the fix was
+to make the matrix able to fail, which the witnesses now show it does. P12.4 predicted 8–14 broken assertions; 11
+tests broke, each pinning an unbounded conclusion, and each was rewritten.
+
+**Ran:** the reviewer's probes before and after; P12 first; the three MA-8 classes after each change (49 tests); every
+new sentence form printed and read in full (`R8Examples-output.txt`, one note per branch); the replay; four strict
+witnesses; `MARereviewProbe`; `mvn -q clean package` on JDK 21 — **2104 / 0 / 0 / 98** over 278 reports mapped to
+source classes, no orphans (2102 plus the two new tests, as P12.7 predicted); `mkdocs build --strict`,
+`git diff --check` and the rule-1 sweep.
+**Read, not run:** that no store in this repository returns a null record (O7-1, the reviewer's reading, which I
+share). **Not run:** the display suite (`MainFrame` unchanged); earlier rounds' witnesses.
+
 ## Sixth re-review — three required, four optional, all taken
 
 Sixth re-review `1c3173ae` on `review/mongoose-sixth-rereview-2026-09-24`, against `4bb68d08`. The integration review
@@ -648,7 +710,7 @@ test, run green on the fixed code; none has been shown red by planting.
 
 | | Finding | Cause | Fix | Regression |
 |---|---|---|---|---|
-| R6-1 Low–Medium | a control record this reader cannot parse was skipped, and the window ran on past it: "Nothing later … changes it, so riskMonitor's lines below WARN are not in this log", false if that record restored INFO | **mine, since RR-2**: skipping an unreadable rendering was right; the window logic was never told a record had been skipped | `of()` keeps unreadable control records (missing `eventToString`, an ambiguous rendering, a level the runtime does not have) with their context. The first one in the same context, before any readable change, ends the window: "It holds at least until record 3 …, a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. Before record 3, riskMonitor's lines below WARN are not in this log." An unreadable record in another grouping does not touch this one | `anUnreadableControlRecordEndsTheWindowAndSaysWhy`: the reviewer's four-record log in all three unreadable forms; record 2 carries the clause, record 4 is not explained; another grouping's unreadable record changes nothing. The matrix gains an unreadable closing and asserts it never says "Nothing later" |
+| R6-1 Low–Medium | a control record this reader cannot parse was skipped, and the window ran on past it: "Nothing later … changes it, so riskMonitor's lines below WARN are not in this log", false if that record restored INFO | **mine, since RR-2**: skipping an unreadable rendering was right; the window logic was never told a record had been skipped | `of()` keeps unreadable control records (missing `eventToString`, an ambiguous rendering, a level the runtime does not have) with their context. The first one in the same context, before any readable change, ends the window **[corrected in round 7 (O7-2): before the next readable change *to that node*; a readable change to another node does not stop the search]**: "It holds at least until record 3 …, a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. Before record 3, riskMonitor's lines below WARN are not in this log." An unreadable record in another grouping does not touch this one | `anUnreadableControlRecordEndsTheWindowAndSaysWhy`: the reviewer's four-record log in all three unreadable forms; record 2 carries the clause, record 4 is not explained; another grouping's unreadable record changes nothing. The matrix gains an unreadable closing and asserts it never says "Nothing later" |
 | R6-2 Low | "It holds until record 4 sets it to INFO" asserted the level survived a stream-end marker, and the next sentence said that is not established | **mine, since RR-4**: the closing clause never looked for a marker between the change and its closer | when a marker lies between them the closer is **named, not held until**: "The next change to riskMonitor's audit level in the same grouping is at record 4 (logTime 5), which sets it to INFO." The same for an unreadable closer ("The next control record in the same grouping, record 4 …, could not be read by this reader") | `aClosingChangeAcrossAMarkerIsNamedNotHeldUntil`: the reviewer's six-record log, a within-run positive control that still says "It holds until", and the unreadable case. The matrix asserts no note whose closer is past a marker says "It holds" |
 | R6-3 Low | two reach phrasings were also produced by another branch, and two round-5 witnesses went red through reach rather than their labelled check | mine: phrasings chosen without checking they were unique | tightened to `"If the change at record 1 (logTime 1) applied here, riskMonitor's"` and `"applied here, riskMonitor's lines below WARN are not in this log; otherwise"` (the no-boundary conditional only), plus `"the log renders both identically. "` for the other-node null opening. The round-5 rows and the "24 wordings" sentence are corrected in place | the matrix, green with the tightened phrasings. **Not shown red**: the reviewer's loose-phrasing rewrite is a mutation, and none was run this round |
 | O6-1 | the processor guard was case-sensitive | — | `(?i)processor(?! grouping)` | the matrix |
@@ -660,7 +722,8 @@ test, run green on the fixed code; none has been shown red by planting.
 **Found while reading this round's own sentences, beyond the review:**
 1. After an unreadable closer or a cross-marker closer, ", so riskMonitor's lines …" read as if the conclusion
    followed from the clause before it (the uncertainty, or the later INFO). The conclusion is now its own sentence,
-   bounded by where the window ends: "Before record 3, …".
+   bounded by where the window ends: "Before record 3, …". **Corrected in round 7 (R7-1, R7-2): only on the branch
+   with no premise, and the bound started at the beginning of the log, not at the change — both fixed in round 7.**
 2. That bound was itself wrong when every record in view comes before the marker: "Before record 4" would take in
    post-marker records the level is not known to reach. Past a marker the bound is the marker: "Before the
    stream-end marker preceding record 3, …". Asserted in `aClosingChangeAcrossAMarkerIsNamedNotHeldUntil`.
@@ -669,7 +732,9 @@ test, run green on the fixed code; none has been shown red by planting.
    reads "changes".
 
 **The matrix:** 3 openings × 5 groupings × 3 boundaries × 8 closings = **360 logs, all 360 annotated**, both
-asserted exactly, with every branch phrasing reached.
+asserted exactly, with every branch phrasing reached. **Corrected in round 7 (O7-2): not every branch — the one where
+every record in view comes before a marker and the closer is past it was reached only by a dedicated test, never by
+the matrix; round 7's matrix adds it.**
 
 **What I got wrong this round:** R6-1 and R6-2 are the class this thread has chased since RR-2 — a sentence saying
 more than the log establishes — found this time in what the window does *not* see (a record it could not read, a
@@ -813,9 +878,9 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the sixth re-review's fixes are reviewed.** Seven review rounds' findings are
-  fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5 also have mutation
-  witnesses, round 6 by the owner's choice does not. `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
+- analyser — **NOT ready until the seventh re-review's fixes are reviewed.** Eight review rounds' findings are
+  fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5 and 7 also have mutation
+  witnesses (round 7's targeted to its four required findings), round 6 by the owner's choice does not. `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
   integration (`99f9ec47`, no merge defect). **CI's frame job has never run on this branch**; a pull request is
   what would run it. Not merged: the owner's call.
 

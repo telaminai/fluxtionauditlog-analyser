@@ -224,7 +224,10 @@ still to do.
   three optional items. `main` 1.20.1 merged in (`e82808e7`; integration review `99f9ec47`, no merge defect). A
   **sixth re-review** (`1c3173ae`) found an unreadable control record passed over as if it changed nothing, and a
   closing clause asserting the level held across a stream-end marker; both fixed, with two loose test phrasings and
-  four optional items. Suite 2102/0/98. **Awaiting review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  four optional items. Suite 2102/0/0/98. A **seventh re-review** (`43e29973`) found the new conclusion bounds
+  started at the beginning of the log and were missing on the premise branch, and an ungrouped closer across a marker
+  stated as definite; with the owner's two decisions (bound it by the change, window and grouping; R-B's rule stops at
+  a marker) all fixed, with targeted witnesses. Suite 2104/0/0/98. **Awaiting review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and
