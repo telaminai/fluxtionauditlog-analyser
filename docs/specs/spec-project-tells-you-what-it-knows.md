@@ -1,6 +1,6 @@
 # Spec — the project tells you what it knows
 
-**Status:** proposed 2026-09-26. Closes #20, #21, #22, #23.
+**Status:** implemented 2026-09-26. Closes #20, #21, #22, #23.
 
 ## The proposition
 
@@ -113,18 +113,29 @@ behaviour; the gap is that there was no way out, only in.
 
 ## Acceptance
 
-- [ ] Two profiles under one root show different titles, and the Project panel row shows the settings path.
-- [ ] `activeName()` still returns the project name; nothing that keys on it changes.
-- [ ] A project-supplied exchange directory is used when exchange is enabled, ignored when it is off.
-- [ ] `..`, `~` and absolute values for `assistant.exchangeDir` are refused with the reason shown.
-- [ ] A project-supplied directory that does not exist is refused, not created.
-- [ ] `context.exports.source` says `project` or `machine`.
-- [ ] The anchor control offers only ancestors, writes only what `refuseWorkspaceRoot` accepts, and
+- [x] Two profiles under one root show different titles, and the Project panel row shows the settings path.
+- [x] `activeName()` still returns the project name; nothing that keys on it changes.
+- [x] A project-supplied exchange directory is used when exchange is enabled, ignored when it is off.
+- [x] `..`, `~` and absolute values for `assistant.exchangeDir` are refused with the reason shown.
+- [x] A project-supplied directory that does not exist is refused, not created.
+- [x] `context.exports.source` says `project` or `machine`.
+- [x] The anchor control offers only ancestors, writes only what `refuseWorkspaceRoot` accepts, and
       shows how many roots each choice makes portable.
-- [ ] Declaring an anchor turns the Project panel's warn rows normal without a restart.
-- [ ] A report can be deleted from the UI and over MCP; the confirmation names the report and its log.
-- [ ] A report can be renamed; replace-by-name still replaces.
-- [ ] Deleting the last report leaves `report.count=0` and a well-formed profile.
+- [x] Declaring an anchor turns the Project panel's warn rows normal without a restart.
+- [x] A report can be deleted from the UI and over MCP; the confirmation names the report and its log.
+- [x] A report can be renamed; replace-by-name still replaces.
+- [x] Deleting the last report leaves `report.count=0` and a well-formed profile.
+
+All eleven are covered by tests named for the criterion. Two are worth stating because the
+implementation moved:
+
+- *Delete from the Project panel row* was dropped, and the spec says why above. The row's Open
+  reveals the report where Delete lives.
+- *The anchor control offers only ancestors* became **only ancestors below the filesystem root**. A
+  wrong expectation in the test for that criterion turned up an anchor at `/`, which every absolute
+  path is under: it would have reported every root portable while writing the machine's layout into
+  the profile as a run of `..` steps — the best-looking answer in the list and the worst one in the
+  file.
 
 ## Non-goals
 

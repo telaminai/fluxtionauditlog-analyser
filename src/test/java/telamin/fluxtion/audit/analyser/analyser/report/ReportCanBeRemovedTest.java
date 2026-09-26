@@ -101,6 +101,38 @@ class ReportCanBeRemovedTest {
                 "and what SURVIVES — deleting the assembly is not deleting the evidence: " + warning);
     }
 
+    /**
+     * Deleting the LAST report is the case a "write the list" serialiser gets wrong: the export is
+     * gated on {@code !reports.isEmpty()}, so an empty list writes no {@code report.count} at all and
+     * the previous count survives in the file being overwritten (M38.7 carries over what this version
+     * does not write). The profile would then reload the report that was just deleted.
+     */
+    @org.junit.jupiter.api.Test
+    @DisplayName("Deleting the LAST report leaves report.count=0, not the previous count")
+    void deletingTheLastOneEmptiesTheProfile(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp)
+            throws java.io.IOException {
+        var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare("/home/tester");
+        var config = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        java.nio.file.Path profile = tmp.resolve(".analyser/project.fluxtion-settings");
+        java.nio.file.Files.createDirectories(profile.getParent());
+
+        config.reports.add(report("only-one", "The only one"));
+        telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, config, share);
+        assertTrue(java.nio.file.Files.readString(profile).contains("report.count=1"));
+
+        config.reports.clear();                                    // what removeReport leaves behind
+        telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, config, share);
+
+        String written = java.nio.file.Files.readString(profile);
+        assertTrue(written.contains("report.count=0"),
+                "an empty list must SAY nought, or the count carried over from the previous save "
+                        + "brings the deleted report back on the next load:\n" + written);
+
+        var reloaded = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.load(profile, reloaded, share);
+        assertTrue(reloaded.reports.isEmpty(), "and it stays deleted: " + reloaded.reports);
+    }
+
     @Test
     @DisplayName("A report with no fingerprint says so rather than naming nothing")
     void deleteConfirmationWithoutAFingerprint() {
