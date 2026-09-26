@@ -617,7 +617,11 @@ missing from an export that reported success.
 **Independent review, 2026-09-26** (`0bb01fa8`): R1–R8 and the remaining implementable gaps were implemented on
 `feat/m44-single-state-session` and are tracked under **M44.4r**. They were accepted by the two re-reviews, and
 merged to main with PR #25 on 2026-09-26. **The M68 items below stay open (◧):** merging put their code on main;
-it closed none of them. Q4 (partial delivery), Q5 and each slice's own stated gaps remain as written.
+it closed none of them. **Q4 and Q5 were answered by the owner on 2026-09-26** — ship as an explicit partial
+delivery with the gaps stated, and a repair journey rather than an address escape; see the spec's "Open for the
+owner". Each slice's own stated gaps remain as written, and O2 is still undecided. Q4 carries four conditions, one
+of which gates another item: **charts are marked before G14 runs**, because G14's pass condition is a chart made
+from actually logged values.
 
 Sibling of the tool-agreement spec, which governs agreement *between* tools. Distinct from the Mongoose audit
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
@@ -1974,8 +1978,8 @@ of the originals is in `057a069a`.)*
       - **Merged to main via PR #25:** yes.
       - **Still open:**
         - [M44.4] §13's open acceptance (below);
-        - the owner decisions Q4 (partial delivery), Q5 (saved names with `"`) and O2 (graph-content identity),
-          none decided by this merge;
+        - the owner decision O2 (graph-content identity), not decided by this merge; Q4 (partial delivery) and
+          Q5 (saved names with `"`) were answered on 2026-09-26, Q4 conditionally;
         - the optional follow-ups: the empty series picture's "widen the filter" advice (review O1) and the lone-point
           dot;
         - the Mongoose integration, scheduled after this merge.

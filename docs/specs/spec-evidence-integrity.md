@@ -595,13 +595,33 @@ responsibilities, and no further client trial: these are contract and acceptance
   grammar can address: refuse at creation, or accept and map.
   *D-E5 and acceptance 5 are conditional until this is answered. Recommended: refuse for the first slice, and
   keep saved names reachable through an explicit compatible address.*
-- **Q4** (independent review, 2026-09-26) whether M68 ships as an explicit partial delivery with the gaps listed in
-  "As shipped after the independent review". Set 13 implemented the pointer, nested-key and report-section surfaces
-  (focus and series sections drawn) and marks the table; what remains for this decision is that the table is marked
-  rather than suspended, the detail pane and charts are not marked, and the producer half of D-E9 is another
-  repository's. A green gate for one surface is not a completion tick for the slice.
-- **Q5** (review R8) the compatibility path for a saved chart name containing `"`: an escape in the address grammar,
-  or an explicit repair journey that asks before renaming. Either way the definition is kept.
+- ~~**Q4**~~ **answered 2026-09-26: ship as an explicit partial delivery, with the gaps stated.** Whether M68
+  ships as an explicit partial delivery with the gaps listed in "As shipped after the independent review". Set 13
+  implemented the pointer, nested-key and report-section surfaces (focus and series sections drawn) and marks the
+  table; what remained for this decision is that the table is marked rather than suspended, the detail pane and
+  charts are not marked, and the producer half of D-E9 is another repository's. A green gate for one surface is not
+  a completion tick for the slice.
+  *Reason: D-E9's producer half is not built here — it is "the seam with the Mongoose audit format work and is
+  owned jointly" — so M68 can never be complete within this repository, and refusing partial delivery means never
+  shipping. The decision is therefore about the unmarked surfaces, not about the slice. The incident that raised
+  M68 reached a held-out client through the **verb** path, and request verbs are suspended or labelled; the
+  surfaces still unmarked are the human-facing detail pane and charts. Conditions of this answer: (1) the release
+  note names the unmarked surfaces — a partial delivery only works if the gaps ship stated; (2) detail-pane and
+  chart marking is a tracked follow-up with an owner, not "remaining"; (3) D-E9's producer half is recorded as
+  another repository's so no later reader takes M68 for abandoned; (4) **charts are marked before G14 runs** —
+  G14's pass condition is a chart or report made from actually logged values, so an unmarked chart is the one
+  surface where that gate could pass on a claim the instrument has not established.*
+- ~~**Q5**~~ **answered 2026-09-26: an explicit repair journey that asks before renaming; no escape in the
+  address grammar.** The compatibility path for a saved chart name containing `"`. Either way the definition is
+  kept.
+  *Reason: Q2's answer closed the inflow — `ChartNames.problem` refuses `"` at the verb's create and rename, at the
+  UI rename and at the duplicate-name repair — so the affected population is closed and finite and can only shrink.
+  An escape would permanently complicate the one grammar MCP agents must generate and parse, and widen the parser
+  surface, to serve a set that cannot grow; the "no address, and said so" state is already built and honest. This
+  answer leaves D-E5's invariant unsatisfied for any name nobody repairs, which is the accepted cost. Condition:
+  the population is small. Measured 2026-09-26 across every store reachable on the owner's machine — 102 settings
+  files, 949 name-shaped entries, **0 containing `"`**. Customer stores were not visible; if one is later found to
+  hold a material number, reopen this rather than treating the count as settled.*
 - **Q3** whether D-E8's inspection requirement becomes a standing release gate or applies only to this milestone.
   *Recommended split: the executable content check becomes a standing export regression gate, and visual
   inspection applies when rendering changes. This is a cost decision, not a correctness one.*
