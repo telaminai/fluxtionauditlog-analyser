@@ -1933,28 +1933,39 @@ of the originals is in `057a069a`.)*
   | `flaggedRows` / `findings` | 7 paired sites | flags, reports | none — the invariant "a finding's row is flagged" is hand-kept at every site and holds today; low priority |
   | `followStreamEnd`, `followPendingChars` | the Follow refresh | the refresh gate | not state — change detectors; they go when the findings are a fact |
 
-  **Split, so the witnessed defects stop hurting before the graph work** (owner-reviewed suggestion, 2026-09-27):
-  *first*, a small surface fix — Follow appends re-run `TimeOrderValidator`, and the Follow status line carries
-  provenance and the time-order warning — with W1 and W2 as its wrong-result witnesses; *then* the snapshot move
-  below. The scans stay in the frame: the processor receives their RESULTS as facts and never walks the index on a
-  Follow tick.
+  **Owner direction, 2026-09-27: ONE way of handling dispatch and orchestration — no hand-placed dispatch, however
+  small.** The record supports it. The independent M44.4 review read the generated `SessionProcessor` against every
+  node and found no state-transition defect inside it; every defect was hand-written code around it:
+  - the driver's listener loop (O1, notification order);
+  - the snapshot's publication (R4, mutable qualifications);
+  - callers stamping wrong inputs (R1) or bypassing a decision (R2);
+  - a failed poll that never told the session (PR #34);
+  - the `MainFrame` pushes above.
 
-  **Design — follow the M44 pattern, and say which parts go through the Fluxtion graph:**
-  - **Through the graph** (session state, one owner). The FRAME keeps doing the scan (`ProducerDiagnostics.of`,
-    `TimeOrderValidator`) and posts the result as a fact, like `LogIdentityObserved`:
-    - `ProducerFindingsObserved(generation, findings)`, from load and from every Follow refresh;
-    - `TimeOrderObserved(generation, report)`, from load AND from Follow appends, which closes the time-order gap;
-    - `ProvenanceResolved(generation, provenance, source)`, after the environment match, so the session's copy is
-      the one surfaces read.
+  An interim "quick surface fix" (an earlier draft of this item) would have added two more hand-placed calls, the
+  very pattern at fault, so there is none. W1 and W2 are this item's own wrong-result witnesses.
 
-    New state nodes hold them, refuse a stale generation, clear on close, and publish in `SessionSnapshot`.
-  - **Not through the graph** (rendering). Every surface above renders from the snapshot, on the existing snapshot
-    listener, and the hand-placed refresh calls and `store == null ? null : producerDiagnostics` suppliers are deleted.
-    The status line gets ONE composer, taking the snapshot, used by load, Follow start and Follow ticks. Whether a
-    component is on screen, and which handler a verb routes to, stay surface concerns, covered by the test rule below.
-  - **Regeneration is owner-run:** `-Pregen` needs `fluxtion-builder` and the key (spec D-S1.1). The implementer
-    drafts the graph source and the nodes; the owner regenerates; review reads the committed generated source and
-    the pinned GraphML, as the spec prescribes.
+  **Design — the processor decides WHAT and WHEN; adapters only execute effects and render snapshots:**
+  - **When to scan is the processor's decision.** On `LogOpened` and `LogAppended` (and on the facts that change
+    what a scan would find), the session requests effects through `SessionEffects`, the same mechanism as
+    `OpenLogEffect` and `ShowStatusEffect`:
+    - `ScanProducerFindingsEffect(generation)`;
+    - `ScanTimeOrderEffect(generation)`.
+
+    The adapter runs the scan (`ProducerDiagnostics.of`, `TimeOrderValidator`) off the processor, then posts the
+    result as a fact: `ProducerFindingsObserved(generation, findings)` or `TimeOrderObserved(generation, report)`.
+    The scan never runs inside dispatch.
+  - **Provenance is resolved by the session.** The environment match is a pure function of the profile's
+    environments and the log's location, so it runs in a node on `LogOpened`, and `OpenLog.provenance` becomes the
+    one copy every surface reads.
+  - **New state nodes** own findings, time order and provenance. They refuse a stale generation, clear on close,
+    and publish in `SessionSnapshot`, frozen like the qualifications (R4's lesson).
+  - **Every surface renders from the snapshot** on the one snapshot listener: the status line (ONE composer), the
+    tooltip, `context`, the `report` reply, the PDF and the Reports tab. The frame holds none of this state and
+    calls no refresh by hand. The driver's re-entrant notification order (O1) is fixed first, because more of the
+    UI will hang off the listener.
+  - **Regeneration is owner-run** under `-Pregen` (spec D-S1.1). The implementer drafts the graph source and the
+    nodes; review reads the committed generated source and the pinned GraphML.
 
   **Call sites this retires:**
   - the three `producerDiagnostics =` assignments, replaced by facts;
@@ -1977,6 +1988,13 @@ of the originals is in `057a069a`.)*
   4. `context.provenance` and the session agree after an environment match.
   5. The M44 shape test and the existing session suites pass on the regenerated processor.
   6. Each new fact node has a stale-generation control.
+  7. No surface or adapter decides when to compute or refresh: a static check finds no write to the retired
+     fields and no hand-placed `reportsPanel.refresh()` / `setToolTipText` / status composition outside the one
+     snapshot listener.
+  8. The effects are requested by the processor: a control that stops `LogAppended` requesting the time-order
+     scan fails W1.
+  9. O1 is fixed: a listener that posts a fact while being notified never makes another listener see an older
+     snapshot last.
 
   **Test rule it pairs with** (for what a snapshot cannot cover): a surface test goes through the real entry point
   (the frame, the verb, what is on screen), and a control reverts the call site, not only the helper. That is the
