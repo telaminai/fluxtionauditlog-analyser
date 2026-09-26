@@ -186,6 +186,14 @@ public interface LogStore extends AutoCloseable {
         return -1;
     }
 
+    /**
+     * Row indices at which a new run begins after a stream-end marker, ascending. Empty for a store that
+     * cannot see markers. Used where a state set in one run must not be silently carried into the next.
+     */
+    default java.util.List<Integer> runBoundaries() {
+        return java.util.List.of();
+    }
+
     /** Release any resources (e.g. a mapped file channel). No-op by default. */
     default void close() {
     }

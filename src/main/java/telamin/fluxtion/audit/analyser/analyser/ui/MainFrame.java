@@ -4498,7 +4498,15 @@ public final class MainFrame extends JFrame {
             if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
             reportIdentityToSession(store.followIdentity());   // M68.5: before anything the poll adds is published
         } catch (java.io.IOException ex) {
+            reportIdentityToSession(store.followIdentity());   // a failed poll also retires the session's earlier verification
             status.setText("Follow read failed: " + rootMessage(ex));
+            // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
+            // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on
+            // EVERY tick, so the fault never reached context's producer list or the tooltip — only this one
+            // status line. Refresh them here too — but only when the current findings do not already carry the
+            // damage (third re-review O-B; wording corrected in the fourth, O-2), because after the first failure
+            // nothing moves and a rebuild every second is pure cost.
+            refreshFollowDiagnostics(store.streamEnd(), 0, true);
             return;
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
@@ -4522,20 +4530,9 @@ public final class MainFrame extends JFrame {
         // so `context.streamEnd` said "missing_records" to an agent while the person watching the file
         // was shown nothing at all. The completeness state is re-read on every tick and the human
         // surfaces are refreshed when it moves, whether or not any record came with it.
-        var end = store.streamEnd();
-        // M68.3: the pending frame is re-scanned when it GROWS. A live log with no separators at all never adds a
-        // record, so without this its collapsed framing would never be suspected while it was being followed.
-        String pending = store.pendingFrameText();
-        int pendingChars = pending == null ? 0 : pending.length();
-        if (followNeedsDiagnosticRefresh(followStreamEnd, end, added) || pendingChars != followPendingChars) {
-            followStreamEnd = end;
-            followPendingChars = pendingChars;
-            producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                    .of(store.index(), store::rawText, store.sourceDiagnostics(),
-                            store.completenessDiagnostics(), store.completenessIsNote(), pending);
-            status.setToolTipText(producerDiagnostics.isClean() ? null
-                    : String.join("\n\n", producerDiagnostics.messages()));
-        }
+        // Integration: MA's refresh rule (only when the stream end or the rows moved, and a repeated failure skipped)
+        // with M68.3's (also when the pending frame grows) — both live in refreshFollowDiagnostics.
+        refreshFollowDiagnostics(store.streamEnd(), added, false);
         if (added == 0) {
             // R12-2: a tick with nothing new used to overwrite whatever the status bar was saying, so an
             // explanation of why an action did nothing vanished about a second later while Follow was on.
@@ -4559,6 +4556,37 @@ public final class MainFrame extends JFrame {
         tablePanel.scrollToLast();
         status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
                 store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+    }
+
+    /**
+     * Recompute the producer findings and the status tooltip when the follow state moved — on a tick that
+     * read, and (second re-review O2) on a tick whose read FAILED, because that is the tick the fault appears.
+     */
+    private void refreshFollowDiagnostics(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int added,
+                                          boolean readFailed) {
+        java.util.List<String> damage = store.sourceDiagnostics();
+        if (readFailed) {
+            // Third re-review O-B: a failed tick adds no rows and leaves the state UNKNOWN, so the only thing that
+            // can have changed is the damage itself. The first failure is new; every later one on the same bytes
+            // is identical, and rebuilding the findings each second cost 73–201 ms on the EDT on a 1M-record log.
+            // Keyed on what the CURRENT findings carry, not on a remembered copy: the findings are also rebuilt on
+            // load, and a reloaded store failing at the same row would otherwise match a stale copy and be skipped.
+            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) return;
+        }
+        // M68.3: the pending frame is re-scanned when it GROWS. A live log with no separators at all never adds a
+        // record, so without this its collapsed framing would never be suspected while it was being followed.
+        String pending = store.pendingFrameText();
+        int pendingChars = pending == null ? 0 : pending.length();
+        if (!readFailed && !followNeedsDiagnosticRefresh(followStreamEnd, end, added) && pendingChars == followPendingChars) {
+            return;
+        }
+        followStreamEnd = end;
+        followPendingChars = pendingChars;
+        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                .of(store.index(), store::rawText, damage,
+                        store.completenessDiagnostics(), store.completenessIsNote(), pending);
+        status.setToolTipText(producerDiagnostics.isClean() ? null
+                : String.join("\n\n", producerDiagnostics.messages()));
     }
 
     /** The follow line's time range, or the words for a log that carries no timestamps. */

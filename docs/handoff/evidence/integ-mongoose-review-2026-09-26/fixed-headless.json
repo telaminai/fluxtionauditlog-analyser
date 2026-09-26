@@ -1,0 +1,10 @@
+{
+  "counts": {
+    "tests": 2393,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 108
+  },
+  "reports": 321,
+  "orphans": []
+}

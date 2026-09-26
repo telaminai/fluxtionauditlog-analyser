@@ -347,21 +347,58 @@ with the answer sitting in the file.
 
 ### Acceptance MA-8
 
-1. When a control record names a `sourceId`, coverage **annotates that node** — its level was set to
-   `WARN` at *t*, and lines below that level are not in this log.
+1. When a control record that applies (see 5) names a `sourceId`, or names none and so sets every
+   node, coverage **annotates each affected uncovered node** — its level was set to `WARN` at a named
+   record, and lines below that level are not in this log.
 2. **Annotate, never excuse.** The node **stays in `uncovered` and in the ratio**, with the note.
    Excusing it would hide a node that never ran if the qualifying record is wrong — and MA-7's injection
    means a control-*looking* record can be content until every writer escapes.
 3. **Filter scope:** level changes are configuration state, consulted **regardless of the current
-   filter**, up to the scope's end. A time or type filter that excludes the control record must not drop
-   the annotation.
-4. **Intervals:** a node set to `WARN` and later restored is annotated **only between the two changes**;
-   silence outside that window is plain uncovered.
-5. **What is parsed:** key on the record's `event` being `EventLogControlEvent` and parse
-   `sourceId`/`level` — **the runtime's `toString` format is not a contract**, so the fixture is pinned
-   to the runtime version. **`groupId` IS in scope**, treated exactly as `sourceId`: it targets nodes and
-   produces the same silence. Where the log alone does not let a `groupId` be mapped to its nodes, the
-   annotation is made **at the group level**, naming the limitation rather than dropping it.
+   filter**. A time or type filter that excludes the control record must not drop the annotation. What
+   the filter decides is which records the annotation is ABOUT — the records in view — and an **empty
+   selection is explained by nothing**; it is not an unbounded one.
+4. **Intervals, by record ORDER:** a change governs the records **after** its own control record and
+   **before** the next change that applies to the same node — a per-node change to that node, or a global
+   one. Half-open: a record after the restore is outside the window, whatever its `logTime`. A change
+   after every record in view explains none of them, timed or untimed. An interval that crosses a run
+   boundary (a stream-end marker) is **qualified, not dropped**: a marker does not prove the process
+   restarted, and nothing in the log proves the level survived. The suppression claim is definite only
+   for records in view **within the run the change was made in**; for records after the boundary it is
+   conditional on survival, and a scope wholly after it gets no definite claim at all (re-review RR-4).
+   **Within one processor:** order is a clock only inside one processor's records. Each record's context
+   is the grouping its OWN `groupingId:` line declares, read only before its `event:` line so a payload
+   cannot declare one; a change explains, and is closed by, only records of the same declared context.
+   A record with **no** `groupingId:` line does not declare "ungrouped", so applicability there is
+   qualified, not assumed. **Stated limit:** records that share a grouping are read as one processor's,
+   which nothing in a record establishes (re-review RR-3). **What the notes rely on** (owner decision,
+   2026-09-26, eighth re-review): the owner states, as a fact about the producer, that it writes **one
+   processor per grouping**. Every note's scope phrase — "in the records sharing its grouping", "in the
+   records that, like it, state no grouping" — reads one grouping's records as one processor's stream on
+   that statement. The note does not repeat the limit; this spec and the `PerNodeLevelChanges` class
+   Javadoc are where it is written down. **How far a change reaches past a stream-end marker** (owner
+   decision, 2026-09-26, option b): a change's annotation stops at the **second** stream-end marker after
+   it. Records past that marker get no level annotation and stay uncovered, so a note carries survival of
+   at most one marker.
+5. **What is parsed, and when a change applies — as the RUNTIME does it** (1.0.16,
+   `EventLogManager.calculationLogConfig`): key on the record's `event` being `EventLogControlEvent`;
+   read `level`, `sourceId`, `groupId` by the rendering's **fixed separators** — each exactly once, in
+   order — so a value keeps its commas, braces and spaces exactly as the runtime's exact map lookup sees
+   them; a rendering where a value contains a separator is ambiguous and **skipped**, never read as global,
+   and an empty `sourceId` names a node called "", not every node (re-review RR-2). **Stated limit:** the
+   runtime renders Java null and the string `"null"` identically, so no reader of the text can tell them
+   apart. The annotation therefore **leads with both readings** — "names no node … or a node literally called
+   `"null"`; the log renders both identically" — and **conditions its conclusion on the no-node reading**
+   ("if it named no node, …"), never asserting that reading first (second re-review S3). More generally,
+   every premise the log leaves open — *named no node*, *applied here*, *survived the marker* — is carried in
+   the ONE condition each conclusion rests on, and no annotation presumes a processor: it speaks of "the records sharing its grouping", or, where the grouping is
+   not declared, "the records that, like it, state no grouping" (S2). A change **applies** only when the
+   processor's grouping — the `groupingId:` every runtime record carries — is null or equals the
+   change's `groupId`; it then sets **that node** (`sourceId`) or **every node** (`sourceId` null). The
+   pin is tested against the runtime jar the build links, not a typed string.
+   *Superseded 2026-09-24:* this clause previously said `groupId` was "treated exactly as `sourceId`" and
+   annotated nodes "at the group level" where membership could not be mapped. `groupId` is not node
+   membership; that reading was inferred, shipped in phase 1, and was found by reading the runtime while
+   answering the independent review's F4.
 6. A conformance fixture. *(The admin endpoint is global-only, so this is reachable from Java alone —
    which does not make it rare in hand-tuned deployments.)*
 
@@ -479,6 +516,14 @@ sees only pre-registration records, so Mongoose warns loudly until MA-5 lands.
 8. **With `auditText` and a still-replacing `auditCapture` both enabled, Mongoose warns loudly** —
    asserted, not assumed. Until MA-5 lands this is the only thing standing between a developer and a
    `complete` file holding none of their events (F1).
+9. **The text writer carries processor identity** (second re-review O4; a design requirement, not yet
+   designed). Under OD-4 the writer is the server's **configured listener**, which `MongooseServer` installs on
+   **every** processor, so the developer-default file interleaves processors — ungrouped by default, which is
+   exactly the shape MA-8's stated limit cannot separate ("records that share a grouping are read as one
+   processor's"). MA-2 must therefore write **one file per processor, or declare a grouping per processor**.
+   **Using `groupId` as that identity is not free:** under the runtime's rule a grouped processor applies only
+   control events addressed to its own grouping, so declaring one changes which level changes take effect.
+   Decide which before implementing; do not implement it as a one-line default.
 
 ### OD-5 — OPEN · Does the Chronicle backend get a marker?
 

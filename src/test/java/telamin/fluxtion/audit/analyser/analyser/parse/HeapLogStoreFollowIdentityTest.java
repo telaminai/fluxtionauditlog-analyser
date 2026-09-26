@@ -14,6 +14,30 @@ import static org.junit.jupiter.api.Assertions.*;
 /** M68.5: the heap store decides identity before it indexes anything, on real files. */
 class HeapLogStoreFollowIdentityTest {
 
+    @Test
+    void unreadableSameLengthReplacementRetiresTheVerifiedIdentity(@TempDir Path dir) throws Exception {
+        Path f = file(dir, "aaa");
+        HeapLogStore s = HeapLogStore.fromFile(f).forFollow();
+        assertEquals(0, s.appendFrom(f), "control: an idle poll adds nothing");
+        assertEquals(FollowIdentity.Verdict.UNCHANGED, s.followIdentity().verdict(), "control: bytes were verified");
+        assertFalse(s.readIdentities().isEmpty(), "control: opening digest exists");
+        byte[] replacement = Files.readAllBytes(f);
+        replacement[10] = (byte) 0xff;
+        Files.write(f, replacement);
+        assertThrows(java.nio.charset.CharacterCodingException.class, () -> s.appendFrom(f),
+                "the replacement cannot be decoded");
+        assertAll("failed reads retire current-byte claims",
+                () -> assertEquals(FollowIdentity.Verdict.UNVERIFIED, s.followIdentity().verdict(),
+                        "a failed decode must not retain the earlier UNCHANGED identity"),
+                () -> assertTrue(s.readIdentities().isEmpty(), "a replaced file must not retain its opening digest"),
+                () -> assertFalse(s.sourceDiagnostics().getFirst().contains("bytes appended"),
+                        "a replacement is not established to be an append"));
+        assertEquals(0, s.appendFrom(f), "a quiet failed poll indexes nothing");
+        assertEquals(FollowIdentity.Verdict.UNVERIFIED, s.followIdentity().verdict(),
+                "a quiet failed poll cannot resurrect verification");
+        assertEquals(1, s.size(), "the retained index is unchanged");
+    }
+
     private static String record(String id) {
         return "eventLogRecord:\n  logTime: 1\n  event: Tick\n  nodeLogs:\n    - " + id + ": { v: 1}\n---\n";
     }
