@@ -347,3 +347,83 @@ plain value containing `: '` whose quote never closes on its line would open a f
 - **P63 — end to end.** Scenario 16's first check fails on a jar built from `ac0efaa0` (the old count accuses the
   legal file), and its suspicion checks fail there too (the old message says "This log is missing", not
   "Suspected"). All pass on the fix.
+
+## Set 12 — the independent review's findings R1–R8, O1, O2 (review `0bb01fa8`, subject `14a72acc`)
+
+**Written before any fix code or new test exists** — this commit touches only this file, so the gate is the tree
+itself. What is already OBSERVED is not predicted here: every review probe was re-run on `0bb01fa8` and reproduced
+byte for byte (`ReviewProbe`, `CoverageRaceProbe`, `ReportCoverageProbe`; outputs identical to the committed ones).
+Those are reproductions, recorded in RESULTS. The predictions below are about trials that have not run: the new
+regressions, their state on the unfixed code, the witnesses, the counts, and the probes re-run after the fixes.
+
+**Design, fixed before coding.**
+- **R1.** `doCoverage` captures the store, the session snapshot, the graph input, a COPY of the filter and the scan
+  bound in ONE task on the EDT, where every log, graph and filter change happens, so no change can fall between
+  them. The scan runs off the EDT on the copy and the bound (`CoverageService.assess` gains a bound). The
+  qualification carries the captured generation/revision; the qualifier's existing stale check refuses it if the
+  pair moved.
+- **R2.** The report's own graph-provenance test is removed. `coverageForReport` takes the session snapshot's claim
+  in the same EDT call as the store and graph it scores: REFUSED renders the claim's reason, with no ledger and no
+  scalar line; QUALIFIED keeps the whole ledger and adds the claim's reason as a note. One helper, used only by the
+  report, turns the session's `Assessment` into `CoverageData`; it decides nothing.
+- **R3.** `RolledLogStore.readThroughIdentity()` asks every member and returns the most severe verdict, its reason
+  prefixed with the member file and its position; any member that suspends reads makes the set suspend reads.
+  `LogStore.readThroughAssessed()` (default false) states the SPI boundary: true for the heap and mapped stores with a
+  file, true for a rolled set only if every member is.
+- **R4.** `PairingQualifications` gains a frozen copy whose mutators throw; `SessionSnapshot` freezes whatever it is
+  given in its compact constructor. Equality ignores the flag.
+- **R5.** `topologyProblem` predicts, from the request's own `select`, `pop` and `focus`, whether a focus will be in
+  force when `saveFocusAs` runs, and refuses the whole call if not (and for a blank name).
+- **R6.** `FramingScan` skips one U+FEFF at position 0 of the item, for that first line's header test only.
+- **R7.** `pendingUnseparated` returns `FRAMING_NOT_ASSESSED`, worded as the record still being written, when the scan
+  is truncated with no candidate. The pending frame is scanned unless an UNSEPARATED finding is already present (it
+  was skipped whenever ANY indexed finding, including NOT_ASSESSED, had been added).
+- **R8.** `SpotlightTarget.graphAddress` returns null for a name the quoted grammar cannot carry (it contains `"`);
+  `context.graphAddresses` carries null at that position, and `context.graphAddressUnavailable` names the chart and why.
+- **O1.** `publishSnapshot` stops delivering an older snapshot once a listener's posted fact has published a newer one.
+- **O2.** Javadoc and spec state what `graphRevision` binds (path, source, declared ids, node types); a test pins that
+  an edge-only change does not move it. Content identity stays an open decision, recorded, not claimed.
+
+**Predictions.**
+- **P64 — R1 red first.** `CoverageCaptureTest#oldInputsCannotAcquireANewIdentity` (a log switch queued by the store
+  supplier itself) fails on the unfixed executor: the new generation acquires a qualification naming the old log's
+  id. `#aGraphChangeDuringPreparationIsNotStampedNew` fails the same way. `#theScanUsesTheFilterItCaptured` fails:
+  the live filter changed mid-scan is what the scan used. `#theScanRunsOffTheEdt` PASSES on the unfixed code (it
+  already scans off the EDT) — a guard, not a witness of the defect. Confidence 70%: the graph case depends on the
+  topology panel and `GraphOpened` moving in one EDT task.
+- **P65 — R2 red first.** `ReportCoverageTest` has three cases (retained mismatched graph, INFERRED graph, graph with
+  no auditor). On the unfixed report path the mismatch and no-auditor cases print a ratio; the INFERRED case is
+  refused by the report's own provenance test, so it passes on the unfixed code. After the fix all three render the
+  action's exact refusal sentence and no "ratio". The built-jar `ReportCoverageProbe` re-run prints the refusal and no
+  "declared … ratio" line.
+- **P66 — R3 red first.** `RolledLogStoreReadIdentityTest`: mapped members, second member rewritten in place →
+  suspends reads and names `b.yaml`; heap members, second changed → retained, labelled, names it; second deleted →
+  REPLACEMENT, retained; unchanged → null; `readThroughAssessed` true for heap/mapped/rolled, false for `SpiLogStore`.
+  Red first on every case that expects non-null, and on `readThroughAssessed` (the method does not exist: a compile
+  failure, so the red-first trial is run with the method stubbed false).
+- **P67 — R4 red first.** `SessionSnapshotTest#aConsumerCannotChangeThePublishedQualifications` fails on the unfixed
+  snapshot (`clear()` succeeds and the next read is empty).
+- **P68 — R5 red first.** `TopologyWholeOrRefusedTest#aRefusedSaveLeavesTheSelection` fails (selection becomes
+  `[rootNode]`); `#focusThenSaveInOneCallStillSaves` passes before and after.
+- **P69 — R6/R7 red first.** In `ProducerFramingTest`: `aLeadingBomDoesNotHideACollapse` (through `HeapLogStore` and
+  `ProducerDiagnostics`) fails; `aBomInsideAValueIsNotAHeader` passes before and after; `anOversizedPendingFrameIsNotAssessed`
+  fails (no finding); `anOversizedPendingFrameWithACandidateIsSuspected` passes before (the prefix candidate is found)
+  and after; the pending frame stays unindexed in both (size 0).
+- **P70 — R8 red first.** `SpotlightTargetTest#aSavedNameWithAQuoteHasNoAddress` fails (a quoted string comes back).
+- **P71 — O1 red first.** `SessionSnapshotTest#aListenerThatPostsDoesNotReorderDelivery` fails with `[second, first]`.
+  O2's `graphRevisionBindsTheHeldFactsNotContent` passes before and after (it pins existing behaviour).
+- **P72 — existing tests.** At most three existing assertions change, all wording or signature: the report tests that
+  build `CoverageData` directly are unaffected; a `graphAddresses` assertion that expects a quoted form for a name with
+  `"` (if one exists) is rewritten to expect null. No other class breaks.
+- **P73 — witnesses** (strict: green baseline, a `<failure>` at the named test and assertion, byte-identical restore
+  from a copy, green after), registered in `tools/mutation_controls_session.py`: one per finding — R1 capture split
+  (store read outside the EDT task), R1 live filter, R2 claim ignored, R3 member identity dropped, R4 no freeze, R5 no
+  save precheck, R6 no BOM skip, R7 no pending bound, R8 quoted address restored, O1 no stop. Each goes red at its own
+  test. The gate grows from 101 to **111**, all caught.
+- **P74 — counts.** Headless grows by the new tests (about 20, final number stated in RESULTS with the list); 0
+  failures, 0 errors; skips unchanged at 101. Frame 102 / 0 / 0 / 0 unless a frame test asserts a quoted address.
+- **P75 — probes after.** `ReviewProbe` re-run on the fix: `snapshot.after` throws (the probe does not catch it, so it
+  stops at that line — recorded as the fix, not a failure of the fix); a copy with that line guarded prints every other
+  line reversed. `CoverageRaceProbe` cannot run against the fix: its store supplier blocks INSIDE the capture, which is
+  now on the EDT, so its own `invokeAndWait` waits until its 10 s timeout. That is the defect made impossible, and the
+  deterministic regression P64 replaces it; the probe is preserved unchanged.
