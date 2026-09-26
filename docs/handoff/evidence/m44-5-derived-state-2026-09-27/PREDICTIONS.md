@@ -74,3 +74,18 @@ entry M44.5 is the scope.
 - **Scan cost.** The scans run on the EDT, as findings do today. Time order moves from the load's background job to
   the EDT pass: one linear scan per changed Follow poll. Measured on a large log if it looks slow; not optimised
   ahead of evidence.
+
+## The owner's question, answered as a prediction (2026-09-27): does Fluxtion help here, more than hand-written logic?
+Yes. These predictions are to be scored against later review records, not remembered:
+1. **Drift defects in state moved into the processor go to about zero.** That means surfaces disagreeing with each
+   other, or showing stale values. The record so far: none inside processor-owned state, about a dozen hand-wired.
+2. **The defects that remain move to two places:**
+   - the adapter boundary, an effect executed against the wrong thing (this design's "scan the old store" trap);
+   - node decisions, a wrong rule in a node.
+
+   Both are cheaper to find: node decisions are testable at the processor level without a display, and the
+   session's audit log records which node decided what, and when.
+3. **The costs are regeneration friction, modelling effort, and reading generated dispatch.** They fall on change,
+   not correctness. They outweigh the benefit only for a small, isolated screen.
+4. **Review rounds in the areas moved into the processor drop,** from 3–4 to about 2 per PR, because the "was every
+   call site updated" finding stops existing.
