@@ -48,7 +48,13 @@ public final class GraphTabs extends JPanel {
      * above every chart tab, so a chart opened after the verdict is under it too. It holds no verdict: the frame sets
      * it from the session snapshot, beside the table's (M68.5). G14's pass condition lands on this surface.
      */
-    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel();
+    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel() {
+        /** Review O2: the warning colour follows the theme — recomputed whenever the look and feel is updated. */
+        @Override public void updateUI() {
+            super.updateUI();
+            setForeground(UiTheme.warnForeground());
+        }
+    };
 
     /**
      * What the charts say for a file-identity verdict, or null for none. WHEN is the table's rule
@@ -57,8 +63,10 @@ public final class GraphTabs extends JPanel {
      */
     static String identityBannerText(String verdict, String reason) {
         if (LogTablePanel.identityBannerText(verdict, reason) == null) return null;
-        return "⚠ " + (reason == null ? "the file behind this log changed after it was read" : reason)
-                + " · these charts are not verified against the file as it is now — reopen the log to redraw them from it";
+        // Review O1: the verdict and the recovery lead, so a narrow pane still shows a complete sentence; the reason
+        // follows, and the whole note is the tooltip.
+        return "⚠ Charts not verified against the file on disk — reopen the log to redraw them · "
+                + (reason == null ? "the file behind this log changed after it was read" : reason);
     }
 
     /** Show {@code note} above the charts, or hide the banner for null. Call on the EDT. */
@@ -169,7 +177,6 @@ public final class GraphTabs extends JPanel {
         bar.add(repairButton);
         identityBanner.setVisible(false);
         identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
-        identityBanner.setForeground(UiTheme.warnForeground());       // theme-aware, light and dark, as the table's
         JPanel north = new JPanel(new BorderLayout());
         north.add(bar, BorderLayout.NORTH);
         north.add(identityBanner, BorderLayout.SOUTH);
