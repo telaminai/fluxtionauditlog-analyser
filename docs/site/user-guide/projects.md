@@ -64,6 +64,17 @@ non-empty destination is never merged or overwritten; and extraction is staged b
 then moved into place atomically. Archive mode bits are ignored—only the fixed root lifecycle allowlist
 (`mvnw`, run, export, stop and key-check shell wrappers) receives executable bits.
 
+A template's own project settings may only point their source folders inside the project being installed.
+Before the move, every settings file in the archive is checked — the main profile, a named one beside it, or a
+nested module's, each against its own folder: a folder outside the project (including one that leaves and
+comes back in through the archive's own folder name), the whole project, a `~`, absolute or Windows-style path
+(a backslash or a drive letter, refused on every OS because the project may later be opened on Windows), a
+path through a file, or a workspace anchor refuses the installation and nothing is installed. Only source
+folders are checked: external CSV files named by a template's saved charts are not. A folder that does not exist
+yet, such as a future `target/` directory, is allowed when it would sit inside the project. Maven repositories
+are not subject to this rule. Projects you set up yourself may still name folders outside the project on
+purpose, such as a neighbouring module.
+
 The analyser **does not run downloaded code**. When the project is ready it shows fixed, copyable build,
 run, export and stop commands selected from recognised filenames. You decide whether to paste them into
 a terminal. If the catalogue is unreachable, the error gives the manual template-gallery route instead
@@ -273,7 +284,32 @@ the generation of the offer they displayed, so a stale button cannot accept anot
 
 Candidates are keyed by canonical project-profile location, with a separate no-project bucket. They are
 not shared in profiles or exported ZIPs. A moved or missing project never inherits another project's
-session. Legacy global recent-log/topology paths remain explicit recent-menu choices, not automatic
+session.
+
+Each candidate also records which profile captured it. The identity is a random `profileNonce` that the
+analyser writes into the profile once, when it creates the profile, and keeps on every later save. It is
+taken when the session is captured, not later when the candidate is written out. A project deleted and
+created again at the same location has a new profile with a new nonce, so it is not offered the old
+project's session even though the path matches. The offer is withheld, and `context.restoration` reports
+`capturedBy: "different profile at this path"`, when the session was captured (`capturedAt`) and what it
+would have opened (`inputs`). A re-extracted download is withheld too: its profile usually has no nonce
+yet (see below).
+
+The nonce is part of the file's contents, not a file-system property, so it behaves the same on macOS,
+Linux and Windows. The tools that usually rewrite a committed profile are a `git pull` or checkout and an
+IDE that saves by writing a temporary file and renaming it. Both keep the identity as long as they keep the
+`profileNonce` line. Checking out a version that has a different nonce, or none, changes it. A copy of the
+file (a clone, or an archive of a committed profile) carries its nonce. At another location it is a
+different recovery key anyway; at the same location it counts as the same profile, and every input is
+still checked before anything opens. A share export never includes the nonce, and importing settings never
+changes it.
+
+A profile with no nonce, written by an older analyser version or shipped in a downloaded bundle, gets one
+the first time the analyser saves a change to it. Opening it alone writes nothing. Until then, and for any
+candidate saved by an older analyser version, the session is withheld with `capturedBy: "unknown"`. A
+missing identity is never treated as a match.
+
+Legacy global recent-log/topology paths remain explicit recent-menu choices, not automatic
 startup opens. A command-line log opens only that requested log.
 
 Identity here means observed file bytes, not proof of the application's build or execution identity.

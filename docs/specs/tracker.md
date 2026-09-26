@@ -6,6 +6,74 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Spring authoring edit loop — session intake 2026-09-25
+
+**PROPOSED; no fixes accepted or shipped by this intake.** A guided website-template session
+reported twenty-four friction points, chiefly on editing an existing graph. Read the
+[review and evidence limits](../handoff/review_spring_authoring_feedback_2026_09_25.md) and
+[fix specification](spec-spring-authoring-edit-loop.md). This is not another client battery
+or a G14 pass. The running project remains untouched.
+
+- ☐ **Java snapshot freshness** — spec §C, feedback 3/20: ordinary same-FQN navigation must
+  revalidate both the Source tab and Topology's embedded pane, replacing the service model
+  from the same snapshot off the EDT, with stale/deleted/cancelled reads disclosed. Reuse the
+  source-spotlight resolver; local Maven source lookup already exists.
+  **In review:** [PR #30](https://github.com/telaminai/fluxtionauditlog-analyser/pull/30) — both panes, service model
+  and off-EDT reads, five gate controls. Vendor-archive rediscovery (§C's last paragraph) stays open here.
+  Not closed until merged.
+- ☐ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
+  delete/recreate a profile at X, then activate it. Current real-path keys cannot distinguish
+  replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
+  qualify mismatch; retain pending-I/O and cross-project controls. Participant history remains
+  unverified; this is proposed regression work, not a reproduced or closed finding.
+  **In review:** [PR #28](https://github.com/telaminai/fluxtionauditlog-analyser/pull/28) — snapshots record the
+  capturing profile's creation nonce (`profileNonce`, taken when the capture is built); a recreated profile at
+  the same path is withheld, a missing identity is withheld as `capturedBy: unknown` (unit + real-frame
+  fixture, gate cases `recovery-profile-identity`, `recovery-identity-unknown`, `recovery-withheld-input-origin`,
+  `recovery-identity-at-capture`, `profile-nonce-kept-by-saves`). Not closed until merged.
+- ☐ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
+  to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
+  generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
+  producer check; D6 approves documenting Windows absence, with implementation deferred.
+  **In review:** [PR #27](https://github.com/telaminai/fluxtionauditlog-analyser/pull/27) — install test runs the
+  three scripts without chmod; gate case `installer-authoring-executables`. Not closed until merged.
+- ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
+  add the emitted Spring design directory to template roots. Validate all template profile
+  source roots inside the installed project in TemplateArchive; preserve explicitly granted
+  external roots in user-authored profiles. Verify topology/source with no log, and under
+  approved D5 offer a verified reachable process with disclosed inferred
+  project association; withhold ambiguous or stale offers. No automatic control or token disclosure.
+  **In review (§I1):** [PR #31](https://github.com/telaminai/fluxtionauditlog-analyser/pull/31) — install-time
+  template-root containment, the visible no-log pairing note and a real-frame no-log journey; the template's
+  design-root and guide change is in review in the template repository. The §I2 console offer is not started.
+  Not closed until merged.
+- ☐ **Project input grants, approved policy; implementation open** — spec §E, feedback 11:
+  retain M68.5's canonical root diagnostics work. D3 approves offering explicit role-scoped
+  grants at project opening, showing what becomes readable; opening alone authorises neither
+  the project root nor target directory.
+- ☐ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
+  default, same-state equality, and basis/qualification carried with every selected verdict.
+  **In review:** [PR #29](https://github.com/telaminai/fluxtionauditlog-analyser/pull/29) — `context
+  {sections}` with eleven published names, qualifiers carried under `scope.carried` (including a rolled
+  set's `files` with `view` and `producer` with `topology`), the key file read only when `fluxtionKey` is
+  selected, refusal before any read, recorded fixture bytes, and five mutation controls in the fast gate.
+  Not closed until merged.
+- ☐ **Upstream handoff** — new asks and existing ownership are routed through
+  [upstream asks](../proposals/upstream-asks.md#spring-authoring-edit-loop--2026-09-25-intake).
+  First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
+  preflight, matching contract and direct-browser archive/documentation checks. Installer
+  permissions and recovery identity belong here, not upstream. No producer implementation
+  belongs in the analyser. D1–D8 were approved by the owner on 2026-09-26 and are recorded in
+  the spec. Its eight startable slices retain their acceptance, and published/provider checks
+  still cannot be closed by branch fixtures. Policy approval advances no implementation mark.
+  **In review, 2026-09-26 (producer repositories, not closed here):** slice 5 compile profile with staged
+  scan output, slice 6 guide text and per-command CLI help, slice 7 audited CSV rejection event (D1). Each
+  was verified on branch fixtures, keyless; published-download acceptance remains open.
+
+The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
+**Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.
+The spec adds acceptance to them; it does not create second completion claims.
+
 ## Project / Sources / Audit log menus — remaining follow-ups
 
 Implementation and guard follow-ups shipped in **1.20.0** (PRs #15 and #17);
@@ -118,6 +186,10 @@ still to do.
   `ChronicleAuditCaptureService`'s comment promises to compose in front of the existing listener and
   restore it; the code sets `previousListener = null` and, on stop, installs a no-op. `DataFlow` has no
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
+  **Recurring intake 2026-09-25:** feedback 13 reports silent stdout on the bundle's older pins;
+  [edit-loop §H](spec-spring-authoring-edit-loop.md#h-existing-auditchart-work-and-a-smaller-context-response)
+  requires acceptance against the actually released and consumed producer. This intake does not
+  re-test or close the separate in-progress MA implementation.
 - **[MA-6] ☐ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
   contradiction: D-MA0b keeps MA-0 at zero records only, so this check lives here._ Reader half in this
   repo; **writer half in MA-2 — the writer WRITES the record, COUNTS it, and WITHHOLDS the marker**, so
@@ -542,11 +614,16 @@ node was absent from a graph that declares it, reported that faithfully, and the
 same packet shows a chart reporting no data where the series response yields a point, and a requested illustration
 missing from an export that reported success.
 
+**Independent review, 2026-09-26** (`0bb01fa8`): R1–R8 and the remaining implementable gaps were implemented on
+`feat/m44-single-state-session` and are tracked under **M44.4r**. They were accepted by the two re-reviews, and
+merged to main with PR #25 on 2026-09-26. **The M68 items below stay open (◧):** merging put their code on main;
+it closed none of them. Q4 (partial delivery), Q5 and each slice's own stated gaps remain as written.
+
 Sibling of the tool-agreement spec, which governs agreement *between* tools. Distinct from the Mongoose audit
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
 verdict, which is owned jointly.
 
-- [M68.1] ☐ **The coverage, pairing and scope verdicts — and it completes M45.4.** **Start here:**
+- [M68.1] ◧ **The coverage, pairing and scope verdicts — and it completes M45.4.** **Start here:**
   [`handoff_m68_1_coverage_pairing_scope.md`](../handoff/handoff_m68_1_coverage_pairing_scope.md) is the cold-start brief.
   Declared authorship read before
   any package heuristic (D-E10), membership against every declared node vertex, the authored eligible population
@@ -558,10 +635,64 @@ verdict, which is owned jointly.
   500 records while coverage scans the whole log. Fixture is the committed graph plus a labelled constructed log,
   so this slice is **not** gated on the packet's missing audit logs. **This was authorised on 2026-09-01 as M45.4
   and lost in an archive sweep** — see that entry, restored above. Was DX-02.
-- [M68.2] ☐ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
+  **IMPLEMENTED 2026-09-24 on branch `feat/m68-1-coverage-pairing-scope` — not merged, not independently
+  reviewed, so ◧ and not ☑.** Declared authorship read first (`Scaffolding.classify`, node-scoped, every answer
+  carrying DECLARED/INFERRED); membership against every declared node; no ratio for an empty population; the
+  pairing carries its scope as data plus `evidenced` / `everyObservedIdDeclared` / `sampled`; the policy no longer
+  lets a kept-but-unjudged or partial pairing reach FULL; provenance wording removed from coverage, pairing and
+  `Match.describe`. **Evidence:** 17 new tests (`EvidenceIntegrityCoverageTest`, `CoveragePolicyEvidenceTest`,
+  `EntryPointAuthorshipTest`, plus one renderer test); four existing wording assertions converted into guards that
+  now *forbid* the build conclusion; full suite 1,895 / 0 / 0 / 62 skips. **Five mutations each turn the suite red
+  alone** (ignore declared authorship: 4 tests; authored-only membership: 3; membership derived from the ratio: 2;
+  retention reaching the claim: 1; the PDF dropping a table's notes: 1). **End to end:** `tools/verify-m68-1-coverage.py` drives the built jar through
+  `open` / `coverage` / `context` against the committed packet graph; it passes on the branch and **fails 17 checks
+  on a jar built from `main`**, reproducing the client's exact warning text — the seen-red run. **Also fixed here, found by
+  driving a real export:** the exported PDF dropped coverage's warning while the on-screen Reports tab showed it; the
+  page now prints each table's notes as the tab does.
+  **Not asserted, and said so:** the pairing note on screen, which the panel's width cuts off at the default
+  window size (the authored-view count *was* checked by screenshot: four nodes on `main`, five here); audit
+  readiness through the panel's hide control.
+  **Re-review round, 2026-09-24:** the implementation review (`review/m68-1-coverage-pairing-scope-2026-09-24`,
+  `5c6f865d`) found five required changes — a display test the branch broke and CI never ran, acceptance 3 met in
+  only one of three open orders, the build conclusion alive on five surfaces, the brief's third mutation
+  unguarded, and an untested merged tree. All answered on the branch with `main` merged in; see the report's
+  addendum and `docs/handoff/evidence/m68-1-rereview-2026-09-24/`. Final gates: headless 1,927 / 0 / 0 / 62, frame
+  63 / 0 / 1 skip, 21 of 21 mutations RED at their named test.
+  **Round 3, 2026-09-24:** the re-review (`review/m68-1-rereview-2026-09-24`, `6a7042e7`; not independent, its author
+  wrote the first review) found three more — the whole-log qualification outliving its log under Follow, a
+  narrower comparison erasing a wider one, and holes in the wording guard. All three answered, plus the same
+  staleness one and two levels down (the published pairing, the session's copy). Final gates: headless
+  1,933 / 0 / 0 / 64, frame 65 / 0 / 1 skip, 33 of 33 mutations RED with a `<failure>` at their named test and green
+  again after every restore.
+  **Round 4, 2026-09-24:** the round 3 review (`review/m68-1-round3-2026-09-24`, `4769d93a`, same author as both
+  earlier reviews) found narrower versions of the same class — two filtered comparisons erasing each other, a
+  filtered comparison outliving its filter, a stale comparison's fields still claiming the whole log, formatting
+  that hid the phrase from the guard, and a fourth sampling loop. All answered; the normalised guard also caught a
+  real survivor in the published topology guide. Final gates: headless 1,937 / 0 / 0 / 65, frame 66 / 0 / 0 / 1
+  skipped, 48 of 48 mutations RED with a `<failure>` at their named test and 49 of 49 green again. **Awaiting
+  review; still ◧.**
+  **Found while testing, belongs to M68.4:** `open {log, graphml}` with a graph that declares only half the logged
+  ids reports success and the graph is then no longer loaded — a combined request that silently drops part of
+  itself. Reproduced end to end, and **pre-existing**: identical on a jar built from `main`, and only the combined
+  request drops the graph — opened separately, the graph is kept and announced. Not fixed here.
+- [M68.2] ◧ **Report and chart rendering** — every requested section renders or says why not; a chart claiming no
   data is contradicted by a successful series response over the same inputs; acceptance is by inspecting the
-  artefact, not by exit status.
-- [M68.3] ☐ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** The producer
+  artefact, not by exit status. **Built 2026-09-24 on `feat/m44-single-state-session`; awaiting review.** Read from
+  the G14 packet's own PDF first. Its "Trend" was the whole chart TAB painted at about 190 px, with a plot sliver
+  saying "No data under the current fi…", and its requested topology section left nothing on the page. Three defects,
+  three fixes: charts render off-screen at page size (`ChartPanel.toImage(w,h)`, `GraphPanel.renderForReport`); a
+  starved plot says it has no room, not that there is no data; and the renderer prints NOT RENDERED with its reason
+  for any CHART/TOPOLOGY section with no picture. The topology gap text had never reached a page. Verifier scenario 13
+  fails on a `df0b24a5` jar and passes on the fix. **Open:** an off-screen render of a named FOCUS, so the section is
+  drawn and not only explained; the D-E8 contradiction test in its general form (chart versus `series` over the same
+  inputs); and SERIES sections, still a stated gap.
+- [M68.3] ◧ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** **Analyser half
+  built 2026-09-24 on `feat/m44-single-state-session`, awaiting review, on CONSTRUCTED logs** (the original is not
+  in the public packet; the diagnostic judges structure, so each acceptance-10 case was built exactly, and the real
+  starter sample is the cross-check). The legal quoted-key file is no longer accused: the old jar says "record 1
+  alone contains 2 records run together" word for word (verifier scenario 16). Collapses are suspected with span and
+  candidate lines; beyond the bound is "not assessed"; the pending frame is scanned under Follow. **Open:** the
+  producer half, which stays filed against the starter and the audit format. The producer
   diagnostic already exists, counts raw occurrences of the record-header key inside a frame, and was reproduced in
   round 3 reporting "record 1 alone contains 2 records run together" for a **legal one-record file** whose quoted
   value contains that key as literal text. That verdict reaches `context.producer` and the human surface today.
@@ -570,8 +701,42 @@ verdict, which is owned jointly.
   pending frame under follow without accepting the pending record. Format 1 §1 and §1a already settle the legal
   single-record file, the ordinary unterminated tail and the pending record. Needs the original logs. Producer half
   filed against **the starter** (the writer actually at fault) as well as the audit format work.
-- [M68.4] ☐ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
-- [M68.5] ☐ **Identity change under follow, and the project root** — was WS-1 and WS-2.
+- [M68.4] ◧ **Whole-or-refused requests, and the declared parameter** — was DX-03 and DX-04.
+  **Completed 2026-09-24 on `feat/m44-single-state-session`, awaiting review.** The D-E3 disposition table is written
+  in the spec: every audited row is brought under the rule or listed as an exception with its reason and its pinning
+  test. Acceptance 4: a rolled set, or a formatted log, opened with a graph keeps both (DX-03; verifier scenario 15).
+  Acceptance 5: `topology {recordIndex}` establishes the record or refuses naming what is missing (DX-04; scenario
+  14). A refused call leaves the spotlight lit. **Decisions for review:** the spotlight ordering reverses M64's
+  recorded rationale; `flag` refuses rather than clamps; a rename with other fields is refused.
+  **The combined open, fixed 2026-09-24 on `feat/m44-single-state-session`** (built on M44.4's session model; not
+  reviewed). `LogArrival` treats as residue only a graph that was open when the log was REQUESTED. An `OPENED` graph
+  opened since, even the same graph again, is intent for that log, so it is kept and the mismatch announced (M35.3;
+  M44.3b's "the last deliberate request wins"). Reader-supplied graphs are judged as before. `CombinedOpenTest`
+  covers four cases and three witnesses. The verifier's new scenario 11 FAILS on a `8893cb08` jar (graph gone
+  after the combined open settles) and passes on the fix. **Changed a reviewed test's premise:**
+  `AsyncOpenInterleavingFrameTest.b1_…` relied on the arrival closing a graph a person re-opened mid-load. Its point,
+  that a socket arrival's warning is not a dialog, is kept and still asserted.
+  **Reproduced input from M68.1 (2026-09-24):** `open {log, graphml}` with a graph declaring only half the logged
+  ids replies `ok`, and the graph is then no longer loaded; opened separately, the graph is kept and announced.
+  **The drop lands after the reply** (M68.1 review O6): `coverage` answered with the graph still present
+  immediately after the combined open settled, and two seconds later it was gone. So an acceptance that checks the
+  first echo, or even the first settled context, passes on a request that will still lose part of itself —
+  test on the final state after the log-arrival rule has run.
+- [M68.5] ◧ **Identity change under follow, and the project root** — was WS-1 and WS-2. **Built 2026-09-24 on
+  `feat/m44-single-state-session`; awaiting review, so ◧ not ☑.** All three parts below are in, with their stated
+  limits. Acceptance 8's diagnostic: `Runbooks.resolution` names the root tried, and the resolved path, for the
+  runbook and vocabulary pointers, including the two cases that used to show no warning (no project root, and a
+  path out of the root). Environment log directories and report destinations are not covered.
+  **Heap-store Follow identity built 2026-09-24 on `feat/m44-single-state-session`** (not reviewed).
+  `FollowIdentity.classify` covers every acceptance-7 case, with one departure recorded under D-E6 (full-byte
+  comparison makes a touched identical file UNCHANGED). The heap store decides before indexing; a replacement
+  reopens as a new generation and `context.log.identity` says why. The verifier's scenario 12 FAILS on a
+  `f2e25e80` jar (the same-length rewrite ignored) and passes on the fix. **The next request, both stores, built the
+  same day:** the dispatcher observes the file before any record-reading verb. It refuses while the opened file
+  changed in place under the mapped store (which reads through its channel), and labels superseded-but-retained
+  content (the heap store's text; the mapped store's open channel after a replace). `context` and window focus
+  observe as well. **Limits, stated:** an in-place rewrite that restores size, time and key is invisible to a
+  metadata check; the human table is announced, not suspended.
   Related narrow correction: [PR #7](https://github.com/telaminai/fluxtionauditlog-analyser/pull/7),
   `fix/named-profile-project-root` at `c3523506`, fixes relative-path anchoring for named profiles.
   Reviewed: 52 configuration tests pass; restoring the canonical-only lookup fails the named-profile
@@ -579,7 +744,11 @@ verdict, which is owned jointly.
   zero failures/errors, 62 skips; strict docs pass. See the
   [investigation](../investigations/profile-project-root-resolution.md). Pending merge/release;
   this does not close M68.5's freshness or unresolved-pointer diagnostic acceptance.
-- [M68.6] ☐ **The naming grammar** — was DX-05; last, because it needs the compatibility decision.
+- [M68.6] ◧ **The naming grammar** — was DX-05. **Q2 answered by the owner 2026-09-24: refuse at creation.** Built the
+  same day on `feat/m44-single-state-session`, awaiting review. A chart name that spotlight cannot address (`:`,
+  `"`, or exactly `note`/`series`) is refused at the `graph` verb's create and rename and at the UI rename. A saved
+  one stays reachable: by the verb as saved, and by spotlight quoted (`graph:"a:b":note:2`). `context.graphAddresses`
+  gives every address. Recorded under D-E5.
 
 Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
 unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate. All three now
@@ -970,10 +1139,18 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   the documented `template=analyser-bundle` shortcut ([release report](../handoff/report_release_journey_2026_09_21.md)).
   That is this item's "short entry point" ask, observed. New-owned-class auditing (6) was re-observed on public
   1.0.73 ([issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3)).
+  **Additional 2026-09-25 intake:** [edit-loop §G](spec-spring-authoring-edit-loop.md#g-make-the-downloaded-project-teach-the-supported-path)
+  adds executable archive checks, accurate help, immutable matching contract, non-drifting hosting
+  instructions, authoring patterns and a meaningful keyless starter test. Mid-cycle feedback 21–24
+  adds mapper composition with executable JSONL examples, consistent configuration-specific replay
+  guidance, build-time AOT versus loader compile/interpreter comparison, and versioned plugin docs.
+  Item 19 now explicitly uses the already-declared hosted test harness. These are proposed, not verified fixes.
 - ☐ **Staged feedback — next chart capabilities** — record-order x-axis (17) before same-record entity
   grouping (11), with record identity, filtering, selection, marker/note/export consistency and cardinality
   limits. The full-speed hosted fixture must be useful without pacing the application or logging a new
   key per entity. Formula documentation exists; improve discovery (15) rather than introduce another parser.
+  **Recurrence:** feedback 12 in the [2026-09-25 edit-loop intake](spec-spring-authoring-edit-loop.md)
+  reports pacing input to avoid overlapping timestamps. §H adds a same-timestamp regression; status unchanged.
 - ☐ **Staged feedback — presentation and maintenance** — reserved annotation/legend space (14/21),
   explicit note anchoring/remapping (18), optional held tails (13), compiler formatting/output (7/8,
   overlapping F5/G13/F10), stable runtime control text (16), and documented nodeTypes scope (10).
@@ -1563,6 +1740,11 @@ call the LLM is waiting on; would be M64.14, the tour its first user.
   callback/packaging checks, not generated-dispatch or receipt-integrity evidence.
   D-X7's remote was unavailable at intake; G18 now provides the [source repository](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`. Independently source-reviewed by G at `e559c424`; binary publication/integration remain open.
   Public resolution, owner-built provenance and the tour remain open. [Evidence](../handoff/evidence/spring-side-2026-09-23/jars/summary.json).
+  **Owner extension 2026-09-25:** [edit-loop §I](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars)
+  specifies shared market-event compatibility, a real valueMapper, sources packaging and
+  a staged market-data tour. Source head `3a89391` remains the inspected baseline; no binary
+  publication or generated/hosted integration is claimed. Preserve risk A as the labelled
+  incorrect control. The design-first/admin-console journey is specified alongside it.
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
 - [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).
@@ -1707,7 +1889,8 @@ retrieval-dated evidence table, because those are live documents that can change
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
 
-- [M45.4] ☐ **RESTORED TO THE LIVE ORDER 2026-09-24 — consume `fluxtion.framework`; now delivered as M68.1.**
+- [M45.4] ◧ **RESTORED TO THE LIVE ORDER 2026-09-24 — consume `fluxtion.framework`; now delivered as M68.1,
+  implemented on branch `feat/m68-1-coverage-pairing-scope`, unmerged.**
   It was swept into the completed tracker with the shipped detail on 2026-09-03 and **should not have been**: the
   entry carries a ☑ on the sentence recording that *our half* was verified and unparked on 2026-09-01 against the
   real session graph at released 1.0.65, while the item as a whole is ◧ and the consumption was never built. A ☑ on
@@ -1727,15 +1910,75 @@ retrieval-dated evidence table, because those are live documents that can change
 - [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
   our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
 
-## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived); the next slices and the AGPL owner decision open
+## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived) · M44.4 single-state model IN PROGRESS
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
+*(Restored 2026-09-24: the three entries below had been cut to their first lines by an earlier edit. The full text
+of the originals is in `057a069a`.)*
 
-- [M44] ☐ **Spec written: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions
-  recommends.** ☐ **Blocker before the dependency lands:** the runtime's published POM declares AGPL-3.0
-  jar. ☐ **Residue:** the five dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`,
-- [M44.2x] ☐ **Original next-slice list:** `IgnoredParameters`, then split `GraphPairing` /
-- [M44.3] ☐ **Owner decision still open:** the runtime's published POM declares AGPL-3.0 and the analyser
+- [M44] ◧ **Spec: [`spec-session-processor.md`](spec-session-processor.md).** Session transitions are the first
+  analyser decisions moved into a Fluxtion processor. Slice 1 and M44.3 shipped. ☐ **Residue:** of the five
+  dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`, `STARTUP_ACTIVATION`, import-as-project), each
+  call site's kind is verified by reading, not by running (§11).
+- [M44.2x] ☐ **Superseded by M44.4a.** The original next-slice list was `IgnoredParameters` and the F3 split,
+  both shipped, and then moving log and graph OPENING, which deletes `LogObserved`/`GraphObserved`. That last part
+  is now M44.4a.
+- [M44.3] ☑ **Licence decision: keep as is** (owner, 2026-09-24; spec D-S1.2 → D-S13.6).
+- [M44.4] ◧ **The single-state model: the processor owns every session verdict, and surfaces read one
+  snapshot** (spec §13, PROPOSED 2026-09-24; implementation started at the owner's direction, spec under review).
+  Motivated by M68.1, whose four review rounds were all synchronisation defects between copies of one pairing
+  verdict. Branch `feat/m44-single-state-session`.
+  - [M44.4a] ☑ Facts (`GraphOpened`, `GraphCleared`, `LogCleared`, `LogAppended`) with a log-generation gate, and
+    `post(fact)`. Deleted the observation funnel (`2fbfee04`).
+  - [M44.4b] ☑ `SessionSnapshot` and its listener; Follow reports appends; coverage reads the snapshot. Deleted the
+    frame's scorer, the append republish and the `invokeAndWait`.
+  - [M44.4c] ☑ `ViewFilterChanged`, `MembershipCompared` and the `PairingQualifier` node. "Pending" comes from the
+    gate, on the snapshot. Deleted the frame's pairing and qualification fields; a static test forbids them.
+    ~~Closed the scan-during-open race.~~ *Not alone — the independent review's R1 reopened it; see M44.4r.*
+  - [M44.4] ☐ **Open acceptance** (spec §13): the remaining `PairingDuringLoadFrameTest` journeys re-expressed as
+    headless event sequences; §13's four predictions scored; the reviewers' pass on §13.
+  - [M44.4d] ☑ Folded into M44.4b: re-scopes are held in a separate ring and tracing stays on. The DEBUG half was
+    not built (spec §13).
+  - [M44.4r] ◧ **The independent review's findings (review `0bb01fa8` on `review/m44-4-m68-2026-09-26`, subject
+    `14a72acc`), and the gaps closed before one review.** **Implemented 2026-09-26; independent acceptance NOT given**
+    — a green suite is not closure. Evidence: sets 12–13 in `docs/handoff/evidence/m44-4-single-state-2026-09-24/`.
+    - ☑ impl · R1 coverage inputs captured together on the EDT, scan off it on a filter copy and bound (`762e9853`)
+    - ☑ impl · R2 the exported coverage table obeys the session's claim (`56463d99`)
+    - ☑ impl · R3 rolled sets report member freshness; the SPI boundary stated (`b8afbe53`)
+    - ☑ impl · R4 the published snapshot's qualifications are read-only (`096d93e9`)
+    - ☑ impl · R5 `saveFocusAs` precondition in the whole-request check (`b4894e6f`)
+    - ☑ impl · R6/R7 framing past a leading BOM; an oversized pending frame says NOT assessed (`1e2c60a9`)
+    - ☑ impl · R8 no published address that does not parse; scope and exceptions stated (`c23769ad`)
+    - ☑ impl · O1 ordered snapshot delivery; O2 revision meaning stated and pinned (`933f62bd`)
+    - ☑ impl · set 13: the table banner, focus and series sections drawn, env/destination pointers, nested keys, the
+      chart/series point-count agreement check (`f53da616`…`d7f4966a`)
+    - ☑ **re-reviewed** (`93046a48`, `review/m44-4-m68-rereview-2026-09-26`): R1–R4, R6–R8, O1 and set 13 accepted by
+      that review; **two findings required**:
+      - ☑ impl · N1 a refused `saveFocusAs` judged on the request's real transitions, run on a trial copy through the
+        apply's own routine (`f0ad708d`)
+      - ☑ impl · N2 a report's series section draws exactly its stored call, through the verb's `parseCall`
+        (`bfc1235a`); witnesses `e2d910b0`
+      - ☑ **focused re-review** of N1 and the two N2 counterexamples — see
+        [the review and authorised correction](../handoff/rereview2_m44_4_m68_2026_09_26.md).
+        N1 accepted; the original N2 cases pass. F1 found a new literal-key-to-formula regression in N2;
+        the owner authorised the reviewer to fix it on the review branch. Acceptance evidence and final gate
+        results are recorded in that report; integration remains separate.
+      - ☑ impl (**reviewer-authored**, owner-authorised) · F1 a report `key` stays a literal `GraphKey` through
+        `SeriesScan.parseKeyCall`, with the shared scope/resolution parsing (`ed97f363`). **Checked by the
+        implementer, not independently reviewed:** `expr` unchanged, the value-sensitive test and its control
+        `review-n2-report-literal-key` re-run on the final tree.
+    - **Status at merge (2026-09-26):**
+      - **Implemented:** everything above.
+      - **Accepted:** R1–R4, R6–R8, O1 and set 13 (`93046a48`); N1 and the original N2 cases (`04174894`).
+      - **Not independently accepted:** F1's correction, which its reviewer wrote.
+      - **Merged to main via PR #25:** yes.
+      - **Still open:**
+        - [M44.4] §13's open acceptance (below);
+        - the owner decisions Q4 (partial delivery), Q5 (saved names with `"`) and O2 (graph-content identity),
+          none decided by this merge;
+        - the optional follow-ups: the empty series picture's "widen the filter" advice (review O1) and the lone-point
+          dot;
+        - the Mongoose integration, scheduled after this merge.
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button

@@ -131,6 +131,42 @@ parameters, including one reported after execution · saved-analysis steps · a 
 parameter honoured with a warning · an early success followed by a later failure · a parameter whose effect depends
 on state another established in the same call.
 
+**The disposition table, M68.4 (2026-09-24, not yet reviewed).** The audit read the code for every row before any
+behaviour changed (`docs/handoff/evidence/m44-4-single-state-2026-09-24/`, set 10). The table is written after the
+changes, which is recorded there. An **exception** keeps its current behaviour, and the reason is why the rule is
+not applied. **Under the rule** means changed so the call is honoured whole or refused whole.
+
+| Row | Before | Disposition |
+|---|---|---|
+| `open` rolled set + graphml | early return, graphml dropped silently (DX-03) | **under the rule:** both opened, and the graph opened for the arriving log is kept |
+| `open` log + format + graphml / processor / design / diagnostics | early return, the rest dropped silently | **under the rule:** the same sequence as log + graphml |
+| `open` discover + anything else | the rest dropped silently | **under the rule:** named in `ignored`/`ignoredWhy` (discover opens nothing) |
+| `open` log + graphml, graphml fails | error, log already loading, unsaid | **under the rule:** the error says the log stays open and only the graphml was refused |
+| `open` project + log, close + open | named in `ignored` (M26.4) | **exception, already conforming:** named, and the reason given |
+| `open` format with a file its reader cannot read | accepted, fails when the load lands | **exception — accepted is not applied:** the reply says `loading`, and the failure arrives as the load's result |
+| `topology` multi-field, one invalid | earlier fields applied, then refused | **under the rule:** every field validated before any is applied, the tab switch included |
+| `topology` orientation other than left_right | silently became top-down | **under the rule:** refused unless `left_right` or `top_down` |
+| `topology` recordIndex, nothing selected | ignored, echo said 0 (DX-04) | **under the rule (D-E4):** establishes the state (selects the row), or refuses naming what is missing (not in the log, hidden by the filter) |
+| `topology` saveFocusAs after focus in the same call | the name depends on the focus just applied | **exception — state established in the same call:** ordered and documented (M27) |
+| `topology` saveFocusAs with nothing to save | the save's precondition was checked when it ran, after `select` had been applied (independent review R5) | **under the rule:** judged in the pre-check on the state the call's OWN preceding transitions leave — scaffolding, `showAll`, sync, `select`, `routeBound`, `scope`, `pop` and `focus` — run on a detached trial copy of the view through the routine the real apply uses (`ActionExecutor.applyFocusTransitions`, `TopologyPanel.trialCopy`), then checked by the same precondition the save uses. The call above still saves and this one changes nothing. *Re-review N1: the first version predicted three of those transitions and missed `showAll`, so a refused `{showAll, saveFocusAs}` removed the focus it had seen.* |
+| report valid sections beside a rejected one | kept, each skip named in `warnings` | **exception:** sections are independent evidence and each skip is named (`ReportVerbTest`) |
+| report saved, then the write fails | error, but the report was saved, unsaid | **under the rule:** the error says the report was saved |
+| graph series, markers, bands, per-item failures | valid items applied, each failure named | **exception:** items are independent and each is named (`GraphGuidesBandsTest`, `GraphEchoWarningsTest`) |
+| graph rename + other fields | renamed; the others dropped silently | **under the rule:** refused, and nothing changed |
+| source_root mixed add and remove | failed add named; failed remove dropped silently | **exception after one fix:** items are independent; `notRemoved` now names a failed remove |
+| goto with several anchors | byteOffset > recordIndex > at, the losers unsaid | **under the rule:** the losers named in `ignored` |
+| goto clamped recordIndex | clamped, the echo shows only the result | **exception after one fix:** goto only moves the view; `clamped` names asked and used |
+| flag out-of-log index or offset | clamped onto the first or last record | **under the rule:** refused, naming them; nothing is flagged, because a finding never attaches to a record nobody named |
+| unknown or misspelled parameters | named in `ignoredParams`, success only | **exception after one fix:** the verb runs and the extra keys are named, now on refusals too. Refusing would break callers that send harmless extra keys |
+| saved-analysis steps | stops at the first failing step, earlier steps kept | **exception:** the reply names `stoppedAt`, `skipped` and that earlier steps changed the view (`AnalysisSpecTest`) |
+| spotlight put out before validation | a refused call already cleared it | **under the rule:** put out only when a view-changing verb succeeded. **This reverses M64's recorded rationale** (see `SpotlightEndsWhenTheViewChangesTest`) |
+
+~~**Not audited, stated:** keys nested inside items (sections, markers, notes) are not checked against a schema.~~
+**Audited since set 13:** an item whose schema declares its properties is checked, and an unknown nested key is named
+by path in `ignoredParams` (or in the refusal) — the same exception as a top-level key, one level down
+(`ActionDispatcherNestedKeysTest`). A free-form object that declares no properties (a section's `call`) is not checked:
+its keys belong to the verb it names.
+
 **What a refusal preserves.** A refused request leaves pre-request view and session state as it was. Today a
 view-changing verb puts the spotlight out before its parameters are validated, so a refused call has already
 destroyed context the caller was relying on. That ordering is a defect under this rule. An unknown verb does not
@@ -152,10 +188,26 @@ Where a grammar cannot express a name, creation refuses at the point of naming r
 that later cannot be referenced. Already-saved names stay reachable; a compatibility path is chosen explicitly and
 recorded.
 
-**Conditional on Q2.** The refusal clause above is one of the two options Q2 still offers. v1 chose refusal in the
-decision while leaving the choice open in the question, which pre-empted the owner. Until Q2 is answered, read
-this decision as: creation refuses **or** the name is accepted and mapped to a stable address, and whichever is
-chosen is recorded here with its migration path for saved names.
+~~**Conditional on Q2.**~~ **Q2 answered by the owner, 2026-09-24: refuse at creation.** As built (M68.6,
+awaiting review):
+
+- **The rule is the grammar's.** `SpotlightTarget.chartNameProblem` refuses a chart name that contains `:` (the
+  part separator) or `"` (which quotes the compatible address), or that is exactly `note` or `series` in any case.
+  For such a name the parts would read as the bare forms.
+- **Where it is enforced.** At the `graph` verb's create and rename, at the UI rename, and at the duplicate-name
+  repair from main's PR #13. The repair renames saved definitions directly, past the UI's rename, so it was an entrance
+  the rule did not reach until merged code was read. The rule lives in `config.ChartNames` so that non-UI entrances can
+  apply it. The verb refuses before anything is created or changed.
+- **Saved names, the migration path.** A chart saved with such a name loads unchanged, because `restore` is not a
+  naming entrance. The verb reaches it by its name as saved, and spotlight reaches it quoted, exactly:
+  `graph:"a:b"`, `graph:"a:b":note:2`. `context.graphAddresses` publishes every chart's address, so an agent never
+  derives the escape. Renaming it to an addressable name is allowed.
+- **A saved name containing `"` has NO address** (independent review R8, 2026-09-26). The quoted form cannot carry it,
+  and `graphAddress` used to return `graph:"saved"chart"`, which the parser refuses — an address published as usable
+  that did not work. It now returns null for such a name, `context.graphAddresses` carries null at that chart's
+  position, and `context.graphAddressUnavailable` names the chart and why. The definition is kept as saved and still
+  answers to the `graph` verb; it is never renamed for the owner. **Open for the owner:** whether to add an escape to
+  the grammar, or a repair journey that asks before renaming. No escape is invented here.
 
 ## D-E6 · An input that changed underneath is announced, not served stale
 
@@ -204,6 +256,32 @@ reads through to the file, reads are suspended instead.
 records and reloads only on a shrink or rotation, and the append path returns zero for equal-length content before
 updating the store. A same-length in-place replacement is therefore neither appended nor reloaded, and nothing is
 announced on any surface. That case is acceptance, not an aside.
+
+**As built for the heap store (M68.5, 2026-09-24, not yet reviewed).** `FollowIdentity.classify` decides every
+poll, before indexing, from the load-time file key, every byte read, the key now and every byte now. It gives
+`APPEND`, `REPLACEMENT`, `UNCHANGED` or `UNVERIFIED`, and the table has no hole. **One deliberate departure from the
+wording above:** "same key, same length, changed modification time and a matching prefix" is `UNCHANGED`, not
+unverified. The heap store compares every byte, not a sample, so identical bytes are proven identical content, and
+the reason says the comparison was complete. A replacement reopens the log, which is a new session generation, so
+every verdict about the old content retires, and the reopened log states why it was reopened (`context.log.identity`).
+~~**The mapped store's half is not built.**~~ *Stale, corrected by the independent review (2026-09-26, R8).* **As
+built for a log that is not followed (M68.5):** `ReadThroughIdentity` is observed at the next request that reads
+records, before it is served. The heap store holds the text it read, so a change is labelled superseded
+(`bytesRetained`); the mapped store reads through its channel, so an in-place rewrite suspends record-reading verbs
+until a reopen (`MappedLogStoreReadIdentityTest`, `ActionDispatcherReadIdentityTest`). **A rolled set** reports its
+members' verdicts, naming the member, and suspends reads if any member does (review R3,
+`RolledLogStoreReadIdentityTest`). **A plugin reader's store is not assessed:** `LogStore.readThroughAssessed()` is
+false by default, and `context.log.identity` then says `not assessed` rather than nothing.
+
+**The table, after the review ("M68.5 table not suspended", closed in set 13).** The boundary above is the assistant's
+REQUEST path. The log table now states the session's file-identity verdict in a banner above its rows —
+`UNVERIFIED` or `REPLACEMENT`, with the reason, and that the rows are the log as it was indexed — rendered from the
+session snapshot (`LogTablePanel.identityBannerText`, `LogTablePanelIdentityBannerTest`). It is observed when a
+request reads records or the window regains focus, as before. **Still true, stated:** the table's rows are MARKED, not
+suspended. The table's cells come from the index retained at load, not from fresh reads of the file (re-review O-a
+corrected the earlier sentence here), so after an in-place rewrite of a mapped log the table can show the old values
+beside a detail pane and charts that read the file as it now is; the detail pane and charts carry no banner of their
+own. Whether marking the table is enough is Q4's partial-delivery decision.
 ## D-E7 · A pointer that cannot resolve says why
 
 The root a project resolves against is recorded rather than inferred, and a pointer that fails reports the root it
@@ -256,6 +334,15 @@ by the compiler and the playground, not a Mongoose export. The audit format prop
 playground, its plugin repo and this one. Closing only a Mongoose delivery path would not have prevented this
 file. The producer's part is a write-time check in each writer, and needs an entry against the starter as well as
 against the audit format work. Neither half alone closes it.
+
+**As built for the analyser half (M68.3, 2026-09-24, not yet reviewed).** `FramingScan` replaces the substring count.
+A candidate is a column-0 `eventLogRecord:` line outside any quoted value. Quotes are tracked across lines, and open
+only at a value position. Every framing finding says "Suspected" and names the inspected lines and characters and the
+candidate lines. An item beyond the scan bound is `FRAMING_NOT_ASSESSED`, a note and never a clean bill. Under Follow
+the pending frame is scanned, and re-scanned as it grows, without being indexed. It is verified on constructed
+fixtures (`src/test/resources/framing/`), and on the one real collapsed log the repository holds. **Limit:** a plain
+value containing `: '` with an unclosed quote can open a false quote and hide later lines. **The producer half** (the
+writer emitting separators) belongs to the starter and the audit format work, and is not built here.
 ## D-E10 · A declared fact outranks an inference, and an inference says it is one
 
 Where a producer declares a fact about its own output, the instrument reads the declaration. Inference is a
@@ -448,6 +535,9 @@ basis, and the tracker is corrected so the outstanding item appears where the de
 - **M68.1** the coverage, pairing and scope verdicts (acceptance 1, 2, 3), completing M45.4 — first, because it is
   what a held-out client was told, what blocks G14, and what was already authorised three weeks ago. Not gated on
   the packet's missing inputs.
+  **Structural follow-up: [M44.4](spec-session-processor.md)** (§13, the single-state model). Four review rounds
+  of M68.1 each closed a synchronisation defect between copies of one verdict. M44.4 gives the verdict one owner,
+  the session processor, and every surface reads its snapshot, so D-E2 holds by construction and not by vigilance.
 - **M68.2** report and chart rendering (acceptance 9) — second, same reason.
 - **M68.3** the framing diagnostic's correction (acceptance 10), with the producer half filed against the starter
   and the audit format work. Correcting a shipped false verdict, not adding a diagnostic.
@@ -462,15 +552,56 @@ Agreement between separate tools, which is the tool agreement spec's. New render
 anything that adds a surface rather than making an existing one honest. No new analyser execution
 responsibilities, and no further client trial: these are contract and acceptance corrections.
 
+## As shipped after the independent review (2026-09-26) — the remaining gaps, precisely
+
+- **D-E6 / M68.5, the table.** Marked with the verdict, not suspended; the detail pane and charts are not marked (see
+  D-E6). Request verbs are suspended or labelled.
+- **D-E6 / M68.5, plugin readers.** Not assessed; said so (`not assessed`).
+- **D-E7 / M68.5, pointers.** Runbook and glossary pointers name the root they tried, and since set 13 so do an
+  environment's `logDir` and a directory report destination (`Runbooks.directoryResolution`,
+  `Runbooks.destinationProblem`; `context.environments[].problem`, `context.reportDestinations[].problem`, a WARN row
+  on the Project panel). A remote destination is stated as not checked (`note`), never contacted.
+- **D-E8 / M68.2, report sections.** A chart renders off-screen at page size, and so does a topology section for a
+  saved focus (set 13; `TopologyPanel.renderFocusForReport`, `TopologyReportFocusTest`, end-to-end scenario 13), and
+  a series section, drawn from exactly its stored call (re-review N2): `SeriesScan.parseCall` is the one
+  interpretation of a series call, used by the verb and by `ReportSeriesPicture`, so the section draws the expression,
+  resolution (STRICT unless the call says LOCF) and filter the verb uses. A legacy `key` is a literal `GraphKey`,
+  carried through `parseKeyCall` with the same scope and resolution parsing; punctuation in a field name is never
+  evaluated as a formula (`ReportSeriesCallTest#aLiteralKeyNeverBecomesAFormula` compares rendered values).
+  The call decides the scope — the view filter
+  does not apply — and the caption states the resolution and scope drawn. `crossings`, `buckets`, `limit`, both
+  `key` and `expr`, undefined keys, an unknown `resolve` and a text filter are NOT RENDERED with the reason
+  (`ReportSeriesCallTest`, through the adapter against the verb; end-to-end scenario 18). *The first version read
+  only the expression, forced LOCF and used the view filter: 2 points drawn where the verb found 0, and 3 where the
+  call selected 1.* A focus that no longer resolves prints NOT RENDERED with the reason. **Point-count agreement**
+  between the chart and the series verb is a cross-path regression over the committed fixture
+  (`ChartSeriesAgreementTest`, and `ReportSeriesCallTest#theAdapterAgreesWithTheVerb` through the report adapter). It
+  compares the NUMBER of points, not their timestamps or values, over one fixture; it is not a proof for every log.
+- **D-E2 / R2, the coverage table.** Obeys the session's claim (refused, qualified or full), captured with the store
+  and graph it scores (`ReportCoverage`).
+- **D-E3 / M68.4, nested keys.** Named by path since set 13, like top-level ones; a free-form `call` is left to its
+  verb. The exceptions in the D-E3 table keep per-item results by design.
+- **D-E5 / M68.6, a saved name with `"`.** Kept, with no address, and said so (see D-E5); the compatibility choice is
+  the owner's.
+- **D-E9 / M68.3, the producer half.** The writer emitting separators is not built here; the reader's diagnostic is.
+
 ## Open for the owner
 
 - **Q1** whether a genuine mismatch warning should block an operation or only annotate it. *Both reviews
   recommend annotate, and note it is closer to settled than open: the tool-agreement spec already commits to
   announced-not-forbidden for a deliberately opened graph, so blocking would be a compatibility change against an
   accepted spec and needs its reason on the record.*
-- **Q2** the compatibility choice for names that no grammar can address: refuse at creation, or accept and map.
+- ~~**Q2**~~ **answered 2026-09-24: refuse at creation** (see D-E5). The compatibility choice for names that no
+  grammar can address: refuse at creation, or accept and map.
   *D-E5 and acceptance 5 are conditional until this is answered. Recommended: refuse for the first slice, and
   keep saved names reachable through an explicit compatible address.*
+- **Q4** (independent review, 2026-09-26) whether M68 ships as an explicit partial delivery with the gaps listed in
+  "As shipped after the independent review". Set 13 implemented the pointer, nested-key and report-section surfaces
+  (focus and series sections drawn) and marks the table; what remains for this decision is that the table is marked
+  rather than suspended, the detail pane and charts are not marked, and the producer half of D-E9 is another
+  repository's. A green gate for one surface is not a completion tick for the slice.
+- **Q5** (review R8) the compatibility path for a saved chart name containing `"`: an escape in the address grammar,
+  or an explicit repair journey that asks before renaming. Either way the definition is kept.
 - **Q3** whether D-E8's inspection requirement becomes a standing release gate or applies only to this milestone.
   *Recommended split: the executable content check becomes a standing export regression gate, and visual
   inspection applies when rendering changes. This is a cost decision, not a correctness one.*

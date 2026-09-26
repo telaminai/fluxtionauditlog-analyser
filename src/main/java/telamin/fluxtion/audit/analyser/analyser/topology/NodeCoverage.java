@@ -74,24 +74,40 @@ public record NodeCoverage(List<String> covered,
             }
         }
         // the reverse direction is a different fault and worth reporting separately: an instanceId in the
-        // log that the topology does not contain means the graphml is from a different build, which makes
-        // every other number on screen suspect
+        // log that the declared set does not contain. CALLERS MUST PASS THE FULL DECLARED GRAPH HERE when
+        // they mean membership (M68.1): passed an authored subset, a framework node that logs lands in
+        // this list and reads as "not in the graph" when the graph declares it. The fact is a name
+        // mismatch; it does not establish which build either artefact came from.
         Set<String> orphan = new LinkedHashSet<>(logged);
         orphan.removeAll(declared);
         return new NodeCoverage(List.copyOf(cov), List.copyOf(unc), List.copyOf(silent), List.copyOf(orphan));
     }
 
-    /** Nodes that could have logged and did, as a fraction of those that could have. */
+    /**
+     * Nodes that could have logged and did, as a fraction of those that could have.
+     *
+     * <p><b>Vacuously 1.0 when {@link #denominator()} is zero</b> — kept for the arithmetic, and a trap for
+     * any surface that prints it. Nothing eligible to score is <em>no ratio</em>, not full coverage (M68.1,
+     * D-E1): a public surface must check {@link #denominator()} and report the ratio as absent.
+     */
     public double ratio() {
         int denominator = covered.size() + uncovered.size();
         return denominator == 0 ? 1.0 : covered.size() / (double) denominator;
+    }
+
+    /** How many nodes the ratio is over: those that could have logged. Zero means there is no ratio. */
+    public int denominator() {
+        return covered.size() + uncovered.size();
     }
 
     public int declaredCount() {
         return covered.size() + uncovered.size() + silentByDesign.size();
     }
 
-    /** True when the topology and the log disagree about which nodes exist — a build mismatch. */
+    /**
+     * True when the log wrote ids the declared set does not contain. The name is historical: this is a
+     * name mismatch, and it does not by itself establish a build mismatch (M68.1).
+     */
     public boolean buildMismatch() {
         return !loggedButNotInTopology.isEmpty();
     }

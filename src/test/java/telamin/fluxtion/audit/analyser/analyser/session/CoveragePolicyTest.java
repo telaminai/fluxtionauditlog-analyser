@@ -7,6 +7,7 @@ import telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,8 +40,9 @@ class CoveragePolicyTest {
                 .reason().contains("inferred from what ran"));
         assertTrue(decide("OPENED", CoveragePolicy.AuditInstalled.NO, DOES_NOT_FIT, "INFO")
                 .reason().contains("without audit logging"));
-        assertTrue(decide("OPENED", CoveragePolicy.AuditInstalled.YES, DOES_NOT_FIT, "INFO")
-                .reason().contains("different system or build"));
+        String mismatch = decide("OPENED", CoveragePolicy.AuditInstalled.YES, DOES_NOT_FIT, "INFO").reason();
+        assertTrue(mismatch.contains("disagree about which nodes exist"), mismatch);
+        assertFalse(mismatch.toLowerCase().contains("build"), "M68.1: no build conclusion: " + mismatch);
     }
 
     @Test

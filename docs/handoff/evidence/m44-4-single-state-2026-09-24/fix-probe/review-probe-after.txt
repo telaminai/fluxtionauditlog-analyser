@@ -1,0 +1,5 @@
+snapshot.before=false
+Exception in thread "main" java.lang.UnsupportedOperationException: published qualifications are read-only: the session changes them, through a fact, and nothing else does
+	at telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications.refuseIfFrozen(PairingQualifications.java:92)
+	at telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications.clear(PairingQualifications.java:110)
+	at ReviewProbe.main(ReviewProbe.java:32)

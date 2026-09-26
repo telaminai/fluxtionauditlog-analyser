@@ -94,6 +94,11 @@ public final class EntryPointResolver {
         String only = null;
         for (ProcessorTopology.Node node : topology.nodes()) {
             if (node.kind() != ProcessorTopology.Kind.EXPORT_SERVICE) continue;
+            // M68.1 decision, recorded rather than implied: this caller keeps the class-name fallback on
+            // purpose. The declared fluxtion.framework fact is NODE-scoped and Scaffolding ignores it for
+            // EXPORT_SERVICE vertices, so the declared-first overload would return exactly this answer for
+            // every node that reaches this line. Passing the vocabulary would change nothing and suggest it
+            // might; EntryPointAuthorshipTest pins that equivalence so a later scope change is noticed here.
             if (Scaffolding.isScaffolding(node)) continue;
             if (only != null) return;                 // ambiguous — say nothing
             only = node.id();

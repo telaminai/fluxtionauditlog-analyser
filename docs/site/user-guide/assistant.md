@@ -224,7 +224,11 @@ The targets are a small fixed vocabulary, named as you would say them — `sourc
 `records:row:12`, `detail:node:<instanceId>`, `topology:node:<instanceId>`, `topology:verdict` (the line where the
 analyser states how the graph fits the log), `graph`,
 `graph:note:2`, `graph:series:<label>` (the selected chart) or `graph:<name>:note:2`, `graph:<name>:series:<label>`
-(a chart by name — lighting it selects that chart), `project:log`, `toolbar:flag`, `menu:Audit log` and
+(a chart by name — lighting it selects that chart). A chart name may not contain `:` or `"`, or be exactly `note`
+or `series`, because those would make it unaddressable; naming a chart that way is refused. A chart saved with such a
+name before this rule is reached quoted, `graph:"a:b":note:2`, and `context.graphAddresses` gives that address. A
+saved name containing `"` has no address at all: `context.graphAddresses` gives null for it and
+`context.graphAddressUnavailable` says why; the chart is kept, and renaming it gives it an address. Then `project:log`, `toolbar:flag`, `menu:Audit log` and
 `menu:Project:New project from template…` (the menu opens and the item is lit; a click on it chooses it, and the
 spotlight goes out with the menu), `status`. Menu names are the visible labels: Project, Sources and Audit log replace File.
 Update saved spotlight steps that name `menu:File`; old names are refused rather than redirected, and the refusal says
@@ -306,6 +310,24 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
 
 When the project points at a glossary (*Portable context ▸ Vocabulary*), its text leads every *Explain*
 prompt and is served as `context.vocabulary.text`, so the assistant reads `live` the way this system means it.
+
+!!! tip "Ask `context` for part of it — `sections`"
+
+    `context` with no parameters is the whole payload, as it always was. `context {sections: [...]}` returns
+    only the named sections: `log`, `project` (with the portable context — runbooks, glossary, analyses,
+    environments, report destinations), `pairing` (`graphPairing`), `processors`, `source`, `topology`,
+    `view` (filter, counts, selection, flags, spotlight), `charts`, `menus`, `design` and `handoff`. The
+    file reads and lookups behind unselected sections are skipped (session facts, processor sources, the
+    glossary and runbook files, source roots, the topology cursor, chart scopes, skills and the key file);
+    cheap in-memory work such as the pairing verdict still runs and is filtered out. Each returned key is exactly what the full context holds for the same state — a
+    projection, never a second answer. A warning that qualifies a selected fact travels with it:
+    `inFlight`, `dispatchOrder`, `timeOrder` and `producer` are carried whenever they apply (producer
+    faults also qualify `topology`), and a rolled set's member list `files` travels with `view`, whose
+    selection reports file-local byte offsets. `scope.carried` says why each rode along, so
+    `sections: ["pairing"]` during a load or on a log with producer faults still says so. `scope` also names what was selected and every available section. An unknown name, an
+    empty list or a non-list is refused before anything is read. The Project panel is drawn only from a
+    full `context`. On the fixed test fixture the full response is 1709 bytes, `["menus"]` 541 and
+    `["pairing"]` 817 — measured, not a promise about your session.
 
 `context` is also what the **Project panel** draws (*User guide ▸ The Project panel*): one payload, two
 readers. It reports the graph whether or not a log is open, `log.openedBy` (you, the action socket, the
