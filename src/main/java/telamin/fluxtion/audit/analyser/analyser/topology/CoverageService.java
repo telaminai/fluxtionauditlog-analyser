@@ -41,6 +41,14 @@ public final class CoverageService {
     }
 
     public static Result assess(LogStore store, boolean filtered, FilterState currentFilter, Input input) {
+        return assess(store, filtered, currentFilter, input, store == null ? 0 : store.size());
+    }
+
+    /**
+     * @param bound the number of records to score, fixed by the caller when it captured its inputs (independent review
+     *              R1): a qualification built from this echo then describes exactly the log revision it was stamped with
+     */
+    public static Result assess(LogStore store, boolean filtered, FilterState currentFilter, Input input, int bound) {
         if (store == null) throw new IllegalArgumentException("no log is loaded");
         if (input == null || input.topology() == null || input.topology().nodes().isEmpty()) {
             throw new IllegalArgumentException("no topology is loaded");
@@ -52,7 +60,7 @@ public final class CoverageService {
         int scanned = 0;
         // Round 3, N1: the bound is fixed before the scan and reported, so a qualification built from this echo
         // knows exactly which log revision it describes even if Follow appends while the scan runs.
-        int rows = store.size();
+        int rows = Math.max(0, Math.min(bound, store.size()));
         for (int row = 0; row < rows; row++) {
             if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
             scanned++;

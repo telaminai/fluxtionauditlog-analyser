@@ -273,51 +273,47 @@ public final class ActionExecutor implements RenderExecutor {
      * Only the topology read needs the EDT, and that is a set copy.
      */
     private ActionResult doCoverage(Map<String, Object> p) {
-        if (topology == null || !topology.hasTopology()) {
-            return ActionResult.error("no topology is loaded — 'coverage' compares the graph against "
-                    + "the log, so it needs a graphml. Use 'open' with a graphml first.");
-        }
-        LogStore s = store.get();
-        if (s == null) return ActionResult.error("no log is loaded");
-
-        // M44.2 — the DECISION is the session processor's (CoverageClaim), not this method's. It used
-        // to check one of the four ways coverage stops meaning anything: an INFERRED graph. The other
-        // three — a processor that cannot log, a graph that does not describe this log, and a capture
-        // level below TRACE — went unchecked here, and two of them had no home at all.
-        // M44.4c: captured BEFORE the scan. The scan runs here, off the EDT; if another log or graph opens while it runs,
-        // the comparison names the pair it was actually made against and the session refuses it as stale — it used to
-        // qualify whatever pairing was published when the scan finished.
-        var snap = sessionSnapshot == null ? null : sessionSnapshot.get();
-        var claim = snap == null ? null : snap.claim();
-        if (claim != null && !claim.allowed()) {
-            return ActionResult.error(claim.reason() + ".");
-        }
-
-        // Take the graph facts on the EDT, then score the whole log off it. The same pure service feeds
-        // report tables, so an exported denominator cannot diverge from this action's echo.
         boolean filtered = Boolean.TRUE.equals(p.get("filtered"));
-        var coverageInput = onEdt(() -> new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
-                topology.fullTopology(), topology.authoredNodeIds(), topology.sourceResolver()));
+        // Independent review R1: the store, the session's identity for it, the graph facts, the filter and the scan bound
+        // are captured TOGETHER, in one task on the EDT — where every log, graph and filter change happens — so none can
+        // fall between them. They used to be taken at three instants, with the live filter read during the scan: a log
+        // opened between the store and the snapshot gave the old store's comparison the new log's identity, and the
+        // session accepted a foreign id as a qualification of the new log.
+        CoverageInputs in = onEdt(() -> captureCoverageInputs(filtered));
+        if (in.refusal() != null) return ActionResult.error(in.refusal());
+        var snap = in.snapshot();
+        var claim = snap == null ? null : snap.claim();
+
+        // Scored off the EDT, on the captured copy and bound. The same pure service feeds report tables, so an exported
+        // denominator cannot diverge from this action's echo.
         var assessed = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
-                s, filtered, filter.get(), coverageInput);
+                in.store(), filtered, in.filter(), in.input(), in.bound());
         Map<String, Object> out = new LinkedHashMap<>(assessed.echo());
         // M68.1 re-review R2 (acceptance 3): this comparison covers the whole scope against every declared
         // node; the pairing published on open covered a sample. The broader one qualifies the narrower one
         // wherever it is shown, and this reply says that it did.
         if (app != null) {
-            // round 4, Q5b: a filtered comparison carries the identity of the filter it was made under
+            // round 4, Q5b: a filtered comparison carries the identity of the filter it was made under — the CAPTURED one
             Map<String, Object> forQualification = new LinkedHashMap<>(assessed.echo());
             if (snap != null) {
                 forQualification.put(PAIR_LOG_GENERATION, snap.logGeneration());
                 forQualification.put(PAIR_GRAPH_REVISION, snap.graphRevision());
             }
-            if (filtered && filter.get() != null) {
-                var snapshot = telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter.get());
-                forQualification.put("filterKey", snapshot.toString());
-                forQualification.put("filterLabel", snapshot.describe());
+            if (in.filterKey() != null) {
+                forQualification.put("filterKey", in.filterKey());
+                forQualification.put("filterLabel", in.filterLabel());
             }
             String qualified = onEdt(() -> app.qualifyPublishedPairing(forQualification));
             if (qualified != null) out.put("qualifiedPublishedPairing", qualified);
+        }
+        // R1: a pair that moved while this ran is said, not hidden. The session has already refused to let this
+        // comparison qualify the new pair; the reply must not read as though it describes it.
+        var now = sessionSnapshot == null ? null : sessionSnapshot.get();
+        if (snap != null && now != null
+                && (now.logGeneration() != snap.logGeneration() || now.graphRevision() != snap.graphRevision())) {
+            out.put("superseded", "the log or graph changed while coverage ran: this describes the pair it was captured "
+                    + "with (log generation " + snap.logGeneration() + ", graph revision " + snap.graphRevision()
+                    + "), not the one open now, and it qualifies nothing — run coverage again");
         }
         // A QUALIFIED number is computable and must carry what it hides — refusing it would be as much
         // a failure as printing it bare.
@@ -334,6 +330,46 @@ public final class ActionExecutor implements RenderExecutor {
         out.put("neverLogged", never);
         if (allNever.size() > never.size()) out.put("neverLoggedTruncated", allNever.size() - never.size());
         return ActionResult.ok("coverage", "coverage", out);
+    }
+
+    /**
+     * Independent review R1: what one coverage call scores, captured in ONE EDT task. {@code refusal} is set instead
+     * when the call cannot run; otherwise every other field describes the same instant.
+     */
+    record CoverageInputs(String refusal, LogStore store,
+                          telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot snapshot,
+                          telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input input,
+                          FilterState filter, int bound, String filterKey, String filterLabel) {
+        static CoverageInputs refused(String why) {
+            return new CoverageInputs(why, null, null, null, null, 0, null, null);
+        }
+    }
+
+    /** Runs on the EDT. Nothing here scans; it copies what the scan will read. */
+    private CoverageInputs captureCoverageInputs(boolean filtered) {
+        if (topology == null || !topology.hasTopology()) {
+            return CoverageInputs.refused("no topology is loaded — 'coverage' compares the graph against "
+                    + "the log, so it needs a graphml. Use 'open' with a graphml first.");
+        }
+        LogStore s = store.get();
+        if (s == null) return CoverageInputs.refused("no log is loaded");
+        // M44.2 — the DECISION is the session processor's (CoverageClaim), not this method's. It used to check one of
+        // the four ways coverage stops meaning anything: an INFERRED graph. The other three — a processor that cannot
+        // log, a graph that does not describe this log, and a capture level below TRACE — went unchecked here.
+        var snap = sessionSnapshot == null ? null : sessionSnapshot.get();
+        var claim = snap == null ? null : snap.claim();
+        if (claim != null && !claim.allowed()) return CoverageInputs.refused(claim.reason() + ".");
+        var input = new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
+                topology.fullTopology(), topology.authoredNodeIds(), topology.sourceResolver());
+        FilterState live = filter.get();
+        FilterState copy = filtered && live != null ? live.copy() : null;
+        String key = null, label = null;
+        if (copy != null) {
+            var fs = telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(copy);
+            key = fs.toString();
+            label = fs.describe();
+        }
+        return new CoverageInputs(null, s, snap, input, copy, s.size(), key, label);
     }
 
     // ---- filter ----------------------------------------------------------------------------------

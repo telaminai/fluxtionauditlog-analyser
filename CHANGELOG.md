@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A coverage answer can no longer be credited to a log or graph opened while it ran.** Coverage took the log, the
+  session's identity for it and the graph at three different moments, and read the view filter while it scanned. A
+  log opened in between gave the old log's comparison the new log's identity, so an id from the old file was shown as
+  a finding about the new one. Everything coverage scores is now captured at one moment, and the scan uses that copy.
+  If the log or graph changes while it runs, the reply says `superseded`, and the comparison qualifies nothing.
 - **A legal one-record log is no longer reported as several records run together.** The check for missing `---`
   separators counted the words `eventLogRecord:` anywhere in a record, including inside a quoted value. So a record
   that mentioned them in its own text was reported as "2 records run together". The check now looks only at lines
