@@ -382,6 +382,32 @@ class SourcePanelFreshnessTest {
         awaitSourceWorkIdle();
     }
 
+    /** A failure that arrives after a newer navigation is obsolete: it must not overwrite that navigation's feedback. */
+    @Test
+    void aStaleTypeClickFailureDoesNotOverwriteNewerFeedback() throws Exception {
+        String a = "com.acme.node.A", c = "com.acme.node.C";
+        write(a, node("A", "int a = 1;"));
+        SourcePanel panel = panel(new SourceService());
+        var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+        panel.decisions = d -> { if (d.startsWith("type-check " + c)) outcome.add(d); };
+        CountDownLatch release = new CountDownLatch(1), entered = new CountDownLatch(1);
+        panel.existence = (lookup, fqn) -> {
+            entered.countDown();
+            try { release.await(10, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            throw new java.io.UncheckedIOException(new java.io.IOException("disk said no"));
+        };
+        SwingUtilities.invokeAndWait(() -> panel.openTypeIfPresent(c));
+        assertTrue(entered.await(5, TimeUnit.SECONDS), "control: the Ctrl-click check is running");
+        panel.openFqn(a); settle(panel);                          // the newer navigation
+        String newerLabel = panel.nodeLabel();
+        release.countDown();                                     // C's lookup now fails, after A was shown
+        String decided = outcome.poll(5, TimeUnit.SECONDS);
+        awaitSourceWorkIdle();
+        assertEquals("type-check " + c + ": discarded", decided, "the obsolete failure reached its decision as discarded");
+        assertEquals(newerLabel, panel.nodeLabel(), "an obsolete failure must not overwrite the newer request's feedback");
+        assertTrue(panel.nodePaneText().contains("int a = 1;"), "the newer navigation stays shown: " + panel.nodePaneText());
+    }
+
     /** An ordinary lookup exception follows the same visible failure path. */
     @Test
     void aTypeClickLookupExceptionIsVisible() throws Exception {

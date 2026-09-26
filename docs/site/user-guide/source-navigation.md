@@ -30,8 +30,10 @@ arrives last. Source reads share a pool of two workers with a short queue: a new
 removes an older one that has not started, and a read that times out says so in the pane. A read that is stuck
 on an unresponsive disk and ignores cancellation keeps its worker until it returns, so two such reads can
 occupy both workers; further reads then time out and say so. A node you asked to open says why it did not.
-Ctrl-click on a type checks that it has source in the background, within the same time limit; a newer click or
-navigation supersedes it, and a check that runs out of time never opens anything later. **Back** returns to the last file you actually saw: a "not found" pane is
+Ctrl-click on a type checks that
+it has source in the background, within the same time limit. A newer click or any navigation — Back, opening a
+file, a spotlight or opening a node — supersedes it, and a check that runs out of time never opens anything
+later. If the check cannot run (the reads are backed up) or fails, the node pane says why. **Back** returns to the last file you actually saw: a "not found" pane is
 not added to the history.
 
 ## Spring design and file glances
