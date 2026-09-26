@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-09-26
+
 ### Added
 
 - **An empty log now says it is empty.** A file with no records reads as exactly that, in all six shapes
