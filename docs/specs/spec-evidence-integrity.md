@@ -148,7 +148,7 @@ not applied. **Under the rule** means changed so the call is honoured whole or r
 | `topology` orientation other than left_right | silently became top-down | **under the rule:** refused unless `left_right` or `top_down` |
 | `topology` recordIndex, nothing selected | ignored, echo said 0 (DX-04) | **under the rule (D-E4):** establishes the state (selects the row), or refuses naming what is missing (not in the log, hidden by the filter) |
 | `topology` saveFocusAs after focus in the same call | the name depends on the focus just applied | **exception — state established in the same call:** ordered and documented (M27) |
-| `topology` saveFocusAs with nothing to save | the save's precondition was checked when it ran, after `select` had been applied (independent review R5) | **under the rule:** judged in the pre-check on the state the call's own `select`, `pop` and `focus` leave (`TopologyPanel.saveFocusAsProblem`), so the call above still saves and this one changes nothing |
+| `topology` saveFocusAs with nothing to save | the save's precondition was checked when it ran, after `select` had been applied (independent review R5) | **under the rule:** judged in the pre-check on the state the call's OWN preceding transitions leave — scaffolding, `showAll`, sync, `select`, `routeBound`, `scope`, `pop` and `focus` — run on a detached trial copy of the view through the routine the real apply uses (`ActionExecutor.applyFocusTransitions`, `TopologyPanel.trialCopy`), then checked by the same precondition the save uses. The call above still saves and this one changes nothing. *Re-review N1: the first version predicted three of those transitions and missed `showAll`, so a refused `{showAll, saveFocusAs}` removed the focus it had seen.* |
 | report valid sections beside a rejected one | kept, each skip named in `warnings` | **exception:** sections are independent evidence and each skip is named (`ReportVerbTest`) |
 | report saved, then the write fails | error, but the report was saved, unsaid | **under the rule:** the error says the report was saved |
 | graph series, markers, bands, per-item failures | valid items applied, each failure named | **exception:** items are independent and each is named (`GraphGuidesBandsTest`, `GraphEchoWarningsTest`) |
@@ -278,8 +278,10 @@ REQUEST path. The log table now states the session's file-identity verdict in a 
 `UNVERIFIED` or `REPLACEMENT`, with the reason, and that the rows are the log as it was indexed — rendered from the
 session snapshot (`LogTablePanel.identityBannerText`, `LogTablePanelIdentityBannerTest`). It is observed when a
 request reads records or the window regains focus, as before. **Still true, stated:** the table's rows are MARKED, not
-suspended — a mapped log's cells still paint from the channel as it now reads; the detail pane and charts carry no
-banner of their own. Whether marking the table is enough is Q4's partial-delivery decision.
+suspended. The table's cells come from the index retained at load, not from fresh reads of the file (re-review O-a
+corrected the earlier sentence here), so after an in-place rewrite of a mapped log the table can show the old values
+beside a detail pane and charts that read the file as it now is; the detail pane and charts carry no banner of their
+own. Whether marking the table is enough is Q4's partial-delivery decision.
 ## D-E7 · A pointer that cannot resolve says why
 
 The root a project resolves against is recorded rather than inferred, and a pointer that fails reports the root it
@@ -561,12 +563,17 @@ responsibilities, and no further client trial: these are contract and acceptance
   on the Project panel). A remote destination is stated as not checked (`note`), never contacted.
 - **D-E8 / M68.2, report sections.** A chart renders off-screen at page size, and so does a topology section for a
   saved focus (set 13; `TopologyPanel.renderFocusForReport`, `TopologyReportFocusTest`, end-to-end scenario 13), and
-  a series section, extracted synchronously under the current filter onto a detached chart (`ReportSeriesPicture`,
-  `ReportSeriesPictureTest`). A focus that no longer resolves, and a series that cannot be extracted, print NOT
-  RENDERED with the reason. **The chart and the series verb agree** — checked in set 13 as a cross-path regression, not
-  at run time: over the committed series fixture, across keys, formulas, both resolve policies and time windows, the
-  chart's `SeriesExtractor` and the verb's `SeriesScan` count the same points (`ChartSeriesAgreementTest`). It found no
-  disagreement. It is a regression over one fixture, not a proof for every log.
+  a series section, drawn from exactly its stored call (re-review N2): `SeriesScan.parseCall` is the one
+  interpretation of a series call, used by the verb and by `ReportSeriesPicture`, so the section draws the expression,
+  resolution (STRICT unless the call says LOCF) and filter the verb uses. The call decides the scope — the view filter
+  does not apply — and the caption states the resolution and scope drawn. `crossings`, `buckets`, `limit`, both
+  `key` and `expr`, undefined keys, an unknown `resolve` and a text filter are NOT RENDERED with the reason
+  (`ReportSeriesCallTest`, through the adapter against the verb; end-to-end scenario 18). *The first version read
+  only the expression, forced LOCF and used the view filter: 2 points drawn where the verb found 0, and 3 where the
+  call selected 1.* A focus that no longer resolves prints NOT RENDERED with the reason. **Point-count agreement**
+  between the chart and the series verb is a cross-path regression over the committed fixture
+  (`ChartSeriesAgreementTest`, and `ReportSeriesCallTest#theAdapterAgreesWithTheVerb` through the report adapter). It
+  compares the NUMBER of points, not their timestamps or values, over one fixture; it is not a proof for every log.
 - **D-E2 / R2, the coverage table.** Obeys the session's claim (refused, qualified or full), captured with the store
   and graph it scores (`ReportCoverage`).
 - **D-E3 / M68.4, nested keys.** Named by path since set 13, like top-level ones; a free-form `call` is left to its
@@ -586,8 +593,10 @@ responsibilities, and no further client trial: these are contract and acceptance
   *D-E5 and acceptance 5 are conditional until this is answered. Recommended: refuse for the first slice, and
   keep saved names reachable through an explicit compatible address.*
 - **Q4** (independent review, 2026-09-26) whether M68 ships as an explicit partial delivery with the gaps listed in
-  "As shipped after the independent review", or waits for the table, report-section, pointer and nested-key
-  surfaces. A green gate for one surface is not a completion tick for the slice.
+  "As shipped after the independent review". Set 13 implemented the pointer, nested-key and report-section surfaces
+  (focus and series sections drawn) and marks the table; what remains for this decision is that the table is marked
+  rather than suspended, the detail pane and charts are not marked, and the producer half of D-E9 is another
+  repository's. A green gate for one surface is not a completion tick for the slice.
 - **Q5** (review R8) the compatibility path for a saved chart name containing `"`: an escape in the address grammar,
   or an explicit repair journey that asks before renaming. Either way the definition is kept.
 - **Q3** whether D-E8's inspection requirement becomes a standing release gate or applies only to this milestone.

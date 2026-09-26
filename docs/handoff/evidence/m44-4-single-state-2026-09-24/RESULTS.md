@@ -277,3 +277,38 @@ disagreement — and its red is the `set13-chart-series-agree` control.
 - **`verify-session-transitions.py`: 23 / 0**, with the same unrun wiring it names. **`test_project_chart_review.py`:**
   5 tests OK.
 - **`mkdocs build --strict`**, **`git diff --check`** and the rule-1 sweep: clean.
+
+## Set 14 — the re-review's N1 and N2 (implemented; acceptance is the next review's)
+
+**Reproduced first on `93046a48`:** the re-review's `RereviewProbe`, compiled and run as its README says, printed its
+committed output byte for byte (N1: context depth 1 → 0 after a refused `{showAll, saveFocusAs}`; N2: STRICT verb 0 /
+report 2, filtered verb 1 / report 3). `PdfProbe.py` reproduced its replies; only the export path differed. A first
+attempt to run the Java probe as a single-file source launch failed with `IllegalAccessError` on the package-private
+adapter — an error in how I ran it, not a result.
+
+| # | Prediction | Result |
+|---|---|---|
+| P80 | N1 red first at the state-preservation assertion; save-in-one-call green | **Held.** `aRefusedSaveAfterShowAllLeavesTheExistingFocus` and `showAllAndSelectWithoutFocusRefusesWhole` failed at "N1: a refused call leaves the prior topology state unchanged" / "N1: unchanged". The save-in-one-call, pop and no-op cases passed before and after. |
+| P81 | the R5 cases and pop/no-op/scope/routeBound preserved | **Held.** All 12 `TopologyWholeOrRefusedTest` cases green after; the rest of the topology, focus, spotlight and whole-or-refused suites green. |
+| P82 | STRICT and filtered cases red first; the key case's caption changes | **Held,** and wider than predicted: all 7 refusal cases were red first (the old adapter drew them). |
+| P83 | the adapter agrees with the verb over the fixture | **Held after the fix.** **Unpredicted:** before it, the old adapter already disagreed with the verb on real data in 3 of the 6 fixture cases (32 vs 400, 400 vs 566, 27 vs 566). It forced LOCF where the verb defaults to STRICT, so N2 was not confined to calls naming `resolve`. |
+| P84 | scenario 18 red on the old jar, green after; 13 and 17 green | **Held.** Old jar: scenario 18's two page checks FAIL, and every other check passes. Fixed jar: **89 / 0**. |
+| P85 | three new controls plus one existing, each red at its named assertion | **Held.** `review-n1-showall-in-preparation`, `review-n2-report-forces-locf`, `review-n2-report-drops-call-filter` and the existing `review-r5-save-precheck` (its code moved): 4 caught in 14.0 s, restored byte-identical, green again. `set13-c-series-drawn`'s anchor did not need moving. Preflight: 123 anchors. |
+| P86 | about 10 new headless tests | **Missed:** 23 (5 for N1, 18 for N2, the parameterised cases counted singly). |
+
+**N2 design note.** The report now draws the call's scope and ignores the view filter. The previous section, one
+commit old and unreleased, used the view filter. That matches neither the verb nor M33.7's "a stored call re-issues
+exactly", so the change is a correction, not a regression. An unknown `resolve` is now refused by the verb as well,
+where it used to become STRICT silently; that is a recorded behaviour change (CHANGELOG).
+
+**Gates, JDK 21 (2026-09-26):**
+- **Headless `mvn clean test`: 2,210 / 0 / 0 / 101** over 301 reports mapped to `src/test/java`, no orphans (+23 tests
+  and 1 new class, `ReportSeriesCallTest`).
+- **Frame suite: 102 / 0 / 0 / 1** over 19 suites. The one skip is the focus-dependent
+  `PersonAtTheScreenFrameTest#escapeWithTheSearchHistoryPopupFocused…`, as in set 12; this display gives no keyboard
+  focus. It is reported as a skip, not a pass.
+- **`verify-m68-1-coverage.py`: 89 / 0** on the fixed jar, including scenarios 13, 17 and 18.
+- **`verify-session-transitions.py`: 23 / 0.** **`test_project_chart_review.py`:** 5 OK.
+- **`mkdocs build --strict`**, **`git diff --check`** and the sweep: clean.
+- **The re-review's probes on the fix:** see `fix14-probe/`. The direct probe is run as a copy that only drops the
+  removed view-filter argument; the PDF probe is unchanged. The exported PDF was rendered page by page and inspected.

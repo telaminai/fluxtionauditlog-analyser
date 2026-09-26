@@ -1864,8 +1864,15 @@ of the originals is in `057a069a`.)*
     - ☑ impl · R8 no published address that does not parse; scope and exceptions stated (`c23769ad`)
     - ☑ impl · O1 ordered snapshot delivery; O2 revision meaning stated and pinned (`933f62bd`)
     - ☑ impl · set 13: the table banner, focus and series sections drawn, env/destination pointers, nested keys, the
-      chart/series agreement check (`f53da616`…`d7f4966a`)
-    - ☐ **independent acceptance** of all of the above
+      chart/series point-count agreement check (`f53da616`…`d7f4966a`)
+    - ☑ **re-reviewed** (`93046a48`, `review/m44-4-m68-rereview-2026-09-26`): R1–R4, R6–R8, O1 and set 13 accepted by
+      that review; **two findings required**:
+      - ☑ impl · N1 a refused `saveFocusAs` judged on the request's real transitions, run on a trial copy through the
+        apply's own routine (`f0ad708d`)
+      - ☑ impl · N2 a report's series section draws exactly its stored call, through the verb's `parseCall`
+        (`bfc1235a`); witnesses `e2d910b0`
+      - ☐ **acceptance of N1 and N2** — a focused re-review of this delta and the two counterexamples
+    - ☐ **independent acceptance** of the rest is recorded in the re-review above; none is claimed here
     - ☐ owner: Q4 partial delivery, Q5 saved names with `"`, O2 content identity (spec-evidence-integrity ▸ Open)
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
