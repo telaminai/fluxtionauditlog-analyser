@@ -39,6 +39,9 @@ or a G14 pass. The running project remains untouched.
   the project root nor target directory.
 - ☐ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
   default, same-state equality, and basis/qualification carried with every selected verdict.
+  **In review:** [PR #29](https://github.com/telaminai/fluxtionauditlog-analyser/pull/29) — `context
+  {sections}` with eleven published names, qualifiers carried under `scope.carried`, refusal before any
+  read, recorded fixture bytes, and two mutation controls in the fast gate. Not closed until merged.
 - ☐ **Upstream handoff** — new asks and existing ownership are routed through
   [upstream asks](../proposals/upstream-asks.md#spring-authoring-edit-loop--2026-09-25-intake).
   First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
