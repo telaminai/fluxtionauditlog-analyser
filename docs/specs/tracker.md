@@ -28,8 +28,10 @@ or a G14 pass. The running project remains untouched.
   generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
   producer check; D6 approves documenting Windows absence, with implementation deferred.
 - ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
-  add the emitted Spring design directory to template roots, verify topology/source with no
-  log, and under approved D5 offer a verified reachable process with disclosed inferred
+  add the emitted Spring design directory to template roots. Validate all template profile
+  source roots inside the installed project in TemplateArchive; preserve explicitly granted
+  external roots in user-authored profiles. Verify topology/source with no log, and under
+  approved D5 offer a verified reachable process with disclosed inferred
   project association; withhold ambiguous or stale offers. No automatic control or token disclosure.
 - ☐ **Project input grants, approved policy; implementation open** — spec §E, feedback 11:
   retain M68.5's canonical root diagnostics work. D3 approves offering explicit role-scoped

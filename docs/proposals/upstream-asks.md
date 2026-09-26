@@ -1966,7 +1966,8 @@ and Repsy release 1.0.45 at the v4 metadata check. Repsy is the public binary ro
 comment must not describe it as deterministic application re-execution. **Owners: plugin docs
 and template emitter.** Approved D8 documents TypeSerialiser's actual contract with tested
 examples; behaviour changes require separate versioned work. Approved D1 supplies a typed
-processor-audited rejection event, including blank rows.
+processor-audited rejection event, including blank and short rows, in the same delivered slice
+as fabrication removal; an unaccounted null/exception/raw-input substitute is not an interim fix.
 
 **D5 resolved, 2026-09-26:** the owner accepts clearly disclosed home/processor-class inference
 for a verified console process, withholding stale or ambiguous offers. An upstream stable

@@ -264,7 +264,8 @@ These were incorrect or incomplete source conclusions, not failures proved by cl
 V4 changes the governing text rather than relying on this response to qualify it.
 
 Further precision from the source checks: registry startedAt records service registry
-publication, not JVM start time. A pid-reuse test must not require those times to be equal.
+publication at admin-service start, truncated to whole seconds and fixed across refreshes,
+not JVM start time. A pid-reuse test must not require those times to be equal.
 Core's null mapper route emits FINE but does not populate the exception ring. The local
 MkDocs build is runnable on a branch; verification of the published site and its release
 metadata is a distinct check. Repsy's existing releases do not publish the vendor catalogue.
@@ -316,3 +317,31 @@ This records policy approval only, not implementation or a rerun of the source/p
 Decision-record checks: strict MkDocs, diff whitespace, tracked-file and added-line public-data
 sweeps, and the private-path/address/wording scans passed. Existing status marks and Markdown
 link targets are unchanged; no Maven tests or product trials were rerun for this policy record.
+
+
+## V4 re-review response — C1–C3 (2026-09-26)
+
+Read the whole independent report `1bae2480`, left unedited. It reviews `449265ec`, before
+the owner decision record `13c44071`; its statement that D1–D8 are unresolved describes that
+older subject, not current policy. All earlier R1–R12 corrections remain in force.
+
+| Finding | Source/policy check and governing correction |
+|---|---|
+| C1 | **READ:** PathForm explicitly supports external workspace-relative roots. TemplateArchive installs the profile without validating its roots. §I1 now requires containment for every template-supplied source root at installation, with traversal/symlink controls and a positive user-authored external-root case. It does not prohibit external roots at ordinary profile load. Tracker routing matches. |
+| C2 | **READ:** slice 7's old independence claim hid the blank-row policy choice. Approved D1 now resolves that dependency. §B and slice 7 explicitly deliver fabrication removal with audited rejections for blank/short rows; no unaccounted interim fallback is approved. Upstream routing agrees. |
+| C3 | **READ:** option (b) was removed when the owner approved shared-interface handlers under D7. §I3 nevertheless makes the conversion boundary explicit: application or separate integration module, never a reusable vendor jar that depends on demo classes. No new event-policy decision is taken. |
+
+Optional O3 is incorporated: plugin release source sets startedAt once at admin-service start,
+truncated to seconds; registry refresh does not change it. The spec and this report now say
+that precisely. O1 (explicit bearer-token probe policy) and O2 (local-host evidence beyond the
+pid) remain optional implementation clarifications; no credential access or console probe was
+performed here. They are not claimed resolved by this text revision.
+
+This pass inspected installer/path-form source and the plugin start/refresh paths; it ran no
+product scenario, client session, mutation or provider call, and did not touch the participant.
+The reviewer's new checks are future acceptance, not tests implemented or reproduced here.
+
+**RUN for this correction:** strict MkDocs, diff whitespace, tracked-file and added-line
+public-data sweeps, and private-path/address/wording scans passed. All 50 packet-related local
+links/anchors resolve; link targets and existing tracker status marks are unchanged. No Maven
+suite was rerun for unchanged links. Commit identity was verified as the personal address.

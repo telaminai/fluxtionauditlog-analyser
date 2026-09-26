@@ -7,6 +7,11 @@ The decision table and affected sections below now record those choices. This ap
 policies, not implementation, release acceptance, publication or key use. Implementation
 status remains PROPOSED v4.
 
+**Re-review correction, 2026-09-26:** review `1bae2480` assessed `449265ec`, before the
+owner approvals in `13c44071`. C1 now scopes root containment to template installation;
+C2 ties slice 7 to the approved audited rejection path; C3 makes conversion ownership
+explicit without reopening D7. No product implementation is claimed.
+
 Revision 4 answers the independent review at `075107ef`, R1–R12. It corrects the
 compile pipeline, installer ownership, recovery identity, both Java panes, mapper losses,
 console identity and vendor dispatch premises. D1–D8 were left open in that revision and
@@ -136,8 +141,10 @@ The shipped mapper must never synthesize zero price/quantity or another default 
 value on parse failure. **Approved D1:** emit a typed rejection event with a reason, handled
 and audited by the processor. Blank rows are rejected input too; they must not become zero
 events or disappear from accounting. Stdout and the current error ring are not this surface.
-An upstream core rejection counter is not a dependency of the selected approach. Removing
-fabrication can start independently; full acceptance requires the audited rejection path.
+An upstream core rejection counter is not a dependency of the selected approach. Slice 7
+removes fabrication together with D1's audited rejection path, including blank and short rows.
+There is no interim release that merely substitutes raw input, null or a thrown exception
+and leaves those rows unaccounted. Its policy prerequisite is the owner's recorded D1 approval.
 
 **Acceptance B:** exercise the actual hosted feed adapter with valid, blank, short,
 trailing-empty, non-numeric, non-finite and extra-field rows. Freeze the CSV grammar (field
@@ -537,10 +544,20 @@ through the normal UI, then use the actual Sources actions to open design and Gr
 show Java beside topology. Assert no log is loaded, readable design/source, the visible
 no-comparison qualification, and no unexpected recovery. Removing the emitted design root
 must fail the design-read assertion; requiring a log must fail the no-log UI assertion.
-Negative case: a declared design root resolves outside the project after `realpath`, including
-via a symlink. Reject it before it becomes an effective source-root read grant; do not silently
-read an external design. A constructed archive/profile supports branch frame checks, but the
-real public-download acceptance is **not runnable on a branch fixture**.
+The containment check belongs in **TemplateArchive installation**, where the profile is known
+to be template-supplied, not in generic profile loading. There is no typed design-root key:
+validate every source root in the installed template's profile against the installed project
+boundary after canonical resolution, including symlinks. Refuse the installation if a root
+escapes or containment cannot be established, before that profile can grant reads. Preserve
+the installer's staged/no-partial-install behaviour.
+
+Negative install fixtures use a template profile with a `../` escape and a root resolving
+outside through a symlink; disabling the install-time root check must fail the containment
+assertion. Exercise actual canonical resolution, not just the spelling of the root. A separate
+positive control opens a user-authored profile with an explicitly granted external monorepo
+root: it remains supported under §E/D3. Do not apply the template restriction to such profiles.
+A constructed archive/profile supports branch install/frame checks, but the real public-download
+acceptance is **not runnable on a branch fixture**.
 Use real-frame button/menu checks for visibility, not just a socket echo. Preserve the
 no-log frame and matching generated guides as the first tour screenshot.
 
@@ -563,8 +580,9 @@ verified running process, withholding ambiguous or stale offers. A future upstre
 identity field could strengthen it, but is not a dependency of the approved offer.
 
 Guard stale pid reuse as well: `/api/server` exposes JVM start time, whereas registry
-`startedAt` is registry publication time, not JVM start. Do not equate them. A process starting
-after the registry capture contradicts it (allow only the documented timestamp precision);
+`startedAt` is set at admin-service start, truncated to whole seconds and fixed across
+registry refreshes, not JVM start. Do not equate them. A process starting after that recorded
+service start contradicts it (allow only the documented one-second precision);
 where available compare local process start information too. If process-incarnation evidence
 is unavailable or contradictory, mark identity unverified/withhold the offer. Publish the
 limits of these checks; pid plus a healthy response is not authenticated project identity.
@@ -618,6 +636,10 @@ Concrete compatibility work:
   contract. Verify generated dispatch before recommending the integration; do not assume
   merely implementing an interface reaches both concrete and interface handlers. No casts to
   demo classes inside a supposedly reusable vendor component or duplicate same-FQN API classes.
+  If conversion to an application-specific concrete event is needed, that adapter/factory lives
+  in the application or a separate integration module depending on both contracts. The reusable
+  vendor jar emits its own/shared contract and has no dependency on demo classes. This boundary
+  does not reopen D7's approved shared-interface handler choice.
   Proposed new market-event fields are `symbol` (nonblank instrument identifier), `price`
   (finite price in the fixture's declared quote-currency units per instrument unit) and
   `volume` (non-negative long, traded instrument units in this input event). The fixture
@@ -737,9 +759,10 @@ Run-boundary format/Chronicle choice remains **OD-5**, not a ninth new decision 
 5. Template compile profile, constructor/rename fixtures (§A, R1). Scan staging can follow
    the profile change, but §A is not closed until protected-output failure tests pass.
 6. Generated text/descriptor/replay corrections and starter CLI help (§G).
-7. Remove fabricated zero events (§B); implement and verify D1's audited rejection path before
-   claiming full rejection accounting.
-8. Template design root and the no-log real-frame journey (§I1).
+7. Remove fabricated zero events and implement D1's audited rejection path together (§B),
+   including blank/short rows. This slice depended on D1; the owner has now approved it.
+8. Template design root, install-time profile-root containment and the no-log real-frame
+   journey (§I1), preserving explicitly granted external roots in user-authored profiles.
 
 The D1–D8 decision blockers are resolved. Rename, scoped grants, the qualified console offer
 and shared-interface demo work can proceed under the approved policies. Remaining dependencies
