@@ -7,6 +7,7 @@ import telamin.fluxtion.audit.analyser.analyser.model.EventKind;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
 import telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore;
 import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
+import telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics;
 import telamin.fluxtion.audit.analyser.analyser.parse.RecordFramer;
 import telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport;
 import telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator;
@@ -147,6 +148,17 @@ class FormatConformanceTest {
         boolean plugInIsLessPrecise =
                 a.streamEnd().state() == telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNTERMINATED_MARKER
                         && b.streamEnd().state() == telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN;
+        // MA-6.3: what each path says about the PRODUCER agrees too — the kinds, in order. An empty file, a
+        // corrupt document and run-together records are findings a user acts on; a plugin that loses one is
+        // not conformant, however exactly its records match. The completeness sentence is the one thing AF-10
+        // lets a plugin lose, and it is checked below; every OTHER finding must match even then.
+        var producerA = kinds(findings(a));
+        var producerB = kinds(findings(b));
+        if (plugInIsLessPrecise) {
+            producerA = producerA.stream().filter(k -> k != ProducerDiagnostics.Kind.COMPLETENESS_GAP).toList();
+        }
+        assertEquals(producerA, producerB, name + ": one path found something about the producer the other did not");
+
         if (!plugInIsLessPrecise) {
             assertEquals(a.streamEnd().state(), b.streamEnd().state(), name + ": completeness state");
             assertEquals(a.completenessDiagnostics(), b.completenessDiagnostics(),
@@ -165,6 +177,18 @@ class FormatConformanceTest {
                             + a.completenessDiagnostics().get(0));
         }
         return a;
+    }
+
+    /** What the analyser says about the log's producer, assembled from the store as the frame assembles it. */
+    private static ProducerDiagnostics findings(LogStore s) {
+        return ProducerDiagnostics.of(s.index(), s::rawText,
+                s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText());
+    }
+
+    private static List<ProducerDiagnostics.Kind> kinds(
+            ProducerDiagnostics d) {
+        return d.findings().stream().map(ProducerDiagnostics.Finding::kind)
+                .toList();
     }
 
     private static long points(LogStore store, String expr) {
@@ -562,7 +586,9 @@ class FormatConformanceTest {
                     "c12-traced-regime.yaml", "c13-exported-call.yaml", "c16-quoted-scalars.yaml",
                     "c17-legacy-quotes.yaml", "c18-stream-end.yaml", "c19-export-layout.yaml",
                     "c20-marker-lookalike.yaml", "c21-real-export.yaml", "c22-marker-syntax.yaml",
-                    "c23-marker-values.yaml", "c24-unterminated-marker.yaml"), names,
+                    "c23-marker-values.yaml", "c24-unterminated-marker.yaml", "c25-marker-declaring-zero.yaml",
+                    "c26-two-empty-segments.yaml", "c27-whitespace-only.yaml", "c28-zero-bytes.yaml",
+                    "c29-no-record-key.yaml", "c30-per-node-level.yaml"), names,
                     "add a fixture here AND a test above — c10 needs no file, it is about the reader's claim");
             assertTrue(Files.exists(res.resolve("README.md")), "the set is published with its table");
             for (String n : names) bothPathsAgree(n);
@@ -766,5 +792,101 @@ class FormatConformanceTest {
         assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN,
                 s.streamEnd().state());
         assertFalse(s.streamEnd().isKnownComplete(), "silence is not a completeness claim");
+    }
+
+    // ---- MA-6.3: the producer findings, as fixtures ---------------------------------------------------
+
+    /**
+     * MA-0 — an empty file is a FINDING, on both paths, beside an unchanged state. Four of the six empty shapes are
+     * files here; the empty export is zero bytes and shares c28, and the rolled set of empty members is not one file,
+     * so it stays a unit test ({@code EmptyLogAndRecordKeyDiagnosticsTest}).
+     */
+    private void anEmptyFileRaisesTheFinding(String name,
+                                             telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State state)
+            throws IOException {
+        LogStore s = bothPathsAgree(name);
+        assertEquals(0, s.size(), name + ": nothing in it is a record");
+        assertEquals(state, s.streamEnd().state(), name + ": MA-0 is a finding, never a seventh state");
+        var d = findings(s);
+        assertEquals(ProducerDiagnostics.Kind.EMPTY_LOG,
+                d.firstWarning().orElseThrow(() -> new AssertionError(name + ": an empty file raised nothing: "
+                        + d.messages())).kind(), name + ": the warning is the empty-log finding");
+        assertTrue(d.firstWarning().orElseThrow().message().startsWith("No records in this file yet."),
+                () -> name + ": one wording, about the file: " + d.firstWarning().orElseThrow().message());
+    }
+
+    /** A marker declaring zero is COMPLETE — and still empty. The marker changed the label, never the warning. */
+    @Test
+    void c25_aMarkerDeclaringZeroIsCompleteAndStillAnEmptyLog() throws IOException {
+        anEmptyFileRaisesTheFinding("c25-marker-declaring-zero.yaml",
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE);
+    }
+
+    /** Two marked segments, each claiming zero: a run that restarted and wrote nothing either time. */
+    @Test
+    void c26_twoEmptyMarkedSegmentsAreAnEmptyLog() throws IOException {
+        anEmptyFileRaisesTheFinding("c26-two-empty-segments.yaml",
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE);
+        LogStore s = builtIn("c26-two-empty-segments.yaml");
+        assertEquals(0, s.streamEnd().declaredRecords(), "two segments, each vouching for nothing");
+    }
+
+    @Test
+    void c27_aFileOfWhitespaceIsAnEmptyLog() throws IOException {
+        anEmptyFileRaisesTheFinding("c27-whitespace-only.yaml",
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN);
+    }
+
+    /** Zero bytes — also the empty export: an export of a run that wrote nothing is this file. */
+    @Test
+    void c28_zeroBytesIsAnEmptyLog() throws IOException {
+        anEmptyFileRaisesTheFinding("c28-zero-bytes.yaml",
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN);
+    }
+
+    /**
+     * MA-6 — AFMT-3's output under a marker that vouches for it. A per-node level of NONE runs the next record into
+     * one headerless line, the reader counts it, and the marker declaring three says COMPLETE. The file is whole and
+     * a record in it is not: both paths must name it.
+     */
+    @Test
+    void c29_aCompleteFileCanStillHoldADocumentWithNoRecordKey() throws IOException {
+        LogStore s = bothPathsAgree("c29-no-record-key.yaml");
+        assertEquals(3, s.size(), "the corrupt document is counted, which is why the marker agrees");
+        assertEquals(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE, s.streamEnd().state(),
+                "complete, 3 of 3 — completeness is not integrity");
+        var named = findings(s).findings().stream()
+                .filter(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY)
+                .toList();
+        assertEquals(1, named.size(), () -> "the headerless document is named: " + findings(s).messages());
+        assertTrue(named.get(0).message().contains("Record 2"), named.get(0).message());
+    }
+
+    /**
+     * MA-8 — a per-node level change is read the same from either path: the control record naming a quiet node is
+     * stated against that node, and the node stays uncovered.
+     */
+    @Test
+    void c30_aPerNodeLevelChangeAnnotatesTheSameNodeOnBothPaths() throws IOException {
+        bothPathsAgree("c30-per-node-level.yaml");
+        String graph;
+        try (InputStream in = FormatConformanceTest.class.getResourceAsStream("/topology/demo-quote-processor-noaudit.graphml")) {
+            graph = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        ProcessorTopology topology = GraphMlParser.parse(graph);
+        var input = new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(topology,
+                telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding.authoredNodes(topology), null);
+        var a = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
+                builtIn("c30-per-node-level.yaml"), false, null, input);
+        var b = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
+                viaSpi("c30-per-node-level.yaml"), false, null, input);
+        Object annotations = a.echo().get("levelAnnotations");
+        assertTrue(annotations instanceof Map<?, ?> m && m.containsKey("riskMonitor")
+                        && String.valueOf(m.get("riskMonitor")).contains("WARN"),
+                () -> "the quiet node is annotated with its level: " + a.echo());
+        assertEquals(annotations, b.echo().get("levelAnnotations"), "and the plugin path says the same");
+        assertTrue(a.ledger().stream().anyMatch(r -> "riskMonitor".equals(r.get("instanceId"))
+                        && "uncovered".equals(r.get("status"))),
+                "annotate, never excuse: it is still uncovered");
     }
 }

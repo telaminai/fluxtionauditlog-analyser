@@ -192,7 +192,9 @@ public record ProducerDiagnostics(List<Finding> findings) {
             // Integration with M68.3: only when nothing is being written either — with a pending frame the file is
             // not empty, and saying so would be false; the frame is scanned below instead.
             out.add(new Finding(Kind.EMPTY_LOG,
-                    "No records in this file. A file can be empty because nothing was written yet, "
+                    // MA-0.5 (D-MA0d, V2): ONE wording, about the file, that is true whether the file is opened cold or
+                    // followed — "yet" because a followed file may still be written, and a cold one may be too.
+                    "No records in this file yet. A file can be empty because nothing has been written, "
                             + "because the writer is buffering, or because the processor cannot audit "
                             + "at all — this says the file is empty, not that the run produced nothing."));
             return new ProducerDiagnostics(List.copyOf(out));

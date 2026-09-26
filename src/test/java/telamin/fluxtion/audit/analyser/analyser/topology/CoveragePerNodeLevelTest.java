@@ -490,7 +490,13 @@ class CoveragePerNodeLevelTest {
                         + annotations(assess(seq, true, window(1008, 1008))));
     }
 
-    /** MA-8.2, kept apart from F4's wording: the level changes never move the denominator or the ledger. */
+    /**
+     * MA-8.2, kept apart from F4's wording: the level changes never move the denominator or the ledger's verdicts.
+     *
+     * <p>MA-8's report path ADDS one field to an annotated row, {@code levelChange}, so the report prints what the verb
+     * returns. That is the only difference allowed: with it removed the ledger is identical, row for row, and the field
+     * says exactly what the verb's annotation says — present inside the WARN interval, absent after the restore.
+     */
     @Test
     void levelChangesNeverMoveTheDenominatorOrTheLedger() {
         String node = anUncoveredNode(assess(plainRecord(1000)));
@@ -501,8 +507,21 @@ class CoveragePerNodeLevelTest {
             var b = assess(without, true, window(at, at));
             assertEquals(b.echo().get("uncovered"), a.echo().get("uncovered"), "uncovered at " + at);
             assertEquals(b.echo().get("ratio"), a.echo().get("ratio"), "ratio at " + at);
-            assertEquals(b.ledger(), a.ledger(), "ledger at " + at);
+            assertEquals(b.ledger(), withoutLevelChange(a.ledger()), "ledger at " + at + ", apart from the annotation");
+            Object onRow = a.ledger().stream().filter(r -> node.equals(r.get("instanceId"))).findFirst()
+                    .orElseThrow().get("levelChange");
+            assertEquals(annotations(a).get(node), onRow, "the row carries the verb's own annotation at " + at);
         }
+        assertNotNull(annotations(assess(withChanges, true, window(1003, 1003))).get(node),
+                "control: the row is annotated inside the interval, so the comparison above is not vacuous");
+    }
+
+    private static java.util.List<Map<String, Object>> withoutLevelChange(java.util.List<Map<String, Object>> ledger) {
+        return ledger.stream().map(r -> {
+            Map<String, Object> copy = new java.util.LinkedHashMap<>(r);
+            copy.remove("levelChange");
+            return copy;
+        }).toList();
     }
 
     /** F5 — the interval is half-open by POSITION: a record after the restore is outside it. */

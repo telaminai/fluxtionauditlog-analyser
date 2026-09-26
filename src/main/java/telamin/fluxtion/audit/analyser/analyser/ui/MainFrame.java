@@ -1347,6 +1347,10 @@ public final class MainFrame extends JFrame {
             }
         }
         if (!warnings.isEmpty()) echo.put("warnings", warnings);
+        // D-MA0c: the reply carries the log's producer findings under the key `context` already uses
+        if (store != null && producerDiagnostics != null && !producerDiagnostics.isClean()) {
+            echo.put("producer", producerDiagnostics.messages());
+        }
         return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
     }
 
@@ -1431,7 +1435,8 @@ public final class MainFrame extends JFrame {
         return telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.render(
                 spec, resolution, content,
                 (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
-                TimeFormat.utc(System.currentTimeMillis()));
+                TimeFormat.utc(System.currentTimeMillis()),
+                store == null ? null : producerDiagnostics);   // D-MA0c: the log's findings are on the page
     }
 
     /** One record as evidence lines: the numbered node log, the same shape the finding report uses. */
@@ -2970,6 +2975,7 @@ public final class MainFrame extends JFrame {
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name));
+        reportsPanel.setLogFindings(() -> store == null ? null : producerDiagnostics);   // D-MA0c
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);
@@ -4071,6 +4077,7 @@ public final class MainFrame extends JFrame {
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
                         loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText());
+        if (reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
         String producerWarning = producerWarning();
         status.setText(statusText(loaded.size(), range,
                 logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
@@ -4452,7 +4459,10 @@ public final class MainFrame extends JFrame {
             openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
         } else if (on) {
             followTimer.start();
-            status.setText("Following " + displayName(followPath) + " — watching for new records…" + trailingPendingNote());
+            // MA-0.5: the line Follow starts with keeps the log's warning. It used to drop it, so an empty file being
+            // followed read "watching for new records…" and nothing else until its first record arrived.
+            status.setText("Following " + displayName(followPath) + " — watching for new records…"
+                    + producerWarning() + trailingPendingNote());
         } else {
             followTimer.stop();
         }
@@ -4560,11 +4570,14 @@ public final class MainFrame extends JFrame {
         }
         followStreamEnd = end;
         followPendingChars = pendingChars;
+        var before = producerDiagnostics == null ? List.<String>of() : producerDiagnostics.messages();
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(store.index(), store::rawText, damage,
                         store.completenessDiagnostics(), store.completenessIsNote(), pending);
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
+        // D-MA0c: the Reports tab states the log's findings, so a followed log that changes them re-renders it
+        if (reportsPanel != null && !before.equals(producerDiagnostics.messages())) reportsPanel.refresh();
     }
 
     /** The follow line's time range, or the words for a log that carries no timestamps. */
