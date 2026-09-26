@@ -227,7 +227,11 @@ still to do.
   four optional items. Suite 2102/0/0/98. A **seventh re-review** (`43e29973`) found the new conclusion bounds
   started at the beginning of the log and were missing on the premise branch, and an ungrouped closer across a marker
   stated as definite; with the owner's two decisions (bound it by the change, window and grouping; R-B's rule stops at
-  a marker) all fixed, with targeted witnesses. Suite 2104/0/0/98. **Awaiting review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  a marker) all fixed, with targeted witnesses. Suite 2104/0/0/98. An **eighth re-review** (`ba463890`) found the
+  later-run clause unbounded and a second marker making a note false; with the owner's decisions (an annotation stops
+  at the second marker; the one-processor-per-grouping statement documented, not in the note) both fixed, every
+  optional item taken, targeted witnesses for the two. Suite 2107/0/0/98. **Awaiting the ninth re-review; not ready
+  to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and

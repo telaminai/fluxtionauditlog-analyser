@@ -638,6 +638,67 @@ comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
 
+## Eighth re-review — two required, seven optional, all taken
+
+Eighth re-review `ba463890` on `review/mongoose-eighth-rereview-2026-09-26`, against `e5541d5b`. Before any change the
+reviewer's `R8Review` (cases M–Y3) was re-run on `e5541d5b`: every note is identical to the recorded output (the
+recorded file omits the program's final blank line). Predictions `P13` were committed first (`e8a1eb7f`); the fix is
+`c66a314a`, with the matrix's assertion order changed in `a05526c6`.
+
+**Owner decisions, 2026-09-26.**
+1. **Reach past more than one marker — option (b).** A change's annotation stops at the **second** stream-end marker
+   after it. Records past that marker get no level annotation and stay uncovered, so a note carries survival of at
+   most one marker.
+2. **The one-stream limit (RR-3) is documented, not put in the note.** The owner states, as a fact about the
+   producer, that it writes **one processor per grouping**; the spec (MA-8) and the `PerNodeLevelChanges` class
+   Javadoc now record it, and that the notes' "in the records sharing its grouping" relies on it.
+3. **Witnesses:** targeted, for R8-1 and R8-2 only; and the reviewer's probe mutations P1 and P2 shown red through the
+   matrix's offenders assertion once R8-5 is fixed.
+4. **Every optional item taken.**
+5. **`dependency-reduced-pom.xml`:** untracked and ignored; the shade configuration unchanged.
+
+| | Finding | Cause | Fix | Regression and witness |
+|---|---|---|---|---|
+| R8-1 Low–Medium | the spanning branch's later-run clause, "for the records in view from record 3 on, those lines are absent only if …", took in records after the closer (probe M), past a second marker (N) and in another grouping (O) | present since RR-4; round 7 bounded every sentence that says "are not in this log", and this one does not | "for the records in view after that marker[ and before E2], in <scope>, those lines are absent only if …", E2 being the closer or the second marker | `theLaterRunIsBoundedAndTheAnnotationStopsAtTheSecondMarker` (M, N, O); the matrix applies the bound rule to "absent only if" sentences, with new `twoMarkers` and `pastCloser` boundaries. **Witness:** e5541d5b's clause restored → `<failure>`, assertion "R8-1 M"; the matrix's **offenders** assertion also fired |
+| R8-2 Low–Medium | wholly after a marker, a second marker made the note false: "a stream-end marker before record 2 begins it" said of a record past the marker before record 3 (P), whose bound then covered no record in view | present since RR-4: the window never stopped at a second marker | decision 1: the window stops at the second marker, so P gets **no annotation**, Q concerns record 2 only, and the marker named is always the one crossed | the same test (P, Q); the matrix's `twoMarkersAfter` and `pastSecondOnly` boundaries, and rules that no note concerns a record past the second marker and that the named marker precedes the first record in view. **Witness:** the second-marker stop removed → `<failure>`, assertion "R8-2 P"; the matrix's **offenders** assertion also fired |
+| R8-3 | "It holds …" carried only the applying premise; with "named no node" open it was unconditional (V, W) or incomplete (X) | mine, R7-5 | `holdsLead` takes the conclusion's whole condition: "If the change at record 1 (logTime 1) named no node[ and it applied here], it holds …" | `itHoldsCarriesEveryOpenPremise` (V, W, X); a matrix rule that a "holds" clause carries exactly the conclusion's condition |
+| R8-4 | a null-record row read "(untimed)" though its raw text was timed (Y1), and a node value reading `event: …` made a row a control record (Y2) | mine, O7-1 | the raw text's **header only** is read (the scan stops at the first payload field); its `logTime` is kept, or "its time was not read"; the row reads "a record this reader could not read, whose text names the control event" | `aRowWithNoRecordIsReadFromItsHeaderOnly`, with a stub store (Y1, Y2, Y3, and an untimed header) |
+| R8-5 | the matrix's bound rule accepted any "before record N" (P1), and its "after that marker" exemption let a wholly-after bound lose its end (P2) | mine, round 7's rule | with a marker between the change and E, E must be that marker; "after that marker" may run on only when no closer and no second marker follow; the offender rules are now asserted **before** reach (R8-9) | **P1 and P2 re-applied to the fixed code: both red at the matrix, through its offenders assertion** (on e5541d5b the matrix did not catch P2 at all, and caught P1 only through reach) |
+| R8-6 | three negative guards pinned forms the code no longer writes, so they could not fail | mine | each rewritten to a form a regression would produce (", so after record", "If it survived the marker, then") | — |
+| R8-7 | every clean package rewrote the tracked `dependency-reduced-pom.xml` (with CRLF), dirtying `git status` | a build output under version control | untracked and in `.gitignore`; `tools/regen-session-processor.sh` no longer checks it out; ONBOARDING updated. No CI step reads it | after `mvn -q clean package`, `git status` is unchanged |
+| R8-8 | `rawEvent` sat between `groupingOf`'s Javadoc and `groupingOf` | mine | moved above it | — |
+| R8-9 | the round-7 section overstated the bound rule, mixed units in P12.4, and did not say which matrix assertion fired | mine | corrected in place, marked "corrected in round 8" | — |
+
+**The matrix:** 3 openings × 5 groupings × **8** boundaries × 8 closings × 3 leads = **2880 logs**. The 360
+`pastSecondOnly` cells give no annotation, as decision 1 requires, and the other **2520** annotate. A replay
+(`rereview8-fixes/R9Matrix.java`, output beside it) reproduces those counts and maps each reach pattern to its branch;
+the new layouts share the spanning branch in the code, and fall with it.
+
+**Found while doing this, beyond the review:**
+1. P13.2 predicted two broken tests; **one** broke. `notEstablishedAndSpanningABoundaryConditionsBothHalves` pins a
+   substring ("those lines are absent only if it applied here and it survived the marker") that survives inside the
+   bounded wording.
+2. My first version of the tightened rule keyed on whether the log contained a closing record. A closing record that
+   does not apply (a declared 'alpha' grouping closed by 'beta') is no closer, and the rule flagged correct notes; it
+   now keys on the note's closing clause.
+3. P1 and P2 would still have been masked by the reach assertion, which came first; reordering the two assertions
+   (`a05526c6`) is what lets the offenders assertion show, as decision 3 asks.
+
+**What I got wrong this round:** R8-1 and R8-2 are the class again, in the one sentence round 7's bound rule did not
+look at, because it looked only for "are not in this log". I wrote the rule to the wording I had, not to what a
+conclusion is. P13.2's count was one too high. And round 7's report said the rule stopped a bound at the marker when,
+as the reviewer showed with P1, it did not.
+
+**Ran:** the reviewer's `R8Review` before and after (both outputs in `rereview8-fixes/`); P13 first; the three MA-8
+classes after each change (52 tests); every new sentence form read in full (M–Y3); the matrix replay; the two
+witnesses and P1/P2 (`witness13.py`, output beside it); `mvn -q clean package` on JDK 21 — **2107 / 0 / 0 / 98** over
+278 reports mapped to source classes, no orphans (2104 plus the three new tests, as P13.5 predicted) — leaving
+`git status` unchanged; `mkdocs build --strict`, `git diff --check` and the rule-1 sweep.
+**Read, not run:** that no CI workflow reads `dependency-reduced-pom.xml` (searched `.github/`). **Not run:** the
+display suite (`MainFrame` unchanged); earlier rounds' witnesses; the full mutation gate.
+**Unverified:** whether any plugin store outside this repository returns a null record; why the shade plugin writes
+CRLF here (now moot: the file is untracked).
+
 ## Seventh re-review — four required, five optional, all taken
 
 Seventh re-review `43e29973` on `review/mongoose-seventh-rereview-2026-09-26`, against `d8512121`. Before any change
@@ -666,7 +727,9 @@ wholly before a marker with the closer past it is new) × 8 closings × **3** le
 before the change; another grouping's record carries the node's line after it) = **1440 logs, all 1440 annotated**.
 New offender rules: every "not in this log" sentence starts its bound at the change (or, wholly after a marker, at
 that marker) and names its grouping, and a bound that starts at the change stops at the marker after it; no ungrouped
-note says " sets it to ". The reach checks are now **patterns**, one per branch that writes a conclusion, and each was
+note says " sets it to ". **Corrected in round 8 (R8-9): that overstated the rule.** As written it accepted any
+"before record N", so a bound running to a closer past the marker passed (the eighth re-reviewer's probe P1), and its
+"after that marker" exemption let a wholly-after bound lose its end (P2); both are tightened in round 8 (R8-5). The reach checks are now **patterns**, one per branch that writes a conclusion, and each was
 checked **cell by cell** with a replay (`rereview7-fixes/R8Matrix.java`, output beside it): every bound pattern maps to
 exactly one (boundary, premise) branch. The replay found one branch the test's list lacked ("before a marker, no
 closer", 42 cells); it was added.
@@ -675,6 +738,9 @@ closer", 42 cells); it was added.
 deleted, a `<failure>` (not an `<error>`) at the named test **whose message carries the named assertion's label**,
 SHA-256 restore, clean `git status -- src`, green again. All four hold. The matrix test also went red under each,
 and the table names the dedicated test's assertion; I did not record which of the matrix's own assertions fired.
+**Corrected in round 8 (R8-9), from the eighth re-reviewer's measurement:** under R7-1, R7-2 and R7-3 it was the
+matrix's **reach** assertion, which came first and masked the offender rules; under R7-4 it was **offenders**. Round 8
+asserts offenders first.
 
 **Found while doing this, beyond the review:**
 1. `aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt` asserted that a note viewed within one run never mentions a
@@ -690,7 +756,10 @@ and the table names the dedicated test's assertion; I did not record which of th
 I bounded one branch and called the sentence bounded, and I wrote the bound from its end without asking where it
 started. The matrix could not see either because every log began with the change and held one grouping; the fix was
 to make the matrix able to fail, which the witnesses now show it does. P12.4 predicted 8–14 broken assertions; 11
-tests broke, each pinning an unbounded conclusion, and each was rewritten.
+tests broke, each pinning an unbounded conclusion, and each was rewritten. **Corrected in round 8 (R8-9): the units
+differ** — P12.4 counted assertions and this sentence counts tests; I did not record the number of assertions
+rewritten. "Which the witnesses now show it does" is also true only in substance: three of the four went red through
+reach, not through the new rule (see above).
 
 **Ran:** the reviewer's probes before and after; P12 first; the three MA-8 classes after each change (49 tests); every
 new sentence form printed and read in full (`R8Examples-output.txt`, one note per branch); the replay; four strict
@@ -878,9 +947,10 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the seventh re-review's fixes are reviewed.** Eight review rounds' findings are
-  fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5 and 7 also have mutation
-  witnesses (round 7's targeted to its four required findings), round 6 by the owner's choice does not. `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
+- analyser — **NOT ready until the eighth re-review's fixes are reviewed (the ninth re-review).** Nine review
+  rounds' findings are fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5, 7 and
+  8 also have mutation witnesses (rounds 7 and 8 targeted to their required findings), round 6 by the owner's choice
+  does not. `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
   integration (`99f9ec47`, no merge defect). **CI's frame job has never run on this branch**; a pull request is
   what would run it. Not merged: the owner's call.
 
