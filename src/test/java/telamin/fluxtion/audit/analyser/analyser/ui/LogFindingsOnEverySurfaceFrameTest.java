@@ -210,6 +210,12 @@ class LogFindingsOnEverySurfaceFrameTest {
     /**
      * Review item 2, Follow (H3). The tab is read straight after the poll: no `report`, `context` or other verb in
      * between, because any of those re-renders the tab by itself and would hide a tab that did not refresh.
+     *
+     * <p><b>Why the first step adds no record.</b> A poll that ADDS records already re-renders the tab — the append
+     * re-applies the filter, and a report's evidence is live (D-I3) — so with a record appended the Follow refresh is
+     * redundant and removing it changes nothing (the review's H3, run as stated, survived for exactly that reason).
+     * The refresh is load-bearing when the findings change with NO new record: here a document still being written
+     * appears, the file stops being empty (V2), and only that refresh can tell the tab.
      */
     @Test
     void theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween() throws Exception {
@@ -218,11 +224,21 @@ class LogFindingsOnEverySurfaceFrameTest {
             Path log = emptyFollowedWithAReport(f);
             onEdt(() -> assertTrue(reportsTab(f.frame).contains(EMPTY), "control: the tab shows the empty log"));
 
-            appendRecord(log);
+            Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n",
+                    java.nio.file.StandardOpenOption.APPEND);   // no closing ---: pending, not a record
+            onEdt(() -> {
+                int rows = ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store")).size();
+                poll(f.frame);
+                assertEquals(rows, ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store"))
+                        .size(), "precondition: this poll added no record, so nothing else re-renders the tab");
+                assertFalse(reportsTab(f.frame).contains("No records"),
+                        "H3: the findings changed with no new record, and the tab must say so: " + reportsTab(f.frame));
+            });
+
+            Files.writeString(log, "  nodeLogs:\n    - node: { value: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
             onEdt(() -> {
                 poll(f.frame);
-                assertFalse(reportsTab(f.frame).contains("No records"),
-                        "H3: after the Follow poll, the tab must not still call the file empty: " + reportsTab(f.frame));
+                assertFalse(reportsTab(f.frame).contains("No records"), "and once the record lands, still current");
             });
         }
     }
