@@ -289,22 +289,6 @@ public record ProducerDiagnostics(List<Finding> findings) {
         return "";
     }
 
-    /**
-     * MA-6 — a document that carries no {@code eventLogRecord:} key.
-     *
-     * <p>The reader counts it as a record, so a marker written over it would count it too. Naming it is
-     * what stops a completeness claim silently covering a document the format cannot read.
-     *
-     * <p><b>Observation, then conditions, then a possible cause — never the one case as every case</b>
-     * (independent review, F6). The first wording said the log "reads as complete while the document's
-     * header, keys and newlines are gone". That is what AFMT-3 produced once, under a marker. Said of an
-     * unmarked, readable, merely headerless document it was false twice over: the state was UNKNOWN, and
-     * the keys and newlines were plainly there. This finding does not know the container's state, so it
-     * does not state one; it says what a marker WOULD and would not establish.
-     *
-     * <p>Reports the FIRST such row and how many there are, rather than one finding per row, so a badly
-     * affected file says one clear thing.
-     */
     /** The sentence that opens every empty-log finding for a single file that may still be written. */
     public static final String EMPTY_FILE = "No records in this file yet.";
     /** …for a single file whose own stream-end marker says the writer finished having written none. */
@@ -335,6 +319,22 @@ public record ProducerDiagnostics(List<Finding> findings) {
                 + "produced nothing.";
     }
 
+    /**
+     * MA-6 — a document that carries no {@code eventLogRecord:} key.
+     *
+     * <p>The reader counts it as a record, so a marker written over it would count it too. Naming it is
+     * what stops a completeness claim silently covering a document the format cannot read.
+     *
+     * <p><b>Observation, then conditions, then a possible cause — never the one case as every case</b>
+     * (independent review, F6). The first wording said the log "reads as complete while the document's
+     * header, keys and newlines are gone". That is what AFMT-3 produced once, under a marker. Said of an
+     * unmarked, readable, merely headerless document it was false twice over: the state was UNKNOWN, and
+     * the keys and newlines were plainly there. This finding does not know the container's state, so it
+     * does not state one; it says what a marker WOULD and would not establish.
+     *
+     * <p>Reports the FIRST such row and how many there are, rather than one finding per row, so a badly
+     * affected file says one clear thing.
+     */
     private static java.util.Optional<Finding> noRecordKey(LogIndex idx, IntFunction<String> rawText) {
         if (rawText == null) return java.util.Optional.empty();
         int firstRow = -1;

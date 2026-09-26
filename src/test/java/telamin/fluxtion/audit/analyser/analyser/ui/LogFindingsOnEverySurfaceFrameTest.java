@@ -117,15 +117,12 @@ class LogFindingsOnEverySurfaceFrameTest {
     @Test
     void aRecordStillBeingWrittenIsNotAnEmptyFile() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
-        Path log = Files.writeString(tmp.resolve("empty.yml"), "");
 
         try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
-            assertTrue(f.ex.render("open", Map.of("log", log.toString())).ok());
-            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
-            assertTrue(f.ex.render("open", Map.of("follow", true)).ok());
-            onEdt(() -> ((Timer) field(f.frame, "followTimer")).stop());
-            onEdt(() -> assertTrue(producer(render(f.ex, "context", Map.of())).contains(EMPTY),
-                    "control: the empty file is reported"));
+            // re-review optional 1: a report is selected FIRST, so the tab read below can fail — it read an empty tab
+            Path log = emptyFollowedWithAReport(f);
+            onEdt(() -> assertTrue(reportsTab(f.frame).contains(EMPTY),
+                    "control: the empty file is reported, on the tab this test goes on to read"));
 
             Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n",
                     java.nio.file.StandardOpenOption.APPEND);
@@ -274,6 +271,77 @@ class LogFindingsOnEverySurfaceFrameTest {
                                 "the new log's finding — its record with no record key — is on the tab: " + tab),
                         () -> assertFalse(tab.contains("No records in this file"),
                                 "and the old log's empty-file finding is gone: " + tab));
+            });
+        }
+    }
+
+    // ---- targeted re-review of PR #40: V2 at both call sites that word the empty-log finding ------------------------
+
+    private static final String ZERO_MARKER = "---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 0\n---\n";
+
+    /** What a cold open of these bytes says first — the reference V2 holds Follow to. */
+    private static String coldOpenFirstWarning(Path log) throws java.io.IOException {
+        var cold = new telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore(Files.readString(log));
+        return telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.of(cold.index(), cold::rawText,
+                cold.sourceDiagnostics(), cold.completenessDiagnostics(), cold.completenessIsNote(),
+                cold.pendingFrameText(), cold.streamEnd()).firstWarning().orElseThrow().message();
+    }
+
+    private static String frameFirstWarning(MainFrame frame) {
+        return ((telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(frame, "producerDiagnostics"))
+                .firstWarning().orElseThrow(() -> new AssertionError("the frame reports nothing")).message();
+    }
+
+    /**
+     * R1 (X4). An empty unmarked file is followed; a marker declaring zero arrives and the file stays empty, so the state
+     * moves UNKNOWN → COMPLETE and the findings are recomputed through the FOLLOW call site. V2: what Follow says must
+     * be what a cold open of the same bytes says — and that must be the ended sentence, so the two cannot merely agree
+     * on the wrong one.
+     */
+    @Test
+    void aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            Path log = emptyFollowedWithAReport(f);
+            onEdt(() -> assertTrue(frameFirstWarning(f.frame).startsWith(
+                    telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE),
+                    "control: before the marker, the file may still be written"));
+
+            Files.writeString(log, ZERO_MARKER, java.nio.file.StandardOpenOption.APPEND);
+            String cold = coldOpenFirstWarning(log);
+            assertTrue(cold.startsWith(telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE_ENDED),
+                    "precondition: a cold open of these bytes gives the ended sentence: " + cold);
+            onEdt(() -> {
+                poll(f.frame);
+                String tab = reportsTab(f.frame);            // read before any verb
+                String tip = String.valueOf(status(f.frame).getToolTipText());
+                assertAll("V2 at the Follow call site",
+                        () -> assertEquals(cold, frameFirstWarning(f.frame),
+                                "V2: Follow says what a cold open of the same bytes says"),
+                        () -> assertTrue(tip.contains(
+                                        telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE_ENDED),
+                                "the status tooltip carries the ended sentence: " + tip),
+                        () -> assertTrue(tab.contains(
+                                        telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE_ENDED),
+                                "the Reports tab carries it: " + tab));
+            });
+        }
+    }
+
+    /** The COLD-OPEN call site, which had the same gap: a marked-empty file opened is worded from its marker. */
+    @Test
+    void aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = Files.writeString(tmp.resolve("ended.yml"), ZERO_MARKER);
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("log", log.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            String cold = coldOpenFirstWarning(log);
+            onEdt(() -> {
+                assertEquals(cold, frameFirstWarning(f.frame), "the frame's cold open words it as the store does");
+                assertTrue(String.valueOf(status(f.frame).getToolTipText()).contains(
+                                telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE_ENDED),
+                        "and the tooltip says the marker ended it: " + status(f.frame).getToolTipText());
             });
         }
     }

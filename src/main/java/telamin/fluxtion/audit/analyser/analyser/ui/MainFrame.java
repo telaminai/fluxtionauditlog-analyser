@@ -4099,7 +4099,7 @@ public final class MainFrame extends JFrame {
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
                         loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText(),
-                        loaded.streamEnd());
+                        loaded.emptyLogClaim());
         if (reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
         String producerWarning = producerWarning();
         status.setText(statusText(loaded.size(), range,
@@ -4596,7 +4596,7 @@ public final class MainFrame extends JFrame {
         var before = producerDiagnostics == null ? List.<String>of() : producerDiagnostics.messages();
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(store.index(), store::rawText, damage,
-                        store.completenessDiagnostics(), store.completenessIsNote(), pending, store.streamEnd());
+                        store.completenessDiagnostics(), store.completenessIsNote(), pending, store.emptyLogClaim());
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
         // D-MA0c: the Reports tab states the log's findings, so a followed log that changes them re-renders it

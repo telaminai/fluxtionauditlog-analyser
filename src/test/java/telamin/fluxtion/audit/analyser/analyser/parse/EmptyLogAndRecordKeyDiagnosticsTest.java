@@ -311,4 +311,25 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
         assertFalse(message.contains("yet") || message.contains("buffering"), () -> "it ended: " + message);
         assertTrue(message.contains("not about what ran"), () -> "and it still makes no claim about the run: " + message);
     }
+
+    /**
+     * Targeted re-review of PR #40, optional 2: a set of ONE file — `open {logs: [one path]}` opens one, with no count
+     * check — is that file. Its index counts one file, so the finding says "this file", and it must say what the
+     * file's marker says, the sentence the same file gets opened alone. The set's own state stays UNKNOWN.
+     */
+    @Test
+    void aOneMemberRolledSetIsWordedAsItsFile(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws java.io.IOException {
+        var only = java.nio.file.Files.writeString(dir.resolve("run.1.yaml"),
+                "---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 0\n---\n");
+        String alone = of(HeapLogStore.fromFile(only)).firstWarning().orElseThrow().message();
+        try (var set = RolledLogStore.open(List.of(only), 64)) {
+            assertEquals(StreamEnd.State.UNKNOWN, set.streamEnd().state(), "a rolled set is never reported complete");
+            String asSet = ProducerDiagnostics.of(set.index(), set::rawText, set.sourceDiagnostics(),
+                    set.completenessDiagnostics(), set.completenessIsNote(), set.pendingFrameText(), set.emptyLogClaim())
+                    .firstWarning().orElseThrow().message();
+            assertTrue(asSet.startsWith(ProducerDiagnostics.EMPTY_FILE_ENDED), () -> "worded from its file: " + asSet);
+            assertEquals(alone, asSet, "the same sentence the file gets opened alone");
+        }
+    }
 }

@@ -335,4 +335,16 @@ CONTROLS = [
      '            detail.add(findings.firstWarning().isPresent() ? banner(label, body, null, null) : noteBanner(label, body));',
      '            detail.add(banner(label, body, null, null));',
      'ReportsPanelLogFindingsTest#aNoteOnlySetIsDrawnMuted_likeThePdf'),
+    # ---- targeted re-review of PR #40: V2 at both call sites that word the empty-log finding. X4 named the Follow site
+    # as `store.streamEnd()`; optional 2 moved both sites to emptyLogClaim(), so X4 is the same mutation on that text.
+    ('p17-v2-follow-passes-stream-end', UI + 'MainFrame.java',
+     'store.completenessDiagnostics(), store.completenessIsNote(), pending, store.emptyLogClaim());',
+     'store.completenessDiagnostics(), store.completenessIsNote(), pending, null);',
+     'LogFindingsOnEverySurfaceFrameTest#aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays'),
+    ('p17-cold-open-passes-stream-end', UI + 'MainFrame.java',
+     '                        loaded.emptyLogClaim());', '                        null);',
+     'LogFindingsOnEverySurfaceFrameTest#aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo'),
+    ('p17-one-member-set-is-its-file', PARSE + 'RolledLogStore.java',
+     '        return members.size() == 1 ? members.get(0).streamEnd() : streamEnd();', '        return streamEnd();',
+     'EmptyLogAndRecordKeyDiagnosticsTest#aOneMemberRolledSetIsWordedAsItsFile'),
 ]
