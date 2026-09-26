@@ -134,6 +134,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `setup.sh`, `validate.sh` and `generate.sh` without the execute bit, so `./setup.sh` failed with
   "permission denied". They are now made executable with the other bundle scripts. Archive file modes
   are still never trusted.
+- **A recreated project is not offered the old project's session.** Recovery was keyed by the profile's
+  path, so deleting a project and recreating it in the same place showed the previous project's "Restore
+  last session" offer. A project profile now carries a random `profileNonce`, written once when the analyser
+  creates the profile and kept by every save; each saved session records the nonce of the profile that
+  captured it. A different profile at the same path gets no offer (`capturedBy: "different profile at this
+  path"`), and a session or profile without a nonce is withheld as `capturedBy: "unknown"` rather than
+  guessed. An existing profile gains a nonce the first time the analyser saves a change to it, so that
+  profile's committed file gets one new line. A withheld offer still names when it was captured and what it
+  would have opened, and the offer message now names its capture time.
 
 ## [1.20.1] - 2026-09-24
 

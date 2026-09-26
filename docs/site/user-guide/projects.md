@@ -273,7 +273,32 @@ the generation of the offer they displayed, so a stale button cannot accept anot
 
 Candidates are keyed by canonical project-profile location, with a separate no-project bucket. They are
 not shared in profiles or exported ZIPs. A moved or missing project never inherits another project's
-session. Legacy global recent-log/topology paths remain explicit recent-menu choices, not automatic
+session.
+
+Each candidate also records which profile captured it. The identity is a random `profileNonce` that the
+analyser writes into the profile once, when it creates the profile, and keeps on every later save. It is
+taken when the session is captured, not later when the candidate is written out. A project deleted and
+created again at the same location has a new profile with a new nonce, so it is not offered the old
+project's session even though the path matches. The offer is withheld, and `context.restoration` reports
+`capturedBy: "different profile at this path"`, when the session was captured (`capturedAt`) and what it
+would have opened (`inputs`). A re-extracted download is withheld too: its profile usually has no nonce
+yet (see below).
+
+The nonce is part of the file's contents, not a file-system property, so it behaves the same on macOS,
+Linux and Windows. The tools that usually rewrite a committed profile are a `git pull` or checkout and an
+IDE that saves by writing a temporary file and renaming it. Both keep the identity as long as they keep the
+`profileNonce` line. Checking out a version that has a different nonce, or none, changes it. A copy of the
+file (a clone, or an archive of a committed profile) carries its nonce. At another location it is a
+different recovery key anyway; at the same location it counts as the same profile, and every input is
+still checked before anything opens. A share export never includes the nonce, and importing settings never
+changes it.
+
+A profile with no nonce, written by an older analyser version or shipped in a downloaded bundle, gets one
+the first time the analyser saves a change to it. Opening it alone writes nothing. Until then, and for any
+candidate saved by an older analyser version, the session is withheld with `capturedBy: "unknown"`. A
+missing identity is never treated as a match.
+
+Legacy global recent-log/topology paths remain explicit recent-menu choices, not automatic
 startup opens. A command-line log opens only that requested log.
 
 Identity here means observed file bytes, not proof of the application's build or execution identity.

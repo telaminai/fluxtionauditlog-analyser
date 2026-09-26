@@ -254,6 +254,9 @@ MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFram
 SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java'
 SOURCE_SERVICE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/source/SourceService.java'
 TEMPLATE_ARCHIVE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/template/TemplateArchive.java'
+SESSION_RECOVERY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/SessionRecovery.java'
+RECOVERY_CONTROLLER = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SessionRecoveryController.java'
+PROJECT_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectProfile.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -329,6 +332,25 @@ CASES += [
      "if (portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
      'if (POSIX_EXECUTABLES.contains(base)) {',
      'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
+    # edit-loop spec §E: without the profile-identity comparison a project recreated at the same path is offered the old session
+    ('recovery-profile-identity', SESSION_RECOVERY, '                && !e.profileIdentity().equals(candidate.profileIdentity())) {',
+     '                && false) {', 'SessionRecoveryTest#aSessionCapturedByADifferentProfileAtThisPathIsWithheldNotOffered'),
+    # PR #28 review: a missing identity is 'unknown', never 'different profile' and never a match
+    ('recovery-identity-unknown', SESSION_RECOVERY,
+     '                && (e.profileIdentity() == null || candidate.profileIdentity() == null)) {', '                && false) {',
+     'SessionRecoveryTest#aSessionWithoutAProfileIdentityIsWithheldAsCapturedByAnUnknownProfile'),
+    # PR #28 review: a withheld offer still discloses its input origin (§E)
+    ('recovery-withheld-input-origin', SESSION_RECOVERY, '            out.put("inputs", inputOrigin(withheld));', '',
+     'SessionRecoveryTest#aWithheldOfferStillDisclosesItsInputOrigin'),
+    # PR #28 review: the capturing identity is taken when the capture is built, not when the queued save runs
+    ('recovery-identity-at-capture', RECOVERY_CONTROLLER,
+     '            String identity = c.profile() == null ? null : c.profileIdentity();',
+     '            String identity = c.profile() == null ? null : telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.nonce(c.profile()).orElse(null);',
+     'SessionRecoveryControllerTest#theCapturingIdentityIsTakenWhenTheCaptureIsBuiltNotWhenItIsSaved'),
+    # PR #28 review: the identity is a creation nonce, kept by every save of the profile
+    ('profile-nonce-kept-by-saves', PROJECT_PROFILE,
+     '        String nonce = previous == null ? null : validNonce(previous.getProperty(NONCE_KEY));', '        String nonce = null;',
+     'ProjectProfileTest#theCreationNonceIsMintedOnceKeptBySavesAndNeverShared'),
 ]
 
 # M44.4 and M68 (feat/m44-single-state-session): the mutation witnesses behind that branch's evidence sets, registered

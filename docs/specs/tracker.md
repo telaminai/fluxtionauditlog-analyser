@@ -26,6 +26,11 @@ or a G14 pass. The running project remains untouched.
   replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
   qualify mismatch; retain pending-I/O and cross-project controls. Participant history remains
   unverified; this is proposed regression work, not a reproduced or closed finding.
+  **In review:** [PR #28](https://github.com/telaminai/fluxtionauditlog-analyser/pull/28) — snapshots record the
+  capturing profile's creation nonce (`profileNonce`, taken when the capture is built); a recreated profile at
+  the same path is withheld, a missing identity is withheld as `capturedBy: unknown` (unit + real-frame
+  fixture, gate cases `recovery-profile-identity`, `recovery-identity-unknown`, `recovery-withheld-input-origin`,
+  `recovery-identity-at-capture`, `profile-nonce-kept-by-saves`). Not closed until merged.
 - ☐ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
   to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
   generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
