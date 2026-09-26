@@ -177,8 +177,14 @@ public final class VerbSchemas {
                         + "configuration. Returns POINTERS (record indexes and byte offsets), not record "
                         + "text; fetch what you need with 'read'. The returned 'filter' is in the exact "
                         + "shape 'aggregate' accepts, so you can scope a query to the user's own filter by "
-                        + "passing it straight back.",
-                props(),
+                        + "passing it straight back. Pass 'sections' to get only part of it.",
+                props(
+                        p("sections", arr(enumStr(ContextSections.NAMES.toArray(String[]::new))),
+                                "optional: only these sections; omit for the full context (the default, "
+                                        + "unchanged). Each returned key equals the same key of a full context on "
+                                        + "the same state; a warning that qualifies a selected fact (inFlight, "
+                                        + "dispatchOrder, timeOrder, producer) is carried with it, and 'scope' "
+                                        + "says what was selected and carried. Unknown or empty refuses")),
                 List.of()));
 
         s.put("topology", schema("Drive the Topology tab: what is shown, what is selected, and where the "

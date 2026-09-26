@@ -359,6 +359,25 @@ from mutation_controls_session import CONTROLS as SESSION_CONTROLS  # noqa: E402
 assert not {c[0] for c in CASES} & {c[0] for c in SESSION_CONTROLS}, 'a session control reuses a control name'
 CASES += SESSION_CONTROLS
 
+# §H feedback 17: context {sections} is a filter over the full payload that keeps each selected verdict's qualification.
+CONTEXT_SECTIONS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/ContextSections.java'
+CASES += [
+    ('context-projection', CONTEXT_SECTIONS, '                if (selects(key)) {', '                if (!key.isEmpty()) {',
+     'ContextSectionsTest#menuOnly_isTheMenusAndTheScope_andNothingElse'),
+    ('context-qualification', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
+     '"producer", List.of("topology", "view", "charts"),',
+     'ContextSectionsTest#aSelectedVerdictCarriesItsBasisAndEveryQualification'),
+    # PR #29 review 1: a rolled set's member list travels with the view, whose selection has file-local offsets
+    ('context-files-with-view', CONTEXT_SECTIONS, '            "files", List.of("view"));', '            "files", List.of());',
+     'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
+    # PR #29 review 2: collapsed-framing producer faults qualify the topology cursor's record and row count
+    ('context-producer-with-topology', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
+     '"producer", List.of("pairing", "view", "charts"),',
+     'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
+    # PR #29 review 3: a projection without fluxtionKey reads no key file
+    ('context-key-file-guard', MAIN_FRAME, '            if (need.test("fluxtionKey")) {', '            if (true) {',
+     'ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile'),
+]
 
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()

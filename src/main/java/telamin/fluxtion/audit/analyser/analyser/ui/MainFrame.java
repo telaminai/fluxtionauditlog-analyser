@@ -6467,22 +6467,35 @@ public final class MainFrame extends JFrame {
             }
         }
 
-        private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult contextResult(Map<String,Object> out) {
+        private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult contextResult(Map<String,Object> out,
+                telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.Selection sections) {
+            // §H feedback 17: a projection is never drawn — the Project panel reads the whole payload
+            if (sections != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
+                    "context", "context", sections.project(out));
             if (projectPanel != null) projectPanel.render(ProjectModel.from(out));
             if (sourcePanel != null) sourcePanel.designNote(designViewNote(sourcePanel.fileView()));
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
         }
 
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context() {
+            return context((telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.Selection) null);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context(
+                telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.Selection sections) {
             Map<String, Object> out = new java.util.LinkedHashMap<>();
+            // §H feedback 17: with a selection, the file reads and source lookups nobody asked for are skipped.
+            // Only skipped — a needed key is built by exactly the code below, and contextResult then filters.
+            java.util.function.Predicate<String> need = sections == null ? k -> true : sections::needs;
 
             // the same assembly the pasted prompt uses, rendered as JSON instead of prose
-            telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts facts =
-                    telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.of(
+            telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts facts = !need.test("log") && !need.test("source") ? null
+                    : telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.of(
                             currentLogFileInfo(), config.selectedEventProcessor, sourceService,
                             telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.nodeTypes(
                                     selectedRecords, sourceService));
-            Map<String, Object> log = facts.logAsMap();
+            Map<String, Object> log = facts == null ? new java.util.LinkedHashMap<>() : facts.logAsMap();
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
             if (store != null) {
@@ -6542,7 +6555,7 @@ public final class MainFrame extends JFrame {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
-            if (project.hasProject()) {
+            if (project.hasProject() && need.test("skills")) {
                 telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
                         .skillsProvenance(project.activeFile()).ifPresent(value -> {
                             Map<String, Object> skills = new java.util.LinkedHashMap<>();
@@ -6554,12 +6567,15 @@ public final class MainFrame extends JFrame {
             // M19.12 / D-X3: facts this process can observe, not a claim about a future Maven JVM.
             // The credential value never enters this map; the fixed tilde path avoids leaking the local
             // account name into context or screenshots.
-            Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
-            fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
-            fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
-            fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
-                    + "overrides this file; FLUXTION_API_KEY is not read by the builder");
-            out.put("fluxtionKey", fluxtionKey);
+            // §H feedback 17: a projection without fluxtionKey does not read the key file at all
+            if (need.test("fluxtionKey")) {
+                Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
+                fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
+                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
+                fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
+                        + "overrides this file; FLUXTION_API_KEY is not read by the builder");
+                out.put("fluxtionKey", fluxtionKey);
+            }
             // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
             // with the log closed and a graph "still loaded" (closeLog's own words) context disowned it —
             // the disowning defect M34.2 fixed for hasGraph(), one level up.
@@ -6612,14 +6628,14 @@ public final class MainFrame extends JFrame {
                 pair.put("auditLogging", audit.verdict().name().toLowerCase(java.util.Locale.ROOT));
                 if (audit.message() != null) pair.put("auditLoggingNote", audit.message());
                 if (gf) pair.put("copyComparison", graphCopyComparison());
-                out.put("graphPairing", pair);
+                if (need.test("graphPairing")) out.put("graphPairing", pair);
                 // M44.3 D-A4: a load that has not landed is reportable — today a hung load looked idle
                 String inFlight = session == null ? null : session.processor().operationGate.inFlightWhat();
                 if (inFlight != null) out.put("inFlight", inFlight);
             }
             // M37: the processors as a LIST — configured, selected, and whether each resolves to source.
             // A dropdown shows one value at a time; the panel and the agent both need the set.
-            {
+            if (need.test("processors")) {
                 List<Map<String, Object>> procs = new ArrayList<>();
                 java.util.Set<String> configured = new java.util.LinkedHashSet<>(config.eventProcessorFqns);
                 for (String fqn : candidateProcessors()) {
@@ -6636,7 +6652,7 @@ public final class MainFrame extends JFrame {
             // M38.1: runbook POINTERS — where the knowledge is, never what to do. Reported whether or not a
             // log is open; the panel renders each as a row because a pointer an agent will act on and a
             // human cannot see is precisely the shape spec-portable-context exists to avoid (D-C7).
-            {
+            if (need.test("runbooks")) {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
@@ -6685,7 +6701,7 @@ public final class MainFrame extends JFrame {
             // M38.2: the glossary pointer — and, when the file is there, its text (D-C3: served in context).
             // Tier 1 and inert, which is why serving the CONTENT here is right where serving a runbook's
             // would be wrong: a glossary is read, a runbook is acted on.
-            {
+            if (need.test("vocabulary")) {
                 Map<String, Object> v = vocabularyForContext();
                 if (!v.isEmpty()) out.put("vocabulary", v);
             }
@@ -6786,39 +6802,41 @@ public final class MainFrame extends JFrame {
             // assembled last, so a socket-driven fresh start — the exact case `--rest` exists for — reported
             // no roots at all until the first log had loaded, and the Project panel drew "No source roots"
             // over roots a project had just supplied.
-            Map<String, Object> source = facts.sourceAsMap();
-            // each root with its tier — a flat list cannot say which roots a project brought, which are the
-            // user's own, and which is the demo's transient root that a restart forgets
-            List<Map<String, Object>> tiers = new ArrayList<>();
-            Path projRoot = project.hasProject()
-                    ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
-            for (String r : effectiveSourceRoots()) {
-                Map<String, Object> one = new java.util.LinkedHashMap<>();
-                one.put("path", r);
-                one.put("tier", demoRoots.contains(r) ? "demo (transient)" : project.hasProject() ? "project" : "own settings");
-                // M38.6 D-C9: the FORM the profile stores it in — "absolute" on a row you are about to share is
-                // the whole warning, delivered before a colleague's machine delivers it as a failure
-                one.put("form", telamin.fluxtion.audit.analyser.analyser.config.PathForm
-                        .of(r, projRoot, config.workspaceRoot, System.getProperty("user.home")).label);
-                tiers.add(one);
+            if (need.test("source")) {
+                Map<String, Object> source = facts.sourceAsMap();
+                // each root with its tier — a flat list cannot say which roots a project brought, which are the
+                // user's own, and which is the demo's transient root that a restart forgets
+                List<Map<String, Object>> tiers = new ArrayList<>();
+                Path projRoot = project.hasProject()
+                        ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
+                for (String r : effectiveSourceRoots()) {
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("path", r);
+                    one.put("tier", demoRoots.contains(r) ? "demo (transient)" : project.hasProject() ? "project" : "own settings");
+                    // M38.6 D-C9: the FORM the profile stores it in — "absolute" on a row you are about to share is
+                    // the whole warning, delivered before a colleague's machine delivers it as a failure
+                    one.put("form", telamin.fluxtion.audit.analyser.analyser.config.PathForm
+                            .of(r, projRoot, config.workspaceRoot, System.getProperty("user.home")).label);
+                    tiers.add(one);
+                }
+                source.put("rootTiers", tiers);
+                if (config.workspaceRoot != null && !config.workspaceRoot.isBlank()) {
+                    source.put("workspaceRoot", config.workspaceRoot);
+                    Path ws = telamin.fluxtion.audit.analyser.analyser.config.PathForm.workspaceDir(projRoot, config.workspaceRoot);
+                    if (ws != null) source.put("workspaceDir", ws.toString());
+                }
+                // PR #30 review, finding 2: the EDT does not read the processor to answer. Until a source pane has
+                // read it, node types are omitted and this says why, rather than stalling or guessing.
+                if (config.selectedEventProcessor != null && !sourceService.modelRead())
+                    source.put("processorModel", "not yet read — node types appear once a source pane reads the processor");
+                out.put("source", source);
             }
-            source.put("rootTiers", tiers);
-            if (config.workspaceRoot != null && !config.workspaceRoot.isBlank()) {
-                source.put("workspaceRoot", config.workspaceRoot);
-                Path ws = telamin.fluxtion.audit.analyser.analyser.config.PathForm.workspaceDir(projRoot, config.workspaceRoot);
-                if (ws != null) source.put("workspaceDir", ws.toString());
-            }
-            // PR #30 review, finding 2: the EDT does not read the processor to answer. Until a source pane has
-            // read it, node types are omitted and this says why, rather than stalling or guessing.
-            if (config.selectedEventProcessor != null && !sourceService.modelRead())
-                source.put("processorModel", "not yet read — node types appear once a source pane reads the processor");
-            out.put("source", source);
 
             // M40.1 review F1: the topology BEFORE the fresh-start early return below. It sat after it, so with a
             // graph open and no log ever loaded — the exact case audit readiness exists for — `context` carried
             // no `topology` and therefore no verdict; only the `topology` verb's echo had it. Same trap that hid
             // `source` until M37.
-            if (topologyPanel.hasTopology()) out.put("topology", topologyPanel.cursorState());
+            if (topologyPanel.hasTopology() && need.test("topology")) out.put("topology", topologyPanel.cursorState());
 
             // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
             Map<String, Object> f = new java.util.LinkedHashMap<>();
@@ -6827,7 +6845,7 @@ public final class MainFrame extends JFrame {
             // "nothing is open" cannot be bootstrapped from the socket at all.
             if (filter == null) {
                 out.put("filter", f);
-                return contextResult(out);
+                return contextResult(out, sections);
             }
             if (filter.fromMillis() != null) f.put("from", filter.fromMillis());
             if (filter.toMillis() != null) f.put("to", filter.toMillis());
@@ -6884,18 +6902,20 @@ public final class MainFrame extends JFrame {
                 out.put("graphs", graphs);
                 // M68.6 (D-E5): how to POINT at each chart. Plain where the grammar carries the name, quoted for one
                 // saved before names were refused — so an agent never has to work out the escape for itself
-                out.put("graphAddresses", graphs.stream().map(SpotlightTarget::graphAddress).toList());
+                if (need.test("graphAddresses")) out.put("graphAddresses", graphs.stream().map(SpotlightTarget::graphAddress).toList());
                 // R8: a chart with no address is SAID to have none (null above), and why — never given one that fails
-                Map<String, Object> unavailable = new java.util.LinkedHashMap<>();
-                for (String g : graphs) {
-                    String why = SpotlightTarget.graphAddressUnavailable(g);
-                    if (why != null) unavailable.put(g, why);
+                if (need.test("graphAddressUnavailable")) {
+                    Map<String, Object> unavailable = new java.util.LinkedHashMap<>();
+                    for (String g : graphs) {
+                        String why = SpotlightTarget.graphAddressUnavailable(g);
+                        if (why != null) unavailable.put(g, why);
+                    }
+                    if (!unavailable.isEmpty()) out.put("graphAddressUnavailable", unavailable);
                 }
-                if (!unavailable.isEmpty()) out.put("graphAddressUnavailable", unavailable);
-                out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
+                if (need.test("graphScopes")) out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
             }
 
-            return contextResult(out);
+            return contextResult(out, sections);
         }
 
         @Override
