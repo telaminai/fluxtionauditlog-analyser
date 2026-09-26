@@ -554,3 +554,32 @@ with messages compared, no control. P16.6 held, red at the status bar. P16.7 hel
 total**: this branch's own +4 headless and +3 skipped are as predicted, but the merge of `main` 1.22.1 added 15 tests and
 2 skips the prediction did not count — 2427/0/0/115. Display: 115 frame tests, no skip. P16.10 held (CHANGELOG only).
 P16.11 held: on PR #40 (`2d9cd4f9`) build, `ui-frame` under Xvfb and the full `mutation-gate` all pass.
+
+## P17 · Targeted re-review of PR #40 — R1 (V2 at the Follow call site) and three optional items — recorded before any change
+
+The re-review (range `ce2bfa0c..2d9cd4f9`) accepted everything but one test-only gap: nothing fails if the Follow call
+site passes `null` for the stream-end claim (X4). Read before writing, run nothing: a one-member rolled set CAN be
+opened — `open {logs: [one path]}` reaches `RollSetResolver.resolve` (`ActionExecutor` `:1151` → `openLogs`) with no
+count check, and `RolledLogStore` already words its completeness for one member (`:257`). The COLD-OPEN call site has the
+same gap as X4: nothing in the frame fails if it passes `null` either.
+
+1. **P17.1 — R1.** A frame test follows an empty unmarked file, appends a marker declaring zero, and polls once. The
+   followed first warning EQUALS a cold open's of the same bytes (`new HeapLogStore(…)`), and IS the
+   `EMPTY_FILE_ENDED` sentence; the status tooltip and the Reports tab (a report selected beforehand) carry it, read with
+   no verb between. X4 fails it at the V2 equality, not an error or a skip.
+2. **P17.2 — the cold-open call site**, not named by the review: a frame test cold-opens a marked-empty file and the
+   tooltip carries the ended sentence; the same `null` mutation at that site fails it. One more control.
+3. **P17.3 — optional 1.** `aRecordStillBeingWrittenIsNotAnEmptyFile` creates its report first, so its first tab read is
+   real; it still passes, and `p16-v2-pending-frame-is-not-empty` now goes red at THAT line rather than the status bar.
+4. **P17.4 — optional 2.** Taken. The claim an empty-log sentence reads is the one FILE's when there is one: a
+   `LogStore` method, defaulting to `streamEnd()`, that `RolledLogStore` overrides for a single member — `streamEnd()`
+   itself is untouched, because a rolled set is never reported complete. Both frame call sites pass it, so **the X4 anchor
+   changes** from `store.streamEnd()` to that method; the control is the same mutation (`null`) on the new text. A test
+   through `RolledLogStore` gets the ended sentence for a one-member set whose file declares zero, equal to the file
+   opened alone. One more control.
+5. **P17.5 — optional 3.** The three constants and `emptyLogMessage` move above `noRecordKey`'s Javadoc; no behaviour.
+6. **P17.6 — anchors.** Preflight **186** = 183 + X4 + the cold-open site + the one-member set. Each once.
+7. **P17.7 — controls.** The three new ones caught at their named assertions; the sixteen `p15-*`/`p16-*` still caught.
+8. **P17.8 — suite.** Headless **2427 + 1** run (the `RolledLogStore` test) and **115 + 2** skipped (two frame methods),
+   326 reports, no new class. Display: 22 suites, **117** tests.
+9. **P17.9 — CI** on the new head: build, `ui-frame` with no skip, `mutation-gate` with every control caught.
