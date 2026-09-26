@@ -1396,12 +1396,16 @@ public final class MainFrame extends JFrame {
                                     new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
                                             "Focus · " + s.ref(), focus.caption(), focus.image()), null);
                 }
-                case SERIES ->
-                        new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                                "Series",
-                                java.util.List.of("(series sections render as charts in the app; "
-                                        + "PDF assembly for them is a recorded gap)"),
-                                null, null);
+                case SERIES -> {
+                    // the review's gap table (M68.2): drawn from the Graph tab's own extraction and chart, off-screen
+                    var drawn = ReportSeriesPicture.of(store, filter, s.call(), 1200, 600);
+                    yield drawn.image() == null
+                            ? new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                    "Series", java.util.List.of(drawn.problem()), null, null)
+                            : new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(null, null,
+                                    new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                                            "Series", drawn.caption(), drawn.image()), null);
+                }
                 case TABLE -> {
                     var assembled = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
                             .assembleTable(s, store, this::coverageForReport);
