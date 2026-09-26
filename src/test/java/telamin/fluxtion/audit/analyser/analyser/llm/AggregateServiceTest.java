@@ -105,6 +105,30 @@ class AggregateServiceTest {
         assertEquals(expectedBreach, agg(Map.of("metric", "breach_count", "groupBy", "none")).get("total"));
     }
 
+    /**
+     * PR #24: "when was the limit first breached?" was answered with the first value over the limit, but the
+     * application logged its breach as an event. aggregate now says where its counted records begin and end, on the
+     * same 0-based index read and goto take: on the demo log the first RiskBreachEvent is record 16.
+     */
+    @Test
+    void aggregateSaysWhereItsCountedRecordsBeginAndEnd() throws Exception {
+        var demo = HeapLogStore.fromFile(java.nio.file.Path.of("src/main/resources/demo/demo-quote-series.yaml"));
+        var demoSnap = demo.index().snapshot();
+        Map<String, Object> breaches = AggregateService.aggregate(demoSnap, Map.of("metric", "count", "groupBy", "none",
+                "filter", Map.of("dimensions", List.of("RiskBreachEvent"))), demo::rawText);
+        assertEquals(160L, breaches.get("total"), "control: the demo log's RiskBreachEvent count: " + breaches);
+        assertEquals(16, breaches.get("firstRecordIndex"), "the first counted RiskBreachEvent: " + breaches);
+        assertTrue(demo.rawText(16).contains("RiskBreachEvent"), "record 16 is the application's own breach event");
+        int last = (Integer) breaches.get("lastRecordIndex");
+        assertTrue(demo.rawText(last).contains("RiskBreachEvent") && last > 16, "and the last one: " + last);
+        Map<String, Object> all = AggregateService.aggregate(demoSnap, Map.of("metric", "count", "groupBy", "none"), demo::rawText);
+        assertEquals(0, all.get("firstRecordIndex"));
+        assertEquals(demoSnap.size() - 1, all.get("lastRecordIndex"));
+        Map<String, Object> none = AggregateService.aggregate(demoSnap, Map.of("metric", "breach_count", "groupBy", "none"), demo::rawText);
+        assertEquals(0L, none.get("total"), "control: this log logs no breach flag");
+        assertFalse(none.containsKey("firstRecordIndex"), "nothing counted, no position: " + none);
+    }
+
     @Test
     void ratePerMinExposesARate() {
         Map<String, Object> r = agg(Map.of("metric", "rate_per_min", "groupBy", "none"));

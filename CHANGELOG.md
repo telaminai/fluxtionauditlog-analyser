@@ -6,11 +6,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
-- **An assistant is told where counts and "first" answers come from.** The tool descriptions now say that
-  a window of records it has read is only a sample, that `aggregate` returns counts but not positions, that
-  `breach_count` counts records where the application itself logged a breach (not values over a limit), and
-  that when the application first did something is the earliest record of the event it logs for it, or the
-  first value of its own counter, not the first record whose values look over a limit.
+- **`aggregate` says where its counted records begin and end.** With the total it now returns
+  `firstRecordIndex` and `lastRecordIndex`, so "when did the application first log X?" is one filtered count. In
+  virgin runs a smaller model counted breaches from a window it had read, and named the first value over the limit
+  as the first breach, not the application's own `RiskBreachEvent`. The tool descriptions now say that records
+  read are only a sample, and that `breach_count` counts the application's breach flags, not values over a limit.
+  Earlier wording that defined a "first" occurrence in prose was dropped: in two 10-vs-10 trials it lowered correct
+  first-breach answers.
+- **Spotlight guidance points menu answers at the item.** The `spotlight` description asks for the item
+  (`menu:<Menu>:<item>`), not the menu alone, the status bar or an unrelated toolbar button. Its example targets
+  no longer suggest the status bar or the Flag button, the two a model lit for menu answers.
+
 ## [1.23.0] - 2026-09-26
 
 ### Added

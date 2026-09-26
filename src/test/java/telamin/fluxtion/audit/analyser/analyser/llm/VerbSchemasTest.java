@@ -66,18 +66,35 @@ class VerbSchemasTest {
     @SuppressWarnings("unchecked")
     void countingAndFirstOccurrenceQuestionsAreSentToTheToolsThatAnswerThem() {
         String aggregate = (String) schema("aggregate").get("description");
-        assertTrue(aggregate.contains("counts, not record positions"), aggregate);
+        assertTrue(aggregate.contains("records you happened to read are only a sample"), aggregate);
+        assertTrue(aggregate.contains("returns firstRecordIndex and lastRecordIndex, the first and last record it counted")
+                && aggregate.contains("filter to the event an application logs to learn when it first logged it"), aggregate);
         String metric = (String) ((Map<String, Object>) ((Map<String, Object>) schema("aggregate").get("properties"))
                 .get("metric")).get("description");
         assertTrue(metric.contains("application itself logged a breach flag")
                 && metric.contains("a value exceeding a limit is not the same"), metric);
         String read = (String) schema("read").get("description");
-        assertTrue(read.contains("do not count events or name a 'first' from it"), read);
-        assertTrue(read.contains("earliest record of the event it logs") && read.contains("not the first record whose values look over a limit"),
-                "a first occurrence is the application's own event, not a value over a limit: " + read);
+        assertTrue(read.contains("A window of records is a sample: do not count events from it"), read);
+        // 10-vs-10s (2026-09-26): prose defining a 'first' occurrence lowered first-breach answers (1/10, 2/10 vs 5/10)
+        assertFalse(read.contains("earliest record of the event"), "the first-occurrence prose stays out: " + read);
         // 10-vs-10 (2026-09-26): steering 'first' questions to a series crossing sent models to the value crossing
         String series = (String) schema("series").get("description");
         assertFalse(series.contains("crossing of the key it writes"), "the series sentence that misled models stays out: " + series);
+    }
+
+    /**
+     * Virgin-LLM run on 1.22.1: a smaller model lit the status bar and toolbar:flag for menu answers — the two
+     * targets the description itself used as examples. It now asks for the item and gives a menu item as the example.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void spotlightSendsMenuAnswersToTheItem() {
+        String spot = (String) schema("spotlight").get("description");
+        assertTrue(spot.contains("To show where a command is, light its ITEM, menu:<Menu>:<item>"), spot);
+        String target = (String) ((Map<String, Object>) ((Map<String, Object>) schema("spotlight").get("properties"))
+                .get("target")).get("description");
+        assertTrue(target.contains("menu:Audit log:Follow (tail)"), target);
+        assertFalse(target.contains("toolbar:flag") || target.contains(" status."), "the examples no longer suggest the status bar or a toolbar button: " + target);
     }
 
     @Test

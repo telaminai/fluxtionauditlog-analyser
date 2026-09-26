@@ -17,8 +17,9 @@ public final class VerbSchemas {
         Map<String, Object> s = new LinkedHashMap<>();
 
         s.put("aggregate", schema("Read-only counts/rates over the whole log; never mutates the UI. Answer "
-                        + "'how many' here: records you happened to read are only a sample. It returns counts, not "
-                        + "record positions.",
+                        + "'how many' here: records you happened to read are only a sample. With the total it "
+                        + "returns firstRecordIndex and lastRecordIndex, the first and last record it counted: "
+                        + "filter to the event an application logs to learn when it first logged it.",
                 props(
                         p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute. "
                                 + "breach_count counts records where the application itself logged a breach flag "
@@ -50,10 +51,8 @@ public final class VerbSchemas {
 
         s.put("read", schema("Read-only: the raw text of N records around an anchor, so you can seek the "
                         + "log through this socket without filesystem access. Max " + ReadService.MAX_COUNT
-                        + " records/call. A window of records is a sample: do not count events or name a "
-                        + "'first' from it. When did the application first do X? That is the earliest record of the "
-                        + "event it logs for X, or the first value of its own counter for X - not the first record "
-                        + "whose values look over a limit.",
+                        + " records/call. A window of records is a sample: do not count events from it; "
+                        + "aggregate counts the whole log.",
                 props(
                         p("recordIndex", integer(), "anchor by record index (0-based)"),
                         p("byteOffset", integer(), "anchor by byte offset (resolves to the containing "
@@ -363,11 +362,13 @@ public final class VerbSchemas {
                         + "Java line partial means a clipped logical line; source/run relationship is unverified. "
                         + "Menus: context.menus lists every menu and its items, exactly as menu:<Menu>:<item> names "
                         + "them, and context.menuChanges says what was renamed or retired; a miss says where the item "
-                        + "is if it moved or was renamed. "
+                        + "is if it moved or was renamed. To show where a command is, light its ITEM, "
+                        + "menu:<Menu>:<item> — not the menu alone, the status bar, or a toolbar button that is not "
+                        + "that command. "
                         + "Targets: " + SpotlightVocabulary.TEXT,
                 props(
                         p("target", string(), "one of the targets above, e.g. tab:topology, records:row:12, "
-                                + "topology:node:priceListener, graph:note:2, project:log, toolbar:flag, status. "
+                                + "topology:node:priceListener, graph:note:2, menu:Audit log:Follow (tail). "
                                 + "With {clear: true} it names the ONE spotlight to put out"),
                         p("caption", string(), "ONE short line (at most " + SpotlightVocabulary.MAX_CAPTION
                                 + " characters) saying why to look here. It is shown as YOUR words (testimony), "
