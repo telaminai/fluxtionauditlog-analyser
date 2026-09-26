@@ -652,7 +652,8 @@ defects rather than the policy work.
    for the hosted route end to end. What remains is a single acceptance naming the hosted template.
 3. **The jars**, built once for both BETA-B4 and M67.1.
 4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
-5. **G14**, the acceptance run from a real download, once the rest is in.
+5. **G14**, the acceptance run from a real download, once the rest is in — **and after M68.7 marks the charts**
+   (owner, Q4, 2026-09-26): G14's pass condition lands on the chart surface.
 
 **One decision is the owner's and must be settled before the work starts, not invented during it: what does a newly
 generated node log?** Too much costs allocation and dispatch time in a runtime that sells zero allocation, and fills
@@ -755,9 +756,11 @@ verdict, which is owned jointly.
   three fixes: charts render off-screen at page size (`ChartPanel.toImage(w,h)`, `GraphPanel.renderForReport`); a
   starved plot says it has no room, not that there is no data; and the renderer prints NOT RENDERED with its reason
   for any CHART/TOPOLOGY section with no picture. The topology gap text had never reached a page. Verifier scenario 13
-  fails on a `df0b24a5` jar and passes on the fix. **Open:** an off-screen render of a named FOCUS, so the section is
-  drawn and not only explained; the D-E8 contradiction test in its general form (chart versus `series` over the same
-  inputs); and SERIES sections, still a stated gap.
+  fails on a `df0b24a5` jar and passes on the fix. ~~**Open:** an off-screen render of a named FOCUS; the D-E8
+  contradiction test in its general form; SERIES sections.~~ **Corrected 2026-09-26:** all three shipped in 1.21.0 —
+  a saved focus renders off-screen (set 13), a series section draws exactly its stored call (re-review N2), and
+  point-count agreement between chart and `series` is a cross-path regression over one fixture (not a proof for every
+  log). This line had not caught up; the spec's "As shipped after the independent review" is the record.
 - [M68.3] ◧ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** **Analyser half
   built 2026-09-24 on `feat/m44-single-state-session`, awaiting review, on CONSTRUCTED logs** (the original is not
   in the public packet; the diagnostic judges structure, so each acceptance-10 case was built exactly, and the real
@@ -821,10 +824,24 @@ verdict, which is owned jointly.
   `"`, or exactly `note`/`series`) is refused at the `graph` verb's create and rename and at the UI rename. A saved
   one stays reachable: by the verb as saved, and by spotlight quoted (`graph:"a:b":note:2`). `context.graphAddresses`
   gives every address. Recorded under D-E5.
+  **Q5 answered by the owner 2026-09-26: a repair journey for saved names containing `"`, conditional on the
+  affected-name count being small** (Q2 closed the inflow). Count first; if more than a handful, or no count can be
+  established, Q5 goes back to the owner with the escape as the alternative. The repair asks before renaming and keeps
+  the definition; the duplicate-name repair from PR #13 is the pattern to reuse. ☐ not started.
+- [M68.7] ☐ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
+  by the owner 2026-09-26: M68 ships as an explicit partial delivery** (D-E9's producer half makes a whole one
+  impossible), with its gaps stated, **but the charts are marked before G14 runs, because G14's pass condition lands on
+  that surface.** After an in-place rewrite the table shows its banner (UNVERIFIED / REPLACEMENT and that its rows are
+  the log as indexed) while charts and the detail pane read the file as it now is and say nothing. Render the same
+  verdict, from the same session snapshot, on the chart area and the detail pane. Acceptance: after an in-place rewrite
+  of a mapped log, every open chart and the detail pane state the verdict; a control that removes the chart mark fails
+  a named assertion. The detail pane's mark does not gate G14.
 
-Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
-unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate. All three now
-carry a recommendation from both reviews; Q1 is close to settled by the tool-agreement spec's existing policy.
+Owner questions in the spec: **Q4 and Q5 answered 2026-09-26** (partial delivery with M68.7 gating G14; a repair
+journey for saved names, count first). **Q1 and Q3 answered the same day, as recommended:** a genuine
+mismatch annotates and never blocks (the tool-agreement spec's policy stands); and D-E8's executable content check
+becomes a standing export regression gate, with visual inspection required when rendering changes. No owner question
+remains open in this spec.
 
 **Spec is at v3**, after three review rounds on 2026-09-24. **None of them was independent, and calling them
 independent was wrong:** round 1 (`review/m68-evidence-integrity-2026-09-24`, corrected `2f321705`) also prepared

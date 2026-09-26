@@ -555,7 +555,7 @@ responsibilities, and no further client trial: these are contract and acceptance
 ## As shipped after the independent review (2026-09-26) — the remaining gaps, precisely
 
 - **D-E6 / M68.5, the table.** Marked with the verdict, not suspended; the detail pane and charts are not marked (see
-  D-E6). Request verbs are suspended or labelled.
+  D-E6). **Q4 (owner, 2026-09-26): the charts are marked before G14 runs — M68.7 — and the detail pane with them.** Request verbs are suspended or labelled.
 - **D-E6 / M68.5, plugin readers.** Not assessed; said so (`not assessed`).
 - **D-E7 / M68.5, pointers.** Runbook and glossary pointers name the root they tried, and since set 13 so do an
   environment's `logDir` and a directory report destination (`Runbooks.directoryResolution`,
@@ -581,13 +581,15 @@ responsibilities, and no further client trial: these are contract and acceptance
   and graph it scores (`ReportCoverage`).
 - **D-E3 / M68.4, nested keys.** Named by path since set 13, like top-level ones; a free-form `call` is left to its
   verb. The exceptions in the D-E3 table keep per-item results by design.
-- **D-E5 / M68.6, a saved name with `"`.** Kept, with no address, and said so (see D-E5); the compatibility choice is
-  the owner's.
+- **D-E5 / M68.6, a saved name with `"`.** Kept, with no address, and said so (see D-E5). **Q5 (owner, 2026-09-26):
+  a repair journey that asks before renaming, once the affected-name count is shown to be small.**
 - **D-E9 / M68.3, the producer half.** The writer emitting separators is not built here; the reader's diagnostic is.
 
 ## Open for the owner
 
-- **Q1** whether a genuine mismatch warning should block an operation or only annotate it. *Both reviews
+- ~~**Q1**~~ **answered by the owner 2026-09-26: annotate, never block**, as both reviews recommend. The
+  tool-agreement spec's announced-not-forbidden policy for a deliberately opened graph stands, so no compatibility
+  change is made. *The question as asked:* whether a genuine mismatch warning should block an operation or only annotate it. *Both reviews
   recommend annotate, and note it is closer to settled than open: the tool-agreement spec already commits to
   announced-not-forbidden for a deliberately opened graph, so blocking would be a compatibility change against an
   accepted spec and needs its reason on the record.*
@@ -595,13 +597,29 @@ responsibilities, and no further client trial: these are contract and acceptance
   grammar can address: refuse at creation, or accept and map.
   *D-E5 and acceptance 5 are conditional until this is answered. Recommended: refuse for the first slice, and
   keep saved names reachable through an explicit compatible address.*
-- **Q4** (independent review, 2026-09-26) whether M68 ships as an explicit partial delivery with the gaps listed in
+- ~~**Q4**~~ **answered by the owner 2026-09-26: ship as an explicit partial delivery, with the gaps stated.**
+  D-E9 makes a whole delivery impossible here — its producer half is another repository's — so partial is
+  unavoidable, and the gaps are listed in "As shipped after the independent review" rather than implied. **One gap is
+  closed before G14 runs, not after: the charts carry the file-identity mark (M68.7),** because G14's pass condition
+  lands on that exact surface; an unmarked chart beside a marked table would let G14 pass on content the session
+  already knows is superseded. The table stays marked rather than suspended. The detail pane's mark is part of M68.7
+  but does not gate G14. Plugin readers stay `not assessed`, said so.
+  *The question as asked:* whether M68 ships as an explicit partial delivery with the gaps listed in
   "As shipped after the independent review". Set 13 implemented the pointer, nested-key and report-section surfaces
   (focus and series sections drawn) and marks the table; what remains for this decision is that the table is marked
   rather than suspended, the detail pane and charts are not marked, and the producer half of D-E9 is another
   repository's. A green gate for one surface is not a completion tick for the slice.
-- **Q5** (review R8) the compatibility path for a saved chart name containing `"`: an escape in the address grammar,
-  or an explicit repair journey that asks before renaming. Either way the definition is kept.
-- **Q3** whether D-E8's inspection requirement becomes a standing release gate or applies only to this milestone.
+- ~~**Q5**~~ **answered by the owner 2026-09-26: a repair journey, conditional on the affected-name count being
+  small.** Q2's answer already closed the inflow — no new name can contain `"` — so only names saved before it are
+  affected, and a one-time repair that asks before renaming (the definition kept) is cheaper than an escape every
+  addressing surface and every assistant would have to learn. **The condition is checked before the repair is
+  built:** if the affected names are more than a handful, or the count cannot be established, Q5 returns to the owner
+  with the escape as the alternative. The count is taken from what the analyser can see or the owner supplies, never
+  by reading a participant's project.
+  *The question as asked* (review R8): the compatibility path for a saved chart name containing `"`: an escape in the
+  address grammar, or an explicit repair journey that asks before renaming. Either way the definition is kept.
+- ~~**Q3**~~ **answered by the owner 2026-09-26: the recommended split.** The executable content check becomes a
+  standing export regression gate; visual inspection of rendered artefacts is required when rendering changes, not on
+  every release. *The question as asked:* whether D-E8's inspection requirement becomes a standing release gate or applies only to this milestone.
   *Recommended split: the executable content check becomes a standing export regression gate, and visual
   inspection applies when rendering changes. This is a cost decision, not a correctness one.*
