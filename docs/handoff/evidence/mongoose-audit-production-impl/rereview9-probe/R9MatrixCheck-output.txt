@@ -1,0 +1,29 @@
+logs=2880 notes=2520 pastSecondOnly-null=360
+main conclusion pattern count per note={1=2520}, notes with holds=279
+OWNER bound: before a marker, no closer => [before-marker/noPremise]
+OWNER bound: no marker, own sentence => [no-marker/noPremise]
+OWNER bound: no marker, plain ", so" => [no-marker/noPremise]
+OWNER bound: no marker, with a premise (R7-1) => [no-marker/premise]
+OWNER bound: spanning, own sentence => [spanning/noPremise]
+OWNER bound: spanning, plain ", so" => [spanning/noPremise]
+OWNER bound: spanning, with a premise => [spanning/premise]
+OWNER bound: view wholly before a marker, closer past it => [before-marker/noPremise]
+OWNER bound: view wholly before a marker, with a premise => [before-marker/premise]
+OWNER bound: wholly after => [wholly-after/noPremise, wholly-after/premise]
+126 cells  boundaries=[none] closings=[none, null, perNode] [noPremise]  «bound: no marker, plain ", so"»
+18 cells  boundaries=[none] closings=[unreadable] [noPremise]  «bound: no marker, own sentence»
+168 cells  boundaries=[none] closings=[none, null, perNode, unreadable] [premise]  «bound: no marker, with a premise (R7-1)»
+42 cells  boundaries=[beforeMarker] closings=[none, null, perNode] [noPremise]  «bound: before a marker, no closer»
+102 cells  boundaries=[beforeMarker] closings=[null, perNode, unreadable] [noPremise]  «bound: view wholly before a marker, closer past it»
+168 cells  boundaries=[beforeMarker] closings=[none, null, perNode, unreadable] [premise]  «bound: view wholly before a marker, with a premise»
+126 cells  boundaries=[pastCloser, spanning, twoMarkers] closings=[none, null, perNode] [noPremise]  «bound: spanning, plain ", so"»
+306 cells  boundaries=[pastCloser, spanning, twoMarkers] closings=[null, perNode, unreadable] [noPremise]  «bound: spanning, own sentence»
+504 cells  boundaries=[pastCloser, spanning, twoMarkers] closings=[none, null, perNode, unreadable] [premise]  «bound: spanning, with a premise»
+624 cells  boundaries=[twoMarkersAfter, whollyAfter] closings=[none, null, perNode, unreadable] [noPremise, premise]  «bound: wholly after»
+786 cells  boundaries=[pastCloser, spanning, twoMarkers] closings=[none, null, perNode, unreadable] [noPremise, premise]  «later run: bounded by the closer or the second marker»
+150 cells  boundaries=[pastCloser, spanning] closings=[none, null, perNode] [noPremise, premise]  «later run: nothing after the marker ends it»
+12 cells  boundaries=[none] closings=[perNode] [premise]  «whose change to INFO applied wherever this one did»
+48 cells  boundaries=[none] closings=[null, perNode] [premise]  «applied here, it holds until »
+36 cells  boundaries=[none] closings=[null, perNode, unreadable] [premise]  «applied here, it holds at least until »
+234 cells  boundaries=[beforeMarker, pastCloser, spanning, twoMarkers, twoMarkersAfter, whollyAfter] closings=[unreadable] [noPremise, premise]  «A later control record »
+90 cells  boundaries=[beforeMarker, none, pastCloser, spanning, twoMarkers] closings=[unreadable] [noPremise]  «is not established. After record »

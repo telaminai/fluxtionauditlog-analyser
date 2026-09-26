@@ -1,0 +1,44 @@
+== M spanning; closer INFO at rec 4 after the marker; view recs 2, 3, 5 (rec 5 is after the closer)
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). The next change to riskMonitor's audit level in the same grouping is at record 4 (logTime 4), which sets it to INFO. After record 1 and before the stream-end marker preceding record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. That marker begins a later run, and the log does not say whether the level survived into it: for the records in view after that marker and before record 4, in the records sharing its grouping, those lines are absent only if the change at record 1 (logTime 1) survived the marker. It is still counted as uncovered, because a level change is not proof the node ran
+
+== N spanning; two markers in the window; view recs 2, 3, 4 (rec 4 is after the SECOND marker)
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). Nothing later in the records sharing its grouping changes it, so after record 1 and before the stream-end marker preceding record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. That marker begins a later run, and the log does not say whether the level survived into it: for the records in view after that marker and before the stream-end marker preceding record 4, in the records sharing its grouping, those lines are absent only if it survived the marker. It is still counted as uncovered, because a level change is not proof the node ran
+
+== O spanning; grouping alpha; a beta record in view after the marker; view recs 2, 3, 4
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It was addressed to processor grouping 'alpha', which is the grouping the control record itself declares. Nothing later in the records sharing its grouping changes it, so after record 1 and before the stream-end marker preceding record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. That marker begins a later run, and the log does not say whether the level survived into it: for the records in view after that marker, in the records sharing its grouping, those lines are absent only if it survived the marker. It is still counted as uncovered, because a level change is not proof the node ran
+
+== P wholly after; two markers; view rec 3 only (after the SECOND marker)
+   null
+
+== Q wholly after; two markers; view recs 2 and 3 (one each side of the second marker)
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). Nothing later in the records sharing its grouping changes it. Every record in view is in a LATER run — a stream-end marker before record 2 begins it — and the log does not say whether the level survived into it. If it survived the marker, then after that marker and before the stream-end marker preceding record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+
+== R closer before the first marker; records in view after the marker; view recs 2, 5
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It holds until record 3 (logTime 3) sets it to INFO, so after record 1 and before record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== S several groupings in view; WARN in alpha; view alpha rec 2 and beta rec 3
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It was addressed to processor grouping 'alpha', which is the grouping the control record itself declares. Nothing later in the records sharing its grouping changes it, so after record 1, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== T untimed change (no logTime line); view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (untimed). Nothing later in the records sharing its grouping changes it, so after record 1, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== U the change's own record is the last in view; later records not in view; view recs 1 (the change)
+   null
+
+== V declared null; WARN naming no node (or "null"); readable INFO riskMonitor closer at rec 3; view rec 2
+   at record 1 (logTime 1) this log records a change to WARN that names no node — which would set every node's audit level — or a node literally called "null"; the log renders both identically. If the change at record 1 (logTime 1) named no node, it holds until record 3 (logTime 3) sets it to INFO. If the change at record 1 (logTime 1) named no node, then after record 1 and before record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+
+== W declared null; WARN naming no node (or "null"); unreadable closer at rec 3; view rec 2
+   at record 1 (logTime 1) this log records a change to WARN that names no node — which would set every node's audit level — or a node literally called "null"; the log renders both identically. If the change at record 1 (logTime 1) named no node, it holds at least until record 3 (logTime 3), a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. If the change at record 1 (logTime 1) named no node, then after record 1 and before record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+
+== X absent; WARN naming no node (or "null"); readable INFO riskMonitor closer at rec 3; view rec 2
+   at record 1 (logTime 1) this log records a change to WARN that names no node — which would set every node's audit level — or a node literally called "null"; the log renders both identically. The control record states no processor grouping, so whether this change applied here is not established. If the change at record 1 (logTime 1) named no node and it applied here, it holds until record 3 (logTime 3), whose change to INFO applied wherever this one did. If the change at record 1 (logTime 1) named no node and it applied here, then after record 1 and before record 3, in the records that, like it, state no grouping, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+
+== Y1 null record() at rec 3, raw text names the control event (timed, logTime 3); view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It holds at least until record 3 (logTime 3), a record this reader could not read, whose text names the control event; whether that record changed riskMonitor's audit level is not established. After record 1 and before record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== Y2 null record() at rec 3, NO event: line; a node value line reads 'event: EventLogControlEvent'; view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). Nothing later in the records sharing its grouping changes it, so after record 1, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== Y3 null record() at rec 3, an ordinary Tick; view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). Nothing later in the records sharing its grouping changes it, so after record 1, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
