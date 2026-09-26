@@ -335,3 +335,43 @@ by running them, not by planting.
    no other test).
 6. **P11.6 — suite.** Headless grows by exactly the two new tests (R6-1, R6-2) from 2100 to **2102**; skips stay 98.
    `MainFrame` is not touched, so no display run is required.
+
+## P12 · Seventh re-review — recorded before these fixes
+
+Seventh re-review `43e29973` (branch `review/mongoose-seventh-rereview-2026-09-26`) against `d8512121`: four
+required (R7-1–R7-4), two optional wording (R7-5, R7-6), three optional (O7-1–O7-3). The reviewer's probes `R7`,
+`R7b` and `R7Matrix` were re-run on `d8512121` first and reproduce **byte-identically** (R7b compiled together with
+R7, which it calls). **Owner decisions, taken 2026-09-26:** the conclusion is **bounded** by the change, the window's
+end and the grouping (option a); the rule that a closer applied whenever the change before it did does **not**
+extend across a stream-end marker; **targeted mutation witnesses** for R7-1–R7-4 only.
+
+**The wording, fixed before coding.** Every "X's lines below WARN are not in this log" becomes
+"after record C[ and before E], in <scope>, X's lines below WARN are not in this log", where C is the change's
+record, E is the first of the closer ("record N") or the first stream-end marker after the change ("the stream-end
+marker preceding record K"), and <scope> is the existing "the records sharing its grouping" / "the records that,
+like it, state no grouping". With a premise: ". If <premises>, then after record C …; otherwise this change explains
+nothing here". Wholly after a marker: ". If <premises and survival>, then after the stream-end marker preceding
+record K[ and before E2], in <scope>, …". A closer past a marker in an ungrouped context is **open** (R7-4). While
+the change's own applying is open, a closer clause is prefixed "If the change at record C applied here, it holds …"
+(R7-5), and the definite ungrouped closer reads "…, whose change to INFO applied wherever this one did" — so no
+ungrouped note says " sets it to ". The cross-marker unreadable clause says "A later control record …" (R7-6).
+
+1. **P12.1 — R7-1–R7-3.** Probes A, B, C, D, E, F, H and I all gain a bound starting "after record <the change>"
+   and "in <scope>", and each ends at the closer or the marker. Probe D's "Before record 4" and I's ", so
+   riskMonitor's lines" disappear.
+2. **P12.2 — R7-4.** Probe L's "which sets it to INFO" becomes "which records a change to INFO addressed to
+   processor grouping 'alpha'; whether that applied here is not established either".
+3. **P12.3 — R7-6.** Probe J's "The next control record" becomes "A later control record".
+4. **P12.4 — breakage.** Every existing assertion that pins an unbounded conclusion breaks and is rewritten, not
+   deleted: I expect between 8 and 14 assertions across `ControlAddressAndScopeTest` and `CoveragePerNodeLevelTest`
+   (the S2, S3, O-A, spanning, wholly-after, R-B positive-control, R6-1 and R6-2 cases). No other test class breaks.
+5. **P12.5 — the matrix.** A "lead" dimension {none, the node logs in a record before the change, another
+   grouping's record with the node's line after the change} and a fourth boundary {view wholly before a marker,
+   closer past it} grow it to 3 × 5 × 4 × 8 × 3 = **1440 logs, all 1440 annotated**. New offender rules — every
+   "not in this log" sentence starts its bound at the change and names its scope; with a marker in the log, a
+   pre-marker bound ends at it; no ungrouped note says " sets it to " — are green on the fixed code.
+6. **P12.6 — witnesses** (strict protocol: green baseline, reports deleted, a `<failure>` not an `<error>` at the
+   named test, SHA-256 restore, clean `git status -- src`, green again; the failing ASSERTION recorded, not just the
+   test): reverting each of R7-1, R7-2, R7-3 and R7-4's fix goes red at its own dedicated test's own assertion.
+7. **P12.7 — suite.** Headless grows by the two new dedicated tests, 2102 → **2104**, skips unchanged at 98.
+   `MainFrame` is not touched. O7-3 regenerates `dependency-reduced-pom.xml` with no other diff.
