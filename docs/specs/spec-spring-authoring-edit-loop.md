@@ -2,10 +2,15 @@
 
 Status: **PROPOSED v4**, 2026-09-26. No implementation or release acceptance is claimed.
 
+**Owner decision addendum, 2026-09-26:** the owner approved the recommendations for D1–D8.
+The decision table and affected sections below now record those choices. This approves the
+policies, not implementation, release acceptance, publication or key use. Implementation
+status remains PROPOSED v4.
+
 Revision 4 answers the independent review at `075107ef`, R1–R12. It corrects the
 compile pipeline, installer ownership, recovery identity, both Java panes, mapper losses,
-console identity and vendor dispatch premises. D1–D8 remain owner decisions. The companion
-review records independent source checks and their limits; this revision runs no product trial.
+console identity and vendor dispatch premises. D1–D8 were left open in that revision and
+are resolved by the owner addendum above. The companion review records independent source checks and their limits; this revision runs no product trial.
 Existing status marks are unchanged. Public-download/provider acceptances are explicitly
 separate from branch fixtures.
 
@@ -52,10 +57,10 @@ read-only conflict refusal, vendor composition and source/run qualification inta
 | 1 | Stop manufacturing valid events from malformed input | 6 | Hosted template producer; D-T9/D-T8 requirements; §B |
 | 2 | Make ordinary Java navigation revision-aware | 3, 20 | New analyser work; reuse released source-spotlight machinery; §C |
 | 3 | Support explicit ownership-preserving rename | 2 | Compiler/starter generated-member contract; §D |
-| 4 | Clarify recovery provenance and authorise project inputs deliberately | 5, 11 | Existing journey recovery and M68.5 root diagnostics, plus scoped grant decision; §E |
+| 4 | Clarify recovery provenance and authorise project inputs deliberately | 5, 11 | Existing journey recovery and M68.5 root diagnostics, plus approved scoped-grant policy D3; §E |
 | 5 | Separate XML validation, model preflight and provider accounting | 14–16 | Compiler/starter + public authoring contract; §F |
 | Parallel | Install authoring scripts with fixed executable permissions | 8 | New analyser installer item, §G; direct-browser ZIP permissions remain a separate producer check |
-| Parallel | Repair downloaded guides, command help and example tests | 9–10, 14, 18–24 | Existing authoring-route intake; compiler/starter + playground; §G; Windows entry points await D6 |
+| Parallel | Repair downloaded guides, command help and example tests | 9–10, 14, 18–24 | Existing authoring-route intake; compiler/starter + playground; §G; Windows absence documented under D6 |
 | Existing queue | Run-scoped audit, fan-out, record-order charts, economical context | 7, 12, 13, 17 | MA-2/MA-5 and OD-5; existing chart item; new context projection; §H |
 
 Order 1 includes a data-correctness fix, not just onboarding polish. Documentation repairs
@@ -128,11 +133,11 @@ Neither route increments a rejection counter; null does not enter that exception
 Thus “silent drop” here means absent from business/audit accounting, not absent from all logs.
 
 The shipped mapper must never synthesize zero price/quantity or another default business
-value on parse failure. **D1** chooses the blank-line policy and named observable surface:
-either a typed rejection event handled and audited by the processor, or an upstream core
-rejection counter/report consumed by the example. Do not treat stdout or the current error
-ring as that decision. Removing fabrication can start independently; full rejection acceptance
-is blocked on D1 and, if chosen, delivery of the upstream counter.
+value on parse failure. **Approved D1:** emit a typed rejection event with a reason, handled
+and audited by the processor. Blank rows are rejected input too; they must not become zero
+events or disappear from accounting. Stdout and the current error ring are not this surface.
+An upstream core rejection counter is not a dependency of the selected approach. Removing
+fabrication can start independently; full acceptance requires the audited rejection path.
 
 **Acceptance B:** exercise the actual hosted feed adapter with valid, blank, short,
 trailing-empty, non-numeric, non-finite and extra-field rows. Freeze the CSV grammar (field
@@ -196,12 +201,15 @@ separate work if an exact correspondence is required.
 ## D. Rename must migrate ownership explicitly, not erase its history
 
 Provide a plan/apply operation for explicit old→new mappings of class FQN, bean id and affected
-owned members. The implementing owner must settle the command/schema in the generated-member
-contract under **D2** before code. Member keys embed parameter-type FQNs, so renaming one
+owned members. **Approved D2:** an explicit plan → review → apply workflow, preserving
+existing ownership states. Record its concrete command/schema in the generated-member
+contract before code; that schema work is implementation detail within the approved policy.
+Member keys embed parameter-type FQNs, so renaming one
 class also changes method/constructor ownership keys in other classes. Whole types use
-`type:<FQN>`. D2 must define migration of those cross-class keys and the resulting state of
-every construct (`owned` or `adopted`); do not silently assign either state or infer ownership
-from the new spelling. The preview must disclose old/new key, state and preserved baseline.
+`type:<FQN>`. Migrate those cross-class keys without changing ownership: `owned` remains
+`owned`, `adopted` remains `adopted`, and developer-edited code is never silently reclassified
+as generator-owned. Ambiguous provenance still refuses rather than guessing a state.
+The preview must disclose old/new key, state and preserved baseline.
 A proposed rename operation is not the existing `link` command: `link`
 creates a browser link to the design.
 
@@ -259,12 +267,13 @@ Retain generation-isolation controls alongside the new identity control.
 silently authorise the project root or all of `target/`. The supplied current profile does
 not establish the feedback's assertion that every requested file had an explicit grant.
 
-Proposed improvement: a project-open preview offers one explicit, role-scoped grant for its
+**Approved D3:** a project-open preview offers explicit, role-scoped grants for its
 actual design, authoring record, run receipt and declared diagnostic outputs. Validate any new
 profile role schema at import; do not infer authority from a runbook's prose. Persist accepted
 grants with the project, not globally. Canonicalise and check every read, including replacement
-symlinks, and retain size limits. Until this policy is approved, improve the existing refusal
-and generated setup instructions rather than widening access.
+symlinks, and retain size limits. Show exactly what will become readable and require the
+person's explicit acceptance; policy approval does not itself grant access to any project.
+Never grant the whole project directory by default.
 
 **Acceptance E:** relocated project, ambiguous relative path, imported profile, missing input,
 external/symlink escape, and changed symlink after approval. One approved normal setup opens
@@ -293,8 +302,9 @@ remote refusal, interrupted request and success; none may inherit another attemp
 
 For duplicate/equal node instances, expose declared aliases and the selected canonical id in
 model diagnostics. Test reversed XML declaration order and resulting generated/GraphML/audit
-ids. **Owner decision:** retain current id precedence with an explicit diagnostic, or choose a
-new stable naming rule with a compatibility change. Do not silently substitute `NamedNode`
+ids. **Approved D4:** retain current id precedence and disclose aliases and the selected
+canonical id. No naming compatibility change is part of this work. Do not silently substitute
+`NamedNode`
 as the identity contract. Do not teach referenced-but-unlisted nodes as a way around validation.
 
 ## G. Make the downloaded project teach the supported path
@@ -319,8 +329,9 @@ Required changes and checks:
   routes is **not runnable on a branch fixture**; constructed ZIP tests establish installer
   or writer behaviour only.
 - **Windows (D6):** setup, validate and generate currently have only `.sh` entry points.
-  The owner chooses Windows entry points with their own tests, or an explicit documented
-  absence/support limit. Do not require tests of entry points that do not exist.
+  **Approved D6:** document their absence/support limit in this pass. Adding and testing
+  Windows entry points is a separate deferred follow-up, tracked with the template owner.
+  Do not require tests of entry points that do not exist.
 - **CLI:** top-level and per-command help exit successfully without project mutation or key
   access. Explain `link` as a browser URL and list the supported workflow commands. Unknown
   options still refuse. A help-parser mutation must fail the relevant command test.
@@ -365,8 +376,10 @@ null. Non-string `type` values and class-initialisation errors are not caught by
 (the outer core mapper exception boundary is separate). Multi-line input yields a batch
 that may contain null entries; do not infer per-row rejection accounting from a batch return.
 Do not promise a registered type allow-list that this version does not implement, or recommend arbitrary input-selected classes for untrusted
-feeds. **D8** chooses accurate documentation of this behaviour or a plugin repair matching
-the advertised contract; any incompatible discriminator change needs a versioned migration note.
+feeds. **Approved D8:** document the actual behaviour now, with tested examples. A change
+to discriminator or serializer behaviour is separate versioned work with a migration note,
+not a prerequisite for correcting these docs. D1 still requires audited rejection in the
+recommended feed example.
 
 **Acceptance G1:** extract the published JSONL and YAML example verbatim and run it with the
 pinned artifact, asserting actual typed outputs. This published-example acceptance is
@@ -505,7 +518,7 @@ The inspected template profile supplies only `src/main/java`; its Spring XML liv
 `target`, but those later additions do not fix the template. Add the actual emitted design
 directory to the Spring template's explicit source roots, with a visible project-load summary.
 This is a narrow generated-profile default, not an implicit grant to the entire project.
-Generic producer-result grants remain the separate §E policy decision.
+Generic producer-result grants follow the separate approved D3 policy in §E.
 
 Give the generated guide a direct design-open step and, if supported by the profile contract,
 a typed design pointer. Do not invent an ignored profile key. The UI must distinguish authored
@@ -540,13 +553,14 @@ It supplies no project or descriptor identity. The default registry filename use
 directory's basename, so two different directories can overwrite the same registry entry.
 The record is written before binding and can survive a crash.
 
-Use two levels of evidence, subject to **D5**. A bounded, read-only, off-EDT `/api/server`
+Use two levels of evidence under **approved D5**. A bounded, read-only, off-EDT `/api/server`
 probe must match its pid (returned as pid@host) to the registry pid before calling the
 **process** verified. `/healthz` only says OK and cannot do this. Project association is
 **inferred** from canonical `home` and the selected processor class, never established by
 that pid match. Disclose those bases. A differing home, missing class or ambiguous candidates
-must not become “this project's server”. D5 chooses accepting this disclosed inference or
-waiting for an upstream project/descriptor identity field. No affordance ships past D5.
+must not become “this project's server”. D5 accepts this clearly qualified inference for a
+verified running process, withholding ambiguous or stale offers. A future upstream project
+identity field could strengthen it, but is not a dependency of the approved offer.
 
 Guard stale pid reuse as well: `/api/server` exposes JVM start time, whereas registry
 `startedAt` is registry publication time, not JVM start. Do not equate them. A process starting
@@ -599,18 +613,18 @@ before claiming parity. A real hosted-generation parity run needs authorisation 
 
 Concrete compatibility work:
 
-- **Shared market-event contract (D7):** choose (a) retype the demo's relevant handlers to
-  a shared interface, explicitly a demo code change, or (b) retain concrete handlers and have
-  the vendor mapper emit the demo's event through an integration adapter/factory. Do not
-  assume merely implementing an interface reaches both sets of handlers. No casts to demo
-  classes inside a supposedly reusable vendor component or duplicate same-FQN API classes.
+- **Shared market-event contract (approved D7):** retype the demo's relevant handlers to
+  a shared event interface, explicitly as a demo code change. Vendor mappers emit that
+  contract. Verify generated dispatch before recommending the integration; do not assume
+  merely implementing an interface reaches both concrete and interface handlers. No casts to
+  demo classes inside a supposedly reusable vendor component or duplicate same-FQN API classes.
   Proposed new market-event fields are `symbol` (nonblank instrument identifier), `price`
   (finite price in the fixture's declared quote-currency units per instrument unit) and
   `volume` (non-negative long, traded instrument units in this input event). The fixture
   declares its quote currency explicitly; it does not perform currency conversion. These
   meanings are separate from `QuoteView.size` (quote size), positions and risk exposure.
-  D7 settles the carrying type/handler contract before implementation; retain the existing
-  QuoteView API or version an intentional break.
+  Record the shared interface and handler contract before implementation; retain the existing
+  QuoteView API or version an intentional break. D7 does not establish AOT dispatch parity.
 - **A Mongoose-compatible feed mapper:** the existing `CsvFeedAdapter` accepts a callback;
   it is not a `Function` for `valueMapper`. Supply a compatible mapper alongside it, preserving
   callback users. Emit the event chosen by D7 that the processor actually handles.
@@ -698,18 +712,19 @@ No new LLM battery, no claim of G14 completion, no changes to the running partic
 
 ## Decisions and remaining uncertainties
 
-All eight are **owner decisions, unresolved**; the review is not approval of any option.
+All eight recommendations were **approved by the owner on 2026-09-26** in this authoring
+session. The choices below replace the earlier alternatives; approval is not proof of delivery.
 
-| Decision | Owner choice / affected acceptance |
+| Decision | Approved policy / affected acceptance |
 |---|---|
-| D1 | Processor-audited typed rejection event versus upstream core rejection counter/report, and blank-line policy (§B/G1). |
-| D2 | Rename command/schema, cross-class parameter-FQN and `type:<FQN>` key migration, and the resulting `owned` or `adopted` state for each construct (§D). |
-| D3 | Explicit role-scoped grants versus existing per-root authorisation (§E). Declarations alone grant nothing. |
-| D4 | Retain canonical-id precedence for equality-shared nodes with disclosure, or change it with a compatibility contract (§F). |
-| D5 | Accept disclosed project inference from home/processor class for a verified console process, or wait for an upstream project/descriptor identity field (§I2). |
-| D6 | Supply Windows setup/validate/generate entry points, or explicitly document their absence (§G). |
-| D7 | Retype demo handlers to the shared interface, or retain concrete handlers and map vendor input to the demo event (§I3). |
-| D8 | Document actual TypeSerialiser behaviour, or change the plugin to match its advertised contract with versioned migration (§G1). |
+| D1 | Typed rejection event with a reason, handled and audited by the processor. Blank rows are rejected too; never fabricate a zero event (§B/G1). |
+| D2 | Explicit plan → review → apply rename, including cross-class parameter-FQN and `type:<FQN>` keys. Preserve existing ownership states and never silently claim developer-edited code (§D). |
+| D3 | Offer explicit role-scoped grants at project opening, showing exactly what becomes readable. No implicit whole-project grant (§E). |
+| D4 | Keep current canonical-id precedence; disclose aliases and the selected canonical ID. No naming compatibility break in this work (§F). |
+| D5 | Allow the console offer for a verified running process with clearly disclosed inferred project association; withhold stale or ambiguous offers (§I2). |
+| D6 | Document that Windows setup/validate/generate entry points are absent in this pass; adding and testing them is a separate deferred follow-up (§G). |
+| D7 | Retype the demo's relevant handlers to a shared event interface as an explicit demo change. Verify generated dispatch before recommending the integration (§I3). |
+| D8 | Document actual TypeSerialiser behaviour now with tested examples. Discriminator/behaviour changes are separate versioned work (§G1). |
 
 Run-boundary format/Chronicle choice remains **OD-5**, not a ninth new decision here.
 
@@ -722,15 +737,18 @@ Run-boundary format/Chronicle choice remains **OD-5**, not a ninth new decision 
 5. Template compile profile, constructor/rename fixtures (§A, R1). Scan staging can follow
    the profile change, but §A is not closed until protected-output failure tests pass.
 6. Generated text/descriptor/replay corrections and starter CLI help (§G).
-7. Remove fabricated zero events (§B). Do not claim rejection accounting complete before D1.
+7. Remove fabricated zero events (§B); implement and verify D1's audited rejection path before
+   claiming full rejection accounting.
 8. Template design root and the no-log real-frame journey (§I1).
 
-Blocked: rename implementation on D2; console offer on D5; shared vendor event integration
-on D7; the JSONL recommendation on D8 plus D1's rejection contract. Local model preflight
-waits for slice 5's current model compilation. Role grants, canonical-id changes and Windows
-support decisions remain D3/D4/D6. Published-archive, published-site/binary and authorised
-provider acceptances wait for their named releases/authorisation; local checks never close
-them. None of these slices is implemented by this revision.
+The D1–D8 decision blockers are resolved. Rename, scoped grants, the qualified console offer
+and shared-interface demo work can proceed under the approved policies. Remaining dependencies
+are technical and evidential: local model preflight needs slice 5's current model compilation;
+the JSONL recommendation needs tested documentation and D1's audited rejection path; vendor
+integration needs generated-dispatch verification and published compatible jars. Windows
+entry points are deferred under D6, not part of this pass. Published-archive, published-site/
+binary and authorised provider acceptances still wait for their named releases/authorisation;
+local checks never close them. No implementation or release acceptance is claimed here.
 
 Still needed: the session's exact analyser build; pristine archive and acquisition route; the
 recovery capture sequence; pre-edit class/XML/record snapshots for rename; immutable receipts

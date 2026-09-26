@@ -1926,11 +1926,11 @@ new upstream asks until the producer accepts them into its existing authoring co
 | Ask | Owner | Acceptance / dependencies |
 |---|---|---|
 | Structural-edit pipeline and diagnostic repairs | Compiler/starter and template producer | Existing **UP-FLX-21**, spec §A; related wiring explanations **UP-FLX-32**. Do not open another compile-order issue. |
-| No fabrication or unaccounted malformed CSV loss | Hosted template producer; core if D1 chooses a rejection counter | New, §B; D-T9/D-T8 invariants. Non-numeric exceptions currently drop without audit rejection. D1 chooses an audited event or upstream counter/report; no full closure before that dependency. |
-| Explicit rename/ownership migration | Compiler/starter | New, §D/D2; migrate parameter-FQN keys in other classes and type:FQN keys, with owner-selected resulting ownership state. Preserve bodies/baselines and prove default regeneration. `link` is not this operation. |
+| No fabrication or unaccounted malformed CSV loss | Hosted template producer and audited processor example | New, §B; D-T9/D-T8 invariants. Non-numeric exceptions currently drop without audit rejection. Approved D1 uses a typed processor-audited rejection event, including blank rows; no upstream counter dependency or full closure before that path is verified. |
+| Explicit rename/ownership migration | Compiler/starter | New, §D/D2; migrate parameter-FQN keys in other classes and type:FQN keys, preserving existing ownership states under approved D2. Preserve bodies/baselines and prove default regeneration. `link` is not this operation. |
 | Local model preflight and request/billing evidence | Compiler/starter, compiler client/provider boundary | New, §F; XML validation stays inert, reuse authoritative checks after current model compilation. No inferred charge or false zero. |
-| Equality-shared node aliases and selected-id disclosure | Compiler/GraphML producer | New, §F; reproduce order dependence before choosing a compatibility policy. No analyser identity guess. |
-| Direct-browser ZIP scripts, matching guides and example behaviour | Playground/template producer plus starter documentation owner | §G; direct ZIP modes/extraction are separate from feedback 8's analyser installer executable list (tracked in analyser). D6 chooses Windows entry points or documented absence. Check command help, versioned contract, hosting links and starter behaviour. |
+| Equality-shared node aliases and selected-id disclosure | Compiler/GraphML producer | New, §F; test order dependence and disclose aliases/selected ID; D4 retains current precedence without a naming break. No analyser identity guess. |
+| Direct-browser ZIP scripts, matching guides and example behaviour | Playground/template producer plus starter documentation owner | §G; direct ZIP modes/extraction are separate from feedback 8's analyser installer executable list (tracked in analyser). D6 approves documented Windows absence for this pass; adding and testing entry points is a separate deferred template-owner follow-up. Check command help, versioned contract, hosting links and starter behaviour. |
 | Discoverable authoring patterns and supplier sources | Documentation/template producer | §G; reuse **UP-FLX-32** and existing vendor-composition guidance; executable examples before presenting owner tips as supported rules. |
 | Run-scoped export and original listener fan-out | Mongoose/core/capture owner | Existing **MA-2 / MA-5 / OD-5**, §H; no second implementation item here. Verify published versions before changing bundle promises. |
 
@@ -1964,11 +1964,14 @@ Plugin docs must distinguish mkdocs.yml's plugin_version 1.0.37 from the project
 and Repsy release 1.0.45 at the v4 metadata check. Repsy is the public binary route named in
 §G4, not Maven Central. The admin Replay view is visual playback of audit records; the template
 comment must not describe it as deterministic application re-execution. **Owners: plugin docs
-and template emitter.** D8 decides whether to document TypeSerialiser's actual contract or
-change the plugin with a versioned migration; D1 separately gates rejection accounting.
+and template emitter.** Approved D8 documents TypeSerialiser's actual contract with tested
+examples; behaviour changes require separate versioned work. Approved D1 supplies a typed
+processor-audited rejection event, including blank rows.
 
-**Conditional D5 ask, not an approved implementation:** if the owner declines inferred
-home/processor-class association, **Mongoose admin/registry owner** supplies a stable project
-or descriptor identity in discovery and server metadata. Until delivered and consumed, the
-console offer remains blocked; a matching pid alone never establishes project identity.
-Vendor integration remains M67 work under D7, with the existing risk A/oracle/fixtures intact.
+**D5 resolved, 2026-09-26:** the owner accepts clearly disclosed home/processor-class inference
+for a verified console process, withholding stale or ambiguous offers. An upstream stable
+project/descriptor identity field could strengthen this later; it is optional follow-up for
+the **Mongoose admin/registry owner**, not a blocker of this offer. A matching pid alone never
+establishes project identity. Vendor integration remains M67 work: approved D7 retypes the
+demo's relevant handlers to a shared interface, with generated-dispatch verification before
+recommendation and the existing risk A/oracle/fixtures intact.

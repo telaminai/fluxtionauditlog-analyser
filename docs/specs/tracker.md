@@ -26,14 +26,15 @@ or a G14 pass. The running project remains untouched.
 - ☐ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
   to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
   generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
-  producer check; Windows entry points await D6.
+  producer check; D6 approves documenting Windows absence, with implementation deferred.
 - ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
   add the emitted Spring design directory to template roots, verify topology/source with no
-  log, and under D5 offer a verified reachable process with disclosed inferred project
-  association, or wait for an upstream identity field. No automatic control or token disclosure.
-- ☐ **Project input grants, proposed** — spec §E, feedback 11: retain M68.5's canonical root
-  diagnostics work. A separate role-scoped grant policy needs approval; opening a profile
-  does not implicitly authorise the project root or target directory.
+  log, and under approved D5 offer a verified reachable process with disclosed inferred
+  project association; withhold ambiguous or stale offers. No automatic control or token disclosure.
+- ☐ **Project input grants, approved policy; implementation open** — spec §E, feedback 11:
+  retain M68.5's canonical root diagnostics work. D3 approves offering explicit role-scoped
+  grants at project opening, showing what becomes readable; opening alone authorises neither
+  the project root nor target directory.
 - ☐ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
   default, same-state equality, and basis/qualification carried with every selected verdict.
 - ☐ **Upstream handoff** — new asks and existing ownership are routed through
@@ -41,8 +42,9 @@ or a G14 pass. The running project remains untouched.
   First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
   preflight, matching contract and direct-browser archive/documentation checks. Installer
   permissions and recovery identity belong here, not upstream. No producer implementation
-  belongs in the analyser. D1–D8 remain owner decisions; the spec names eight startable slices
-  and published/provider acceptances that cannot run on branch fixtures.
+  belongs in the analyser. D1–D8 were approved by the owner on 2026-09-26 and are recorded in
+  the spec. Its eight startable slices retain their acceptance, and published/provider checks
+  still cannot be closed by branch fixtures. Policy approval advances no implementation mark.
 
 The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
 **Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.

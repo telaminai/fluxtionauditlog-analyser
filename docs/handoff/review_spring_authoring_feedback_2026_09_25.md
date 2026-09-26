@@ -55,9 +55,9 @@ Specification letters refer to the linked proposal.
 | 3 — stale Java | **READ** identifies two panes and a service cache: the Source tab already rereads on selected-processor refresh, the embedded Topology pane fills only on first use, and a pane reread leaves the service model stale. Repeated session symptoms remain **REPORTED**. | **C**, analyser ordinary-navigation freshness. Keep source/run identity separate. |
 | 4 — conflict advice | Error text is **REPORTED**. The proposed universal field-name rule is too strong; existing bindings may differ from bean ids. | **A**, actionable diagnostics with only established declarations suggested; also UP-FLX-32's wiring guidance. |
 | 5 — foreign recovery offer | **READ + REPORTED.** The current key is the profile's real path, so replacement at the same path aliases the old capture. The participant's actual deletion history was not observed. | **E**, recreated-path fixture first, durable profile identity and capture-time disclosure, then pending-I/O/switch controls; no automatic restore. |
-| 6 — fabricated zero event | **READ**: blank/short rows produce zero events; non-numeric rows throw and are dropped by core without audit rejection. The session later uses a replacement mapper. | **B**, remove fabrication; full visible rejection depends on D1 (audited event or upstream counter), not the stdout-only unknown handler. |
+| 6 — fabricated zero event | **READ**: blank/short rows produce zero events; non-numeric rows throw and are dropped by core without audit rejection. The session later uses a replacement mapper. | **B**, remove fabrication; full visible rejection requires approved D1's processor-audited rejection event, not the stdout-only unknown handler. |
 | 7 — cumulative capture | **REPORTED**; persistence is not inherently wrong. Moving capture aside was a manual session workaround. | **H / MA-2 / OD-5**, explicit export scope and authoritative run boundary; no implicit deletion. |
-| 8 — script permissions | **READ**: TemplateArchive deliberately applies a fixed executable list and omits setup/validate/generate; the template marks them executable. This is an analyser installer defect, independently of direct ZIP modes. | **G**, analyser install test/control removing generate.sh from the list. Separate direct-browser ZIP check; Windows entry points are absent, pending D6. |
+| 8 — script permissions | **READ**: TemplateArchive deliberately applies a fixed executable list and omits setup/validate/generate; the template marks them executable. This is an analyser installer defect, independently of direct ZIP modes. | **G**, analyser install test/control removing generate.sh from the list. Separate direct-browser ZIP check; D6 approves documenting absent Windows entry points for this pass. |
 | 9 — CLI help/link | **READ**: starter special-cases help only as the first argument. `link` encodes the XML into a browser URL; it does not migrate ownership. No CLI was executed here. | **G**, per-command help and accurate link documentation, no project mutation. |
 | 10 — incomplete/drifting guides | **READ**: truncated RUNBOOK sentence exists in project and template emitter. Local starter jar has no contract document entry. Version-table confusion is **REPORTED**. | **G**, immutable matching contract, complete workflow and conflict-specific repair guidance. |
 | 11 — read grants | **READ**: DesignFiles explicitly makes project a relative base, not permission. Current profile has roots added by the session; it does not prove original grants for every file. | **E / M68.5**, separate resolution from authorisation; proposed role grants require approval. |
@@ -65,7 +65,7 @@ Specification letters refer to the linked proposal.
 | 13 — missing stdout audit | **REPORTED**, consistent with the already-recorded listener replacement defect. An absent stdout match does not establish no execution. | **H / MA-5**, released-version fan-out and restoration acceptance; do not duplicate the analyser's diagnostic work. |
 | 14 — authoring patterns | Tips/results are **REPORTED**; some are explicitly untested. Public vendor-composition guidance already exists, so “nowhere” is too broad. | **F/G**, improve generated entry points and executable patterns, not new advice to bypass name validation. |
 | 15 — validate versus generation/cost | **READ**: RUNBOOK explicitly promises XML-only validation. Which failures reached/charged a provider is unknown. | **F**, separate model preflight and evidence-based request/billing receipt, preserving inert validation. |
-| 16 — canonical deduped id | **REPORTED**, not independently established in this pass. Changing naming precedence could break consumers. | **F**, expose aliases/selected id; owner decision on compatibility after a reversed-order fixture. |
+| 16 — canonical deduped id | **REPORTED**, not independently established in this pass. Changing naming precedence could break consumers. | **F**, expose aliases/selected id; D4 retains current precedence, checked with a reversed-order fixture. |
 | 17 — large context | **REPORTED**; existing read projection does not solve context overhead. No byte/token measurements made here. | **H**, opt-in context sections with same-state equivalence and verdict qualifications; preserve default compatibility. |
 | 18 — descriptor copy drift | **READ**: hosting guide links the config and also calls its copied YAML effective. Historical drift is **REPORTED**. | **G**, link the actual file, label any example historical; do not duplicate mutable authority. |
 | 19 — vacuous starter test | **READ**: supplied test only asserts a non-null processor; POM already declares mongoose-test-support. The update correctly points to existing infrastructure. | **G**, use the actual hosted wiring with the harness plus an independent behavioural table and wrong-result control; keyless on the shipped processor. |
@@ -216,7 +216,7 @@ subject to D5; it does not claim the registry can verify a project. No live regi
 **READ from a fresh public clone:** vendor collection head `3a89391` is source-only by its
 own publication contract. `QuoteView` and the demo's concrete PriceEvent are different
 contracts, and the supplied CSV adapter is callback-based rather than a valueMapper Function.
-§I3–I4 now put the interface-versus-concrete event choice under D7 and require compatible
+§I3–I4 now follow D7's approved shared-interface demo change and require compatible
 mapper/wiring, source jars, binary resolution and
 M67's staged tour, preserving the deliberately incorrect risk A and its independent oracle.
 No vendor source or binary was changed and no guided tour was run by this inspection.
@@ -254,7 +254,7 @@ was run. The participant project and private recovery store were not accessed in
 | R8 | Hosted compile fallback with no public local generator, local interpretation and swapped reload registrations inspected. §G3 states expected prerequisites and the upstream handoff names the swap. | READ; no provider request or command execution. |
 | R9 | Plugin version variable and deployment configuration inspected; Repsy metadata returned release 1.0.45 and Central's aggregate coordinate metadata returned 404. §G4/I3 name the correct route. | READ + RUN metadata fetches only; not a binary-resolution/build acceptance. |
 | R10 | Admin Replay code handles visual record playback, not application execution. §G2 adds that fifth capability and corrects the emitted comment's meaning. | READ; no browser replay run. |
-| R11 | Parameter-FQN member keys and type:FQN keys inspected. §D/D2 require cross-class migration and an explicit resulting ownership state. | READ; the owner has not selected a state or command. |
+| R11 | Parameter-FQN member keys and type:FQN keys inspected. §D/D2 require cross-class migration and an explicit resulting ownership state. | READ at v4 inspection; subsequent D2 approval preserves states under plan → review → apply. |
 | R12 | Installer and recovery identity now have analyser tracker entries; feedback 8 has split installer/browser ownership in delivery and upstream tables. | Documentation diff inspected; all pre-existing status marks retained. |
 
 What I got wrong: I treated a possible custom supplier dependency as the shipped template's
@@ -273,7 +273,8 @@ Unverified: the participant's actual capture/recreation history; generated AOT e
 to the interpreted type-selection rule; execution of all proposed regressions; the new
 pipeline and real provider prerequisites in operation; public-download install/build/tour
 acceptance; and live console/login behaviour. These need the fixtures, published artifacts
-or separate provider authorisation named in the specification. D1–D8 remain open. No slice
+or separate provider authorisation named in the specification. D1–D8 were open at the v4
+source review and are now approved as recorded below. No slice
 was implemented, no risk fixture/oracle changed and no status was advanced.
 
 ### V4 documentation checks
@@ -296,3 +297,22 @@ was implemented, no risk fixture/oracle changed and no status was advanced.
 - **NOT RUN:** implementation, product tests, display tests, mutations, participant/session
   activity, provider calls, public-archive build or live console checks. No full-suite result
   from an earlier revision is presented as v4 evidence.
+
+
+## Owner decision addendum — 2026-09-26
+
+The owner approved all eight recommendations after the v4 source review. The specification's
+D1–D8 table is the canonical record: audited rejection events including blank rows; explicit
+plan/review/apply rename preserving ownership states; explicit role-scoped grants; unchanged
+canonical-id precedence with disclosure; qualified console inference for a verified process;
+documented Windows absence for this pass; shared-interface demo handlers; and documentation
+of actual serializer behaviour with tested examples.
+
+Affected requirements, tracker text and upstream routing now reflect those choices. No
+implementation status mark advanced. Windows entry points remain a separately tracked deferred
+follow-up; live provider authorisation and published-artifact acceptance are still required.
+This records policy approval only, not implementation or a rerun of the source/product checks.
+
+Decision-record checks: strict MkDocs, diff whitespace, tracked-file and added-line public-data
+sweeps, and the private-path/address/wording scans passed. Existing status marks and Markdown
+link targets are unchanged; no Maven tests or product trials were rerun for this policy record.
