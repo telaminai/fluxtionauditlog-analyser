@@ -63,6 +63,39 @@ public final class DetailPanel extends JPanel {
         void addSeries(String graphName, String instanceId, String key);
     }
 
+    /**
+     * M68.7 (owner, Q4): the detail pane's statement that the file behind the log changed after it was read, set by
+     * the frame from the session snapshot beside the table's and the charts'. It does not gate G14.
+     */
+    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel() {
+        /** Review O2: the warning colour follows the theme — recomputed whenever the look and feel is updated. */
+        @Override public void updateUI() {
+            super.updateUI();
+            setForeground(UiTheme.warnForeground());
+        }
+    };
+
+    /** What the detail pane says for a file-identity verdict, or null for none; WHEN is the table's rule. */
+    static String identityBannerText(String verdict, String reason) {
+        if (LogTablePanel.identityBannerText(verdict, reason) == null) return null;
+        // Review O1: the verdict and the recovery lead; the reason follows; the whole note is the tooltip.
+        return "⚠ Record not verified against the file on disk — reopen the log to read it again · "
+                + (reason == null ? "the file behind this log changed after it was read" : reason);
+    }
+
+    /** Show {@code note} above the record, or hide the banner for null. Call on the EDT. */
+    public void setIdentityNote(String note) {
+        identityBanner.setText(note == null ? "" : note);
+        identityBanner.setToolTipText(note);
+        identityBanner.setVisible(note != null);
+        revalidate();
+    }
+
+    /** The banner's text, or null while it is hidden. */
+    String identityNote() {
+        return identityBanner.isVisible() ? identityBanner.getText() : null;
+    }
+
     public DetailPanel() {
         super(new BorderLayout());
         text.setEditable(false);
@@ -83,7 +116,12 @@ public final class DetailPanel extends JPanel {
         bar.add(copy);
         bar.add(wrap);
         bar.add(selectionInfo);
-        add(bar, BorderLayout.NORTH);
+        identityBanner.setVisible(false);
+        identityBanner.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        JPanel north = new JPanel(new BorderLayout());
+        north.add(bar, BorderLayout.NORTH);
+        north.add(identityBanner, BorderLayout.SOUTH);
+        add(north, BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
         UiTheme.applySurface(scroll, text);
         setWrap(false);
