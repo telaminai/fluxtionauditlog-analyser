@@ -463,3 +463,43 @@ does not contradict its series stays a stated gap, because it has no single surf
 - **P78 — witnesses.** One per item (A banner setter no-op, B render returns null, C series returns null, D the
   directory check removed, E nested walk removed), each red at its own test; the gate grows by 5 over set 12's.
 - **P79 — counts.** About 13 new headless tests; 0 failures; skips unchanged at 101. Frame 102 / 0 / 0 / 0.
+
+## Set 14 — the re-review's N1 and N2 (re-review `93046a48`, subject `aaca6166`)
+
+**Written before any fix code or new test exists; this commit touches only this file.** Already OBSERVED, and not
+predicted here: the reviewer's `RereviewProbe` re-run on `93046a48` reproduced its output byte for byte (N1: depth
+1 → 0 after a refused `{showAll, saveFocusAs}`; N2: STRICT 0 vs report 2 points, filtered 1 vs report 3), and
+`PdfProbe.py` reproduced its replies (the output-directory path aside).
+
+**Design, fixed before coding.**
+- **N1.** No more prediction. The save's precondition is judged on a DETACHED trial copy of the panel's focus state
+  (the graph, focus contexts, selection, scope, route bound, scaffolding, named focuses), after running the request's
+  preceding transitions on it through the SAME routine the real apply uses (`applyFocusTransitions`). The check is
+  the one `saveFocusAs` itself makes (`saveFocusAsPrecondition`, shared). `saveFocusAsProblem`, the approximation, is
+  deleted. The live panel is touched only after the whole request is known to succeed.
+- **N2.** `SeriesScan.parseCall(params)` becomes the one interpretation of a series call (expr or key, resolve with
+  the verb's default STRICT, filter from/to/dimensions; `filter.text` refused), used by the verb AND the report. The
+  report draws exactly the call: its scope is the call's filter, and the view filter does not apply (the caption
+  says so, and states the resolution). Semantics a drawn series cannot carry — `crossings`, `buckets`, `limit`, both
+  `key` and `expr`, any other key, an unknown `resolve` — are NOT RENDERED with the reason. An unknown `resolve` is
+  now refused by the verb too, where it silently became STRICT.
+
+**Predictions.**
+- **P80 — N1 red first.** `TopologyWholeOrRefusedTest#aRefusedSaveAfterShowAllLeavesTheExistingFocus` (existing
+  one-node focus; `{showAll, saveFocusAs}`) fails on `aaca6166` at its state-preservation assertion (depth 1 → 0).
+  `#showAllThenSelectFocusAndSaveInOneCallSaves` passes before and after. Confidence 80%.
+- **P81 — N1 preserved.** The existing R5 cases (select+save refused, pop-to-full refused, focus-then-save, blank
+  name) stay green, plus new pop:1-at-depth, no-op focus with an existing focus, scope and routeBound cases.
+- **P82 — N2 red first.** In `ReportSeriesPictureTest`, the STRICT case (report must draw 0 points) and the filtered
+  case (1 point, at 2000) fail on `aaca6166`; the existing key case keeps passing but its caption assertion changes
+  from "under the current filter" to the call's scope (a wording change, recorded). Confidence 75%.
+- **P83 — agreement through the adapter.** A new test compares `SeriesScan.scan` with `ReportSeriesPicture.of` for the
+  same calls (both counterexamples plus the six agreement cases): equal point counts.
+- **P84 — built jar.** A new end-to-end scenario (18) exports both counterexample sections; the PDF text carries
+  "1 point" and "0 points" with STRICT in the captions. Red on the `aaca6166` jar, green after. Scenarios 13 and 17
+  stay green.
+- **P85 — witnesses.** Three new controls: preparation omitting showAll (fails
+  `aRefusedSaveAfterShowAllLeavesTheExistingFocus`), the report forcing LOCF, and the report dropping the call filter
+  (each failing its named `ReportSeriesPictureTest` assertion). Plus one existing control re-run (`review-r5-save-precheck`,
+  whose anchor moves with this change). `set13-c-series-drawn` may need its anchor moved.
+- **P86 — counts.** Headless grows by about 10 tests from 2187; 0 failures; skips 101. Frame suite unchanged at 102.
