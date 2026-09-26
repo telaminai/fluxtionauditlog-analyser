@@ -7,6 +7,54 @@ landed, at the owner's request:
 *"have both faster mutation gate on merge to main and only subsets of gates on a branch"*. Written by the
 session whose work the gate keeps catching.
 
+## Follow-up: four isolated CI shards (2026-09-26)
+
+Implementation on `gate/parallel-mutation-shards`; review and merge remain separate from implementation.
+The sequential CI job grew with the registry: run 36271215353 took 16m53s, including 14m35s for controls
+and 1m39s for the engine self-test. Run 36270986642 recorded 174 controls, all using the fast path.
+
+The complete registry is partitioned across four jobs. Each job has its own checkout, compiled trees and
+Xvfb display; controls inside a job still run sequentially with fresh JVMs. Each shard establishes its
+baseline, requires every mutation to fail its named assertion, restores source and compiled bytes, and
+reruns the named test green. No assertion, restoration check or control is dropped for speed.
+
+`tools/mutation_timings.json` records durations and provenance from the earlier CI artifact. Longest-first
+allocation distributes expensive controls across workers. Timing data is only a scheduling hint: the live
+`CASES` registry supplies the required set, and a new control without timing data receives the default
+weight. Old timing entries never create controls. Refresh timings from a complete CI artifact when the
+balance drifts; include the run URL and revision. Each worker prints its assigned controls' estimated time.
+
+The design-status-capped control runs first in its assigned shard, once. This preserves the early Linux
+regression check without a separate compile, baseline and duplicate execution. The engine self-test runs
+in its own parallel job. Matrix fail-fast is disabled so a failed control does not cancel other workers'
+evidence. Partial results upload even when a worker fails.
+
+The final job retains the name **mutation-gate**, preserving the existing required-check name. It requires
+both the self-test and all workers to succeed, then independently recomputes the partition and verifies:
+all four results are present, all refer to this checkout revision, every current control occurs exactly
+once in its assigned shard, the source digests match, baselines are green, failures are at the named
+assertions, both byte restores succeeded, and named restored tests pass without skips. Missing, duplicate,
+stale, skipped or incomplete evidence fails the job. CI uses the complete set, never `--changed-since`.
+
+For local diagnosis, run one shard **at a time on a shared display**:
+
+```sh
+python3 tools/verify_project_chart_review.py --mode mutations --engine fast \
+  --shard-index 0 --shard-count 4 --output target/mutation-shard-0.json
+```
+
+The index is zero-based. Sharding refuses `--case`, `--changed-since`, other engines and other modes.
+The existing unsharded invocation is unchanged. After obtaining all four results from the same revision:
+
+```sh
+python3 tools/mutation_shards.py --artifacts target --count 4 \
+  --revision "$(git rev-parse HEAD)" --output target/mutation-gate.json
+```
+
+Elapsed time is expected to fall to roughly 5–7 minutes if runners start promptly; that is an estimate,
+not acceptance evidence. Four setups and baselines may increase total runner usage. Actual timings,
+checks, prediction misses and CI results belong in the implementation report.
+
 ## The cost, measured
 
 All figures below were measured on this machine, JDK 21, at `main` = `4d787d1b` (post-#13), with a real
