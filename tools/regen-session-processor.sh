@@ -54,6 +54,5 @@ fi
 
 echo "→ regenerating the committed processor with the pinned released builder"
 mvn -q -Pregen process-classes
-git checkout -- dependency-reduced-pom.xml 2>/dev/null || true
 rm -f src/main/java/telamin/fluxtion/audit/analyser/analyser/session/generated/*.failed
 echo "→ done (the build stripped the attribution line). Now: mvn test"

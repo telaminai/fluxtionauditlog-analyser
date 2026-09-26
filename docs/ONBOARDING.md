@@ -268,5 +268,5 @@ only. New designs get a `spec-<name>.md`; superseded ones move to `completed/`.
 
 - The fatjar version comes from the manifest via `ReleaseNotes.version()` — use
   `getPackage().getImplementationVersion()`, NOT a classpath manifest scan (that returns a dependency's).
-- Shade regenerates `dependency-reduced-pom.xml` on `package`; it's tracked, so commit or revert it
-  deliberately.
+- Shade regenerates `dependency-reduced-pom.xml` on `package`. It is a build output, untracked and in
+  `.gitignore` since 2026-09-26 (eighth re-review R8-7), so a package leaves `git status` clean.

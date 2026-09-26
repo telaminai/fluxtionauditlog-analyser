@@ -208,7 +208,7 @@ CONTROLS = [
      '        if (params.containsKey("saveFocusAs")) {', '        if (false) {',
      'TopologyWholeOrRefusedTest#aRefusedSaveLeavesTheSelection'),
     ('review-r6-leading-bom', PARSE + 'FramingScan.java',
-     "            int headerAt = i == 0 && text.charAt(0) == '\\ufeff' ? 1 : i;",
+     "            int headerAt = i == 0 && AuditText.isBom(text.charAt(0)) ? 1 : i;   // the one BOM rule (MA, AuditText)",
      '            int headerAt = i;',
      'ProducerFramingTest#aLeadingBomDoesNotHideACollapse'),
     ('review-r7-pending-bound', PARSE + 'ProducerDiagnostics.java',

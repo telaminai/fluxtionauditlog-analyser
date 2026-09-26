@@ -6,6 +6,81 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **An empty log now says it is empty.** A file with no records reads as exactly that, in all six shapes
+  it can take, instead of opening silently with nothing in it and leaving you to guess whether the run
+  produced nothing or the reader found nothing. A file with no index supplied is untouched — that means
+  *no index*, not *no records*.
+- **A document that is not a log is named as one.** A YAML file that never opens a record is reported
+  rather than read as a log with no content. The test is the file's framing — its first non-blank,
+  non-comment line — not a search for the key somewhere in the text, so a document that merely mentions
+  `eventLogRecord` is still not a log. The warning quotes the line it found and says what a stream-end
+  marker would and would not establish, rather than asserting a verdict.
+- **An uncovered node whose audit level was changed now says so.** A node set to `WARN` still runs, but
+  its info lines are suppressed, so it carried no entries and coverage listed it as uncovered with no
+  explanation — while the record stating the change sat in the same file. That change is now shown
+  beside the node, naming the records that open and close it. It is an annotation, never an excuse: the
+  node stays in the uncovered list and in the ratio, and the annotation is read even when a filter hides
+  the record it came from. A change applies exactly as the runtime applies it: a change naming no node
+  sets every node, a change addressed to another processor grouping does not apply, and a later change —
+  per-node or global — ends it. A node name is compared exactly as written, so a name with extra
+  spaces or punctuation addresses no node. Records are matched to a processor by the grouping each
+  declares, so one processor's change never explains or ends another's, and a record that declares no
+  grouping is qualified rather than assumed. For records after a stream-end marker the explanation is
+  conditional: the log does not say whether the level survived into the later run. Every explanation
+  states each thing the log leaves open — whether the change named no node or a node literally called
+  "null", whether it applied, whether it survived a marker — in the one condition its conclusion rests on,
+  and the change that ends a window is described with the same care as the one that began it. A change
+  the log does not show to have applied is described as recorded, never as having set the level; one
+  described as setting the level applied whenever the change before it did, within the same run. A control
+  record the analyser cannot read ends the explanation there and says so, rather than being passed over as
+  if it changed nothing, and a change after a stream-end marker is named without claiming the level lasted
+  until it. Every conclusion is bounded — the definite one and the conditional one about a later run
+  alike: it speaks for the records after the change (or after the marker) and before the window ends — the
+  next change, an unreadable control record or a stream-end marker — in the change's own grouping, never
+  for the whole log. An annotation stops at the second stream-end marker after its change — counting every
+  marker, so two written back to back with an empty run between them are two — and records past it get no
+  level explanation and stay uncovered. When the records in view include some the annotation does not
+  concern, it says it speaks for those it does. A condition in force — that the change named no node, that
+  it applied — is carried into every sentence resting on it. A record a log reader could not read at all,
+  but whose header names the control event, is described as that, with the time its header states; every
+  header field the format permits is read, and nothing from the payload.
+- An empty or blank file now opens by its extension rather than being refused as unreadable.
+
+### Fixed
+
+- **Follow no longer calls a replaced, unreadable file unchanged.** A failed UTF-8 read retires the earlier
+  verification and opening digest immediately, including when the file size is unchanged. The session receives
+  that failure on the same poll, and the diagnostic identifies the displayed records as a retained snapshot.
+- **A byte-order mark no longer changes a verdict.** A record behind a BOM lost its thread, level and
+  logger, and because the finest level is read from there, `auditLevelFinest` fell from DEBUG to INFO and
+  coverage went on to say debug calls might be missing. It was not only a first-line problem: a file made
+  by concatenating two runs carries a mark in the middle, and every record behind it was affected the
+  same way.
+- A BOM before a file's first `---` stopped it separating, so the head of a healthy file ran together; a
+  file containing only byte-order marks framed as one record instead of reading as empty. A BOM counts
+  **only at the very start of a file**: an event value containing a BOM-prefixed `---` line and marker
+  lines is not a record boundary and cannot make a log read as complete. Two BOM'd files concatenated
+  therefore no longer separate at the join, and the missing-separator warning says so.
+- Following a growing log no longer fails when a poll lands inside a multi-byte character; the rest of
+  the character is awaited, and until it arrives the log does not claim to be complete. Bytes that can
+  never form a character fail loudly rather than being waited for, and the log then says its
+  completeness is unknown until it is reopened, rather than keeping the verdict it had before them. That
+  failure is reported as damage to the source, first among the log's findings, and reaches the assistant
+  and the status tooltip even while the file keeps growing. If the file is later replaced by a longer
+  readable one, it is reloaded rather than read as though the new content had been appended; a replacement
+  of the same length is not detected, and the log keeps saying its completeness is unknown until reopened.
+- A healthy record read through the binary reader is no longer reported as missing its record key.
+- An event whose name merely resembles the framework's own control event is no longer counted as one.
+
+### Changed
+
+- Record lines are trimmed of **ASCII whitespace only** — space, tab, CR, LF — matching the format
+  specification and the rest of the reader, where one path previously trimmed every Unicode space. A line
+  indented with an ideographic or em space is no longer trimmed to its content, and the fields on it are
+  lost. YAML permits only the space character for indentation and no known producer emits one.
+
 ## [1.21.0] - 2026-09-26
 
 - **Source panes show the file as it is now.** After a regeneration, the Topology tab's source pane kept

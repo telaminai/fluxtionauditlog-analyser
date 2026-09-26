@@ -89,7 +89,14 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.20.0 released 2026-09-24**, with separate Project,
+`docs/specs/completed/tracker.md`. **Latest: 1.22.0 released 2026-09-26**: the reader half of the Mongoose audit
+format on top of M44.4/M68 — an empty log and a document that is not a log are named as findings,
+coverage annotates a node whose audit level was changed per node, one byte-order-mark rule and
+ASCII-only trimming across the reader, and Follow retires its verification when a file stops decoding.
+Producer halves (MA-2 writer, MA-6.3 fixtures, MA-5.7) and MA-0/MA-8's report paths stay open.
+**1.21.0 (the same day)** shipped M44.4, the single-state session, and the M68 evidence-integrity code
+(its six items stay open until each acceptance is shown), with the Spring edit-loop slices 1–3 and 8.
+**1.20.0 released 2026-09-24**, with separate Project,
 Sources and Audit log menus, refreshed guides/screenshots, menu-path guards, and the fast mutation
 gate in CI. Chart lifecycle fixes shipped in 1.19.2/1.19.3. Remaining menu owner decisions stay live.
 See `docs/handoff/release_analyser_1_20_0_2026_09_24.md`. **Earlier shipped through 2026-09-23 (v1.19.0 released 2026-09-23: revision-bound Java source spotlights with asynchronous preparation, viewport remeasurement and honest partial disclosure; v1.18.0 the same day: audit format 1.1 §1a — a log can say whether it is whole, `context.log.streamEnd` reports the claim, an unclaimed file reads as `unknown` and a rolled set is never reported complete; v1.17.0 2026-09-21: the tool-agreement block TA-1…TA-8, Follow through `open {follow}`, pending EOF records, chart/topology/report fixes; v1.16.0 2026-09-20: M66 design render — the Spring XML on the canvas, adding `source` as the SIXTEENTH verb — plus the project-starter journey, project landing and explicit session recovery; v1.15.0 released 2026-09-18: M64.10/.11/.12 — a spotlight target may name its chart or reach a menu item, the guidance says a call replaces unless it adds — plus `/manifest` carrying the bridge `instructions` and the external-label fixes, all reviewed twice; v1.14.0 and v1.14.1 released 2026-09-17: the M46 agent-API closure, M44.3b close supersedes a pending open, M48.7 the shared canvas through `open {posture | record}`, M64 spotlight .1–.9 incl. the point-at-the-fault skill and `topology:verdict`, M65 follow refreshes open graphs; earlier: v1.13.0–1.13.2 2026-09-16, v1.12.0, v1.11.0 2026-08-27)):** MCP bridge

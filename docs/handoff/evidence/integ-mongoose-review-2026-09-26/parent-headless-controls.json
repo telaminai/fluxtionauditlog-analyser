@@ -1,0 +1,405 @@
+[
+  {
+    "name": "heap-ma-parent",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 10.48
+    },
+    "mutated": {
+      "exit": 1,
+      "counts": {
+        "tests": 59,
+        "failures": 3,
+        "errors": 3,
+        "skipped": 0
+      },
+      "assertions": [
+        {
+          "test": "HeapLogStoreFollowIdentityTest#append(Path)",
+          "kind": "error",
+          "message": "Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.verdict()\" because the return value of \"telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore.followIdentity()\" is null"
+        },
+        {
+          "test": "HeapLogStoreFollowIdentityTest#touched(Path)",
+          "kind": "error",
+          "message": "Cannot invoke \"telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.verdict()\" because the return value of \"telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore.followIdentity()\" is null"
+        },
+        {
+          "test": "HeapLogStoreFollowIdentityTest#sameLengthRewrite(Path)",
+          "kind": "failure",
+          "message": "the caller reopens ==> expected: <-1> but was: <0>"
+        },
+        {
+          "test": "HeapLogStoreFollowIdentityTest#differentFileSamePath(Path)",
+          "kind": "failure",
+          "message": "expected: <-1> but was: <1>"
+        },
+        {
+          "test": "HeapLogStoreFollowIdentityTest#missing(Path)",
+          "kind": "error",
+          "message": "/var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/junit4018616281385723537/follow.yaml"
+        },
+        {
+          "test": "HeapLogStoreFollowIdentityTest#middleRewritePlusAppend(Path)",
+          "kind": "failure",
+          "message": "expected: <-1> but was: <1>"
+        }
+      ],
+      "seconds": 13.07
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 14.89
+    },
+    "sha256": "18085aea5da5512f968d628468d84ddff34894dbd04bbffd8529b0de93178786",
+    "byteIdentical": true
+  },
+  {
+    "name": "heap-main-parent",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 3.86
+    },
+    "mutated": {
+      "exit": 1,
+      "counts": {
+        "tests": 59,
+        "failures": 4,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [
+        {
+          "test": "FollowPendingBytesTest#aCharacterCutAfterEveryPrefixByteWithholdsTheVerdictAndThenRecovers(Path)",
+          "kind": "failure",
+          "message": "F2 (233 cut after byte 1 of 2): bytes exist past the last marker; the file cannot vouch for itself ==> expected: not equal but was: <COMPLETE>"
+        },
+        {
+          "test": "FollowPendingBytesTest#bytesThatCanNeverBeginACharacterFailRatherThanWait(Path)",
+          "kind": "failure",
+          "message": "F2: [192] can never complete, so waiting for it is a silent lie ==> Expected java.nio.charset.MalformedInputException to be thrown, but nothing was thrown."
+        },
+        {
+          "test": "FollowPendingBytesTest#aSuccessfulReadAfterAFailedOneReloadsRatherThanAppends(Path)",
+          "kind": "failure",
+          "message": "precondition: C0 is refused ==> Expected java.nio.charset.MalformedInputException to be thrown, but nothing was thrown."
+        },
+        {
+          "test": "FollowPendingBytesTest#aRefusedByteAfterAPendingCharacterLeavesNothingPending(Path)",
+          "kind": "failure",
+          "message": "precondition: a valid partial character is pending ==> expected: <1> but was: <0>"
+        }
+      ],
+      "seconds": 13.05
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 8.83
+    },
+    "sha256": "18085aea5da5512f968d628468d84ddff34894dbd04bbffd8529b0de93178786",
+    "byteIdentical": true
+  },
+  {
+    "name": "diagnostics-ma-empty-return",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 3.06
+    },
+    "mutated": {
+      "exit": 1,
+      "counts": {
+        "tests": 59,
+        "failures": 3,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [
+        {
+          "test": "ProducerFramingTest#aLiveCollapseIsSuspectedFromThePendingFrame(Path)",
+          "kind": "failure",
+          "message": "[No records in this file. A file can be empty because nothing was written yet, because the writer is buffering, or because the processor cannot audit at all \u2014 this says the file is empty, not that the run produced nothing.] pending=eventLogRecord: \n    logTime: 1\n    event: Tick\n    nodeLogs: \n        - n: { v: 1}\neventLogRecord: \n    logTime: 1\n    event: Tick\n    nodeLogs: \n        - n: { v: 1}\neventLogRecord: \n    logTime: 1\n    event: Tick\n    nodeLogs: \n        - n: { v: 1}\n ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "ProducerFramingTest#anOversizedPendingFrameWithACandidateIsSuspected(Path)",
+          "kind": "failure",
+          "message": "[No records in this file. A file can be empty because nothing was written yet, because the writer is buffering, or because the processor cannot audit at all \u2014 this says the file is empty, not that the run produced nothing.] ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "ProducerFramingTest#anOversizedPendingFrameIsNotAssessed(Path)",
+          "kind": "failure",
+          "message": "R7: [No records in this file. A file can be empty because nothing was written yet, because the writer is buffering, or because the processor cannot audit at all \u2014 this says the file is empty, not that the run produced nothing.] ==> expected: <true> but was: <false>"
+        }
+      ],
+      "seconds": 10.26
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 8.09
+    },
+    "sha256": "36fbcf216a64b4fa0a24342706fb4329ab4b54d473d876a926c82d1f00299e68",
+    "byteIdentical": true
+  },
+  {
+    "name": "diagnostics-main-no-empty",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 1.94
+    },
+    "mutated": {
+      "exit": 1,
+      "counts": {
+        "tests": 59,
+        "failures": 5,
+        "errors": 1,
+        "skipped": 0
+      },
+      "assertions": [
+        {
+          "test": "EmptyLogAndRecordKeyDiagnosticsTest#theEmptyLogSignalIsAWarningAndNotAState",
+          "kind": "failure",
+          "message": "MA-0.1: it must raise a warning on the status bar (asserted via firstWarning, MA-0.4) ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "EmptyLogAndRecordKeyDiagnosticsTest#sourceDamageIsStatedBeforeTheEmptyLogFinding",
+          "kind": "failure",
+          "message": "both are worth saying ==> expected: <2> but was: <1>"
+        },
+        {
+          "test": "EmptyLogAndRecordKeyDiagnosticsTest#firstWarningSeesPastACompletenessNoteAndIsWarningDoesNot",
+          "kind": "failure",
+          "message": "isWarning() looks past the leading note since M68.3 \u2014 the trap MA-0.4 named is closed ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "EmptyLogAndRecordKeyDiagnosticsTest#anIndexWithNoRecordsRaisesTheEmptyLogFinding",
+          "kind": "failure",
+          "message": "an empty log must raise a finding \u2014 this is what was silent ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "EmptyLogAndRecordKeyDiagnosticsTest#theWordingIsAboutTheFileNotTheRun",
+          "kind": "error",
+          "message": "No value present"
+        },
+        {
+          "test": "ProducerDiagnosticsTest#anEmptyLogIsNowAFindingButANullIndexStillSaysNothing",
+          "kind": "failure",
+          "message": "MA-0: a log with no records is a finding ==> expected: <false> but was: <true>"
+        }
+      ],
+      "seconds": 9.44
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 17.07
+    },
+    "sha256": "36fbcf216a64b4fa0a24342706fb4329ab4b54d473d876a926c82d1f00299e68",
+    "byteIdentical": true
+  },
+  {
+    "name": "coverage-ma-unbounded",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 71,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 5.94
+    },
+    "mutated": {
+      "exit": 0,
+      "counts": {
+        "tests": 71,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 16.28
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 71,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 16.41
+    },
+    "sha256": "395b9c99d7aaebb2ee8839f5076aa8f185c77eecaea4f74849c95bbce36c24f3",
+    "byteIdentical": true
+  },
+  {
+    "name": "coverage-main-no-annotation",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 71,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 6.01
+    },
+    "mutated": {
+      "exit": 1,
+      "counts": {
+        "tests": 71,
+        "failures": 14,
+        "errors": 1,
+        "skipped": 0
+      },
+      "assertions": [
+        {
+          "test": "CoveragePerNodeLevelTest#aQuietPerNodeLevelIsAnnotatedAgainstThatNode",
+          "kind": "failure",
+          "message": "MA-8.1: the log names this node's level; coverage must say so rather than listing it as plainly uncovered. annotations={} ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aGlobalRestoreClosesAPerNodeInterval",
+          "kind": "failure",
+          "message": "positive control: a record inside the WARN interval is explained ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aQuietenedThenRestoredNodeIsStillAnnotatedForItsWindow",
+          "kind": "failure",
+          "message": "MA-8.4: the WARN window is real even though the LAST change is the restore \u2014 using only the last change annotated nothing. annotations={} ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#oneInstantInsideIsExplainedAndOneAfterIsNot",
+          "kind": "failure",
+          "message": "inside ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aTimedWindowClosedByAnUntimedChangeIsKept",
+          "kind": "failure",
+          "message": "the window must survive an untimed close: {} ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aLaterGroupsWindowIsFoundWhenTheFirstDoesNotApply",
+          "kind": "failure",
+          "message": "alpha is DEBUG and explains nothing; beta's WARN does, and must still be reached: {} ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aLookalikeEventNameIsNotAControlEvent",
+          "kind": "failure",
+          "message": "precondition: with the real event name this exact record IS a level change ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aRecordThatIsNotAControlEventIsNotReadAsALevelChange",
+          "kind": "failure",
+          "message": "precondition: with the real event name this exact record IS a level change ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt",
+          "kind": "error",
+          "message": "Cannot invoke \"String.contains(java.lang.CharSequence)\" because \"spanning\" is null"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aChangeAddressedToAnotherGroupingDoesNotApply_andInAnUngroupedProcessorItDoes",
+          "kind": "failure",
+          "message": "in a processor grouped 'alpha', beta's change does not apply and alpha's WARN still governs: {} ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#twoUntimedChangesReadAsUntimedRatherThanAsAHugeNegativeNumber",
+          "kind": "failure",
+          "message": "the WARN window is still real: {} ==> expected: not <null>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aFilterHidingTheControlRecordStillAnnotates",
+          "kind": "failure",
+          "message": "MA-8.3: the control record is outside the filter, but the level still applies to it. annotations={} ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aFullyQualifiedControlEventNameIsRecognised",
+          "kind": "failure",
+          "message": "the qualified name is the same event ==> expected: <true> but was: <false>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#aScopeWhollyAfterARunBoundaryGetsNoDefiniteClaim",
+          "kind": "failure",
+          "message": "the annotation is not dropped \u2014 the level may well have survived: null ==> expected: not <null>"
+        },
+        {
+          "test": "CoveragePerNodeLevelTest#theAnnotationCarriesItsOwnCaveat",
+          "kind": "failure",
+          "message": "the echo must say these are not excuses: null ==> expected: <true> but was: <false>"
+        }
+      ],
+      "seconds": 15.7
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 71,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 17.43
+    },
+    "sha256": "395b9c99d7aaebb2ee8839f5076aa8f185c77eecaea4f74849c95bbce36c24f3",
+    "byteIdentical": true
+  }
+]

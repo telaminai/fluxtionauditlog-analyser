@@ -1,0 +1,23 @@
+[
+  {
+    "suite": "HeapLogStoreFollowIdentityTest",
+    "tests": 7,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "failuresNamed": [
+      {
+        "test": "unreadableSameLengthReplacementRetiresTheVerifiedIdentity(Path)",
+        "message": "failed reads retire current-byte claims (3 failures)\n org.opentest4j.AssertionFailedError: a failed decode must not retain the earlier UNCHANGED identity ==> expected: <UNVERIFIED> but was: <UNCHANGED>\n org.opentest4j.AssertionFailedError: a replaced file must not retain its opening digest ==> expected: <true> but was: <false>\n org.opentest4j.AssertionFailedError: a replacement is not established to be an append ==> expected: <false> but was: <true>"
+      }
+    ]
+  },
+  {
+    "suite": "CoveragePerNodeLevelTest",
+    "tests": 25,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "failuresNamed": []
+  }
+]

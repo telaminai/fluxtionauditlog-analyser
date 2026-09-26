@@ -1,0 +1,13 @@
+{
+  "tests": 5,
+  "failures": 1,
+  "errors": 0,
+  "skipped": 0,
+  "failuresNamed": [
+    {
+      "test": "aFailedFollowPollPublishesIdentityAndDamageOnce",
+      "kind": "failure",
+      "message": "a failed poll publishes both kinds of evidence (1 failure)\n org.opentest4j.AssertionFailedError: the failing poll must publish its identity to the session immediately ==> expected: <UNVERIFIED> but was: <VERIFIED>"
+    }
+  ]
+}
