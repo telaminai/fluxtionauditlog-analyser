@@ -59,16 +59,26 @@ public final class CoverageService {
         List<String> levels = new ArrayList<>();
         int scanned = 0;
         // Round 3, N1: the bound is fixed before the scan and reported, so a qualification built from this echo
-        // knows exactly which log revision it describes even if Follow appends while the scan runs.
+        // knows exactly which log revision it describes even if Follow appends while the scan runs. Integration with
+        // MA-8: the rows in view, and the level changes annotating them, are read within that same bound.
         int rows = Math.max(0, Math.min(bound, store.size()));
+        int[] inView = new int[rows];
         for (int row = 0; row < rows; row++) {
             if (filtered && currentFilter != null && !currentFilter.test(store.index(), row)) continue;
+            inView[scanned] = row;
             scanned++;
             levels.add(store.record(row).level());
             for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
         }
         NodeCoverage coverage = NodeCoverage.of(scope.loggable(), logged, Set.of());
         AuditLevel auditLevel = AuditLevel.of(levels);
+        // MA-8. Changes are read UNFILTERED on purpose: a level change is configuration state, not an
+        // event you happen to be looking at, so a filter that hides the control record must not drop the
+        // annotation. What the filter decides is which records the annotation must be ABOUT: the rows in
+        // view, by position. The earlier time-range version widened an EMPTY selection to all time, and
+        // let a record at exactly a restore's instant fall inside the window it closed (review F5).
+        PerNodeLevelChanges levelChanges = PerNodeLevelChanges.of(store, rows);
+        inView = java.util.Arrays.copyOf(inView, scanned);
 
         Map<String, Object> echo = new LinkedHashMap<>();
         echo.put("dispatchHierarchy", "unknown");
@@ -97,6 +107,26 @@ public final class CoverageService {
         echo.put("logRecords", rows);
         echo.put("scope", filtered ? "current filter" : "whole log");
         if (!coverage.uncovered().isEmpty()) echo.putAll(auditLevel.echo());
+        // Annotate, never excuse (MA-8.2): the node stays in `uncovered` and in the ratio above, and
+        // this says why the log may be silent about it. Excusing it would hide a node that never ran
+        // whenever the qualifying record is wrong — and a control-LOOKING record can be content until
+        // every writer escapes (MA-7).
+        if (levelChanges.any()) {
+            Map<String, String> annotations = new LinkedHashMap<>();
+            for (String node : coverage.uncovered()) {
+                String note = levelChanges.annotationFor(node, inView);
+                if (note != null) annotations.put(node, note);
+            }
+            if (!annotations.isEmpty()) {
+                echo.put("levelAnnotations", annotations);
+                echo.put("levelAnnotationsNote",
+                        "These nodes are still counted as uncovered. A level change explains why the log "
+                                + "may be silent about them; it is not evidence that they ran. Records are "
+                                + "matched to a processor by the grouping each one declares, so records that "
+                                + "share a grouping are read as one processor's — which nothing in a record "
+                                + "establishes.");
+            }
+        }
 
         List<Map<String, Object>> never = new ArrayList<>();
         for (String id : coverage.uncovered()) never.add(node(id, input.topology(), "uncovered",

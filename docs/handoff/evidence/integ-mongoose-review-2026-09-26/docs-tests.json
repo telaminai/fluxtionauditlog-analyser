@@ -1,0 +1,16 @@
+[
+  {
+    "suite": "SpecLinksResolveTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "TrailingWhitespaceTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+]

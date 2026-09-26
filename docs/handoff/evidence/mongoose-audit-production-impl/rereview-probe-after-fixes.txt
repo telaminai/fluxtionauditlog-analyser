@@ -1,0 +1,38 @@
+# Filtered with grep -v '^updating event log config': the runtime's own stdout lines are removed; every other line is verbatim (header added in the fourth re-review round, O-3).
+before invalid append: COMPLETE identities=1
+invalid append throws MalformedInputException
+after invalid append: UNKNOWN pending=0 identities=0
+REAL runtime source='riskMonitor, DEMO' stillINFO=true
+source='riskMonitor, DEMO' => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+REAL runtime source='riskMonitor}DEMO' stillINFO=true
+source='riskMonitor}DEMO' => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+REAL runtime source=' riskMonitor ' stillINFO=true
+source=' riskMonitor ' => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+REAL runtime source='' stillINFO=true
+source='' => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+REAL runtime source='null' stillINFO=true
+source='null' => this log sets every node's audit level (the change names no node; the log renders that exactly as it would a node literally named "null") to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it, so riskMonitor's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+  CoverageService selected=1 ratio=0.167 annotations={spreadCalculator=this log sets every node's audit level (the change names no node; the log renders that exactly as it would a node literally named "null") to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it, so spreadCalculator's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran, quotePublisher=this log sets every node's audit level (the change names no node; the log renders that exactly as it would a node literally named "null") to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it, so quotePublisher's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran, orderTracker=this log sets every node's audit level (the change names no node; the log renders that exactly as it would a node literally named "null") to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it, so orderTracker's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran, riskMonitor=this log sets every node's audit level (the change names no node; the log renders that exactly as it would a node literally named "null") to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it, so riskMonitor's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran, breachHandler=this log sets every node's audit level (the change names no node; the log renders that exactly as it would a node literally named "null") to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it, so breachHandler's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran}
+REAL runtime group='alpha, DEMO' stillINFO=true
+truncated group => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+alpha WARN applied to beta row => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+beta INFO closes alpha WARN => this log sets riskMonitor's audit level to WARN at record 1 (logTime 1) (addressed to processor grouping 'alpha', which is this processor's), nothing later in this processor's records changes it, so riskMonitor's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+  CoverageService selected=1 ratio=0.167 annotations={riskMonitor=this log sets riskMonitor's audit level to WARN at record 1 (logTime 1) (addressed to processor grouping 'alpha', which is this processor's), nothing later in this processor's records changes it, so riskMonitor's lines below that level are not in this log. It is still counted as uncovered, because a level change is not proof the node ran}
+missing grouping accepted as ungrouped => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+only later run selected => this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it. Every record in view is in a LATER run — a stream-end marker comes before record 2 — and the log does not say whether the level survived into it: if it did, riskMonitor's lines below that level are not in this log; if it did not, this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+  CoverageService selected=1 ratio=0.167 annotations={riskMonitor=this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied is not established; if it did, nothing later in this processor's records changes it. Every record in view is in a LATER run — a stream-end marker comes before record 2 — and the log does not say whether the level survived into it: if it did, riskMonitor's lines below that level are not in this log; if it did not, this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran}
+empty-start Follow file BOM count=1 state=UNKNOWN
+duplicate field inside real listener rendering => null
+  CoverageService selected=1 ratio=0.167 annotations=null
+rolled threshold=10 alpha control beta selected => null
+rolled threshold=0 alpha control beta selected => null
+SPI runtime payload endTime=true count=1 state=UNKNOWN
+SPI runtime payload endTime=false count=1 state=UNKNOWN
+JDK decoder plus exhaustive Unicode-scalar prefix oracle cases=315793 mismatches=0

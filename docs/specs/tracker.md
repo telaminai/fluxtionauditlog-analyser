@@ -172,32 +172,50 @@ still to do.
   threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
   index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
   must not be merged; its own entry records the detail.
-- **[MA-0] ☐ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
+- **[MA-0] ◧ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
   the only one here._ Every empty shape returns from `ProducerDiagnostics` before any check, so an empty
   log raises nothing, marked or unmarked. A **finding**, never a seventh state; keyed on zero records only
   (the quiet-level case is already caught by `ONLY_CONTROL_EVENTS`). Acceptance and the six-case table are
   in the spec, adopted from review's run on the published 1.19.0 jar.
+  **PHASE 1 DONE, two clauses open:** the finding fires for all six shapes and an empty file now opens by
+  extension. **D-MA0c** (findings reach the report surface — `ReportRenderer` carries none) and **MA-0.5**
+  (the Follow path) are NOT done. The end-to-end claim is also narrower than it sounds: the tests drive
+  `ReaderRegistry.readerFor`, not `MainFrame.loadFile`.
+  [Phase 1 report](../handoff/report_mongoose_audit_production_phase1_2026_09_23.md).
+  **Phase 1 SHIPPED in analyser 1.22.0 (2026-09-26)**, after ten review rounds and the integration review
+  onto M44.4/M68 (PR #34). D-MA0c and MA-0.5 above remain open; shipping closes neither.
 - **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
   processor with no `EventLogManager`** — including **AOT processors built without audit**, the
   low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);
   refuse at `start`, not at boot, so a server with one unaudited processor in `autoStart` still boots.
   The level endpoint lives in `svc-admin-web`, not core, and must return 409/422.
-- **[MA-5] ☐ — capture must fan out, and restore on stop** · _live silent-discard path in core._
+- **[MA-5] ◧ — capture must fan out, and restore on stop** · _live silent-discard path in core._
   `ChronicleAuditCaptureService`'s comment promises to compose in front of the existing listener and
   restore it; the code sets `previousListener = null` and, on stop, installs a no-op. `DataFlow` has no
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
+  **PHASE 1 DONE and MERGED to core `develop` (`2c4192e`), including MA-5.4 adopt-on-reattach and the
+  listing-freeze fix** — both witnessed live, the second by reading the Chronicle queue back rather than a
+  counter. **MA-5.7** (the every-backend contract) is open. **Core RELEASED as mongoose 1.0.30
+  (2026-09-26)**, with the `attach` overload and the per-record WARNING in its release notes. The bundle's
+  mongoose pin is still 1.0.29, so nothing here reaches a developer until that pin moves. The
+  new `attach` default overload also **quietly drops fan-out** for any other capture-service
+  implementation — a release note, not a defect.
   **Recurring intake 2026-09-25:** feedback 13 reports silent stdout on the bundle's older pins;
   [edit-loop §H](spec-spring-authoring-edit-loop.md#h-existing-auditchart-work-and-a-smaller-context-response)
   requires acceptance against the actually released and consumed producer. This intake does not
   re-test or close the separate in-progress MA implementation.
-- **[MA-6] ☐ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
+- **[MA-6] ◧ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
   contradiction: D-MA0b keeps MA-0 at zero records only, so this check lives here._ Reader half in this
   repo; **writer half in MA-2 — the writer WRITES the record, COUNTS it, and WITHHOLDS the marker**, so
   the file reads `unknown` plus the reader finding. (The earlier "refuses to count or mark" had three
   readings and two broke an invariant: write-but-don't-count reads `more_than_declared`, and
   don't-write-don't-count hides a produced record under `complete`.) **This unblocks MA-2 without waiting
   on AFMT-3.**
-- **[MA-7] ☐ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
+  **READER HALF DONE in phase 1**, keyed on **framing** — the first non-blank, non-comment line — not on a
+  substring search, which was a V1 hole review found: a headerless document that merely mentioned the key
+  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) is open.
+  **Reader half SHIPPED in analyser 1.22.0 (2026-09-26).**
+- **[MA-7] ◧ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
   finding in this spec. An event `toString()` carrying a line that **trims to** `---` — space, tab or CR,
   matching the framers' own predicate, **not** an exact match — plus marker lines breaks the framing
   BEFORE §1a recognition runs, so the allow-list cannot defend it. Reproduced twice
@@ -209,15 +227,28 @@ still to do.
   [mongoose-plugins#39](https://github.com/telaminai/mongoose-plugins/issues/39) since the writer-side
   fix cannot reach bytes already shipped. Payloads come from event `toString()`, routinely
   user-controlled. Not previously recorded anywhere.
-- **[MA-8] ☐ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
+  **PRODUCER-SIDE ESCAPE SHIPPED: mongoose-plugins #39, merged and RELEASED as 1.0.45.** Verified against
+  the published 1.19.0 analyser jar: benign and hostile payloads both read `records=3, complete, 3 of 3`,
+  with the indented, tab, CR and node-value variants covered. **The writer half and moving framing into
+  core are phase 2.**
+- **[MA-8] ◧ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
   sibling._ A node at `WARN` runs but reads as never logged, and the control record naming its
   `sourceId` and level is in the log. Measured: `complete`, 6 of 6, no findings, zero entries for a node
   that ran three times. Coverage must say why it is silent instead of listing it as uncovered.
+  **PHASE 1 DONE:** `PerNodeLevelChanges` reads the level changes a log states about itself and
+  `CoverageService` annotates uncovered nodes with them — **annotate, never excuse** (the node stays in
+  the ratio), read **unfiltered**, keyed on the event TYPE. **Reworked after the independent review
+  (2026-09-24):** intervals are by record ORDER, closed by the next per-node or global change, empty
+  selections explained by nothing, run boundaries qualified; and a change applies by the RUNTIME's rule —
+  `groupId` gates it against the processor's `groupingId`, it is not node membership (the phase-1 reading
+  was inferred and wrong). **Coverage annotation SHIPPED in analyser 1.22.0 (2026-09-26); MA-8's report
+  path is open.** Review found four surviving
+  mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
   one reads `complete` with no finding. **Cause NOT established.** **The tracker repro is stale** — it
   targets `volumeTotal`, absent from today's bundle, so re-running it wrongly looks clean.
-- **[MA-2] ☐ — the text writer and the marker** · text half needs **MA-5, MA-6 and MA-7**; **Chronicle
+- **[MA-2] ☐ — the text writer and the marker** · **new requirement MA-2.9 (2026-09-24): the writer must carry processor identity** — one file per processor or a declared grouping — because OD-4's configured listener sees every processor, and MA-8 reads records sharing a grouping as one processor's; choosing `groupId` changes which control events apply, so it is a design decision, not a default. Text half needs **MA-5, MA-6 and MA-7**; **Chronicle
   half** waits on **OD-5**. **The MA-5 dependency was found by running:** capture REPLACES the configured
   listener, and OD-4 makes the text writer that listener, so with the bundle's shipped capture on the
   writer got 4 startup records, none of the 8 business events, and the file read `complete, 4 of 4`. Lifecycle ANSWERED from a booted spike: marker after `server.stop()` returns, a new file
@@ -245,8 +276,49 @@ still to do.
   **rejected by name** — it would always read `complete`, the manufactured marker the skill forbids.
   Running the text writer as a second destination needs no Chronicle change once MA-5 lands. OD-2 (refuse) and OD-4 (text
   for developers) are taken; **OD-1 and OD-3 are moot**.
-- **[MA-R] ◧ — spec REWRITTEN at round 3 and out for re-review**, three reviews answered, all committed in
+- **[MA-R] ◧ — spec REWRITTEN at round 3**, five reviews answered plus two addenda, all committed in
   `docs/handoff/`. Implementation is mine.
+  **PHASE 1 IS THROUGH REVIEW.** Six rounds: three analyser rounds, a round-4 additions commit from the
+  reviewer that I reviewed rather than took, and a final round whose one blocker was **evidence I had
+  rewritten** — two trailing spaces stripped from a committed producer capture — now restored
+  byte-identical and gated. Ships: `mongoose-plugins` **1.0.45 released**; core **merged to `develop`**;
+  analyser was declared ready at 1939/0/62 — then an **independent review** (2026-09-24) found three High
+  regressions of mine (a BOM separator reopening #39, Follow hiding bytes after a marker, every healthy
+  binary record flagged) and three Medium; all fixed with regressions and witnesses, plus a `groupId`
+  misreading it did not name. Suite 1961/0/62. **Re-review** (`cd063e89`) then found one High (a byte
+  Follow refuses left COMPLETE and the old identity standing) and three Medium in MA-8 (addresses parsed
+  lossily; one processor's change explaining or closing another's; a run-boundary caveat after a claim it
+  undermines) — all fixed, each checked against the real runtime's loggers. Suite 1971/0/62.
+  A **second re-review** (`68660535`) found two Medium and three Low — a failed live read never cleared,
+  sentences whose conditions dropped a premise, a `"null"` reading asserted before its disclosure, and two
+  witnesses that guarded the wrong thing — all fixed, suite 1976/0/62, frame tests 63/0.
+  A **third re-review** (`8514f91b`) confirmed those and asked for two Low corrections — the closing clause
+  still asserting the no-node reading, and an unwitnessed branch — plus six optional items; all taken. Suite
+  1978/0/62. A **fourth re-review** (`1c706216`) asked for three Low corrections — an unwitnessed closing branch,
+  a closing change stated as applied when that is not established, and a "checked on every branch" claim the tests
+  did not back — all fixed, plus three optional items. Suite 1980/0/62. A **fifth re-review** (`79a51d27`) found
+  that matrix still missed four branches, and an opening that said "sets" while applying was open; both fixed, plus
+  three optional items. `main` 1.20.1 merged in (`e82808e7`; integration review `99f9ec47`, no merge defect). A
+  **sixth re-review** (`1c3173ae`) found an unreadable control record passed over as if it changed nothing, and a
+  closing clause asserting the level held across a stream-end marker; both fixed, with two loose test phrasings and
+  four optional items. Suite 2102/0/0/98. A **seventh re-review** (`43e29973`) found the new conclusion bounds
+  started at the beginning of the log and were missing on the premise branch, and an ungrouped closer across a marker
+  stated as definite; with the owner's two decisions (bound it by the change, window and grouping; R-B's rule stops at
+  a marker) all fixed, with targeted witnesses. Suite 2104/0/0/98. An **eighth re-review** (`ba463890`) found the
+  later-run clause unbounded and a second marker making a note false; with the owner's decisions (an annotation stops
+  at the second marker; the one-processor-per-grouping statement documented, not in the note) both fixed, every
+  optional item taken, targeted witnesses for the two. Suite 2107/0/0/98. A **ninth re-review** (`752015b7`) found
+  adjacent markers counted as one, a valid `eventTime` header field taken for payload, and a lead that spoke for the
+  whole view; all three **implemented and verified** by test and targeted control, with an exact-endpoint matrix rule.
+  Suite 2110/0/0/98. **Still open:** whether a deployed plugin returns a null record; the producer's one-processor-
+  per-grouping statement (owner). **Independently accepted** by a targeted tenth re-review (`bcc2bef0`, scope
+  `8a35a988..d8bb6e3c` only): R9-1–R9-3 and O9-1 closed, no required correction, 2110/0/0/98 and all eight controls
+  reproduced. **Phase 1's analyser review loop is closed; merge awaits the owner.** Before merge: open a pull request
+  so CI's `ui-frame` job runs on this branch for the first time, and merge with the personal identity. **Agreed open,
+  not closed by any review:** D-MA0c (findings on the report surface), MA-0.5 (the Follow path), MA-8's report
+  path, MA-6.3 (conformance fixtures), MA-5.7 (every-backend contract), deployed-plugin null-record behaviour, and the
+  producer's one-processor-per-grouping premise (owner). **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and
   [`spec-mongoose-audit-production.md`](spec-mongoose-audit-production.md).** Item 2 shipped in
@@ -580,7 +652,8 @@ defects rather than the policy work.
    for the hosted route end to end. What remains is a single acceptance naming the hosted template.
 3. **The jars**, built once for both BETA-B4 and M67.1.
 4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
-5. **G14**, the acceptance run from a real download, once the rest is in.
+5. **G14**, the acceptance run from a real download, once the rest is in — **and after M68.7 marks the charts**
+   (owner, Q4, 2026-09-26): G14's pass condition lands on the chart surface.
 
 **One decision is the owner's and must be settled before the work starts, not invented during it: what does a newly
 generated node log?** Too much costs allocation and dispatch time in a runtime that sells zero allocation, and fills
@@ -683,9 +756,11 @@ verdict, which is owned jointly.
   three fixes: charts render off-screen at page size (`ChartPanel.toImage(w,h)`, `GraphPanel.renderForReport`); a
   starved plot says it has no room, not that there is no data; and the renderer prints NOT RENDERED with its reason
   for any CHART/TOPOLOGY section with no picture. The topology gap text had never reached a page. Verifier scenario 13
-  fails on a `df0b24a5` jar and passes on the fix. **Open:** an off-screen render of a named FOCUS, so the section is
-  drawn and not only explained; the D-E8 contradiction test in its general form (chart versus `series` over the same
-  inputs); and SERIES sections, still a stated gap.
+  fails on a `df0b24a5` jar and passes on the fix. ~~**Open:** an off-screen render of a named FOCUS; the D-E8
+  contradiction test in its general form; SERIES sections.~~ **Corrected 2026-09-26:** all three shipped in 1.21.0 —
+  a saved focus renders off-screen (set 13), a series section draws exactly its stored call (re-review N2), and
+  point-count agreement between chart and `series` is a cross-path regression over one fixture (not a proof for every
+  log). This line had not caught up; the spec's "As shipped after the independent review" is the record.
 - [M68.3] ◧ **The framing diagnostic — correcting a shipped false verdict, not adding a diagnostic.** **Analyser half
   built 2026-09-24 on `feat/m44-single-state-session`, awaiting review, on CONSTRUCTED logs** (the original is not
   in the public packet; the diagnostic judges structure, so each acceptance-10 case was built exactly, and the real
@@ -749,10 +824,24 @@ verdict, which is owned jointly.
   `"`, or exactly `note`/`series`) is refused at the `graph` verb's create and rename and at the UI rename. A saved
   one stays reachable: by the verb as saved, and by spotlight quoted (`graph:"a:b":note:2`). `context.graphAddresses`
   gives every address. Recorded under D-E5.
+  **Q5 answered by the owner 2026-09-26: a repair journey for saved names containing `"`, conditional on the
+  affected-name count being small** (Q2 closed the inflow). Count first; if more than a handful, or no count can be
+  established, Q5 goes back to the owner with the escape as the alternative. The repair asks before renaming and keeps
+  the definition; the duplicate-name repair from PR #13 is the pattern to reuse. ☐ not started.
+- [M68.7] ☐ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
+  by the owner 2026-09-26: M68 ships as an explicit partial delivery** (D-E9's producer half makes a whole one
+  impossible), with its gaps stated, **but the charts are marked before G14 runs, because G14's pass condition lands on
+  that surface.** After an in-place rewrite the table shows its banner (UNVERIFIED / REPLACEMENT and that its rows are
+  the log as indexed) while charts and the detail pane read the file as it now is and say nothing. Render the same
+  verdict, from the same session snapshot, on the chart area and the detail pane. Acceptance: after an in-place rewrite
+  of a mapped log, every open chart and the detail pane state the verdict; a control that removes the chart mark fails
+  a named assertion. The detail pane's mark does not gate G14.
 
-Three owner questions in the spec: whether a genuine mismatch blocks or annotates, the compatibility choice for
-unaddressable names, and whether the inspect-the-artefact rule becomes a standing release gate. All three now
-carry a recommendation from both reviews; Q1 is close to settled by the tool-agreement spec's existing policy.
+Owner questions in the spec: **Q4 and Q5 answered 2026-09-26** (partial delivery with M68.7 gating G14; a repair
+journey for saved names, count first). **Q1 and Q3 answered the same day, as recommended:** a genuine
+mismatch annotates and never blocks (the tool-agreement spec's policy stands); and D-E8's executable content check
+becomes a standing export regression gate, with visual inspection required when rendering changes. No owner question
+remains open in this spec.
 
 **Spec is at v3**, after three review rounds on 2026-09-24. **None of them was independent, and calling them
 independent was wrong:** round 1 (`review/m68-evidence-integrity-2026-09-24`, corrected `2f321705`) also prepared

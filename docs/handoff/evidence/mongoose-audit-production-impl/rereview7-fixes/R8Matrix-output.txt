@@ -1,0 +1,17 @@
+# Filtered with grep -v '^updating event log config': the runtime's own stdout lines are removed; every other line is verbatim.
+logs=1440 notes=1440
+126 cells  boundaries=[none] closings=[none, null, perNode] [noPremise]  «bound: no marker, plain ", so"»
+18 cells  boundaries=[none] closings=[unreadable] [noPremise]  «bound: no marker, own sentence»
+168 cells  boundaries=[none] closings=[none, null, perNode, unreadable] [premise]  «bound: no marker, with a premise (R7-1)»
+42 cells  boundaries=[beforeMarker] closings=[none, null, perNode] [noPremise]  «bound: before a marker, no closer»
+102 cells  boundaries=[beforeMarker] closings=[null, perNode, unreadable] [noPremise]  «bound: view wholly before a marker, closer past it»
+168 cells  boundaries=[beforeMarker] closings=[none, null, perNode, unreadable] [premise]  «bound: view wholly before a marker, with a premise»
+42 cells  boundaries=[spanning] closings=[none, null, perNode] [noPremise]  «bound: spanning, plain ", so"»
+102 cells  boundaries=[spanning] closings=[null, perNode, unreadable] [noPremise]  «bound: spanning, own sentence»
+168 cells  boundaries=[spanning] closings=[none, null, perNode, unreadable] [premise]  «bound: spanning, with a premise»
+312 cells  boundaries=[whollyAfter] closings=[none, null, perNode, unreadable] [noPremise, premise]  «bound: wholly after»
+12 cells  boundaries=[none] closings=[perNode] [premise]  «whose change to INFO applied wherever this one did»
+48 cells  boundaries=[none] closings=[null, perNode] [premise]  «applied here, it holds until »
+36 cells  boundaries=[none] closings=[null, perNode, unreadable] [premise]  «applied here, it holds at least until »
+117 cells  boundaries=[beforeMarker, spanning, whollyAfter] closings=[unreadable] [noPremise, premise]  «A later control record »
+54 cells  boundaries=[beforeMarker, none, spanning] closings=[unreadable] [noPremise]  «is not established. After record »

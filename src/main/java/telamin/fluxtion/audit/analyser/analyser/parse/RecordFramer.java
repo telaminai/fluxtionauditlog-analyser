@@ -107,15 +107,38 @@ public final class RecordFramer {
         sink.accept(new RawRecord(start, e - start, file.substring(start, e)));
     }
 
-    /** True when the line [start,end) is exactly {@code ---} (ignoring surrounding whitespace/CR). */
+    /**
+     * True when the line [start,end) is exactly {@code ---} (ignoring surrounding space, tab and CR).
+     *
+     * <p><b>A byte-order mark is skipped ONLY at the file's first character.</b> Round 3 skipped leading
+     * marks on every line, so that two BOM'd files concatenated would still separate at the join. The
+     * independent review measured what that cost (F1): the released 1.0.45 exporter escapes every line
+     * that trims to {@code ---} by space, tab or CR — the language this predicate spoke when #39 was
+     * written — and not a line that begins with U+FEFF. A node value of {@code "\n\uFEFF---\n"} plus
+     * marker lines therefore passed through the shipped exporter unescaped and was split here, and a real
+     * runtime record read as <b>COMPLETE with no marker written</b>. Widening the reader's separator
+     * language silently invalidated the writer's escape.
+     *
+     * <p>At offset 0 no payload can reach: the container writes the first bytes of a file, never a
+     * record's value. So a BOM'd file whose first line is a separator still separates, and that is the only
+     * case of the original round-3 fix that is safe. A BOM at a concatenation point no longer separates;
+     * the join then runs two records together and {@code UNSEPARATED} says so, which is loud rather than
+     * wrong, and is what base did. <b>Before widening this again, widen the exporter's escape first, and
+     * test the two together</b> ({@code ExporterFramingAgreementTest}).
+     */
     private static boolean isSeparator(String s, int start, int end) {
         int a = start, b = end;
+        // Repeated marks are real at the head of a file (`cat bom-only.yaml run.yaml`), so all of them
+        // are skipped there — and only there. See above for why never mid-file.
+        if (start == 0) while (a < b && AuditText.isBom(s.charAt(a))) a++;
         while (a < b && isWs(s.charAt(a))) a++;
         while (b > a && isWs(s.charAt(b - 1))) b--;
         return (b - a) == 3 && s.charAt(a) == '-' && s.charAt(a + 1) == '-' && s.charAt(a + 2) == '-';
     }
 
+    /** A lone byte-order mark is not content: a BOM-only file is empty, not a one-record file. */
     private static boolean isBlank(String s, int start, int end) {
+        while (start < end && AuditText.isBom(s.charAt(start))) start++;
         for (int k = start; k < end; k++) {
             if (!isWs(s.charAt(k))) return false;
         }

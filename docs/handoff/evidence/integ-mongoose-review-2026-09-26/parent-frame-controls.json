@@ -1,0 +1,78 @@
+[
+  {
+    "name": "frame-ma-parent",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 43,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 19.03
+    },
+    "mutated": {
+      "exit": 0,
+      "counts": {
+        "tests": 43,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 26.7
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 43,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 32.71
+    },
+    "sha256": "944936c8842295e5a7df2291539447b451980e292cf54045c577e7272d91d38c",
+    "byteIdentical": true
+  },
+  {
+    "name": "frame-main-parent-policy",
+    "baseline": {
+      "exit": 0,
+      "counts": {
+        "tests": 43,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 19.18
+    },
+    "mutated": {
+      "exit": 0,
+      "counts": {
+        "tests": 43,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 25.52
+    },
+    "restored": {
+      "exit": 0,
+      "counts": {
+        "tests": 43,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assertions": [],
+      "seconds": 24.07
+    },
+    "sha256": "944936c8842295e5a7df2291539447b451980e292cf54045c577e7272d91d38c",
+    "byteIdentical": true
+  }
+]

@@ -40,6 +40,30 @@ public record ProducerDiagnostics(List<Finding> findings) {
          * The worst of the three: the file opens, and the record COUNT is wrong with no other symptom.
          */
         UNSEPARATED,
+        /**
+         * The file holds NO records at all (MA-0).
+         *
+         * <p>Every empty shape used to return from {@link #of} before any check, so an empty log raised
+         * nothing — marked or unmarked. A marker only changed the label from {@code unknown} to
+         * {@code complete}; what made an empty file look healthy was the absent warning, not the verdict.
+         *
+         * <p>It is a FINDING beside an unchanged state, never a seventh stream-end state: the six are a
+         * published contract that three store paths and {@code context} agree on.
+         *
+         * <p>Its wording is about the FILE, never the run. A buffered writer was measured holding zero
+         * bytes on disk while ~24 records sat in memory, so "this run produced nothing" would be a claim
+         * the file cannot support (V4).
+         */
+        EMPTY_LOG,
+        /**
+         * A document carried no {@code eventLogRecord:} key (MA-6).
+         *
+         * <p>Any producer can emit one; the known live source is AFMT-3, where a per-node level of
+         * {@code NONE} corrupts the next record into a run-together line with no header and no keys.
+         * Measured: such a document is COUNTED as a record and nothing flags it, so a marker over it
+         * reads {@code complete} and vouches for the corruption.
+         */
+        NO_RECORD_KEY,
         /** Records arrived, but no node logged anything — the audit auditor was never installed. */
         NO_NODE_LOGS,
         /** The only thing in the log is the framework's own control event. */
@@ -153,8 +177,27 @@ public record ProducerDiagnostics(List<Finding> findings) {
         for (String d : completeness) {
             out.add(new Finding(note ? Kind.COMPLETENESS_NOTE : Kind.COMPLETENESS_GAP, d));
         }
-        boolean noRecords = idx == null || idx.size() == 0;
-        if (noRecords && pendingFrame == null) return new ProducerDiagnostics(List.copyOf(out));
+        boolean pending = pendingFrame != null && !pendingFrame.isBlank();
+        if (idx == null) {
+            // No index SUPPLIED — callers that only want the reader's diagnostics echoed pass null. That is not the same
+            // as a log with no records, and MA-0 must not fire on it: f20 parses a whole record and still passes null
+            // here. D-MA0b keys on size() == 0, and only that. (Integration with M68.3: a pending frame is still
+            // scanned, because what is being written is observable without an index.)
+            if (pending) pendingUnseparated(pendingFrame).ifPresent(out::add);
+            return new ProducerDiagnostics(List.copyOf(out));
+        }
+        if (idx.size() == 0 && !pending) {
+            // MA-0. Placed HERE, before the early return, because that return is why an empty log has always been
+            // silent. Damage findings are already in `out`, so SOURCE_DAMAGE is stated first and this second (MA-0.6).
+            // Integration with M68.3: only when nothing is being written either — with a pending frame the file is
+            // not empty, and saying so would be false; the frame is scanned below instead.
+            out.add(new Finding(Kind.EMPTY_LOG,
+                    "No records in this file. A file can be empty because nothing was written yet, "
+                            + "because the writer is buffering, or because the processor cannot audit "
+                            + "at all — this says the file is empty, not that the run produced nothing."));
+            return new ProducerDiagnostics(List.copyOf(out));
+        }
+        boolean noRecords = idx.size() == 0;
 
         int damage = out.size();
         if (!noRecords) unseparated(idx, rawText, out);
@@ -178,6 +221,9 @@ public record ProducerDiagnostics(List<Finding> findings) {
         if (!explained) {
             noNodeLogs(idx).ifPresent(out::add);
         }
+        // MA-6 is independent of the three above: a document with no record key is a producer fault
+        // whatever else the file shows, and it is what lets a marker vouch for AFMT-3's output.
+        noRecordKey(idx, rawText).ifPresent(out::add);
         return new ProducerDiagnostics(List.copyOf(out));
     }
 
@@ -190,6 +236,106 @@ public record ProducerDiagnostics(List<Finding> findings) {
      * perfectly legal, and that is exactly what an unseparated ten-record log looks like from the outside. An item
      * too long to scan whole, with nothing found in the part scanned, is reported as NOT ASSESSED rather than clean.
      */
+    /**
+     * Does this document OPEN with the record key, as §1 requires?
+     *
+     * <p><b>Framing, not a substring search.</b> An earlier version asked whether the text contained
+     * {@code eventLogRecord:} anywhere, which a payload defeats: a headerless document whose content
+     * merely mentions the key read as a well-formed record, so a marker over it declared a count
+     * including it and the file read {@code complete} with no finding. That is V1 — a payload changing
+     * the verdict — and it is the same class as the injection MA-7 fixes.
+     *
+     * <p>The test is therefore positional: the FIRST non-blank, non-comment line must trim to the key.
+     * Comments are skipped because §1 allows them before a record, and the analyser's own fixtures use
+     * them.
+     *
+     * <p><b>A leading separator is part of the record boundary, not its content</b> (independent review,
+     * F3). The built-in framers consume separators, so their record text never holds one. A reader PLUGIN
+     * hands over whatever it renders, and the analyser's own binary reader renders a record as
+     * {@code ---\neventLogRecord:\n…}. Stopping at that {@code ---} diagnosed every healthy binary
+     * record as having no key. So plain separator lines are skipped before the first content line — PLAIN,
+     * meaning {@code ---} with only space, tab or CR around it, the exact set the exporter escapes and the
+     * framers split on. The protection this check exists for is untouched: the key must still be the
+     * first CONTENT line, so a document that merely mentions it later is still named.
+     */
+    private static boolean opensWithRecordKey(String text) {
+        return firstContentLine(text).equals(RECORD_KEY);
+    }
+
+    /** The first line that is not blank, a comment, or a plain leading separator; "" when there is none. */
+    private static String firstContentLine(String text) {
+        int from = 0;
+        while (from <= text.length()) {
+            int nl = text.indexOf('\n', from);
+            int end = nl < 0 ? text.length() : nl;
+            String raw = text.substring(from, end);
+            // AuditText.strip, not trim(): trim() keeps U+FEFF, so a healthy UTF-8 file with a BOM
+            // read as having no record key on its first record. One strip, shared.
+            String line = AuditText.strip(raw);
+            boolean plainSeparator = AuditText.asciiStrip(raw).equals("---");
+            if (!line.isEmpty() && !line.startsWith("#") && !plainSeparator) return line;
+            if (nl < 0) break;
+            from = nl + 1;
+        }
+        return "";
+    }
+
+    /**
+     * MA-6 — a document that carries no {@code eventLogRecord:} key.
+     *
+     * <p>The reader counts it as a record, so a marker written over it would count it too. Naming it is
+     * what stops a completeness claim silently covering a document the format cannot read.
+     *
+     * <p><b>Observation, then conditions, then a possible cause — never the one case as every case</b>
+     * (independent review, F6). The first wording said the log "reads as complete while the document's
+     * header, keys and newlines are gone". That is what AFMT-3 produced once, under a marker. Said of an
+     * unmarked, readable, merely headerless document it was false twice over: the state was UNKNOWN, and
+     * the keys and newlines were plainly there. This finding does not know the container's state, so it
+     * does not state one; it says what a marker WOULD and would not establish.
+     *
+     * <p>Reports the FIRST such row and how many there are, rather than one finding per row, so a badly
+     * affected file says one clear thing.
+     */
+    private static java.util.Optional<Finding> noRecordKey(LogIndex idx, IntFunction<String> rawText) {
+        if (rawText == null) return java.util.Optional.empty();
+        int firstRow = -1;
+        int affected = 0;
+        for (int row = 0; row < idx.size(); row++) {
+            String text = rawText.apply(row);
+            if (text == null || text.isBlank()) continue;
+            if (!opensWithRecordKey(text)) {
+                if (firstRow < 0) firstRow = row;
+                affected++;
+            }
+        }
+        if (firstRow < 0) return java.util.Optional.empty();
+        String first = firstContentLine(rawText.apply(firstRow));
+        return java.util.Optional.of(new Finding(Kind.NO_RECORD_KEY,
+                (affected == 1
+                        ? "Record " + (firstRow + 1) + " does not open with the 'eventLogRecord:' key"
+                        : affected + " records do not open with the 'eventLogRecord:' key, the first at "
+                        + (firstRow + 1))
+                        + " — its first line is " + quoted(first) + ". The format requires each "
+                        + "document to begin with that key, but this one is still counted as a record. "
+                        + "If a stream-end marker covers it, the marker counts it too: a matching marker "
+                        + "shows how many documents were written, not that each is well formed. One "
+                        + "known producer-side cause is a per-node audit level of NONE, which can "
+                        + "corrupt the record that follows it; this file does not say which cause "
+                        + "applies here."));
+    }
+
+    /** A line shown back to the reader: bounded, and with control characters made visible. */
+    private static String quoted(String line) {
+        StringBuilder sb = new StringBuilder("'");
+        int max = 60;
+        for (int i = 0; i < line.length() && i < max; i++) {
+            char c = line.charAt(i);
+            sb.append(Character.isISOControl(c) ? '?' : c);
+        }
+        if (line.length() > max) sb.append('…');
+        return sb.append("'").toString();
+    }
+
     private static void unseparated(LogIndex idx, IntFunction<String> rawText, List<Finding> out) {
         if (rawText == null) return;
         Finding notAssessed = null;
@@ -261,7 +407,7 @@ public record ProducerDiagnostics(List<Finding> findings) {
     private static java.util.Optional<Finding> onlyControlEvents(LogIndex idx) {
         for (int row = 0; row < idx.size(); row++) {
             String event = idx.event(row);
-            if (event == null || !event.contains(CONTROL_EVENT)) return java.util.Optional.empty();
+            if (!isControlEvent(event)) return java.util.Optional.empty();
         }
         return java.util.Optional.of(new Finding(Kind.ONLY_CONTROL_EVENTS,
                 "Every record here is the framework's own " + CONTROL_EVENT + " — the log contains "
@@ -271,4 +417,15 @@ public record ProducerDiagnostics(List<Finding> findings) {
                         + "setAuditLogProcessor), or drop the control record in the sink."));
     }
 
+    /**
+     * The framework's level-change event, matched on its simple class name EXACTLY: a fully-qualified
+     * name is accepted, a lookalike such as {@code FakeEventLogControlEventX} is not. The ONE predicate —
+     * {@code PerNodeLevelChanges} (MA-8) delegates here, so ONLY_CONTROL_EVENTS and coverage cannot
+     * disagree about which records are control records (phase 1 round 4, F4).
+     */
+    public static boolean isControlEvent(String event) {
+        if (event == null) return false;
+        int dot = event.lastIndexOf('.');
+        return (dot < 0 ? event : event.substring(dot + 1)).equals(CONTROL_EVENT);
+    }
 }

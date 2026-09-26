@@ -39,6 +39,8 @@ public final class StreamEndTracker {
     private final java.util.List<StreamEnd.Run> badRuns = new java.util.ArrayList<>();
     /** §1a rule 1: the file's last item was a marker with no closing separator. */
     private boolean unterminatedMarker;
+    /** The row index at which each run after a marker begins — where one run ends and another starts. */
+    private final java.util.List<Integer> boundaries = new java.util.ArrayList<>();
 
     /**
      * Whether this record text should be indexed.
@@ -83,6 +85,16 @@ public final class StreamEndTracker {
         worstFirstRecord = -1;
         badRuns.clear();
         unterminatedMarker = false;
+        boundaries.clear();
+    }
+
+    /**
+     * Where runs meet: for each marker, the row index the NEXT record takes. A level a run set is not
+     * known to survive into the next one — a marker does not prove the process restarted, but nothing in
+     * the log proves it did not (independent review, carried items: rolled/concatenated runs).
+     */
+    public java.util.List<Integer> runBoundaries() {
+        return java.util.List.copyOf(boundaries);
     }
 
     /**
@@ -98,6 +110,7 @@ public final class StreamEndTracker {
 
     private void closeSegment(long declared) {
         sawMarker = true;
+        boundaries.add(indexedTotal);
         segments++;
         StreamEnd verdict = StreamEnd.declared(declared, sinceMarker);
         long first = indexedTotal - sinceMarker;
