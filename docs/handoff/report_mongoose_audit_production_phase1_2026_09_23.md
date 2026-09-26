@@ -638,6 +638,51 @@ comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
 
+## Ninth re-review — three required, one optional, all taken
+
+Ninth re-review `752015b7` on `review/mongoose-ninth-rereview-2026-09-26`, against `8a35a988`. Before any change the
+reviewer's `R8Review`, `R9Extra` and the committed `R9Matrix` were re-run on `8a35a988` and **reproduced exactly**
+(`rereview9-fixes/*-before-fixes-output.txt`). Predictions `P14` were committed first (`7b9defde`); the fix is
+`66772fab`. No owner decision was reopened; R9-1 enforces decision 1 as it was meant — the second marker
+**occurrence**.
+
+| | Finding | Cause | Fix | Regression and control |
+|---|---|---|---|---|
+| R9-1 Medium | two or three adjacent markers (boundaries `[1, 1]`, `[1, 1, 1]`; Format §1a allows an empty run) counted as one, so record 2, past the second marker, was annotated | **mine, round 8**: the second marker was found as the next boundary at a *greater* record position | `markerAfter(from, n)` counts marker occurrences in `runBoundaries()`, duplicates kept | `adjacentMarkersAreCountedByOccurrence`: two and three adjacent markers → no annotation; one marker → annotated; an empty run between separated markers → the record after it gets none, the one before still does. **Control:** 8a35a988's lookup restored → `<failure>` at "R9-1 2 adjacent markers"; the matrix stayed **green** (it has no adjacent markers) |
+| R9-2 Medium | on a null-record row, a valid `eventTime` before `logTime` (the published example's order) was taken for payload, the record's event lost, and the window ran past it | **mine, round 8**: R8-4's header scan was an allow-list of three names | the header is read field by field at the record mapping's own indentation; every field Format §2 permits (and any other, which it says is ignored, never rejected) is accepted in any order; the scan stops at the first payload field (`eventToString`, `nodeLogs`); nested lines are never read | `theRawHeaderAcceptsEveryPermittedFieldAndStopsAtPayload` on a null-record stub store: standard, `eventTime`, `thread` and an unknown field all bounded before the record; the node-value spoof and an `event:` written after `eventToString` both still refused. **Control:** `eventTime` treated as payload → `<failure>` at "R9-2 eventTime"; the matrix stayed **green** (it has no null-record rows). The control reproduces the defect's behaviour for `eventTime`, not the allow-list's code |
+| R9-3 Medium | "Every record in view is in a LATER run" was said when the view also held records the annotation does not concern — the change's own record, one past the second marker, another grouping's | mine, RR-4 wording kept after round 8 narrowed the view | "Every record in view that this annotation concerns is in a LATER run — …"; bounds unchanged | `theLaterRunLeadSpeaksOnlyForTheRecordsItConcerns`: a view with the opening record, a view crossing the second marker, and mixed groupings. **Control:** the universal lead restored → `<failure>` at "R9-3 [0, 1]"; the matrix fired through **reach** |
+| O9-1 Low | the matrix checked that a bound had an end, not which end: moving the second-marker endpoint by one record stayed green | mine, round 8's rule | each rendered endpoint is compared with one derived from the fixture — its layout, and whether the closer applies by the runtime's rule computed from the fixture's parameters — never from the note | **The reviewer's mutation** (`m2 + 1` → `m2 + 2`) now fails the matrix through its **offenders** assertion |
+
+`witness13.py` (round 8's R8-1, R8-2, P1, P2) re-run on the fixed code: **all four hold**, each through offenders at
+the matrix (`witness13-rerun-output.txt`).
+
+**Implemented, verified, open.** Implemented and verified by test and control: R9-1, R9-2, R9-3, O9-1. Verified by
+probe only: the reviewer's cases in `R9Extra` (after-fix output committed). **Open, and named:** that any deployed
+plugin store returns a null `record()` — R9-2 fixes a supported reader path, it does not show one is in use; the
+producer's one-processor-per-grouping statement (owner decision 2); and the matrix is not exhaustive — its ten
+principal bound patterns are mutually exclusive in the replay, its closing and later-run patterns overlap by design,
+and it has no adjacent markers or null-record rows (the dedicated tests carry those).
+
+**Found while doing this:**
+1. P14.1 predicted three tests would break on the lead wording. I rewrote the four references before running the
+   tests, so that breakage was **not observed**; the prediction is unverified, not confirmed.
+2. My first version of the exact-endpoint rule threw a `NullPointerException` — two ternaries mixing `int` and a
+   null `Integer` unboxed — an `<error>` in the matrix, fixed before any control ran.
+3. The reviewer's exploratory mixed `streamEnd`/`event` record now reads as naming the control event: its `event:`
+   line is a header field there. That is conservative, and the reviewer states no finding depends on that input.
+
+**What I got wrong:** R9-1 and R9-2 are round 8's code falling short of round 8's own claims — "stops at the second
+marker" and "reads the header only" were true of the cases I tested, not of the rule. R9-3 is the thread's class in a
+lead I did not re-read after narrowing the view. The round-8 decision item and R8-4 row are corrected in place above.
+
+**Ran:** the three probes before and after (after against the built jar); P14 first; the three MA-8 classes after
+each change (55 tests); every changed note read; four targeted controls (`witness14.py`) and `witness13.py`;
+`mvn -q clean package` on JDK 21 — **2110 / 0 / 0 / 98** over 278 reports mapped to source classes, no orphans
+(2107 plus the three new tests, as P14.4 predicted), leaving `git status` unchanged; `mkdocs build --strict`,
+`git diff --check` and the rule-1 sweep. **Read, not run:** the format specification's header grammar (§2).
+**Not run:** the display suite (no UI code changed); the full mutation gate; earlier rounds' witnesses other than
+`witness13.py`.
+
 ## Eighth re-review — two required, seven optional, all taken
 
 Eighth re-review `ba463890` on `review/mongoose-eighth-rereview-2026-09-26`, against `e5541d5b`. Before any change the
@@ -648,7 +693,9 @@ recorded file omits the program's final blank line). Predictions `P13` were comm
 **Owner decisions, 2026-09-26.**
 1. **Reach past more than one marker — option (b).** A change's annotation stops at the **second** stream-end marker
    after it. Records past that marker get no level annotation and stay uncovered, so a note carries survival of at
-   most one marker.
+   most one marker. **Corrected in round 9 (R9-1): round 8's code did not do this for adjacent markers** — it found
+   the second marker as the next distinct record position, so two or three markers written back to back (a run may
+   hold no records) counted as one, and the record after them was annotated. Round 9 counts markers by occurrence.
 2. **The one-stream limit (RR-3) is documented, not put in the note.** The owner states, as a fact about the
    producer, that it writes **one processor per grouping**; the spec (MA-8) and the `PerNodeLevelChanges` class
    Javadoc now record it, and that the notes' "in the records sharing its grouping" relies on it.
@@ -662,7 +709,7 @@ recorded file omits the program's final blank line). Predictions `P13` were comm
 | R8-1 Low–Medium | the spanning branch's later-run clause, "for the records in view from record 3 on, those lines are absent only if …", took in records after the closer (probe M), past a second marker (N) and in another grouping (O) | present since RR-4; round 7 bounded every sentence that says "are not in this log", and this one does not | "for the records in view after that marker[ and before E2], in <scope>, those lines are absent only if …", E2 being the closer or the second marker | `theLaterRunIsBoundedAndTheAnnotationStopsAtTheSecondMarker` (M, N, O); the matrix applies the bound rule to "absent only if" sentences, with new `twoMarkers` and `pastCloser` boundaries. **Witness:** e5541d5b's clause restored → `<failure>`, assertion "R8-1 M"; the matrix's **offenders** assertion also fired |
 | R8-2 Low–Medium | wholly after a marker, a second marker made the note false: "a stream-end marker before record 2 begins it" said of a record past the marker before record 3 (P), whose bound then covered no record in view | present since RR-4: the window never stopped at a second marker | decision 1: the window stops at the second marker, so P gets **no annotation**, Q concerns record 2 only, and the marker named is always the one crossed | the same test (P, Q); the matrix's `twoMarkersAfter` and `pastSecondOnly` boundaries, and rules that no note concerns a record past the second marker and that the named marker precedes the first record in view. **Witness:** the second-marker stop removed → `<failure>`, assertion "R8-2 P"; the matrix's **offenders** assertion also fired |
 | R8-3 | "It holds …" carried only the applying premise; with "named no node" open it was unconditional (V, W) or incomplete (X) | mine, R7-5 | `holdsLead` takes the conclusion's whole condition: "If the change at record 1 (logTime 1) named no node[ and it applied here], it holds …" | `itHoldsCarriesEveryOpenPremise` (V, W, X); a matrix rule that a "holds" clause carries exactly the conclusion's condition |
-| R8-4 | a null-record row read "(untimed)" though its raw text was timed (Y1), and a node value reading `event: …` made a row a control record (Y2) | mine, O7-1 | the raw text's **header only** is read (the scan stops at the first payload field); its `logTime` is kept, or "its time was not read"; the row reads "a record this reader could not read, whose text names the control event" | `aRowWithNoRecordIsReadFromItsHeaderOnly`, with a stub store (Y1, Y2, Y3, and an untimed header) |
+| R8-4 | a null-record row read "(untimed)" though its raw text was timed (Y1), and a node value reading `event: …` made a row a control record (Y2) | mine, O7-1 | the raw text's **header only** is read (the scan stops at the first payload field) **[corrected in round 9 (R9-2): it stopped at the first field outside a three-name allow-list, so a valid `eventTime` before `logTime` — the published example's order — was taken for payload and the record's event lost; round 9 reads every permitted field up to `eventToString`/`nodeLogs`]**; its `logTime` is kept, or "its time was not read"; the row reads "a record this reader could not read, whose text names the control event" | `aRowWithNoRecordIsReadFromItsHeaderOnly`, with a stub store (Y1, Y2, Y3, and an untimed header) |
 | R8-5 | the matrix's bound rule accepted any "before record N" (P1), and its "after that marker" exemption let a wholly-after bound lose its end (P2) | mine, round 7's rule | with a marker between the change and E, E must be that marker; "after that marker" may run on only when no closer and no second marker follow; the offender rules are now asserted **before** reach (R8-9) | **P1 and P2 re-applied to the fixed code: both red at the matrix, through its offenders assertion** (on e5541d5b the matrix did not catch P2 at all, and caught P1 only through reach) |
 | R8-6 | three negative guards pinned forms the code no longer writes, so they could not fail | mine | each rewritten to a form a regression would produce (", so after record", "If it survived the marker, then") | — |
 | R8-7 | every clean package rewrote the tracked `dependency-reduced-pom.xml` (with CRLF), dirtying `git status` | a build output under version control | untracked and in `.gitignore`; `tools/regen-session-processor.sh` no longer checks it out; ONBOARDING updated. No CI step reads it | after `mvn -q clean package`, `git status` is unchanged |
@@ -947,9 +994,9 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the eighth re-review's fixes are reviewed (the ninth re-review).** Nine review
-  rounds' findings are fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5, 7 and
-  8 also have mutation witnesses (rounds 7 and 8 targeted to their required findings), round 6 by the owner's choice
+- analyser — **NOT ready until the ninth re-review's fixes are reviewed.** Ten review rounds' findings are
+  fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5 and 7–9 also have mutation
+  witnesses or targeted controls (rounds 7–9 targeted to their required findings), round 6 by the owner's choice
   does not. `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
   integration (`99f9ec47`, no merge defect). **CI's frame job has never run on this branch**; a pull request is
   what would run it. Not merged: the owner's call.

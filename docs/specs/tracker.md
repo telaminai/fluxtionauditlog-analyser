@@ -230,8 +230,11 @@ still to do.
   a marker) all fixed, with targeted witnesses. Suite 2104/0/0/98. An **eighth re-review** (`ba463890`) found the
   later-run clause unbounded and a second marker making a note false; with the owner's decisions (an annotation stops
   at the second marker; the one-processor-per-grouping statement documented, not in the note) both fixed, every
-  optional item taken, targeted witnesses for the two. Suite 2107/0/0/98. **Awaiting the ninth re-review; not ready
-  to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  optional item taken, targeted witnesses for the two. Suite 2107/0/0/98. A **ninth re-review** (`752015b7`) found
+  adjacent markers counted as one, a valid `eventTime` header field taken for payload, and a lead that spoke for the
+  whole view; all three **implemented and verified** by test and targeted control, with an exact-endpoint matrix rule.
+  Suite 2110/0/0/98. **Still open:** whether a deployed plugin returns a null record; the producer's one-processor-
+  per-grouping statement (owner). **Awaiting independent review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and
