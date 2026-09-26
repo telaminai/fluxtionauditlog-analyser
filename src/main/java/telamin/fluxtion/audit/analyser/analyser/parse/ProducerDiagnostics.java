@@ -170,6 +170,18 @@ public record ProducerDiagnostics(List<Finding> findings) {
     public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText,
                                          List<String> sourceDiagnostics, List<String> completeness,
                                          boolean note, String pendingFrame) {
+        return of(idx, rawText, sourceDiagnostics, completeness, note, pendingFrame, null);
+    }
+
+    /**
+     * @param streamEnd what the container claims about its end, or null when the caller has no claim to pass. It
+     *                  chooses the empty-log sentence only (review item 8): a file whose own marker says it ended with
+     *                  zero records is not "yet" to be written. Cold open and Follow pass the same state, so they still
+     *                  say the same thing (V2).
+     */
+    public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText,
+                                         List<String> sourceDiagnostics, List<String> completeness,
+                                         boolean note, String pendingFrame, StreamEnd streamEnd) {
         List<Finding> out = new ArrayList<>();
         for (String d : sourceDiagnostics) {
             out.add(new Finding(Kind.SOURCE_DAMAGE, d));
@@ -191,12 +203,7 @@ public record ProducerDiagnostics(List<Finding> findings) {
             // silent. Damage findings are already in `out`, so SOURCE_DAMAGE is stated first and this second (MA-0.6).
             // Integration with M68.3: only when nothing is being written either — with a pending frame the file is
             // not empty, and saying so would be false; the frame is scanned below instead.
-            out.add(new Finding(Kind.EMPTY_LOG,
-                    // MA-0.5 (D-MA0d, V2): ONE wording, about the file, that is true whether the file is opened cold or
-                    // followed — "yet" because a followed file may still be written, and a cold one may be too.
-                    "No records in this file yet. A file can be empty because nothing has been written, "
-                            + "because the writer is buffering, or because the processor cannot audit "
-                            + "at all — this says the file is empty, not that the run produced nothing."));
+            out.add(new Finding(Kind.EMPTY_LOG, emptyLogMessage(idx, streamEnd)));
             return new ProducerDiagnostics(List.copyOf(out));
         }
         boolean noRecords = idx.size() == 0;
@@ -298,6 +305,36 @@ public record ProducerDiagnostics(List<Finding> findings) {
      * <p>Reports the FIRST such row and how many there are, rather than one finding per row, so a badly
      * affected file says one clear thing.
      */
+    /** The sentence that opens every empty-log finding for a single file that may still be written. */
+    public static final String EMPTY_FILE = "No records in this file yet.";
+    /** …for a single file whose own stream-end marker says the writer finished having written none. */
+    public static final String EMPTY_FILE_ENDED = "No records in this file, and its stream-end marker says the writer "
+            + "finished having written none.";
+    /** …for a rolled set, every member of which is empty. */
+    public static final String EMPTY_SET = "No records in this rolled set yet";
+
+    /**
+     * MA-0.5 (D-MA0d, V2) and review item 8: ONE sentence per SHAPE, about what was read, never about the run. The shape
+     * is decided by the index and the stream-end claim, which a cold open and Follow of the same bytes share — so the
+     * two still say the same thing. "Yet" and "buffering" are true of a file that may still be written; they are false
+     * of one whose marker says it ended, and "this file" is false of a set of them.
+     */
+    static String emptyLogMessage(LogIndex idx, StreamEnd streamEnd) {
+        if (idx.fileCount() > 1) {
+            return EMPTY_SET + ": none of its " + idx.fileCount() + " files holds a record. A set can be empty because "
+                    + "nothing has been written, because the writer is buffering, or because the processor cannot "
+                    + "audit at all — this says the files are empty, not that the run produced nothing.";
+        }
+        if (streamEnd != null && streamEnd.state() == StreamEnd.State.COMPLETE && streamEnd.declaredRecords() == 0) {
+            return EMPTY_FILE_ENDED + " That is the writer's claim about what it recorded, not about what ran: a "
+                    + "processor that cannot audit, or an audit level that suppresses every line, writes nothing "
+                    + "while the run does work.";
+        }
+        return EMPTY_FILE + " A file can be empty because nothing has been written, because the writer is buffering, "
+                + "or because the processor cannot audit at all — this says the file is empty, not that the run "
+                + "produced nothing.";
+    }
+
     private static java.util.Optional<Finding> noRecordKey(LogIndex idx, IntFunction<String> rawText) {
         if (rawText == null) return java.util.Optional.empty();
         int firstRow = -1;

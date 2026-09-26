@@ -152,12 +152,18 @@ class FormatConformanceTest {
         // corrupt document and run-together records are findings a user acts on; a plugin that loses one is
         // not conformant, however exactly its records match. The completeness sentence is the one thing AF-10
         // lets a plugin lose, and it is checked below; every OTHER finding must match even then.
-        var producerA = kinds(findings(a));
-        var producerB = kinds(findings(b));
+        // Review item 6: the WORDS too, not only the kinds — a wording that drifted on one path would otherwise pass.
+        var producerA = findings(a).findings();
+        var producerB = findings(b).findings();
         if (plugInIsLessPrecise) {
-            producerA = producerA.stream().filter(k -> k != ProducerDiagnostics.Kind.COMPLETENESS_GAP).toList();
+            producerA = producerA.stream().filter(f -> f.kind() != ProducerDiagnostics.Kind.COMPLETENESS_GAP).toList();
         }
-        assertEquals(producerA, producerB, name + ": one path found something about the producer the other did not");
+        assertEquals(producerA.stream().map(ProducerDiagnostics.Finding::kind).toList(),
+                producerB.stream().map(ProducerDiagnostics.Finding::kind).toList(),
+                name + ": one path found something about the producer the other did not");
+        assertEquals(producerA.stream().map(ProducerDiagnostics.Finding::message).toList(),
+                producerB.stream().map(ProducerDiagnostics.Finding::message).toList(),
+                name + ": the two paths say different things about the producer");
 
         if (!plugInIsLessPrecise) {
             assertEquals(a.streamEnd().state(), b.streamEnd().state(), name + ": completeness state");
@@ -182,7 +188,8 @@ class FormatConformanceTest {
     /** What the analyser says about the log's producer, assembled from the store as the frame assembles it. */
     private static ProducerDiagnostics findings(LogStore s) {
         return ProducerDiagnostics.of(s.index(), s::rawText,
-                s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText());
+                s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText(),
+                s.streamEnd());
     }
 
     private static List<ProducerDiagnostics.Kind> kinds(
@@ -802,7 +809,8 @@ class FormatConformanceTest {
      * so it stays a unit test ({@code EmptyLogAndRecordKeyDiagnosticsTest}).
      */
     private void anEmptyFileRaisesTheFinding(String name,
-                                             telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State state)
+                                             telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State state,
+                                             String opening)
             throws IOException {
         LogStore s = bothPathsAgree(name);
         assertEquals(0, s.size(), name + ": nothing in it is a record");
@@ -811,22 +819,24 @@ class FormatConformanceTest {
         assertEquals(ProducerDiagnostics.Kind.EMPTY_LOG,
                 d.firstWarning().orElseThrow(() -> new AssertionError(name + ": an empty file raised nothing: "
                         + d.messages())).kind(), name + ": the warning is the empty-log finding");
-        assertTrue(d.firstWarning().orElseThrow().message().startsWith("No records in this file yet."),
-                () -> name + ": one wording, about the file: " + d.firstWarning().orElseThrow().message());
+        assertTrue(d.firstWarning().orElseThrow().message().startsWith(opening),
+                () -> name + ": one wording per shape, about the file: " + d.firstWarning().orElseThrow().message());
     }
 
     /** A marker declaring zero is COMPLETE — and still empty. The marker changed the label, never the warning. */
     @Test
     void c25_aMarkerDeclaringZeroIsCompleteAndStillAnEmptyLog() throws IOException {
         anEmptyFileRaisesTheFinding("c25-marker-declaring-zero.yaml",
-                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE);
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE, ProducerDiagnostics.EMPTY_FILE_ENDED);
+        assertFalse(findings(builtIn("c25-marker-declaring-zero.yaml")).messages().get(0).contains("buffering"),
+                "review item 8: a file whose marker says it ended is not waiting on a buffering writer");
     }
 
     /** Two marked segments, each claiming zero: a run that restarted and wrote nothing either time. */
     @Test
     void c26_twoEmptyMarkedSegmentsAreAnEmptyLog() throws IOException {
         anEmptyFileRaisesTheFinding("c26-two-empty-segments.yaml",
-                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE);
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.COMPLETE, ProducerDiagnostics.EMPTY_FILE_ENDED);
         LogStore s = builtIn("c26-two-empty-segments.yaml");
         assertEquals(0, s.streamEnd().declaredRecords(), "two segments, each vouching for nothing");
     }
@@ -834,14 +844,14 @@ class FormatConformanceTest {
     @Test
     void c27_aFileOfWhitespaceIsAnEmptyLog() throws IOException {
         anEmptyFileRaisesTheFinding("c27-whitespace-only.yaml",
-                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN);
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN, ProducerDiagnostics.EMPTY_FILE);
     }
 
     /** Zero bytes — also the empty export: an export of a run that wrote nothing is this file. */
     @Test
     void c28_zeroBytesIsAnEmptyLog() throws IOException {
         anEmptyFileRaisesTheFinding("c28-zero-bytes.yaml",
-                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN);
+                telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.State.UNKNOWN, ProducerDiagnostics.EMPTY_FILE);
     }
 
     /**

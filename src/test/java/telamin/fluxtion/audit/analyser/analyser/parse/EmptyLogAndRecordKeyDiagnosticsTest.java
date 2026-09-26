@@ -3,6 +3,7 @@ package telamin.fluxtion.audit.analyser.analyser.parse;
 import org.junit.jupiter.api.Test;
 import telamin.fluxtion.audit.analyser.analyser.index.LogIndex;
 import telamin.fluxtion.audit.analyser.analyser.model.LogRecord;
+import telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind;
 
 import java.util.List;
 import java.util.function.IntFunction;
@@ -270,5 +271,44 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
 
         assertTrue(d.findings().stream().anyMatch(f -> f.kind() == ProducerDiagnostics.Kind.NO_RECORD_KEY),
                 "the BOM must not become a way to hide a corrupt document: " + d.messages());
+    }
+
+    // ---------------------------------------------------------------- the sixth shape, and review item 8
+
+    private static ProducerDiagnostics of(LogStore s) {
+        return ProducerDiagnostics.of(s.index(), s::rawText, s.sourceDiagnostics(), s.completenessDiagnostics(),
+                s.completenessIsNote(), s.pendingFrameText(), s.streamEnd());
+    }
+
+    /**
+     * MA-0's sixth shape, through the store a rolled set is opened with rather than a bare index: every member empty.
+     * The finding names a SET — "this file … the file is empty" is false of several files — and says how many.
+     */
+    @Test
+    void aRolledSetOfEmptyMembersIsNamedAsASet(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws java.io.IOException {
+        var a = java.nio.file.Files.writeString(dir.resolve("run.1.yaml"), "");
+        var b = java.nio.file.Files.writeString(dir.resolve("run.2.yaml"),
+                "---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 0\n---\n");
+        try (var set = RolledLogStore.open(List.of(a, b), 64)) {
+            assertEquals(0, set.size(), "precondition: no member holds a record");
+            ProducerDiagnostics d = of(set);
+            String message = d.firstWarning().orElseThrow(() -> new AssertionError("a rolled set of empty members "
+                    + "raised nothing: " + d.messages())).message();
+            assertEquals(Kind.EMPTY_LOG, d.firstWarning().orElseThrow().kind());
+            assertTrue(message.startsWith(ProducerDiagnostics.EMPTY_SET), () -> "named as a set: " + message);
+            assertTrue(message.contains("2 files"), () -> "and says how many: " + message);
+            assertFalse(message.contains("this file"), () -> "never as one file: " + message);
+        }
+    }
+
+    /** Review item 8, the other shape: a single file whose own marker says it ended with nothing. No "yet". */
+    @Test
+    void aFileWhoseMarkerSaysItEndedEmptyIsNotWaitingForAWriter() {
+        var store = new HeapLogStore("---\neventLogRecord:\n  streamEnd: normal\n  streamEndRecords: 0\n---\n");
+        String message = of(store).firstWarning().orElseThrow().message();
+        assertTrue(message.startsWith(ProducerDiagnostics.EMPTY_FILE_ENDED), message);
+        assertFalse(message.contains("yet") || message.contains("buffering"), () -> "it ended: " + message);
+        assertTrue(message.contains("not about what ran"), () -> "and it still makes no claim about the run: " + message);
     }
 }

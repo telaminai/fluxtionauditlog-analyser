@@ -4098,7 +4098,8 @@ public final class MainFrame extends JFrame {
         // the three checks read the index and the third reads a record's text.
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
-                        loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText());
+                        loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText(),
+                        loaded.streamEnd());
         if (reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
         String producerWarning = producerWarning();
         status.setText(statusText(loaded.size(), range,
@@ -4595,7 +4596,7 @@ public final class MainFrame extends JFrame {
         var before = producerDiagnostics == null ? List.<String>of() : producerDiagnostics.messages();
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(store.index(), store::rawText, damage,
-                        store.completenessDiagnostics(), store.completenessIsNote(), pending);
+                        store.completenessDiagnostics(), store.completenessIsNote(), pending, store.streamEnd());
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
         // D-MA0c: the Reports tab states the log's findings, so a followed log that changes them re-renders it

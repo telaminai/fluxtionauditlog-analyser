@@ -21,8 +21,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Changed
 
-- **The empty-file message reads the same however the file was opened:** "No records in this file yet." A file
-  being followed and a file opened cold are the same file.
+- **The empty-file message reads the same however the file was opened**, and fits what was read. A file that may
+  still be written says "No records in this file yet."; a file whose own stream-end marker says the writer finished
+  with nothing says so instead of suggesting a buffering writer; an empty rolled set is named as a set of files. A
+  file being followed and the same file opened cold say the same thing.
+- **A rolled set's completeness note is drawn as a note on the Reports tab**, muted as on the PDF, rather than in the
+  warning banner a fault gets.
 
 ### Fixed
 

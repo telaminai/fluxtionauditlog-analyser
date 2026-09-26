@@ -511,6 +511,10 @@ class CoveragePerNodeLevelTest {
             Object onRow = a.ledger().stream().filter(r -> node.equals(r.get("instanceId"))).findFirst()
                     .orElseThrow().get("levelChange");
             assertEquals(annotations(a).get(node), onRow, "the row carries the verb's own annotation at " + at);
+            // review item 5: ONLY the annotated nodes carry it — a note on every uncovered row passed the line above
+            java.util.Set<Object> carrying = a.ledger().stream().filter(r -> r.containsKey("levelChange"))
+                    .map(r -> r.get("instanceId")).collect(java.util.stream.Collectors.toSet());
+            assertEquals(annotations(a).keySet(), carrying, "the rows carrying levelChange are the annotated nodes at " + at);
         }
         assertNotNull(annotations(assess(withChanges, true, window(1003, 1003))).get(node),
                 "control: the row is annotated inside the interval, so the comparison above is not vacuous");

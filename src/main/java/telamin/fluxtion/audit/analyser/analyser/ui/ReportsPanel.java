@@ -235,8 +235,11 @@ public final class ReportsPanel extends JPanel {
         // same place, and the same words, as the PDF
         var findings = logFindings.get();
         if (findings != null && !findings.isClean()) {
-            detail.add(banner(telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.LOG_FINDINGS_LABEL,
-                    String.join("\n\n", findings.messages()), null, null));
+            String label = telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.LOG_FINDINGS_LABEL;
+            String body = String.join("\n\n", findings.messages());
+            // A set of notes only — a rolled set's completeness note — states a limit, not a fault: muted, as the
+            // PDF draws it. Anything else is a warning, and wears the warning banner.
+            detail.add(findings.firstWarning().isPresent() ? banner(label, body, null, null) : noteBanner(label, body));
         }
         if (!spec.notes().isBlank()) {
             detail.add(narrative(spec.notes()));
@@ -376,6 +379,16 @@ public final class ReportsPanel extends JPanel {
             b.setAlignmentX(Component.LEFT_ALIGNMENT);
             box.add(b);
         }
+        return box;
+    }
+
+    /** A banner for a statement of a limit: the muted accent and the panel's own background, as the PDF's MUTED. */
+    private JPanel noteBanner(String heading, String body) {
+        JPanel box = calloutBox(theme.mutedFg(), theme.panelBg());
+        JTextArea h = bold(heading);
+        h.setForeground(theme.mutedFg());
+        box.add(h);
+        box.add(wrapped(body));
         return box;
     }
 
