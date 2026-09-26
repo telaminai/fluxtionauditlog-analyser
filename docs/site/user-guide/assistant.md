@@ -228,7 +228,11 @@ name before this rule is reached quoted, `graph:"a:b":note:2`, and `context.grap
 address. Then `project:log`, `toolbar:flag`, `menu:Audit log` and
 `menu:Project:New project from template…` (the menu opens and the item is lit; a click on it chooses it, and the
 spotlight goes out with the menu), `status`. Menu names are the visible labels: Project, Sources and Audit log replace File.
-Update saved spotlight steps that name `menu:File`; old names are refused rather than redirected. A target that is off
+Update saved spotlight steps that name `menu:File`; old names are refused rather than redirected, and the refusal says
+where the item is now — `menu:File:Follow (tail)` answers that it is in the Audit log menu, and `menu:File:Reset` that it
+was renamed Project > Close log and topology. `context.menus` lists the menu bar as spotlight targets name it — each
+top-level menu and its direct items, in order; not submenu contents, and not whether an item is enabled or checked — and
+`context.menuChanges` lists what was retired or renamed. An assistant can read where an action lives instead of guessing. A target that is off
 screen is brought on screen first (its tab selected, its row scrolled to — a filtered-out record is
 revealed the way `goto` reveals one — its node centred); one that does not exist is **refused with the
 reason**, never lit on nothing. `screenshot` and `context` leave a spotlight lit: they are how the client

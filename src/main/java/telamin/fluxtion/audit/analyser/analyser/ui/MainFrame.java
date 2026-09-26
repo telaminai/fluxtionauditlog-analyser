@@ -2426,14 +2426,15 @@ public final class MainFrame extends JFrame {
                             : "'" + t.name() + "' is not on " + chartWord(t) + alsoOn(t);
                 }
                 case MENU -> topLevelMenu(t.menuName()) == null
-                        ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames()
+                        ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames() + retiredNote(t.menuName())
                         : "the " + t.menuName() + " menu opened as a separate window here — it does not fit inside the "
                         + "analyser window, so it cannot be lit. Enlarge the window and try again";
                 case MENU_ITEM -> {
                     javax.swing.JMenu m = topLevelMenu(t.menuName());
                     yield m == null ? "no menu '" + t.menuName() + "' — the menus are " + topLevelMenuNames()
+                            + retiredNote(t.menuName()) + whereIsNote(t)
                             : menuItemFor(t) == null ? "no item '" + t.menuItem() + "' in the " + m.getText() + " menu — its items are "
-                            + menuItemTexts(m) + " (a submenu's items cannot be lit)"
+                            + menuItemTexts(m) + " (a submenu's items cannot be lit)" + whereIsNote(t)
                             : "the " + m.getText() + " menu opened as a separate window here — it does not fit inside the "
                             + "analyser window, so it cannot be lit. Enlarge the window and try again";
                 }
@@ -2548,6 +2549,28 @@ public final class MainFrame extends JFrame {
             if (c instanceof JMenuItem item && item.getText() != null && item.getText().trim().equalsIgnoreCase(t.menuItem().trim())) return item;
         }
         return null;
+    }
+
+    /** Every top-level menu and its item texts, in menu-bar order — context's `menus`, and MenuHints' input. */
+    java.util.Map<String, java.util.List<String>> menuMap() {
+        java.util.Map<String, java.util.List<String>> out = MenuHints.ordered();
+        javax.swing.JMenuBar bar = getJMenuBar();
+        for (int i = 0; bar != null && i < bar.getMenuCount(); i++) {
+            javax.swing.JMenu m = bar.getMenu(i);
+            if (m != null && m.getText() != null) out.put(m.getText(), menuItemTexts(m));
+        }
+        return out;
+    }
+
+    /** " — <where the item is>" when a missed item exists elsewhere or was renamed; otherwise nothing. */
+    private String whereIsNote(SpotlightTarget t) {
+        String hint = MenuHints.whereIs(t.menuName(), t.menuItem(), menuMap());
+        return hint == null ? "" : ". " + hint;
+    }
+
+    private static String retiredNote(String menu) {
+        String note = MenuHints.retired(menu);
+        return note == null ? "" : " (" + note + ")";
     }
 
     private static java.util.List<String> menuItemTexts(javax.swing.JMenu m) {
@@ -6604,6 +6627,10 @@ public final class MainFrame extends JFrame {
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
             out.put("processorDeclarations", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.processorDeclarations(config.processorDeclarations));
+            // The menu bar, as spotlight targets name it: an assistant can READ where an action lives instead of
+            // provoking a refusal to learn it, or guessing (1.20.0 virgin-LLM check).
+            out.put("menus", menuMap());
+            out.put("menuChanges", MenuHints.changes(menuMap()));
             out.put("savedGraphs", telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.savedGraphs(
                     config.savedGraphs, graphTabs.specs().stream().map(telamin.fluxtion.audit.analyser.analyser.config.GraphSpec::name)
                             .collect(java.util.stream.Collectors.toSet()), store != null));
