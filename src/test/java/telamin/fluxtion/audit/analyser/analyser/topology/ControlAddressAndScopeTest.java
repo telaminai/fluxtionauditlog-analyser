@@ -744,11 +744,13 @@ class ControlAddressAndScopeTest {
         }
         assertEquals(2880, logs, "the matrix: 3 openings × 5 groupings × 8 boundaries × 8 closings × 3 leads");
         assertEquals(2520, notes, "every log annotates except the 360 whose only record in view is past the second marker");
-        assertEquals(java.util.List.of(), reached.entrySet().stream().filter(e -> e.getValue() == 0).map(java.util.Map.Entry::getKey)
-                .toList(), "a branch of the sentence the matrix no longer reaches");
+        // Eighth re-review R8-9: the offender rules are asserted FIRST. With reach first, three of round 7's four
+        // witnesses went red through reach, which masked whether the rules themselves saw the mutation.
         assertEquals(java.util.List.of(), offenders, "R-C/R5/R6/R7: a branch presumes a processor, says an open change sets, "
                 + "leaves the condition's subject open, holds across a marker, runs past an unreadable control record, or "
                 + "concludes beyond the change, the window or the grouping");
+        assertEquals(java.util.List.of(), reached.entrySet().stream().filter(e -> e.getValue() == 0).map(java.util.Map.Entry::getKey)
+                .toList(), "a branch of the sentence the matrix no longer reaches");
     }
 
     // ------------------------------------------------------------------ RR-3: which processor
