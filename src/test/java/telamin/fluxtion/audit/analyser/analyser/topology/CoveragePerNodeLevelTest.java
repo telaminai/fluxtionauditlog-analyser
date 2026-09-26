@@ -538,7 +538,7 @@ class CoveragePerNodeLevelTest {
         String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
         String later = annotations(assess(seq, true, window(2000, 2000))).get(node);
         assertNotNull(later, "the annotation is not dropped — the level may well have survived: " + later);
-        assertTrue(later.contains("Every record in view is in a LATER run") && later.contains("survived"),
+        assertTrue(later.contains("Every record in view that this annotation concerns is in a LATER run") && later.contains("survived"),
                 "it says the scope is after the boundary: " + later);
         // Eighth re-review R8-6: this guard pinned a form the code no longer writes, so it could not fail. Every
         // definite conclusion now reads ", so after record …"; wholly after a marker there must be none.

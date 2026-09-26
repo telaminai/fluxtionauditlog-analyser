@@ -38,10 +38,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   until it. Every conclusion is bounded — the definite one and the conditional one about a later run
   alike: it speaks for the records after the change (or after the marker) and before the window ends — the
   next change, an unreadable control record or a stream-end marker — in the change's own grouping, never
-  for the whole log. An annotation stops at the second stream-end marker after its change: records past it
-  get no level explanation and stay uncovered. A condition in force — that the change named no node, that
+  for the whole log. An annotation stops at the second stream-end marker after its change — counting every
+  marker, so two written back to back with an empty run between them are two — and records past it get no
+  level explanation and stay uncovered. When the records in view include some the annotation does not
+  concern, it says it speaks for those it does. A condition in force — that the change named no node, that
   it applied — is carried into every sentence resting on it. A record a log reader could not read at all,
-  but whose header names the control event, is described as that, with the time its header states.
+  but whose header names the control event, is described as that, with the time its header states; every
+  header field the format permits is read, and nothing from the payload.
 - An empty or blank file now opens by its extension rather than being refused as unreadable.
 
 ### Fixed

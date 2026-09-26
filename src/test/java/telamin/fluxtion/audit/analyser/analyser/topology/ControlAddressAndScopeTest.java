@@ -449,7 +449,7 @@ class ControlAddressAndScopeTest {
         // Q: records either side of the second marker — only the first is concerned, and the marker named is the one crossed
         String q = annotate(twoAfter, "riskMonitor", 1, 2);
         assertNotNull(q);
-        assertTrue(q.contains("Every record in view is in a LATER run — a stream-end marker before record 2 begins it"), q);
+        assertTrue(q.contains("Every record in view that this annotation concerns is in a LATER run — a stream-end marker before record 2 begins it"), q);
         assertTrue(q.contains("then after that marker and before the stream-end marker preceding record 3, in the records "
                 + "sharing its grouping"), "R8-2 Q: bounded by the second marker: " + q);
     }
@@ -522,6 +522,93 @@ class ControlAddressAndScopeTest {
     }
 
     /**
+     * Ninth re-review R9-1: the second marker is the second marker OCCURRENCE. Adjacent markers share a record position
+     * (Format §1a permits a zero count: a run may hold no records), and the lookup by "next distinct position" skipped
+     * them, so the first record after two or three adjacent markers was annotated.
+     */
+    @Test
+    void adjacentMarkersAreCountedByOccurrence() {
+        var warn = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        String empty = MARKER_1.replace("streamEndRecords: 1", "streamEndRecords: 0");
+        for (int markers = 2; markers <= 3; markers++) {
+            HeapLogStore store = new HeapLogStore(control(1, "null", warn) + MARKER_1 + empty.repeat(markers - 1) + row(2, "null"));
+            assertEquals(java.util.Collections.nCopies(markers, 1), store.runBoundaries(), "the fixture: " + markers + " markers at one position");
+            assertNull(PerNodeLevelChanges.of(store).annotationFor("riskMonitor", new int[]{1}),
+                    "R9-1 " + markers + " adjacent markers: record 2 is past the second marker and gets no annotation");
+        }
+        // positive control: ONE marker — record 2 is between the first and the (absent) second, and is explained
+        String one = annotate(control(1, "null", warn) + MARKER_1 + row(2, "null"), "riskMonitor", 1);
+        assertNotNull(one, "one marker: record 2 is in the later run the annotation still concerns");
+        // an empty intervening run between two separated markers: the record after the second is not explained
+        String emptyRun = control(1, "null", warn) + row(2, "null") + MARKER_1 + empty + row(3, "null");
+        assertNull(annotate(emptyRun, "riskMonitor", 2), "R9-1 empty run: record 3 follows the second marker");
+        assertNotNull(annotate(emptyRun, "riskMonitor", 1), "record 2, before both, is still explained");
+    }
+
+    /**
+     * Ninth re-review R9-2: the raw header of a row with no record accepts every field the format permits, in any
+     * order, and stops only at the first payload field. R8-4's allow-list took {@code eventTime} — which the published
+     * example writes before {@code logTime} — for payload, lost the record's event, and the window ran past it.
+     */
+    @Test
+    void theRawHeaderAcceptsEveryPermittedFieldAndStopsAtPayload() {
+        var warn = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        var info = new EventLogControlEvent("riskMonitor", null, LogLevel.INFO);
+        String closer = control(3, "null", info);
+        for (String form : new String[]{"standard", "eventTime", "thread", "unknownField"}) {
+            String header = switch (form) {
+                case "eventTime" -> closer.replace("  logTime: 3", "  eventTime: -1\n  logTime: 3");
+                case "thread" -> closer.replace("  groupingId: null", "  groupingId: null\n  thread: marketMaker-DEMO");
+                case "unknownField" -> closer.replace("  logTime: 3", "  producerVersion: 9\n  logTime: 3");
+                default -> closer;
+            };
+            String log = control(1, "null", warn) + row(2, "null") + header + row(4, "null");
+            String note = PerNodeLevelChanges.of(new NullingStore(log, java.util.Set.of(2))).annotationFor("riskMonitor", new int[]{1, 3});
+            assertTrue(note.contains("It holds at least until record 3 (logTime 3), a record this reader could not read, whose "
+                    + "text names the control event"), "R9-2 " + form + ": the header is read past a permitted field: " + note);
+            assertTrue(note.contains("After record 1 and before record 3, in the records sharing its grouping"),
+                    "R9-2 " + form + ": bounded before the unreadable record, so record 4 is not claimed: " + note);
+        }
+        // the payload-spoof negative case: an `event:` inside node values is never the record's event
+        String spoof = control(1, "null", warn) + row(2, "null")
+                + "eventLogRecord:\n  eventTime: -1\n  logTime: 3\n  groupingId: null\n  nodeLogs:\n    - priceListener:\n"
+                + "        event: EventLogControlEvent\n---\n" + row(4, "null");
+        String s = PerNodeLevelChanges.of(new NullingStore(spoof, java.util.Set.of(2))).annotationFor("riskMonitor", new int[]{1});
+        assertTrue(s.contains("Nothing later"), "a node value reading 'event: …' is payload, not the record's event: " + s);
+        // …nor one written after the first payload field
+        String late = control(1, "null", warn) + row(2, "null")
+                + "eventLogRecord:\n  logTime: 3\n  groupingId: null\n  eventToString: x\n  event: EventLogControlEvent\n---\n"
+                + row(4, "null");
+        String l = PerNodeLevelChanges.of(new NullingStore(late, java.util.Set.of(2))).annotationFor("riskMonitor", new int[]{1});
+        assertTrue(l.contains("Nothing later"), "an `event:` after eventToString is not read as the header's: " + l);
+    }
+
+    /**
+     * Ninth re-review R9-3: annotationFor narrows the view to the records the change governs, but the lead said
+     * "Every record in view is in a LATER run" of the whole view — false when the view also holds the change's own
+     * record, a record past the second marker, or another grouping's record. It now speaks for the records it concerns.
+     */
+    @Test
+    void theLaterRunLeadSpeaksOnlyForTheRecordsItConcerns() {
+        var warn = new EventLogControlEvent("riskMonitor", null, LogLevel.WARN);
+        String twoMarkers = control(1, "null", warn) + MARKER_1 + row(2, "null") + MARKER_1 + row(3, "null");
+        for (int[] view : new int[][]{{0, 1}, {1, 2}}) {   // with the opening record; crossing the second marker
+            String note = annotate(twoMarkers, "riskMonitor", view);
+            assertNotNull(note, java.util.Arrays.toString(view));
+            assertTrue(note.contains("Every record in view that this annotation concerns is in a LATER run — a stream-end marker "
+                    + "before record 2 begins it"), "R9-3 " + java.util.Arrays.toString(view) + ": qualified to the records "
+                    + "it concerns: " + note);
+            assertTrue(note.contains("then after that marker and before the stream-end marker preceding record 3"),
+                    "the bound is kept: " + note);
+        }
+        // mixed groupings: another grouping's record in view is not one this annotation concerns
+        var warnAlpha = new EventLogControlEvent("riskMonitor", "alpha", LogLevel.WARN);
+        String mixed = annotate(control(1, "alpha", warnAlpha) + MARKER_1 + row(2, "beta") + row(3, "alpha"), "riskMonitor", 1, 2);
+        assertTrue(mixed.contains("Every record in view that this annotation concerns is in a LATER run"),
+                "R9-3 mixed groupings: " + mixed);
+    }
+
+    /**
      * Fourth re-review R-C, fifth re-review R5-1 and R5-2: no branch of the sentence presumes a processor, and none
      * says a change "sets" a level while its applying is open. The matrix is source × grouping × boundary × closing,
      * plus a node literally named "null", and it REACHES every branch: each branch's wording must appear in some note,
@@ -552,7 +639,7 @@ class ControlAddressAndScopeTest {
                 "either way it ends here", "either way it would end the window there, and only if it applied here",
                 "only the first would end it there.", "only the first would end it there, and only if it applied here",
                 "only if the change at record 1 (logTime 1) survived",
-                "Every record in view is in a LATER run",
+                "Every record in view that this annotation concerns is in a LATER run",
                 "the log renders both identically. ",
                 ", a control record this reader could not read; ", "could not be read by this reader; ",
                 "The next change to riskMonitor's audit level in the same grouping is at ",
@@ -686,6 +773,32 @@ class ControlAddressAndScopeTest {
                                     // log" and the later run's "absent only if" — is bounded from the change (or, after a
                                     // marker, from that marker), within the change's grouping.
                                     boolean markerAfterChange = !boundary.equals("none");
+                                    // Ninth re-review O9-1: the EXACT endpoints, derived from the fixture — its layout, and
+                                    // whether the closer applies by the runtime's rule (an unreadable one always ends the
+                                    // window; a readable one unless a declared 'alpha' grouping meets another groupId) —
+                                    // never from the note under test
+                                    boolean effective = closing.equals("unreadable") || (!closing.equals("none")
+                                            && !("alpha".equals(rg) && !"alpha".equals(gid)));
+                                    int s0 = shift;
+                                    Integer firstMarkerBefore = boundary.equals("none") ? null
+                                            : Integer.valueOf(boundary.equals("whollyAfter") || boundary.equals("twoMarkersAfter")
+                                            ? 2 + s0 : 3 + s0);
+                                    Integer secondMarkerBefore = boundary.equals("twoMarkers") ? Integer.valueOf(4 + s0)
+                                            : boundary.equals("twoMarkersAfter") ? Integer.valueOf(3 + s0) : null;
+                                    int closerRecord = switch (boundary) {
+                                        case "none" -> 3 + s0;
+                                        case "whollyAfter" -> 3 + s0;
+                                        case "twoMarkers" -> 5 + s0;
+                                        case "twoMarkersAfter" -> 4 + s0;
+                                        default -> 4 + s0;
+                                    };
+                                    String markerAt = "the stream-end marker preceding record ";
+                                    String expectedE1 = firstMarkerBefore != null ? markerAt + firstMarkerBefore
+                                            : effective ? "record " + closerRecord : null;
+                                    String expectedE2 = secondMarkerBefore != null ? markerAt + secondMarkerBefore
+                                            : effective ? "record " + closerRecord : null;
+                                    java.util.regex.Pattern endpoint = java.util.regex.Pattern.compile(
+                                            "and before (record \\d+|the stream-end marker preceding record \\d+)");
                                     boolean twoMarkerLayout = boundary.startsWith("twoMarkers");
                                     // an EFFECTIVE closer: a closing record that does not apply (declared 'alpha' closed by
                                     // 'beta') is no closer, so key on the note's closing clause, not on the log
@@ -708,6 +821,13 @@ class ControlAddressAndScopeTest {
                                                     && !sentence.contains("and before record "));
                                         }
                                         if (!fromChange || !inScope || !endOk) offenders.add("R7/R8 bound " + cell + ": " + sentence);
+                                        java.util.regex.Matcher end = endpoint.matcher(sentence);
+                                        String rendered = end.find() ? end.group(1) : null;
+                                        String expected = afterMarker ? expectedE2 : expectedE1;
+                                        if (!java.util.Objects.equals(expected, rendered)) {
+                                            offenders.add("O9-1 endpoint " + cell + ": expected " + expected + ", rendered " + rendered
+                                                    + ": " + sentence);
+                                        }
                                     }
                                     // R8-1/R8-2: no note concerns a record past the second marker after its change
                                     String pastSecond = boundary.equals("twoMarkers") ? "(logTime 4)"
@@ -718,7 +838,7 @@ class ControlAddressAndScopeTest {
                                     }
                                     // R8-2: the marker named as beginning the LATER run is the one before the first record in view
                                     java.util.regex.Matcher later = java.util.regex.Pattern.compile(
-                                            "Every record in view is in a LATER run — a stream-end marker before record (\\d+) begins it")
+                                            "Every record in view that this annotation concerns is in a LATER run — a stream-end marker before record (\\d+) begins it")
                                             .matcher(note);
                                     if (later.find() && Integer.parseInt(later.group(1)) != 2 + shift) {
                                         offenders.add("R8-2 wrong marker " + cell + ": " + note);

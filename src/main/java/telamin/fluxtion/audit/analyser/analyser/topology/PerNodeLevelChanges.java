@@ -202,15 +202,35 @@ public final class PerNodeLevelChanges {
         }
     }
 
-    /** One header field of the raw text; the scan stops at the first line that is not a header field. */
+    /**
+     * The fields a payload can reach: {@code eventToString} is the event's own {@code toString()}, written unescaped,
+     * and {@code nodeLogs} holds node values. Nothing at or after the first of them is read as the record's header.
+     */
+    static final java.util.Set<String> PAYLOAD_FIELDS = java.util.Set.of("eventToString", "nodeLogs");
+
+    /**
+     * One header field of the raw text (eighth re-review R8-4; ninth R9-2). The record's own fields are the lines at
+     * the {@code eventLogRecord:} mapping's first indentation; nested lines are never read. Every such field the format
+     * permits is accepted in any order — {@code eventTime}, {@code logTime}, {@code groupingId}, {@code event},
+     * {@code thread}, {@code endTime}, and any other, which Format §2 says is ignored, never rejected — until the
+     * first payload field, where the scan stops. R8-4's allow-list took {@code eventTime}, which the published
+     * example writes before {@code logTime}, for payload, and so lost the record's event.
+     */
     private static String headerField(String rawText, String name) {
         if (rawText == null) return null;
+        int indent = -1;
         for (String line : rawText.split("\n", -1)) {
             String t = line.strip();
             if (t.isEmpty() || t.equals("---") || t.startsWith("#") || t.equals("eventLogRecord:")) continue;
-            if (t.startsWith(name)) return t.substring(name.length()).strip();
-            boolean header = t.startsWith("logTime:") || t.startsWith("groupingId:") || t.startsWith("event:");
-            if (!header) return null;                    // the first payload field: nothing after it is the header
+            int at = line.length() - line.stripLeading().length();
+            if (indent < 0) indent = at;
+            if (at > indent) continue;                   // nested: part of a field's value, never a field
+            if (at < indent) return null;                // outside the record mapping
+            int colon = t.indexOf(':');
+            if (colon <= 0) return null;                 // not a field line
+            String key = t.substring(0, colon);
+            if (PAYLOAD_FIELDS.contains(key)) return null;   // the first payload field: nothing after it is the header
+            if (key.equals(name.substring(0, name.length() - 1))) return t.substring(colon + 1).strip();
         }
         return null;
     }
@@ -355,7 +375,9 @@ public final class PerNodeLevelChanges {
             // Eighth re-review R8-1/R8-2, owner decision (option b): the annotation stops at the SECOND stream-end
             // marker after the change, so a record past it is never explained and at most one marker is crossed.
             Integer m1 = boundaryBetween(c.row(), Integer.MAX_VALUE);
-            Integer m2 = m1 == null ? null : boundaryBetween(m1, Integer.MAX_VALUE);
+            // Ninth re-review R9-1: the SECOND MARKER, by occurrence. Adjacent markers share a record position (a
+            // run may hold no records), so "the next boundary past m1's position" skipped them.
+            Integer m2 = m1 == null ? null : markerAfter(c.row(), 2);
             int stop = m2 == null ? until : Math.min(until, m2);
             int first = -1, last = -1;
             for (int r : inView) {
@@ -384,6 +406,16 @@ public final class PerNodeLevelChanges {
 
     private Grouping context(int row) {
         return row >= 0 && row < rowContext.length ? rowContext[row] : Grouping.ABSENT;
+    }
+
+    /**
+     * The {@code n}th stream-end marker after row {@code from}, counting OCCURRENCES (ninth re-review R9-1): two
+     * adjacent markers are two boundaries at one position, and the second of them is the second marker.
+     */
+    private Integer markerAfter(int from, int n) {
+        int seen = 0;
+        for (int b : runBoundaries) if (b > from && ++seen == n) return b;
+        return null;
     }
 
     /** The FIRST run boundary in {@code (from, to]}: a record at or after it belongs to a later run. */
@@ -492,7 +524,9 @@ public final class PerNodeLevelChanges {
                         .append(end2 == null ? "" : " and before " + end2).append(", in ").append(scope)
                         .append(", those lines are absent only if ").append(all(later));
             } else {
-                s.append(". Every record in view is in a LATER run — ").append(marker)
+                // Ninth re-review R9-3: the view may hold records this annotation does not concern — the change's own
+                // record, another grouping's, one past the second marker — so the lead speaks for the ones it does.
+                s.append(". Every record in view that this annotation concerns is in a LATER run — ").append(marker)
                         .append(" begins it — and the log does not say whether the level survived into it. If ")
                         .append(all(later)).append(", then after that marker")
                         .append(end2 == null ? "" : " and before " + end2).append(in)
