@@ -718,6 +718,10 @@ tests, 0 failures, 0 errors, 0 skips** — the focus skip did not recur
 ([summary](evidence/mongoose-audit-production-impl/phase1-completion/review-display-gate-summary.txt)). All sixteen
 controls red at their named assertion, byte-identical restore, green after.
 
+**CI on PR #40, head `2d9cd4f9`** (run 36269199649): build, `ui-frame` under Xvfb (its guard rejects skips, so the
+local PersonAtTheScreen focus skip is settled as the desktop's), `mutation-gate` over the full gate with the sixteen new
+controls (15 m 53 s), loop-bench and static — **all pass**.
+
 **Predictions, the misses.** P16.2 half wrong (H3, above). P16.3 said fifteen controls; sixteen, because the rolled-set
 wording needed its own. P16.9's total was wrong: it counted this branch's tests (+4 run headless and +3 frame tests
 skipped headless — both as predicted) and not the ones `main` 1.22.1 brought in (+15, +2 skipped).

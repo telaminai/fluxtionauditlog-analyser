@@ -553,4 +553,4 @@ not fifteen (the rolled-set wording has its own); preflight 167 → 183, each an
 with messages compared, no control. P16.6 held, red at the status bar. P16.7 held. P16.8 held. P16.9 **wrong on the
 total**: this branch's own +4 headless and +3 skipped are as predicted, but the merge of `main` 1.22.1 added 15 tests and
 2 skips the prediction did not count — 2427/0/0/115. Display: 115 frame tests, no skip. P16.10 held (CHANGELOG only).
-P16.11 is CI's, recorded in the report once it has run.
+P16.11 held: on PR #40 (`2d9cd4f9`) build, `ui-frame` under Xvfb and the full `mutation-gate` all pass.
