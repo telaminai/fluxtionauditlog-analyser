@@ -3797,6 +3797,7 @@ public final class MainFrame extends JFrame {
                         var report = set.report().merged(
                                 telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
                                         .validate(s.index()));
+                        setOrderReports.put(s, set.report());   // M44.5: a rescan merges this back in
                         var identities = readIdentities(s);
                         if (request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
                             identities = verifyRestoringRead(identities);
@@ -4441,6 +4442,31 @@ public final class MainFrame extends JFrame {
             });
         }
         return identity;
+    }
+
+    /**
+     * M44.5: a rolled set's cross-file ordering report, from its load — the part of its time order that validating its
+     * merged index cannot recover. Keyed by the store itself, so it can only ever describe the store it came with.
+     */
+    private final java.util.Map<LogStore, telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport> setOrderReports =
+            new java.util.WeakHashMap<>();
+
+    /**
+     * M44.5: PERFORM the scan the processor asked for, and report the results as facts. It decides nothing: whether the
+     * evidence was stale was logEvidence's decision, and a result for a generation that is no longer open is refused
+     * there. Here it is only skipped when the log it was asked about is already gone.
+     */
+    private void scanLogEvidence(long generation) {
+        var s = store;
+        if (session == null || s == null || sessionSnapshot().logGeneration() != generation) return;
+        var findings = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.of(s.index(), s::rawText,
+                s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText(),
+                s.emptyLogClaim());
+        var order = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator.validate(s.index());
+        var setPart = setOrderReports.get(s);
+        if (setPart != null) order = setPart.merged(order);
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved(generation, findings));
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved(generation, order));
     }
 
     private void reportAppendToSession() {
@@ -5428,6 +5454,13 @@ public final class MainFrame extends JFrame {
                 // answers when it lands — Pending now, LogOpened/LogOpenFailed later, same opId.
                 sessionInteractive = !e.fromSocket();
                 yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
+                // M44.5: the processor decided the log's evidence is stale. The scan runs AFTER this task, never inside
+                // the dispatch: for a just-opened generation the store is installed after LogOpened returns.
+                long generation = e.generation();
+                javax.swing.SwingUtilities.invokeLater(() -> scanLogEvidence(generation));
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled(opId, generation);
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());

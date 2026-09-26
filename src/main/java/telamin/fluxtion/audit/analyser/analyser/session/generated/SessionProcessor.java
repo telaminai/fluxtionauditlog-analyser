@@ -44,12 +44,14 @@ import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequeste
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogContentObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened;
@@ -58,10 +60,13 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenLogReq
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged;
 import telamin.fluxtion.audit.analyser.analyser.session.node.ActiveProject;
 import telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation;
@@ -71,6 +76,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
@@ -92,7 +98,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  * generation time           : Not available
  * api version               : 1.0.16
  * analyser version          : 1.0.71
- * target generator version  : 1.0.74
+ * target generator version  : 1.0.75
  * </pre>
  *
  * Event classes supported:
@@ -106,12 +112,14 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogContentObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpenFailed
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened
@@ -120,10 +128,13 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenProjectRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.OpenRequestReceived
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileLoaded
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Checked
@@ -182,6 +193,8 @@ public class SessionProcessor
   public final transient LogArrival logArrival =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
           operationGate, pairing, openGraph, effectQueue);;
+  public final transient LogEvidence logEvidence =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence(openLog, effectQueue);;
   public final transient LogOpening logOpening =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening(
           operationGate, effectQueue);;
@@ -246,6 +259,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished",
                 false),
             new ProcessorDescriptor.Input(
+                "FollowToggled",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled",
+                false),
+            new ProcessorDescriptor.Input(
                 "GraphCleared",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared",
                 false),
@@ -268,6 +285,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "LogClosed",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogClosed",
+                false),
+            new ProcessorDescriptor.Input(
+                "LogContentObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogContentObserved",
                 false),
             new ProcessorDescriptor.Input(
                 "LogIdentityObserved",
@@ -306,6 +327,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Pending",
                 false),
             new ProcessorDescriptor.Input(
+                "ProducerFindingsObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved",
+                false),
+            new ProcessorDescriptor.Input(
                 "ProfileApplied",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied",
                 false),
@@ -330,12 +355,20 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted",
                 false),
             new ProcessorDescriptor.Input(
+                "ScanScheduled",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled",
+                false),
+            new ProcessorDescriptor.Input(
                 "SettingsRestored",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored",
                 false),
             new ProcessorDescriptor.Input(
                 "StatusShown",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown",
+                false),
+            new ProcessorDescriptor.Input(
+                "TimeOrderObserved",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved",
                 false),
             new ProcessorDescriptor.Input(
                 "ViewFilterChanged",
@@ -347,7 +380,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "c63344b3513cee78d3d57b9d402cbaed0f63cb7a8f406e71dbd932bdadbefc43",
+              "5c682cde81c918ab5472f164e8f02e8374b1924425a0ed63129b94d86058a0ca",
               null));
 
   @Override
@@ -523,6 +556,9 @@ public class SessionProcessor
     } else if (event instanceof EffectFailed) {
       EffectFailed typedEvent = (EffectFailed) event;
       handleEvent(typedEvent);
+    } else if (event instanceof FollowToggled) {
+      FollowToggled typedEvent = (FollowToggled) event;
+      handleEvent(typedEvent);
     } else if (event instanceof GraphCleared) {
       GraphCleared typedEvent = (GraphCleared) event;
       handleEvent(typedEvent);
@@ -540,6 +576,9 @@ public class SessionProcessor
       handleEvent(typedEvent);
     } else if (event instanceof LogClosed) {
       LogClosed typedEvent = (LogClosed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof LogContentObserved) {
+      LogContentObserved typedEvent = (LogContentObserved) event;
       handleEvent(typedEvent);
     } else if (event instanceof LogIdentityObserved) {
       LogIdentityObserved typedEvent = (LogIdentityObserved) event;
@@ -565,17 +604,26 @@ public class SessionProcessor
     } else if (event instanceof Pending) {
       Pending typedEvent = (Pending) event;
       handleEvent(typedEvent);
+    } else if (event instanceof ProducerFindingsObserved) {
+      ProducerFindingsObserved typedEvent = (ProducerFindingsObserved) event;
+      handleEvent(typedEvent);
     } else if (event instanceof ProfileApplied) {
       ProfileApplied typedEvent = (ProfileApplied) event;
       handleEvent(typedEvent);
     } else if (event instanceof ProfileLoaded) {
       ProfileLoaded typedEvent = (ProfileLoaded) event;
       handleEvent(typedEvent);
+    } else if (event instanceof ScanScheduled) {
+      ScanScheduled typedEvent = (ScanScheduled) event;
+      handleEvent(typedEvent);
     } else if (event instanceof SettingsRestored) {
       SettingsRestored typedEvent = (SettingsRestored) event;
       handleEvent(typedEvent);
     } else if (event instanceof StatusShown) {
       StatusShown typedEvent = (StatusShown) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof TimeOrderObserved) {
+      TimeOrderObserved typedEvent = (TimeOrderObserved) event;
       handleEvent(typedEvent);
     } else if (event instanceof ViewFilterChanged) {
       ViewFilterChanged typedEvent = (ViewFilterChanged) event;
@@ -641,6 +689,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(FollowToggled event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(GraphCleared event) {
     processEvent(event);
   }
@@ -667,6 +720,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(LogClosed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(LogContentObserved event) {
     processEvent(event);
   }
 
@@ -711,6 +769,11 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ProducerFindingsObserved event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(ProfileApplied event) {
     processEvent(event);
   }
@@ -721,12 +784,22 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(ScanScheduled event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(SettingsRestored event) {
     processEvent(event);
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(StatusShown event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(TimeOrderObserved event) {
     processEvent(event);
   }
 
@@ -813,6 +886,10 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(operationGate, "operationGate", "onCloseRequested", typedEvent);
     isDirty_operationGate = operationGate.onCloseRequested(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -824,6 +901,19 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
     effectOutcomes.onEffectFailed(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    commonDispatchTail_1(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(FollowToggled typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(openLog, "openLog", "onFollowToggled", typedEvent);
+    isDirty_openLog = openLog.onFollowToggled(typedEvent);
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -835,6 +925,10 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onGraphCleared(typedEvent);
     auditInvocation(openGraph, "openGraph", "onGraphCleared", typedEvent);
     isDirty_openGraph = openGraph.onGraphCleared(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -848,6 +942,10 @@ public class SessionProcessor
     effectOutcomes.onGraphClosed(typedEvent);
     auditInvocation(openGraph, "openGraph", "onGraphClosed", typedEvent);
     isDirty_openGraph = openGraph.onGraphClosed(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -859,6 +957,10 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onGraphOpened(typedEvent);
     auditInvocation(openGraph, "openGraph", "onGraphOpened", typedEvent);
     isDirty_openGraph = openGraph.onGraphOpened(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -874,18 +976,7 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
     isDirty_openLog = openLog.onLogAppended(typedEvent);
-    if (guardCheck_pairing()) {
-      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
-      isDirty_pairing = pairing.recomputeOnStateChange();
-    }
-    if (guardCheck_coverageClaim()) {
-      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
-      coverageClaim.recomputeOnStateChange();
-    }
-    if (guardCheck_pairingQualifier()) {
-      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
-      pairingQualifier.onPairChanged();
-    }
+    commonDispatchTail_1(typedEvent);
     afterEvent();
   }
 
@@ -900,18 +991,7 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogCleared", typedEvent);
     isDirty_openLog = openLog.onLogCleared(typedEvent);
-    if (guardCheck_pairing()) {
-      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
-      isDirty_pairing = pairing.recomputeOnStateChange();
-    }
-    if (guardCheck_coverageClaim()) {
-      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
-      coverageClaim.recomputeOnStateChange();
-    }
-    if (guardCheck_pairingQualifier()) {
-      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
-      pairingQualifier.onPairChanged();
-    }
+    commonDispatchTail_1(typedEvent);
     afterEvent();
   }
 
@@ -928,18 +1008,15 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
     isDirty_openLog = openLog.onLogClosed(typedEvent);
-    if (guardCheck_pairing()) {
-      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
-      isDirty_pairing = pairing.recomputeOnStateChange();
-    }
-    if (guardCheck_coverageClaim()) {
-      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
-      coverageClaim.recomputeOnStateChange();
-    }
-    if (guardCheck_pairingQualifier()) {
-      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
-      pairingQualifier.onPairChanged();
-    }
+    commonDispatchTail_1(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(LogContentObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(logEvidence, "logEvidence", "onLogContentObserved", typedEvent);
+    logEvidence.onLogContentObserved(typedEvent);
     afterEvent();
   }
 
@@ -948,18 +1025,7 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(openLog, "openLog", "onLogIdentityObserved", typedEvent);
     isDirty_openLog = openLog.onLogIdentityObserved(typedEvent);
-    if (guardCheck_pairing()) {
-      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
-      isDirty_pairing = pairing.recomputeOnStateChange();
-    }
-    if (guardCheck_coverageClaim()) {
-      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
-      coverageClaim.recomputeOnStateChange();
-    }
-    if (guardCheck_pairingQualifier()) {
-      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
-      pairingQualifier.onPairChanged();
-    }
+    commonDispatchTail_1(typedEvent);
     afterEvent();
   }
 
@@ -972,6 +1038,10 @@ public class SessionProcessor
     effectOutcomes.onLogOpenFailed(typedEvent);
     auditInvocation(logOpening, "logOpening", "onLogOpenFailed", typedEvent);
     logOpening.onLogOpenFailed(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -989,6 +1059,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogOpened", typedEvent);
     isDirty_openLog = openLog.onLogOpened(typedEvent);
+    if (guardCheck_logEvidence()) {
+      auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
+      logEvidence.onOpenLogChanged();
+    }
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
       isDirty_pairing = pairing.recomputeOnStateChange();
@@ -1025,6 +1099,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logEvidence()) {
+      auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
+      logEvidence.onOpenLogChanged();
+    }
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
       isDirty_pairing = pairing.recomputeOnStateChange();
@@ -1050,6 +1128,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logEvidence()) {
+      auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
+      logEvidence.onOpenLogChanged();
     }
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
@@ -1083,7 +1165,19 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onPending(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onPending", typedEvent);
     effectOutcomes.onPending(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(ProducerFindingsObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(logEvidence, "logEvidence", "onProducerFindingsObserved", typedEvent);
+    logEvidence.onProducerFindingsObserved(typedEvent);
     afterEvent();
   }
 
@@ -1098,6 +1192,10 @@ public class SessionProcessor
     designSession.project(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onProfileApplied", typedEvent);
     effectOutcomes.onProfileApplied(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -1112,6 +1210,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logEvidence()) {
+      auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
+      logEvidence.onOpenLogChanged();
     }
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
@@ -1130,6 +1232,14 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(ScanScheduled typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(logEvidence, "logEvidence", "onScanScheduled", typedEvent);
+    logEvidence.onScanScheduled(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(SettingsRestored typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -1141,6 +1251,10 @@ public class SessionProcessor
     designSession.restored(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onSettingsRestored", typedEvent);
     effectOutcomes.onSettingsRestored(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
     afterEvent();
   }
@@ -1152,7 +1266,19 @@ public class SessionProcessor
     isDirty_operationGate = operationGate.onStatusShown(typedEvent);
     auditInvocation(effectOutcomes, "effectOutcomes", "onStatusShown", typedEvent);
     effectOutcomes.onStatusShown(typedEvent);
+    if (guardCheck_auditInstallation()) {
+      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
+      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
     commonDispatchTail_1(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(TimeOrderObserved typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(logEvidence, "logEvidence", "onTimeOrderObserved", typedEvent);
+    logEvidence.onTimeOrderObserved(typedEvent);
     afterEvent();
   }
 
@@ -1208,9 +1334,9 @@ public class SessionProcessor
   //MERGED DISPATCH HELPERS - START
 
   private void commonDispatchTail_1(Object typedEvent) {
-    if (guardCheck_auditInstallation()) {
-      auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
-      isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    if (guardCheck_logEvidence()) {
+      auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
+      logEvidence.onOpenLogChanged();
     }
     if (guardCheck_pairing()) {
       auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
@@ -1294,6 +1420,11 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
       effectOutcomes.onEffectFailed(typedEvent);
+    } else if (event instanceof FollowToggled) {
+      FollowToggled typedEvent = (FollowToggled) event;
+      auditEvent(typedEvent);
+      auditInvocation(openLog, "openLog", "onFollowToggled", typedEvent);
+      isDirty_openLog = openLog.onFollowToggled(typedEvent);
     } else if (event instanceof GraphCleared) {
       GraphCleared typedEvent = (GraphCleared) event;
       auditEvent(typedEvent);
@@ -1340,6 +1471,11 @@ public class SessionProcessor
       effectOutcomes.onLogClosed(typedEvent);
       auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
       isDirty_openLog = openLog.onLogClosed(typedEvent);
+    } else if (event instanceof LogContentObserved) {
+      LogContentObserved typedEvent = (LogContentObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(logEvidence, "logEvidence", "onLogContentObserved", typedEvent);
+      logEvidence.onLogContentObserved(typedEvent);
     } else if (event instanceof LogIdentityObserved) {
       LogIdentityObserved typedEvent = (LogIdentityObserved) event;
       auditEvent(typedEvent);
@@ -1398,6 +1534,11 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onPending(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onPending", typedEvent);
       effectOutcomes.onPending(typedEvent);
+    } else if (event instanceof ProducerFindingsObserved) {
+      ProducerFindingsObserved typedEvent = (ProducerFindingsObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(logEvidence, "logEvidence", "onProducerFindingsObserved", typedEvent);
+      logEvidence.onProducerFindingsObserved(typedEvent);
     } else if (event instanceof ProfileApplied) {
       ProfileApplied typedEvent = (ProfileApplied) event;
       auditEvent(typedEvent);
@@ -1418,6 +1559,11 @@ public class SessionProcessor
       effectOutcomes.onProfileLoaded(typedEvent);
       auditInvocation(sessionBoundary, "sessionBoundary", "onProfileLoaded", typedEvent);
       sessionBoundary.onProfileLoaded(typedEvent);
+    } else if (event instanceof ScanScheduled) {
+      ScanScheduled typedEvent = (ScanScheduled) event;
+      auditEvent(typedEvent);
+      auditInvocation(logEvidence, "logEvidence", "onScanScheduled", typedEvent);
+      logEvidence.onScanScheduled(typedEvent);
     } else if (event instanceof SettingsRestored) {
       SettingsRestored typedEvent = (SettingsRestored) event;
       auditEvent(typedEvent);
@@ -1436,6 +1582,11 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onStatusShown(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onStatusShown", typedEvent);
       effectOutcomes.onStatusShown(typedEvent);
+    } else if (event instanceof TimeOrderObserved) {
+      TimeOrderObserved typedEvent = (TimeOrderObserved) event;
+      auditEvent(typedEvent);
+      auditInvocation(logEvidence, "logEvidence", "onTimeOrderObserved", typedEvent);
+      logEvidence.onTimeOrderObserved(typedEvent);
     } else if (event instanceof ViewFilterChanged) {
       ViewFilterChanged typedEvent = (ViewFilterChanged) event;
       auditEvent(typedEvent);
@@ -1476,18 +1627,7 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
-    if (guardCheck_pairing()) {
-      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
-      isDirty_pairing = pairing.recomputeOnStateChange();
-    }
-    if (guardCheck_coverageClaim()) {
-      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
-      coverageClaim.recomputeOnStateChange();
-    }
-    if (guardCheck_pairingQualifier()) {
-      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
-      pairingQualifier.onPairChanged();
-    }
+    commonDispatchTail_1(typedEvent);
     afterEvent();
   }
   //EVENT BUFFERING - END
@@ -1519,6 +1659,7 @@ public class SessionProcessor
     auditor.nodeRegistered(effectQueue, "effectQueue");
     auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
     auditor.nodeRegistered(logArrival, "logArrival");
+    auditor.nodeRegistered(logEvidence, "logEvidence");
     auditor.nodeRegistered(logOpening, "logOpening");
     auditor.nodeRegistered(openGraph, "openGraph");
     auditor.nodeRegistered(openLog, "openLog");
@@ -1630,6 +1771,10 @@ public class SessionProcessor
     return isDirty_openGraph | isDirty_operationGate | isDirty_pairing;
   }
 
+  private boolean guardCheck_logEvidence() {
+    return isDirty_openLog;
+  }
+
   private boolean guardCheck_logOpening() {
     return isDirty_operationGate;
   }
@@ -1696,6 +1841,8 @@ public class SessionProcessor
         return (T) ignoredParameters;
       case "logArrival":
         return (T) logArrival;
+      case "logEvidence":
+        return (T) logEvidence;
       case "logOpening":
         return (T) logOpening;
       case "openGraph":
@@ -1764,6 +1911,9 @@ public class SessionProcessor
     }
     if (node == logArrival) {
       return "logArrival";
+    }
+    if (node == logEvidence) {
+      return "logEvidence";
     }
     if (node == logOpening) {
       return "logOpening";

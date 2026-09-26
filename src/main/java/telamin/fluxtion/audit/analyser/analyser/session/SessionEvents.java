@@ -123,9 +123,16 @@ public final class SessionEvents {
      *                      pairing; {@code sampled} of {@code total} records were scanned
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
-                            int sampled, int total, String mostVerboseLevel) implements Result {
+                            int sampled, int total, String mostVerboseLevel, String provenanceSource) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** Before M44.5: no provenance source. It is "declared by the opener" when a provenance was given. */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel,
+                    provenance == null ? null : "declared by the opener");
         }
     }
     /** The load did not land. The previously open log, if any, is still the open one. */
@@ -248,5 +255,37 @@ public final class SessionEvents {
      * survives it; this fact is what lets the reopened log say WHY it was reopened.
      */
     public record LogIdentityObserved(long generation, String verdict, String reason) {
+    }
+
+    // ---------------------------------------------------------------- M44.5: the log's own derived state
+
+    /**
+     * M44.5: the adapter has SCHEDULED a {@code ScanLogEvidenceEffect}; the findings and the time order arrive later as
+     * facts. Deliberately not {@link Pending}: a scan is not an operation, so the gate must not see it in flight, and
+     * the published pairing must not be withdrawn while a scan runs.
+     */
+    public record ScanScheduled(long opId, long generation) implements Result {
+    }
+
+    /**
+     * M44.5: what a Follow poll found about the open log's CONTENT — records, bytes, the frame still being written, and
+     * whether the read failed. {@code LogEvidence} compares it with the last one and asks for a rescan only when it
+     * moved; the frame no longer decides when findings are stale.
+     */
+    public record LogContentObserved(long generation, int total, long bytes, int pendingChars, boolean readFailed) {
+    }
+
+    /** M44.5: the log's producer findings, computed by the adapter for the generation it names. */
+    public record ProducerFindingsObserved(long generation,
+                                           telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics findings) {
+    }
+
+    /** M44.5: the log's time-order report, computed by the adapter for the generation it names. */
+    public record TimeOrderObserved(long generation,
+                                    telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport report) {
+    }
+
+    /** M44.5: Follow was switched on or off for the open log — state the status line is composed from. */
+    public record FollowToggled(long generation, boolean on) {
     }
 }
