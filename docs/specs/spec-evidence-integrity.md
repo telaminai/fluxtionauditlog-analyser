@@ -553,9 +553,9 @@ responsibilities, and no further client trial: these are contract and acceptance
 - **D-E6 / M68.5, plugin readers.** Not assessed; said so (`not assessed`).
 - **D-E7 / M68.5, pointers.** Runbook and glossary pointers name the root they tried. Environment and report
   destination pointers are not covered by that check.
-- **D-E8 / M68.2, report sections.** A chart renders off-screen at page size. A topology section for a saved focus,
-  and a series section, are not drawn in the PDF: each prints NOT RENDERED with its reason (the series case gained
-  the label in the review round; it printed its reason as plain text before). A general check that a chart does not
+- **D-E8 / M68.2, report sections.** A chart renders off-screen at page size, and so does a topology section for a
+  saved focus (set 13; `TopologyPanel.renderFocusForReport`, `TopologyReportFocusTest`, end-to-end scenario 13). A
+  focus that no longer resolves, and a series section the PDF cannot assemble, print NOT RENDERED with the reason. A general check that a chart does not
   contradict its series is not built; the no-data and no-room repairs are narrower.
 - **D-E2 / R2, the coverage table.** Obeys the session's claim (refused, qualified or full), captured with the store
   and graph it scores (`ReportCoverage`).

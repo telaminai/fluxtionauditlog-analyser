@@ -1385,14 +1385,17 @@ public final class MainFrame extends JFrame {
                                     "Trend · " + s.ref(), panel.scopeText(), panel.renderForReport(1200, 600)),
                             mk.table().rows().isEmpty() ? null : mk.table());
                 }
-                case TOPOLOGY ->
-                        // recorded deviation: no per-focus offscreen render exists yet; the PDF states
-                        // the gap instead of silently omitting the section it resolved
-                        new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                                "Focus · " + s.ref(),
-                                java.util.List.of("(the focus renders in the app's Topology tab; "
-                                        + "image export for focus sections is a recorded gap)"),
-                                null, null);
+                case TOPOLOGY -> {
+                    // the review's gap table (M68.2): the focus is drawn off-screen; one that no longer resolves says why
+                    var focus = topologyPanel.renderFocusForReport(s.ref(), 1200, 800);
+                    yield focus == null
+                            ? new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                    "Focus · " + s.ref(), java.util.List.of("the focus is not defined, or names no node "
+                                            + "in the loaded graph"), null, null)
+                            : new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(null, null,
+                                    new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                                            "Focus · " + s.ref(), focus.caption(), focus.image()), null);
+                }
                 case SERIES ->
                         new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
                                 "Series",

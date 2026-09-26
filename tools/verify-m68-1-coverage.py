@@ -320,11 +320,12 @@ def main():
                           sections=[{"kind": "topology", "focus": "m682"}], path=pdf)
             check("M68.2: the report exported", reply.get("ok") is True and os.path.exists(pdf), reply)
             text = open(pdf, "rb").read().decode("latin-1") if os.path.exists(pdf) else ""
-            check("M68.2: the page says the focus was not rendered, and why", "NOT RENDERED" in text
-                  and "recorded gap" in text,
-                  {"notRendered": "NOT RENDERED" in text, "recordedGap": "recorded gap" in text,
-                   "didNotResolve": "DID NOT RESOLVE" in text, "focusMentioned": "m682" in text,
-                   "reply": reply})
+            # Set 13 (B): the focus is now DRAWN. Until then the section said NOT RENDERED with a "recorded gap" line, and
+            # this check asserted exactly that; it now asserts the gap closed — a picture with its caption, no callout.
+            check("M68.2: the focus section is drawn, captioned, and not reported as NOT RENDERED",
+                  "NOT RENDERED" not in text and "focus 'm682'" in text and "/Subtype /Image" in text,
+                  {"notRendered": "NOT RENDERED" in text, "caption": "focus 'm682'" in text,
+                   "image": "/Subtype /Image" in text, "didNotResolve": "DID NOT RESOLVE" in text, "reply": reply})
 
             print("11. M68.4 — a combined open keeps the graph it asked for, on the FINAL state")
             # Scenario 4's note says why the half-foreign log was avoided there: opened together with this graph, the

@@ -1947,6 +1947,32 @@ public final class TopologyPanel extends JPanel {
         return new CycleViews(trace, whole, note);
     }
 
+    /** A saved focus drawn for a report, with what its caption must say. */
+    public record FocusPicture(java.awt.image.BufferedImage image, String caption) { }
+
+    /**
+     * The review's gap table, M68.2: a report's TOPOLOGY section for a saved focus, drawn off-screen like the cycle views
+     * (no zoom, pan or selection inherited from the screen), or null when the focus is not defined or declares nothing
+     * in this graph — the caller then says NOT RENDERED and why. Ids the focus names that this graph lacks are counted
+     * in the caption, never silently dropped (the same rule as {@link #recallFocus}).
+     */
+    public FocusPicture renderFocusForReport(String name, int width, int height) {
+        if (name == null || fullTopology.isEmpty()) return null;
+        telamin.fluxtion.audit.analyser.analyser.config.FocusSpec spec = namedFocuses.get().stream()
+                .filter(f -> f.name().equals(name.trim())).findFirst().orElse(null);
+        if (spec == null) return null;
+        java.util.Set<String> resolved = new java.util.LinkedHashSet<>();
+        for (String id : spec.nodeIds()) if (fullTopology.contains(id)) resolved.add(id);
+        if (resolved.isEmpty()) return null;
+        java.awt.image.BufferedImage img = paintOffscreen(fullTopology.subgraph(resolved), List.of(), List.of(), false,
+                java.util.Set.of(), width, height);
+        int missing = spec.nodeIds().size() - resolved.size();
+        String caption = "focus '" + spec.name() + "' · " + resolved.size() + " node" + (resolved.size() == 1 ? "" : "s")
+                + (missing > 0 ? " · " + missing + " named by the focus are not in this graph" : "")
+                + (spec.rationale().isBlank() ? "" : " · " + spec.rationale());
+        return new FocusPicture(img, caption);
+    }
+
     /**
      * How far a report picture may magnify to fill its frame. Bounded rather than unlimited: a two-node
      * cycle scaled until it fits looks like a diagram of something important, and the reader deserves to
