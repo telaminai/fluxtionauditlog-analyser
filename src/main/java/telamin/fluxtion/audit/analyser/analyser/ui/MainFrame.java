@@ -2403,7 +2403,7 @@ public final class MainFrame extends JFrame {
 
         @Override public String whyNotVisible(SpotlightTarget t) {
             return switch (t.family()) {
-                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> "session design is unavailable, or the anchor is missing, ambiguous or outside the document";
+                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> designNotVisible(t);
                 case RECORDS_ROW -> store == null ? "no log is open, so there is no record " + t.argument()
                         : "record " + t.argument() + " is not in the table — it is out of range, or still filtered out";
                 case DETAIL_NODE -> "'" + t.argument() + "' has no block in the record detail — select a record in "
@@ -2447,6 +2447,28 @@ public final class MainFrame extends JFrame {
             };
         }
     };
+
+    /**
+     * Why a design target is not lit, said as the one reason that applies. It used to be one sentence for all of
+     * them ("unavailable, or missing, ambiguous or outside"), which a model read as "the design is not open" when
+     * the design was open and the XML was simply too narrow to show the line.
+     */
+    private String designNotVisible(SpotlightTarget t) {
+        var doc = session().processor().designSession.document();
+        if (doc == null) return "no session design is open — open {design: <path>} first";
+        if (t.family() == SpotlightTarget.Family.DESIGN_BEAN) {
+            int n = doc.beans(t.argument()).size();
+            if (n == 0) return "no bean '" + t.argument() + "' in " + doc.file() + " (context.design.beans lists them)";
+            if (n > 1) return "bean id '" + t.argument() + "' is declared " + n + " times in " + doc.file()
+                    + "; light it by line with source:design:line:<n>";
+        }
+        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && (t.number() < 1 || t.number() > doc.lines()))
+            return "line " + t.number() + " is outside " + doc.file() + " (1–" + doc.lines() + ")";
+        if (t.family() == SpotlightTarget.Family.DESIGN)
+            return "the design is open but its view is not on screen: the Source pane is hidden or too small";
+        return "the design is open but that line is not on screen: the Source pane is too small to show it. "
+                + "Widen the window or the side panel, or light source:design";
+    }
 
     private Integer designTargetLine(SpotlightTarget target) {
         var doc = session().processor().designSession.document();
@@ -6134,8 +6156,15 @@ public final class MainFrame extends JFrame {
             }
             Path file = Path.of(path);
             if (!Files.isReadable(file)) {
+                // A relative path resolves against this process's working directory, never the project: say so,
+                // or a model reports that the (committed) GraphML "does not exist".
+                String why = file.isAbsolute() ? "" : "; a relative path resolves against the analyser's working "
+                        + "directory (" + Path.of("").toAbsolutePath() + "), not a project"
+                        + (project.hasProject() ? " — the open project is "
+                                + telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : "")
+                        + ". Pass an absolute path";
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                        "cannot read graphml '" + path + "'");
+                        "cannot read graphml '" + path + "'" + why);
             }
             topologyPanel.load(file);
             if (!topologyPanel.hasTopology()) {

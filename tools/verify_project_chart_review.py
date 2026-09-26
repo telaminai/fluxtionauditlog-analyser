@@ -416,6 +416,31 @@ CASES += [
      'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
 ]
 
+# 2026-09-26 fresh-look run: at the default window the design text had no room, and two neighbouring spotlights
+# each drew an edge through the other's line
+DESIGN_SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DesignSourcePanel.java'
+SPOTLIGHT_GEOMETRY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SpotlightGeometry.java'
+DESIGN_FILES = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/design/DesignFiles.java'
+CASES += [
+    # the wrapped status must not take the design text's height
+    ('design-status-capped', DESIGN_SOURCE_PANEL, 'top.add(statusScroll);', 'top.add(status);',
+     'DesignSpotlightFrameTest#atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit'),
+    # the bean list yields width to the XML in a narrow pane
+    ('design-bean-list-fits', DESIGN_SOURCE_PANEL,
+     '            @Override public void doLayout() { fitBeanList(this); super.doLayout(); }\n',
+     '            @Override public void doLayout() { super.doLayout(); }\n',
+     'DesignSpotlightFrameTest#atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit'),
+    # neighbouring spotlights share one separator instead of crossing each other's line
+    ('spotlight-neighbours-separate', SPOTLIGHT_GEOMETRY,
+     '                if (cu.y + cu.height > mid) cu.height = mid - cu.y;\n', '',
+     'SpotlightGeometryTest#neighbouringLinesMeetAtOneSeparatorAndNeitherOutlineCrossesTheOtherLine'),
+    # a refused design inside an unopened project names open {project}
+    ('design-refusal-names-project', DESIGN_FILES,
+     'throw new IOException("file outside authorised roots: " + requested + projectHint(found)',
+     'throw new IOException("file outside authorised roots: " + requested',
+     'DesignFilesRefusalHintTest#aDesignInsideAProjectThatIsNotOpenNamesOpenProjectBeforeSourceRoot'),
+]
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')

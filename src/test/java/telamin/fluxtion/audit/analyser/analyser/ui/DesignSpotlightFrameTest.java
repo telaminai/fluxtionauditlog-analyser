@@ -98,6 +98,58 @@ class DesignSpotlightFrameTest {
         } catch (Exception error) { return error.toString(); }
     }
 
+    /**
+     * 2026-09-26 fresh-look run: at the default window size the design panel is ~212 px wide and the fixed 210 px
+     * bean list left the XML ~2 px, so every bean and line target was refused as "session design is unavailable"
+     * while context listed the bean. Measured here at the window size a first start gets.
+     */
+    @Test void atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path xml=Files.writeString(tmp.resolve("application-context.xml"),"<beans>\n"
+                +"  <bean id=\"rootNode\" class=\"com.example.RootNode\"/>\n"
+                +"  <bean id=\"riskCheck\" class=\"com.example.RiskCheck\"/>\n"
+                +"  <bean id=\"csvRejections\" class=\"com.example.CsvRejections\"/>\n"
+                +"  <bean id=\"perfMon\" class=\"com.example.PerfMon\"/>\n</beans>\n");
+        var defaults=new AppConfig();
+        try(var f=new Frame(tmp)) {
+            onEdt(() -> {
+                ((AppConfig)field(f.frame,"config")).sourceRoots.add(tmp.toString());
+                f.frame.setSize(defaults.windowW,defaults.windowH);f.frame.setVisible(true);f.frame.validate();
+            });
+            assertTrue(f.ex.render("open",Map.of("design",xml.toString())).ok());
+            onEdt(() -> {
+                var result=f.ex.render("spotlight",Map.of("target","source:design:bean:csvRejections"));
+                assertTrue(result.ok(),"a declared bean lights at the default window size: "+result.error()+" | "+designGeometry(f,4));
+            });
+            onEdt(() -> {
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                int panel=design.getWidth(), xmlWidth=design.text.getVisibleRect().width;
+                assertTrue(xmlWidth>=panel*0.6,"the XML keeps most of the design panel: xml "+xmlWidth+" of "+panel);
+                checkBounds(f);
+                var missing=f.ex.render("spotlight",Map.of("target","source:design:bean:nope"));
+                assertFalse(missing.ok());
+                assertTrue(String.valueOf(missing.error()).contains("no bean 'nope' in "),"a missing bean says so: "+missing.error());
+            });
+            // Owner report: two spotlights on neighbouring lines each drew an edge through the other's line of code.
+            onEdt(() -> {
+                var both=f.ex.render("spotlight",Map.of("targets",List.of("source:design:bean:riskCheck","source:design:bean:csvRejections")));
+                assertTrue(both.ok(),"neighbouring beans light together: "+both.error());
+            });
+            onEdt(() -> {
+                var overlay=(SpotlightOverlay)field(f.frame,"spotlight");
+                var design=(DesignSourcePanel)((SourcePanel)field(f.frame,"sourcePanel")).designComponent();
+                java.awt.Rectangle up=overlay.cutOutOf("source:design:bean:riskCheck"), low=overlay.cutOutOf("source:design:bean:csvRejections");
+                var line3=SwingUtilities.convertRectangle(design,design.lineBounds(3).orElseThrow(),overlay);
+                var line4=SwingUtilities.convertRectangle(design,design.lineBounds(4).orElseThrow(),overlay);
+                assertEquals(up.y+up.height,low.y,"one separator between neighbouring lines: "+up+" / "+low);
+                assertFalse(low.y>line3.y && low.y<line3.y+line3.height,"the lower outline's top stays off line 3: "+low+" / "+line3);
+                int bottom=up.y+up.height;
+                assertFalse(bottom>line4.y && bottom<line4.y+line4.height,"the upper outline's bottom stays off line 4: "+up+" / "+line4);
+                checkBounds(f);
+            });
+        }
+    }
+
     private static void checkEcho(Frame f, Map<String,Object> echo) {
         var overlay=(SpotlightOverlay)field(f.frame,"spotlight");
         for(Object item:(List<?>)echo.get("lit")) {
