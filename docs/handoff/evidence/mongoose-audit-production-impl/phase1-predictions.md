@@ -421,3 +421,39 @@ P2 shown red through the matrix's offenders assertion once R8-5 is fixed; (4) ev
    turn the matrix red through its **offenders** assertion (not reach alone).
 5. **P13.5 — suite.** Headless grows by the new dedicated tests (R8-1/R8-2, R8-3, R8-4: three) from 2104 to
    **2107**; skips stay 98. `MainFrame` untouched. After `mvn -q clean package`, `git status` is clean.
+
+## P14 · Ninth re-review — recorded before these fixes
+
+Ninth re-review `752015b7` (branch `review/mongoose-ninth-rereview-2026-09-26`) against `8a35a988`: three required
+(R9-1, R9-2, R9-3), one optional (O9-1, taken). No owner decision is reopened: an annotation stops at the second
+stream-end marker after its change — the second marker **occurrence**, not the second distinct record position.
+
+**Reproductions predicted before any change** (the reviewer's `R9Extra`, `R8Review`, `R9Matrix`, run on `8a35a988`):
+the two adjacent-marker cases annotate record 2 (boundaries `[1, 1]` and `[1, 1, 1]`); the null-record `eventTime`
+header case reads "Nothing later …" with no bound at record 3; the mixed view `[record 1, record 2]` says "Every
+record in view is in a LATER run". `R8Review` and `R9Matrix` reproduce their recorded outputs.
+
+**Wording and behaviour, fixed before coding.**
+- R9-1: markers are taken by occurrence from `runBoundaries()`, duplicates kept; with two or three adjacent markers
+  the first record after them gets **no annotation** from the change.
+- R9-2: the raw header is read field by field at the record mapping's own indentation, accepting any field the
+  format permits (eventTime, logTime, groupingId, event, thread, endTime, and unknown fields, which §2 says are
+  ignored, never rejected), and stops at the first payload field — `eventToString` or `nodeLogs`. Nested lines are
+  never read. The `eventTime` case then reads "It holds at least until record 3 (logTime 3), a record this reader
+  could not read, whose text names the control event …", bounded before record 3.
+- R9-3: the wholly-after lead becomes "Every record in view that this annotation concerns is in a LATER run — …".
+- O9-1: the matrix compares each rendered endpoint ("and before record N" / "…the stream-end marker preceding
+  record K", or none) with one derived from the fixture's layout and from whether the closer applies by the
+  runtime's rule, computed from the fixture's parameters rather than read from the note.
+
+1. **P14.1 — breakage.** Three existing tests pin the universal lead and break, each rewritten:
+   `aScopeWhollyAfterARunBoundaryGetsNoDefiniteClaim`, `theLaterRunIsBoundedAndTheAnnotationStopsAtTheSecondMarker`
+   (its Q assertion) and the matrix (a reach literal and the named-marker rule). No other test breaks.
+2. **P14.2 — the matrix.** Counts unchanged: 2880 logs, 2520 annotated, 360 null. The exact-endpoint rule is green on
+   the fixed code.
+3. **P14.3 — targeted controls** (strict protocol; failing assertion recorded): restoring the distinct-position
+   lookup fails the new R9-1 test at "R9-1"; treating `eventTime` as payload fails the R9-2 test at "R9-2"; restoring
+   the universal lead fails the R9-3 test at "R9-3"; the reviewer's endpoint mutation (`m2 + 1` → `m2 + 2`) fails the
+   matrix through its **offenders** assertion. `witness13.py` still holds all four of its controls.
+4. **P14.4 — suite.** Three new tests: 2107 → **2110**, skips 98. `MainFrame` untouched; `git status` clean after
+   `mvn -q clean package`.
