@@ -146,6 +146,24 @@ class NamedGraphAndMenuSpotlightFrameTest {
         for (int i = 0; i < 3; i++) SwingUtilities.invokeAndWait(() -> { });
     }
 
+    /**
+     * Wait, on the EDT and against a deadline, for the state a menu hand-over assertion is about: the menu that was
+     * open has closed (so its close listener has run) and the newly lit menu is showing. This replaces a fixed 200 ms
+     * sleep that guessed at that moment. It never fails by itself — if the state does not arrive, the assertions that
+     * follow say what is wrong, so a menu that closes on its own still fails the test rather than being waited out.
+     */
+    private static void awaitPopups(JMenu closed, JMenu open) throws Exception {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+        boolean[] settled = {false};
+        while (System.nanoTime() < deadline) {
+            SwingUtilities.invokeAndWait(() -> settled[0] =
+                    !closed.getPopupMenu().isShowing() && open.getPopupMenu().isShowing());
+            if (settled[0]) break;
+            Thread.sleep(20);
+        }
+        pump();
+    }
+
     @Test
     void hiddenProjectRowIsRevealedBeforeSpotlighting(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
@@ -396,9 +414,7 @@ class NamedGraphAndMenuSpotlightFrameTest {
                 Map<String, Object> r = attempt(f, "spotlight", Map.of("target", "menu:AI:Posture"));
                 assertEquals(true, r.get("ok"), r::toString);
             });
-            pump();
-            Thread.sleep(200);
-            pump();
+            awaitPopups(file, aiMenu);
             onEdt(() -> {
                 assertEquals(List.of("menu:AI:Posture"), lit(f).stream().map(m -> m.get("target")).toList(),
                         "what the echo said is what is lit, after the Audit log menu's close listener has run");
@@ -421,9 +437,7 @@ class NamedGraphAndMenuSpotlightFrameTest {
                 assertEquals(true, r.get("ok"), r::toString);
                 assertEquals(List.of("menu:Audit log:Close log"), find(r, "wentOut"), "the Audit log item went out when its menu closed, and the echo says so");
             });
-            pump();
-            Thread.sleep(200);
-            pump();
+            awaitPopups(file, aiMenu);
             onEdt(() -> {
                 assertEquals(List.of("status", "menu:AI:Posture"), lit(f).stream().map(m -> m.get("target")).toList(),
                         "the non-menu spotlight survived the Audit log menu closing; the AI item is lit");
