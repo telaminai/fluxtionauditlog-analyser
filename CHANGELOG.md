@@ -34,6 +34,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Turning Follow on no longer hides the log's warning.** The status line Follow starts with dropped it, so an
   empty file being followed read "watching for new records…" and nothing else until its first record arrived.
 
+- **Charts and the record detail pane now say when the file behind the log has changed.** After a log was rewritten
+  in place, the table warned that its rows were the log as it was indexed, while the charts and the detail pane went
+  on showing values with nothing to say they might no longer match the file. Both now carry the same warning, with
+  the same reason, above every open chart — including one opened afterwards — and above the record. Reopening the log
+  clears all three.
+
 ## [1.22.1] - 2026-09-26
 
 - **The Design view shows its XML at the default window size.** The file path and note at the top of the

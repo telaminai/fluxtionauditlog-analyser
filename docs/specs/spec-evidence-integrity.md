@@ -281,7 +281,14 @@ request reads records or the window regains focus, as before. **Still true, stat
 suspended. The table's cells come from the index retained at load, not from fresh reads of the file (re-review O-a
 corrected the earlier sentence here), so after an in-place rewrite of a mapped log the table can show the old values
 beside a detail pane and charts that read the file as it now is; the detail pane and charts carry no banner of their
-own. Whether marking the table is enough is Q4's partial-delivery decision.
+own. Whether marking the table is enough is Q4's partial-delivery decision. **Q4 answered: the charts are marked
+before G14 runs. M68.7 (review accepted at `bc16193c`, merged 2026-09-26 as `e02418a8`, not yet released):** the charts and the detail pane carry the same verdict and
+reason as the table, from the same snapshot and by the table's rule (`GraphTabs.identityBannerText`,
+`DetailPanel.identityBannerText`; `IdentityMarkFrameTest` on a shown frame and a mapped log, triggered through the real
+dispatcher, asserting the banners are on screen). **Open for the owner before G14:** how G14's "chart or report"
+alternative is assessed — an in-place rewrite refuses report requests; an atomic replacement allows an export whose
+reply carries `identityNote` and whose PDF carries the existing `log changed-on-disk` metadata note but no M68.7
+banner; that note is a metadata observation, not the session's verdict.
 ## D-E7 · A pointer that cannot resolve says why
 
 The root a project resolves against is recorded rather than inferred, and a pointer that fails reports the root it
@@ -555,7 +562,8 @@ responsibilities, and no further client trial: these are contract and acceptance
 ## As shipped after the independent review (2026-09-26) — the remaining gaps, precisely
 
 - **D-E6 / M68.5, the table.** Marked with the verdict, not suspended; the detail pane and charts are not marked (see
-  D-E6). **Q4 (owner, 2026-09-26): the charts are marked before G14 runs — M68.7 — and the detail pane with them.** Request verbs are suspended or labelled.
+  D-E6). **Q4 (owner, 2026-09-26): the charts are marked before G14 runs — M68.7 — and the detail pane with them.** M68.7 merged
+  2026-09-26 (`e02418a8`), not yet released; a chart exported into a report or PDF, or as a standalone image, is not marked. Request verbs are suspended or labelled.
 - **D-E6 / M68.5, plugin readers.** Not assessed; said so (`not assessed`).
 - **D-E7 / M68.5, pointers.** Runbook and glossary pointers name the root they tried, and since set 13 so do an
   environment's `logDir` and a directory report destination (`Runbooks.directoryResolution`,

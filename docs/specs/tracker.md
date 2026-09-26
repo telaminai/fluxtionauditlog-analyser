@@ -671,7 +671,8 @@ defects rather than the policy work.
 3. **The jars**, built once for both BETA-B4 and M67.1.
 4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
 5. **G14**, the acceptance run from a real download, once the rest is in — **and after M68.7 marks the charts**
-   (owner, Q4, 2026-09-26): G14's pass condition lands on the chart surface.
+   (owner, Q4, 2026-09-26): G14's pass condition lands on the chart surface. **Also before G14: the owner settles how
+   its "chart or report" alternative is assessed** (M68.7's entry lists the four distinctions).
 
 **One decision is the owner's and must be settled before the work starts, not invented during it: what does a newly
 generated node log?** Too much costs allocation and dispatch time in a runtime that sells zero allocation, and fills
@@ -846,7 +847,7 @@ verdict, which is owned jointly.
   affected-name count being small** (Q2 closed the inflow). Count first; if more than a handful, or no count can be
   established, Q5 goes back to the owner with the escape as the alternative. The repair asks before renaming and keeps
   the definition; the duplicate-name repair from PR #13 is the pattern to reuse. ☐ not started.
-- [M68.7] ☐ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
+- [M68.7] ☑ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
   by the owner 2026-09-26: M68 ships as an explicit partial delivery** (D-E9's producer half makes a whole one
   impossible), with its gaps stated, **but the charts are marked before G14 runs, because G14's pass condition lands on
   that surface.** After an in-place rewrite the table shows its banner (UNVERIFIED / REPLACEMENT and that its rows are
@@ -854,6 +855,35 @@ verdict, which is owned jointly.
   verdict, from the same session snapshot, on the chart area and the detail pane. Acceptance: after an in-place rewrite
   of a mapped log, every open chart and the detail pane state the verdict; a control that removes the chart mark fails
   a named assertion. The detail pane's mark does not gate G14.
+  **Status, three separate facts.** *Review:* accepted at `bc16193c` (focused re-review,
+  `review/m68-7-identity-mark-2026-09-26`, after the first review `34f4d800` and its R1 fix). *Implementation:*
+  **merged to main 2026-09-26 as `e02418a8`** (PR #39, approved head `97fa0b46`). *Release:* **not yet released** —
+  no published analyser carries M68.7 until the next release, and G14 tests a published artefact, so the chart mark
+  reaches G14 only then. Built 2026-09-26 on `feat/m68-7-identity-mark`. One banner on `GraphTabs` above
+  every chart tab (a chart opened after the verdict is under it) and one on `DetailPanel`, both set in
+  `onSessionSnapshot` beside the table's; WHEN is the table's rule (`LogTablePanel.identityBannerText`), so the three
+  cannot disagree. Acceptance run on a real display: `IdentityMarkFrameTest` — a SHOWN frame, a memory-mapped log, a
+  same-length in-place rewrite, then a real record-reading request through `ActionDispatcher`, which is refused —
+  the session reports UNVERIFIED; all three surfaces carry its reason; the chart and detail banners are **on screen**
+  (showing, inside their surface, with visible bounds there); a later chart is marked on screen; a reopen clears all
+  three. **Review (34f4d800) R1, fixed:** the first test never showed the frame and read only the label's own visible
+  flag, so a banner detached from the component tree passed (reproduced before the fix: 4/0/0/0 with the attachment
+  removed). Controls `m68-7-chart-banner-detached` and `m68-7-detail-banner-detached` now fail at the on-screen
+  assertion. O1: each note leads with a short, self-contained verdict and recovery ("Charts not verified against the
+  file on disk — reopen the log…"), the reason after it, the whole note in the tooltip; one line, so its height is
+  bounded. O2: the warning colour follows a theme change (`m68-7-chart-colour-fixed-at-construction`).
+  **Not covered:** a chart exported into a report or PDF, and a standalone chart-image export (`ChartPanel.toImage`),
+  carry no mark — neither is a live surface, and both are outside this item's acceptance; the screenshot verb captures
+  the window, so it carries the banner.
+  **Owner decision before G14 — not settled here.** G14's pass condition accepts "a chart **or report**"; the report
+  side differs by route, and the distinctions must be kept when it is decided: (1) a same-length in-place rewrite of a
+  mapped log makes the real dispatcher **refuse** report requests; (2) an atomic replacement leaves the retained
+  channel readable, so an export **succeeds** and its reply carries `identityNote`; (3) that PDF has no M68.7 banner,
+  but its existing header/footer says `log changed-on-disk`, so it is not wholly unqualified; (4) that note is a
+  metadata observation (`snapshotNote()`), not the session's verdict and reason. How G14 assesses a report — restrict
+  qualifying evidence to the marked live chart, require the session's qualification or refusal on reports, or specify
+  how the existing note and the reply are read — is the owner's call. M68.7 does not expand the report path and does
+  not by itself unblock G14.
 
 Owner questions in the spec: **Q4 and Q5 answered 2026-09-26** (partial delivery with M68.7 gating G14; a repair
 journey for saved names, count first). **Q1 and Q3 answered the same day, as recommended:** a genuine
