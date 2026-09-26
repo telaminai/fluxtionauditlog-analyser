@@ -213,6 +213,16 @@ public interface AppControl {
      */
     ActionResult context();
 
+    /**
+     * §H feedback 17: only the named sections, each equal to the same key of {@link #context()} on the same
+     * state, with any qualifier that applies and a {@code scope}. This default is the reference semantics —
+     * project the full payload; an implementation may override it to skip reading what was not asked for.
+     */
+    default ActionResult context(ContextSections.Selection selection) {
+        ActionResult full = context();
+        return full.ok() ? ActionResult.ok(full.action(), full.payloadKey(), selection.project(full.payload())) : full;
+    }
+
     /** Bring a named side tab to the front ({@code Summary|Source|Graph|Topology|Analyser assistant}). */
     boolean showTab(String name);
 

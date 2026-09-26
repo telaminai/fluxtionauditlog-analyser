@@ -30,8 +30,11 @@ class VerbSchemasTest {
                 schemas.keySet());
     }
 
-    /** Verbs that legitimately take no parameters — "what are you looking at?" needs no arguments. */
-    private static final Set<String> NO_PARAMS = Set.of("context");
+    /**
+     * Verbs that legitimately take no parameters. Empty since §H feedback 17 gave {@code context} its one
+     * optional {@code sections}; the checks below stay for the next verb that needs no arguments.
+     */
+    private static final Set<String> NO_PARAMS = Set.of();
 
     @Test
     void everySchemaIsAnObjectWithProperties() {
@@ -61,6 +64,17 @@ class VerbSchemasTest {
         assertTrue(props("goto").contains("reveal"), "AV.4 reveal param");
         assertTrue(props("filter").containsAll(Set.of("from", "to", "dimensions", "text")));
         assertTrue(props("flag").containsAll(Set.of("byteOffsets", "recordIndexes", "note")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void contextPublishesItsSectionNames_andRequiresNone() {
+        // §H feedback 17: the names an agent is offered are the names the parser accepts — one list
+        Map<String, Object> sections = (Map<String, Object>) ((Map<String, Object>) schema("context")
+                .get("properties")).get("sections");
+        Map<String, Object> items = (Map<String, Object>) sections.get("items");
+        assertEquals(ContextSections.NAMES, items.get("enum"));
+        assertNull(schema("context").get("required"), "the full context stays the default");
     }
 
     @Test

@@ -81,7 +81,55 @@ public final class ProjectProfile {
             SettingsShare.Category.ANALYSES,       // M38.4: tier 2 — the team's repeatable analyses
             SettingsShare.Category.DESTINATIONS);  // M38.5: where this project's reports go
 
+    /**
+     * Edit-loop spec §E: the profile's <b>creation nonce</b> — which profile this is, beyond where it lives.
+     * Session recovery is keyed by the profile's path, and a project deleted and recreated at that path must
+     * not inherit the old project's offer, so each captured session also records this nonce.
+     *
+     * <p>Lifecycle, chosen and pinned by tests:
+     * <ul>
+     *   <li><b>minted</b> when {@link #save} creates the file (a new project, or a fork via save-as);</li>
+     *   <li><b>kept</b> by every later save — the writer copies it from the file it overwrites;</li>
+     *   <li><b>adopted</b> by a profile that has none (written before this key existed, or shipped in a
+     *       bundle): the first save that changes the file anyway adds one. A no-op open still writes nothing
+     *       (M35.11), so such a profile can stay without a nonce, and its sessions are then withheld as
+     *       captured by an unknown profile rather than guessed;</li>
+     *   <li><b>never shared</b>: a share export carries no nonce and an import ignores one, so importing a
+     *       colleague's settings does not change which profile this is;</li>
+     *   <li><b>copied with the file</b>: a byte copy, a git clone or an archive of a profile that already has
+     *       a nonce is the same profile. At another path it is a different recovery key anyway; placed at the
+     *       same path it is offered that path's session, still subject to the input-byte checks.</li>
+     * </ul>
+     * It is a random value with no filesystem dependence, so the same rules hold on every OS.
+     */
+    public static final String NONCE_KEY = "profileNonce";
+
     private ProjectProfile() {
+    }
+
+    /** The creation nonce recorded in {@code file}, or empty — no file, unreadable, no key, or not a nonce. */
+    public static Optional<String> nonce(Path file) {
+        if (file == null || !Files.isRegularFile(file)) return Optional.empty();
+        try {
+            return Optional.ofNullable(nonceIn(Files.readString(file)));
+        } catch (IOException | RuntimeException e) {
+            return Optional.empty();
+        }
+    }
+
+    /** The valid creation nonce in profile text, or null. */
+    static String nonceIn(String text) {
+        java.util.Properties properties = new java.util.Properties();
+        try (var reader = new java.io.StringReader(text == null ? "" : text)) {
+            properties.load(reader);
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+        return validNonce(properties.getProperty(NONCE_KEY));
+    }
+
+    private static String validNonce(String value) {
+        return value != null && value.matches("[A-Za-z0-9-]{8,64}") ? value : null;
     }
 
     /** The canonical profile path for a project directory. */
@@ -263,8 +311,15 @@ public final class ProjectProfile {
         c.hiddenColumnsSet = false;
     }
 
-    /** What happened when a profile was loaded — never an exception, so startup cannot fail on it. */
-    public record LoadResult(boolean loaded, String message) { }
+    /**
+     * What happened when a profile was loaded — never an exception, so startup cannot fail on it.
+     * {@code nonce} is the loaded profile's creation nonce ({@link #NONCE_KEY}), or null when it has none.
+     */
+    public record LoadResult(boolean loaded, String message, String nonce) {
+        public LoadResult(boolean loaded, String message) {
+            this(loaded, message, null);
+        }
+    }
 
     /**
      * Load {@code file} over {@code target}'s project-scoped categories, replacing them.
@@ -322,7 +377,7 @@ public final class ProjectProfile {
             if (declared.getProperty("skills.source") != null) {
                 warn += "  ·  ⚠ skills.source REFUSED — build/release input, never a project setting";
             }
-            return new LoadResult(true, "project loaded: " + file + warn);
+            return new LoadResult(true, "project loaded: " + file + warn, validNonce(declared.getProperty(NONCE_KEY)));
         } catch (RuntimeException | IOException e) {
             return new LoadResult(false, "could not load " + file + ": " + e.getMessage());
         }
@@ -335,6 +390,11 @@ public final class ProjectProfile {
      * back yields the same bytes.
      */
     public static String write(AppConfig c, SettingsShare share, Path file) {
+        return write(c, share, file, false);
+    }
+
+    /** {@code adopt}: give a profile that has no creation nonce one now (see {@link #NONCE_KEY}). */
+    private static String write(AppConfig c, SettingsShare share, Path file, boolean adopt) {
         // M38.7: carry over what this version does not understand — the file may have been written by a newer one
         java.util.Properties previous = null;
         if (file != null && Files.isRegularFile(file)) {
@@ -348,7 +408,12 @@ public final class ProjectProfile {
                 previous = null;            // unreadable: nothing to preserve, and load() will say so on its own path
             }
         }
-        return share.export(c, PROJECT_SCOPED, baseDirFor(file), previous);
+        // §E: the creation nonce is kept from the file being overwritten, minted when the file is created
+        String nonce = previous == null ? null : validNonce(previous.getProperty(NONCE_KEY));
+        if (nonce == null && file != null && (adopt || !Files.exists(file))) {
+            nonce = java.util.UUID.randomUUID().toString();
+        }
+        return share.export(c, PROJECT_SCOPED, baseDirFor(file), previous, nonce);
     }
 
     /**
@@ -404,6 +469,8 @@ public final class ProjectProfile {
             } catch (IOException ignored) {
                 // unreadable: fall through and write — the write will report its own failure
             }
+            // a real change to a profile with no creation nonce: adopt one now, never on a no-op open
+            if (nonceIn(text) == null) text = write(c, share, file, true);
         }
         if (file.getParent() != null) {
             Files.createDirectories(file.getParent());

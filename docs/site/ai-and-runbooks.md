@@ -45,6 +45,9 @@ through `analyser_context`. With a project open it carries:
 "analyses":   [{"name": "spread breach", "rationale": "…", "parameters": [{"name": "log"}], "steps": ["open", "filter", "graph"]}]
 ```
 
+An agent that only needs these can ask for `context {sections: ["project"]}`: the project section carries
+all of the portable context, exactly as the full payload does, and skips the reads behind the rest.
+
 `exists: false` is a fact, not a failure: the profile points at a file this checkout does not have. An
 agent should say so rather than guess at the contents. The Project panel shows the same rows to the
 person — a warning where the file is missing — so both parties are looking at one set of facts.

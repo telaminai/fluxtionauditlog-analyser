@@ -135,6 +135,35 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   was open while one was on screen. The refusal to score coverage against a graph built from what ran therefore
   never came from the session. Internally, graphs and log closes now reach the session as facts at the place they
   happen, not through a menu-refresh observation that skipped any change made mid-operation (M44.4a).
+- **Spring authoring scripts are installed runnable.** A Spring template installed from the analyser left
+  `setup.sh`, `validate.sh` and `generate.sh` without the execute bit, so `./setup.sh` failed with
+  "permission denied". They are now made executable with the other bundle scripts. Archive file modes
+  are still never trusted.
+- **A recreated project is not offered the old project's session.** Recovery was keyed by the profile's
+  path, so deleting a project and recreating it in the same place showed the previous project's "Restore
+  last session" offer. A project profile now carries a random `profileNonce`, written once when the analyser
+  creates the profile and kept by every save; each saved session records the nonce of the profile that
+  captured it. A different profile at the same path gets no offer (`capturedBy: "different profile at this
+  path"`), and a session or profile without a nonce is withheld as `capturedBy: "unknown"` rather than
+  guessed. An existing profile gains a nonce the first time the analyser saves a change to it, so that
+  profile's committed file gets one new line. A withheld offer still names when it was captured and what it
+  would have opened, and the offer message now names its capture time.
+- **An assistant can ask `context` for only the part it needs.** `context {sections: ["pairing"]}` returns
+  just those sections — `log`, `project`, `pairing`, `processors`, `source`, `topology`, `view`, `charts`,
+  `menus`, `design`, `handoff` — and skips the file reads and lookups behind the rest. Each section is exactly what the full context
+  would say, and any warning that qualifies it (a load still in flight, producer faults, time disorder, a
+  partial dispatch order, and a rolled set's file list with the view's file-local offsets) comes with it; a `scope` block says what was selected and carried. An unknown or
+  empty list is refused. Calling `context` with no `sections` is unchanged.
+- **A downloaded template's source folders must lie inside its own project.** Installing a template now
+  refuses it if any of its project settings files — the main one, a named one, or a nested module's — names a
+  source folder outside the project, the whole project, a home, absolute or Windows-style path, or a workspace
+  anchor. Nothing is installed when that happens. This covers source folders only: a template's saved charts
+  can still name external CSV files, which are not checked. Projects you set up yourself can still point at
+  folders outside the project, such as a neighbouring module.
+- **After a failed log open, the Topology tab again says the graph was not compared.**
+- **A graph opened with no log says it was not compared.** The Topology tab now states that nothing is shown
+  as matched or executed, instead of saying nothing, so a design-first look at a project (design, topology
+  and Java, no log) cannot be mistaken for a checked one.
 
 ### Added
 - **An empty log now says it is empty.** A file with no records reads as exactly that, in all six shapes

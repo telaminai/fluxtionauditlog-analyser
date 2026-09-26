@@ -473,6 +473,7 @@ class PairingDuringLoadFrameTest {
                 render(ex, "open", openB);
                 echo.set(render(ex, "open", Map.of("graphml", graphB.toString())));
                 during.set(pairing(ex));
+                sectionsAgreeWithTheFullContext(ex);   // §H feedback 17: mid-load, the qualified case
             });
             Map<String, Object> g = (Map<String, Object>) ((Map<String, Object>) echo.get().get("opened")).get("graphml");
             assertEquals(ActionExecutor.PAIRING_PENDING, g.get("pairing"), "echo: " + g);
@@ -488,6 +489,7 @@ class PairingDuringLoadFrameTest {
             assertEquals(1, pairBB.get("declaredByGraph"));
             assertEquals(1, pairBB.get("loggedNodes"));
             assertTrue(String.valueOf(pairBB.get("graphPath")).endsWith("b.graphml"), pairBB.toString());
+            onEdt(() -> sectionsAgreeWithTheFullContext(ex));
         } finally {
             System.setProperty("user.home", home);
             if (frame.get() != null) SwingUtilities.invokeAndWait(() -> frame.get().dispose());
@@ -660,6 +662,29 @@ class PairingDuringLoadFrameTest {
         ActionResult r = ex.render(verb, new java.util.LinkedHashMap<>(params));
         assertTrue(r.ok(), verb + " " + params + " → " + r.toMap());
         return r.toMap();
+    }
+
+    /**
+     * §H feedback 17 on the real builder: in one EDT turn, every section's projection holds exactly the keys the
+     * full context holds for that section, equal, plus each qualifier the full context carries for it.
+     */
+    @SuppressWarnings("unchecked")
+    private static void sectionsAgreeWithTheFullContext(ActionExecutor ex) {
+        var sections = telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.SECTIONS;
+        var qualifiers = telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.QUALIFIERS;
+        Map<String, Object> full = (Map<String, Object>) render(ex, "context", Map.of()).get("context");
+        for (String name : sections.keySet()) {
+            Map<String, Object> part = (Map<String, Object>) render(ex, "context",
+                    Map.of("sections", List.of(name))).get("context");
+            for (String key : full.keySet()) {
+                boolean expected = sections.get(name).contains(key)
+                        || qualifiers.getOrDefault(key, List.of()).contains(name);
+                assertEquals(expected, part.containsKey(key), name + " → " + key);
+                if (expected) assertEquals(full.get(key), part.get(key), name + " → " + key);
+            }
+            assertEquals(full.keySet().stream().filter(part::containsKey).count() + 1, part.size(),
+                    name + " has only full-context keys and its scope: " + part.keySet());
+        }
     }
 
     @SuppressWarnings("unchecked")
