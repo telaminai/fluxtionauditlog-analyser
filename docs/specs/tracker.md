@@ -632,12 +632,24 @@ those seams, so the order below groups by what a single change set can close.
 people and two unblock nobody, and a session handed a list will naturally start with the concrete reproducible
 defects rather than the policy work.
 
-1. **G14**, the acceptance run from a real download — **moved to the front by the owner, 2026-09-26.** Its analyser
-   conditions are met: M68.7's chart mark is released in 1.23.0, and the report question is answered (option A: only a
-   marked live chart qualifies). **What remains:** the harness, PR #37 (re-review of its fixes, plus pass condition 3
-   reworded for option A), and the playground bundle's pins (mongoose 1.0.30, analyser 1.23.0) so the public download it
-   acquires carries both. A G14 run exercises the hosted changed-graph step that SG-2 still lists; it does not close SG-2
-   by itself.
+1. **G14**, the acceptance run from a real download — **moved to the front by the owner, 2026-09-26.** **STILL OPEN:
+   merging the harness is not a G14 pass.** Its analyser conditions are met: M68.7's chart mark is released in 1.23.0,
+   and the report question is answered (option A: only a marked live chart qualifies).
+   **Done since:** the harness is **merged to main as `2e44f65b` (PR #37)** — approved after two review rounds and
+   sixteen findings, with `tools/g14_runner.py`, 40 tests in CI, `docs/proposals/beta-testing/g14/PROTOCOL.md` and the
+   sealed-predictions template. Pass condition 3 is reworded for option A. The playground bundle's pins are live and
+   production-witnessed: mongoose 1.0.30, mongoose-plugins 1.0.45, Fluxtion runtime 1.0.16 / BOM 1.0.75, and a bundle
+   targeting analyser 1.23.0 (a build-time constant, not present in the ZIP), with the production preflight for
+   `15afb92` downloading the public ZIP, building, running, checking sample rows and stopping cleanly.
+   **What remains before the first run, in order:** (a) the **owner accepts or rejects three disclosed residual
+   risks** — `login.keychain-db` readable to a subject with Bash and network (alternative: a dedicated macOS account
+   with an empty keychain); group reaping cannot catch a process that leaves the group (`setsid`, a launchd hand-off
+   such as `open`), where the reap would report success; and `MAVEN_ARGS` being honoured only by Maven 3.9+, whose
+   worst case is a loud build failure rather than a silent fall back to the owner's repository. Then (b) a **supervised
+   first run**: `run_trial`'s launch path has never been executed, so treat its first execution as part of the attempt.
+   Seal a fresh `predictions.md` from the template against the then-current published download; the 2026-09-24 sealed
+   predictions are scoped to environment recovery and cannot be reused.
+   A G14 run exercises the hosted changed-graph step that SG-2 still lists; it does not close SG-2 by itself.
 2. ~~**The new-node stub policy (BETA-B2).**~~ **Done** — shipped in starter 1.0.74 (BETA-B2 ☑ above); this line was
    out of date.
 3. **SG-2, the hosted download — part done.** Acquisition, setup and validation are closed on the real hosted
