@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mutation_gate_fast as fast  # noqa: E402  (the fast engine and branch-subset selection)
+import mutation_shards as sharding  # noqa: E402
 
 CASES = [('follow-hold',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
@@ -722,7 +723,14 @@ def main():
     parser.add_argument('--changed-since', metavar='REF',
                         help='mutations mode on a BRANCH: run only the controls the diff against REF can affect, '
                              'and print every control skipped. Never a substitute for the full set.')
+    parser.add_argument('--shard-index', type=int, help='zero-based worker index; independent checkout/display required')
+    parser.add_argument('--shard-count', type=int, help='partition the FULL registry across this many workers')
     args = parser.parse_args()
+    if args.shard_index is not None or args.shard_count is not None:
+        if (args.shard_index is None or args.shard_count is None or
+                not 0 <= args.shard_index < args.shard_count or args.mode != 'mutations' or
+                args.engine != 'fast' or args.case or args.changed_since):
+            parser.error('sharding requires fast mutations, both shard arguments, a valid index, and no subset/case selection')
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     result = {'mode': args.mode, 'runs': []}
@@ -756,6 +764,14 @@ def main():
         print('display:', sum(s['tests'] for s in r['suites']), 'tests, zero failures/errors/skips', flush=True)
         return
     cases = selected_cases(args.case)  # ALL anchors before the shared baseline or any mutation
+    if args.shard_index is not None:
+        shards, loads = sharding.plan(cases, args.shard_count)
+        cases = shards[args.shard_index]
+        result['shard'] = {'index': args.shard_index, 'count': args.shard_count,
+                           'revision': sharding.revision(), 'cases': [c[0] for c in cases]}
+        save()
+        print(f'Shard {args.shard_index + 1}/{args.shard_count}: {len(cases)} controls; '
+              f'estimated control time {loads[args.shard_index]:.1f}s (setup/baseline additional)', flush=True)
     if args.mode == 'compare':
         planted = [c for c in PLANTED if Path(c[1]).read_text().count(c[2]) == 1]
         assert len(planted) == len(PLANTED), 'a planted control lost its anchor'
