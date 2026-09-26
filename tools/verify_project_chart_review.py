@@ -251,6 +251,8 @@ CASES.extend([
 # Menu discoverability after the 1.20.0 reorganisation: a miss says where the item went; context lists the menus.
 MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
+SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java'
+SOURCE_SERVICE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/source/SourceService.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -267,6 +269,56 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
     ('context-menu-changes', MAIN_FRAME, '            out.put("menuChanges", MenuHints.changes(menuMap()));', '',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    # edit-loop spec §C: Topology's embedded pane fills itself only on first use; a reopened log must recheck it
+    ('source-embedded-refresh', MAIN_FRAME,
+     '                    sourcePanel.showSelectedProcessor();\n                    topologyPanel.revalidateEmbeddedSource();',
+     '                    sourcePanel.showSelectedProcessor();',
+     'SourceFreshnessFrameTest#bothPanesShowTheFileAsItIsAfterTheLogIsReopenedAndOnTheNextNavigation'),
+    # §C: node-id navigation after a rename must use the model from the same read, not a cached one
+    ('source-service-model', SOURCE_PANEL,
+     '        if (Objects.equals(fqn, service.selectedFqn())) service.acceptModel(lookup, fqn, read.model());', '',
+     'SourcePanelFreshnessTest#afterAClassRenameNodeNavigationUsesTheProcessorAsItIsNow'),
+    # §C: a read that blocks must not block the EDT
+    ('source-reads-off-edt', SOURCE_PANEL,
+     '        return READS.submit(task);',
+     '        task.run(); return java.util.concurrent.CompletableFuture.completedFuture(null);',
+     'SourcePanelFreshnessTest#aBlockedReadLeavesTheEdtResponsiveAndASupersededAnswerIsDropped'),
+    # §C: an unchanged name is not an unchanged file
+    ('source-same-name-reread', SOURCE_PANEL,
+     '        load(pane, fqn, instead != null ? instead : () -> {',
+     '        if (!newName && !pane.source.isEmpty()) return;\n        load(pane, fqn, instead != null ? instead : () -> {',
+     'SourcePanelFreshnessTest#navigatingToTheSameClassAgainShowsItsFileAsItIsNow'),
+    # §C: an answer past its deadline (or superseded) is never installed
+    ('source-stale-ticket', SOURCE_PANEL,
+     '            deadline.stop();\n            if (pane.readTicket != ticket) { decisions.accept("discarded " + fqn + ": superseded or expired"); return; }\n            pane.reading = false;\n            if (service == null',
+     '            deadline.stop();\n            pane.reading = false;\n            if (service == null',
+     'SourcePanelFreshnessTest#aReadPastItsDeadlineSaysSoAndItsLateAnswerIsIgnored'),
+    # PR #30 review 1: two panels share the service; an older read landing last must not replace a newer model
+    ('source-model-sequence', SOURCE_SERVICE, '        if (lookup.sequence() < installedSequence) return;\n', '',
+     'SourcePanelFreshnessTest#anOlderReadFromTheOtherPaneCannotReplaceANewerModel'),
+    # PR #30 review 2: the EDT never reads the processor to learn its model
+    ('source-model-no-edt-read', SOURCE_SERVICE,
+     '        if (javax.swing.SwingUtilities.isEventDispatchThread()) return Optional.empty();\n', '',
+     'SourceServiceTest#onTheEdtAnUnreadModelIsNotReadAndSaysSo'),
+    # PR #30 review 3: a Ctrl-click's existence check runs off the EDT
+    ('source-type-click-off-edt', SOURCE_PANEL,
+     '        pendingTypeCheck = offEdt(() -> check.apply(lookup, fqn), present -> {\n',
+     '        Boolean onEdt = check.apply(lookup, fqn);\n        pendingTypeCheck = offEdt(() -> onEdt, present -> {\n',
+     'SourcePanelFreshnessTest#aTypeClickChecksExistenceOffTheEdtThenOpensIt'),
+    # PR #30 review 4: at the deadline the body stops saying it is reading
+    ('source-timeout-body', SOURCE_PANEL,
+     '            if (pane.source.isEmpty()) pane.renderPlain("Timed out after " + readDeadline.toMillis() + " ms reading "\n'
+     '                    + fqn + "; nothing was read. Navigate to it again to retry.");\n', '',
+     'SourcePanelFreshnessTest#aTimedOutReadOfANewNameSaysItTimedOutInTheBodyToo'),
+    # PR #30 review 4: hung reads hold a bounded number of threads
+    ('source-reads-bounded', SOURCE_PANEL, 'new java.util.concurrent.ThreadPoolExecutor(2, 2,',
+     'new java.util.concurrent.ThreadPoolExecutor(64, 64,',
+     'SourcePanelFreshnessTest#readsThatHangDoNotAccumulateThreadsWithoutBound'),
+    # PR #30 review 5: a node request whose processor read gives up says why
+    ('source-node-open-reason', SOURCE_PANEL,
+     '                why -> nodePane.label.setText("could not open node \'" + instanceId + "\': " + why));',
+     '                why -> { });',
+     'SourcePanelFreshnessTest#aNodeRequestWhoseProcessorReadTimesOutSaysWhyItDidNotOpen'),
 ]
 
 # M44.4 and M68 (feat/m44-single-state-session): the mutation witnesses behind that branch's evidence sets, registered

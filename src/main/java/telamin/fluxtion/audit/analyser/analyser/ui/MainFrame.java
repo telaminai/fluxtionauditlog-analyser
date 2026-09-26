@@ -4740,6 +4740,7 @@ public final class MainFrame extends JFrame {
                     sourcePanel.setProcessors(candidates, inferred);
                     topologyPanel.setEmbeddedProcessors(candidates, inferred);
                     sourcePanel.showSelectedProcessor();
+                    topologyPanel.revalidateEmbeddedSource();
                     saveConfigQuietly();
                     refreshProjectPanel();                            // M37: "selected" just changed
                 },
@@ -4803,6 +4804,7 @@ public final class MainFrame extends JFrame {
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
         topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
         sourcePanel.showSelectedProcessor();
+        topologyPanel.revalidateEmbeddedSource();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
         if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too
         rebuildRecentMenu();
@@ -5797,7 +5799,10 @@ public final class MainFrame extends JFrame {
                 if (view.bean() != null) {
                     echo.put("nodeId", view.bean()); echo.put("recordsRelationship", "unverified");
                     String fqn = view.document().beans(view.bean()).getFirst().attr("class");
-                    if (fqn.isBlank()) fqn = sourceService.fqnForInstance(view.bean());
+                    if (fqn.isBlank()) {
+                        fqn = sourceService.fqnForInstance(view.bean());
+                        if (fqn == null && !sourceService.modelRead()) echo.put("classLookup", "processor source not yet read");
+                    }
                     boolean source = false;
                     if (fqn != null) try { designFiles().fqn(fqn); source = true; } catch (java.io.IOException ignored) { }
                     echo.put("source", source);
@@ -6830,6 +6835,10 @@ public final class MainFrame extends JFrame {
                 Path ws = telamin.fluxtion.audit.analyser.analyser.config.PathForm.workspaceDir(projRoot, config.workspaceRoot);
                 if (ws != null) source.put("workspaceDir", ws.toString());
             }
+            // PR #30 review, finding 2: the EDT does not read the processor to answer. Until a source pane has
+            // read it, node types are omitted and this says why, rather than stalling or guessing.
+            if (config.selectedEventProcessor != null && !sourceService.modelRead())
+                source.put("processorModel", "not yet read — node types appear once a source pane reads the processor");
             out.put("source", source);
 
             // M40.1 review F1: the topology BEFORE the fresh-start early return below. It sat after it, so with a

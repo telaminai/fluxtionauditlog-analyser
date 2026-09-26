@@ -6,6 +6,25 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Spring edit loop (slice 3: source freshness)
+
+- **Source panes show the file as it is now.** After a regeneration, the Topology tab's source pane kept
+  showing the old processor, even after the log was reopened; and after renaming a node's class, opening
+  that node could still land on the removed class. Every navigation now re-reads the file, reopening a log
+  or graph rechecks both source panes, and node navigation uses the processor as it is on disk. Reads run in
+  the background with a visible "not yet rechecked" state, so a slow disk no longer freezes the window.
+- **Source panes no longer let an older read win, and a hung disk cannot pile up threads.** With both source
+  panes reading the processor, an older read that arrived last could put back the pre-rename model; the later
+  request now always wins. `context` and the design view no longer read the processor on the window's thread
+  (they say "not yet read" instead), Ctrl-click checks existence in the background, a timed-out read says so in
+  the pane body, a node that could not open says why, and at most two threads wait on a hung disk. Superseded
+  reads and Ctrl-click checks are removed from the queue rather than left waiting, and a Ctrl-click check has
+  the same time limit as a read, so a stale click can no longer open a class long after it was made.
+- **A Ctrl-click that cannot be checked now says why.** If the source reads are backed up or the lookup fails,
+  the node pane explains it instead of silently doing nothing, and Back, opening a file, a spotlight or opening
+  a node all cancel a pending Ctrl-click so it can no longer open a class over what you navigated to.
+  In Processor-only mode, a failed check opens Split view so its explanation is visible alongside the processor.
+
 ### Evidence integrity and the single-state session (M44.4, M68)
 
 - **A rolled set now stops serving a member file that changed in place, and says which one.** A single log whose
