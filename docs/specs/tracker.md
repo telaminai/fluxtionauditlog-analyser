@@ -15,14 +15,22 @@ reported twenty-four friction points, chiefly on editing an existing graph. Read
 or a G14 pass. The running project remains untouched.
 
 - ☐ **Java snapshot freshness** — spec §C, feedback 3/20: ordinary same-FQN navigation must
-  revalidate text and selected model together, off the EDT, with stale/deleted/cancelled
-  reads disclosed. Reuse the source-spotlight resolver; local Maven source lookup already exists.
-- ☐ **Recovery provenance investigation** — spec §E, feedback 5: extend the existing journey
-  recovery acceptance with cross-project capture and pending I/O. Project-key isolation
-  already exists; an external log path alone does not prove a foreign recovery offer.
+  revalidate both the Source tab and Topology's embedded pane, replacing the service model
+  from the same snapshot off the EDT, with stale/deleted/cancelled reads disclosed. Reuse the
+  source-spotlight resolver; local Maven source lookup already exists.
+- ☐ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
+  delete/recreate a profile at X, then activate it. Current real-path keys cannot distinguish
+  replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
+  qualify mismatch; retain pending-I/O and cross-project controls. Participant history remains
+  unverified; this is proposed regression work, not a reproduced or closed finding.
+- ☐ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
+  to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
+  generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
+  producer check; Windows entry points await D6.
 - ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
   add the emitted Spring design directory to template roots, verify topology/source with no
-  log, and offer only the matching reachable console. No automatic server control or token disclosure.
+  log, and under D5 offer a verified reachable process with disclosed inferred project
+  association, or wait for an upstream identity field. No automatic control or token disclosure.
 - ☐ **Project input grants, proposed** — spec §E, feedback 11: retain M68.5's canonical root
   diagnostics work. A separate role-scoped grant policy needs approval; opening a profile
   does not implicitly authorise the project root or target directory.
@@ -31,8 +39,10 @@ or a G14 pass. The running project remains untouched.
 - ☐ **Upstream handoff** — new asks and existing ownership are routed through
   [upstream asks](../proposals/upstream-asks.md#spring-authoring-edit-loop--2026-09-25-intake).
   First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
-  preflight, matching contract and archive/script/documentation checks. No producer implementation
-  belongs in the analyser. New canonical-id and rename policies remain proposed.
+  preflight, matching contract and direct-browser archive/documentation checks. Installer
+  permissions and recovery identity belong here, not upstream. No producer implementation
+  belongs in the analyser. D1–D8 remain owner decisions; the spec names eight startable slices
+  and published/provider acceptances that cannot run on branch fixtures.
 
 The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
 **Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.

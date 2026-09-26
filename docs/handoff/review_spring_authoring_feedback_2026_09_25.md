@@ -11,6 +11,11 @@ to item 19 and items 21–24 are assessed below. No new client trial was run.
 The [proposed specification](../specs/spec-spring-authoring-edit-loop.md) sets the contracts,
 acceptances and wrong-result controls. Nothing is implemented or declared closed by this review.
 
+**Revision 4, 2026-09-26:** the independent review at `075107ef` required corrections to
+this report and the proposal's premises. The text below incorporates those corrections;
+historical verification sections retain their original dates/counts, not v4 verification.
+The response at the end distinguishes fresh source inspection from unrerun testimony.
+
 ## Evidence boundary
 
 I read the owner-provided running project's `FLUXTION-FEEDBACK.md` and `SESSION-NOTES.md`,
@@ -45,14 +50,14 @@ Specification letters refer to the linked proposal.
 
 | Feedback | Assessment | Routing / required work |
 |---|---|---|
-| 1 — compile ordering | **READ + REPORTED.** Current POM runs scan at `process-classes`, followed by compile-generated; ordinary compile still precedes it. Constructor/rename failures are reported, not rerun. | **A / UP-FLX-21**, already open. Solve model/dispatcher/consumer dependencies; removing a file is not a durable pipeline. |
+| 1 — compile ordering | **READ + REPORTED.** Current POM runs scan at `process-classes`, followed by compile-generated; ordinary compile still precedes it. Constructor/rename failures are reported, not rerun. | **A / UP-FLX-21**, already open. Exclude generated code only during profile model compilation, then scan and compile-generated. The supplier uses reflection; stage the scan output, not deletion of the prior source. |
 | 2 — rename debt | **REPORTED**, with the session notes explicitly retaining the old ownership debt. Conflict refusal is desirable; repeated opt-out is not repair. | **D**, compiler/starter ownership migration, including the next default regenerate and new-node creation. |
-| 3 — stale Java | **READ** identifies a sufficient mechanism: same-FQN navigation skips rendering and selected-model parsing is separately cached. Repeated session symptoms remain **REPORTED**. | **C**, analyser ordinary-navigation freshness. Keep source/run identity separate. |
+| 3 — stale Java | **READ** identifies two panes and a service cache: the Source tab already rereads on selected-processor refresh, the embedded Topology pane fills only on first use, and a pane reread leaves the service model stale. Repeated session symptoms remain **REPORTED**. | **C**, analyser ordinary-navigation freshness. Keep source/run identity separate. |
 | 4 — conflict advice | Error text is **REPORTED**. The proposed universal field-name rule is too strong; existing bindings may differ from bean ids. | **A**, actionable diagnostics with only established declarations suggested; also UP-FLX-32's wiring guidance. |
-| 5 — foreign recovery offer | **REPORTED, cause unresolved.** Existing controller/store/node already partition and validate project keys. A path outside the project can be a legitimate chosen input. | **E**, reproduce capture/switch order; disclose provenance; existing journey recovery, not a new auto-restore policy. |
-| 6 — fabricated zero event | **READ** in the current original mapper and template source: fewer than three fields produce a zero-valued PriceEvent. The session uses a replacement mapper later. | **B**, early template correction under D-T9/D-T8; assert no fabricated decision plus visible rejection. |
+| 5 — foreign recovery offer | **READ + REPORTED.** The current key is the profile's real path, so replacement at the same path aliases the old capture. The participant's actual deletion history was not observed. | **E**, recreated-path fixture first, durable profile identity and capture-time disclosure, then pending-I/O/switch controls; no automatic restore. |
+| 6 — fabricated zero event | **READ**: blank/short rows produce zero events; non-numeric rows throw and are dropped by core without audit rejection. The session later uses a replacement mapper. | **B**, remove fabrication; full visible rejection depends on D1 (audited event or upstream counter), not the stdout-only unknown handler. |
 | 7 — cumulative capture | **REPORTED**; persistence is not inherently wrong. Moving capture aside was a manual session workaround. | **H / MA-2 / OD-5**, explicit export scope and authoritative run boundary; no implicit deletion. |
-| 8 — script permissions | **READ**: three local scripts are mode 0644. Inspected template objects mark them executable. This does not locate the loss in the acquisition/extraction path. | **G**, real ZIP metadata/extraction check on each route; do not close on the in-memory flag test. |
+| 8 — script permissions | **READ**: TemplateArchive deliberately applies a fixed executable list and omits setup/validate/generate; the template marks them executable. This is an analyser installer defect, independently of direct ZIP modes. | **G**, analyser install test/control removing generate.sh from the list. Separate direct-browser ZIP check; Windows entry points are absent, pending D6. |
 | 9 — CLI help/link | **READ**: starter special-cases help only as the first argument. `link` encodes the XML into a browser URL; it does not migrate ownership. No CLI was executed here. | **G**, per-command help and accurate link documentation, no project mutation. |
 | 10 — incomplete/drifting guides | **READ**: truncated RUNBOOK sentence exists in project and template emitter. Local starter jar has no contract document entry. Version-table confusion is **REPORTED**. | **G**, immutable matching contract, complete workflow and conflict-specific repair guidance. |
 | 11 — read grants | **READ**: DesignFiles explicitly makes project a relative base, not permission. Current profile has roots added by the session; it does not prove original grants for every file. | **E / M68.5**, separate resolution from authorisation; proposed role grants require approval. |
@@ -68,28 +73,37 @@ Specification letters refer to the linked proposal.
 | 21 — mapper extension/discovery | **READ**: core 1.0.29 exposes a generic per-feed mapper; plugins 1.0.44 has TypeSerialiser. Its documented discriminator/configuration differs from its implementation. | **G1**, teach composition with executable pinned examples and visible rejection; not just an extra link to the current recipe. |
 | 22 — replay contradictions | **READ**: current runbook disclaims a supplied replay command/recorder but its descriptor comment promises deterministic replay. Connector capabilities do not resolve that conflict. | **G2 / H**, a configuration-specific capability table and actual replay acceptance; keep audit inspection distinct from input reconstruction. |
 | 23 — runtime loading versus AOT | **READ**: plugins 1.0.44 Spring loader has compile and interpreter branches and is preview-marked. No route was run. | **G3**, compare build-time AOT, load-time compile and load-time interpretation, with measured prerequisites and narrowly tested equivalence. |
-| 24 — plugin-site version | **READ / live page fetched**: overview advertises 1.0.37; current project POM pins 1.0.44. Latest release not independently established here. | **G4**, versioned documentation and generated labels, not a one-off “latest” number replacement. |
+| 24 — plugin-site version | **READ + metadata fetched**: site label comes from plugin_version 1.0.37; project pin is 1.0.44. Repsy metadata checked for v4 reports release 1.0.45; that is the deployment route, not Maven Central. | **G4**, versioned documentation and generated labels, not a one-off “latest” number replacement. |
 
 ## Corrections that matter before implementation
 
-1. **“Small compile-order fix” is not established.** Generation needs the edited model, while
-   suppliers can import the generated processor. A fix must handle both, and failure must not
-   leave the last usable processor deleted. UP-FLX-21 gets this stronger acceptance.
+1. **The dependency premise is corrected.** The emitted supplier loads the processor by name
+   at runtime, not an import. Exclude the generated package only in the generate profile's
+   initial compile; compile nodes/supplier, scan, then compile-generated. Default keyless
+   compilation retains the committed processor. Scan's direct generated-source write needs
+   staging; reconciliation already has its own snapshot/rollback. A customer's static import
+   is a separate support choice, not this template's dependency.
 2. **`link` is not rename.** It opens the authored design in the browser. A new ownership
    operation requires its own explicit mapping and safety contract.
 3. **Source freshness has a concrete cache boundary.**
    [SourcePanel](../../src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java)
-   `navigate` renders only a new FQN or empty pane; `refresh` recolours. Its `Pane.render`
-   does read source, but is bypassed for an existing nonempty pane.
+   `navigate` can skip an existing nonempty FQN, but `showSelectedProcessor` already rereads
+   changed content in the main Source tab after configuration/inference changes. Topology has
+   a separate embedded SourcePanel that fills only on first use. Both existing pane read/parse
+   paths run on the EDT.
    [SourceService](../../src/main/java/telamin/fluxtion/audit/analyser/analyser/source/SourceService.java)
-   caches `selectedModel` and already has a separate fresh snapshot route for spotlights.
-   Reopening a log is not proof that an ordinary source pane reloaded.
-4. **Recovery is already project-scoped.**
+   retains `selectedModel` even when a pane rereads, leaving node→class navigation stale after
+   a rename. §C therefore tests both panes, service-model replacement and off-EDT work separately.
+   Its existing fresh spotlight snapshot is reusable machinery, not proof ordinary panes use it.
+4. **Recovery is path-scoped, which is insufficient for replacement projects.**
    [SessionRecoveryController](../../src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SessionRecoveryController.java)
    loads by `SessionResumeStore.key(profile)`;
    [SessionRecovery](../../src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/SessionRecovery.java)
-   rejects a mismatched key and stale generation. Capture timing, profile identity or a legitimate
-   external input may explain the report. Do not invent a diagnosis from the path alone.
+   rejects a mismatched key and stale generation, but the key is a real path. A new profile
+   at that path inherits the key. Test capture/delete/recreate first, bind a durable profile
+   identity, disclose capturedAt and qualify/withhold mismatches. An external log remains a
+   legitimate input; directory ancestry is not the defect. The reviewer's local birth-time
+   inference was not independently reproduced here.
 5. **Neither XML declarations nor runbooks grant read access.**
    [DesignFiles](../../src/main/java/telamin/fluxtion/audit/analyser/analyser/design/DesignFiles.java)
    explicitly enforces this. A convenience improvement must preserve that boundary.
@@ -117,7 +131,7 @@ No implementation, new client session, mutation trial, paid call, merge or deplo
 The proposed tests/controls are future acceptance, not claims that regression coverage exists.
 Repository consistency checks for this docs-only change are recorded below after execution.
 
-## Verification of this documentation change
+## Historical v1 verification of this documentation change
 
 - **RUN:** `JAVA_HOME=<Corretto 21.0.8> mvn -q test` — **1,996 total / 0 failures /
   0 errors / 98 skipped**, 266 XML reports, no orphan reports relative to `src/test/java`.
@@ -157,8 +171,9 @@ Additional inspections, **not executed examples**:
   adapter for an already-created server. The project's test dependency is present; the
   existing test does not exercise the harness. §G now requires the real hosted route.
 - The same release's Spring loader selects `compileAot` or `interpret`, then initialises
-  and registers the processor. It is preview-marked. Neither dispatch equivalence nor key
-  requirements were established by this read; §G3 requires evidence before those claims.
+  and registers the processor. It is preview-marked. This initial read did not establish
+  dispatch equivalence or provider requirements. The v4 inspection now establishes the
+  expected hosted compile/key versus local interpretation boundary, still not a provider run.
 - **Additional mismatch found while checking item 21:** release source
   [TypeSerialiser](https://github.com/telaminai/mongoose-plugins/blob/117ce80ceec49afb5564eb75f34d1b3b3c7149f0/library/lib-jsonserialiser/src/main/java/com/telamin/mongoose/plugin/lib/json/TypeSerialiser.java)
   reads a `type` key through class lookup, whereas the release's documentation and fetched
@@ -194,13 +209,15 @@ in Source/Design rather than being automatically embedded in the GraphML canvas.
 requires a no-log real-frame journey and the explicit design directory in the generated profile.
 
 **READ:** plugins 1.0.44 writes server-registry records before HTTP binding and can leave them
-after crashes. §I2 therefore requires project/server identity and an actual bounded read-only
-probe before offering a browser link. No live registry, token or running server was accessed.
+after crashes. It has process metadata but no project identity. Revised §I2 requires a
+bounded pid/start-metadata probe and separately disclosed home/processor-class inference,
+subject to D5; it does not claim the registry can verify a project. No live registry, token or running server was accessed.
 
 **READ from a fresh public clone:** vendor collection head `3a89391` is source-only by its
 own publication contract. `QuoteView` and the demo's concrete PriceEvent are different
 contracts, and the supplied CSV adapter is callback-based rather than a valueMapper Function.
-§I3–I4 specify compatible shared types, mapper/wiring, source jars, binary resolution and
+§I3–I4 now put the interface-versus-concrete event choice under D7 and require compatible
+mapper/wiring, source jars, binary resolution and
 M67's staged tour, preserving the deliberately incorrect risk A and its independent oracle.
 No vendor source or binary was changed and no guided tour was run by this inspection.
 
@@ -213,3 +230,69 @@ changes are implemented. The canonical M67 tracker entries remain open.
 public-data sweep pass. No display acceptance is claimed for the newly proposed journey.
 The owner authorised reusable demo implementation on branches, leaving publication for review;
 that authorisation is not a claim that implementation has started or passed these acceptances.
+
+
+## Independent review response — v4 (2026-09-26)
+
+The [independent review at 075107ef](https://github.com/telaminai/fluxtionauditlog-analyser/blob/075107ef/docs/handoff/review_spec_spring_authoring_edit_loop_2026_09_25_claude.md)
+was read in full and left unedited. I independently inspected the
+analyser at this subject baseline, private starter/compiler 1.0.74 and the plugins' builder
+pin, template emitter `5d6a38a`, core 1.0.29, plugins 1.0.44 and vendor `3a89391`.
+Private repository behaviour is described without file locations or excerpts. **READ** below
+means inspected code, never an executed reproduction. None of the proposed product controls
+was run. The participant project and private recovery store were not accessed in this pass.
+
+| Finding | Independent check and revision | Status of evidence |
+|---|---|---|
+| R1 | Reflective supplier, model-before-scan requirement, scan source write and reconciliation rollback verified. §A specifies profile-only exclusion, final compile and staging. | READ; the new pipeline was not run. |
+| R2 | Installer's fixed executable list omits the three authoring scripts. §G separates installer and direct-browser tests, preserves mode refusal and adds D6. | READ; no install/extraction run or Windows entry point invented. |
+| R3 | Real-path recovery key and input-only hash check verified. §E starts with replacement at the same path, identity/capturedAt disclosure and an identity mutation. | READ; reviewer's local timestamps and inferred deletion were not independently checked. |
+| R4 | Main pane content reread, embedded first-use gate, cached service model and EDT reads verified. §C and this report now name all four. | READ; proposed per-pane/model/EDT controls not run. |
+| R5 | Serializer typed-object/raw-map/null/exception/batch branches and core null/exception drop paths inspected. §B/G1 distinguish fabrication from non-numeric loss and require D1's surface. | READ; no feed or serializer execution. |
+| R6 | Registry fields, basename naming, pre-bind write, pid/start metadata and bearer login inspected. §I2 separates process verification from project inference, adds D5 and collision/reuse/auth/frame cases. | READ; no live registry, console, token or probe used. |
+| R7 | Exact-type-first interpreter dispatch and vendor size/CSV/notifier/build behaviour inspected. §I3 adds D7, units, source-link/build work and the shared-FQN guard, retaining risk A/oracle/fixtures. | READ; AOT parity unverified. Remote branch listing separately checked. |
+| R8 | Hosted compile fallback with no public local generator, local interpretation and swapped reload registrations inspected. §G3 states expected prerequisites and the upstream handoff names the swap. | READ; no provider request or command execution. |
+| R9 | Plugin version variable and deployment configuration inspected; Repsy metadata returned release 1.0.45 and Central's aggregate coordinate metadata returned 404. §G4/I3 name the correct route. | READ + RUN metadata fetches only; not a binary-resolution/build acceptance. |
+| R10 | Admin Replay code handles visual record playback, not application execution. §G2 adds that fifth capability and corrects the emitted comment's meaning. | READ; no browser replay run. |
+| R11 | Parameter-FQN member keys and type:FQN keys inspected. §D/D2 require cross-class migration and an explicit resulting ownership state. | READ; the owner has not selected a state or command. |
+| R12 | Installer and recovery identity now have analyser tracker entries; feedback 8 has split installer/browser ownership in delivery and upstream tables. | Documentation diff inspected; all pre-existing status marks retained. |
+
+What I got wrong: I treated a possible custom supplier dependency as the shipped template's
+premise, routed permissions to the wrong producer, called path keys profile identity, and
+reduced source freshness to one navigation skip. The serializer summary was also wrong.
+These were incorrect or incomplete source conclusions, not failures proved by client trials.
+V4 changes the governing text rather than relying on this response to qualify it.
+
+Further precision from the source checks: registry startedAt records service registry
+publication, not JVM start time. A pid-reuse test must not require those times to be equal.
+Core's null mapper route emits FINE but does not populate the exception ring. The local
+MkDocs build is runnable on a branch; verification of the published site and its release
+metadata is a distinct check. Repsy's existing releases do not publish the vendor catalogue.
+
+Unverified: the participant's actual capture/recreation history; generated AOT equivalence
+to the interpreted type-selection rule; execution of all proposed regressions; the new
+pipeline and real provider prerequisites in operation; public-download install/build/tour
+acceptance; and live console/login behaviour. These need the fixtures, published artifacts
+or separate provider authorisation named in the specification. D1–D8 remain open. No slice
+was implemented, no risk fixture/oracle changed and no status was advanced.
+
+### V4 documentation checks
+
+- **RUN:** JDK 21 `mvn -q -Dtest=SpecLinksResolveTest test` — **3 total / 0 failures /
+  0 errors / 0 skips**, counted from that suite's Surefire XML. A pinned review link and
+  heading anchors changed, so the scoped link gate was run; no full suite was run for v4.
+- **RUN:** `mkdocs build --strict` — passed. It checks the site, not these spec/handoff files.
+- **RUN:** packet-related local file/anchor check — 50 references resolved across the four
+  edited documents. The ad hoc check initially failed on a missing Python dependency, then
+  on using collapsed-hyphen rather than GitHub anchor rules; both were checker issues,
+  corrected without changing existing links. This is additional inspection, not a new
+  committed regression test.
+- **RUN:** `git diff --check`, the exact CLAUDE.md tracked-file sweep and the same terms over
+  added lines — clean. Added-line scans for private local paths, email addresses and the
+  requested excluded wording — no matches.
+- **RUN:** scope/status comparison — only the four authorised documents differ; the rest
+  of the tracker is byte-identical. Existing marks stay unchanged; the installer adds one
+  new unchecked item. Commit email verified as the owner's personal address.
+- **NOT RUN:** implementation, product tests, display tests, mutations, participant/session
+  activity, provider calls, public-archive build or live console checks. No full-suite result
+  from an earlier revision is presented as v4 evidence.
