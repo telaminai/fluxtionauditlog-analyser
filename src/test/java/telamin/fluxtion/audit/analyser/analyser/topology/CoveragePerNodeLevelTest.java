@@ -542,7 +542,8 @@ class CoveragePerNodeLevelTest {
                 "it says the scope is after the boundary: " + later);
         assertFalse(later.contains(", so " + node + "'s lines below WARN are not in this log"),
                 "RR-4: no definite suppression claim about records the level may not have reached: " + later);
-        assertTrue(later.contains("If it survived the marker, " + node + "'s lines below WARN are not in this log"),
+        assertTrue(later.contains("If it survived the marker, then after that marker and before the stream-end marker "
+                + "preceding record 4, in the records sharing its grouping, " + node + "'s lines below WARN are not in this log"),
                 "the claim is made conditional instead: " + later);
     }
 
@@ -551,11 +552,16 @@ class CoveragePerNodeLevelTest {
         String node = anUncoveredNode(assess(plainRecord(1000)));
         String seq = control(1000, node, "WARN") + plainRecord(1001) + MARKER_2 + plainRecord(2000) + MARKER_1;
         String spanning = annotations(assess(seq, true, window(1001, 2000))).get(node);
-        assertTrue(spanning.contains("so before the stream-end marker preceding record 3, " + node + "'s lines below WARN are not in this log"),
+        assertTrue(spanning.contains("so after record 1 and before the stream-end marker preceding record 3, in the records "
+                + "sharing its grouping, " + node + "'s lines below WARN are not in this log"),
                 "definite within the run the change was made in: " + spanning);
         assertTrue(spanning.contains("from record 3 on, those lines are absent only if it survived the marker"),
                 "conditional after the boundary: " + spanning);
         String same = annotations(assess(seq, true, window(1001, 1001))).get(node);
-        assertFalse(same.contains("stream-end marker"), "within the same run there is nothing to qualify: " + same);
+        // Seventh re-review R7-3: within one run there is still nothing CONDITIONAL — but the definite claim stops at the
+        // marker that follows, because the level is not known to reach the run after it
+        assertFalse(same.contains("survived"), "within the same run there is nothing conditional: " + same);
+        assertTrue(same.contains("so after record 1 and before the stream-end marker preceding record 3, in the records "
+                + "sharing its grouping"), "…and the definite claim is bounded by the marker that follows: " + same);
     }
 }
