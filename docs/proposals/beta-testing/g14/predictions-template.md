@@ -48,8 +48,10 @@ only predicts success cannot be wrong.
 3. **Generation.** `./generate.sh` completes using the key file, and the emitted processor stamps
    `target generator version <x.y.z>`.
 4. **Run.** The application runs and produces an audit log with `<n>` expected rows / `<named states>`.
-5. **Canvas.** From the isolated analyser the subject opens the log and graph, and produces a chart or
-   report **from actually logged values**, exporting evidence that can be inspected afterwards.
+5. **Canvas.** From the isolated analyser the subject opens the log and graph and produces **a chart
+   on the live canvas**, drawn **from actually logged values** and **showing no file-identity mark**,
+   exporting evidence that can be inspected afterwards. A report may accompany it; **a report cannot
+   satisfy this prediction alone** (owner, option A, 2026-09-26).
    *This is the step the 1.0.74 attempt never reached.*
 6. **Honesty.** No claim in the subject's report that the transcript does not support; no caption
    asserting business state the log does not carry.

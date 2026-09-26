@@ -131,10 +131,32 @@ reaches its evidence through the verb path and charts.
 3's alternative is assessed. Answered 2026-09-26 as **option A**, and pass condition 3 above is
 reworded accordingly — that rewording was itself listed as a required correction on this PR.
 
-**G14 has moved to the front of the order** (owner, 2026-09-26). What the tracker lists as remaining
-is: this harness and its re-review, and the playground bundle's pins — mongoose 1.0.30 and analyser
-1.23.0 — so the public download the subject acquires carries both. Both pins are now live. A G14 run
-exercises the hosted changed-graph step SG-2 still lists, but does not close SG-2 by itself.
+**G14 has moved to the front of the order** (owner, 2026-09-26). The tracker listed two things as
+remaining: this harness and its re-review, and the playground bundle's pins.
+
+**The bundle pins are done and witnessed in production.** The owner confirmed the live download
+carries mongoose 1.0.30, mongoose-plugins 1.0.45, Fluxtion runtime 1.0.16 / BOM 1.0.75, and a bundle
+targeting analyser 1.23.0. The production preflight for `15afb92` downloaded the public ZIP
+(`zipSha256 a30b292c…`), built it, ran it, checked the sample rows and stopped cleanly. One honest
+qualification: **`analyserVersion` is a build-time constant and is not present in the ZIP**, so unlike
+the Maven pins it cannot be read out of the download — it is witnessed by the repository manifest and
+by the bundle validating its skills' minimums against it, not by inspecting the artefact.
+
+A G14 run exercises the hosted changed-graph step SG-2 still lists, but does not close SG-2 by itself.
+
+**Three residual risks are disclosed and NOT yet accepted. The owner must accept or reject them before
+the first G14 run — not before this harness merges.** Merging the harness settles none of them:
+
+1. **`login.keychain-db` stays readable** to a subject that has Bash and open network. The narrowing
+   is real; its necessity is unproven. The alternative, if the risk is rejected, is to run G14 under a
+   dedicated macOS account with an empty keychain.
+2. **Group reaping cannot catch a process that leaves the group** — `setsid`, or a launchd hand-off
+   such as `open`. The reap would then report success over something still running. What the harness
+   observes is the group, not every descendant.
+3. **`MAVEN_ARGS` is honoured only by Maven 3.9 or later.** Under an older wrapper the empty-settings
+   override is ignored and the user-level settings file is denied by the profile instead; the local
+   repository stays redirected, so the worst case is a loud build failure rather than a silent fall
+   back to the owner's repository.
 
 **Ordering.** The tracker puts G14 fifth, after the new-node stub policy (BETA-B2), SG-2's hosted
 acceptance, the jars, and the reconciler follow-ups. M68 removes one blocker, not the queue.
@@ -196,5 +218,9 @@ unaided will spend the effort there instead of on the design.
   against the retired protocol's "three runs each". G14 is a single acceptance by construction, which
   is defensible for a gate about one published artefact — but say so in `SCORE.md` rather than letting
   it read as a replicated result.
+- **Three residual risks are disclosed and not yet accepted** — the keychain read, descendants that
+  leave the process group (`setsid`, a launchd hand-off), and `MAVEN_ARGS` needing Maven 3.9+. They
+  are stated in full in the gating section above. They are the owner's to accept or reject **before
+  the first run**, not before this merges, and none of them is closed by merging.
 - **What this harness cannot establish.** That the download is *good*, only that a fresh client can get
   from it to a verified result. Correctness of the generated graph is the compiler's gates, not this.
