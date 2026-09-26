@@ -424,6 +424,12 @@ public final class MainFrame extends JFrame {
         return west;
     }
 
+    /** The root every project pointer resolves against — the open project's directory — or null with none open. */
+    private Path projectRootForPointers() {
+        return project.hasProject()
+                ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
+    }
+
     /** M38.2: the glossary pointer as context reports it — path, where it lands, whether it exists, its text. */
     private Map<String, Object> vocabularyForContext() {
         Map<String, Object> v = new java.util.LinkedHashMap<>();
@@ -6661,6 +6667,12 @@ public final class MainFrame extends JFrame {
                     one.put("provenance", e.provenance());
                     if (e.logDir() != null) one.put("logDir", e.logDir());
                     one.put("default", e.name().equals(config.defaultEnvironment));
+                    // D-E7 (set 13): a logDir that cannot be followed says why, naming the root tried
+                    if (e.logDir() != null) {
+                        String why = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.directoryResolution(
+                                projectRootForPointers(), e.logDir()).problem();
+                        if (why != null) one.put("problem", why);
+                    }
                     envs.add(one);
                 }
                 out.put("environments", envs);
@@ -6704,6 +6716,12 @@ public final class MainFrame extends JFrame {
                     one.put("location", d.location());
                     one.put("kind", d.kind().name().toLowerCase(java.util.Locale.ROOT));
                     one.put("from", project.hasProject() ? "project" : "own settings");
+                    // D-E7 (set 13): a directory that is not there says so; a remote place says it is not checked
+                    String why = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.destinationProblem(
+                            projectRootForPointers(), d);
+                    if (why != null) one.put("problem", why);
+                    String unchecked = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.destinationNote(d);
+                    if (unchecked != null) one.put("note", unchecked);
                     ds.add(one);
                 }
                 out.put("reportDestinations", ds);

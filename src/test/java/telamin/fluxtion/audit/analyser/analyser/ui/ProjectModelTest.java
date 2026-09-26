@@ -509,4 +509,21 @@ class ProjectModelTest {
         assertNull(rowStarting(ProjectModel.from(empty()), "posture:"));
         assertNull(rowStarting(ProjectModel.from(empty()), "mode-selector record"));
     }
+
+    @org.junit.jupiter.api.Test
+    void aPointerProblemOnAnEnvironmentOrDestinationIsAWarnRow() {
+        // set 13, D: the Project panel shows what context says is wrong with the pointer
+        Map<String, Object> ctx = full();
+        ctx.put("environments", List.of(Map.of("name", "prod", "provenance", "risk-engine · prod", "logDir", "logs/prod",
+                "default", false, "problem", "no directory at /work/demo/logs/prod (resolved against the project root /work/demo)")));
+        ctx.put("reportDestinations", List.of(Map.of("name", "share", "location", "out", "kind", "directory", "from", "project",
+                "problem", "no directory at /work/demo/out (resolved against the project root /work/demo)")));
+        ProjectModel m = ProjectModel.from(ctx);
+        var env = m.section(ProjectModel.PROJECT).rows().stream().filter(r -> r.primary().startsWith("environment")).findFirst().orElseThrow();
+        assertEquals(ProjectModel.Tone.WARN, env.tone());
+        assertTrue(env.secondary().contains("project root /work/demo"), env.secondary());
+        var dest = m.section(ProjectModel.REPORTS).rows().stream().filter(r -> r.primary().startsWith("publish to")).findFirst().orElseThrow();
+        assertEquals(ProjectModel.Tone.WARN, dest.tone());
+        assertTrue(dest.secondary().contains("no directory at /work/demo/out"), dest.secondary());
+    }
 }

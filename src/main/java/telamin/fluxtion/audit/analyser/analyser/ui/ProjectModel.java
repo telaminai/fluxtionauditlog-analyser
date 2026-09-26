@@ -77,9 +77,10 @@ public record ProjectModel(List<Section> sections) {
             "runbooks.name", "runbooks.path", "runbooks.description", "runbooks.resolved", "runbooks.exists", "runbooks.from",
             "runbooks.problem", "vocabulary.problem",
             "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
-            "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default",
+            "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default", "environments.problem",
             "analyses.name", "analyses.rationale", "analyses.parameters", "analyses.steps", "analyses.from",
             "reportDestinations.name", "reportDestinations.location", "reportDestinations.kind", "reportDestinations.from",
+            "reportDestinations.problem", "reportDestinations.note",
             "source.rootTiers.form", "source.workspaceRoot", "source.workspaceDir",
             "handoff.posture.value", "handoff.posture.source", "handoff.posture.setBy", "handoff.posture.derivedWouldBe",
             "handoff.record.modes", "handoff.record.resolvedFigures", "handoff.record.authoringRequired",
@@ -187,10 +188,13 @@ public record ProjectModel(List<Section> sections) {
         // M38.3: the environments the project declares — one row each, the default marked
         for (Object o : list(ctx.get("environments"))) {
             Map<String, Object> e = map(o);
+            String problem = str(e.get("problem"));                // D-E7 (set 13): a logDir that cannot be followed
             String detail = "stamps “" + e.get("provenance") + "”"
                     + (e.get("logDir") != null ? " on logs under " + e.get("logDir") : "")
+                    + (problem != null ? " — " + problem : "")
                     + (Boolean.TRUE.equals(e.get("default")) ? " · default when nothing else applies" : "");
-            rows.add(new Row("environment " + e.get("name"), detail, null, "project", Tone.NORMAL, Target.NONE));
+            rows.add(new Row("environment " + e.get("name"), detail, null, "project",
+                    problem != null ? Tone.WARN : Tone.NORMAL, Target.NONE));
         }
         out.add(new Section(PROJECT, rows));
 
@@ -393,8 +397,11 @@ public record ProjectModel(List<Section> sections) {
         for (Object o : list(ctx.get("reportDestinations"))) {
             Map<String, Object> d = map(o);
             String loc = str(d.get("location"));
-            rows.add(new Row("publish to " + d.get("name"), loc + " · " + d.get("kind") + " · the analyser states it; the publisher acts",
-                    loc, str(d.get("from")), Tone.NORMAL, Target.NONE));
+            String problem = str(d.get("problem"));                // D-E7 (set 13): a directory that is not there
+            String note = str(d.get("note"));                      // …or a remote place, stated as not checked
+            rows.add(new Row("publish to " + d.get("name"), loc + " · " + d.get("kind") + " · the analyser states it; the publisher acts"
+                    + (problem != null ? " — " + problem : note != null ? " · " + note : ""),
+                    loc, str(d.get("from")), problem != null ? Tone.WARN : Tone.NORMAL, Target.NONE));
         }
         out.add(new Section(REPORTS, rows));
 

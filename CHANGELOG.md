@@ -70,7 +70,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   be resolved at all showed no warning: either no project was open, or its path left the project folder. The
   Project panel and `context` now state the failure. A missing file names the root and the path it resolved to. A
   path outside the root is refused, naming the root. With no project open, the pointer says there is no root to
-  resolve it against (M68.5).
+  resolve it against. An environment's log directory and a report destination directory are checked the same way; a
+  remote destination (`s3://`, `https://`) says it is not checked rather than passing as fine (M68.5).
 - **The assistant's record verbs now check whether a log you are not following has changed on disk, before they
   answer.** Before, `read`, `aggregate`, `series`, `coverage` and the others kept serving rows after the file changed.
   For a large log read directly from the file, an in-place rewrite could make those rows describe bytes that were no

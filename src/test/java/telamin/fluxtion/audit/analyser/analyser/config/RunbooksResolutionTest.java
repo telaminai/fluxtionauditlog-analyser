@@ -47,4 +47,40 @@ class RunbooksResolutionTest {
         var r = Runbooks.resolution(null, "ops/deploy.md");
         assertTrue(r.problem().contains("no project root"), r.problem());
     }
+
+    // ---- set 13, D: the other pointers a project declares — an environment's logDir, a report destination's directory
+
+    @Test
+    @DisplayName("D: a directory pointer that lands on a directory has no problem; a missing one names the root tried")
+    void aDirectoryPointerIsDiagnosed(@TempDir Path root) throws Exception {
+        // witness: directoryResolution not checking the directory exists
+        Files.createDirectories(root.resolve("logs/prod"));
+        assertNull(Runbooks.directoryResolution(root, "logs/prod").problem());
+        var missing = Runbooks.directoryResolution(root, "logs/staging");
+        String norm = root.toAbsolutePath().normalize().toString();
+        assertNotNull(missing.problem(), "D: a missing directory is said");
+        assertTrue(missing.problem().contains("project root " + norm), missing.problem());
+        Files.writeString(root.resolve("logs/file.txt"), "x");
+        assertNotNull(Runbooks.directoryResolution(root, "logs/file.txt").problem(), "a file is not a directory");
+    }
+
+    @Test
+    @DisplayName("D: with no project root, and outside it, a directory pointer says which — as the file pointer does")
+    void aDirectoryPointerWithoutARootOrOutsideItSaysSo(@TempDir Path root) {
+        assertTrue(Runbooks.directoryResolution(null, "logs").problem().contains("no project root"));
+        assertTrue(Runbooks.directoryResolution(root, "../elsewhere").problem().startsWith("refused"));
+    }
+
+    @Test
+    @DisplayName("D: a destination directory is checked; a remote one is stated as not checked, never as fine")
+    void aDestinationIsDiagnosedByItsKind(@TempDir Path root) throws Exception {
+        Files.createDirectories(root.resolve("out"));
+        assertNull(Runbooks.destinationProblem(root, new ReportDestination("local", "out")));
+        assertNotNull(Runbooks.destinationProblem(root, new ReportDestination("gone", "missing/dir")));
+        assertNotNull(Runbooks.destinationProblem(root, new ReportDestination("abs", root.resolve("nope").toString())),
+                "an absolute directory that is not there is said too");
+        assertNull(Runbooks.destinationProblem(root, new ReportDestination("abs", root.resolve("out").toString())));
+        assertTrue(Runbooks.destinationNote(new ReportDestination("bucket", "s3://reports/demo")).contains("not checked"));
+        assertNull(Runbooks.destinationNote(new ReportDestination("local", "out")), "a directory is checked, so no note");
+    }
 }

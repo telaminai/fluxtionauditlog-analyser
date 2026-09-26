@@ -551,8 +551,10 @@ responsibilities, and no further client trial: these are contract and acceptance
 - **D-E6 / M68.5, the table.** Marked with the verdict, not suspended; the detail pane and charts are not marked (see
   D-E6). Request verbs are suspended or labelled.
 - **D-E6 / M68.5, plugin readers.** Not assessed; said so (`not assessed`).
-- **D-E7 / M68.5, pointers.** Runbook and glossary pointers name the root they tried. Environment and report
-  destination pointers are not covered by that check.
+- **D-E7 / M68.5, pointers.** Runbook and glossary pointers name the root they tried, and since set 13 so do an
+  environment's `logDir` and a directory report destination (`Runbooks.directoryResolution`,
+  `Runbooks.destinationProblem`; `context.environments[].problem`, `context.reportDestinations[].problem`, a WARN row
+  on the Project panel). A remote destination is stated as not checked (`note`), never contacted.
 - **D-E8 / M68.2, report sections.** A chart renders off-screen at page size, and so does a topology section for a
   saved focus (set 13; `TopologyPanel.renderFocusForReport`, `TopologyReportFocusTest`, end-to-end scenario 13), and
   a series section, extracted synchronously under the current filter onto a detached chart (`ReportSeriesPicture`,

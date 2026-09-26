@@ -155,6 +155,46 @@ public final class Runbooks {
                 exists ? null : "no file at " + target + " (resolved against the project root " + root + ")");
     }
 
+    /**
+     * D-E7, set 13 (the review's "environment and destination pointers"): {@link #resolution} for a pointer to a
+     * DIRECTORY — an environment's {@code logDir}. The same three failures, each naming the root tried.
+     */
+    public static Resolution directoryResolution(Path projectRoot, String relative) {
+        if (projectRoot == null) {
+            return new Resolution(null, null, false,
+                    "not resolved: there is no project root to resolve it against — open the project it belongs to");
+        }
+        String root = projectRoot.toAbsolutePath().normalize().toString();
+        Path target = resolve(projectRoot, relative);
+        if (target == null) return new Resolution(root, null, false, "refused: it points outside the project root " + root);
+        boolean exists = Files.isDirectory(target);
+        return new Resolution(root, target, exists,
+                exists ? null : "no directory at " + target + " (resolved against the project root " + root + ")");
+    }
+
+    /**
+     * Why a report DESTINATION that is a directory cannot be found on this machine, or null. A relative location is
+     * resolved against the project root (and diagnosed as {@link #directoryResolution} is); an absolute or home-relative
+     * one is looked up as written. A remote destination is not a question this can answer — see {@link #destinationNote}.
+     */
+    public static String destinationProblem(Path projectRoot, ReportDestination d) {
+        if (d == null || d.kind() != ReportDestination.Kind.DIRECTORY) return null;
+        String loc = d.location();
+        Path direct = loc.startsWith("~") ? Path.of(System.getProperty("user.home") + loc.substring(1)) : Path.of(loc);
+        if (direct.isAbsolute()) {
+            return Files.isDirectory(direct) ? null : "no directory at " + direct.normalize() + " (an absolute location, "
+                    + "not resolved against the project root)";
+        }
+        return directoryResolution(projectRoot, loc).problem();
+    }
+
+    /** What is NOT checked about a destination, or null when it is checked: a remote place is stated, never contacted. */
+    public static String destinationNote(ReportDestination d) {
+        if (d == null || d.kind() == ReportDestination.Kind.DIRECTORY) return null;
+        return "not checked: the analyser states a remote destination and never contacts it, so whether it exists is "
+                + "for the publisher to find out";
+    }
+
     public static boolean exists(Path projectRoot, String relative) {
         Path p = resolve(projectRoot, relative);
         return p != null && Files.isRegularFile(p);
