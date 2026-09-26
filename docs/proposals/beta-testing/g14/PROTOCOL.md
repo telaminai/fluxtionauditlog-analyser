@@ -116,16 +116,15 @@ ships as an **explicit partial delivery**, because D-E9's producer half belongs 
 format work and M68 can therefore never be complete in this repository. That answer carries four
 conditions, and the fourth is addressed to G14:
 
-> **charts are marked before G14 runs** — G14's pass condition is a chart or report made from actually
-> logged values, so an unmarked chart is the one surface where this gate could pass on a claim the
-> instrument has not established.
+> **charts are marked before G14 runs** — the charts must carry the file-identity mark (**M68.7**),
+> because G14's pass condition lands on that exact surface: an unmarked chart beside a marked table
+> would let G14 pass on content the session already knows is superseded.
 
-So M68 shipping does not by itself release G14. The surfaces that stay unmarked under the partial
-delivery are the human-facing detail pane and charts; **charts must be marked first**. The detail pane
-is a tracked follow-up and does not block, because a G14 subject reaches its evidence through the verb
-path and charts, not the detail pane. Confirm chart marking has landed before sealing predictions — an
-acceptance run through an instrument that can still overstate produces evidence about the instrument,
-not about the download.
+So M68 shipping does not by itself release G14. **M68.7 is the tracker's next M68 item and is this
+gate's prerequisite.** The detail pane's mark is part of M68.7 too but explicitly does not gate G14,
+because a G14 subject reaches its evidence through the verb path and charts. Confirm M68.7's chart
+marking has landed before sealing predictions — an acceptance run through an instrument that can still
+present superseded content as current produces evidence about the instrument, not about the download.
 
 **Ordering.** The tracker puts G14 fifth, after the new-node stub policy (BETA-B2), SG-2's hosted
 acceptance, the jars, and the reconciler follow-ups. M68 removes one blocker, not the queue.
