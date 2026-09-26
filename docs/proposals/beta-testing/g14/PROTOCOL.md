@@ -111,13 +111,21 @@ counted as an acceptance.
 This harness is implemented and its controls are tested; **it does not schedule G14**. Two things must
 be settled by a person before an attempt, and neither is a code change.
 
-**M68.** The owner reports M68 released (2026-09-26). The tracker's own M68 section has not caught up:
-it records the merge of PR #25 and then says *"**The M68 items below stay open (◧):** merging put their
-code on main; it closed none of them"*, with Q4, Q5 and each slice's stated gaps outstanding. Released
-and closed are not the same claim, and G14 was blocked on the *behaviour* — a held-out client told a
-declared node was absent from a graph that declares it — not on the merge. Reconcile the tracker before
-sealing predictions: an acceptance run through an instrument that still misreports produces evidence
-about the instrument, not about the download.
+**M68 — one condition of its own answer gates this gate.** The owner answered Q4 on 2026-09-26: M68
+ships as an **explicit partial delivery**, because D-E9's producer half belongs to the Mongoose audit
+format work and M68 can therefore never be complete in this repository. That answer carries four
+conditions, and the fourth is addressed to G14:
+
+> **charts are marked before G14 runs** — G14's pass condition is a chart or report made from actually
+> logged values, so an unmarked chart is the one surface where this gate could pass on a claim the
+> instrument has not established.
+
+So M68 shipping does not by itself release G14. The surfaces that stay unmarked under the partial
+delivery are the human-facing detail pane and charts; **charts must be marked first**. The detail pane
+is a tracked follow-up and does not block, because a G14 subject reaches its evidence through the verb
+path and charts, not the detail pane. Confirm chart marking has landed before sealing predictions — an
+acceptance run through an instrument that can still overstate produces evidence about the instrument,
+not about the download.
 
 **Ordering.** The tracker puts G14 fifth, after the new-node stub policy (BETA-B2), SG-2's hosted
 acceptance, the jars, and the reconciler follow-ups. M68 removes one blocker, not the queue.
