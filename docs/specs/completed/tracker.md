@@ -1,3 +1,46 @@
+## MA-0 · MA-8 · Mongoose audit production, analyser items — ☑ SHIPPED in 1.23.0 — 2026-09-26
+
+Moved verbatim from the live tracker, with "not yet released" corrected. Released as `v1.23.0` (tag at `11414e95`); main CI on the merged tree `4060684e`: 2437/0/0/119, ui-frame 119/0/0/0, 194/194 controls. MA-5, MA-6 (writer half), MA-7, MA-1, MA-2 and MA-4 stay in the live tracker.
+
+- **[MA-0] ☑ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
+  the only one here._ Every empty shape returns from `ProducerDiagnostics` before any check, so an empty
+  log raises nothing, marked or unmarked. A **finding**, never a seventh state; keyed on zero records only
+  (the quiet-level case is already caught by `ONLY_CONTROL_EVENTS`). Acceptance and the six-case table are
+  in the spec, adopted from review's run on the published 1.19.0 jar.
+  **PHASE 1 DONE, two clauses open:** the finding fires for all six shapes and an empty file now opens by
+  extension. **D-MA0c** (findings reach the report surface — `ReportRenderer` carries none) and **MA-0.5**
+  (the Follow path) are NOT done. The end-to-end claim is also narrower than it sounds: the tests drive
+  `ReaderRegistry.readerFor`, not `MainFrame.loadFile`.
+  [Phase 1 report](../../handoff/report_mongoose_audit_production_phase1_2026_09_23.md).
+  **Phase 1 SHIPPED in analyser 1.22.0 (2026-09-26)**, after ten review rounds and the integration review
+  onto M44.4/M68 (PR #34). D-MA0c and MA-0.5 above remain open; shipping closes neither.
+  **D-MA0c and MA-0.5 DONE — merged to `main` 2026-09-26 (PR #40, `4060684e`), **released in 1.23.0**.** Built on
+  `feat/mongoose-audit-phase1-completion`: the
+  findings are on the PDF, the Reports tab and the `report` reply; one empty-file wording; the Follow status line
+  keeps its warning (found by the new frame test). Report ▸ *Phase 1 completion*. **Reviewed once:** behaviour
+  accepted; the protection it asked for is in — the frame's PDF, the tab on load and on Follow, sixteen controls in the
+  CI gate — and the empty-log sentence is now one per shape (a marker that says it ended, a rolled set, a set of one).
+  Two targeted re-reviews followed; the last closed on the reviewer's mechanical conditions (no production diff, the
+  control red at its assertion, 194 anchors, CI green with 0 skips across 23 suites and 194 controls caught). Every
+  clause of MA-0 is now met; it moves to the completed tracker when it ships in a release.
+- **[MA-8] ☑ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
+  sibling._ A node at `WARN` runs but reads as never logged, and the control record naming its
+  `sourceId` and level is in the log. Measured: `complete`, 6 of 6, no findings, zero entries for a node
+  that ran three times. Coverage must say why it is silent instead of listing it as uncovered.
+  **PHASE 1 DONE:** `PerNodeLevelChanges` reads the level changes a log states about itself and
+  `CoverageService` annotates uncovered nodes with them — **annotate, never excuse** (the node stays in
+  the ratio), read **unfiltered**, keyed on the event TYPE. **Reworked after the independent review
+  (2026-09-24):** intervals are by record ORDER, closed by the next per-node or global change, empty
+  selections explained by nothing, run boundaries qualified; and a change applies by the RUNTIME's rule —
+  `groupId` gates it against the processor's `groupingId`, it is not node membership (the phase-1 reading
+  was inferred and wrong). **Coverage annotation SHIPPED in analyser 1.22.0 (2026-09-26); MA-8's report
+  path DONE — merged to `main` 2026-09-26 (PR #40), **released in 1.23.0**:** the report's coverage row carries
+  `levelChange` (only on annotated nodes) and the table's notes state it.
+  Review found four surviving
+  mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
+
+---
+
 ## Project / Sources / Audit log menus — ☑ SHIPPED in 1.20.0 — 2026-09-24
 
 - ☑ **Separate top-level resource menus** — implemented on `feat/project-sources-audit-menus`,
