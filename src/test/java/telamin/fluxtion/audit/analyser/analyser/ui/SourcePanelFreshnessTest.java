@@ -551,12 +551,13 @@ class SourcePanelFreshnessTest {
         write(NODE, node("RiskCheck", "int limit = 1;"));
         write("com.acme.node.Other", node("Other", "int other = 2;"));
         SourcePanel panel = panel(new SourceService());
-        CountDownLatch release = new CountDownLatch(1), entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1), entered = new CountDownLatch(1), returned = new CountDownLatch(1);
         var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
         panel.decisions = d -> { if (d.startsWith("type-check")) outcome.add(d); };
         panel.existence = (lookup, fqn) -> {
             entered.countDown();
             try { release.await(10, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            finally { returned.countDown(); }
             return true;
         };
         try {
@@ -564,7 +565,18 @@ class SourcePanelFreshnessTest {
             assertTrue(entered.await(5, TimeUnit.SECONDS), "control: the check is running");
             SwingUtilities.invokeAndWait(() -> panel.openFqn(NODE));   // the newer navigation
         } finally { release.countDown(); }
-        awaitSourceWorkIdle();
+        // Wait for THIS test's work, not for the shared read pool to go idle. The pool is static and a JVM running
+        // many classes (CI's mutation-gate baseline) can have another test's read on it, so "idle" measured the
+        // neighbours: seen in CI as "source work did not drain: queued=0" — nothing queued, something else running.
+        assertTrue(returned.await(15, TimeUnit.SECONDS), "control: the earlier check returned");
+        long settled = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        boolean[] pending = {true};
+        while (System.nanoTime() < settled) {
+            SwingUtilities.invokeAndWait(() -> pending[0] = panel.typeCheckPending());
+            if (!pending[0]) break;
+            Thread.sleep(10);
+        }
+        assertFalse(pending[0], "the earlier check reached its decision");
         String decided = outcome.poll(2, TimeUnit.SECONDS);
         assertTrue(decided == null || decided.contains("discarded"), "the earlier check must not navigate: " + decided);
         // The navigation's reads can chain, so the pool may be idle between them; wait for the text, not the pool
