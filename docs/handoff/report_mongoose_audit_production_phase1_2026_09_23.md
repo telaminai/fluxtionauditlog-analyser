@@ -638,6 +638,25 @@ comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
 
+## Tenth re-review — targeted acceptance of the ninth round
+
+Targeted tenth re-review `bcc2bef0` on `review/mongoose-tenth-rereview-2026-09-26`
+([report](rereview10_mongoose_analyser_2026_09_26_claude.md), [probe and outputs](evidence/mongoose-audit-production-impl/rereview10-probe/),
+both imported into this branch byte-identical). **Scope: `8a35a988..d8bb6e3c` only** — an acceptance of four fixes,
+not a renewed audit of the branch or of earlier rounds.
+
+**Verdict: R9-1, R9-2, R9-3 and O9-1 are closed; no required correction in scope.** Independently reproduced by the
+reviewer: `mvn -q clean package` **2110 / 0 / 0 / 98** over 278 mapped reports, no orphans; 13 targeted probe
+assertions (`R10Targeted`, constructed inputs); all eight controls of `witness14.py` and `witness13.py` (green →
+named `<failure>` → byte-identical restore → green), with the matrix assertion that fired under each matching this
+report's record; `mkdocs build --strict`, the whitespace checks and the rule-1 sweep. P14.1 stays **unverified**, as
+recorded; the reviewer did not reconstruct the uncommitted intermediate state and does not count it.
+
+**Still not established by any review, and named:** that a deployed plugin store returns a null `record()` (R9-2
+fixes a supported reader path); the producer's one-processor-per-grouping statement (owner decision); anything
+outside the four fixes' delta — the remainder of `sentence()`, `closing()` and `unreadableClosing()` was not
+re-audited in round 10.
+
 ## Ninth re-review — three required, one optional, all taken
 
 Ninth re-review `752015b7` on `review/mongoose-ninth-rereview-2026-09-26`, against `8a35a988`. Before any change the
@@ -994,10 +1013,11 @@ personal data before each push. Only files I authored were committed.
 - `mongoose-plugins` — **merged and released as 1.0.45**, carrying #39.
 - `mongoose` core — **merged to `develop`** at `2c4192e`. Merging is not delivering: the bundle's
   mongoose pin is still 1.0.29, so nothing reaches a developer until core is released and that pin moves.
-- analyser — **NOT ready until the ninth re-review's fixes are reviewed.** Ten review rounds' findings are
-  fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5 and 7–9 also have mutation
-  witnesses or targeted controls (rounds 7–9 targeted to their required findings), round 6 by the owner's choice
-  does not. `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
+- analyser — **phase 1 is through review.** The ninth round's four fixes were **independently accepted** by a
+  targeted tenth re-review (`bcc2bef0`, scope `8a35a988..d8bb6e3c`, no required correction). Ten review rounds'
+  findings are fixed on `feat/mongoose-audit-production-rebased`, each with a regression; rounds 1–5 and 7–9 also
+  have mutation witnesses or targeted controls (rounds 7–9 targeted to their required findings), round 6 by the
+  owner's choice does not. **Merge awaits the owner's authorisation.** `main` 1.20.1 is merged in (`e82808e7`), reviewed as an
   integration (`99f9ec47`, no merge defect). **CI's frame job has never run on this branch**; a pull request is
   what would run it. Not merged: the owner's call.
 

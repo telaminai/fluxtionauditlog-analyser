@@ -234,7 +234,13 @@ still to do.
   adjacent markers counted as one, a valid `eventTime` header field taken for payload, and a lead that spoke for the
   whole view; all three **implemented and verified** by test and targeted control, with an exact-endpoint matrix rule.
   Suite 2110/0/0/98. **Still open:** whether a deployed plugin returns a null record; the producer's one-processor-
-  per-grouping statement (owner). **Awaiting independent review; not ready to merge.** **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  per-grouping statement (owner). **Independently accepted** by a targeted tenth re-review (`bcc2bef0`, scope
+  `8a35a988..d8bb6e3c` only): R9-1–R9-3 and O9-1 closed, no required correction, 2110/0/0/98 and all eight controls
+  reproduced. **Phase 1's analyser review loop is closed; merge awaits the owner.** Before merge: open a pull request
+  so CI's `ui-frame` job runs on this branch for the first time, and merge with the personal identity. **Agreed open,
+  not closed by any review:** D-MA0c (findings on the report surface), MA-0.5 (the Follow path), MA-8's report
+  path, MA-6.3 (conformance fixtures), MA-5.7 (every-backend contract), deployed-plugin null-record behaviour, and the
+  producer's one-processor-per-grouping premise (owner). **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and
