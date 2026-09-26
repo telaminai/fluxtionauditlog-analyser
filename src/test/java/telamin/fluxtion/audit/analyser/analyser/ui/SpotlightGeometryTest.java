@@ -176,4 +176,62 @@ class SpotlightGeometryTest {
         assertTrue(r.x <= 8 && r.y <= 8, r.toString());                       // floor(8.0) = 8
         assertTrue(r.x + r.width >= 83 && r.y + r.height >= 38, r.toString()); // ceil(83.0), ceil(38.0)
     }
+
+    // ---- neighbouring targets share one separator (owner report, 2026-09-26) ----------------------------------
+
+    private static java.util.List<Rectangle> cuts(Rectangle... targets) {
+        return SpotlightGeometry.cutOuts(java.util.List.of(targets), FRAME);
+    }
+
+    /** An outline edge at {@code y} crosses a target when it lies strictly inside the target's rows. */
+    private static boolean crosses(int y, Rectangle target) {
+        return y > target.y && y < target.y + target.height;
+    }
+
+    @Test
+    void neighbouringLinesMeetAtOneSeparatorAndNeitherOutlineCrossesTheOtherLine() {
+        Rectangle first = new Rectangle(100, 100, 400, 17), second = new Rectangle(100, 117, 400, 17);
+        var c = cuts(first, second);
+        Rectangle up = c.get(0), low = c.get(1);
+        assertEquals(up.y + up.height, low.y, "one shared edge: " + c);
+        assertEquals(117, low.y, "halfway between the facing edges, which touch");
+        assertFalse(crosses(up.y + up.height, second), "the first outline's bottom stays off the second line");
+        assertFalse(crosses(low.y, first), "the second outline's top stays off the first line");
+        assertEquals(SpotlightGeometry.cutOut(first, FRAME).y, up.y, "the outer edges keep their padding");
+        assertEquals(SpotlightGeometry.cutOut(second, FRAME).y + SpotlightGeometry.cutOut(second, FRAME).height,
+                low.y + low.height);
+    }
+
+    @Test
+    void aSmallGapPutsTheSeparatorHalfwayAndTheOrderOfLightingDoesNotMatter() {
+        Rectangle first = new Rectangle(100, 100, 400, 17), third = new Rectangle(100, 124, 400, 17);
+        var c = cuts(third, first);                               // lit bottom-first
+        assertEquals((117 + 124) / 2, c.get(1).y + c.get(1).height, "upper ends halfway: " + c);
+        assertEquals((117 + 124) / 2, c.get(0).y, "lower starts halfway: " + c);
+    }
+
+    @Test
+    void threeStackedLinesEachShareOnlyTheirOwnSeparators() {
+        Rectangle a = new Rectangle(0, 200, 300, 17), b = new Rectangle(0, 217, 300, 17), d = new Rectangle(0, 234, 300, 17);
+        var c = cuts(a, b, d);
+        assertEquals(c.get(0).y + c.get(0).height, c.get(1).y);
+        assertEquals(c.get(1).y + c.get(1).height, c.get(2).y);
+        for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) if (i != j) {
+            Rectangle other = java.util.List.of(a, b, d).get(j);
+            assertFalse(crosses(c.get(i).y, other) || crosses(c.get(i).y + c.get(i).height, other),
+                    "outline " + i + " crosses line " + j + ": " + c);
+        }
+    }
+
+    @Test
+    void farApartSideBySideAndOverlappingTargetsKeepTheirCutOuts() {
+        Rectangle top = new Rectangle(0, 100, 300, 17), far = new Rectangle(0, 300, 300, 17);
+        assertEquals(java.util.List.of(SpotlightGeometry.cutOut(top, FRAME), SpotlightGeometry.cutOut(far, FRAME)), cuts(top, far));
+        Rectangle left = new Rectangle(0, 100, 100, 17), right = new Rectangle(104, 100, 100, 17);
+        assertEquals(java.util.List.of(SpotlightGeometry.cutOut(left, FRAME), SpotlightGeometry.cutOut(right, FRAME)), cuts(left, right),
+                "side by side on one line: no stacking to separate");
+        Rectangle big = new Rectangle(0, 100, 300, 60), inner = new Rectangle(10, 110, 50, 17);
+        assertEquals(java.util.List.of(SpotlightGeometry.cutOut(big, FRAME), SpotlightGeometry.cutOut(inner, FRAME)), cuts(big, inner),
+                "overlapping targets merge into one hole as before");
+    }
 }

@@ -8,56 +8,55 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ## Spring authoring edit loop — session intake 2026-09-25
 
-**PROPOSED; no fixes accepted or shipped by this intake.** A guided website-template session
+**Intake 2026-09-25; slices shipped in analyser 1.21.0 and the template deployment of 2026-09-26, as marked
+below.** A guided website-template session
 reported twenty-four friction points, chiefly on editing an existing graph. Read the
 [review and evidence limits](../handoff/review_spring_authoring_feedback_2026_09_25.md) and
 [fix specification](spec-spring-authoring-edit-loop.md). This is not another client battery
 or a G14 pass. The running project remains untouched.
 
-- ☐ **Java snapshot freshness** — spec §C, feedback 3/20: ordinary same-FQN navigation must
+- ◧ **Java snapshot freshness** — spec §C, feedback 3/20: ordinary same-FQN navigation must
   revalidate both the Source tab and Topology's embedded pane, replacing the service model
   from the same snapshot off the EDT, with stale/deleted/cancelled reads disclosed. Reuse the
   source-spotlight resolver; local Maven source lookup already exists.
-  **In review:** [PR #30](https://github.com/telaminai/fluxtionauditlog-analyser/pull/30) — both panes, service model
-  and off-EDT reads, five gate controls. Vendor-archive rediscovery (§C's last paragraph) stays open here.
-  Not closed until merged.
-- ☐ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
+  **Shipped in 1.21.0 (2026-09-26):** [PR #30](https://github.com/telaminai/fluxtionauditlog-analyser/pull/30) — both
+  panes, service model and off-EDT reads, five gate controls. Vendor-archive rediscovery (§C's last paragraph)
+  stays open here.
+- ☑ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
   delete/recreate a profile at X, then activate it. Current real-path keys cannot distinguish
   replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
   qualify mismatch; retain pending-I/O and cross-project controls. Participant history remains
   unverified; this is proposed regression work, not a reproduced or closed finding.
-  **In review:** [PR #28](https://github.com/telaminai/fluxtionauditlog-analyser/pull/28) — snapshots record the
+  **Shipped in 1.21.0 (2026-09-26):** [PR #28](https://github.com/telaminai/fluxtionauditlog-analyser/pull/28) — snapshots record the
   capturing profile's creation nonce (`profileNonce`, taken when the capture is built); a recreated profile at
   the same path is withheld, a missing identity is withheld as `capturedBy: unknown` (unit + real-frame
   fixture, gate cases `recovery-profile-identity`, `recovery-identity-unknown`, `recovery-withheld-input-origin`,
-  `recovery-identity-at-capture`, `profile-nonce-kept-by-saves`). Not closed until merged.
-- ☐ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
+  `recovery-identity-at-capture`, `profile-nonce-kept-by-saves`). Participant history remains unverified.
+- ☑ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
   to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
   generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
   producer check; D6 approves documenting Windows absence, with implementation deferred.
-  **In review:** [PR #27](https://github.com/telaminai/fluxtionauditlog-analyser/pull/27) — install test runs the
-  three scripts without chmod; gate case `installer-authoring-executables`. Not closed until merged.
-- ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
+  **Shipped in 1.21.0 (2026-09-26):** [PR #27](https://github.com/telaminai/fluxtionauditlog-analyser/pull/27) — install
+  test runs the three scripts without chmod; gate case `installer-authoring-executables`.
+- ◧ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
   add the emitted Spring design directory to template roots. Validate all template profile
   source roots inside the installed project in TemplateArchive; preserve explicitly granted
   external roots in user-authored profiles. Verify topology/source with no log, and under
   approved D5 offer a verified reachable process with disclosed inferred
   project association; withhold ambiguous or stale offers. No automatic control or token disclosure.
-  **In review (§I1):** [PR #31](https://github.com/telaminai/fluxtionauditlog-analyser/pull/31) — install-time
-  template-root containment, the visible no-log pairing note and a real-frame no-log journey; the template's
-  design-root and guide change is in review in the template repository. The §I2 console offer is not started.
-  Not closed until merged.
+  **§I1 shipped in 1.21.0 (2026-09-26):** [PR #31](https://github.com/telaminai/fluxtionauditlog-analyser/pull/31) —
+  install-time template-root containment, the visible no-log pairing note and a real-frame no-log journey; the
+  template's design-root and guide change was deployed on 2026-09-26. The §I2 console offer is not started.
 - ☐ **Project input grants, approved policy; implementation open** — spec §E, feedback 11:
   retain M68.5's canonical root diagnostics work. D3 approves offering explicit role-scoped
   grants at project opening, showing what becomes readable; opening alone authorises neither
   the project root nor target directory.
-- ☐ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
+- ☑ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
   default, same-state equality, and basis/qualification carried with every selected verdict.
-  **In review:** [PR #29](https://github.com/telaminai/fluxtionauditlog-analyser/pull/29) — `context
+  **Shipped in 1.21.0 (2026-09-26):** [PR #29](https://github.com/telaminai/fluxtionauditlog-analyser/pull/29) — `context
   {sections}` with eleven published names, qualifiers carried under `scope.carried` (including a rolled
   set's `files` with `view` and `producer` with `topology`), the key file read only when `fluxtionKey` is
   selected, refusal before any read, recorded fixture bytes, and five mutation controls in the fast gate.
-  Not closed until merged.
 - ☐ **Upstream handoff** — new asks and existing ownership are routed through
   [upstream asks](../proposals/upstream-asks.md#spring-authoring-edit-loop--2026-09-25-intake).
   First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
@@ -66,9 +65,20 @@ or a G14 pass. The running project remains untouched.
   belongs in the analyser. D1–D8 were approved by the owner on 2026-09-26 and are recorded in
   the spec. Its eight startable slices retain their acceptance, and published/provider checks
   still cannot be closed by branch fixtures. Policy approval advances no implementation mark.
-  **In review, 2026-09-26 (producer repositories, not closed here):** slice 5 compile profile with staged
-  scan output, slice 6 guide text and per-command CLI help, slice 7 audited CSV rejection event (D1). Each
-  was verified on branch fixtures, keyless; published-download acceptance remains open.
+  **Merged and deployed 2026-09-26 (producer repositories, not closed here):** slice 5 compile profile with
+  staged scan output, slice 6 guide text and per-command CLI help (starter 1.0.75, pinned by the template), slice
+  7 audited CSV rejection event (D1). A keyed regeneration of the emitted bundle reproduced the committed
+  artefacts (GraphML identical; processor identical below its license header). Published-download acceptance
+  remains open.
+
+- ☑ **Design-first first look, found by the 1.21 fresh-look virgin run (2026-09-26)** — at the default
+  1200×800 window the Design view's wrapped status note took the whole height and a fixed 210 px bean list the
+  width, so no design bean or line could be lit; neighbouring spotlights drew edges through each other's line;
+  a design refused by path pointed at `source_root` and models authorised the whole project directory.
+  **Shipped in 1.22.1:** [PR #35](https://github.com/telaminai/fluxtionauditlog-analyser/pull/35) — capped status
+  note and fitted bean list, one-cause design refusals, a shared separator for stacked spotlights, and refusals
+  that name `open {project}` (never the project already open). Six gate controls, including a Linux precheck
+  of the status witness.
 
 The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
 **Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.

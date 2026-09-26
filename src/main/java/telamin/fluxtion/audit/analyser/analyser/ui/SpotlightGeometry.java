@@ -27,6 +27,36 @@ public final class SpotlightGeometry {
     }
 
     /**
+     * Every target's cut-out, in order. Two targets stacked one above the other — neighbouring code lines — have pads
+     * that reach into each other: the upper outline's bottom edge was drawn through the lower line's text and the lower
+     * outline's top edge through the upper line's. Where two such cut-outs overlap, both are trimmed to meet halfway
+     * between the targets' facing edges, so their outlines become one separator there and no line of text is crossed.
+     * Targets that overlap each other, or sit side by side, keep their cut-outs as they are.
+     */
+    public static java.util.List<Rectangle> cutOuts(java.util.List<Rectangle> targets, Dimension frame) {
+        java.util.List<Rectangle> cuts = new java.util.ArrayList<>();
+        for (Rectangle t : targets) cuts.add(cutOut(t, frame));
+        for (int i = 0; i < targets.size(); i++) {
+            for (int j = i + 1; j < targets.size(); j++) {
+                Rectangle a = targets.get(i), b = targets.get(j);
+                if (!cuts.get(i).intersects(cuts.get(j))) continue;
+                boolean sideBySide = a.x >= b.x + b.width || b.x >= a.x + a.width;
+                int upper, lower;
+                if (a.y + a.height <= b.y) { upper = i; lower = j; }
+                else if (b.y + b.height <= a.y) { upper = j; lower = i; }
+                else continue;                                  // the targets overlap: one merged hole, as before
+                if (sideBySide) continue;
+                Rectangle up = targets.get(upper), low = targets.get(lower);
+                int mid = (up.y + up.height + low.y) / 2;
+                Rectangle cu = cuts.get(upper), cl = cuts.get(lower);
+                if (cu.y + cu.height > mid) cu.height = mid - cu.y;
+                if (cl.y < mid) { cl.height -= mid - cl.y; cl.y = mid; }
+            }
+        }
+        return cuts;
+    }
+
+    /**
      * Place a caption of {@code size} beside {@code cutOut}. Tried in order — below, above, right, left —
      * and the first side with room wins; with room nowhere (a target filling the frame) it goes INSIDE
      * the cut-out's bottom edge rather than off screen, because a caption nobody can read is worse than
