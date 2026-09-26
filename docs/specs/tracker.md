@@ -1905,6 +1905,76 @@ of the originals is in `057a069a`.)*
           dot;
         - the Mongoose integration, scheduled after this merge.
 
+- [M44.5] ☐ **The log's own derived state joins the session snapshot — producer findings first.** Scoped
+  2026-09-27 from the day's review rounds, owner-requested. **M44.4 held:** every surface that read the snapshot
+  stayed right, and no defect found on 2026-09-26 was two copies of a snapshot verdict disagreeing. The defects came
+  from state M44.4 did not cover, held as `MainFrame` fields, computed at several sites and pushed to surfaces by
+  hand-placed refresh calls:
+  - the frame's PDF passing `null` findings (PR #40, H1);
+  - the Reports tab not refreshing on load or on Follow (H2, H3);
+  - the Follow call site dropping the stream end (X4);
+  - the load site passing the wrong claim for a one-member set (X5);
+  - the Follow status line dropping the producer warning (MA-0.5).
+
+  Each was caught by review and fixed call site by call site; this item removes the class.
+
+  **Inventory of replicated derived state** (read from `main` at `11029c92`; RAN only where marked):
+
+  | State (`MainFrame`) | Computed at | Read by | Drift found |
+  |---|---|---|---|
+  | `producerDiagnostics` | 3: close, load, Follow refresh | status bar, tooltip (2 sites), `context`, `report` reply, PDF, Reports tab (supplier + 3 refresh triggers) | **yes** — the five defects above, each fixed separately |
+  | `timeOrderReport` | 2: close, load (S3, reader and rolled-set loads) | status bar, `context.timeOrder`, the assistant's time-order note, a load dialog | **yes, by reading** — never recomputed on a Follow append, so violations in appended records are not reported and every surface keeps the load-time verdict |
+  | the status bar line | 4 composers: load, Follow start, two Follow ticks | the person | **yes, by reading** — the load line carries provenance and the time-order warning; `followStatusText` carries neither, so both vanish on the first Follow tick while `context` still states them |
+  | `logProvenance` / `logProvenanceSource` | 3: close, load, project-environment match | `context`, Project panel, reports, status bar | **latent** — the session's `OpenLog.provenance` is set from the opener only and never hears the environment match. It has no reader today, so it is a dead duplicate, wrong the moment something reads it |
+  | `loggedNodeSample`, `loggedSampleScanned`, `observedLevel` | frame, then posted in `LogAppended` | the session (pairing) | none — the frame is the producer and the session the owner; the frame does not read its copy back |
+  | `flaggedRows` / `findings` | 7 paired sites | flags, reports | none — the invariant "a finding's row is flagged" is hand-kept at every site and holds today; low priority |
+  | `followStreamEnd`, `followPendingChars` | the Follow refresh | the refresh gate | not state — change detectors; they go when the findings are a fact |
+
+  **Design — follow the M44 pattern, and say which parts go through the Fluxtion graph:**
+  - **Through the graph** (session state, one owner). The FRAME keeps doing the scan (`ProducerDiagnostics.of`,
+    `TimeOrderValidator`) and posts the result as a fact, like `LogIdentityObserved`:
+    - `ProducerFindingsObserved(generation, findings)`, from load and from every Follow refresh;
+    - `TimeOrderObserved(generation, report)`, from load AND from Follow appends, which closes the time-order gap;
+    - `ProvenanceResolved(generation, provenance, source)`, after the environment match, so the session's copy is
+      the one surfaces read.
+
+    New state nodes hold them, refuse a stale generation, clear on close, and publish in `SessionSnapshot`.
+  - **Not through the graph** (rendering). Every surface above renders from the snapshot, on the existing snapshot
+    listener, and the hand-placed refresh calls and `store == null ? null : producerDiagnostics` suppliers are deleted.
+    The status line gets ONE composer, taking the snapshot, used by load, Follow start and Follow ticks. Whether a
+    component is on screen, and which handler a verb routes to, stay surface concerns, covered by the test rule below.
+  - **Regeneration is owner-run:** `-Pregen` needs `fluxtion-builder` and the key (spec D-S1.1). The implementer
+    drafts the graph source and the nodes; the owner regenerates; review reads the committed generated source and
+    the pinned GraphML, as the spec prescribes.
+
+  **Call sites this retires:**
+  - the three `producerDiagnostics =` assignments, replaced by facts;
+  - the Reports tab's load refresh and Follow refresh;
+  - `setLogFindings`;
+  - the PDF's and the `report` reply's field reads;
+  - the two tooltip writers;
+  - the four status-line composers (to one);
+  - `timeOrderReport`'s two assignments;
+  - `logProvenance`'s three.
+
+  The p15/p16/p17 controls that target those call sites move to the snapshot nodes and the one composer.
+
+  **Acceptance:**
+  1. Every surface in the inventory renders its value from `SessionSnapshot`; a static check forbids a surface
+     reading the retired fields.
+  2. A Follow append that introduces a time-order violation is reported on every surface; the wrong-result witness
+     is the case today's code misses.
+  3. After a Follow tick, the status line still carries provenance and the time-order warning.
+  4. `context.provenance` and the session agree after an environment match.
+  5. The M44 shape test and the existing session suites pass on the regenerated processor.
+  6. Each new fact node has a stale-generation control.
+
+  **Test rule it pairs with** (for what a snapshot cannot cover): a surface test goes through the real entry point
+  (the frame, the verb, what is on screen), and a control reverts the call site, not only the helper. That is the
+  lesson of M68.7's R1 and PR #40's H1–H3, X4 and X5.
+
+  **Not in scope:** the flag invariant (low, holds), and the log-sample fields (already owned by the session).
+
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
 ships a runnable Mongoose example with Chronicle audit capture pre-enabled and one YAML export command
