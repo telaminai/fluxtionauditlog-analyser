@@ -133,8 +133,9 @@ and silent outside it — and the silence is what gets trusted:
 - **The four-term sweep cannot see inside images.** It passed for the whole life of the repo while
   release screenshots carried real names onto the public site (found 2026-08-16). Screenshots are now
   generated under an isolated `user.home`, never taken.
-- **The sweep cannot see git metadata.** 214 commits carry an employer-domain author address; the count
-  is pinned in CLAUDE.md and re-checked before every release.
+- **The sweep cannot see git metadata.** 225 commits carry an employer-domain author address; the count
+  is pinned in CLAUDE.md and re-checked before every release. A merge made through GitHub takes the
+  account email, not the local config — check its author.
 - **`mkdocs build --strict` cannot see `docs/specs/`.** It is not part of the built site, so the link
   checker never visits it. Twelve stale links in two days were found by reading before
   `SpecLinksResolveTest` was added.
