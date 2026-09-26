@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A recreated project is not offered the old project's session.** Recovery was keyed by the profile's
+  path, so deleting a project and recreating it in the same place (for example by extracting a download
+  again) showed the previous project's "Restore last session" offer. Each saved session now also records
+  which profile file captured it; a different profile at the same path gets no offer, and the status says
+  when that session was captured. The offer message now names its capture time too.
+
 ## [1.20.1] - 2026-09-24
 
 - **An assistant can find its way around the new menus.** Pointing at a menu item that is not where it was asked

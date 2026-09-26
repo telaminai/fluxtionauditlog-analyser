@@ -273,7 +273,14 @@ the generation of the offer they displayed, so a stale button cannot accept anot
 
 Candidates are keyed by canonical project-profile location, with a separate no-project bucket. They are
 not shared in profiles or exported ZIPs. A moved or missing project never inherits another project's
-session. Legacy global recent-log/topology paths remain explicit recent-menu choices, not automatic
+session. Each candidate also records which profile *file* captured it, so a project deleted and recreated
+at the same location (a re-extracted download, for example) is not offered the old project's session even
+though the path matches: the offer is withheld, and `context.restoration` says when it was captured and
+that it came from a different profile file (`capturedBy`). The analyser saves a profile in place, so
+ordinary saves keep its identity; a tool that replaces the file, a copy, or a candidate saved by an older
+analyser version counts as a different profile, and that one session is withheld rather than guessed.
+On Linux the identity is the file's inode, so a recreated profile that happens to reuse the inode number
+is not told apart. Legacy global recent-log/topology paths remain explicit recent-menu choices, not automatic
 startup opens. A command-line log opens only that requested log.
 
 Identity here means observed file bytes, not proof of the application's build or execution identity.

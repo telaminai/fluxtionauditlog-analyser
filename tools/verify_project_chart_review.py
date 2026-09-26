@@ -251,6 +251,7 @@ CASES.extend([
 # Menu discoverability after the 1.20.0 reorganisation: a miss says where the item went; context lists the menus.
 MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
+SESSION_RECOVERY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/SessionRecovery.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -267,6 +268,9 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
     ('context-menu-changes', MAIN_FRAME, '            out.put("menuChanges", MenuHints.changes(menuMap()));', '',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    # edit-loop spec §E: without the profile-identity comparison a project recreated at the same path is offered the old session
+    ('recovery-profile-identity', SESSION_RECOVERY, '                && !e.profileIdentity().equals(candidate.profileIdentity())) {',
+     '                && false) {', 'SessionRecoveryTest#aSessionCapturedByADifferentProfileAtThisPathIsWithheldNotOffered'),
 ]
 
 def display_classes(root=Path('.')):

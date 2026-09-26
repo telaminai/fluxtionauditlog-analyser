@@ -21,8 +21,18 @@ public final class SessionResumeStore {
         }
     }
     public record Identity(String role, String path, String sha256, String problem) { }
-    public record Snapshot(String key, String capturedAt, List<Identity> inputs, Map<String,Object> view) {
+    /**
+     * {@code profileIdentity} names the profile FILE that captured the snapshot, not just its path: the key is
+     * a real path, and a project deleted and recreated at that path (a re-extracted download, say) would
+     * otherwise inherit the old project's offer (edit-loop spec §E). Null for the no-project bucket and for
+     * snapshots written before this field existed — neither ever counts as the same profile.
+     */
+    public record Snapshot(String key, String capturedAt, List<Identity> inputs, Map<String,Object> view,
+                           String profileIdentity) {
         public Snapshot { inputs = List.copyOf(inputs); view = Collections.unmodifiableMap(new LinkedHashMap<>(view)); }
+        public Snapshot(String key, String capturedAt, List<Identity> inputs, Map<String,Object> view) {
+            this(key, capturedAt, inputs, view, null);
+        }
     }
     public record Check(Identity input, String status) {
         public boolean unchanged() { return "unchanged".equals(status); }
@@ -34,8 +44,33 @@ public final class SessionResumeStore {
     }
 
     public Snapshot capture(String key, List<Input> inputs, Map<String,Object> view) {
+        return capture(key, null, inputs, view);
+    }
+
+    public Snapshot capture(String key, String profileIdentity, List<Input> inputs, Map<String,Object> view) {
         List<Identity> identities = inputs.stream().map(i -> identity(i.role(), i.path())).toList();
-        return new Snapshot(key, java.time.Instant.now().toString(), identities, view);
+        return new Snapshot(key, java.time.Instant.now().toString(), identities, view, profileIdentity);
+    }
+
+    /**
+     * Which profile FILE this is, beyond its path. The analyser rewrites a profile in place, so the file keeps
+     * its identity across ordinary saves; deleting and recreating the project, or a tool that replaces the
+     * file, gives it a new one. A copy is a new file too. Parts are taken only where the platform reports
+     * them faithfully: the file key (device and inode) where one exists — not on Windows — and the creation
+     * time on macOS and Windows, where it is a real birth time rather than a stand-in for modification time.
+     * On Linux the identity is the inode alone, so a recreated file that happens to reuse the inode number
+     * is not told apart; that limit is accepted and documented rather than hidden.
+     */
+    public static String profileIdentity(Path profile) throws IOException {
+        Path real = profile.toRealPath();
+        BasicFileAttributes attributes = Files.readAttributes(real, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+        boolean birthTime = os.contains("mac") || os.contains("win");
+        List<String> parts = new ArrayList<>();
+        if (attributes.fileKey() != null) parts.add("file=" + attributes.fileKey());
+        if (birthTime) parts.add("created=" + attributes.creationTime().toInstant());
+        if (parts.isEmpty()) throw new IOException("profile identity is unavailable on this file system");
+        return String.join(";", parts);
     }
 
     public List<Check> check(Snapshot snapshot) {
@@ -85,6 +120,7 @@ public final class SessionResumeStore {
         root.put("version", 1);
         root.put("key", snapshot.key());
         root.put("capturedAt", snapshot.capturedAt());
+        if (snapshot.profileIdentity() != null) root.put("profileIdentity", snapshot.profileIdentity());
         root.put("inputs", snapshot.inputs().stream().map(i -> {
             Map<String,Object> m = new LinkedHashMap<>();
             m.put("role", i.role()); m.put("path", i.path()); m.put("sha256", i.sha256()); m.put("problem", i.problem());
@@ -124,7 +160,10 @@ public final class SessionResumeStore {
             rawView.forEach((k,value) -> view.put((String)k,value));
             String at = (String)root.get("capturedAt");
             java.time.Instant.parse(at);
-            return Optional.of(new Snapshot(key, at, entries, view));
+            Object profileIdentity = root.get("profileIdentity");
+            if (profileIdentity != null && !(profileIdentity instanceof String))
+                throw new IllegalArgumentException("invalid recovery profile identity");
+            return Optional.of(new Snapshot(key, at, entries, view, (String) profileIdentity));
         } catch (RuntimeException e) { throw new IOException("invalid recovery file: " + e.getMessage(), e); }
     }
 

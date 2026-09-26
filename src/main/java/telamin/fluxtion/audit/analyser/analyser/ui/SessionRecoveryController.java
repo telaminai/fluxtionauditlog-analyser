@@ -35,7 +35,10 @@ final class SessionRecoveryController {
         io.execute(() -> save(capture));
     }
     private void save(Capture c) {
-        try { files.save(files.capture(SessionResumeStore.key(c.profile()), c.inputs(), c.view())); }
+        try {
+            String identity = c.profile() == null ? null : SessionResumeStore.profileIdentity(c.profile());
+            files.save(files.capture(SessionResumeStore.key(c.profile()), identity, c.inputs(), c.view()));
+        }
         catch (Exception e) { later(() -> host.failed("Could not save session recovery: " + e.getMessage())); }
     }
     void activate(Path profile, String activationError) {
@@ -43,13 +46,17 @@ final class SessionRecoveryController {
         long generation = state().generation();
         host.render();
         io.execute(() -> {
-            String key = null, error = activationError;
+            String key = null, error = activationError, identity = null;
             SessionResumeStore.Snapshot snapshot = null;
             if (error == null) {
-                try { key = SessionResumeStore.key(profile); snapshot = files.load(key).orElse(null); }
+                try {
+                    key = SessionResumeStore.key(profile);
+                    if (profile != null) identity = SessionResumeStore.profileIdentity(profile);
+                    snapshot = files.load(key).orElse(null);
+                }
                 catch (Exception e) { error = "Session recovery unavailable: " + e.getMessage(); }
             }
-            var fact = new ResumeEvents.OfferLoaded(generation,key,snapshot,error);
+            var fact = new ResumeEvents.OfferLoaded(generation,key,snapshot,error,identity);
             later(() -> { if (!closing) { host.driver().submit(fact); host.render(); } });
         });
     }

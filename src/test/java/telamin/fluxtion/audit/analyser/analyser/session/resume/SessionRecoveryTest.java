@@ -95,6 +95,39 @@ class SessionRecoveryTest {
         assertEquals(List.of(d), node.plan().available());
     }
 
+    /**
+     * Edit-loop spec §E: a snapshot captured by a different profile file at the same path — a project deleted
+     * and recreated there — is withheld with its capture time, and cannot be accepted. So is one saved before
+     * profile identity existed: a missing identity never counts as a match.
+     */
+    @Test void aSessionCapturedByADifferentProfileAtThisPathIsWithheldNotOffered() {
+        var driver = new SessionDriver(e -> { throw new AssertionError("nothing may open"); }, new SessionAuditSink());
+        var node = driver.processor().sessionRecovery;
+        var byOldProfile = new SessionResumeStore.Snapshot("/p/.analyser/project.fluxtion-settings", "2026-09-24T22:28:33Z",
+                snapshot("x").inputs(), Map.of(), "file=(dev=1,ino=10);created=2026-09-24T22:00:00Z");
+        for (var captured : List.of(byOldProfile, new SessionResumeStore.Snapshot(byOldProfile.key(),
+                byOldProfile.capturedAt(), byOldProfile.inputs(), Map.of()))) {
+            driver.submit(new ResumeEvents.Activated(byOldProfile.key()));
+            driver.submit(new ResumeEvents.OfferLoaded(node.generation(), byOldProfile.key(), captured, null,
+                    "file=(dev=1,ino=99);created=2026-09-25T07:19:23Z"));
+            var echo = node.echo();
+            assertEquals("unavailable", echo.get("state"), echo.toString());
+            assertEquals(false, echo.get("available"));
+            assertEquals("different profile at this path", echo.get("capturedBy"));
+            assertEquals("2026-09-24T22:28:33Z", echo.get("capturedAt"));
+            assertTrue(echo.get("message").toString().contains("captured by a different profile file"), echo.toString());
+            assertNull(node.candidate());
+            driver.submit(new ResumeEvents.Requested(node.generation(), true));
+            assertEquals("unavailable", node.echo().get("state"), "a withheld session cannot be accepted");
+        }
+        driver.submit(new ResumeEvents.Activated(byOldProfile.key()));
+        driver.submit(new ResumeEvents.OfferLoaded(node.generation(), byOldProfile.key(), byOldProfile, null,
+                byOldProfile.profileIdentity()));
+        assertEquals("offered", node.echo().get("state"));
+        assertEquals("same profile", node.echo().get("capturedBy"));
+        assertTrue(node.echo().get("message").toString().contains("2026-09-24T22:28:33Z"), "the offer names when it was captured");
+    }
+
     private static SessionResumeStore.Snapshot snapshot(String key) {
         return new SessionResumeStore.Snapshot(key,"2026-09-20T00:00:00Z",List.of(new SessionResumeStore.Identity("log","/demo/run.yml","a".repeat(64),null)),Map.of());
     }
