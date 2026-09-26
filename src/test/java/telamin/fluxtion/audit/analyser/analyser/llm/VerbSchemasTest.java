@@ -54,6 +54,26 @@ class VerbSchemasTest {
         }
     }
 
+    /**
+     * Virgin-LLM runs on the demo log (2026-09-24): a smaller model counted breaches from a window of records
+     * it had read, and named the first record whose value passed the limit as the first breach, although the
+     * application logged its breach one record later. The descriptions must say where each answer comes from.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void countingAndFirstOccurrenceQuestionsAreSentToTheToolsThatAnswerThem() {
+        String aggregate = (String) schema("aggregate").get("description");
+        assertTrue(aggregate.contains("counts, not record positions") && aggregate.contains("series crossings"), aggregate);
+        String metric = (String) ((Map<String, Object>) ((Map<String, Object>) schema("aggregate").get("properties"))
+                .get("metric")).get("description");
+        assertTrue(metric.contains("application itself logged a breach flag")
+                && metric.contains("a value exceeding a limit is not the same"), metric);
+        String series = (String) schema("series").get("description");
+        assertTrue(series.contains("crossing of the key it writes for that event"), series);
+        String read = (String) schema("read").get("description");
+        assertTrue(read.contains("do not count events or name a 'first' from it"), read);
+    }
+
     @Test
     void keyVerbParamsArePublished() {
         assertTrue(props("read").containsAll(Set.of("recordIndex", "byteOffset", "count", "before", "after")));
