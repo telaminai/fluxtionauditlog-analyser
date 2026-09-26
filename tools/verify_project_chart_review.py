@@ -408,8 +408,11 @@ CASES += [
      '            return store == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("open a log first") : openDesign(path, () -> true);\n',
      'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
     # §I1: with no log, the Topology tab must say the graph was not compared, not stay silent
+    # (on main's session snapshot, a graph opening re-renders through the snapshot listener, so the no-log branch of
+    # publishPairing is what carries this, not the explicit re-render on load)
     ('no-log-pairing-note', MAIN_FRAME,
-     '            if (store == null) publishPairing();      // §I1: a graph opened with no log says it was not compared\n', '',
+     '        if (topologyPanel.hasGraph() && store == null && !loadInFlight) {\n',
+     '        if (false) {\n',
      'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
 ]
 
