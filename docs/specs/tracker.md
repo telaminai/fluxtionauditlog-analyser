@@ -542,6 +542,9 @@ node was absent from a graph that declares it, reported that faithfully, and the
 same packet shows a chart reporting no data where the series response yields a point, and a requested illustration
 missing from an export that reported success.
 
+**Independent review, 2026-09-26** (`0bb01fa8`): R1–R8 and the remaining implementable gaps are implemented on
+`feat/m44-single-state-session` and tracked under **M44.4r** below; not yet independently accepted.
+
 Sibling of the tool-agreement spec, which governs agreement *between* tools. Distinct from the Mongoose audit
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
 verdict, which is owned jointly.
@@ -1843,12 +1846,27 @@ of the originals is in `057a069a`.)*
   - [M44.4b] ☑ `SessionSnapshot` and its listener; Follow reports appends; coverage reads the snapshot. Deleted the
     frame's scorer, the append republish and the `invokeAndWait`.
   - [M44.4c] ☑ `ViewFilterChanged`, `MembershipCompared` and the `PairingQualifier` node. "Pending" comes from the
-    gate, on the snapshot. Deleted the frame's pairing and qualification fields; a static test forbids them. Closed
-    the scan-during-open race.
+    gate, on the snapshot. Deleted the frame's pairing and qualification fields; a static test forbids them.
+    ~~Closed the scan-during-open race.~~ *Not alone — the independent review's R1 reopened it; see M44.4r.*
   - [M44.4] ☐ **Open acceptance** (spec §13): the remaining `PairingDuringLoadFrameTest` journeys re-expressed as
     headless event sequences; §13's four predictions scored; the reviewers' pass on §13.
   - [M44.4d] ☑ Folded into M44.4b: re-scopes are held in a separate ring and tracing stays on. The DEBUG half was
     not built (spec §13).
+  - [M44.4r] ◧ **The independent review's findings (review `0bb01fa8` on `review/m44-4-m68-2026-09-26`, subject
+    `14a72acc`), and the gaps closed before one review.** **Implemented 2026-09-26; independent acceptance NOT given**
+    — a green suite is not closure. Evidence: sets 12–13 in `docs/handoff/evidence/m44-4-single-state-2026-09-24/`.
+    - ☑ impl · R1 coverage inputs captured together on the EDT, scan off it on a filter copy and bound (`762e9853`)
+    - ☑ impl · R2 the exported coverage table obeys the session's claim (`56463d99`)
+    - ☑ impl · R3 rolled sets report member freshness; the SPI boundary stated (`b8afbe53`)
+    - ☑ impl · R4 the published snapshot's qualifications are read-only (`096d93e9`)
+    - ☑ impl · R5 `saveFocusAs` precondition in the whole-request check (`b4894e6f`)
+    - ☑ impl · R6/R7 framing past a leading BOM; an oversized pending frame says NOT assessed (`1e2c60a9`)
+    - ☑ impl · R8 no published address that does not parse; scope and exceptions stated (`c23769ad`)
+    - ☑ impl · O1 ordered snapshot delivery; O2 revision meaning stated and pinned (`933f62bd`)
+    - ☑ impl · set 13: the table banner, focus and series sections drawn, env/destination pointers, nested keys, the
+      chart/series agreement check (`f53da616`…`d7f4966a`)
+    - ☐ **independent acceptance** of all of the above
+    - ☐ owner: Q4 partial delivery, Q5 saved names with `"`, O2 content identity (spec-evidence-integrity ▸ Open)
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button

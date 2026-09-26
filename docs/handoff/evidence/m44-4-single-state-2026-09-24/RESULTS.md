@@ -217,3 +217,63 @@ two named tests. **W45 is new:** removing goto's empty-log refusal (set 10, P53)
 and stay there. Run: the 45 alone, all caught in 62.4 s; the full gate, 95 controls caught in 255.0 s; preflight,
 95 anchors. The GraphML control anchors on the edge's source and target rather than its id, because the id changed
 across this branch's regenerations (78, then 80), and an id-based anchor would have moved with the next one.
+
+## Set 12 — the independent review's R1–R8, O1, O2
+
+**Reproduced first, byte for byte, on `0bb01fa8`:** `ReviewProbe`, `CoverageRaceProbe` and `ReportCoverageProbe`
+(the last on the built jar, in an isolated home) printed exactly the committed outputs. Those are observations, not
+predictions. The probes themselves are preserved unchanged.
+
+| # | Prediction | Result |
+|---|---|---|
+| P64 | R1: identity, graph and filter cases red first; off-EDT guard green | **Partly held.** `oldInputsCannotAcquireANewIdentity` red (generation 2 qualified with `foreignOldLog`). `theScanRunsOffTheEdt` green, as predicted. **Missed:** `aGraphChangeDuringPreparationIsNotStampedNew` was GREEN on the unfixed code. In the old order a graph switch can fall only between the snapshot and the topology capture, and then the OLD revision is stamped and refused as stale — no wrong stamp. It stays as a guard. **Wrong reason, corrected:** `theScanUsesTheFilterItCaptured` first went red because its trigger fired on a record read that happens before coverage captures anything. It was scoped to inside `CoverageService.assess` before the fix was judged; its red-on-defect is shown by the `review-r1-filter-copy` control instead. |
+| P65 | R2: mismatch and no-auditor red, INFERRED green on the unfixed path; the built-jar probe prints the refusal after | **Not run as predicted:** the new test calls the new `ReportCoverage`, so it cannot run on the unfixed tree. **Red first on the real path instead:** the new end-to-end scenario 17 on the unfixed `0bb01fa8` jar FAILED both its page checks ("states the refusal", "prints no ratio"), and the other 83 checks passed. |
+| P66 | R3 red first with the method stubbed | **Held:** 3 failures and 1 error (an NPE on the null identity). |
+| P67 | R4 red first | **Held.** |
+| P68 | R5 save-refusal red; focus-then-save green | **Held,** with two more refusal cases than predicted (pop-to-full, blank name), both red first. |
+| P69 | R6/R7 red; negative controls green | **Held.** |
+| P70 | R8 red, in `SpotlightTargetTest` | **Held, in `ChartNamingTest`** beside the existing address tests. |
+| P71 | O1 red with `[second, first]`; O2 green | **Held.** |
+| P72 | at most three existing assertions change | **Held: none changed.** |
+| P73 | ten controls, 101 → 111 | **Twelve**, see below: an R2 static-guard control and one for the series-section label were added. |
+| P74 | about 20 new tests | 29 (set 12); see set 13 for the total. |
+| P75 | `CoverageRaceProbe` cannot run against the fix | See "Probes after", below. |
+
+**Unpredicted, recorded as an observation:** while stating the report-section gaps, the series section was found to
+print its gap as plain text, without the NOT RENDERED label every other unrendered section carries. It was fixed with
+`ReportRendererTest#anUnassembledSeriesSectionSaysNotRendered`. Its first red run failed for the wrong reason (the
+section did not RESOLVE), so the test gained a precondition; its red-on-defect is the `review-r8-series-not-rendered`
+control. No prediction preceded it.
+
+## Set 13 — the remaining implementable gaps (owner request)
+
+| # | Prediction | Result |
+|---|---|---|
+| P76 | each new test red first on stubs | **Held** for A (3 cases, not 2+1 named separately), B, C, D and E. Tests that expect null or the stubbed answer passed on the stub, which is no evidence either way: `anUnresolvedFocusIsNotDrawn`, `aDirectoryPointerWithoutARootOrOutsideItSaysSo`. E needed no stub. |
+| P77 | scenario 13 rewritten to assert the picture | **Done;** see the harness result below. |
+| P78 | five controls | **Seven:** A has two (the banner text, and the snapshot render), and the agreement check has one. |
+| P79 | about 13 tests | 19 (A 3, B 2, C 2, D 4, E 2, and 6 agreement cases). |
+
+**Unpredicted, recorded as an observation:** set 13 said the general chart-versus-series check would stay a stated gap.
+A cheap regression was possible after all: `ChartSeriesAgreementTest` checks that the chart's `SeriesExtractor` and the
+verb's `SeriesScan` count the same points over the committed series fixture. It passed on its first run — no
+disagreement — and its red is the `set13-chart-series-agree` control.
+
+## Sets 12–13 — gates, JDK 21 (2026-09-26)
+
+- **Headless `mvn clean test`: 2,187 / 0 / 0 / 101** over 300 reports, every one mapped to a class in `src/test/java`,
+  no orphans. Against the review's 2,139 / 0 / 0 / 101 over 292: +48 tests (29 in set 12, 19 in set 13) in 8 new
+  classes. Skips unchanged.
+- **Frame suite: 102 / 0 / 0 / 1** over 19 suites. The one skip is
+  `PersonAtTheScreenFrameTest#escapeWithTheSearchHistoryPopupFocused_putsSeveralSpotlightsOut`: its assumption
+  requires keyboard focus, which this display did not give, twice. It is reported as a skip, not a pass; CI runs it
+  under Xvfb. The review's run had 0 skips. No change here touches it.
+- **Mutation gate (fast engine): 120 controls caught, 301.0 s.** 101 before, plus 12 for set 12 and 7 for set 13. Each
+  had a green baseline, a `<failure>` at its named test, a byte-identical restore and a green re-run. Three existing
+  controls (`m68-3-quoted-key-is-text`, `m68-3-legal-file-not-accused`, `m68-3-pending-frame-scanned`) had their
+  anchors moved by the R6/R7 edits; each still plants the same defect, and all three were caught.
+- **`verify-m68-1-coverage.py` on the built jar: 85 / 0.** Scenario 17 (R2) was red on the unfixed jar (83 pass,
+  2 fail) and is green now. Scenario 13 now asserts the focus picture (set 13, B).
+- **`verify-session-transitions.py`: 23 / 0**, with the same unrun wiring it names. **`test_project_chart_review.py`:**
+  5 tests OK.
+- **`mkdocs build --strict`**, **`git diff --check`** and the rule-1 sweep: clean.
