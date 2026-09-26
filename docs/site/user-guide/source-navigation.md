@@ -10,6 +10,18 @@ The analyser also searches your local **Maven repositories** (default `~/.m2/rep
 
 A root or repo that can't be found shows **red** in Settings.
 
+## A pane shows the file as it is on disk
+
+Every navigation to a class re-reads its file, even when the pane already shows that class, so a
+processor rewritten by regeneration is not left on screen in its old form. This applies to the Source tab
+and to the source pane inside the Topology tab. Reopening a log or graph, or bringing a source pane back
+into view, rechecks what both panes show. Files are read in the background: while a read is in progress,
+the pane's header says its text is not yet rechecked, and a read that takes too long says so rather than
+blocking the window. A class whose file has gone is not shown in its former form; the header says it was
+shown before. Clicking a node to open its class uses the processor as it is on disk now, so after a class
+rename it opens the new class. Being current with disk is not the same as matching the run: the header's
+tooltip still reads **Source/run: unverified**, with the file and its SHA-256.
+
 ## Spring design and file glances
 
 **Sources ▸ Open design…** selects the session's Spring XML. Add its directory to source roots first;

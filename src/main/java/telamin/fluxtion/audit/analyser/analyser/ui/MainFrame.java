@@ -4589,6 +4589,7 @@ public final class MainFrame extends JFrame {
                     sourcePanel.setProcessors(candidates, inferred);
                     topologyPanel.setEmbeddedProcessors(candidates, inferred);
                     sourcePanel.showSelectedProcessor();
+                    topologyPanel.revalidateEmbeddedSource();
                     saveConfigQuietly();
                     refreshProjectPanel();                            // M37: "selected" just changed
                 },
@@ -4652,6 +4653,7 @@ public final class MainFrame extends JFrame {
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
         topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
         sourcePanel.showSelectedProcessor();
+        topologyPanel.revalidateEmbeddedSource();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
         if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too
         rebuildRecentMenu();

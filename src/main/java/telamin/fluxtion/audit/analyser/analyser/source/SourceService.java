@@ -23,6 +23,8 @@ public final class SourceService {
     private long generation;
     private String selectedFqn;
     private EventProcessorModel selectedModel;
+    /** True once {@link #selectedModel} answers for the current selection, even when the answer is "none". */
+    private boolean selectedModelKnown;
 
     public void configure(List<String> roots, String selectedFqn) {
         configure(roots, selectedFqn, List.of(), false);
@@ -35,6 +37,7 @@ public final class SourceService {
         this.maven = new MavenSourceResolver(mavenRepos, searchMaven);
         this.selectedFqn = selectedFqn;
         this.selectedModel = null;   // invalidate cache
+        this.selectedModelKnown = false;
     }
 
     /** Pre-index the maven repos (a filesystem walk) — call off-EDT so first lookups don't stall the UI. */
@@ -55,15 +58,17 @@ public final class SourceService {
             generation++;
             this.selectedFqn = fqn;
             this.selectedModel = null;
+            this.selectedModelKnown = false;
         }
     }
 
     /** The parsed model of the selected processor, or empty if its source can't be found. */
     public Optional<EventProcessorModel> selectedModel() {
-        if (selectedModel != null) return Optional.of(selectedModel);
+        if (selectedModelKnown) return Optional.ofNullable(selectedModel);
         if (selectedFqn == null) return Optional.empty();
         Optional<String> src = sourceForFqn(selectedFqn);
         selectedModel = src.map(s -> EventProcessorModel.parse(selectedFqn, s)).orElse(null);
+        selectedModelKnown = true;
         return Optional.ofNullable(selectedModel);
     }
 
@@ -76,8 +81,12 @@ public final class SourceService {
     /** Captured on the EDT; the worker owns no mutable service or Swing state. */
     public record Lookup(long generation, String selectedFqn, SourceRootResolver roots, MavenSourceResolver archives) {
         public Optional<SourceDocument> freshDocumentForSpotlight(String fqn) {
+            return freshDocument(fqn);
+        }
+        /** Read {@code fqn} now — a source root first, then a source archive — never from a cache. */
+        public Optional<SourceDocument> freshDocument(String fqn) {
             if (javax.swing.SwingUtilities.isEventDispatchThread())
-                throw new IllegalStateException("Source spotlight reads must run off the EDT");
+                throw new IllegalStateException("Source reads must run off the EDT");
             Optional<SourceDocument> root = roots.document(fqn);
             return root.isPresent() ? root : archives.freshDocument(fqn);
         }
@@ -86,8 +95,16 @@ public final class SourceService {
     public boolean isCurrent(Lookup lookup) { return generation == lookup.generation(); }
     /** Install the model parsed from the SAME snapshot rendered by an accepted plan. Never reread here. */
     public void acceptSpotlightModel(Lookup lookup, String fqn, EventProcessorModel model) {
+        acceptModel(lookup, fqn, model);
+    }
+    /**
+     * Install the selected processor's model parsed from the SAME read a pane just rendered (edit-loop spec
+     * §C): after a rename the node→class mapping must come from the new text, not a model cached from the
+     * old file. A null model means the file is gone, and it stays "none" rather than being lazily re-read.
+     */
+    public void acceptModel(Lookup lookup, String fqn, EventProcessorModel model) {
         if (!isCurrent(lookup)) throw new IllegalStateException("Source configuration changed");
-        if (java.util.Objects.equals(fqn, selectedFqn)) selectedModel = model;
+        if (java.util.Objects.equals(fqn, selectedFqn)) { selectedModel = model; selectedModelKnown = true; }
     }
 
     /** FQN of the declared type of a node instanceId in the selected processor, or null. */

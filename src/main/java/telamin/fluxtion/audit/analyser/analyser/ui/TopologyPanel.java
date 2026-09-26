@@ -1490,6 +1490,14 @@ public final class TopologyPanel extends JPanel {
      * embedded dropdown is never populated (its selected processor still works via the shared
      * SourceService, but the list to switch between them stays empty).
      */
+    /**
+     * Recheck the embedded source pane's files after the log or graph was replaced. It fills itself only on
+     * first use, so without this it kept showing a file rewritten by a regeneration (edit-loop spec §C).
+     */
+    public void revalidateEmbeddedSource() {
+        if (embeddedSource != null) embeddedSource.showSelectedProcessor();
+    }
+
     public void setEmbeddedProcessors(java.util.List<String> fqns, String selected) {
         lastProcessorFqns = fqns == null ? java.util.List.of() : fqns;
         lastSelectedProcessor = selected;

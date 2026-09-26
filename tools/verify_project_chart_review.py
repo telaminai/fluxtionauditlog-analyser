@@ -251,6 +251,7 @@ CASES.extend([
 # Menu discoverability after the 1.20.0 reorganisation: a miss says where the item went; context lists the menus.
 MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
+SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -267,6 +268,30 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
     ('context-menu-changes', MAIN_FRAME, '            out.put("menuChanges", MenuHints.changes(menuMap()));', '',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    # edit-loop spec §C: Topology's embedded pane fills itself only on first use; a reopened log must recheck it
+    ('source-embedded-refresh', MAIN_FRAME,
+     '                    sourcePanel.showSelectedProcessor();\n                    topologyPanel.revalidateEmbeddedSource();',
+     '                    sourcePanel.showSelectedProcessor();',
+     'SourceFreshnessFrameTest#bothPanesShowTheFileAsItIsAfterTheLogIsReopenedAndOnTheNextNavigation'),
+    # §C: node-id navigation after a rename must use the model from the same read, not a cached one
+    ('source-service-model', SOURCE_PANEL,
+     '        if (Objects.equals(fqn, service.selectedFqn())) service.acceptModel(lookup, fqn, read.model());', '',
+     'SourcePanelFreshnessTest#afterAClassRenameNodeNavigationUsesTheProcessorAsItIsNow'),
+    # §C: a read that blocks must not block the EDT
+    ('source-reads-off-edt', SOURCE_PANEL,
+     '        telamin.fluxtion.audit.analyser.analyser.core.Background.run(work, done, failed);',
+     '        try { done.accept(work.get()); } catch (Throwable t) { failed.accept(t); }',
+     'SourcePanelFreshnessTest#aBlockedReadLeavesTheEdtResponsiveAndASupersededAnswerIsDropped'),
+    # §C: an unchanged name is not an unchanged file
+    ('source-same-name-reread', SOURCE_PANEL,
+     '        load(pane, fqn, instead != null ? instead : () -> {',
+     '        if (!newName && !pane.source.isEmpty()) return;\n        load(pane, fqn, instead != null ? instead : () -> {',
+     'SourcePanelFreshnessTest#navigatingToTheSameClassAgainShowsItsFileAsItIsNow'),
+    # §C: an answer past its deadline (or superseded) is never installed
+    ('source-stale-ticket', SOURCE_PANEL,
+     '            deadline.stop();\n            if (pane.readTicket != ticket) return;\n            pane.reading = false;\n            if (service == null',
+     '            deadline.stop();\n            pane.reading = false;\n            if (service == null',
+     'SourcePanelFreshnessTest#aReadPastItsDeadlineSaysSoAndItsLateAnswerIsIgnored'),
 ]
 
 def display_classes(root=Path('.')):

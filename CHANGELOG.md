@@ -6,6 +6,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Source panes show the file as it is now.** After a regeneration, the Topology tab's source pane kept
+  showing the old processor, even after the log was reopened; and after renaming a node's class, opening
+  that node could still land on the removed class. Every navigation now re-reads the file, reopening a log
+  or graph rechecks both source panes, and node navigation uses the processor as it is on disk. Reads run in
+  the background with a visible "not yet rechecked" state, so a slow disk no longer freezes the window.
+
 ## [1.20.1] - 2026-09-24
 
 - **An assistant can find its way around the new menus.** Pointing at a menu item that is not where it was asked
