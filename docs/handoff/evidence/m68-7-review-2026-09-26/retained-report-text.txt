@@ -1,0 +1,30 @@
+INVESTIGATION
+
+Retained chart
+
+WRITTEN AGAINST
+
+mapped.yml · 2 record(s) · 00:00:01.000->00:00:02.000
+
+AUTHORED VIEW
+
+all event types
+
+LOG
+
+mapped.yml - loaded snapshot; log changed-on-disk; graph unknown (metadata ...
+
+CREATED
+
+2026-09-26T19:54:31.928287Z
+
+RENDERED
+
+2026-09-26 19:54:31.942
+
+Trend · Before
+Follows time filter · DIMENSION: all · text: none
+
+Retained chart · mapped.yml - loaded snapshot; log changed-on-disk; graph unknown (metadata observation, not conte...
+
+1/1

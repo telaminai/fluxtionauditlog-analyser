@@ -1,0 +1,7 @@
+REVIEW originalHarnessShowing=false
+REVIEW GraphTabs showing=true width=192 preferred=1400 drawn=⚠ the opened file changed in ...
+REVIEW DetailPanel showing=true width=606 preferred=1340 drawn=⚠ the opened file changed in place, so the records already indexed may no longer match it; reads ar...
+REVIEW darkActual=ffb04020 darkExpected=ffe87a5a
+REVIEW verdict=UNVERIFIED mappedReportRefused=true
+REVIEW atomicReportAllowed=true replyHasIdentityNote=true
+REVIEW closeClears=true

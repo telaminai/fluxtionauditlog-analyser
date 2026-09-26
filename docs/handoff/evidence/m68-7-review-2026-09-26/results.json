@@ -1,0 +1,118 @@
+{
+  "headlessInitialSandbox": {
+    "tests": 2397,
+    "failures": 0,
+    "errors": 29,
+    "skipped": 109,
+    "reports": 323
+  },
+  "headlessPermitted": {
+    "tests": 2397,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 109,
+    "reports": 323,
+    "orphans": []
+  },
+  "detachedBannerControl": {
+    "runs": [
+      {
+        "label": "baseline",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "label": "detached",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "label": "restored",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "sha256": "f97d5889492f76bf33a5cd7d47a2d1cec40f1997e6a5e41e1fa219a60f8fd0e9",
+    "restoredByteIdentical": true
+  },
+  "controls": [
+    {
+      "name": "set13-a-table-banner",
+      "verdict": "caught",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true
+    },
+    {
+      "name": "set13-a-rendered-from-snapshot",
+      "verdict": "caught",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true
+    },
+    {
+      "name": "m68-7-charts-not-rendered",
+      "verdict": "caught",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true
+    },
+    {
+      "name": "m68-7-detail-not-rendered",
+      "verdict": "caught",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true
+    },
+    {
+      "name": "m68-7-chart-banner-hidden",
+      "verdict": "caught",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true
+    },
+    {
+      "name": "m68-7-chart-text-bypasses-rule",
+      "verdict": "caught",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true
+    }
+  ],
+  "controlsSeconds": 21.9,
+  "neighbours": {
+    "tests": 26,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reports": 6
+  },
+  "display": {
+    "tests": 109,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reports": 22
+  },
+  "preflight": {
+    "frameSuites": 22,
+    "anchors": 165
+  },
+  "finalBeforeCommit": {
+    "tests": 2397,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 109,
+    "reports": 323,
+    "orphans": []
+  }
+}
