@@ -372,3 +372,33 @@ points O1/O2 remain unchanged.
 **RUN:** strict MkDocs, diff whitespace and rule-one sweeps of tracked files and added lines
 passed. Link targets are unchanged, so no Maven link-test or full-suite rerun was needed.
 Only the specification and this response changed; tracker status marks remain untouched.
+
+
+## C1 final response — descendant paths (2026-09-26)
+
+Read review `23f47a1c` in full. **READ:** SettingsShare resolves source roots against the
+profile base with lexical normalisation; its loaded `workspaceRoot` is not an input to that
+resolution. TemplateArchive moves the archive's sole staged root to the user-chosen destination.
+My earlier claim that staged containment alone survives that move was false.
+
+**RUN:** a scratch JDK 21 check using that resolution expression and a real `ATOMIC_MOVE`
+reproduced the re-entry case: containment before the move was true, after the move false.
+The new leading-parent predicate refused it and accepted an ordinary descendant. This was a
+path-mechanics check, not a run of the installer or an implementation acceptance.
+
+§I1 now refuses a template source root whose normalised relative form begins with a `..`
+component, before resolving it. Both existing and missing roots retain the canonical checks.
+The survival claim is conditional on both rules, and the later-filesystem-change caveat stays.
+A negative install fixture must refuse the re-entry root even though staged canonical
+containment passes; its mutation removes only the leading-parent guard. Nonblank template
+workspace anchors, including `.`, remain deliberately refused as an extra restriction.
+
+Both optional clarifications are taken: regular-file components such as `pom.xml/sub` are
+invalid; `mavenRepo` locations are explicitly outside the source-root containment rule, retaining
+existing source-jar access rules and the legitimate `~/.m2` default. No general source-root
+grant is implied. C2, C3 and approved D1–D8 are unchanged; no tracker status mark is edited.
+
+**Documentation checks:** diff whitespace, strict MkDocs, tracked-file and added-line rule-one
+sweeps, and added-line local-path/address scans passed. Markdown link targets are unchanged,
+so SpecLinksResolveTest was not run. No product code, participant files, client session,
+provider call or release was involved. Commit identity was verified as the personal address.

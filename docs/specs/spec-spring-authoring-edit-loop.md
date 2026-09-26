@@ -548,25 +548,46 @@ The containment check belongs in **TemplateArchive installation**, before the at
 against the **staged project root**, not the not-yet-installed destination or generic profile
 loading. There is no typed design-root key: check every source root in the template profile.
 Read profile paths using the loader's forms and project-relative base (not the `.analyser`
-directory), but reject a template-supplied nonblank `workspaceRoot`, home-relative (`~` or `~/`)
-root or absolute root as an attempt to escape the template boundary. A template cannot widen
-its own grant. Resolve permitted relative roots against staging and canonicalise both the
-candidate and the staged boundary; a symlinked parent directory must not cause a false refusal.
+directory), but reject home-relative (`~` or `~/`) and absolute template source roots.
+The loader reads and validates `workspaceRoot` but does **not** use it to resolve source roots;
+it affects portable path export instead. Deliberately keep rejection of **any nonblank**
+template `workspaceRoot`, including `.`, as an extra restriction, not the containment boundary.
+
+**Every template source root must be a plain descendant path.** Before resolving it against
+staging, lexically normalise its relative form and refuse it if the first path component is
+`..`. This rule applies to existing and missing directories alike. In particular,
+`../<archive-root-name>/src/main/java` must be refused even when it resolves inside the staged
+project: after the move, the destination can have a different name and the same root escapes.
+The leading-parent rule, rather than rejection of a workspace anchor, prevents that widening.
+Resolve permitted normalised relative roots against staging and canonicalise both the candidate
+and the staged boundary; a symlinked parent directory must not cause a false refusal.
 For a missing directory, canonicalise its nearest existing directory ancestor, append the
-lexically normalised remaining components with no `..`, then check containment. This permits
-an internal future `target/` root without creating it. Refuse escape, invalid forms or an
-unresolvable ancestor before the move, preserving the staged/no-partial-install contract.
-Relative containment then survives the move; this does not promise safety against later
+normalised remaining components with no `..`, then check containment. This permits an internal
+future `target/` root without creating it. An existing root or required ancestor must be a
+directory: refuse a regular-file component such as `pom.xml/sub` as an invalid form. Refuse
+escape, invalid forms or an unresolvable ancestor before the move, preserving the
+staged/no-partial-install contract. With the descendant-path rule and canonical checks,
+relative containment then survives the move; this does not promise safety against later
 filesystem changes, which remain subject to §E's read-authorisation checks.
+
+Template-supplied `mavenRepo` locations are explicitly **exempt from this source-root containment
+rule**; the normal external repository `~/.m2` remains legitimate. Existing Maven source-jar
+lookup settings and access rules still apply. This acceptance makes no project-containment
+claim for repository locations and does not grant them general source-root access.
 
 Extraction creates only regular files and directories and refuses a symbolic-link destination;
 an archive cannot supply an internal filesystem symlink through this route. Assert that the
 installed tree contains no symbolic links, including when ZIP metadata requests one. Drop the
 unreachable archive-internal-symlink escape fixture rather than adding an implementation hook
 solely for it. Real install fixtures cover `../` escape, absolute/home-relative roots,
-workspace widening, a missing internal future root and an installation parent reached through
-a filesystem alias. Removing the install-time profile-root check must fail the `../` refusal
-assertion, without relying on the separate ZIP-entry traversal guard. A positive control opens
+rejection of nonblank workspace anchors (including `.`), a regular-file component, a missing
+internal future root and an installation parent reached through a filesystem alias. Add a
+negative fixture whose profile root is `../<archive-root-name>/src/main/java` and whose chosen
+destination has a different name: installation must refuse it although canonical resolution
+inside staging succeeds. Use ordinary ZIP entry names. Removing just the leading-parent check
+must fail that re-entry refusal assertion even with the canonical check intact. Removing the
+install-time profile-root check must fail the `../` refusal assertion, without relying on the
+separate ZIP-entry traversal guard. A positive control opens
 a user-authored profile with an explicitly granted external monorepo root: it remains supported
 under §E/D3. A constructed archive/profile supports branch install/frame checks, but the real
 public-download acceptance is **not runnable on a branch fixture**.
