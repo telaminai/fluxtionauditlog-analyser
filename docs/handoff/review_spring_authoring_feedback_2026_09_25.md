@@ -55,7 +55,7 @@ Specification letters refer to the linked proposal.
 | 3 — stale Java | **READ** identifies two panes and a service cache: the Source tab already rereads on selected-processor refresh, the embedded Topology pane fills only on first use, and a pane reread leaves the service model stale. Repeated session symptoms remain **REPORTED**. | **C**, analyser ordinary-navigation freshness. Keep source/run identity separate. |
 | 4 — conflict advice | Error text is **REPORTED**. The proposed universal field-name rule is too strong; existing bindings may differ from bean ids. | **A**, actionable diagnostics with only established declarations suggested; also UP-FLX-32's wiring guidance. |
 | 5 — foreign recovery offer | **READ + REPORTED.** The current key is the profile's real path, so replacement at the same path aliases the old capture. The participant's actual deletion history was not observed. | **E**, recreated-path fixture first, durable profile identity and capture-time disclosure, then pending-I/O/switch controls; no automatic restore. |
-| 6 — fabricated zero event | **READ**: blank/short rows produce zero events; non-numeric rows throw and are dropped by core without audit rejection. The session later uses a replacement mapper. | **B**, remove fabrication; full visible rejection requires approved D1's processor-audited rejection event, not the stdout-only unknown handler. |
+| 6 — fabricated zero event | **READ**: blank/short rows produce zero events; non-numeric rows throw and are dropped by core without audit rejection. The session later uses a replacement mapper. | **B**, remove fabrication together with approved D1's processor-audited rejection event, not the stdout-only unknown handler. |
 | 7 — cumulative capture | **REPORTED**; persistence is not inherently wrong. Moving capture aside was a manual session workaround. | **H / MA-2 / OD-5**, explicit export scope and authoritative run boundary; no implicit deletion. |
 | 8 — script permissions | **READ**: TemplateArchive deliberately applies a fixed executable list and omits setup/validate/generate; the template marks them executable. This is an analyser installer defect, independently of direct ZIP modes. | **G**, analyser install test/control removing generate.sh from the list. Separate direct-browser ZIP check; D6 approves documenting absent Windows entry points for this pass. |
 | 9 — CLI help/link | **READ**: starter special-cases help only as the first argument. `link` encodes the XML into a browser URL; it does not migrate ownership. No CLI was executed here. | **G**, per-command help and accurate link documentation, no project mutation. |
@@ -345,3 +345,30 @@ The reviewer's new checks are future acceptance, not tests implemented or reprod
 public-data sweeps, and private-path/address/wording scans passed. All 50 packet-related local
 links/anchors resolve; link targets and existing tracker status marks are unchanged. No Maven
 suite was rerun for unchanged links. Commit identity was verified as the personal address.
+
+
+## C1 boundary clarification — 2026-09-26
+
+Read re-review `43a117ba` in full; C2 and C3 remain resolved and D1–D8 remain approved.
+**READ:** TemplateArchive extracts regular files/directories into staging, refuses a linked
+destination and moves the sole project root atomically. ProjectProfile supplies the profile's
+project-relative base; PathForm and SettingsShare support user-authored workspace, home and
+absolute forms. No installer or product scenario was run.
+
+§I1 now validates template profile roots before the move against the canonical staged root,
+canonicalising both sides. Template workspace, home and absolute forms cannot widen the boundary.
+Missing internal roots use the canonical nearest existing directory ancestor plus a normalised
+remainder without parent traversal. The unreachable archive-internal-symlink fixture is
+removed; extraction's link-free result is asserted instead. Actual installer controls cover
+profile traversal separately from ZIP-entry traversal, and retain a positive external-root
+case for ordinary user profiles. The companion feedback-6 wording now says “together with”
+to match the approved single rejection/fabrication-removal slice.
+
+The earlier specification was still imprecise about staging versus installed paths and
+proposed a fixture the extractor cannot produce. This corrects those premises without adding
+a validation hook, implementation, owner decision or completion claim. Optional console
+points O1/O2 remain unchanged.
+
+**RUN:** strict MkDocs, diff whitespace and rule-one sweeps of tracked files and added lines
+passed. Link targets are unchanged, so no Maven link-test or full-suite rerun was needed.
+Only the specification and this response changed; tracker status marks remain untouched.
