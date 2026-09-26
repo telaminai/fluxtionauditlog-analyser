@@ -130,6 +130,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   was open while one was on screen. The refusal to score coverage against a graph built from what ran therefore
   never came from the session. Internally, graphs and log closes now reach the session as facts at the place they
   happen, not through a menu-refresh observation that skipped any change made mid-operation (M44.4a).
+- **Spring authoring scripts are installed runnable.** A Spring template installed from the analyser left
+  `setup.sh`, `validate.sh` and `generate.sh` without the execute bit, so `./setup.sh` failed with
+  "permission denied". They are now made executable with the other bundle scripts. Archive file modes
+  are still never trusted.
 
 ## [1.20.1] - 2026-09-24
 

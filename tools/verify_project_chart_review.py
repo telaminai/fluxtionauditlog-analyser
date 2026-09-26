@@ -253,6 +253,7 @@ MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHint
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
 SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java'
 SOURCE_SERVICE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/source/SourceService.java'
+TEMPLATE_ARCHIVE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/template/TemplateArchive.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -319,6 +320,15 @@ CASES += [
      '                why -> nodePane.label.setText("could not open node \'" + instanceId + "\': " + why));',
      '                why -> { });',
      'SourcePanelFreshnessTest#aNodeRequestWhoseProcessorReadTimesOutSaysWhyItDidNotOpen'),
+    # edit-loop spec §G, feedback 8: archive modes are ignored, so the fixed list is what makes generate.sh runnable
+    ('installer-authoring-executables', TEMPLATE_ARCHIVE, '"setup.sh", "validate.sh", "generate.sh");',
+     '"setup.sh", "validate.sh");', 'TemplateArchiveTest#springAuthoringScriptsAreInstalledRunnableWithoutChmod'),
+    # PR #27 review nit 1: only ROOT entries on the list become executable; a basename-only match would
+    # make a nested bundle/tools/generate.sh executable
+    ('installer-nested-script-not-executable', TEMPLATE_ARCHIVE,
+     "if (portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
+     'if (POSIX_EXECUTABLES.contains(base)) {',
+     'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
 ]
 
 # M44.4 and M68 (feat/m44-single-state-session): the mutation witnesses behind that branch's evidence sets, registered

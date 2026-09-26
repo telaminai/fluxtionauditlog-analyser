@@ -30,6 +30,8 @@ or a G14 pass. The running project remains untouched.
   to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
   generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
   producer check; D6 approves documenting Windows absence, with implementation deferred.
+  **In review:** [PR #27](https://github.com/telaminai/fluxtionauditlog-analyser/pull/27) — install test runs the
+  three scripts without chmod; gate case `installer-authoring-executables`. Not closed until merged.
 - ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
   add the emitted Spring design directory to template roots. Validate all template profile
   source roots inside the installed project in TemplateArchive; preserve explicitly granted
