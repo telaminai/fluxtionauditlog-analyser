@@ -61,6 +61,19 @@ import java.util.Locale;
  * stated rather than hidden: records that SHARE a grouping (two ungrouped processors, say) are read as one
  * stream, which nothing in a record establishes; and a record with NO {@code groupingId:} line does not
  * declare "ungrouped", so whether a change applied there is qualified, not assumed.
+ *
+ * <p><b>What "in the records sharing its grouping" relies on</b> (owner decision, 2026-09-26, eighth re-review).
+ * The owner states, as a fact about the producer, that it writes <b>one processor per grouping</b>. Every note's
+ * scope phrase — "in the records sharing its grouping", "in the records that, like it, state no grouping" — reads
+ * the records of one grouping as one processor's stream on that statement, not on anything a record shows. The
+ * note itself does not repeat the limit; this Javadoc and the spec (MA-8) are where it is written down.
+ *
+ * <h2>How far a change reaches past a stream-end marker</h2>
+ *
+ * <p>A stream-end marker begins a later run, and the log does not say whether a level survived into it. A change's
+ * annotation therefore covers at most ONE marker (owner decision, 2026-09-26, eighth re-review, option b): it stops
+ * at the SECOND stream-end marker after the change. Records past that marker get no level annotation and stay
+ * uncovered, so a note never has to carry survival of more than one marker.
  */
 public final class PerNodeLevelChanges {
 
@@ -86,7 +99,16 @@ public final class PerNodeLevelChanges {
      * the window logic was never told, so "Nothing later … changes it" ran on past a record that may have restored
      * INFO. It now closes the window, the conservative direction, and the sentence says why.
      */
-    record Unreadable(int row, Long logTime, Grouping context) { }
+    record Unreadable(int row, Long logTime, Grouping context, boolean nullRecord) {
+        /**
+         * Eighth re-review R8-4. A row whose {@code record()} is null was read only from its raw text: its time is
+         * whatever that text's header says, or unknown — never "(untimed)", which is a claim about the record.
+         */
+        String at() {
+            return "record " + (row + 1) + (logTime != null ? " (logTime " + logTime + ")"
+                    : nullRecord ? " (its time was not read)" : " (untimed)");
+        }
+    }
 
     /**
      * The processor grouping a record DECLARES about itself.
@@ -139,7 +161,8 @@ public final class PerNodeLevelChanges {
             if (record == null) {
                 // Seventh re-review O7-1: no store in this repository returns null, but a plugin's might. A row whose
                 // raw text names the control event is then a control record this reader could not read, not nothing.
-                if (isControlEvent(rawEvent(store.rawText(row)))) unread.add(new Unreadable(row, null, context[row]));
+                String raw = store.rawText(row);
+                if (isControlEvent(rawEvent(raw))) unread.add(new Unreadable(row, rawLogTime(raw), context[row], true));
                 continue;
             }
             // Exact match, not contains: `FakeEventLogControlEventX` is not a control event. The
@@ -148,12 +171,48 @@ public final class PerNodeLevelChanges {
             String text = record.eventToString();
             Rendering r = text == null ? null : parse(text);
             if (r == null) {
-                unread.add(new Unreadable(row, record.logTime(), context[row]));
+                unread.add(new Unreadable(row, record.logTime(), context[row], false));
                 continue;
             }
             out.add(new Change(r.sourceId(), r.groupId(), r.level(), row, record.logTime(), context[row]));
         }
         return new PerNodeLevelChanges(List.copyOf(out), List.copyOf(unread), context, store.runBoundaries());
+    }
+
+    /**
+     * The {@code event:} header field's value, read from the raw text, or null (seventh re-review O7-1; eighth R8-4).
+     *
+     * <p>Only the header is read — {@code eventLogRecord}, {@code logTime}, {@code groupingId}, {@code event} — and the
+     * scan stops at the first payload field, as {@link #groupingOf} stops at {@code event:}. A node value that reads
+     * {@code event: EventLogControlEvent} is therefore never taken for the record's event.
+     */
+    static String rawEvent(String rawText) {
+        String v = headerField(rawText, "event:");
+        return v == null || v.isEmpty() ? null : v;
+    }
+
+    /** The {@code logTime:} header field, or null when the header has none or it is not a number (R8-4). */
+    static Long rawLogTime(String rawText) {
+        String v = headerField(rawText, "logTime:");
+        if (v == null) return null;
+        try {
+            return Long.parseLong(v);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** One header field of the raw text; the scan stops at the first line that is not a header field. */
+    private static String headerField(String rawText, String name) {
+        if (rawText == null) return null;
+        for (String line : rawText.split("\n", -1)) {
+            String t = line.strip();
+            if (t.isEmpty() || t.equals("---") || t.startsWith("#") || t.equals("eventLogRecord:")) continue;
+            if (t.startsWith(name)) return t.substring(name.length()).strip();
+            boolean header = t.startsWith("logTime:") || t.startsWith("groupingId:") || t.startsWith("event:");
+            if (!header) return null;                    // the first payload field: nothing after it is the header
+        }
+        return null;
     }
 
     /**
@@ -163,16 +222,6 @@ public final class PerNodeLevelChanges {
      * {@code eventToString}, node values — comes after it, so a payload line cannot declare a grouping.
      * A producer that writes the fields in another order simply reads as undeclared, the safe direction.
      */
-    /** The {@code event:} line's value, read from the raw text, or null. */
-    static String rawEvent(String rawText) {
-        if (rawText == null) return null;
-        for (String line : rawText.split("\n", -1)) {
-            String t = line.strip();
-            if (t.startsWith("event:")) return t.substring("event:".length()).strip();
-        }
-        return null;
-    }
-
     static Grouping groupingOf(String rawText) {
         if (rawText == null) return Grouping.ABSENT;
         for (String line : rawText.split("\n", -1)) {
@@ -303,10 +352,15 @@ public final class PerNodeLevelChanges {
             }
             if (blocked != null) next = null;
             int until = blocked != null ? blocked.row() : next == null ? Integer.MAX_VALUE : next.row();
+            // Eighth re-review R8-1/R8-2, owner decision (option b): the annotation stops at the SECOND stream-end
+            // marker after the change, so a record past it is never explained and at most one marker is crossed.
+            Integer m1 = boundaryBetween(c.row(), Integer.MAX_VALUE);
+            Integer m2 = m1 == null ? null : boundaryBetween(m1, Integer.MAX_VALUE);
+            int stop = m2 == null ? until : Math.min(until, m2);
             int first = -1, last = -1;
             for (int r : inView) {
                 if (r <= c.row()) continue;
-                if (r >= until) break;
+                if (r >= stop) break;
                 if (!c.context().equals(context(r))) continue;       // another processor's record
                 if (first < 0) first = r;
                 last = r;
@@ -318,8 +372,6 @@ public final class PerNodeLevelChanges {
             // Seventh re-review R7-2/R7-3: the conclusion is bounded by the change, the window's end and the grouping.
             // The window's end, for the definite part, is the closer or the first marker after the change, whichever
             // comes first; for the part after that marker, the closer or the NEXT marker.
-            Integer m1 = boundaryBetween(c.row(), Integer.MAX_VALUE);
-            Integer m2 = m1 == null ? null : boundaryBetween(m1, Integer.MAX_VALUE);
             Integer closer = until == Integer.MAX_VALUE ? null : until;
             String end1 = closer != null && (m1 == null || closer < m1) ? "record " + (closer + 1)
                     : m1 != null ? "the stream-end marker preceding record " + (m1 + 1) : null;
@@ -402,14 +454,16 @@ public final class PerNodeLevelChanges {
         // closings were missing), with "processor" allowed only in "processor grouping".
         String scope = declared ? "the records sharing its grouping" : "the records that, like it, state no grouping";
         boolean closed = next != null || blocked != null;
-        s.append(!closed ? ". Nothing later in " + scope + " changes it"
-                : ". " + (blocked != null ? unreadableClosing(nodeId, c, blocked, declared, crosses)
-                : closing(nodeId, c, next, declared, crosses)));
-        String lines = nodeId + "'s lines below " + c.level() + " are not in this log";
         // Found while reading the fifth re-review's sentences: after a closing clause, "if it applied here" could read
         // as the CLOSING change — O-1's ambiguity, in the condition. Name the change the condition is about.
         String subject = !closed ? "it" : "the change at " + at(c);
         if (!premises.isEmpty()) premises.set(0, premises.get(0).replaceFirst("^it ", subject + " "));
+        // Eighth re-review R8-3: "it holds" carries the conclusion's WHOLE condition — naming as well as applying.
+        String condition = premises.isEmpty() ? null : all(premises);
+        s.append(!closed ? ". Nothing later in " + scope + " changes it"
+                : ". " + (blocked != null ? unreadableClosing(nodeId, condition, blocked, declared, crosses)
+                : closing(nodeId, c, next, declared, crosses, condition)));
+        String lines = nodeId + "'s lines below " + c.level() + " are not in this log";
         // Read in the sixth round's own output: after "whether that record changed … is not established" or after a
         // change past a marker, ", so …" made the conclusion read as following from the clause before it. It follows
         // from the change that opened the window, so it stands as its own sentence.
@@ -431,9 +485,12 @@ public final class PerNodeLevelChanges {
                 // names the marker (end1), so "That marker" below has its antecedent (third re-review O-C, O5-3).
                 s.append(premises.isEmpty() ? (ownSentence ? ". " + capitalise(span) : ", so " + span)
                         : ". If " + all(premises) + ", then " + span);
+                // Eighth re-review R8-1: the later-run clause is bounded like every other conclusion — after that
+                // marker, before the closer or the second marker (end2), in the change's grouping.
                 s.append(". That marker begins a later run, and the log does not say ")
-                        .append("whether the level survived into it: for the records in view from record ")
-                        .append(boundary + 1).append(" on, those lines are absent only if ").append(all(later));
+                        .append("whether the level survived into it: for the records in view after that marker")
+                        .append(end2 == null ? "" : " and before " + end2).append(", in ").append(scope)
+                        .append(", those lines are absent only if ").append(all(later));
             } else {
                 s.append(". Every record in view is in a LATER run — ").append(marker)
                         .append(" begins it — and the log does not say whether the level survived into it. If ")
@@ -452,7 +509,8 @@ public final class PerNodeLevelChanges {
      * no-node reading asserted as fact. The window still ends at such a change: that only withholds annotations
      * after it, the conservative direction. What the sentence must not do is say why as if it were known.
      */
-    private static String closing(String nodeId, Change c, Change next, boolean declared, boolean crosses) {
+    private static String closing(String nodeId, Change c, Change next, boolean declared, boolean crosses,
+                                  String condition) {
         // Fourth re-review R-B: did the CLOSING change apply? With a declared context, yes: it shares c's context
         // and affects the node, so it is YES. With an absent context it is as open as c was — and it is not
         // implied by c having applied only when their groupIds differ: c addressed to 'alpha' applied under a null
@@ -465,7 +523,7 @@ public final class PerNodeLevelChanges {
         String addressed = next.groupId() == null ? "no processor grouping" : "processor grouping '" + next.groupId() + "'";
         // Fifth re-review O5-1: while that is open, the level is known to hold AT LEAST until then, not to end there.
         // R7-5: while the change's own applying is open, "It holds" is said only under that condition, naming it.
-        String holds = holdsLead(c) + (closeOpen ? " at least until " : " until ");
+        String holds = holdsLead(condition) + (closeOpen ? " at least until " : " until ");
         // O5-2: one "if it applied", not two.
         String onlyIf = ", and only if it applied here: it was addressed to " + addressed
                 + ", and whether it applied is not established either";
@@ -507,9 +565,12 @@ public final class PerNodeLevelChanges {
                 + "end it there" + (closeOpen ? onlyIf : "");
     }
 
-    /** R7-5: "It holds", or — while the change's applying is not established — that, under its condition. */
-    private static String holdsLead(Change c) {
-        return c.applies() == Applies.YES ? "It holds" : "If the change at " + at(c) + " applied here, it holds";
+    /**
+     * R7-5, eighth re-review R8-3: "It holds", or — while anything the conclusion rests on is not established — that,
+     * under the conclusion's own condition: naming as well as applying.
+     */
+    private static String holdsLead(String condition) {
+        return condition == null ? "It holds" : "If " + condition + ", it holds";
     }
 
     /** R6-2's lead: where the next change is, among the records the window is read over. */
@@ -523,13 +584,22 @@ public final class PerNodeLevelChanges {
      * is exactly what cannot be said, so the level holds AT LEAST until it — or, past a stream-end marker (R6-2),
      * the record is only named.
      */
-    private static String unreadableClosing(String nodeId, Change c, Unreadable u, boolean declared, boolean crosses) {
+    private static String unreadableClosing(String nodeId, String condition, Unreadable u, boolean declared,
+                                            boolean crosses) {
         String what = "whether that record changed " + nodeId + "'s audit level is not established";
+        String where = declared ? "in the same grouping" : "among the records that likewise state no grouping";
         // Seventh re-review R7-6: "A later", not "The next" — a readable control record for another node may come first.
+        // Eighth re-review R8-4: a row read only from its raw text is "a record … whose text names the control event".
+        if (u.nullRecord()) {
+            return crosses
+                    ? "A later record " + where + ", " + u.at() + ", whose text names the control event, could not be read "
+                    + "by this reader; " + what
+                    : holdsLead(condition) + " at least until " + u.at() + ", a record this reader could not read, whose "
+                    + "text names the control event; " + what;
+        }
         return crosses
-                ? "A later control record " + (declared ? "in the same grouping" : "among the records that likewise "
-                + "state no grouping") + ", " + at(u.row(), u.logTime()) + ", could not be read by this reader; " + what
-                : holdsLead(c) + " at least until " + at(u.row(), u.logTime()) + ", a control record this reader could "
+                ? "A later control record " + where + ", " + u.at() + ", could not be read by this reader; " + what
+                : holdsLead(condition) + " at least until " + u.at() + ", a control record this reader could "
                 + "not read; " + what;
     }
 

@@ -370,7 +370,15 @@ with the answer sitting in the file.
    cannot declare one; a change explains, and is closed by, only records of the same declared context.
    A record with **no** `groupingId:` line does not declare "ungrouped", so applicability there is
    qualified, not assumed. **Stated limit:** records that share a grouping are read as one processor's,
-   which nothing in a record establishes (re-review RR-3).
+   which nothing in a record establishes (re-review RR-3). **What the notes rely on** (owner decision,
+   2026-09-26, eighth re-review): the owner states, as a fact about the producer, that it writes **one
+   processor per grouping**. Every note's scope phrase — "in the records sharing its grouping", "in the
+   records that, like it, state no grouping" — reads one grouping's records as one processor's stream on
+   that statement. The note does not repeat the limit; this spec and the `PerNodeLevelChanges` class
+   Javadoc are where it is written down. **How far a change reaches past a stream-end marker** (owner
+   decision, 2026-09-26, option b): a change's annotation stops at the **second** stream-end marker after
+   it. Records past that marker get no level annotation and stay uncovered, so a note carries survival of
+   at most one marker.
 5. **What is parsed, and when a change applies — as the RUNTIME does it** (1.0.16,
    `EventLogManager.calculationLogConfig`): key on the record's `event` being `EventLogControlEvent`;
    read `level`, `sourceId`, `groupId` by the rendering's **fixed separators** — each exactly once, in

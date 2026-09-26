@@ -94,3 +94,6 @@ heldout-results.md
 # Keep them outside /tmp so a reboot cannot erase the trial, but review before public export.
 /.local-evidence/coldstart-v2-2026-09-20/
 /.local-evidence/starter-verification-tiers-2026-09-20/
+
+### maven-shade build output (R8-7) ###
+dependency-reduced-pom.xml

@@ -540,7 +540,9 @@ class CoveragePerNodeLevelTest {
         assertNotNull(later, "the annotation is not dropped — the level may well have survived: " + later);
         assertTrue(later.contains("Every record in view is in a LATER run") && later.contains("survived"),
                 "it says the scope is after the boundary: " + later);
-        assertFalse(later.contains(", so " + node + "'s lines below WARN are not in this log"),
+        // Eighth re-review R8-6: this guard pinned a form the code no longer writes, so it could not fail. Every
+        // definite conclusion now reads ", so after record …"; wholly after a marker there must be none.
+        assertFalse(later.contains(", so after record"),
                 "RR-4: no definite suppression claim about records the level may not have reached: " + later);
         assertTrue(later.contains("If it survived the marker, then after that marker and before the stream-end marker "
                 + "preceding record 4, in the records sharing its grouping, " + node + "'s lines below WARN are not in this log"),
@@ -555,7 +557,8 @@ class CoveragePerNodeLevelTest {
         assertTrue(spanning.contains("so after record 1 and before the stream-end marker preceding record 3, in the records "
                 + "sharing its grouping, " + node + "'s lines below WARN are not in this log"),
                 "definite within the run the change was made in: " + spanning);
-        assertTrue(spanning.contains("from record 3 on, those lines are absent only if it survived the marker"),
+        assertTrue(spanning.contains("for the records in view after that marker and before the stream-end marker preceding "
+                + "record 4, in the records sharing its grouping, those lines are absent only if it survived the marker"),
                 "conditional after the boundary: " + spanning);
         String same = annotations(assess(seq, true, window(1001, 1001))).get(node);
         // Seventh re-review R7-3: within one run there is still nothing CONDITIONAL — but the definite claim stops at the

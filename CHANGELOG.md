@@ -35,9 +35,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   described as setting the level applied whenever the change before it did, within the same run. A control
   record the analyser cannot read ends the explanation there and says so, rather than being passed over as
   if it changed nothing, and a change after a stream-end marker is named without claiming the level lasted
-  until it. Every conclusion is bounded: it speaks for the records after the change and before the window
-  ends — the next change, an unreadable control record or a stream-end marker — in the change's own
-  grouping, never for the whole log.
+  until it. Every conclusion is bounded — the definite one and the conditional one about a later run
+  alike: it speaks for the records after the change (or after the marker) and before the window ends — the
+  next change, an unreadable control record or a stream-end marker — in the change's own grouping, never
+  for the whole log. An annotation stops at the second stream-end marker after its change: records past it
+  get no level explanation and stay uncovered. A condition in force — that the change named no node, that
+  it applied — is carried into every sentence resting on it. A record a log reader could not read at all,
+  but whose header names the control event, is described as that, with the time its header states.
 - An empty or blank file now opens by its extension rather than being refused as unreadable.
 
 ### Fixed
