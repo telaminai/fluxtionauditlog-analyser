@@ -1,0 +1,15 @@
+---
+eventLogRecord: 
+    eventTime: 2000
+    logTime: 2000
+    groupingId: null
+    event: Note
+    eventToString: "Note{text=eventLogRecord: hello}"
+    detail: "a value that spans lines
+eventLogRecord:
+      and closes here"
+    thread: main
+    nodeLogs: 
+        - notes: { text: 'a quoted eventLogRecord: key'}
+    endTime: 2001
+---

@@ -30,6 +30,11 @@ public final class HeapLogStore implements LogStore {
     private final StreamEndTracker tracker = new StreamEndTracker();
     private FileReadIdentity readIdentity;
     private Path source;                  // set when built from a file, so follow can re-read it
+    /** M68.5: the file key of the content read, or null when the filesystem has none — never compared as equal. */
+    private Object fileKey;
+    private volatile FollowIdentity followIdentity;
+    /** M68.5: the file's metadata when the content in memory was read. */
+    private ReadThroughIdentity.Meta atOpen;
 
     public HeapLogStore(String file) {
         this(file, false);
@@ -120,6 +125,8 @@ public final class HeapLogStore implements LogStore {
         HeapLogStore s = new HeapLogStore(text, false);
         s.readIdentity = identity;
         s.source = path;
+        s.fileKey = keyOf(path);
+        s.atOpen = ReadThroughIdentity.metaOf(path);
         return s;
     }
 
@@ -129,6 +136,8 @@ public final class HeapLogStore implements LogStore {
         HeapLogStore live = new HeapLogStore(file, true);
         live.source = source;
         live.readIdentity = readIdentity;
+        live.fileKey = fileKey;
+        live.atOpen = atOpen;
         return live;
     }
 
@@ -155,9 +164,25 @@ public final class HeapLogStore implements LogStore {
         // A snapshot may include an EOF record. It cannot safely become an append-only index:
         // later fields would change an existing row. The adapter reloads it as an explicit live read.
         if (includesEofRecord) return -1;
-        String full = Files.readString(p, StandardCharsets.UTF_8);
-        if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
-        if (full.length() == file.length()) return 0;    // no growth
+        // M68.5 (D-E6): identity is decided BEFORE anything is indexed. The old test was length only — shorter meant
+        // reload, equal meant nothing, longer meant append — so a same-length rewrite announced nothing and a middle
+        // rewrite plus an append was indexed as an append over bytes that no longer exist.
+        java.nio.file.attribute.BasicFileAttributes atStart = attributes(p);
+        String full;
+        try {
+            full = Files.readString(p, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            full = null;
+        }
+        java.nio.file.attribute.BasicFileAttributes after = attributes(p);
+        boolean changedDuringRead = atStart == null || after == null || atStart.size() != after.size()
+                || !atStart.lastModifiedTime().equals(after.lastModifiedTime())
+                || !java.util.Objects.equals(atStart.fileKey(), after.fileKey());
+        FollowIdentity identity = FollowIdentity.classify(fileKey, file, after == null ? null : after.fileKey(),
+                full, full != null && changedDuringRead);
+        this.followIdentity = identity;
+        if (identity.verdict() == FollowIdentity.Verdict.REPLACEMENT) return -1;   // the caller reopens, and says why
+        if (!identity.mayIndexGrowth()) return 0;          // unchanged, or not established: index nothing
         final int before = index.size();
         final int[] seen = {0};
         // M65 D-F0 part 1: publish the TEXT before the rows that point into it. The file is append-only, so
@@ -170,6 +195,7 @@ public final class HeapLogStore implements LogStore {
         // could throw meanwhile (impl review F2).
         this.readIdentity = null; // follow changes the indexed view; no stale opening digest may describe it
         this.file = full;
+        this.atOpen = ReadThroughIdentity.metaOf(p);   // M68.5: the content in memory is now what was just read
         // Require a terminator so a record still being written isn't indexed until complete; the first
         // `before` records are byte-identical (append-only) so we skip them and add the rest.
         //
@@ -193,6 +219,57 @@ public final class HeapLogStore implements LogStore {
     }
 
     @Override public int trailingRecordsPending() { return trailingPending ? 1 : 0; }
+
+    /**
+     * M68.3 (acceptance 10): the frame still being written under Follow — the text after the last {@code ---} — or
+     * null when there is none. OBSERVABLE, not accepted: nothing here indexes it, and it is not a record until its
+     * separator arrives whole ("--" then "-\n" on a later poll stays pending until the line is complete).
+     */
+    @Override public String pendingFrameText() {
+        if (!trailingPending) return null;
+        String text = file;
+        int from = 0;
+        int i = 0;
+        while (i < text.length()) {
+            int end = text.indexOf('\n', i);
+            if (end < 0) break;                                   // the last line has no newline: part of the frame
+            String line = text.substring(i, end).strip();
+            if (line.equals("---")) from = end + 1;
+            i = end + 1;
+        }
+        String frame = text.substring(from);
+        return frame.isBlank() ? null : frame;
+    }
+
+    /**
+     * M68.5: a change on disk since the content was read. The text is in memory, so nothing on disk alters what this
+     * store serves: a change is labelled superseded, never suspended. Under Follow, {@link #followIdentity} decides.
+     */
+    @Override public ReadThroughIdentity readThroughIdentity() {
+        return source == null || atOpen == null ? null
+                : ReadThroughIdentity.classify(atOpen, ReadThroughIdentity.metaOf(source), true);
+    }
+
+    /** Independent review R3: assessed when this store was read from a file it can look at again. */
+    @Override public boolean readThroughAssessed() {
+        return source != null && atOpen != null;
+    }
+
+    /** M68.5: what the last Follow poll established about the file's identity, or null before the first poll. */
+    @Override public FollowIdentity followIdentity() { return followIdentity; }
+
+    private static Object keyOf(Path p) {
+        var a = attributes(p);
+        return a == null ? null : a.fileKey();
+    }
+
+    private static java.nio.file.attribute.BasicFileAttributes attributes(Path p) {
+        try {
+            return Files.readAttributes(p, java.nio.file.attribute.BasicFileAttributes.class);
+        } catch (IOException | SecurityException e) {
+            return null;
+        }
+    }
 
     @Override
     public StreamEnd streamEnd() {

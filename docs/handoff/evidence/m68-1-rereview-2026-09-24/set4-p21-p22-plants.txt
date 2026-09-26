@@ -1,0 +1,6 @@
+baseline…
+baseline GREEN: 43 tests, 0 skipped
+P21a a text block carrying the incident sentence: STILL GREEN — the suite does not guard this; restored byte-identical
+P21b the sentence split where neither half matches: STILL GREEN — the suite does not guard this; restored byte-identical
+P21c a line in the in-app assistant prompt: STILL GREEN — the suite does not guard this; restored byte-identical
+P22 a mutation that makes the named test THROW, not fail: RED at PairingScopeSurfacesTest.aWholeLogComparisonSupersedesTheSample (3 failing); restored byte-identical

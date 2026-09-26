@@ -33,16 +33,57 @@ public final class SeriesScan {
     private SeriesScan() {
     }
 
-    public static Map<String, Object> scan(LogStore store, Map<String, Object> params) {
-        Object exprText = params.get("expr");
+    /**
+     * Re-review N2: what a series call MEANS — its expression, its resolution and its record scope — decided once, for
+     * the verb and for a report's series section alike. The report kept a second interpretation (expression only, LOCF
+     * forced, the view's filter), and drew a different series from the one its stored call names.
+     *
+     * @param filter from/to/dimensions exactly as the call gives them; a call with no filter scopes the whole log
+     */
+    public record Call(String exprText, Expr expr, SeriesExtractor.Resolve resolve, FilterState filter,
+                       Long from, Long to, java.util.Set<String> dimensions) {
+
+        /** How the call scopes its records, in words, for a caption. */
+        public String scopeText() {
+            if (from == null && to == null && dimensions == null) return "the whole log (the call names no filter)";
+            StringBuilder b = new StringBuilder("the call's filter: logTime ");
+            b.append(from == null ? "…" : from).append("–").append(to == null ? "…" : to);
+            if (dimensions != null) b.append(", dimensions ").append(dimensions);
+            return b.toString();
+        }
+    }
+
+    /**
+     * Parse a series call. {@code resolve} is STRICT unless the call says LOCF; any other value is refused, where it
+     * used to become STRICT without a word. {@code filter.text} is refused, as the verb always refused it.
+     */
+    public static Call parseCall(Map<String, ?> params) {
+        return parseCall(params, null);
+    }
+
+    /** A report's legacy key is a literal reference, never expression syntax; scope and resolution stay shared. */
+    public static Call parseKeyCall(Map<String, ?> params, GraphKey key) {
+        return parseCall(params, java.util.Objects.requireNonNull(key));
+    }
+
+    private static Call parseCall(Map<String, ?> params, GraphKey literalKey) {
+        Object exprText = literalKey == null ? params.get("expr") : literalKey.display();
         if (exprText == null || exprText.toString().isBlank()) {
             throw new IllegalArgumentException("'expr' is required — a key (\"node.key\") or a formula");
         }
-        Expr expr = Expr.parse(exprText.toString());
-        SeriesExtractor.Resolve resolve = "LOCF".equalsIgnoreCase(String.valueOf(params.get("resolve")))
-                ? SeriesExtractor.Resolve.LOCF : SeriesExtractor.Resolve.STRICT;
-
+        Expr expr = literalKey == null ? Expr.parse(exprText.toString()) : new Expr.Ref(literalKey);
+        Object r = params.get("resolve");
+        SeriesExtractor.Resolve resolve;
+        if (r == null || "STRICT".equalsIgnoreCase(String.valueOf(r))) {
+            resolve = SeriesExtractor.Resolve.STRICT;
+        } else if ("LOCF".equalsIgnoreCase(String.valueOf(r))) {
+            resolve = SeriesExtractor.Resolve.LOCF;
+        } else {
+            throw new IllegalArgumentException("'resolve' must be STRICT or LOCF, got '" + r + "'");
+        }
         FilterState filter = new FilterState();
+        Long from = null, to = null;
+        java.util.Set<String> dims = null;
         Object f = params.get("filter");
         if (f instanceof Map<?, ?> fm) {
             if (fm.get("text") != null) {
@@ -50,15 +91,24 @@ public final class SeriesScan {
                         + "text scan would defeat the point of an index-speed verb; narrow with the "
                         + "'filter' verb first, or use from/to/dimensions here");
             }
-            Long from = asLong(fm.get("from"));
-            Long to = asLong(fm.get("to"));
+            from = asLong(fm.get("from"));
+            to = asLong(fm.get("to"));
             filter.setTimeRange(from, to);
-            if (fm.get("dimensions") instanceof List<?> dims && !dims.isEmpty()) {
-                java.util.Set<String> set = new java.util.LinkedHashSet<>();
-                for (Object d : dims) if (d != null) set.add(d.toString());
-                filter.setDimensions(set);
+            if (fm.get("dimensions") instanceof List<?> dl && !dl.isEmpty()) {
+                dims = new java.util.LinkedHashSet<>();
+                for (Object d : dl) if (d != null) dims.add(d.toString());
+                filter.setDimensions(dims);
             }
         }
+        return new Call(exprText.toString(), expr, resolve, filter, from, to, dims == null ? null : java.util.Set.copyOf(dims));
+    }
+
+    public static Map<String, Object> scan(LogStore store, Map<String, Object> params) {
+        Call call = parseCall(params);
+        Expr expr = call.expr();
+        SeriesExtractor.Resolve resolve = call.resolve();
+        FilterState filter = call.filter();
+        Object exprText = call.exprText();
 
         Double above = asDouble(params.get("crossings") instanceof Map<?, ?> c ? c.get("above") : null);
         Double below = asDouble(params.get("crossings") instanceof Map<?, ?> c ? c.get("below") : null);

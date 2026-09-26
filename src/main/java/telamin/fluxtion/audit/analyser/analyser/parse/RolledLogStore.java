@@ -87,6 +87,40 @@ public final class RolledLogStore implements LogStore {
         return members.stream().flatMap(m -> m.readIdentities().stream()).toList();
     }
 
+    /**
+     * Independent review R3: the set's freshness is its members'. Records and raw text are read through each member, so
+     * a mapped member rewritten in place must suspend the SET's reads exactly as it suspends its own — the set used to
+     * inherit {@code LogStore}'s null and serve the changed bytes through its old merged index. The most severe member
+     * speaks for the set (reads suspended outranks superseded-but-retained), and its reason says which member it is.
+     */
+    @Override
+    public ReadThroughIdentity readThroughIdentity() {
+        ReadThroughIdentity worst = null;
+        int worstIndex = -1;
+        for (int i = 0; i < members.size(); i++) {
+            ReadThroughIdentity id = members.get(i).readThroughIdentity();
+            if (id == null) continue;
+            if (worst == null || (id.suspendsReads() && !worst.suspendsReads())) {
+                worst = id;
+                worstIndex = i;
+            }
+        }
+        if (worst == null) return null;
+        String member = paths.get(worstIndex).getFileName() + " (file " + (worstIndex + 1) + " of " + members.size()
+                + " in this rolled set)";
+        return new ReadThroughIdentity(worst.verdict(), "member " + member + ": " + worst.reason(), worst.bytesRetained());
+    }
+
+    /** Independent review R3: assessed only if every member is — one unassessed member leaves the set unassessed. */
+    @Override
+    public boolean readThroughAssessed() {
+        if (members.isEmpty()) return false;
+        for (LogStore m : members) {
+            if (!m.readThroughAssessed()) return false;
+        }
+        return true;
+    }
+
     /** The member files, load (content) order. */
     public List<Path> files() {
         return paths;

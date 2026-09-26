@@ -10,14 +10,14 @@ It shows what is available even before a log is opened.
 
 | Section | Row | Where it came from (the right-hand column) |
 |---|---|---|
-| **Project** | the profile's name and directory; *Copy* / *Show file* the settings file; one row per **runbook pointer** (with the one-line **description** it declares, if any) and one for the **vocabulary** file — *Open* reads the file here, read-only (warning if missing); add or remove these from *AI ▸ Runbooks…* — the panel states what is in force, the AI menu changes it; one per declared **environment** — see [Portable context](portable-context.md) | *project settings in force* — or *No project — using your own settings* |
+| **Project** | the profile's name and directory; *Copy* / *Show file* the settings file; one row per **runbook pointer** (with the one-line **description** it declares, if any) and one for the **vocabulary** file — *Open* reads the file here, read-only (warning if missing); add or remove these from *AI ▸ Runbooks…* — the panel states what is in force, the AI menu changes it; one per declared **environment** (a warning when its `logDir` is not there, naming the project root tried) — see [Portable context](portable-context.md) | *project settings in force* — or *No project — using your own settings* |
 | **Audit log** | the file you opened, as you named it (`s3://…` stays `s3://…`), records | *opened by you* / *opened by the action socket*, the system it came from, and **who said so** — *declared by the opener*, or the project environment that supplied it |
 | **Graph** | the graphml, and the **pairing verdict**: *applies — 5/5 logged nodes declared*, or a warning that it does not fit this log. Above it, if the processor was built without audit logging: *⚠ audit logging NOT installed — this processor writes no audit log at all*, which outranks the pairing because pairing a log that will never exist is a question about nothing | *opened by you*, or *supplied by the reader (declared / INFERRED)*; when two graphs were in play, which one won and why |
 | **Event processors** | every configured class, the selected one marked, and whether its **source was found** under a root — *Open* opens it in the Source tab; when it was not found there is no *Open*, and **Add source** opens Settings ▸ Source roots | *project* / *own settings* / *discovered under a root* |
 | **Source roots** | each root with its **stored form** — *project-relative*, *workspace-relative*, *~*, *absolute*; under a project, *absolute* and *~* are a warning that the profile will not resolve on a colleague's machine — and the workspace anchor if declared | *project* / *own settings* / *demo (transient)* |
 | **Saved charts** | named chart definitions, including those waiting for input; an open chart still needs its data bindings checked | *saved* / *open* |
 | **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *Project ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
-| **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
+| **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares — a directory that is not there is a warning; a remote place says it is not checked | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
 
 An empty section is a sentence, not a blank — *"No graph — Sources ▸ Open GraphML…, or a reader may
 supply one with its log"* — so you never have to go elsewhere to learn why it is empty.
@@ -44,9 +44,9 @@ facts, and a fact the panel lacks is added to `context` first. The keys it draws
 `verdict`, `sourceGraphOffered`, `sourceGraphNote`, `auditLogging`, `auditLoggingNote`), `processors` (`class`, `selected`, `source`,
 `from`), `source.rootTiers` (`path`, `tier`, `form`) and `source.workspaceRoot`, `exports` (`enabled`,
 `dir`), `reports` (`name`, `title`, `sections`, `from`), `reportDestinations` (`name`, `location`, `kind`,
-`from`), and the portable-context facts — `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
+`from`, `problem`, `note`), and the portable-context facts — `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
 `vocabulary` (`path`, `resolved`, `exists`, `from`), `environments` (`name`, `provenance`, `logDir`,
-`default`) with `provenanceSource`, `analyses` (`name`, `rationale`, `parameters`, `steps`, `from`), and
+`default`, `problem`) with `provenanceSource`, `analyses` (`name`, `rationale`, `parameters`, `steps`, `from`), and
 the shared canvas's `handoff` — `posture` (`value`, `source`, `setBy`, `derivedWouldBe`) and, when one has
 been placed, `record` (`modes`, `resolvedFigures`, `authoringRequired`, `selectionCandidates`, `setBy`).
 
