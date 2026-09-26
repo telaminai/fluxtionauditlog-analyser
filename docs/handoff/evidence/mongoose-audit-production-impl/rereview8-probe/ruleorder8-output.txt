@@ -1,0 +1,12 @@
+# ruleorder8.py on e5541d5b: the matrix's reach assertion removed for the run, so the offenders assertion alone is judged; both files restored by SHA-256.
+R7-1 mutation: compiled=True matrix->failure rules=['R7 bound'] offenders=432 restored=True
+   first R7 bound offender: R7 bound riskMonitor/perNode/G[recordGrouping=<absent>, gid=null]/none/none/-/none: If it applied here
+R7-2 mutation: compiled=True matrix->failure rules=['R7 bound'] offenders=1080 restored=True
+   first R7 bound offender: R7 bound riskMonitor/perNode/G[recordGrouping=null, gid=null]/none/none/-/none: Nothing later in the records sharing its grouping changes it
+R7-3 mutation: compiled=True matrix->failure rules=['R7 bound'] offenders=168 restored=True
+   first R7 bound offender: R7 bound riskMonitor/perNode/G[recordGrouping=null, gid=null]/none/none/-/none: Nothing later in the records sharing its grouping changes it
+R7-4 mutation: compiled=True matrix->failure rules=['R5-2/R7-4'] offenders=72 restored=True
+P1 bound ignores the first marker: compiled=True matrix->pass rules=[] offenders=0 restored=True
+test file restored True git src clean True
+green after: True 49 tests
+exit=0
