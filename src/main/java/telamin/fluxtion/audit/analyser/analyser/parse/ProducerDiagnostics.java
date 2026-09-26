@@ -158,7 +158,11 @@ public record ProducerDiagnostics(List<Finding> findings) {
 
         int damage = out.size();
         if (!noRecords) unseparated(idx, rawText, out);
-        if (out.size() == damage) pendingUnseparated(pendingFrame).ifPresent(out::add);
+        // Independent review R7: the pending frame is scanned unless a collapse is ALREADY suspected. It was skipped
+        // whenever any finding had been added — including a NOT_ASSESSED one, which says nothing about the pending frame.
+        if (out.stream().skip(damage).noneMatch(f -> f.kind() == Kind.UNSEPARATED)) {
+            pendingUnseparated(pendingFrame).ifPresent(out::add);
+        }
         if (noRecords) return new ProducerDiagnostics(List.copyOf(out));
         boolean framingExplained = out.stream().anyMatch(f -> f.kind() == Kind.UNSEPARATED);
         if (framingExplained) {
@@ -209,10 +213,19 @@ public record ProducerDiagnostics(List<Finding> findings) {
     private static java.util.Optional<Finding> pendingUnseparated(String pendingFrame) {
         if (pendingFrame == null || pendingFrame.isBlank()) return java.util.Optional.empty();
         FramingScan scan = FramingScan.of(pendingFrame, SCAN_LIMIT);
-        return scan.suspected()
-                ? java.util.Optional.of(new Finding(Kind.UNSEPARATED, suspectedMessage(
-                        "the record still being written (not yet ended by '---', and not counted)", scan)))
-                : java.util.Optional.empty();
+        if (scan.suspected()) {
+            return java.util.Optional.of(new Finding(Kind.UNSEPARATED, suspectedMessage(
+                    "the record still being written (not yet ended by '---', and not counted)", scan)));
+        }
+        // Independent review R7: the indexed path said "NOT assessed" for a record too long to scan; the pending path
+        // said nothing, so a long live frame read as checked. It is said here too — as pending, never as a record.
+        if (scan.truncated()) {
+            return java.util.Optional.of(new Finding(Kind.FRAMING_NOT_ASSESSED, "The record still being written (not "
+                    + "yet ended by '---', and not counted) is longer than the " + scan.inspectedChars() + " characters the "
+                    + "framing check reads, and nothing in that part looked like a further record. Whether more records "
+                    + "run into the rest was NOT assessed."));
+        }
+        return java.util.Optional.empty();
     }
 
     private static String suspectedMessage(String where, FramingScan scan) {

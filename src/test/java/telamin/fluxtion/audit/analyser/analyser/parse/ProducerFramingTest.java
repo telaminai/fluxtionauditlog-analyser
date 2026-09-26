@@ -121,4 +121,78 @@ class ProducerFramingTest {
         assertTrue(d.findings().stream().anyMatch(x -> x.kind() == ProducerDiagnostics.Kind.UNSEPARATED
                 && x.message().contains("still being written")), d.messages() + " pending=" + s.pendingFrameText());
     }
+
+    // ---- independent review R6: a leading byte-order mark (2026-09-26) ------------------------------------------------
+
+    private static final String BLOCK = "eventLogRecord:\n  event: Tick\n  logTime: 1\n  nodeLogs:\n    - rootNode: {v: 1}\n";
+
+    private static boolean suspected(ProducerDiagnostics d) {
+        return d.findings().stream().anyMatch(f -> f.kind() == ProducerDiagnostics.Kind.UNSEPARATED);
+    }
+
+    @Test
+    @DisplayName("R6: a valid leading BOM does not hide a collapse — through the store and the diagnostic")
+    void aLeadingBomDoesNotHideACollapse() {
+        // witness: FramingScan without its first-line BOM rule
+        var plain = new HeapLogStore(BLOCK + BLOCK);
+        var bom = new HeapLogStore("\ufeff" + BLOCK + BLOCK);
+        assertEquals(1, bom.size(), "the precondition: the reader accepts the BOM and reads one record");
+        assertTrue(suspected(diagnose(plain)), "the control: without the BOM the collapse is suspected");
+        assertTrue(suspected(diagnose(bom)), "R6: with it, the same collapse is still suspected: " + diagnose(bom).messages());
+        assertEquals(java.util.List.of(6), FramingScan.of("\ufeff" + BLOCK + BLOCK, 100_000).candidates(),
+                "R6: and at the same line as without it");
+    }
+
+    @Test
+    @DisplayName("R6: a BOM anywhere but the start of the text does not make a line a header")
+    void aBomInsideTheTextIsNotAHeader() {
+        String inside = BLOCK + "\ufeffeventLogRecord:\n";
+        assertEquals(java.util.List.of(), FramingScan.of(inside, 100_000).candidates(),
+                "only the item's first line may carry the file's BOM");
+        assertEquals(java.util.List.of(), FramingScan.of("\ufeff\ufeff" + BLOCK, 100_000).candidates(),
+                "one BOM, not any number of them");
+    }
+
+    @Test
+    @DisplayName("R6: the quoted-scalar negative control holds with a leading BOM too")
+    void aBomDoesNotMakeAQuotedKeyARecord() throws Exception {
+        String legal = Files.readString(FIXTURES.resolve("quoted-key-one-record.yaml"));
+        var s = new HeapLogStore("\ufeff" + legal);
+        assertEquals(1, s.size());
+        assertFalse(suspected(diagnose(s)), diagnose(s).messages().toString());
+    }
+
+    // ---- independent review R7: an oversized PENDING frame ------------------------------------------------------------
+
+    private static HeapLogStore live(Path dir, String text) throws Exception {
+        Path f = Files.writeString(dir.resolve("live.yaml"), text);
+        HeapLogStore s = HeapLogStore.fromFile(f).forFollow();
+        s.appendFrom(f);
+        return s;
+    }
+
+    @Test
+    @DisplayName("R7: a pending frame too long to scan, with nothing found in its prefix, says it was NOT assessed")
+    void anOversizedPendingFrameIsNotAssessed(@TempDir Path dir) throws Exception {
+        // witness: pendingUnseparated ignoring truncated()
+        var s = live(dir, "---\neventLogRecord:\n  message: " + "x".repeat((1 << 20) + 10) + "\n");
+        assertEquals(0, s.size(), "the precondition: the frame is pending, not indexed");
+        assertNotNull(s.pendingFrameText());
+        var d = diagnose(s);
+        assertTrue(d.findings().stream().anyMatch(f -> f.kind() == ProducerDiagnostics.Kind.FRAMING_NOT_ASSESSED
+                        && f.message().contains("still being written") && f.message().contains("NOT assessed")),
+                "R7: " + d.messages());
+        assertEquals(0, s.size(), "and looking at it did not index it");
+    }
+
+    @Test
+    @DisplayName("R7: a candidate inside the scanned prefix of an oversized pending frame is suspected, and says the rest was not read")
+    void anOversizedPendingFrameWithACandidateIsSuspected(@TempDir Path dir) throws Exception {
+        var s = live(dir, "---\n" + BLOCK + BLOCK + "  message: " + "x".repeat((1 << 20) + 10) + "\n");
+        assertEquals(0, s.size());
+        var d = diagnose(s);
+        assertTrue(d.findings().stream().anyMatch(f -> f.kind() == ProducerDiagnostics.Kind.UNSEPARATED
+                && f.message().contains("the rest was not assessed")), d.messages().toString());
+        assertEquals(0, s.size());
+    }
 }

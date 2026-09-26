@@ -21,6 +21,9 @@ import java.util.List;
  * line that looks exactly like a header inside one record. The text cannot tell those apart, so every finding built
  * from this says "suspected" and names the lines, and the reader checks them.
  *
+ * <p>A single U+FEFF at the very start of the text is the file's byte-order mark, which the reader accepts; the first
+ * line's header test looks past it (independent review R6). Nowhere else is a BOM skipped.
+ *
  * @param candidates     1-based line numbers, within the item, of lines that look like the start of a further record
  * @param inspectedChars how much of the item was read
  * @param inspectedLines how many of its lines that covered
@@ -46,7 +49,12 @@ public record FramingScan(List<Integer> candidates, int inspectedChars, int insp
             line++;
             int lineEnd = text.indexOf('\n', i);
             if (lineEnd < 0 || lineEnd > end) lineEnd = end;
-            if (open == 0 && isHeader(text, i, lineEnd)) {
+            // Independent review R6: the reader accepts ONE byte-order mark at the start of the file, so the item's first
+            // line may begin with one — and that line is still the item's own header. Unrecognised, a BOM'd collapsed file
+            // had its SECOND header taken as its own and was reported clean. Only position 0, only once: a BOM anywhere
+            // else is payload text, and never makes a line a header.
+            int headerAt = i == 0 && text.charAt(0) == '\ufeff' ? 1 : i;
+            if (open == 0 && isHeader(text, headerAt, lineEnd)) {
                 if (seenHeader) candidates.add(line);
                 seenHeader = true;
             }
