@@ -183,10 +183,18 @@ public final class SpotlightOverlay extends JComponent {
 
     /** One target's cut-out as drawn, in overlay coordinates; null when it is not lit. */
     public Rectangle cutOutOf(String targetName) {
-        for (Lit l : lit) {
-            if (l.target().equalsIgnoreCase(targetName)) return SpotlightGeometry.cutOut(l.bounds(), getSize());
+        List<Rectangle> cuts = cuts(getSize());
+        for (int i = 0; i < lit.size(); i++) {
+            if (lit.get(i).target().equalsIgnoreCase(targetName)) return cuts.get(i);
         }
         return null;
+    }
+
+    /** Every lit target's cut-out, in lit order; neighbours share one separator instead of crossing each other. */
+    private List<Rectangle> cuts(Dimension size) {
+        List<Rectangle> targets = new ArrayList<>();
+        for (Lit l : lit) targets.add(l.bounds());
+        return SpotlightGeometry.cutOuts(targets, size);
     }
 
     /** A number is drawn once there is more than one thing to tell apart — or once this one has been called "②". */
@@ -232,13 +240,9 @@ public final class SpotlightOverlay extends JComponent {
         Color accent = UiTheme.accent();
 
         // ONE dim with a hole per spotlight: overlapping cut-outs merge, and nothing lit is ever tinted
-        List<Rectangle> cuts = new ArrayList<>();
+        List<Rectangle> cuts = cuts(size);
         Area dim = new Area(new Rectangle(0, 0, size.width, size.height));
-        for (Lit l : lit) {
-            Rectangle cut = SpotlightGeometry.cutOut(l.bounds(), size);
-            cuts.add(cut);
-            dim.subtract(new Area(hole(cut)));
-        }
+        for (Rectangle cut : cuts) dim.subtract(new Area(hole(cut)));
         g.setColor(new Color(0, 0, 0, dark ? 150 : 115));
         g.fill(dim);
         g.setColor(accent);
