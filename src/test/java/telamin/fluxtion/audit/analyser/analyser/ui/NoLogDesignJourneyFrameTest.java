@@ -73,9 +73,16 @@ class NoLogDesignJourneyFrameTest {
             choose(f, "Project", "Open project…", project.resolve(".analyser/project.fluxtion-settings").toFile());
             awaitContext(f, c -> String.valueOf(c.get("project")).contains("my-project"), "project opened");
 
+            AtomicReference<String> before = new AtomicReference<>();
+            onEdt(() -> before.set(f.status()));
             choose(f, "Sources", "Open design…", project.resolve(DESIGN_ROOT + "/application-context.xml").toFile());
-            var design = awaitContext(f, c -> c.get("design") instanceof Map<?, ?> d && d.get("file") != null, "design opened (read through the design root)");
-            assertTrue(String.valueOf(((Map<String, Object>) design.get("design")).get("file")).endsWith("application-context.xml"));
+            // settle on either outcome — the design opened, or the status line changed to say why not — then assert
+            // the design read directly, so a refusal fails HERE with its reason (PR #31 review, finding 6)
+            var design = awaitContext(f, c -> c.get("design") instanceof Map<?, ?> d && d.get("file") != null
+                    || !f.status().equals(before.get()), "the design open to settle");
+            Object file = design.get("design") instanceof Map<?, ?> d ? d.get("file") : null;
+            assertTrue(file != null && String.valueOf(file).endsWith("application-context.xml"),
+                    "the design is read through the template's design root with no log open; status: " + f.status());
 
             choose(f, "Sources", "Open GraphML…", project.resolve("src/main/resources/MarketProcessor.graphml").toFile());
             var withGraph = awaitContext(f, c -> c.get("graphPairing") instanceof Map<?, ?>, "graph opened");
@@ -102,6 +109,16 @@ class NoLogDesignJourneyFrameTest {
             onEdt(() -> visible.set(topologyStatus((TopologyPanel) field(f.frame, "topologyPanel"))));
             assertTrue(visible.get().contains(MainFrame.NO_LOG_PAIRING_NOTE),
                     "the Topology tab says, where the graph is shown, that nothing was compared: " + visible.get());
+            // PR #31 review, finding 5: a log open that fails returns to "no log" — the note must come back
+            Path notALog = Files.writeString(tmp.resolve("broken.yml"), "--- [ this is : not an audit log\n");
+            f.ex.render("open", Map.of("log", notALog.toString()));
+            awaitContext(f, c -> !Boolean.TRUE.equals(((Map<String, Object>) c.getOrDefault("graphPairing", Map.of())).get("loading")),
+                    "the failed log open to finish");
+            AtomicReference<String> afterFailure = new AtomicReference<>();
+            onEdt(() -> afterFailure.set(topologyStatus((TopologyPanel) field(f.frame, "topologyPanel"))));
+            assertFalse(f.ex.render("context", Map.of()).payload().containsKey("log"), "control: the broken log did not load");
+            assertTrue(afterFailure.get().contains(MainFrame.NO_LOG_PAIRING_NOTE),
+                    "after a failed log open the Topology tab again says nothing was compared: " + afterFailure.get());
             var restoration = (Map<String, Object>) context.get("restoration");
             assertNotEquals("finished", restoration == null ? null : restoration.get("state"), "no session was restored");
             assertNotEquals("restoring", restoration == null ? null : restoration.get("state"));

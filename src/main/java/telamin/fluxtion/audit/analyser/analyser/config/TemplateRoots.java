@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Edit-loop spec §I1: a template's own profile may only point inside the template it came with.
+ * Edit-loop spec §I1: a template's own profiles may only point their SOURCE ROOTS inside the template they came
+ * with.
  *
  * <p>A profile's source roots are read grants, and a template profile is untrusted archive content. Profiles a
  * person writes may name roots outside their project on purpose (a monorepo neighbour, see {@link PathForm});
@@ -25,17 +26,30 @@ import java.util.Properties;
  * keeps its containment when the staged directory is moved to a destination with a different name — a root such
  * as {@code ../<archive-root>/src} resolves inside staging and outside the installed project. The candidate is
  * then resolved against staging with both sides canonicalised; a directory that does not exist yet (a future
- * {@code target/} root) is judged by its nearest existing ancestor, which must be a directory. A template may
+ * {@code target/} root) is judged by its nearest existing ancestor, which must be a directory. Windows path
+ * syntax ({@code \}, a leading drive letter) is refused on every OS: a profile installed on macOS may be opened
+ * on Windows, where {@code src\..\..\x} would escape without this check ever having run there. Every
+ * project-profile file in the archive is checked — a named profile beside the root one, or a nested module's,
+ * which a log under that module would offer — each against its own base, which must itself be inside the staged
+ * project (PR #31 review). A template may
  * not declare a {@code workspaceRoot} at all: the loader does not resolve roots against it, but it shapes how
  * paths are written back, and a template has no business widening that. Maven repositories are outside this
  * rule: they are searched for source archives only, and {@code ~/.m2} is a legitimate default.
+ *
+ * <p>Scope: source roots only. A template's saved charts may carry external-series and marker CSV paths, which
+ * are resolved against the profile and read in the background without this check; that is a known, unchecked
+ * boundary, not covered here.
  */
 public final class TemplateRoots {
 
     private TemplateRoots() {
     }
 
-    /** Refuse the template if any source root in its staged profile could read outside the staged project. */
+    /**
+     * Refuse the template if any source root in this staged profile could read outside the staged project. Roots
+     * are judged against the profile's own base ({@link ProjectProfile#baseDirFor}), which must itself lie inside
+     * the staged project.
+     */
     public static void requireContained(Path stagedRoot, Path profile) throws IOException {
         Properties properties = new Properties();
         try (Reader reader = Files.newBufferedReader(profile, StandardCharsets.UTF_8)) {
@@ -50,12 +64,19 @@ public final class TemplateRoots {
         }
         List<String> roots = new ArrayList<>();
         ConfigStore.readList(properties, "sourceRoot", roots);
-        Path boundary = stagedRoot.toRealPath();
-        for (String root : roots) check(boundary, root);
+        Path project = stagedRoot.toRealPath();
+        Path base = ProjectProfile.baseDirFor(profile).toRealPath();
+        if (!base.startsWith(project)) {
+            throw new IOException("template profile " + profile.getFileName() + " is anchored outside the project");
+        }
+        for (String root : roots) check(base, project, root);
     }
 
-    static void check(Path boundary, String root) throws IOException {
+    static void check(Path base, Path project, String root) throws IOException {
         if (root == null || root.isBlank()) throw refuse(root, "is blank");
+        if (root.indexOf('\\') >= 0) throw refuse(root, "contains a backslash (Windows path syntax)");
+        if (root.length() >= 2 && Character.isLetter(root.charAt(0)) && root.charAt(1) == ':')
+            throw refuse(root, "starts with a drive letter");
         if (root.equals("~") || root.startsWith("~/")) throw refuse(root, "is home-relative");
         Path path;
         try {
@@ -67,12 +88,12 @@ public final class TemplateRoots {
         Path normal = path.normalize();
         if (normal.toString().isEmpty()) throw refuse(root, "is the project root itself, which would grant the whole project");
         if (normal.getName(0).toString().equals("..")) throw refuse(root, "leaves the project");
-        Path candidate = boundary.resolve(normal);
+        Path candidate = base.resolve(normal);
         Path existing = candidate;
         while (!Files.exists(existing)) existing = existing.getParent();   // boundary exists, so this ends
         if (!Files.isDirectory(existing)) throw refuse(root, "passes through a file that is not a directory");
         Path resolved = existing.toRealPath().resolve(existing.relativize(candidate));
-        if (!resolved.startsWith(boundary)) throw refuse(root, "resolves outside the project");
+        if (!resolved.startsWith(base) || !resolved.startsWith(project)) throw refuse(root, "resolves outside the project");
     }
 
     private static IOException refuse(String root, String why) {

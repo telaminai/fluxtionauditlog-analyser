@@ -3210,6 +3210,9 @@ public final class MainFrame extends JFrame {
             // log is still the open one, and the session's verdict about it is still true
             lastPairing = session.processor().pairing.verdict();
             publishPairing();
+        } else if (store == null && topologyPanel.hasGraph()) {
+            // a log open that failed or was cancelled returns to "no log": say again that nothing was compared
+            publishPairing();
         }
     }
 

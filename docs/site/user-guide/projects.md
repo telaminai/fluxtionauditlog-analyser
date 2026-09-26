@@ -64,10 +64,13 @@ non-empty destination is never merged or overwritten; and extraction is staged b
 then moved into place atomically. Archive mode bits are ignored—only the fixed root lifecycle allowlist
 (`mvnw`, run, export, stop and key-check shell wrappers) receives executable bits.
 
-A template's own project settings may only point inside the project being installed. Before the move, every
-source folder its profile names is checked: a folder outside the project (including one that leaves and comes
-back in through the archive's own folder name), the whole project, a `~` or absolute path, a path through a
-file, or a workspace anchor refuses the installation and nothing is installed. A folder that does not exist
+A template's own project settings may only point their source folders inside the project being installed.
+Before the move, every settings file in the archive is checked — the main profile, a named one beside it, or a
+nested module's, each against its own folder: a folder outside the project (including one that leaves and
+comes back in through the archive's own folder name), the whole project, a `~`, absolute or Windows-style path
+(a backslash or a drive letter, refused on every OS because the project may later be opened on Windows), a
+path through a file, or a workspace anchor refuses the installation and nothing is installed. Only source
+folders are checked: external CSV files named by a template's saved charts are not. A folder that does not exist
 yet, such as a future `target/` directory, is allowed when it would sit inside the project. Maven repositories
 are not subject to this rule. Projects you set up yourself may still name folders outside the project on
 purpose, such as a neighbouring module.

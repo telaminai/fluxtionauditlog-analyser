@@ -46,7 +46,8 @@ class TemplateRootContainmentTest {
 
     private static String roots(String... roots) {
         StringBuilder sb = new StringBuilder("sourceRoot.count=" + roots.length + "\n");
-        for (int i = 0; i < roots.length; i++) sb.append("sourceRoot.").append(i).append('=').append(roots[i]).append('\n');
+        // escaped as Properties.store writes them, so the loader reads back exactly roots[i] (a raw "\foo" would load as "foo")
+        for (int i = 0; i < roots.length; i++) sb.append("sourceRoot.").append(i).append('=').append(roots[i].replace("\\", "\\\\")).append('\n');
         return sb.toString();
     }
 
@@ -105,6 +106,41 @@ class TemplateRootContainmentTest {
         assertTrue(error.getMessage().contains("not a directory"), error.getMessage());
         IOException file = refused(roots("pom.xml"), "file-root");
         assertTrue(file.getMessage().contains("not a directory"), file.getMessage());
+    }
+
+    /**
+     * PR #31 review, finding 2: every project profile in the archive is a read grant — a named profile beside the
+     * root one, or a nested module's profile that a log under that module would offer. Each is checked against its
+     * own base, and the installation is refused if any escapes.
+     */
+    @Test
+    void everyProjectProfileInTheArchiveIsChecked_namedAndNested() throws Exception {
+        for (var extra : List.of(
+                Map.of("bundle/.analyser/project.named.fluxtion-settings", "share.version=1\n" + roots("../outside")),
+                Map.of("bundle/module/.analyser/project.fluxtion-settings", "share.version=1\n" + roots("../../outside")))) {
+            Path destination = temp.resolve("extra-" + Math.abs(extra.keySet().iterator().next().hashCode()));
+            IOException error = assertThrows(IOException.class,
+                    () -> new TemplateArchive().install(template(roots("src/main/java"), extra), destination),
+                    "a second profile " + extra.keySet() + " escaping the project must refuse the installation");
+            assertTrue(error.getMessage().contains("leaves the project"), error.getMessage());
+            assertFalse(Files.exists(destination));
+        }
+        // a nested profile whose roots stay inside its own base installs
+        var fine = Map.of("bundle/module/.analyser/project.fluxtion-settings", "share.version=1\n" + roots("src/main/java"));
+        new TemplateArchive().install(template(roots("src/main/java"), fine), temp.resolve("nested-ok"));
+    }
+
+    /**
+     * PR #31 review, finding 3: a profile installed on macOS or Linux may be opened on Windows, so Windows path
+     * syntax is refused in template roots on every OS, not only where it is interpreted.
+     */
+    @Test
+    void windowsPathSyntaxIsRefusedOnEveryOs() throws Exception {
+        for (String root : List.of("C:foo", "C:\\x", "\\foo", "\\\\server\\share", "~\\x", "src\\..\\..\\..\\x")) {
+            IOException error = refused(roots(root), "win-" + Math.abs(root.hashCode()));
+            assertTrue(error.getMessage().contains("backslash") || error.getMessage().contains("drive letter"),
+                    root + ": " + error.getMessage());
+        }
     }
 
     @Test

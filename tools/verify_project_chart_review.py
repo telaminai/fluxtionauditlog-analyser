@@ -271,7 +271,7 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
     # edit-loop spec §I1: a template profile may only grant reads inside the project it installs
     ('template-root-install-check', TEMPLATE_ARCHIVE,
-     '            if (hasProfile) telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, profileInStage);\n', '',
+     '                    telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);\n', '',
      'TemplateRootContainmentTest#aRootThatLeavesTheProjectIsRefused'),
     # §I1: ../<archive-root>/… resolves inside staging and outside the installed project; only this rule refuses it
     ('template-root-leading-parent', TEMPLATE_ROOTS,
@@ -281,6 +281,22 @@ CASES += [
     ('template-root-whole-project', TEMPLATE_ROOTS,
      '        if (normal.toString().isEmpty()) throw refuse(root, "is the project root itself, which would grant the whole project");\n', '',
      'TemplateRootContainmentTest#aRootThatIsTheWholeProjectIsRefused'),
+    # PR #31 review 2: every settings file in the archive is a read grant, not only the root profile
+    ('template-root-every-profile', TEMPLATE_ARCHIVE,
+     'files.filter(p -> p.getFileName().toString().endsWith(".fluxtion-settings")',
+     'files.filter(p -> p.equals(root.resolve(".analyser/project.fluxtion-settings"))',
+     'TemplateRootContainmentTest#everyProjectProfileInTheArchiveIsChecked_namedAndNested'),
+    # PR #31 review 3: Windows path syntax is refused on every OS
+    ('template-root-backslash', TEMPLATE_ROOTS,
+     '        if (root.indexOf(\'\\\\\') >= 0) throw refuse(root, "contains a backslash (Windows path syntax)");\n', '',
+     'TemplateRootContainmentTest#windowsPathSyntaxIsRefusedOnEveryOs'),
+    # PR #31 review 5: a failed log open returns to no log, and the note comes back
+    ('no-log-note-after-failed-open', MAIN_FRAME,
+     '        } else if (store == null && topologyPanel.hasGraph()) {\n'
+     '            // a log open that failed or was cancelled returns to "no log": say again that nothing was compared\n'
+     '            publishPairing();\n',
+     '        } else if (false) {\n',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
     # §I1: the design-first tour's first step needs no log — requiring one must fail the no-log journey
     ('no-log-design-open', MAIN_FRAME, '            return openDesign(path, () -> true);\n',
      '            return store == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("open a log first") : openDesign(path, () -> true);\n',
