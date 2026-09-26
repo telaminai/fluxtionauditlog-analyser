@@ -427,3 +427,39 @@ regressions, their state on the unfixed code, the witnesses, the counts, and the
   line reversed. `CoverageRaceProbe` cannot run against the fix: its store supplier blocks INSIDE the capture, which is
   now on the EDT, so its own `invokeAndWait` waits until its 10 s timeout. That is the defect made impossible, and the
   deterministic regression P64 replaces it; the probe is preserved unchanged.
+
+## Set 13 — closing the stated gaps before one review (owner request, 2026-09-26)
+
+**Written before any code for these items exists.** The owner asked for the remaining implementable gaps to be closed
+so that one review covers them. Out of scope, because each is an owner decision or another repository: Q4 (partial
+delivery), Q5 (a saved name with `"`), O2's content identity, and M68.3's producer half. The general check that a chart
+does not contradict its series stays a stated gap, because it has no single surface to hold it.
+
+**Design, fixed before coding.**
+- **A — the table (D-E6).** The log table shows a banner rendered FROM THE SESSION SNAPSHOT: when `logIdentity` is
+  `UNVERIFIED` or `REPLACEMENT`, the banner states the reason. It is hidden for null, `VERIFIED` and `REOPENED`.
+  `LogTablePanel.setIdentityNote(String)`; `MainFrame` calls it where it renders the snapshot, so no second verdict.
+- **B — focus sections (D-E8).** `TopologyPanel.renderFocusForReport(name, w, h)` paints the named focus's resolved
+  ids off-screen with the existing `paintOffscreen`, or returns null. The PDF draws it; a focus that no longer
+  resolves prints NOT RENDERED with why.
+- **C — series sections (D-E8).** A series section's `key` or `expr` is extracted synchronously under the current
+  filter and drawn on a detached `ChartPanel` at page size. An expression that fails to extract prints NOT RENDERED.
+- **D — environment and destination pointers (D-E7).** An environment's `logDir` and a DIRECTORY destination are
+  resolved like the runbook pointer: no project root, outside the root, or no directory there, each naming the root
+  tried. An `s3://` or `https://` destination is stated as not checked. `context` carries `problem`; the Project panel
+  row turns WARN and shows it.
+- **E — nested keys (D-E3).** `ActionDispatcher` walks array items whose schema declares `properties` and names an
+  unknown nested key by path (`notes[0].txt`) in `ignoredParams`, or in the refusal.
+
+**Predictions.**
+- **P76 — red first.** New tests fail on the tree without the code (compile failure for the new methods, so each is run
+  red with a stub returning null/false/no-op): A `LogTablePanelIdentityBannerTest` (2 cases) and a static guard that the
+  snapshot render calls it; B `TopologyReportFocusTest` (2); C `ReportSeriesPictureTest` (2); D in `RunbooksResolutionTest`
+  (3) and `ProjectModelTest` (1); E in `ActionDispatcherNestedKeysTest` (2). Confidence 65%: C depends on synchronous
+  extraction off a detached panel working headless.
+- **P77 — the end-to-end harness.** Scenario 13 asserts NOT RENDERED for a focus section and will go red once B lands;
+  it is rewritten to assert the picture is drawn and NOT RENDERED is absent, which is the stated gap closing, not a
+  weakened check. No other scenario changes.
+- **P78 — witnesses.** One per item (A banner setter no-op, B render returns null, C series returns null, D the
+  directory check removed, E nested walk removed), each red at its own test; the gate grows by 5 over set 12's.
+- **P79 — counts.** About 13 new headless tests; 0 failures; skips unchanged at 101. Frame 102 / 0 / 0 / 0.
