@@ -583,3 +583,9 @@ same gap as X4: nothing in the frame fails if it passes `null` either.
 8. **P17.8 — suite.** Headless **2427 + 1** run (the `RolledLogStore` test) and **115 + 2** skipped (two frame methods),
    326 reports, no new class. Display: 22 suites, **117** tests.
 9. **P17.9 — CI** on the new head: build, `ui-frame` with no skip, `mutation-gate` with every control caught.
+
+**P17 outcome (recorded after the trials, `bbb286fe`).** Every prediction held. P17.1: R1's test passes and X4 is red at
+the V2 equality (a failure, not an error). P17.2: the cold-open site's `null` is red at "the frame's cold open words it as
+the store does". P17.3: `p16-v2` moved its red line to the tab read, as predicted. P17.4: a one-member set opens through
+`open {logs: [...]}`; fixed through `emptyLogClaim()`, X4's anchor moved with it. P17.5: Javadoc moved, no behaviour.
+P17.6: 186 anchors. P17.7: 3 + 16 caught. P17.8: 2430/0/0/117, 326 reports; display 117 tests, no skip. P17.9 is CI's.

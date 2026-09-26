@@ -726,6 +726,32 @@ controls (15 m 53 s), loop-bench and static — **all pass**.
 wording needed its own. P16.9's total was wrong: it counted this branch's tests (+4 run headless and +3 frame tests
 skipped headless — both as predicted) and not the ones `main` 1.22.1 brought in (+15, +2 skipped).
 
+### Targeted re-review of PR #40 — one required, three optional, all taken
+
+Predictions P17 first (`c866901b`); fixes `bbb286fe`. **R1 — cause:** nothing tested that the Follow call site words the
+empty-log finding from the file's stream-end claim, so passing `null` there (X4) survived. **Test:**
+`LogFindingsOnEverySurfaceFrameTest#aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays` — an empty followed file
+gains a marker declaring zero, one poll, and Follow's first warning equals a cold open's of the same bytes AND is the
+ended sentence, on the tooltip and the Reports tab too, read with no verb between. **Control:**
+`p17-v2-follow-passes-stream-end`, red at "V2: Follow says what a cold open of the same bytes says". **Found beside
+it:** the cold-open call site had the same gap — `…#aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo`,
+`p17-cold-open-passes-stream-end`, red at "the frame's cold open words it as the store does".
+
+Optional, all taken. **1** — the V2 test now selects a report before its first tab read, and `p16-v2` goes red at that
+line ("the Reports tab, read before any verb") instead of the status bar. **2** — a one-member rolled set CAN be opened:
+`open {logs: [one path]}` (`ActionExecutor` `:1151` → `openLogs` → `RollSetResolver.resolve`, no count check). The
+empty-log sentence now reads `LogStore.emptyLogClaim()`, which `RolledLogStore` answers with its single member's claim;
+`streamEnd()` is untouched, so the set is still never reported complete. Both frame call sites pass it, so X4 is the
+review's mutation on that text rather than on `store.streamEnd()`. Test
+`EmptyLogAndRecordKeyDiagnosticsTest#aOneMemberRolledSetIsWordedAsItsFile` (through `RolledLogStore`), control
+`p17-one-member-set-is-its-file`, red at "worded from its file". **3** — the empty-log constants and `emptyLogMessage`
+moved above `noRecordKey`'s Javadoc.
+
+**Counts:** preflight **186** anchors (the review's 184, plus the cold-open site and the one-member set). Headless
+**2430 / 0 / 0 / 117** over 326 reports, no orphans — three tests added (one run headless, two frame methods). Display: 22
+suites, **117 tests, 0 failures, 0 skips**. All nineteen `p15`–`p17` controls caught, byte-identical restores
+([summary](evidence/mongoose-audit-production-impl/phase1-completion/rereview-controls-summary.txt)).
+
 ## Tenth re-review — targeted acceptance of the ninth round
 
 Targeted tenth re-review `bcc2bef0` on `review/mongoose-tenth-rereview-2026-09-26`
