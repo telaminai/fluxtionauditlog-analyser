@@ -567,7 +567,15 @@ class SourcePanelFreshnessTest {
         awaitSourceWorkIdle();
         String decided = outcome.poll(2, TimeUnit.SECONDS);
         assertTrue(decided == null || decided.contains("discarded"), "the earlier check must not navigate: " + decided);
+        // The navigation's reads can chain, so the pool may be idle between them; wait for the text, not the pool
+        // (PR #35: seen as "Reading com.acme.node.RiskCheck …" on a Linux runner).
+        long shown = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        while (!panel.nodePaneText().contains("int limit = 1;") && System.nanoTime() < shown) {
+            SwingUtilities.invokeAndWait(() -> { }); Thread.sleep(10);
+        }
         assertTrue(panel.nodePaneText().contains("int limit = 1;"), "the newer navigation is shown: " + panel.nodePaneText());
+        assertTrue(outcome.isEmpty() || outcome.stream().allMatch(d -> d.contains("discarded")),
+                "the earlier check still has not navigated: " + outcome);
         assertEquals(NODE, panel.nodePaneFqn(), "ordinary navigation still lands");
     }
 

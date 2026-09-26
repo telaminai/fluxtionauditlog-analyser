@@ -416,6 +416,43 @@ CASES += [
      'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
 ]
 
+# 2026-09-26 fresh-look run: at the default window the design text had no room, and two neighbouring spotlights
+# each drew an edge through the other's line
+DESIGN_SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DesignSourcePanel.java'
+SPOTLIGHT_GEOMETRY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SpotlightGeometry.java'
+DESIGN_FILES = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/design/DesignFiles.java'
+CASES += [
+    # the wrapped status must not take the design text's height
+    # (PR #35 review: witnessed by a note that overflows by construction; the default-window test depended on
+    # the temporary path's length and font metrics, and the mutation survived on Linux)
+    ('design-status-capped', DESIGN_SOURCE_PANEL, 'top.add(statusScroll);', 'top.add(status);',
+     'DesignSpotlightFrameTest#anOverflowingStatusNoteLeavesTheXmlItsHeight'),
+    # the bean list yields width to the XML in a narrow pane
+    ('design-bean-list-fits', DESIGN_SOURCE_PANEL,
+     '            @Override public void doLayout() { fitBeanList(this); super.doLayout(); }\n',
+     '            @Override public void doLayout() { super.doLayout(); }\n',
+     'DesignSpotlightFrameTest#atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit'),
+    # neighbouring spotlights share one separator instead of crossing each other's line
+    ('spotlight-neighbours-separate', SPOTLIGHT_GEOMETRY,
+     '                if (cu.y + cu.height > mid) cu.height = mid - cu.y;\n', '',
+     'SpotlightGeometryTest#neighbouringLinesMeetAtOneSeparatorAndNeitherOutlineCrossesTheOtherLine'),
+    # a refused design inside an unopened project names open {project}
+    ('design-refusal-names-project', DESIGN_FILES,
+     'throw new IOException("file outside authorised roots: " + requested + projectHint(found)',
+     'throw new IOException("file outside authorised roots: " + requested',
+     'DesignFilesRefusalHintTest#aDesignInsideAProjectThatIsNotOpenNamesOpenProjectBeforeSourceRoot'),
+    # PR #35 review: a theme switch replaces the divider; listening only on the first one loses the first drag after it
+    ('design-drag-survives-theme', DESIGN_SOURCE_PANEL,
+     '            @Override public void updateUI() { super.updateUI(); listenForDrag(this); }\n',
+     '            private boolean listened;\n'
+     '            @Override public void updateUI() { super.updateUI(); if (!listened) { listened = true; listenForDrag(this); } }\n',
+     'DesignSourcePanelLayoutTest#aDraggedWidthIsKeptWithAndWithoutAThemeSwitchFirst'),
+    # PR #35 review: the open project is recognised by filesystem identity, not by its lexical path
+    ('design-hint-project-identity', DESIGN_FILES,
+     '                .filter(dir -> project == null || !sameDirectory(dir, project))',
+     '                .filter(dir -> project == null || !dir.equals(project))',
+     'DesignFilesRefusalHintTest#theOpenProjectReachedThroughAnAliasIsNotSuggestedAgain'),
+]
 # Combined Follow/session/framing and captured coverage boundaries.
 CASES += [('integration-failed-identity',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java',

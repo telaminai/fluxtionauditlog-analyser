@@ -102,3 +102,13 @@ is now case-insensitive, and the same was done for "record".
 - the lifecycle paths the review traced (Follow replacement, project switch, plugin readers).
 
 The full mutation gate was not run locally; CI runs it.
+
+### After merging main (1.22.1 released, PR #35)
+The PR conflicted with main, so GitHub ran no `pull_request` CI on `de994b35`. I merged main, without rebasing.
+- **CHANGELOG, the only conflict:** main's file is kept whole, and this entry sits under the new `[Unreleased] ▸ Fixed`.
+- **CI frame lists:** 22 suites in both, which agree.
+- **Merged tree:**
+  - preflight: 22 frame suites, 174 anchors (168 plus PR #35's 6);
+  - all 9 M68.7 and M68.5 controls caught (32.2 s);
+  - `mvn -q clean test`: 2414 / 0 / 0 / 111, 325 reports, no orphans;
+  - display gate: 22 suites, 111 / 0 / 0 / 1, the same focus-guarded skip (second attempt, preserved).

@@ -117,6 +117,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xvfb
       - name: Check the fast engine's compile-fallback detection
         run: python3 tools/verify_project_chart_review.py --mode selftest --output target/mutation-selftest.json
+      # PR #35 review: this control survived on Linux although macOS caught it. Run it first, on the same xvfb
+      # display, so a survival stops the job in about a minute instead of after the full gate.
+      - name: Precheck the design-status-capped control (fast engine)
+        run: >
+          xvfb-run -a python3 tools/verify_project_chart_review.py --mode mutations --engine fast
+          --case design-status-capped --output target/design-status-capped-precheck.json
+      - name: Keep the precheck's evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-status-capped-precheck
+          path: target/design-status-capped-precheck.json
       - name: Run every mutation control (fast engine)
         run: xvfb-run -a python3 tools/verify_project_chart_review.py --mode mutations --engine fast --output target/mutation-gate.json
       - name: Keep the gate's evidence
