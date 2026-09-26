@@ -18,6 +18,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   the pane body, a node that could not open says why, and at most two threads wait on a hung disk. Superseded
   reads and Ctrl-click checks are removed from the queue rather than left waiting, and a Ctrl-click check has
   the same time limit as a read, so a stale click can no longer open a class long after it was made.
+- **A Ctrl-click that cannot be checked now says why.** If the source reads are backed up or the lookup fails,
+  the node pane explains it instead of silently doing nothing, and Back, opening a file, a spotlight or opening
+  a node all cancel a pending Ctrl-click so it can no longer open a class over what you navigated to.
 - **A rolled set now stops serving a member file that changed in place, and says which one.** A single log whose
   file was rewritten in place is refused until it is reopened, but the same file inside a rolled set was still read,
   through an index that no longer matched it. A rolled set now reports its members' changes, naming the member, and

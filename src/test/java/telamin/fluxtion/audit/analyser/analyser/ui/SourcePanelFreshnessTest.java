@@ -244,6 +244,160 @@ class SourcePanelFreshnessTest {
         assertTrue(panel.nodePaneText().contains("int limit = 1;"), "an existing type opens once checked");
     }
 
+    // ---- PR #30 re-review (0e5b7182), R1 remaining: every navigation entrance supersedes a pending Ctrl-click ----
+
+    /** Hold a Ctrl-click existence check for {@code clicked}; returns the latch that releases it (answering "exists"). */
+    private static CountDownLatch holdTypeCheck(SourcePanel panel, String clicked,
+                                                java.util.concurrent.BlockingQueue<String> outcome) throws Exception {
+        CountDownLatch release = new CountDownLatch(1), entered = new CountDownLatch(1);
+        panel.decisions = d -> { if (d.startsWith("type-check " + clicked)) outcome.add(d); };
+        panel.existence = (lookup, fqn) -> {
+            entered.countDown();
+            try { release.await(10, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            return true;
+        };
+        SwingUtilities.invokeAndWait(() -> panel.openTypeIfPresent(clicked));
+        assertTrue(entered.await(5, TimeUnit.SECONDS), "control: the Ctrl-click check is running");
+        return release;
+    }
+
+    /** Release a held check, wait for its actual EDT decision, and return it. */
+    private static String releaseAndDecide(CountDownLatch release, java.util.concurrent.BlockingQueue<String> outcome)
+            throws Exception {
+        release.countDown();
+        String decided = outcome.poll(5, TimeUnit.SECONDS);
+        awaitSourceWorkIdle();
+        return decided;
+    }
+
+    /** Show A then B; hold a Ctrl-click check for C; Back to A; release C before its deadline. A stays. */
+    @Test
+    void backSupersedesAPendingTypeClickCheck() throws Exception {
+        String a = "com.acme.node.A", b = "com.acme.node.B", c = "com.acme.node.C";
+        write(a, node("A", "int a = 1;")); write(b, node("B", "int b = 2;")); write(c, node("C", "int c = 3;"));
+        SourcePanel panel = panel(new SourceService());
+        panel.openFqn(a); settle(panel);
+        panel.openFqn(b); settle(panel);
+        var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+        CountDownLatch release = holdTypeCheck(panel, c, outcome);
+        SwingUtilities.invokeAndWait(panel::back);
+        settle(panel);
+        assertTrue(panel.nodePaneText().contains("int a = 1;"), "control: Back showed A: " + panel.nodePaneText());
+        String decided = releaseAndDecide(release, outcome);
+        assertEquals("type-check " + c + ": discarded", decided, "Back must supersede the pending Ctrl-click check");
+        assertTrue(panel.nodePaneText().contains("int a = 1;"), "the Back destination stays shown: " + panel.nodePaneText());
+    }
+
+    /** Opening a design/source file supersedes a pending Ctrl-click check. */
+    @Test
+    void openingAFileSupersedesAPendingTypeClickCheck() throws Exception {
+        String c = "com.acme.node.C";
+        write(c, node("C", "int c = 3;"));
+        SourcePanel panel = panel(new SourceService());
+        var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+        CountDownLatch release = holdTypeCheck(panel, c, outcome);
+        var view = new telamin.fluxtion.audit.analyser.analyser.design.DesignWorkspace.View(
+                "/demo/Glance.java", "class Glance { int glance = 9; }\n", "JAVA", 1, null, null);
+        SwingUtilities.invokeAndWait(() -> panel.showFile(view, null, true));
+        String decided = releaseAndDecide(release, outcome);
+        assertEquals("type-check " + c + ": discarded", decided, "opening a file must supersede the pending Ctrl-click check");
+        assertTrue(panel.nodePaneText().contains("int glance = 9;"), "the opened file stays shown: " + panel.nodePaneText());
+    }
+
+    /** Installing a Java spotlight snapshot supersedes a pending Ctrl-click check. */
+    @Test
+    void aJavaSnapshotSupersedesAPendingTypeClickCheck() throws Exception {
+        String c = "com.acme.node.C", s = "com.acme.node.S";
+        write(c, node("C", "int c = 3;"));
+        SourcePanel panel = panel(new SourceService());
+        var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+        CountDownLatch release = holdTypeCheck(panel, c, outcome);
+        String text = node("S", "int spotlit = 5;");
+        var doc = new SourceDocument(text, null, null, "s.jar", "x", SourceDocument.digest(text));
+        SwingUtilities.invokeAndWait(() -> panel.showJavaSnapshot(s, doc,
+                telamin.fluxtion.audit.analyser.analyser.source.EventProcessorModel.parse(s, text)));
+        String decided = releaseAndDecide(release, outcome);
+        assertEquals("type-check " + c + ": discarded", decided, "a spotlight snapshot must supersede the pending Ctrl-click check");
+        assertTrue(panel.nodePaneText().contains("int spotlit = 5;"), "the spotlit source stays shown: " + panel.nodePaneText());
+    }
+
+    /** Opening a node supersedes a pending Ctrl-click check at once, before its processor read completes. */
+    @Test
+    void openingANodeSupersedesAPendingTypeClickCheckBeforeItsProcessorRead() throws Exception {
+        String c = "com.acme.node.C";
+        write(c, node("C", "int c = 3;"));
+        write(PROCESSOR, processor("RiskCheck", "riskCheck"));
+        write(NODE, node("RiskCheck", "int limit = 1;"));
+        SourcePanel panel = panel(new SourceService());
+        var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+        CountDownLatch release = holdTypeCheck(panel, c, outcome);
+        CountDownLatch processorHeld = new CountDownLatch(1);
+        var realRead = panel.reader;
+        panel.reader = (lookup, fqn) -> {
+            if (fqn.equals(PROCESSOR)) try { processorHeld.await(10, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            return realRead.apply(lookup, fqn);
+        };
+        SwingUtilities.invokeAndWait(() -> panel.openInstance("riskCheck", null));
+        release.countDown();                                     // C answers while the processor read is still held
+        String decided = outcome.poll(5, TimeUnit.SECONDS);
+        assertEquals("type-check " + c + ": discarded", decided, "opening a node must supersede the check before its processor read");
+        processorHeld.countDown();
+        awaitSourceWorkIdle(); settle(panel);
+        assertTrue(panel.nodePaneText().contains("int limit = 1;"), "the requested node opens: " + panel.nodePaneText());
+    }
+
+    // ---- R1 remaining: a Ctrl-click failure is visible and finishes its request ------------------------------------
+
+    /** Both workers held and the queue full: the rejected check says why, stops its deadline and never expires later. */
+    @Test
+    void aRejectedTypeClickCheckSaysWhyAndFinishes() throws Exception {
+        SourceService service = new SourceService();
+        var release = new java.util.concurrent.atomic.AtomicBoolean();
+        CountDownLatch entered = new CountDownLatch(2);
+        var read = java.util.Collections.synchronizedList(new java.util.ArrayList<String>());
+        java.util.List<SourcePanel> fillers = new java.util.ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            SourcePanel p = new SourcePanel(); p.bind(service);
+            p.reader = holding(entered, release, read, i < 2 ? "com.acme.Block" + i : "never");
+            fillers.add(p);
+        }
+        service.configure(List.of(root().toString()), PROCESSOR);
+        SourcePanel panel = panel(service);
+        panel.readDeadline = java.time.Duration.ofMillis(200);
+        var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+        panel.decisions = d -> { if (d.startsWith("type-check")) outcome.add(d); };
+        try {
+            SwingUtilities.invokeAndWait(() -> { fillers.get(0).openFqn("com.acme.Block0"); fillers.get(1).openFqn("com.acme.Block1"); });
+            assertTrue(entered.await(5, TimeUnit.SECONDS), "control: both workers are held");
+            SwingUtilities.invokeAndWait(() -> { for (int i = 2; i < 10; i++) fillers.get(i).openFqn("com.acme.Queued" + i); });
+            assertEquals(8, SourcePanel.pendingSourceWork(), "control: the pending queue is full");
+            SwingUtilities.invokeAndWait(() -> panel.openTypeIfPresent(NODE));
+            String decided = outcome.poll(5, TimeUnit.SECONDS);
+            assertNotNull(decided, "the rejected check reaches a decision");
+            assertTrue(decided.contains("failed") && decided.contains("backed up"), "the rejection is reported: " + decided);
+            assertTrue(panel.nodeLabel().contains("backed up"), "the person sees why the Ctrl-click did nothing: " + panel.nodeLabel());
+            assertFalse(panel.typeCheckPending(), "the failed check's deadline and pending state are finished");
+            assertNull(outcome.poll(600, TimeUnit.MILLISECONDS), "a finished check must not report a later expiry");
+        } finally { release.set(true); }
+        awaitSourceWorkIdle();
+    }
+
+    /** An ordinary lookup exception follows the same visible failure path. */
+    @Test
+    void aTypeClickLookupExceptionIsVisible() throws Exception {
+        SourcePanel panel = panel(new SourceService());
+        var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+        panel.decisions = d -> { if (d.startsWith("type-check")) outcome.add(d); };
+        panel.existence = (lookup, fqn) -> { throw new java.io.UncheckedIOException(new java.io.IOException("disk said no")); };
+        SwingUtilities.invokeAndWait(() -> panel.openTypeIfPresent(NODE));
+        String decided = outcome.poll(5, TimeUnit.SECONDS);
+        assertNotNull(decided, "the failed check reaches a decision");
+        assertTrue(decided.contains("failed"), decided);
+        awaitSourceWorkIdle();
+        assertTrue(panel.nodeLabel().contains("disk said no"), "the person sees the lookup failure: " + panel.nodeLabel());
+        assertFalse(panel.typeCheckPending(), "the failed check is finished");
+    }
+
     // ---- PR #30 targeted re-review, R1: the pending-work and cancellation lifecycle ------------------------------
 
     /** Wait until no source work is running or queued; an observable condition, not a sleep. */

@@ -271,7 +271,17 @@ public final class SourcePanel extends JPanel {
             pendingTypeCheck = null;
             decisions.accept("type-check " + fqn + ": " + (Boolean.TRUE.equals(present) ? "opened" : "absent"));
             if (Boolean.TRUE.equals(present)) openFqn(fqn);
-        }, failure -> { });
+        }, failure -> {
+            // PR #30 re-review, R1: a failure — the queue being full, or the lookup itself failing — finishes the
+            // request and is shown. An obsolete failure only records that it was discarded.
+            if (ticket != typeClickTicket) { decisions.accept("type-check " + fqn + ": discarded"); return; }
+            typeCheckDeadline.stop();
+            pendingTypeCheck = null;
+            typeClickTicket++;                                    // finished: nothing later may navigate or expire
+            String reason = failure.getMessage() != null ? failure.getMessage() : failure.getClass().getSimpleName();
+            nodePane.label.setText("could not check whether " + fqn + " has source: " + reason);
+            decisions.accept("type-check " + fqn + ": failed: " + reason);
+        });
     }
 
     /**
@@ -283,6 +293,9 @@ public final class SourcePanel extends JPanel {
 
     /** Queued (not yet running) source work — for tests of the pending-work bound. */
     static int pendingSourceWork() { return READS.getQueue().size(); }
+
+    /** True while a Ctrl-click existence check is pending (queued, running, or awaiting its deadline) — for tests. */
+    boolean typeCheckPending() { return pendingTypeCheck != null || (typeCheckDeadline != null && typeCheckDeadline.isRunning()); }
 
     /** True when no source work is running or queued — for tests. */
     static boolean sourceWorkIdle() { return READS.getActiveCount() == 0 && READS.getQueue().isEmpty(); }
@@ -603,6 +616,7 @@ public final class SourcePanel extends JPanel {
     /** Open a node's declaring class (via the selected processor) and scroll to {@code method}. */
     public void openInstance(String instanceId, String method) {
         if (service == null) return;
+        supersedeTypeCheck();                 // at the entrance, not after the processor read (PR #30 re-review, R1)
         String processor = service.selectedFqn();
         if (processor == null) { resolveInstance(instanceId, method); return; }
         // The node's class comes from the processor as it is on disk NOW: after a class rename, a model
@@ -696,8 +710,10 @@ public final class SourcePanel extends JPanel {
     }
 
     /** Navigate back to the previously shown source file (Alt+Left / Cmd|Ctrl+[). */
-    private void back() {
+    /** Navigate back (Alt+Left / Cmd|Ctrl+[). Package-private for tests of what Back supersedes. */
+    void back() {
         if (backStack.isEmpty()) return;
+        supersedeTypeCheck();                                     // Back is a navigation: a pending Ctrl-click yields
         History previous = backStack.pop();
         if (previous.file() != null) {
             historyDestination = previous.file().file();
@@ -736,6 +752,7 @@ public final class SourcePanel extends JPanel {
     }
 
     public void showFile(DesignWorkspace.View view, String note, boolean history) {
+        supersedeTypeCheck();                                     // opening a file supersedes a pending Ctrl-click
         boolean fromHistory = Objects.equals(historyDestination, view.file());
         historyDestination = null;
         if (history && !fromHistory) {
@@ -774,6 +791,7 @@ public final class SourcePanel extends JPanel {
     public record JavaBand(Rectangle bounds, boolean partial) { }
 
     public JavaAnchor showJavaSnapshot(String fqn, SourceDocument document, EventProcessorModel model) {
+        supersedeTypeCheck();                                     // a spotlight destination supersedes a pending Ctrl-click
         Pane pane = Objects.equals(fqn, service.selectedFqn()) ? processorPane : nodePane;
         fileView = null;
         if (pane.snapshot == null || !pane.snapshot.equals(document)) {
