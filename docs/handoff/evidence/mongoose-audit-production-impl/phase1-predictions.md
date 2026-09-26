@@ -589,3 +589,25 @@ the V2 equality (a failure, not an error). P17.2: the cold-open site's `null` is
 the store does". P17.3: `p16-v2` moved its red line to the tab read, as predicted. P17.4: a one-member set opens through
 `open {logs: [...]}`; fixed through `emptyLogClaim()`, X4's anchor moved with it. P17.5: Javadoc moved, no behaviour.
 P17.6: 186 anchors. P17.7: 3 + 16 caught. P17.8: 2430/0/0/117, 326 reports; display 117 tests, no skip. P17.9 is CI's.
+
+## P18 · R2 of the targeted re-review of PR #40 — the frame's load site for a one-member set — recorded before any change
+
+The re-review closed R1 (the conflict with main, `a978f7ec`) and found one gap: nothing fails if the frame's LOAD site
+passes `loaded.streamEnd()` instead of `loaded.emptyLogClaim()` (X5). The store test calls `ProducerDiagnostics`
+directly, and for a single-file store the two methods are equal, so the cold-open test cannot tell them apart. Baseline
+at `a978f7ec` (main's M68.7 included): headless **2436 / 0 / 0 / 118** over 328 reports; display 23 suites, 118 tests;
+preflight 23 suites, 193 anchors.
+
+1. **P18.1 — the test.** `LogFindingsOnEverySurfaceFrameTest#aOneMemberSetOpenedInTheFrameIsWordedAsItsFile`: a report is
+   selected over an empty file first; a file holding only a zero-count marker is opened as a set of one
+   (`open {logs: [path]}`); the test waits on frame fields — the store is a `RolledLogStore` and the findings object has
+   changed — never on a verb; then the first warning starts with `EMPTY_FILE_ENDED`, and the status tooltip and the
+   Reports tab carry it. It passes on the real code.
+2. **P18.2 — the control.** `p18-one-member-set-at-load-site` (the load site's `emptyLogClaim()` → `streamEnd()`) fails
+   that test at its first-warning assertion — a failure, not an error or a skip. `p17-cold-open-passes-stream-end` and
+   `p17-one-member-set-is-its-file` still hold.
+3. **P18.3 — no control at the Follow site.** Only `HeapLogStore` follows, and its `emptyLogClaim()` IS its `streamEnd()`,
+   so reverting that site is an equivalent mutation (the reviewer's X6). Stated, not run.
+4. **P18.4 — counts.** Preflight **194** anchors, 23 suites. Headless **2436 + 1** total, **118 + 1** skipped (one frame
+   method), 328 reports. Display 23 suites, **119** tests, no failure. CHANGELOG unchanged: no user-visible behaviour moves.
+5. **P18.5 — CI** on the new head: build, `ui-frame` with 0 skips across 23 suites, `mutation-gate` with every control caught.
