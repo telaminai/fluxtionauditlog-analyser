@@ -71,6 +71,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   resolves (M68.2).
 - **`series` now refuses a `resolve` it does not know.** Anything other than STRICT or LOCF used to become STRICT
   without a word; it is now an error naming the value.
+- Report series calls using `key` preserve the literal field name, including punctuation and spaces;
+  a key such as `node.value+1` is not evaluated as a formula. Formula evaluation remains explicit through `expr`.
 - **A project pointer that cannot be followed now says which project root it tried.** A runbook or glossary pointer
   whose file was missing said only "NOT found under the project root", without saying which root. One that could not
   be resolved at all showed no warning: either no project was open, or its path left the project folder. The

@@ -1871,7 +1871,11 @@ of the originals is in `057a069a`.)*
         apply's own routine (`f0ad708d`)
       - ☑ impl · N2 a report's series section draws exactly its stored call, through the verb's `parseCall`
         (`bfc1235a`); witnesses `e2d910b0`
-      - ☐ **acceptance of N1 and N2** — a focused re-review of this delta and the two counterexamples
+      - ☑ **focused re-review** of N1 and the two N2 counterexamples — see
+        [the review and authorised correction](../handoff/rereview2_m44_4_m68_2026_09_26.md).
+        N1 accepted; the original N2 cases pass. F1 found a new literal-key-to-formula regression in N2;
+        the owner authorised the reviewer to fix it on the review branch. Acceptance evidence and final gate
+        results are recorded in that report; integration remains separate.
     - ☐ **independent acceptance** of the rest is recorded in the re-review above; none is claimed here
     - ☐ owner: Q4 partial delivery, Q5 saved names with `"`, O2 content identity (spec-evidence-integrity ▸ Open)
 

@@ -58,11 +58,20 @@ public final class SeriesScan {
      * used to become STRICT without a word. {@code filter.text} is refused, as the verb always refused it.
      */
     public static Call parseCall(Map<String, ?> params) {
-        Object exprText = params.get("expr");
+        return parseCall(params, null);
+    }
+
+    /** A report's legacy key is a literal reference, never expression syntax; scope and resolution stay shared. */
+    public static Call parseKeyCall(Map<String, ?> params, GraphKey key) {
+        return parseCall(params, java.util.Objects.requireNonNull(key));
+    }
+
+    private static Call parseCall(Map<String, ?> params, GraphKey literalKey) {
+        Object exprText = literalKey == null ? params.get("expr") : literalKey.display();
         if (exprText == null || exprText.toString().isBlank()) {
             throw new IllegalArgumentException("'expr' is required — a key (\"node.key\") or a formula");
         }
-        Expr expr = Expr.parse(exprText.toString());
+        Expr expr = literalKey == null ? Expr.parse(exprText.toString()) : new Expr.Ref(literalKey);
         Object r = params.get("resolve");
         SeriesExtractor.Resolve resolve;
         if (r == null || "STRICT".equalsIgnoreCase(String.valueOf(r))) {

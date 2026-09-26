@@ -62,15 +62,16 @@ final class ReportSeriesPicture {
         Map<String, Object> asVerb = new LinkedHashMap<>(given);
         asVerb.remove("key");
         asVerb.remove("verb");
+        GraphKey literalKey = null;
         if (key != null) {
-            if (GraphKey.fromDisplay(String.valueOf(key)) == null) {
+            literalKey = GraphKey.fromDisplay(String.valueOf(key));
+            if (literalKey == null) {
                 return Result.problem("the call's 'key' '" + key + "' is not of the form node.key");
             }
-            asVerb.put("expr", String.valueOf(key));
         }
         SeriesScan.Call parsed;
         try {
-            parsed = SeriesScan.parseCall(asVerb);
+            parsed = literalKey == null ? SeriesScan.parseCall(asVerb) : SeriesScan.parseKeyCall(asVerb, literalKey);
         } catch (RuntimeException e) {
             return Result.problem("the call cannot be drawn: " + e.getMessage());
         }

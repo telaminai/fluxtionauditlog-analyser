@@ -267,4 +267,8 @@ CONTROLS = [
      '                    parsed.filter(),',
      '                    new telamin.fluxtion.audit.analyser.analyser.filter.FilterState(),',
      'ReportSeriesCallTest#theCallFilterIsHonoured'),
+    ('review-n2-report-literal-key', J + 'graph/SeriesScan.java',
+     '        Expr expr = literalKey == null ? Expr.parse(exprText.toString()) : new Expr.Ref(literalKey);',
+     '        Expr expr = Expr.parse(exprText.toString());',
+     'ReportSeriesCallTest#aLiteralKeyNeverBecomesAFormula'),
 ]

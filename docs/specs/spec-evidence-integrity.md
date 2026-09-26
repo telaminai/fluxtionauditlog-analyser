@@ -565,7 +565,10 @@ responsibilities, and no further client trial: these are contract and acceptance
   saved focus (set 13; `TopologyPanel.renderFocusForReport`, `TopologyReportFocusTest`, end-to-end scenario 13), and
   a series section, drawn from exactly its stored call (re-review N2): `SeriesScan.parseCall` is the one
   interpretation of a series call, used by the verb and by `ReportSeriesPicture`, so the section draws the expression,
-  resolution (STRICT unless the call says LOCF) and filter the verb uses. The call decides the scope — the view filter
+  resolution (STRICT unless the call says LOCF) and filter the verb uses. A legacy `key` is a literal `GraphKey`,
+  carried through `parseKeyCall` with the same scope and resolution parsing; punctuation in a field name is never
+  evaluated as a formula (`ReportSeriesCallTest#aLiteralKeyNeverBecomesAFormula` compares rendered values).
+  The call decides the scope — the view filter
   does not apply — and the caption states the resolution and scope drawn. `crossings`, `buckets`, `limit`, both
   `key` and `expr`, undefined keys, an unknown `resolve` and a text filter are NOT RENDERED with the reason
   (`ReportSeriesCallTest`, through the adapter against the verb; end-to-end scenario 18). *The first version read

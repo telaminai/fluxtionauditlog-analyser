@@ -97,6 +97,30 @@ class ReportSeriesCallTest {
         assertTrue(r.caption().contains("view filter does not apply"), r.caption());
     }
 
+    @Test
+    @DisplayName("F1: a literal key keeps its value, including expression punctuation, spaces and backticks")
+    void aLiteralKeyNeverBecomesAFormula() throws Exception {
+        for (String key : List.of("v+1", "v-1", "v with space", "v`literal")) {
+            var store = new HeapLogStore("eventLogRecord:\n  event: Tick\n  logTime: 1000\n  nodeLogs:\n"
+                    + "    - rootNode: {v: 100, " + key + ": 7}\n---\n");
+            String label = "rootNode." + key;
+            var actual = drawn(store, Map.of("key", label));
+            assertNull(actual.problem(), "literal key must remain drawable: " + label);
+            var expected = new AtomicReference<java.awt.image.BufferedImage>();
+            SwingUtilities.invokeAndWait(() -> {
+                // Independent expected values, not the adapter's parser or extraction path.
+                var series = new telamin.fluxtion.audit.analyser.analyser.graph.Series(label);
+                series.add(1000, 7);
+                var chart = new ChartPanel();
+                chart.setSeries(List.of(series));
+                expected.set(chart.toImage(1200, 600));
+            });
+            assertArrayEquals(expected.get().getRGB(0, 0, 1200, 600, null, 0, 1200),
+                    actual.image().getRGB(0, 0, 1200, 600, null, 0, 1200),
+                    "F1: literal key " + label + " must draw value 7, not evaluate a formula");
+        }
+    }
+
     @ParameterizedTest(name = "{0}")
     @org.junit.jupiter.params.provider.ValueSource(strings = {"crossings", "buckets", "limit", "an unknown key",
             "both key and expr", "an unknown resolve", "a text filter"})
