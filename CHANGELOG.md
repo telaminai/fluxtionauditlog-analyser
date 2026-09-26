@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-09-26
+
 ### Added
 
 - **A report says what the log itself shows.** An empty file, a damaged one, or one holding a document with no
