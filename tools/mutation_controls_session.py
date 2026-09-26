@@ -347,6 +347,11 @@ CONTROLS = [
     ('p17-one-member-set-is-its-file', PARSE + 'RolledLogStore.java',
      '        return members.size() == 1 ? members.get(0).streamEnd() : streamEnd();', '        return streamEnd();',
      'EmptyLogAndRecordKeyDiagnosticsTest#aOneMemberRolledSetIsWordedAsItsFile'),
+    # R2 (X5): the LOAD site, through the frame. The Follow site owes no control: only HeapLogStore follows, and its
+    # emptyLogClaim() IS its streamEnd(), so reverting that site is an equivalent mutation (the reviewer's X6).
+    ('p18-one-member-set-at-load-site', UI + 'MainFrame.java',
+     '                        loaded.emptyLogClaim());', '                        loaded.streamEnd());',
+     'LogFindingsOnEverySurfaceFrameTest#aOneMemberSetOpenedInTheFrameIsWordedAsItsFile'),
     # ---- M68.7 (owner, Q4 2026-09-26): the charts and the detail pane state the file-identity verdict
     ('m68-7-charts-not-rendered', UI + 'MainFrame.java',
      '        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));\n',

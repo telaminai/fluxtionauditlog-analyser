@@ -346,6 +346,49 @@ class LogFindingsOnEverySurfaceFrameTest {
         }
     }
 
+    /**
+     * R2 (X5): the frame's LOAD site for a set of one. For every single-file store {@code emptyLogClaim()} IS
+     * {@code streamEnd()}, so only a rolled set tells the two apart — and only through the frame proves the load site
+     * passes the right one. A report is selected over an empty file first; the set is opened; the test waits on the
+     * frame's fields, never a verb (`awaitLoaded` calls `context`, which re-renders the tab), then reads.
+     */
+    @Test
+    void aOneMemberSetOpenedInTheFrameIsWordedAsItsFile() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path empty = Files.writeString(tmp.resolve("empty.yml"), "");
+        Path only = Files.writeString(tmp.resolve("run.1.yaml"), ZERO_MARKER);
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("log", empty.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            Object before = onEdtGet(() -> {
+                f.frame.setSize(1300, 850);
+                f.frame.setVisible(true);
+                render(f.ex, "report", REPORT);   // builds the report AND selects it on the tab
+                return field(f.frame, "producerDiagnostics");
+            });
+
+            assertTrue(f.ex.render("open", Map.of("logs", List.of(only.toString()))).ok(), "a set of one opens");
+            long deadline = System.currentTimeMillis() + 20_000;
+            while (!onEdtGet(() -> field(f.frame, "store")
+                    instanceof telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore
+                    && field(f.frame, "producerDiagnostics") != before)) {
+                assertTrue(System.currentTimeMillis() < deadline, "the set's findings never published");
+                Thread.sleep(25);
+            }
+            onEdt(() -> {
+                String tab = reportsTab(f.frame);
+                String tip = String.valueOf(status(f.frame).getToolTipText());
+                String first = frameFirstWarning(f.frame);
+                String ended = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE_ENDED;
+                assertAll("R2: the load site words a set of one from its file",
+                        () -> assertTrue(first.startsWith(ended),
+                                "the frame's first warning is the file's own ended sentence: " + first),
+                        () -> assertTrue(tip.contains(ended), "the status tooltip carries it: " + tip),
+                        () -> assertTrue(tab.contains(ended), "the Reports tab carries it: " + tab));
+            });
+        }
+    }
+
     private static Map<String, Object> with(Map<String, Object> base, String key, Object value) {
         Map<String, Object> m = new java.util.LinkedHashMap<>(base);
         m.put(key, value);
