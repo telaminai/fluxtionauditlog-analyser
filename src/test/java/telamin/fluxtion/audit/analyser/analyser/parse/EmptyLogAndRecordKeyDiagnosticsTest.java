@@ -108,16 +108,18 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
 
     /**
      * MA-0.4 — why the acceptance names {@code firstWarning()}. For a marked rolled set the first
-     * finding is a {@code COMPLETENESS_NOTE}, which {@code isWarning()} reads and reports false. A test
-     * asserting through {@code isWarning()} would pass for the wrong reason.
+     * finding is a {@code COMPLETENESS_NOTE}. {@code isWarning()} used to read only that first finding and
+     * report false — the trap MA-0.4 named. Integration with M44.4 (M68.3): {@code isWarning()} now looks
+     * past notes, so the trap is gone; this asserts the corrected behaviour, and that {@code firstWarning()}
+     * still finds the same finding.
      */
     @Test
     void firstWarningSeesPastACompletenessNoteAndIsWarningDoesNot() {
         ProducerDiagnostics d = ProducerDiagnostics.of(
                 new LogIndex(), texts(), List.of(), List.of("a rolled set is never reported complete"), true);
 
-        assertFalse(d.isWarning(),
-                "isWarning() reads only get(0), which is the note — this is the trap MA-0.4 names");
+        assertTrue(d.isWarning(),
+                "isWarning() looks past the leading note since M68.3 — the trap MA-0.4 named is closed");
         assertTrue(d.firstWarning().isPresent(), "firstWarning() sees past it");
         assertEquals(ProducerDiagnostics.Kind.EMPTY_LOG, d.firstWarning().orElseThrow().kind(),
                 "and finds the empty-log finding behind the note");

@@ -1,0 +1,74 @@
+1. the packet graph with its three declared authored nodes
+  PASS declared 3
+  PASS covered 3
+  PASS ratio 1.0
+  PASS authorship declared by the graph
+  PASS no out-of-topology warning
+  PASS no build-provenance claim on coverage or context
+  PASS context: membership established
+  PASS context: every observed id declared
+  PASS context: applies is labelled a retention policy
+2. a declared framework node that writes
+  PASS no warning for a declared framework node
+  PASS population unchanged at 3
+  PASS framework node disclosed outside the denominator
+3. no node output at all
+  PASS context: membership NOT established
+  PASS coverage: membership NOT established
+4. WRONG-RESULT WITNESS — a foreign id must still warn
+  PASS the graph is retained on a partial match
+  PASS …and context says not every observed id is declared
+  PASS the warning appears
+  PASS it names the foreign id
+  PASS it states the fact without a build conclusion
+5. acceptance 3 in every open order: a 600-record log, the only foreign id in record 600
+  PASS combined: the graph is still open
+  PASS combined: the pairing says it is a sample
+  PASS combined: and names its scope
+  PASS combined: the verdict sentence carries the scope
+  PASS combined: whole-log coverage finds the id the sample could not see
+  PASS combined: and its reply says it qualified the published pairing
+  PASS combined: context now carries the qualification
+  PASS combined: naming the foreign id
+  PASS graph first: the graph is still open
+  PASS graph first: the pairing says it is a sample
+  PASS graph first: and names its scope
+  PASS graph first: the verdict sentence carries the scope
+  PASS graph first: whole-log coverage finds the id the sample could not see
+  PASS graph first: and its reply says it qualified the published pairing
+  PASS graph first: context now carries the qualification
+  PASS graph first: naming the foreign id
+  PASS log first: the graph is still open
+  PASS log first: the pairing says it is a sample
+  PASS log first: and names its scope
+  PASS log first: the verdict sentence carries the scope
+  PASS log first: whole-log coverage finds the id the sample could not see
+  PASS log first: and its reply says it qualified the published pairing
+  PASS log first: context now carries the qualification
+  PASS log first: naming the foreign id
+7. N1 — a Follow append must not leave a whole-log verdict describing the old log
+  PASS before the append, coverage confirms the whole log
+  PASS the followed store now holds 601 records
+  FAIL the qualification no longer claims to confirm the whole log
+       {'by': 'coverage', 'scope': 'whole log', 'recordsCompared': 600, 'membershipEstablished': True, 'everyObservedIdDeclared': True, 'notDeclared': [], 'supersedesSample': True, 'note': 'coverage compared the whole log (600 records) against every declared node: all 3 logged id(s) are declared — this confirms the sampled pairing for the whole log'}
+  FAIL and says the log has grown since coverage compared it
+       {'by': 'coverage', 'scope': 'whole log', 'recordsCompared': 600, 'membershipEstablished': True, 'everyObservedIdDeclared': True, 'notDeclared': [], 'supersedesSample': True, 'note': 'coverage compared the whole log (600 records) against every declared node: all 3 logged id(s) are declared — this confirms the sampled pairing for the whole log'}
+  FAIL the published pairing's scope counts the appended record
+       first 500 of 600 records
+  PASS a fresh coverage finds the appended foreign id
+  PASS and is not stale
+8. N2 — a narrower comparison must not erase a wider one, in either order
+  FAIL whole then filtered: the whole-log finding still stands in context
+       {'by': 'coverage', 'scope': 'current filter', 'recordsCompared': 2, 'membershipEstablished': True, 'everyObservedIdDeclared': True, 'notDeclared': [], 'supersedesSample': False, 'note': 'coverage compared the current filter (2 records) against every declared node: all 2 logged id(s) are declared'}
+  FAIL …and the filtered comparison is stated beside it
+       {'by': 'coverage', 'scope': 'current filter', 'recordsCompared': 2, 'membershipEstablished': True, 'everyObservedIdDeclared': True, 'notDeclared': [], 'supersedesSample': False, 'note': 'coverage compared the current filter (2 records) against every declared node: all 2 logged id(s) are declared'}
+  FAIL …and the filtered coverage reply says the whole-log finding still stands
+       {'ratio': 0.667, 'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'recordsScanned': 2, 'neverLogged': [{'instanceId': 'rootNode', 'class': 'com.example.myapp.node.RootNode', 'status': 'uncovered', 'reason': 'never wrote audit output in this scope'}], 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 
+  PASS filtered then whole: the whole-log finding leads
+  PASS …and the earlier, dominated filtered comparison is not carried
+6. the exported PDF says what the screen says (D-E2)
+  PASS the report exported
+  PASS the page carries the membership warning
+  PASS the page carries the honest figures
+
+6 check(s) FAILED: the qualification no longer claims to confirm the whole log; and says the log has grown since coverage compared it; the published pairing's scope counts the appended record; whole then filtered: the whole-log finding still stands in context; …and the filtered comparison is stated beside it; …and the filtered coverage reply says the whole-log finding still stands

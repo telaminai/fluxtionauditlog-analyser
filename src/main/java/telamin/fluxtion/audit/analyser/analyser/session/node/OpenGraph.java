@@ -10,14 +10,24 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
  * Whether a topology graph is open, which, and where it came from
  * ({@code OPENED} / {@code DECLARED} / {@code INFERRED}).
  *
- * <p>Same two-input shape as {@link OpenLog}, for the same reason: the close is a result that proves
- * something happened, the open is an observation only until the slice that moves graph opening.
+ * <p>The close that answers a {@code CloseGraphEffect} is a result that proves it happened. An open, and a close
+ * made outside a transition, are facts (M44.4a): graphs open synchronously from many surfaces, and each one
+ * reports what happened through a single hook on the Topology panel.
  */
 public class OpenGraph implements EventLogSource {
 
     private final OperationGate gate;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
+    private boolean open;
+    /** M44.4b: incremented whenever a DIFFERENT graph opens, so a snapshot can say which graph a verdict is about. */
+    private long revision;
+    /**
+     * M68.4: every open, the same graph again included. Revision answers "is this a different graph?", which is what a
+     * qualification binds to; this answers "did somebody open a graph?", which is what intent is — a request that
+     * re-opens the graph already on screen still asked for it.
+     */
+    private long openings;
     private String graphPath;
     private String source;
 
@@ -39,7 +49,8 @@ public class OpenGraph implements EventLogSource {
         if (!gate.accepted()) {
             return false;
         }
-        boolean wasOpen = graphPath != null;
+        boolean wasOpen = open;
+        open = false;
         graphPath = null;
         source = null;
         declaredNodeIds = java.util.Set.of();
@@ -48,20 +59,51 @@ public class OpenGraph implements EventLogSource {
         return wasOpen;
     }
 
+    /** M44.4a: a graph is now the one on screen. Dirty only when it is a different graph. */
     @OnEventHandler
-    public boolean onGraphObserved(SessionEvents.GraphObserved event) {
-        String wasPath = graphPath;
-        java.util.Set<String> wasIds = declaredNodeIds;
-        graphPath = event.open() ? event.graphPath() : null;
-        source = event.open() ? event.source() : null;
-        declaredNodeIds = event.open() ? event.declaredNodeIds() : java.util.Set.of();
-        nodeTypes = event.open() ? event.nodeTypes() : java.util.List.of();
-        auditLog.info("openGraph", event.open() ? event.graphPath() : "none").info("via", "observation");
-        return !java.util.Objects.equals(wasPath, graphPath) || !wasIds.equals(declaredNodeIds);
+    public boolean onGraphOpened(SessionEvents.GraphOpened event) {
+        boolean moved = !open || !java.util.Objects.equals(graphPath, event.graphPath())
+                || !java.util.Objects.equals(source, event.source())
+                || !declaredNodeIds.equals(event.declaredNodeIds()) || !nodeTypes.equals(event.nodeTypes());
+        if (moved) revision++;
+        openings++;
+        // A reader-supplied graph has no file, and is still a graph: GraphObserved carried a null path for it, so
+        // the processor believed no graph was open while one was on screen. Openness is its own fact now.
+        open = true;
+        graphPath = event.graphPath();
+        source = event.source();
+        declaredNodeIds = event.declaredNodeIds();
+        nodeTypes = event.nodeTypes();
+        auditLog.info("openGraph", graphPath == null ? "(no file)" : graphPath).info("via", "GraphOpened").info("source", source);
+        return moved;
+    }
+
+    /** M44.4a: the graph left the screen outside a transition; a no-op, recorded, when a result already closed it. */
+    @OnEventHandler
+    public boolean onGraphCleared(SessionEvents.GraphCleared event) {
+        if (!open) {
+            auditLog.info("noOp", "GraphCleared").info("reason", "no graph open");
+            return false;
+        }
+        open = false;
+        graphPath = null;
+        source = null;
+        declaredNodeIds = java.util.Set.of();
+        nodeTypes = java.util.List.of();
+        auditLog.info("openGraph", "none").info("via", "GraphCleared");
+        return true;
+    }
+
+    public long openings() {
+        return openings;
+    }
+
+    public long revision() {
+        return revision;
     }
 
     public boolean isOpen() {
-        return graphPath != null;
+        return open;
     }
 
     public String graphPath() {

@@ -118,7 +118,14 @@ class AsyncOpenInterleavingFrameTest {
             reader.release.countDown();
             awaitLoaded(f.ex);
             assertEquals(0, f.dialogs.seen(), "the arrival is the socket's operation; its audience is not the person's");
-            onEdt(() -> assertNull(pairing(f.ex).get("graph"), "the mismatching graph was closed by the arrival"));
+            // M68.4 changed this test's PREMISE, not its point. It used to rely on the arrival CLOSING graph B. B was
+            // opened by a person after the log was requested, so it is intent for that log — the owner's M44.3b rule,
+            // the last deliberate request wins — and is now kept, with the mismatch announced. The announcement is
+            // still a warning effect of the SOCKET's operation, so B1's point stands: it must not become a dialog.
+            onEdt(() -> assertNotNull(pairing(f.ex).get("graph"), "a graph opened for the arriving log is kept (M68.4)"));
+            Object session = field(f.frame, "session");
+            assertFalse(((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) session).auditSink()
+                    .matching("graphOpenedForThisLog").isEmpty(), "and the arrival DID warn — the path B1 guards ran");
         }
     }
 
@@ -134,7 +141,9 @@ class AsyncOpenInterleavingFrameTest {
             onEdt(() -> render(f.ex, "open", Map.of("graphml", graphB.toString())));                    // socket, mid-load
             reader.release.countDown();
             awaitLoaded(f.ex);
-            assertEquals(1, f.dialogs.seen(), "a person's arrival that closes a mismatching graph warns as a dialog");
+            // M68.4: the socket's graph was opened mid-load, so the arrival now KEEPS it and warns — still as a dialog,
+            // because the arrival is the person's operation
+            assertEquals(1, f.dialogs.seen(), "a person's arrival that finds a mismatching graph warns as a dialog");
         }
     }
 

@@ -18,6 +18,13 @@ public interface AppControl {
 
     /** Design/source reads may block on I/O and are invoked off the UI thread by the executor. */
     default ActionResult openDesign(String path) { return ActionResult.error("design view is not enabled here"); }
+
+    /**
+     * M68.1 re-review R2: a whole-log membership comparison has just run. Attach it to the pairing currently
+     * published, so that pairing is qualified — or superseded — and says so. Returns the sentence the
+     * qualification states, or {@code null} when there is no published pairing to qualify.
+     */
+    default String qualifyPublishedPairing(java.util.Map<String, Object> coverageEcho) { return null; }
     default ActionResult openDiagnostics(String path) { return ActionResult.error("producer findings are not enabled here"); }
     default ActionResult discoverDiagnostics() { return ActionResult.error("diagnostic discovery is not enabled here"); }
     default ActionResult source(java.util.Map<String, Object> selectors) { return ActionResult.error("source navigation is not enabled here"); }

@@ -74,8 +74,12 @@ public class Pairing implements EventLogSource {
                     .info("haveLog", haveLog);
             return true;
         }
-        verdict = GraphPairing.of(declared, logged);
-        auditLog.info("pairing", verdict.applies() ? "applies" : "doesNotApply")
+        // M68.1 re-review R2: the verdict carries its scope, exactly as the frame's pairingAgainst does.
+        // It used to be published unscoped, so a combined or graph-first open stated a 500-record sample
+        // as a whole-log claim — and the frame, discovery and this node disagreed about one verdict.
+        verdict = GraphPairing.of(declared, logged).withScope(sampled, total);
+        // O3: the retention decision is not the fit. A kept pairing with nothing compared is logged as such.
+        auditLog.info("pairing", verdict.auditLabel())
                 .info("applies", verdict.applies())
                 .info("declared", declared.size())
                 .info("logged", verdict.logged())

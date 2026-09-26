@@ -106,6 +106,17 @@ class DuplicateChartRepairTest {
     // ---- refusals: nothing is chosen for the person -------------------------------------------------
 
     @Test
+    void aRepairCannotCreateANameSpotlightCannotAddress() {
+        // M68.6 (D-E5): the repair renames saved definitions directly, past the UI's rename, so it applies the same
+        // rule — or it would recreate exactly the unaddressable names M68.6 refuses at every other entrance.
+        // witness: DuplicateChartRepair.apply without the ChartNames check
+        List<GraphSpec> saved = List.of(chart("Spread", "", true), chart("Spread", "", false));
+        var refused = assertThrows(IllegalArgumentException.class,
+                () -> DuplicateChartRepair.apply(saved, choices(0, rename("risk:limits"), 1, DELETE_IT)));
+        assertTrue(refused.getMessage().contains("cannot contain ':'"), refused.getMessage());
+    }
+
+    @Test
     void aPartialRepairIsRefused() {
         List<GraphSpec> saved = List.of(chart("Same", "a", true), chart("Same", "b", true));
         var e = assertThrows(IllegalArgumentException.class,

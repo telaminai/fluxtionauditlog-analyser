@@ -1,0 +1,2 @@
+org.opentest4j.AssertionFailedError: session audit records written by five Follow appends: 5 ==> expected: <0> but was: <5>
+[ERROR]   PairingDuringLoadFrameTest.aFollowAppendWritesNoSessionAuditRecordUntilCoverageReadsIt:221 session audit records written by five Follow appends: 5 ==> expected: <0> but was: <5>

@@ -1,0 +1,14 @@
+snapshot.before=false
+snapshot.clear=refused: published qualifications are read-only: the session changes them, through a fact, and nothing else does
+snapshot.after=false, nodeStillQualified=true
+listener.order=[second], final=second
+topology.before=[]
+topology.reply={ok=false, error=nothing to save — the full graph is not a focus; apply one first — nothing was changed}, selectedAfter=[]
+mapped.changed=ReadThroughIdentity[verdict=UNVERIFIED, reason=the opened file changed in place, so the records already indexed may no longer match it; reads are suspended until the log is reopened, bytesRetained=false], rolled.changed=ReadThroughIdentity[verdict=UNVERIFIED, reason=member a.yaml (file 1 of 2 in this rolled set): the opened file changed in place, so the records already indexed may no longer match it; reads are suspended until the log is reopened, bytesRetained=false]
+rolled.rawChanged=true
+framing.bomCollapse=[6]
+framing.plainCollapse=[6]
+framing.bomFindings=[Finding[kind=UNSEPARATED, message=Suspected missing record separators: record 1 appears to hold 2 records run together — its line(s) [6] start like new records ('eventLogRecord:' at the start of a line, outside any quoted value) with no '---' before them. Inspected lines 1–10 (156 characters). If they are records, the count above is wrong and every record after the first is hidden. A text audit log is a sequence of documents separated by lines of '---' (Format specification §1). record.toString() does NOT write it — the sink must: append("---\n") before each record. If instead a value was written unquoted with a line break in it, quote it.]]
+framing.pendingLarge=[Finding[kind=FRAMING_NOT_ASSESSED, message=The record still being written (not yet ended by '---', and not counted) is longer than the 1048576 characters the framing check reads, and nothing in that part looked like a further record. Whether more records run into the rest was NOT assessed.]]
+framing.staticLarge=[Finding[kind=FRAMING_NOT_ASSESSED, message=Record 1 is longer than the 1048576 characters the framing check reads, and nothing in that part looked like a further record. Whether more records run into the rest was NOT assessed.], Finding[kind=NO_NODE_LOGS, message=No node logged anything in any of the 1 record(s), so there is nothing to read, filter or plot. Usually the graph was built without addEventAudit() — without it the EventLogManager auditor is never installed and nodeLogs is empty for every cycle. A node also needs an audit logger (typically by extending EventLogNode) and must call auditLog.info(key, value) for its values to appear.]]
+savedQuote.address=null, parses=false

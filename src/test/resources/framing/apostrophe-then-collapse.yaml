@@ -1,0 +1,20 @@
+eventLogRecord: 
+    eventTime: 3000
+    logTime: 3000
+    groupingId: null
+    event: Note
+    eventToString: it's a plain value with an apostrophe
+    thread: main
+    nodeLogs: 
+        - notes: { size: 1}
+    endTime: 3001
+eventLogRecord: 
+    eventTime: 3001
+    logTime: 3001
+    groupingId: null
+    event: Note
+    eventToString: second record, run together
+    thread: main
+    nodeLogs: 
+        - notes: { size: 2}
+    endTime: 3002

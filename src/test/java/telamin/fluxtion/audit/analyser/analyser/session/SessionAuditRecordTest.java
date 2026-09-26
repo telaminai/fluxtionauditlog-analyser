@@ -37,7 +37,7 @@ class SessionAuditRecordTest {
             // this shape rather than only covering the request.
             FakeSessionAdapter adapter = new FakeSessionAdapter().withProfile(A).withProfile(B);
             SessionDriver driver = new SessionDriver(adapter);
-            driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
+            SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
             driver.submit(new SessionEvents.OpenProjectRequested(
                     driver.nextOpId(), A, TransitionKind.EXPLICIT_SWITCH, "test"));
             driver.submit(new SessionEvents.OpenProjectRequested(
@@ -76,7 +76,7 @@ class SessionAuditRecordTest {
 
         driver.submit(new SessionEvents.OpenProjectRequested(
                 driver.nextOpId(), A, TransitionKind.STARTUP_ACTIVATION, "test"));
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
+        SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
         driver.submit(new SessionEvents.OpenProjectRequested(
                 driver.nextOpId(), B, TransitionKind.EXPLICIT_SWITCH, "test"));
 
@@ -107,7 +107,7 @@ class SessionAuditRecordTest {
         // The snapshot is fixed: continuing the session does not rewrite what was exported. Inspecting
         // the evidence must not change the evidence.
         long sizeBefore = Files.size(out);
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/later.yaml", "DECLARED"));
+        driver.submit(SessionFixtures.graph("/graphs/later.graphml"));
         assertEquals(sizeBefore, Files.size(out));
     }
 

@@ -74,6 +74,22 @@ public final class FilterState {
         this.textSource = textSource;
     }
 
+    /**
+     * Independent review R1: an independent copy of the constraints — range, dimensions, text, grouping and text source —
+     * with no listeners, so work done off the EDT can read the filter as it was when it was asked for while the live one
+     * goes on changing.
+     */
+    public FilterState copy() {
+        FilterState c = new FilterState();
+        c.fromMillis = fromMillis;
+        c.toMillis = toMillis;
+        c.dimensions = dimensions == null ? null : new HashSet<>(dimensions);
+        c.text = text;
+        c.groupMode = groupMode;
+        c.textSource = textSource;
+        return c;
+    }
+
     public Long fromMillis() { return fromMillis; }
     public Long toMillis() { return toMillis; }
     public Set<String> dimensions() { return dimensions; }

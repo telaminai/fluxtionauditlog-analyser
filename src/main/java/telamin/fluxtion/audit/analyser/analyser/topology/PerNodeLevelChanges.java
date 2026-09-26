@@ -151,11 +151,22 @@ public final class PerNodeLevelChanges {
     }
 
     public static PerNodeLevelChanges of(LogStore store) {
+        return of(store, store == null ? 0 : store.size());
+    }
+
+    /**
+     * The level changes in the first {@code bound} records — the rows a caller captured (integration with M44.4's R1:
+     * coverage fixes its scan bound when it captures its inputs, so the annotations it attaches must read the same
+     * rows, not records Follow appended since). Also fixes a latent overrun: the array was sized once while the loop
+     * re-read {@code store.size()}, so an append during the scan could index past it.
+     */
+    public static PerNodeLevelChanges of(LogStore store, int bound) {
         List<Change> out = new ArrayList<>();
         List<Unreadable> unread = new ArrayList<>();
         if (store == null) return new PerNodeLevelChanges(out, unread, new Grouping[0], List.of());
-        Grouping[] context = new Grouping[store.size()];
-        for (int row = 0; row < store.size(); row++) {          // deliberately unfiltered — MA-8.3
+        int rows = Math.max(0, Math.min(bound, store.size()));
+        Grouping[] context = new Grouping[rows];
+        for (int row = 0; row < rows; row++) {          // deliberately unfiltered — MA-8.3
             context[row] = groupingOf(store.rawText(row));
             var record = store.record(row);
             if (record == null) {
@@ -176,7 +187,9 @@ public final class PerNodeLevelChanges {
             }
             out.add(new Change(r.sourceId(), r.groupId(), r.level(), row, record.logTime(), context[row]));
         }
-        return new PerNodeLevelChanges(List.copyOf(out), List.copyOf(unread), context, store.runBoundaries());
+        final int scope = rows;
+        List<Integer> boundaries = store.runBoundaries().stream().filter(b -> b <= scope).toList();
+        return new PerNodeLevelChanges(List.copyOf(out), List.copyOf(unread), context, boundaries);
     }
 
     /**

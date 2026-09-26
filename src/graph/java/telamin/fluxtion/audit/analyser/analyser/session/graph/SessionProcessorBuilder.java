@@ -17,6 +17,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
 import telamin.fluxtion.audit.analyser.analyser.session.node.Pairing;
+import telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
@@ -42,6 +43,17 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.SessionBoundary;
  * repository — rule 1 — and it comes back on every regeneration. Do not rely on remembering: the test
  * named above fails the build if it is still there, which is the only version of this instruction that
  * survives someone regenerating in six months without reading this comment.
+ *
+ * <p><b>Removing an event type or handler</b> (owner, 2026-09-24). The committed processor still dispatches to
+ * whatever it was generated with, so deleting a handler or event first breaks the compile that regeneration needs.
+ * Do it in three steps, and never hand-edit generated source:
+ * <ol>
+ *   <li>strip the {@code @OnEventHandler} annotation from each retiring handler, keeping the method and the event;</li>
+ *   <li>regenerate — the emitted processor no longer references them, and everything still compiles;</li>
+ *   <li>delete the now-unused methods and event types.</li>
+ * </ol>
+ * (M44.4a bootstrapped by hand-stripping the stale generated file instead; the regeneration overwrote it whole,
+ * so nothing hand-edited survived — but the route above never has a hand-edited state to trust.)
  *
  * The generated processor and its GraphML are <b>committed</b>, so everyone else — CI, a reviewer
  * without a key, a fresh contributor — builds and tests from a bare checkout.
@@ -77,6 +89,8 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         LogOpening logOpening = new LogOpening(gate, effects);
         CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
         IgnoredParameters ignoredParameters = new IgnoredParameters();
+        // M44.4c: what wider comparisons say about the pairing, bound to the pair by generation and revision
+        PairingQualifier pairingQualifier = new PairingQualifier(openLog, openGraph, pairing);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -93,6 +107,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(logOpening, "logOpening");
         cfg.addNode(coverageClaim, "coverageClaim");
         cfg.addNode(ignoredParameters, "ignoredParameters");
+        cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate), "designSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
 
