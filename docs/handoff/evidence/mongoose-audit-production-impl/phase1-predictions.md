@@ -502,3 +502,46 @@ orphans.
 new field; narrowed, not deleted. P15.2 held. P15.3 held, eight of eight, plus one witness P15 did not foresee: the
 frame test found the Follow status line dropping the warning, and removing the fix fails it. P15.4 held: 2405/0/0/110,
 2393 + 12. The display gate ran 110 frame tests with no failure and one skip that `main` shows too on this desktop.
+
+## P16 · Review of phase-1 completion — protection for D-MA0c, registered controls, five optional items — recorded before any change
+
+Review of `14d04a2f..ce2bfa0c` accepted the behaviour and refused the merge: three things D-MA0c depends on have no
+regression (the frame's PDF path, H1; the Reports tab refresh on load, H2, and on Follow, H3), and none of the eight
+witnesses is in the CI gate. Nothing below has been run when this is committed. Read before writing: `PdfDoc` writes
+text uncompressed (`(…) Tj`, only `—`/quotes/ellipsis substituted), so ASCII assertions on the bytes are sound;
+`report {path}` goes through `MainFrame.renderReportPdf` once the frame's config allows assistant exports;
+`awaitLoaded` calls `context`, so a test that must make no verb call between a load and a read waits on frame fields.
+
+1. **P16.1 — H1.** A frame test exporting through `report {path}` finds `LOG FINDINGS` and "No records in this file
+   yet." in the PDF over an empty followed file, and neither after a record arrives. With `renderReportPdf` passing
+   `null`, it fails at the assertion that the exported PDF carries the findings.
+2. **P16.2 — H2 and H3.** Reading the tab with no verb between: after a Follow poll that adds a record, the banner is
+   gone; after opening c29's file while the tab shows a report made over an empty file, the tab names the record with
+   no record key. Removing the load refresh fails the load test; removing the Follow refresh fails the Follow test —
+   each at its named assertion. **Risk named:** if some other listener re-renders the tab on load (a session
+   snapshot, a tab selection), H2 still survives, and this prediction is wrong.
+3. **P16.3 — registration.** All eight `witness15.py` controls plus H1, H2, H3 and the optional items' controls (H4,
+   V2's pending frame, the empty-log wording, the tab's note styling) go into `tools/mutation_controls_session.py`:
+   **fifteen** new entries, the preflight anchor count rises by fifteen, and each anchor occurs exactly once.
+4. **P16.4 — item 5.** The tightened MA-8.2 test passes; H4 (the note on every uncovered row) fails it.
+5. **P16.5 — item 6.** Comparing messages as well as kinds passes all 34 conformance tests. **No production control
+   exists for it**: both paths build findings with the same `ProducerDiagnostics`, and no fixture carries a path-only
+   diagnostic, so a mutation that changes wording changes it on both paths. It is protection against a future
+   divergence, and is recorded as a test change without a witness.
+6. **P16.6 — item 7.** The V2 test on the status bar, the tooltip and the `report` reply passes; firing `EMPTY_LOG`
+   despite a pending frame fails it.
+7. **P16.7 — item 8.** The wording is chosen from the shape, one per shape: a file whose marker says it ended with zero
+   records (c25, c26) no longer says "yet" or "buffering"; a rolled set of empty members (through `RolledLogStore`)
+   is named as a set of files; zero bytes and whitespace keep "No records in this file yet.". Cold open and Follow
+   still agree, because both pass the same stream-end state. Existing assertions on the prefix
+   (`EmptyLogAndRecordKeyDiagnosticsTest`, `BinaryAuditReaderTest`) still hold; the conformance prefix check is
+   updated per fixture. Control: the wording that ignores the state fails c25.
+8. **P16.8 — item 9.** A note-only set on the Reports tab is drawn muted, like the PDF; a warning set keeps the warning
+   banner. Control: drawing a note-only set as a warning fails the new panel test.
+9. **P16.9 — suite.** Headless **2405 + 4 ± 2**; skips **110 + 3** (three new frame methods). Display: 22 suites, the
+   new methods included, no failure; the `PersonAtTheScreenFrameTest` focus skip may recur locally.
+10. **P16.10 — main.** PR #40 is CONFLICTING against `main` 1.22.1, and a conflicting PR does not run CI, so `main` is
+    merged INTO this branch (never the reverse). Only `CHANGELOG.md` conflicts: kept both, main's 1.22.1 section intact,
+    this branch's lines under `[Unreleased]`.
+11. **P16.11 — CI.** Build green; `ui-frame` under Xvfb green with **zero skips** — the local focus skip does not recur
+    there; `mutation-gate` green over the full gate, the new controls included.
