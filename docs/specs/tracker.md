@@ -1905,6 +1905,103 @@ of the originals is in `057a069a`.)*
           dot;
         - the Mongoose integration, scheduled after this merge.
 
+- [M44.5] ☐ **The log's own derived state joins the session snapshot — producer findings first.** Scoped
+  2026-09-27 from the day's review rounds, owner-requested. **M44.4 held:** every surface that read the snapshot
+  stayed right, and no defect found on 2026-09-26 was two copies of a snapshot verdict disagreeing. The defects came
+  from state M44.4 did not cover, held as `MainFrame` fields, computed at several sites and pushed to surfaces by
+  hand-placed refresh calls:
+  - the frame's PDF passing `null` findings (PR #40, H1);
+  - the Reports tab not refreshing on load or on Follow (H2, H3);
+  - the Follow call site dropping the stream end (X4);
+  - the load site passing the wrong claim for a one-member set (X5);
+  - the Follow status line dropping the producer warning (MA-0.5).
+
+  Each was caught by review and fixed call site by call site; this item removes the class.
+
+  **Inventory of replicated derived state** (read from `main` at `11029c92`). The two new drifts were witnessed
+  on a real display with a throwaway probe that asserted each defect exists; both passed. They are not committed:
+  a committed test that asserts a defect would be a test to delete, so each becomes a wrong-result witness in
+  this item's acceptance instead.
+
+  | State (`MainFrame`) | Computed at | Read by | Drift found |
+  |---|---|---|---|
+  | `producerDiagnostics` | 3: close, load, Follow refresh | status bar, tooltip (2 sites), `context`, `report` reply, PDF, Reports tab (supplier + 3 refresh triggers) | **yes** — the five defects above, each fixed separately |
+  | `timeOrderReport` | 2: close, load (S3, reader and rolled-set loads) | status bar, `context.timeOrder`, the assistant's time-order note, a load dialog | **yes, WITNESSED 2026-09-27** — never recomputed on a Follow append. A log in order (1000, 2000), followed, then 1500 appended: the row is indexed and a cold open of the same bytes reports the violation, but the followed session gives `context.timeOrder = null` and nothing on the status bar |
+  | the status bar line | 4 composers: load, Follow start, two Follow ticks | the person | **yes, WITNESSED 2026-09-27** — load line: `… · prod-EU-7 (unordered.yml) · ⚠ time-order violations (1) …`; after one Follow tick: `Following unordered.yml · 3 records · …`. Both are gone from the line while `context` still reports `timeOrder` and `provenance=prod-EU-7` |
+  | `logProvenance` / `logProvenanceSource` | 3: close, load, project-environment match | `context`, Project panel, reports, status bar | **latent** — the session's `OpenLog.provenance` is set from the opener only and never hears the environment match. It has no reader today, so it is a dead duplicate, wrong the moment something reads it |
+  | `loggedNodeSample`, `loggedSampleScanned`, `observedLevel` | frame, then posted in `LogAppended` | the session (pairing) | none — the frame is the producer and the session the owner; the frame does not read its copy back |
+  | `flaggedRows` / `findings` | 7 paired sites | flags, reports | none — the invariant "a finding's row is flagged" is hand-kept at every site and holds today; low priority |
+  | `followStreamEnd`, `followPendingChars` | the Follow refresh | the refresh gate | not state — change detectors; they go when the findings are a fact |
+
+  **Owner direction, 2026-09-27: ONE way of handling dispatch and orchestration — no hand-placed dispatch, however
+  small.** The record supports it. The independent M44.4 review read the generated `SessionProcessor` against every
+  node and found no state-transition defect inside it; every defect was hand-written code around it:
+  - the driver's listener loop (O1, notification order);
+  - the snapshot's publication (R4, mutable qualifications);
+  - callers stamping wrong inputs (R1) or bypassing a decision (R2);
+  - a failed poll that never told the session (PR #34);
+  - the `MainFrame` pushes above.
+
+  An interim "quick surface fix" (an earlier draft of this item) would have added two more hand-placed calls, the
+  very pattern at fault, so there is none. W1 and W2 are this item's own wrong-result witnesses.
+
+  **Design — the processor decides WHAT and WHEN; adapters only execute effects and render snapshots:**
+  - **When to scan is the processor's decision.** On `LogOpened` and `LogAppended` (and on the facts that change
+    what a scan would find), the session requests effects through `SessionEffects`, the same mechanism as
+    `OpenLogEffect` and `ShowStatusEffect`:
+    - `ScanProducerFindingsEffect(generation)`;
+    - `ScanTimeOrderEffect(generation)`.
+
+    The adapter runs the scan (`ProducerDiagnostics.of`, `TimeOrderValidator`) off the processor, then posts the
+    result as a fact: `ProducerFindingsObserved(generation, findings)` or `TimeOrderObserved(generation, report)`.
+    The scan never runs inside dispatch.
+  - **Provenance is resolved by the session.** The environment match is a pure function of the profile's
+    environments and the log's location, so it runs in a node on `LogOpened`, and `OpenLog.provenance` becomes the
+    one copy every surface reads.
+  - **New state nodes** own findings, time order and provenance. They refuse a stale generation, clear on close,
+    and publish in `SessionSnapshot`, frozen like the qualifications (R4's lesson).
+  - **Every surface renders from the snapshot** on the one snapshot listener: the status line (ONE composer), the
+    tooltip, `context`, the `report` reply, the PDF and the Reports tab. The frame holds none of this state and
+    calls no refresh by hand. The driver's re-entrant notification order (O1) is fixed first, because more of the
+    UI will hang off the listener.
+  - **Regeneration is owner-run** under `-Pregen` (spec D-S1.1). The implementer drafts the graph source and the
+    nodes; review reads the committed generated source and the pinned GraphML.
+
+  **Call sites this retires:**
+  - the three `producerDiagnostics =` assignments, replaced by facts;
+  - the Reports tab's load refresh and Follow refresh;
+  - `setLogFindings`;
+  - the PDF's and the `report` reply's field reads;
+  - the two tooltip writers;
+  - the four status-line composers (to one);
+  - `timeOrderReport`'s two assignments;
+  - `logProvenance`'s three.
+
+  The p15/p16/p17 controls that target those call sites move to the snapshot nodes and the one composer.
+
+  **Acceptance:**
+  1. Every surface in the inventory renders its value from `SessionSnapshot`; a static check forbids a surface
+     reading the retired fields.
+  2. A Follow append that introduces a time-order violation is reported on every surface; the wrong-result witness
+     is the case today's code misses.
+  3. After a Follow tick, the status line still carries provenance and the time-order warning.
+  4. `context.provenance` and the session agree after an environment match.
+  5. The M44 shape test and the existing session suites pass on the regenerated processor.
+  6. Each new fact node has a stale-generation control.
+  7. No surface or adapter decides when to compute or refresh: a static check finds no write to the retired
+     fields and no hand-placed `reportsPanel.refresh()` / `setToolTipText` / status composition outside the one
+     snapshot listener.
+  8. The effects are requested by the processor: a control that stops `LogAppended` requesting the time-order
+     scan fails W1.
+  9. O1 is fixed: a listener that posts a fact while being notified never makes another listener see an older
+     snapshot last.
+
+  **Test rule it pairs with** (for what a snapshot cannot cover): a surface test goes through the real entry point
+  (the frame, the verb, what is on screen), and a control reverts the call site, not only the helper. That is the
+  lesson of M68.7's R1 and PR #40's H1–H3, X4 and X5.
+
+  **Not in scope:** the flag invariant (low, holds), and the log-sample fields (already owned by the session).
+
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
 ships a runnable Mongoose example with Chronicle audit capture pre-enabled and one YAML export command
