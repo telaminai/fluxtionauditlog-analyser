@@ -65,6 +65,21 @@ public final class ProjectProfile {
     public static final String CANONICAL_RELATIVE = ".analyser/project.fluxtion-settings";
 
     /**
+     * The nearest project whose root holds {@code path} — the first ancestor carrying the canonical profile — or
+     * empty. Used only to say "this file belongs to a project; open it", never to grant a read: a refusal that
+     * named source_root instead led models to authorise the whole project directory, wider than the project's own
+     * roots.
+     */
+    public static Optional<Path> enclosingProject(Path path) {
+        if (path == null) return Optional.empty();
+        Path dir = path.toAbsolutePath().normalize().getParent();
+        for (int depth = 0; dir != null && depth < 64; depth++, dir = dir.getParent()) {
+            if (Files.isRegularFile(dir.resolve(CANONICAL_RELATIVE))) return Optional.of(dir);
+        }
+        return Optional.empty();
+    }
+
+    /**
      * The categories a project owns. Everything else — the API key, theme, window bounds, recent files,
      * LLM and assistant settings, topology display prefs — stays global by not being here.
      */

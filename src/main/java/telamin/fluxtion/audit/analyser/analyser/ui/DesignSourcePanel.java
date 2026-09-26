@@ -23,16 +23,46 @@ final class DesignSourcePanel extends JPanel {
     private Runnable viewportChanged = () -> { };
     void onViewportChanged(Runnable listener) { viewportChanged = listener; }
     record Anchor(String bean, int line, String label) { @Override public String toString() { return label + " · " + line; } }
+    static final int BEAN_LIST_WIDTH = 210;
+    /** The bean list takes at most 30% of the pane (and never more than its usual 210 px); the XML keeps the rest. */
+    static int beanListWidth(int splitWidth) { return Math.max(0, Math.min(BEAN_LIST_WIDTH, (int) (splitWidth * 0.3))); }
+    private boolean dividerDragged;
+    /** Only a press on the divider is a drag: the split also moves it on every resize (its resize weight). */
+    private void listenForDrag(JSplitPane split) {
+        if (split.getUI() instanceof javax.swing.plaf.basic.BasicSplitPaneUI ui && ui.getDivider() != null) {
+            ui.getDivider().addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mousePressed(java.awt.event.MouseEvent e) { dividerDragged = true; }
+            });
+        }
+    }
+    /** Follows the pane's width until the divider is dragged; after that it is only capped, never widened. */
+    private void fitBeanList(JSplitPane split) {
+        int width = split.getWidth(), fit = beanListWidth(width);
+        if (width <= 0 || (dividerDragged && split.getDividerLocation() <= fit) || split.getDividerLocation() == fit) return;
+        split.setDividerLocation(fit);
+    }
     DesignSourcePanel() {
         super(new BorderLayout());
         text.setEditable(false); text.setFont(UiTheme.mono(12));
         status.setEditable(false); status.setLineWrap(true); status.setWrapStyleWord(true); status.setRows(3);
         status.setBackground(UIManager.getColor("Panel.background"));
-        JPanel top = new JPanel(new BorderLayout()); top.add(status); top.add(follow, BorderLayout.EAST); add(top, BorderLayout.NORTH);
+        // The status (file path + note) wraps; in a narrow pane an unbounded area took the whole height and left the
+        // XML a negative one. It keeps its three rows and scrolls past them.
+        JScrollPane statusScroll = new JScrollPane(status, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        statusScroll.setBorder(BorderFactory.createEmptyBorder());
+        JPanel top = new JPanel(new BorderLayout()); top.add(statusScroll); top.add(follow, BorderLayout.EAST); add(top, BorderLayout.NORTH);
         JScrollPane sourceScroll = new JScrollPane(text);
         sourceScroll.getViewport().addChangeListener(e -> viewportChanged.run());
-        var split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(beans), sourceScroll);
-        split.setDividerLocation(210); split.setResizeWeight(0.22); add(split);
+        // At the default 1200 px window this panel is ~170-210 px wide, and a fixed 210 px bean list left the XML
+        // no width: no line was visible, so every design bean/line spotlight was refused. The list yields, and is
+        // fitted inside the split's own layout — a divider moved from a resize listener was not laid out.
+        var split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(beans), sourceScroll) {
+            @Override public void doLayout() { fitBeanList(this); super.doLayout(); }
+            // A theme switch replaces the UI delegate and with it the divider: listen on each new one (PR #35 review)
+            @Override public void updateUI() { super.updateUI(); listenForDrag(this); }
+        };
+        split.setDividerLocation(BEAN_LIST_WIDTH); split.setResizeWeight(0.22); add(split);
         JPanel links = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton node = new JButton("Show node"), records = new JButton("Show records");
         links.add(node); links.add(records); links.add(new JLabel("Matched by name · relationship to this run unverified")); add(links, BorderLayout.SOUTH);
