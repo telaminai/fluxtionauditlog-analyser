@@ -360,6 +360,16 @@ _Filed: https://github.com/telaminai/fluxtion/issues/15_
 
 **Target** `fluxtion` (maven plugin) · **Priority** medium · supersedes the round-1 note on F6
 
+**2026-09-25 recurrence and stronger acceptance (proposed):** a guided Spring bundle session
+reports the same trap after constructor and class-name changes. Its POM phase ordering was
+inspected, not the failure rerun. [Edit-loop §A](../specs/spec-spring-authoring-edit-loop.md#a-compile-the-edited-model-without-depending-on-the-obsolete-processor)
+now requires a profile-only exclusion of the generated package, compilation of current nodes and
+supplier, scan, then compile-generated. The inspected supplier uses runtime class-name lookup, not
+an import. Default keyless builds still compile the committed processor. Stage the scan's direct
+source output; the reconciler's existing rollback does not protect it. A custom statically dependent
+supplier is a separate support choice, not the shipped template's blocker. The older proposed
+remedies below are historical candidates, not approved customer instructions. No new duplicate issue is opened.
+
 **Evidence — measured, twice, and it scales with the size of the change.** The generated processor is
 checked in and compiled as ordinary source, but the plugin regenerates it at `process-classes` — *after*
 `compile`. So any change to a node constructor breaks the build against the stale generated file before
@@ -1903,3 +1913,66 @@ makes the catalogue honest while UP-PG-04 is built. The analyser's `File ▸ New
 **Cost to us if unfixed.** The analyser's template picker cannot tell a user which template to start
 from for native work, so the recommendation has to live in prose that nobody reads at the moment of
 choosing.
+
+
+## Spring authoring edit loop — 2026-09-25 intake
+
+**Status: proposed handoff, not implemented.** Canonical acceptance is the
+[edit-loop specification](../specs/spec-spring-authoring-edit-loop.md); the
+[review](../handoff/review_spring_authoring_feedback_2026_09_25.md) separates inspected defects
+from participant reports. Existing IDs retain their own status and owner. This block owns only
+new upstream asks until the producer accepts them into its existing authoring contract/tracker.
+
+| Ask | Owner | Acceptance / dependencies |
+|---|---|---|
+| Structural-edit pipeline and diagnostic repairs | Compiler/starter and template producer | Existing **UP-FLX-21**, spec §A; related wiring explanations **UP-FLX-32**. Do not open another compile-order issue. |
+| No fabrication or unaccounted malformed CSV loss | Hosted template producer and audited processor example | New, §B; D-T9/D-T8 invariants. Non-numeric exceptions currently drop without audit rejection. Approved D1 uses a typed processor-audited rejection event, including blank rows; no upstream counter dependency or full closure before that path is verified. |
+| Explicit rename/ownership migration | Compiler/starter | New, §D/D2; migrate parameter-FQN keys in other classes and type:FQN keys, preserving existing ownership states under approved D2. Preserve bodies/baselines and prove default regeneration. `link` is not this operation. |
+| Local model preflight and request/billing evidence | Compiler/starter, compiler client/provider boundary | New, §F; XML validation stays inert, reuse authoritative checks after current model compilation. No inferred charge or false zero. |
+| Equality-shared node aliases and selected-id disclosure | Compiler/GraphML producer | New, §F; test order dependence and disclose aliases/selected ID; D4 retains current precedence without a naming break. No analyser identity guess. |
+| Direct-browser ZIP scripts, matching guides and example behaviour | Playground/template producer plus starter documentation owner | §G; direct ZIP modes/extraction are separate from feedback 8's analyser installer executable list (tracked in analyser). D6 approves documented Windows absence for this pass; adding and testing entry points is a separate deferred template-owner follow-up. Check command help, versioned contract, hosting links and starter behaviour. |
+| Discoverable authoring patterns and supplier sources | Documentation/template producer | §G; reuse **UP-FLX-32** and existing vendor-composition guidance; executable examples before presenting owner tips as supported rules. |
+| Run-scoped export and original listener fan-out | Mongoose/core/capture owner | Existing **MA-2 / MA-5 / OD-5**, §H; no second implementation item here. Verify published versions before changing bundle promises. |
+
+Private compiler/template behaviour is described without source locations or excerpts. Producer
+owners must record accepted changes in their canonical entries before implementation. The analyser
+tracks installer permissions, source freshness, recovery identity, read-grant policy and context
+projection separately; it does not build or run the customer's application.
+
+
+**Mid-cycle additions (feedback 21–24; 19 expanded):** the same handoff now includes
+[§G1–G4](../specs/spec-spring-authoring-edit-loop.md#g1-teach-the-mapper-extension-point-with-examples-that-run-feedback-21).
+Mongoose/plugin documentation owners supply a tested mapper/composition example, one replay
+capability statement for the actual configuration, a three-route loading comparison and
+version-matched documentation. The playground consumes those contracts in generated guides.
+The JSONL example needs correction or a matching plugin change before being recommended:
+inspected 1.0.44 implementation and docs disagree on the discriminator/configuration. Null
+parse results also need the real feed rejection check under §B, not a success-only demo.
+Use the already-pinned `mongoose-test-support` for starter hosted behavioural tests. These
+are documentation/source observations and proposed acceptances, not new runtime trial results.
+
+
+**V4 corrections to this intake (R8/R9 and decisions):** the Spring loader's two reload
+registrations are swapped in plugins 1.0.44: reloadInterpretProcessor invokes compile reload,
+and reloadCompileProcessor invokes interpret reload. **Owner: Mongoose Spring-loader plugin.**
+Correct the routing, with each command tested against its named operation and a swap mutation;
+keep provider invocation behind a fixture. Inspected public-builder compile routing expects a
+hosted provider/key, while interpretation is local; real-provider acceptance is not runnable
+on a branch fixture and needs separate authorisation.
+
+Plugin docs must distinguish mkdocs.yml's plugin_version 1.0.37 from the project pin 1.0.44
+and Repsy release 1.0.45 at the v4 metadata check. Repsy is the public binary route named in
+§G4, not Maven Central. The admin Replay view is visual playback of audit records; the template
+comment must not describe it as deterministic application re-execution. **Owners: plugin docs
+and template emitter.** Approved D8 documents TypeSerialiser's actual contract with tested
+examples; behaviour changes require separate versioned work. Approved D1 supplies a typed
+processor-audited rejection event, including blank and short rows, in the same delivered slice
+as fabrication removal; an unaccounted null/exception/raw-input substitute is not an interim fix.
+
+**D5 resolved, 2026-09-26:** the owner accepts clearly disclosed home/processor-class inference
+for a verified console process, withholding stale or ambiguous offers. An upstream stable
+project/descriptor identity field could strengthen this later; it is optional follow-up for
+the **Mongoose admin/registry owner**, not a blocker of this offer. A matching pid alone never
+establishes project identity. Vendor integration remains M67 work: approved D7 retypes the
+demo's relevant handlers to a shared interface, with generated-dispatch verification before
+recommendation and the existing risk A/oracle/fixtures intact.

@@ -6,6 +6,52 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Spring authoring edit loop — session intake 2026-09-25
+
+**PROPOSED; no fixes accepted or shipped by this intake.** A guided website-template session
+reported twenty-four friction points, chiefly on editing an existing graph. Read the
+[review and evidence limits](../handoff/review_spring_authoring_feedback_2026_09_25.md) and
+[fix specification](spec-spring-authoring-edit-loop.md). This is not another client battery
+or a G14 pass. The running project remains untouched.
+
+- ☐ **Java snapshot freshness** — spec §C, feedback 3/20: ordinary same-FQN navigation must
+  revalidate both the Source tab and Topology's embedded pane, replacing the service model
+  from the same snapshot off the EDT, with stale/deleted/cancelled reads disclosed. Reuse the
+  source-spotlight resolver; local Maven source lookup already exists.
+- ☐ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
+  delete/recreate a profile at X, then activate it. Current real-path keys cannot distinguish
+  replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
+  qualify mismatch; retain pending-I/O and cross-project controls. Participant history remains
+  unverified; this is proposed regression work, not a reproduced or closed finding.
+- ☐ **Template installer authoring executables** — spec §G, feedback 8: add setup/validate/generate
+  to TemplateArchive's fixed executable list, retaining arbitrary-mode refusal. Removing
+  generate.sh must fail a real install assertion. Direct-browser ZIP modes are a separate
+  producer check; D6 approves documenting Windows absence, with implementation deferred.
+- ☐ **Design-first project and admin-console offer** — [edit-loop §I1–I2](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars):
+  add the emitted Spring design directory to template roots. Validate all template profile
+  source roots inside the installed project in TemplateArchive; preserve explicitly granted
+  external roots in user-authored profiles. Verify topology/source with no log, and under
+  approved D5 offer a verified reachable process with disclosed inferred
+  project association; withhold ambiguous or stale offers. No automatic control or token disclosure.
+- ☐ **Project input grants, approved policy; implementation open** — spec §E, feedback 11:
+  retain M68.5's canonical root diagnostics work. D3 approves offering explicit role-scoped
+  grants at project opening, showing what becomes readable; opening alone authorises neither
+  the project root nor target directory.
+- ☐ **Context section projection** — spec §H, feedback 17: opt-in projection, compatible full
+  default, same-state equality, and basis/qualification carried with every selected verdict.
+- ☐ **Upstream handoff** — new asks and existing ownership are routed through
+  [upstream asks](../proposals/upstream-asks.md#spring-authoring-edit-loop--2026-09-25-intake).
+  First: UP-FLX-21's compile pipeline and the mapper's fabricated values. Then explicit rename,
+  preflight, matching contract and direct-browser archive/documentation checks. Installer
+  permissions and recovery identity belong here, not upstream. No producer implementation
+  belongs in the analyser. D1–D8 were approved by the owner on 2026-09-26 and are recorded in
+  the spec. Its eight startable slices retain their acceptance, and published/provider checks
+  still cannot be closed by branch fixtures. Policy approval advances no implementation mark.
+
+The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
+**Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.
+The spec adds acceptance to them; it does not create second completion claims.
+
 ## Project / Sources / Audit log menus — remaining follow-ups
 
 Implementation and guard follow-ups shipped in **1.20.0** (PRs #15 and #17);
@@ -118,6 +164,10 @@ still to do.
   `ChronicleAuditCaptureService`'s comment promises to compose in front of the existing listener and
   restore it; the code sets `previousListener = null` and, on stop, installs a no-op. `DataFlow` has no
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
+  **Recurring intake 2026-09-25:** feedback 13 reports silent stdout on the bundle's older pins;
+  [edit-loop §H](spec-spring-authoring-edit-loop.md#h-existing-auditchart-work-and-a-smaller-context-response)
+  requires acceptance against the actually released and consumed producer. This intake does not
+  re-test or close the separate in-progress MA implementation.
 - **[MA-6] ☐ — a document without `eventLogRecord:` is named** · _split out at round 4 to resolve a
   contradiction: D-MA0b keeps MA-0 at zero records only, so this check lives here._ Reader half in this
   repo; **writer half in MA-2 — the writer WRITES the record, COUNTS it, and WITHHOLDS the marker**, so
@@ -1067,10 +1117,18 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   the documented `template=analyser-bundle` shortcut ([release report](../handoff/report_release_journey_2026_09_21.md)).
   That is this item's "short entry point" ask, observed. New-owned-class auditing (6) was re-observed on public
   1.0.73 ([issue 3](https://github.com/telaminai/fluxtionauditlog-analyser/issues/3)).
+  **Additional 2026-09-25 intake:** [edit-loop §G](spec-spring-authoring-edit-loop.md#g-make-the-downloaded-project-teach-the-supported-path)
+  adds executable archive checks, accurate help, immutable matching contract, non-drifting hosting
+  instructions, authoring patterns and a meaningful keyless starter test. Mid-cycle feedback 21–24
+  adds mapper composition with executable JSONL examples, consistent configuration-specific replay
+  guidance, build-time AOT versus loader compile/interpreter comparison, and versioned plugin docs.
+  Item 19 now explicitly uses the already-declared hosted test harness. These are proposed, not verified fixes.
 - ☐ **Staged feedback — next chart capabilities** — record-order x-axis (17) before same-record entity
   grouping (11), with record identity, filtering, selection, marker/note/export consistency and cardinality
   limits. The full-speed hosted fixture must be useful without pacing the application or logging a new
   key per entity. Formula documentation exists; improve discovery (15) rather than introduce another parser.
+  **Recurrence:** feedback 12 in the [2026-09-25 edit-loop intake](spec-spring-authoring-edit-loop.md)
+  reports pacing input to avoid overlapping timestamps. §H adds a same-timestamp regression; status unchanged.
 - ☐ **Staged feedback — presentation and maintenance** — reserved annotation/legend space (14/21),
   explicit note anchoring/remapping (18), optional held tails (13), compiler formatting/output (7/8,
   overlapping F5/G13/F10), stable runtime control text (16), and documented nodeTypes scope (10).
@@ -1660,6 +1718,11 @@ call the LLM is waiting on; would be M64.14, the tour its first user.
   callback/packaging checks, not generated-dispatch or receipt-integrity evidence.
   D-X7's remote was unavailable at intake; G18 now provides the [source repository](https://github.com/telaminai/fluxtion-vendor-jars/tree/feat/spring-side-work-block) at `3a89391`. Independently source-reviewed by G at `e559c424`; binary publication/integration remain open.
   Public resolution, owner-built provenance and the tour remain open. [Evidence](../handoff/evidence/spring-side-2026-09-23/jars/summary.json).
+  **Owner extension 2026-09-25:** [edit-loop §I](spec-spring-authoring-edit-loop.md#i-design-first-market-data-tour-and-existing-vendor-jars)
+  specifies shared market-event compatibility, a real valueMapper, sources packaging and
+  a staged market-data tour. Source head `3a89391` remains the inspected baseline; no binary
+  publication or generated/hosted integration is claimed. Preserve risk A as the labelled
+  incorrect control. The design-first/admin-console journey is specified alongside it.
 - [M67.2] ☐ **The tour's project** — an onboarding template that ships running, with the catalogue's repository in its pom (playground).
 - [M67.3] ☐ **The skill, the index move, `tools/verify-m67-extension-tour.py`** (analyser).
 - [M67.4] ☐ **The held-out record and the generated docs page** (analyser; owner's key, local only).
