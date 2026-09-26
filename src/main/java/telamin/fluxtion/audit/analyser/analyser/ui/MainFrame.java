@@ -4476,6 +4476,7 @@ public final class MainFrame extends JFrame {
             if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
             reportIdentityToSession(store.followIdentity());   // M68.5: before anything the poll adds is published
         } catch (java.io.IOException ex) {
+            reportIdentityToSession(store.followIdentity());   // a failed poll also retires the session's earlier verification
             status.setText("Follow read failed: " + rootMessage(ex));
             // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
             // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on

@@ -225,6 +225,10 @@ public final class HeapLogStore implements LogStore {
         try {
             decoded = decodeCompletePrefix(bytes);
         } catch (java.nio.charset.CharacterCodingException unreadable) {
+            // A same-length replacement can fail here too: an earlier successful poll proves nothing about these bytes.
+            this.readIdentity = null;
+            this.followIdentity = new FollowIdentity(FollowIdentity.Verdict.UNVERIFIED,
+                    "the current file could not be decoded as UTF-8");
             this.byteLength = bytes.length;
             this.liveReadFailed = true;
             this.pendingBytes = 0;                        // not a character on its way: never presented as one
@@ -413,9 +417,9 @@ public final class HeapLogStore implements LogStore {
     @Override
     public java.util.List<String> sourceDiagnostics() {
         if (!liveReadFailed) return java.util.List.of();
-        return java.util.List.of("Follow could not read bytes appended after record " + index.size()
-                + " of this log: they are not valid UTF-8. The records before them are shown; whether this log "
-                + "is complete is unknown until it is reopened.");
+        return java.util.List.of("Follow could not read this log: its current bytes are not valid UTF-8. The "
+                + index.size() + " previously read records are shown from the retained snapshot; whether the current "
+                + "file is complete is unknown until it is reopened.");
     }
 
     @Override

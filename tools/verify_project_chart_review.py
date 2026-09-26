@@ -416,6 +416,42 @@ CASES += [
      'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
 ]
 
+# Combined Follow/session/framing and captured coverage boundaries.
+CASES += [('integration-failed-identity',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java',
+  '            this.readIdentity = null;\n'
+  '            this.followIdentity = new FollowIdentity(FollowIdentity.Verdict.UNVERIFIED,\n'
+  '                    "the current file could not be decoded as UTF-8");\n',
+  '',
+  'HeapLogStoreFollowIdentityTest#unreadableSameLengthReplacementRetiresTheVerifiedIdentity'),
+ ('integration-failed-session',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  '            reportIdentityToSession(store.followIdentity());   // a failed poll also retires the '
+  "session's earlier verification\n",
+  '',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce'),
+ ('integration-coverage-bound',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/CoverageService.java',
+  'PerNodeLevelChanges.of(store, rows)',
+  'PerNodeLevelChanges.of(store)',
+  'CoveragePerNodeLevelTest#annotationsRespectTheCapturedRowsAndTerminalBoundary'),
+ ('integration-pending-refresh',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  ' && pendingChars == followPendingChars',
+  '',
+  'StatusExplanationSurvivesFrameTest#pendingGrowthRefreshesFindingsWithoutAddingAnyRows'),
+ ('integration-failure-refresh',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (!readFailed && !followNeedsDiagnosticRefresh',
+  'if (!followNeedsDiagnosticRefresh',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce'),
+ ('integration-repeat-failure-skip',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  '            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) '
+  'return;',
+  '            if (false) return;',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce')]
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')

@@ -6,6 +6,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Follow no longer calls a replaced, unreadable file unchanged.** A failed UTF-8 read retires the earlier
+  verification and opening digest immediately, including when the file size is unchanged. The session receives
+  that failure on the same poll, and the diagnostic identifies the displayed records as a retained snapshot.
+
 ### Spring edit loop (slice 3: source freshness)
 
 - **Source panes show the file as it is now.** After a regeneration, the Topology tab's source pane kept
