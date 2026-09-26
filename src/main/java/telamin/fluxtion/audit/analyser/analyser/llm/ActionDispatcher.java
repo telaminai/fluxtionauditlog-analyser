@@ -125,6 +125,28 @@ public final class ActionDispatcher {
     }
 
     /**
+     * Walk {@code value} against {@code schema}, adding an unknown key's path to {@code out}. Only a schema that DECLARES
+     * its properties is checked: a free-form object ({@code additionalProperties}, or none declared — a section's
+     * {@code call}) belongs to whatever reads it, and is not second-guessed here.
+     */
+    private static void nested(String path, Object value, Map<?, ?> schema, List<String> out) {
+        if (value instanceof List<?> list && schema.get("items") instanceof Map<?, ?> items) {
+            for (int i = 0; i < list.size(); i++) nested(path + "[" + i + "]", list.get(i), items, out);
+            return;
+        }
+        if (!(value instanceof Map<?, ?> map) || schema.containsKey("additionalProperties")
+                || !(schema.get("properties") instanceof Map<?, ?> props)) return;
+        for (Map.Entry<?, ?> e : map.entrySet()) {
+            String key = String.valueOf(e.getKey());
+            if (!props.containsKey(key)) {
+                out.add(path + "." + key);
+            } else if (props.get(key) instanceof Map<?, ?> prop) {
+                nested(path + "." + key, e.getValue(), prop, out);
+            }
+        }
+    }
+
+    /**
      * Every verb echo names what it ignored (M26.4): a param this verb's schema doesn't declare was
      * silently dropped — the caller (usually a mistyped or misplaced key) deserves to hear that, not to
      * wonder why nothing changed. Piggybacks on {@link VerbSchemas} being the single source of truth, so
@@ -134,7 +156,14 @@ public final class ActionDispatcher {
         if (params.isEmpty()) return result;
         if (!(VerbSchemas.all().get(action) instanceof Map<?, ?> schema)
                 || !(schema.get("properties") instanceof Map<?, ?> props)) return result;
-        List<String> ignored = params.keySet().stream().filter(k -> !props.containsKey(k)).sorted().toList();
+        List<String> ignored = new java.util.ArrayList<>(
+                params.keySet().stream().filter(k -> !props.containsKey(k)).sorted().toList());
+        // M68.4 (D-E3), set 13: keys nested inside items — a note, a marker, a section — are checked against the item's
+        // declared schema too, and named by path. They used to be "not audited", so a typo inside a list was dropped
+        // without a word while the same typo at the top level was named.
+        for (Map.Entry<String, Object> e : params.entrySet()) {
+            if (props.get(e.getKey()) instanceof Map<?, ?> prop) nested(e.getKey(), e.getValue(), prop, ignored);
+        }
         if (ignored.isEmpty()) return result;
         if (!result.ok()) {
             // M68.4 (D-E3): a refusal names them too. A misspelled key is often WHY a call failed, and it used to be

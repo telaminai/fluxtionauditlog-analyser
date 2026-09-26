@@ -161,7 +161,11 @@ not applied. **Under the rule** means changed so the call is honoured whole or r
 | saved-analysis steps | stops at the first failing step, earlier steps kept | **exception:** the reply names `stoppedAt`, `skipped` and that earlier steps changed the view (`AnalysisSpecTest`) |
 | spotlight put out before validation | a refused call already cleared it | **under the rule:** put out only when a view-changing verb succeeded. **This reverses M64's recorded rationale** (see `SpotlightEndsWhenTheViewChangesTest`) |
 
-**Not audited, stated:** keys nested inside items (sections, markers, notes) are not checked against a schema.
+~~**Not audited, stated:** keys nested inside items (sections, markers, notes) are not checked against a schema.~~
+**Audited since set 13:** an item whose schema declares its properties is checked, and an unknown nested key is named
+by path in `ignoredParams` (or in the refusal) — the same exception as a top-level key, one level down
+(`ActionDispatcherNestedKeysTest`). A free-form object that declares no properties (a section's `call`) is not checked:
+its keys belong to the verb it names.
 
 **What a refusal preserves.** A refused request leaves pre-request view and session state as it was. Today a
 view-changing verb puts the spotlight out before its parameters are validated, so a refused call has already
@@ -563,8 +567,8 @@ responsibilities, and no further client trial: these are contract and acceptance
   contradict its series is not built; the no-data and no-room repairs are narrower.
 - **D-E2 / R2, the coverage table.** Obeys the session's claim (refused, qualified or full), captured with the store
   and graph it scores (`ReportCoverage`).
-- **D-E3 / M68.4, nested keys.** Keys nested inside items (sections, markers, notes) are not checked; top-level unknown
-  keys are named. The exceptions in the D-E3 table keep per-item results by design.
+- **D-E3 / M68.4, nested keys.** Named by path since set 13, like top-level ones; a free-form `call` is left to its
+  verb. The exceptions in the D-E3 table keep per-item results by design.
 - **D-E5 / M68.6, a saved name with `"`.** Kept, with no address, and said so (see D-E5); the compatibility choice is
   the owner's.
 - **D-E9 / M68.3, the producer half.** The writer emitting separators is not built here; the reader's diagnostic is.

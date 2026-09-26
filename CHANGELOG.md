@@ -32,9 +32,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **More assistant requests are now honoured whole or refused whole, and a refusal no longer changes the view.** This
   covers the calls below. Some calls still keep what worked and name what did not, on purpose: a report keeps its good
   sections beside a rejected one, `graph` applies its series, markers and bands one by one, `source_root` adds and
-  removes each path on its own, and a saved analysis stops at the first failing step. Unknown top-level keys are
-  named, not refused, and keys nested inside items are not checked. The full list is in the evidence-integrity spec
-  (D-E3).
+  removes each path on its own, and a saved analysis stops at the first failing step. Unknown keys are named, not
+  refused — at the top level and inside items too, by path (`notes[1].txt`, `sections[0].focuss`); a section's
+  free-form `call` is left to the verb it names. The full list is in the evidence-integrity spec (D-E3).
   - `open` with a rolled set and a graph opened only the logs, and the graph was dropped without a word. It now opens
     both, and the graph stays. The same applies to a log with an explicit `format` together with a graph.
   - `topology` checks every field before applying any. A bad scope or unknown node used to be refused after the
