@@ -251,6 +251,7 @@ CASES.extend([
 # Menu discoverability after the 1.20.0 reorganisation: a miss says where the item went; context lists the menus.
 MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
+TEMPLATE_ARCHIVE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/template/TemplateArchive.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -267,6 +268,9 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
     ('context-menu-changes', MAIN_FRAME, '            out.put("menuChanges", MenuHints.changes(menuMap()));', '',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    # edit-loop spec §G, feedback 8: archive modes are ignored, so the fixed list is what makes generate.sh runnable
+    ('installer-authoring-executables', TEMPLATE_ARCHIVE, '"setup.sh", "validate.sh", "generate.sh");',
+     '"setup.sh", "validate.sh");', 'TemplateArchiveTest#springAuthoringScriptsAreInstalledRunnableWithoutChmod'),
 ]
 
 def display_classes(root=Path('.')):

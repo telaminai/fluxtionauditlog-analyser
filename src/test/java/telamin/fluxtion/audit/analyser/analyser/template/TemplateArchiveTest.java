@@ -68,6 +68,33 @@ class TemplateArchiveTest {
         }
     }
 
+    /**
+     * Edit-loop spec §G, feedback 8: a Spring authoring bundle installed through this route left setup.sh,
+     * validate.sh and generate.sh at 0644, so {@code ./setup.sh} failed. The archive's own mode is ignored
+     * by design, so the fixed list is what makes them runnable: install, then run each one directly.
+     */
+    @Test
+    void springAuthoringScriptsAreInstalledRunnableWithoutChmod() throws Exception {
+        Map<String, byte[]> entries = new LinkedHashMap<>();
+        for (String script : List.of("setup.sh", "validate.sh", "generate.sh")) {
+            entries.put("bundle/" + script, ("#!/bin/sh\necho " + script + "\n").getBytes());
+        }
+        Path destination = temp.resolve("authoring");
+        new TemplateArchive().install(zip(entries), destination);
+        boolean posix = Files.getFileStore(destination).supportsFileAttributeView("posix");
+        org.junit.jupiter.api.Assumptions.assumeTrue(posix, "no POSIX execute bit on this file system");
+        for (String script : List.of("setup.sh", "validate.sh", "generate.sh")) {
+            Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(destination.resolve(script));
+            assertTrue(permissions.contains(PosixFilePermission.OWNER_EXECUTE), script + " " + permissions);
+            Process run = new ProcessBuilder("./" + script).directory(destination.toFile())
+                    .redirectErrorStream(true).start();
+            String out = new String(run.getInputStream().readAllBytes()).trim();
+            assertTrue(run.waitFor(30, java.util.concurrent.TimeUnit.SECONDS), script + " did not finish");
+            assertEquals(0, run.exitValue(), script + " -> " + out);
+            assertEquals(script, out);
+        }
+    }
+
     @Test
     void refusesParentTraversalAbsoluteAndWindowsAbsoluteEntries() throws Exception {
         for (String name : List.of("bundle/../../escape.txt", "/absolute.txt", "C:\\escape.txt")) {

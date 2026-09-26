@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **Spring authoring scripts are installed runnable.** A Spring template installed from the analyser left
+  `setup.sh`, `validate.sh` and `generate.sh` without the execute bit, so `./setup.sh` failed with
+  "permission denied". They are now made executable with the other bundle scripts. Archive file modes
+  are still never trusted.
+
 ## [1.20.1] - 2026-09-24
 
 - **An assistant can find its way around the new menus.** Pointing at a menu item that is not where it was asked

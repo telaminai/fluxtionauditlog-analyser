@@ -31,8 +31,12 @@ public final class TemplateArchive {
     public static final long MAX_ENTRY_BYTES = 64L * 1024 * 1024;
     public static final long MAX_EXPANDED_BYTES = 512L * 1024 * 1024;
     private static final Pattern WINDOWS_ABSOLUTE = Pattern.compile("^[A-Za-z]:[/\\\\].*");
+    // Spring authoring bundles ship setup/validate/generate beside the lifecycle scripts; the template marks
+    // them executable, but this installer never trusts archive modes, so they must be named here too
+    // (edit-loop spec §G, feedback 8: they arrived 0644 and ./setup.sh failed with "permission denied").
     private static final Set<String> POSIX_EXECUTABLES = Set.of(
-            "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh");
+            "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh",
+            "setup.sh", "validate.sh", "generate.sh");
 
     public record Installed(Path projectRoot, Path profile, List<String> commands) {
         public Installed {
