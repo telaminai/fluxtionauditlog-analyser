@@ -78,7 +78,13 @@ public final class ProjectSession {
         return activeFile;
     }
 
-    /** The project's display name — its directory, since every profile has the same file name. */
+    /**
+     * The PROJECT's name — its directory. Every profile under one root returns the same value, which
+     * is correct for anything keyed on the project: cache keys, report headers, {@code context}.
+     *
+     * <p>For something a person reads, use {@link #activeLabel()}. This one cannot tell two profiles
+     * apart and must not be used where that matters.
+     */
     public String activeName() {
         if (activeFile == null) {
             return "";
@@ -86,6 +92,48 @@ public final class ProjectSession {
         Path dir = activeFile.getParent();                       // .../.analyser
         Path root = dir == null ? null : dir.getParent();        // the project itself
         return root == null ? activeFile.toString() : root.getFileName().toString();
+    }
+
+    /**
+     * What to SHOW a person: the project, plus the profile when it is not the canonical one.
+     *
+     * <pre>
+     * project.fluxtion-settings              -> "maker-fxoc"
+     * project.reciprocal.fluxtion-settings   -> "maker-fxoc — reciprocal"
+     * </pre>
+     *
+     * <p>A project root can hold several profiles and they are switched between routinely. Project
+     * edits auto-save into whichever is active, with no save step and no undo, so a title that reads
+     * the same for all of them is not cosmetic: it is how someone deletes charts from the wrong one.
+     * The canonical profile keeps the bare project name, because there is nothing to disambiguate.
+     */
+    public String activeLabel() {
+        String name = activeName();
+        String profile = activeProfileName();
+        return profile == null ? name : name + " — " + profile;
+    }
+
+    /**
+     * The distinguishing middle segment of {@code project.<this>.fluxtion-settings}, or null for the
+     * canonical {@code project.fluxtion-settings} and for any file that is not a project profile.
+     */
+    public String activeProfileName() {
+        if (activeFile == null) {
+            return null;
+        }
+        String fileName = activeFile.getFileName().toString();
+        if (!ProjectProfile.isProjectProfileFileName(fileName)) {
+            return null;
+        }
+        int start = "project.".length();
+        int end = fileName.length() - ".fluxtion-settings".length();
+        // The canonical name is "project.fluxtion-settings": prefix and suffix OVERLAP on the dot,
+        // so end < start. There is no middle segment and nothing to disambiguate.
+        if (end <= start) {
+            return null;
+        }
+        String middle = fileName.substring(start, end);
+        return middle.isEmpty() ? null : middle;
     }
 
     public int writeCount() {

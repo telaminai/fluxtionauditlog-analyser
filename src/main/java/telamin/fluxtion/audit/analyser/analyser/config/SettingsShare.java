@@ -196,6 +196,15 @@ public final class SettingsShare {
         if (categories.contains(Category.DESTINATIONS) && !c.reportDestinations.isEmpty()) {
             ConfigStore.writeDestinations(p, c.reportDestinations);   // D-C6: places, never credentials
         }
+        // #21: the exchange DIRECTORY rides the same category, and for the same reason — it is a place
+        // this project's output goes, and a place is not a credential. The exchange OPT-IN does not
+        // ride anything: it stays machine tier, so a project can say where, never whether. Only in a
+        // project profile; a share export between machines has no project root to resolve against.
+        if (categories.contains(Category.DESTINATIONS) && projectRoot != null
+                && c.projectExchangeDir != null && !c.projectExchangeDir.isBlank()
+                && Runbooks.refusePointer("assistant.exchangeDir", c.projectExchangeDir.trim()).isEmpty()) {
+            ConfigStore.put(p, "assistant.exchangeDir", c.projectExchangeDir.trim());
+        }
         if (categories.contains(Category.VIEW)) {
             ConfigStore.writeList(p, "hiddenColumn", c.hiddenColumns);
         }
@@ -424,6 +433,20 @@ public final class SettingsShare {
                     + (refused.isEmpty() ? "" : " · " + refused.size() + " REFUSED: " + String.join("; ", refused)));
         }
 
+        String exchangeDir = null;
+        if (p.getProperty("assistant.exchangeDir") != null) {
+            present.add(Category.DESTINATIONS);
+            String raw = p.getProperty("assistant.exchangeDir").trim();
+            String refused = Runbooks.refusePointer("assistant.exchangeDir", raw).orElse(null);
+            // refused at the DOOR, not at use: a value that can never be honoured should not be stored
+            // and then quietly ignored on every export for the life of the profile
+            exchangeDir = refused == null ? raw : null;
+            String line = refused == null
+                    ? "exchange directory: " + raw
+                    : "exchange directory REFUSED: " + refused;
+            summary.merge(Category.DESTINATIONS, line, (a, b) -> a + " · " + b);
+        }
+
         List<String> hiddenColumns = null;
         if (p.getProperty("hiddenColumn.count") != null) {
             present.add(Category.VIEW);
@@ -456,7 +479,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot,
+                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -541,6 +564,9 @@ public final class SettingsShare {
                 target.reportDestinations.add(d);
             }
         }
+        if (selected.contains(Category.DESTINATIONS) && plan.exchangeDir() != null) {
+            target.projectExchangeDir = plan.exchangeDir();     // #21; the opt-in is NOT carried
+        }
         if (selected.contains(Category.VIEW) && plan.hiddenColumns() != null) {
             // View is the sender's column layout — replace the set wholesale (not additive)
             target.hiddenColumns.clear();
@@ -585,6 +611,8 @@ public final class SettingsShare {
             List<AnalysisSpec> analyses,
             List<ReportDestination> destinations,
             String workspaceRoot,
+            /** #21 — project-supplied exchange directory, or null when absent or refused. */
+            String exchangeDir,
             Boolean assistantInProcess,
             Boolean assistantRest,
             Integer maxRounds,

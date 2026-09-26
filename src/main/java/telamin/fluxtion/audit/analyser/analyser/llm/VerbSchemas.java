@@ -156,9 +156,17 @@ public final class VerbSchemas {
                         + "filter) and announces when either differs. Add 'path' to also render the "
                         + "PDF, or 'csv' (a table section index) + 'path' to export that table's rows. "
                         + "Any 'path' requires 'Allow assistant file exchange' and resolves INSIDE the "
-                        + "exchange directory; existing files are never overwritten.",
+                        + "exchange directory; existing files are never overwritten. "
+                        + "CLEAN UP after yourself: 'name' + 'delete: true' removes a report, and "
+                        + "'name' + 'rename' renames one. A throwaway diagnostic left behind becomes a "
+                        + "permanent fixture of a shared profile, indistinguishable from a real finding.",
                 props(
                         p("name", string(), "the report's identity — building again with the same name REPLACES it"),
+                        p("delete", bool(), "true removes the report named by 'name'. The report "
+                                + "DEFINITION goes; the log, the charts it cited and any PDF already "
+                                + "rendered are untouched"),
+                        p("rename", string(), "the new name for the report named by 'name'. Refused if "
+                                + "that name is taken — renaming onto an existing report would destroy it"),
                         p("title", string(), "the headline"),
                         p("notes", string(), "prose about the report — rendered visibly as narrative"),
                         p("sections", arr(reportSectionObject()), "the ordered sections; invalid ones "

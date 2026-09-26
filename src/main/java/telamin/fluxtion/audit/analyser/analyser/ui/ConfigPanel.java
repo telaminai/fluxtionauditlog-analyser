@@ -54,6 +54,8 @@ public final class ConfigPanel extends JDialog {
     private final JCheckBox actionsRest = new JCheckBox("Allow the assistant to drive the UI over localhost (REST)");
     private final JCheckBox exportsToggle = new JCheckBox("Allow assistant file exchange (screenshot/report writes, external-series reads)");
     private final JTextField exportDirField = new JTextField(28);
+    /** #21 — the open PROJECT's preferred exchange directory, project-relative. */
+    private final JTextField projectExchangeField = new JTextField(28);
     private final JSpinner maxRoundsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 20, 1));
     private final JSpinner maxActionsSpinner = new JSpinner(new SpinnerNumberModel(20, 1, 200, 1));
 
@@ -506,14 +508,24 @@ public final class ConfigPanel extends JDialog {
         });
         dirRow.add(browseExport, BorderLayout.EAST);
         p.add(dirRow, c);
+
+        // #21: the project's own preference, typed rather than browsed — it is a path INSIDE the
+        // repository, and a file chooser would invite the absolute machine path the gate refuses.
+        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END;
+        p.add(new JLabel("This project's directory:"), c);
+        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START;
+        projectExchangeField.setToolTipText("Relative to the project root, e.g. src/report/shared — "
+                + "no '..', no absolute path. Blank means use the export directory above.");
+        p.add(projectExchangeField, c);
+
         c.fill = GridBagConstraints.NONE;
-        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
+        c.gridy = 6; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxRoundsSpinner), c);
-        c.gridy = 6; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
+        c.gridy = 7; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxActionsSpinner), c);
         c.weightx = 0;
 
-        c.gridx = 0; c.gridy = 7; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridx = 0; c.gridy = 8; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(14, 0, 4, 0);
         p.add(mutedNote("The assistant can <b>compute over the index</b> and <b>build curation</b> (filter / "
                 + "graph / goto / flag) as it answers. <b>In-process</b> opens no port. <b>REST</b> exposes a "
@@ -602,6 +614,7 @@ public final class ConfigPanel extends JDialog {
         actionsRest.setSelected(config.assistantActionsRest);
         exportsToggle.setSelected(config.assistantExports);
         exportDirField.setText(config.assistantExportDir == null ? "" : config.assistantExportDir);
+        projectExchangeField.setText(config.projectExchangeDir == null ? "" : config.projectExchangeDir);
         maxRoundsSpinner.setValue(config.maxActionRounds);
         maxActionsSpinner.setValue(config.maxActionsPerReply);
     }
@@ -627,6 +640,21 @@ public final class ConfigPanel extends JDialog {
         config.assistantActionsRest = actionsRest.isSelected();
         config.assistantExports = exportsToggle.isSelected();
         config.assistantExportDir = exportDirField.getText().trim();
+        // #21: refuse at the door, with the reason — a stored value that can never be honoured is
+        // worse than none, because nothing later says why the exports went elsewhere
+        String wantedExchange = projectExchangeField.getText().trim();
+        if (wantedExchange.isEmpty()) {
+            config.projectExchangeDir = "";
+        } else {
+            var refused = telamin.fluxtion.audit.analyser.analyser.config.Runbooks
+                    .refusePointer("assistant.exchangeDir", wantedExchange);
+            if (refused.isPresent()) {
+                javax.swing.JOptionPane.showMessageDialog(this, refused.get(),
+                        "Exchange directory", javax.swing.JOptionPane.WARNING_MESSAGE);
+            } else {
+                config.projectExchangeDir = wantedExchange;
+            }
+        }
         config.maxActionRounds = (Integer) maxRoundsSpinner.getValue();
         config.maxActionsPerReply = (Integer) maxActionsSpinner.getValue();
         if (onSaved != null) onSaved.run();

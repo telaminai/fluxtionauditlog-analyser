@@ -32,6 +32,20 @@ public record ReportSpec(String name, String title, String createdAt, String not
         sections = sections == null ? List.of() : List.copyOf(sections);
     }
 
+    /**
+     * The same report under a new name (#23), keeping everything it holds.
+     *
+     * <p>Note the title: the compact constructor defaults a blank title to the NAME, so a report
+     * that never had an explicit title would silently keep the old name as its title after a
+     * rename. Where the title was defaulted, it moves with the name; an explicit title is left
+     * alone, because that one was chosen.
+     */
+    public ReportSpec withName(String newName) {
+        boolean titleWasDefaulted = title.equals(name);
+        return new ReportSpec(newName, titleWasDefaulted ? newName : title,
+                createdAt, notes, fingerprint, filter, sections);
+    }
+
     public enum Kind { FINDING, RECORD, CHART, TOPOLOGY, SERIES, TABLE, NARRATIVE }
 
     /**

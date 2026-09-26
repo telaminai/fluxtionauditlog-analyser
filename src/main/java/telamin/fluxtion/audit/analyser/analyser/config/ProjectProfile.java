@@ -185,7 +185,8 @@ public final class ProjectProfile {
                            String defaultEnvironment,
                            List<AnalysisSpec> analyses,
                            List<ReportDestination> reportDestinations,
-                           String workspaceRoot) {
+                           String workspaceRoot,
+                           String projectExchangeDir) {
 
         public Snapshot {
             sourceRoots = List.copyOf(sourceRoots);
@@ -203,6 +204,7 @@ public final class ProjectProfile {
             analyses = List.copyOf(analyses == null ? List.of() : analyses);
             reportDestinations = List.copyOf(reportDestinations == null ? List.of() : reportDestinations);
             workspaceRoot = workspaceRoot == null ? "" : workspaceRoot;
+            projectExchangeDir = projectExchangeDir == null ? "" : projectExchangeDir;
         }
     }
 
@@ -210,7 +212,7 @@ public final class ProjectProfile {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
                 c.selectedEventProcessor, c.processorDeclarations, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
                 c.hiddenColumnsSet, c.runbooks, c.vocabularyPath, c.environments, c.defaultEnvironment, c.analyses,
-                c.reportDestinations, c.workspaceRoot);
+                c.reportDestinations, c.workspaceRoot, c.projectExchangeDir);
     }
 
     /** Put a snapshot back over the project-scoped categories, leaving global untouched. */
@@ -234,6 +236,7 @@ public final class ProjectProfile {
         into.analyses.addAll(s.analyses());
         into.reportDestinations.addAll(s.reportDestinations());
         into.workspaceRoot = s.workspaceRoot();
+        into.projectExchangeDir = s.projectExchangeDir();
     }
 
     /**
@@ -255,6 +258,8 @@ public final class ProjectProfile {
         c.analyses.clear();
         c.reportDestinations.clear();
         c.workspaceRoot = "";
+        c.projectExchangeDir = "";        // #21: a project says WHERE exchange goes; leaving it set
+                                          // would carry project A's directory into project B
         c.hiddenColumns.clear();
         // the scalars belong to the same categories, so a replace that left them behind would carry
         // project A's selected event processor into project B — a class that may not exist there

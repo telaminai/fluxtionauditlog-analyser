@@ -105,7 +105,7 @@ public final class ActionExecutor implements RenderExecutor {
         return telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(
                 requested == null ? null : requested.toString(),
                 cfg != null && cfg.assistantExports,
-                cfg == null ? "" : cfg.assistantExportDir);
+                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir());
     }
 
     @Override
@@ -413,7 +413,7 @@ public final class ActionExecutor implements RenderExecutor {
                 }
                 var resolved = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolveRead(
                         path, cfg != null && cfg.assistantExports,
-                        cfg == null ? "" : cfg.assistantExportDir, readGrants.get());
+                        telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir(), readGrants.get());
                 if (resolved.error() != null) {
                     externalWarnings.add("external '" + label + "': " + resolved.error());
                     continue;
@@ -1245,7 +1245,7 @@ public final class ActionExecutor implements RenderExecutor {
                     String path = asText(ext.get("path"));
                     var resolved = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolveRead(
                             path, cfg != null && cfg.assistantExports,
-                            cfg == null ? "" : cfg.assistantExportDir, readGrants.get());
+                            telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir(), readGrants.get());
                     if (resolved.error() != null) {
                         warnings.add("marker '" + label + "': " + resolved.error());
                         continue;

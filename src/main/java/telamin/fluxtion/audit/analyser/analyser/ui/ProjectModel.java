@@ -61,7 +61,7 @@ public record ProjectModel(List<Section> sections) {
 
     public static final Set<String> KEYS_READ = Set.of(
             "restoration.state", "restoration.message", "restoration.available",
-            "project.active", "project.name", "project.settings", "project.root",
+            "project.active", "project.name", "project.label", "project.profile", "project.settings", "project.root",
             "skills.provenance", "skills.from",
             "fluxtionKey.canonicalFilePresent", "fluxtionKey.canonicalFile", "fluxtionKey.precedenceNote",
             "log.path", "log.openedFrom", "log.records", "log.openedBy", "provenance", "files",
@@ -73,7 +73,8 @@ public record ProjectModel(List<Section> sections) {
             "savedGraphs.name", "savedGraphs.open", "savedGraphs.input",
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
-            "exports.enabled", "exports.dir", "reports.name", "reports.title", "reports.sections", "reports.from",
+            "exports.enabled", "exports.dir", "exports.source", "exports.refused",
+            "reports.name", "reports.title", "reports.sections", "reports.from",
             "runbooks.name", "runbooks.path", "runbooks.description", "runbooks.resolved", "runbooks.exists", "runbooks.from",
             "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
             "provenanceSource", "environments.name", "environments.provenance", "environments.logDir", "environments.default",
@@ -96,8 +97,20 @@ public record ProjectModel(List<Section> sections) {
         Map<String, Object> proj = map(ctx.get("project"));
         List<Row> rows = new ArrayList<>();
         if (Boolean.TRUE.equals(proj.get("active"))) {
-            // the root is a PATH: abbreviated here (D-L8), because the second line otherwise wraps the full thing
-            rows.add(new Row(str(proj.get("name")), abbreviate(str(proj.get("root"))), str(proj.get("settings")),
+            // #22: the LABEL, not the name — name is the directory and reads identically for every
+            // profile under one root, and edits auto-save into whichever is active. The detail names
+            // the settings file for the same reason, so "which am I about to write to" is on screen.
+            String label = str(proj.get("label"));
+            if (label == null || label.isBlank()) label = str(proj.get("name"));   // pre-#22 echoes
+            String settings = str(proj.get("settings"));
+            // Name the settings FILE only when there is something to disambiguate. The canonical
+            // project.fluxtion-settings is the only profile a root can have under that name, so
+            // adding it there is noise; a named profile is the case where the row must say which.
+            String profile = str(proj.get("profile"));
+            String detail = (profile == null || settings == null)
+                    ? abbreviate(str(proj.get("root")))
+                    : abbreviate(str(proj.get("root"))) + " · " + fileNameOf(settings);
+            rows.add(new Row(label, detail, settings,
                     "project settings in force", Tone.NORMAL, Target.PROJECT));
         } else {
             rows.add(new Row("No project", "using your own settings (~/.fluxtion-analyser)", null, null,
@@ -363,11 +376,24 @@ public record ProjectModel(List<Section> sections) {
         rows = new ArrayList<>();
         Map<String, Object> exports = map(ctx.get("exports"));
         if (Boolean.TRUE.equals(exports.get("enabled")) && exports.get("dir") != null) {
-            rows.add(new Row("Exports to " + fileName(str(exports.get("dir"))), "screenshots, PDF/CSV exports and rendered reports land here",
-                    str(exports.get("dir")), "own settings", Tone.NORMAL, Target.SETTINGS_ASSISTANT));
+            // #21: WHICH TIER chose the directory is the fact a person needs here. The opt-in is
+            // always this machine's; the location may be the open project's, and a row that said
+            // "own settings" either way would misattribute the project's choice to the reader.
+            boolean fromProject = "project".equals(str(exports.get("source")));
+            rows.add(new Row("Exports to " + fileName(str(exports.get("dir"))),
+                    "screenshots, PDF/CSV exports and rendered reports land here"
+                            + (fromProject ? " — this project asked for it; the permission is still yours" : ""),
+                    str(exports.get("dir")), fromProject ? "project" : "own settings",
+                    Tone.NORMAL, Target.SETTINGS_ASSISTANT));
         } else {
             rows.add(new Row("File exchange off", "Settings ▸ Assistant — until it is on, an agent's screenshot, export and report writes are refused",
                     null, null, Tone.MUTED, Target.SETTINGS_ASSISTANT));
+        }
+        if (exports.get("refused") != null) {
+            // a project asked for a directory and did not get it — say so where the directory is stated,
+            // or the only symptom is a file appearing somewhere unexpected
+            rows.add(new Row("Project exchange directory refused", str(exports.get("refused")),
+                    null, "project", Tone.WARN, Target.SETTINGS_ASSISTANT));
         }
         List<Object> reps = list(ctx.get("reports"));
         for (Object o : reps) {
@@ -440,6 +466,17 @@ public record ProjectModel(List<Section> sections) {
      */
     public static String abbreviate(String path) {
         return abbreviate(path, System.getProperty("user.home"), 44);
+    }
+
+    /**
+     * The last segment of a path. The project row shows the settings FILE beside the root (#22):
+     * the root is identical for every profile, so the file name is the only part that distinguishes
+     * what is in force, and it is what a person needs before deleting anything.
+     */
+    public static String fileNameOf(String path) {
+        if (path == null || path.isBlank()) return null;
+        int slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        return slash < 0 ? path : path.substring(slash + 1);
     }
 
     static String abbreviate(String path, String home, int max) {

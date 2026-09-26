@@ -80,7 +80,9 @@ drive the same verbs:
   *account* of an investigation, not just its evidence. It appears in the **Reports** tab, renders to
   PDF with `path`, and exports a table's rows to CSV with `csv`. A finding section renders what
   `flag` wrote and the verb **cannot** set or change that text; narrative is always visibly labelled
-  as narrative. See [Investigation reports](reports.md).
+  as narrative. `report {name, delete: true}` removes one and `report {name, rename}` renames one,
+  so an assistant can clear away the diagnostics it built along the way. See
+  [Investigation reports](reports.md).
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a
   graphml, and answers the question nobody can answer by eye on a large graph: what did this run never
   exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
