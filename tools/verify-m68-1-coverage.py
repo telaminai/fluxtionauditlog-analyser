@@ -422,6 +422,23 @@ def main():
             check("M68.3: a collapsed file is suspected, as a suspicion", producer.startswith("Suspected")
                   and "3 records run together" in producer, producer or "(no producer findings)")
             check("M68.3: and names the span it inspected", "Inspected lines 1" in producer, producer)
+
+            print("17. independent review R2 — the exported coverage table obeys the session's refusal")
+            # The review's probe: a graph kept deliberately against a log whose only id it does not declare. The verb
+            # refused and the PDF printed "declared 3 · covered 0 · ratio 0.0". Run on the unfixed jar, this goes red.
+            foreign = os.path.join(work, "r2-foreign-only.yaml")
+            constructed_log(foreign, [["foreignOnly"]])
+            open_pair(a, foreign)
+            refused = a.act("coverage")
+            check("R2: the coverage verb refuses the retained foreign pair", refused.get("ok") is False, refused)
+            pdf = os.path.join(exchange, "r2-refused.pdf")
+            reply = a.act("report", name="r2-refused", title="R2 verification",
+                          sections=[{"kind": "table", "call": {"verb": "coverage"}}], path=pdf)
+            check("R2: the report still exports", reply.get("ok") is True and os.path.exists(pdf), reply)
+            text = open(pdf, "rb").read().decode("latin-1") if os.path.exists(pdf) else ""
+            check("R2: the page states the refusal", "coverage REFUSED" in text, text[:300])
+            check("R2: and prints no ratio", " ratio " not in text,
+                  [l for l in text.splitlines() if "ratio" in l][:3])
     finally:
         shutil.rmtree(work, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)

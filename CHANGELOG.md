@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **An exported coverage table now says when coverage is refused.** The report scored coverage by its own rules,
+  which knew only one of the four reasons coverage can be meaningless. So where the `coverage` verb refused (a kept
+  graph that does not describe the log, a graph built from what ran, a graph with no audit logger), the PDF still
+  printed a ratio. The table now follows the same decision: it prints the refusal instead of a number. A qualified
+  figure, such as one from a log captured below TRACE, carries its qualification as the first note.
 - **A coverage answer can no longer be credited to a log or graph opened while it ran.** Coverage took the log, the
   session's identity for it and the graph at three different moments, and read the view filter while it scanned. A
   log opened in between gave the old log's comparison the new log's identity, so an id from the old file was shown as

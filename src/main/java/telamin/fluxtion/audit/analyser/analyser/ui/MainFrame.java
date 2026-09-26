@@ -1341,32 +1341,19 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * Coverage's graph facts belong to the UI, but its scoring is pure and shared with the action echo.
-     * The report gets the complete ledger rather than coverage's intentionally short agent-facing gap
-     * list; a PDF reader needs covered and excluded nodes to check the denominator too.
+     * Coverage's graph facts belong to the UI, but its scoring is pure and shared with the action echo — and whether a
+     * number may be printed at all is the SESSION's decision (independent review R2): the report used to decide that for
+     * itself, knowing one of the four refusals, and exported a ratio the coverage verb refused. The store, the graph and
+     * the claim are read here together, on the EDT, so the verdict describes exactly what is scored.
      */
     private telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData coverageForReport(
             boolean filtered) {
-        if (store == null || !topologyPanel.hasTopology()) {
-            return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(
-                    java.util.List.of(), null, java.util.List.of("coverage needs a loaded declared topology"),
-                    "coverage needs a loaded declared topology");
-        }
-        var graphSource = topologyPanel.graphSource();
-        if (graphSource != null && !graphSource.supportsCoverage()
-                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
-            String reason = "this graph was " + graphSource.describe + ", so coverage cannot mean anything: "
-                    + "it subtracts what ran from what was declared, and here the declared set is what ran";
-            return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(
-                    java.util.List.of(), null, java.util.List.of(reason), reason);
-        }
-        var input = new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
-                topologyPanel.fullTopology(), topologyPanel.authoredNodeIds(), topologyPanel.sourceResolver());
-        var assessed = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
-                store, filtered, filter, input);
-        return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(assessed.ledger(),
-                assessed.scalarLine(), assessed.notes(), assessed.ledger().isEmpty()
-                        ? "the topology declares no reportable nodes" : null);
+        var input = topologyPanel.hasTopology()
+                ? new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
+                        topologyPanel.fullTopology(), topologyPanel.authoredNodeIds(), topologyPanel.sourceResolver())
+                : null;
+        return telamin.fluxtion.audit.analyser.analyser.report.ReportCoverage.forReport(
+                store, input, sessionSnapshot().claim(), filtered, filter);
     }
 
     /** Assemble what each section can show headlessly, and render (M33.3 — see recorded deviations). */
