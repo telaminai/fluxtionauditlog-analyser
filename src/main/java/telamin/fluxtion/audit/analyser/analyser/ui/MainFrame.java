@@ -5097,7 +5097,7 @@ public final class MainFrame extends JFrame {
                 .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source));
         syncBusyWithGate();
         projectDesignChanged();
-        if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), null);
+        if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
         return sessionProblem == null;
     }
 
@@ -6757,7 +6757,7 @@ public final class MainFrame extends JFrame {
 
     /** Startup and project reopen use exactly the same offer; CLI opens grant no restore permission. */
     public void offerSessionRecovery() {
-        recovery.activate(project.activeFile(), projectLoadNote != null && !projectLoadNote.loaded()
+        recovery.activate(project.activeFile(), project.activeNonce(), projectLoadNote != null && !projectLoadNote.loaded()
                 ? projectLoadNote.message() : null);
     }
 
@@ -6789,7 +6789,8 @@ public final class MainFrame extends JFrame {
         view.put("loadedGraphHash", topologyPanel.loadedGraphSha256());
         view.put("provenance", logProvenance);
         view.put("format", loadedLogFormat);
-        return new SessionRecoveryController.Capture(project.activeFile(), inputs, view);
+        // §E: the capturing profile's identity is taken here, with the inputs, not when the queued save runs
+        return new SessionRecoveryController.Capture(project.activeFile(), project.activeNonce(), inputs, view);
     }
 
     private void applyRecovery(long generation,

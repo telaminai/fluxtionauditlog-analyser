@@ -31,7 +31,8 @@ public final class KnownKeys {
     public static final Set<String> PROFILE_FAMILIES = Set.of(
             "share", "sourceRoot", "mavenRepo", "mavenRepoSearch", "eventProcessorFqn", "selectedEventProcessor", "processorDeclaration",
             "graph", "focus", "report", "hiddenColumn", "assistant", "llmProvider", "llmModel", "llmBaseUrl",
-            "runbook", "vocabulary", "environment", "analysis", "destination", "workspaceRoot");
+            "runbook", "vocabulary", "environment", "analysis", "destination", "workspaceRoot",
+            "profileNonce");  // §E: owned — only the profile writer sets it; a share export never carries it
 
     /** What {@code ConfigStore.save} can write — the own-settings file: the profile families plus the machine tier. */
     public static final Set<String> CONFIG_FAMILIES;

@@ -22,10 +22,11 @@ public final class SessionResumeStore {
     }
     public record Identity(String role, String path, String sha256, String problem) { }
     /**
-     * {@code profileIdentity} names the profile FILE that captured the snapshot, not just its path: the key is
-     * a real path, and a project deleted and recreated at that path (a re-extracted download, say) would
-     * otherwise inherit the old project's offer (edit-loop spec §E). Null for the no-project bucket and for
-     * snapshots written before this field existed — neither ever counts as the same profile.
+     * {@code profileIdentity} is the capturing profile's creation nonce ({@code ProjectProfile.NONCE_KEY}),
+     * taken when the capture was built: the key is a real path, and a project deleted and recreated at that
+     * path (a re-extracted download, say) would otherwise inherit the old project's offer (edit-loop spec §E).
+     * Null for the no-project bucket, for a profile that has no nonce, and for snapshots written before this
+     * field existed — a missing identity never counts as the same profile.
      */
     public record Snapshot(String key, String capturedAt, List<Identity> inputs, Map<String,Object> view,
                            String profileIdentity) {
@@ -50,27 +51,6 @@ public final class SessionResumeStore {
     public Snapshot capture(String key, String profileIdentity, List<Input> inputs, Map<String,Object> view) {
         List<Identity> identities = inputs.stream().map(i -> identity(i.role(), i.path())).toList();
         return new Snapshot(key, java.time.Instant.now().toString(), identities, view, profileIdentity);
-    }
-
-    /**
-     * Which profile FILE this is, beyond its path. The analyser rewrites a profile in place, so the file keeps
-     * its identity across ordinary saves; deleting and recreating the project, or a tool that replaces the
-     * file, gives it a new one. A copy is a new file too. Parts are taken only where the platform reports
-     * them faithfully: the file key (device and inode) where one exists — not on Windows — and the creation
-     * time on macOS and Windows, where it is a real birth time rather than a stand-in for modification time.
-     * On Linux the identity is the inode alone, so a recreated file that happens to reuse the inode number
-     * is not told apart; that limit is accepted and documented rather than hidden.
-     */
-    public static String profileIdentity(Path profile) throws IOException {
-        Path real = profile.toRealPath();
-        BasicFileAttributes attributes = Files.readAttributes(real, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-        String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
-        boolean birthTime = os.contains("mac") || os.contains("win");
-        List<String> parts = new ArrayList<>();
-        if (attributes.fileKey() != null) parts.add("file=" + attributes.fileKey());
-        if (birthTime) parts.add("created=" + attributes.creationTime().toInstant());
-        if (parts.isEmpty()) throw new IOException("profile identity is unavailable on this file system");
-        return String.join(";", parts);
     }
 
     public List<Check> check(Snapshot snapshot) {

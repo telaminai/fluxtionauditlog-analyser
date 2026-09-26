@@ -11,7 +11,12 @@ import java.util.function.Consumer;
 
 /** File-I/O adapter for the session graph. Serial I/O keeps outgoing saves ahead of subsequent offers. */
 final class SessionRecoveryController {
-    record Capture(Path profile, List<SessionResumeStore.Input> inputs, Map<String,Object> view) {
+    /**
+     * Everything a capture records, taken on the EDT when it is built. {@code profileIdentity} is the active
+     * profile's creation nonce at that moment, so a profile replaced at the same path before the queued save
+     * runs cannot lend the old session its identity (edit-loop spec §E).
+     */
+    record Capture(Path profile, String profileIdentity, List<SessionResumeStore.Input> inputs, Map<String,Object> view) {
         Capture { inputs = List.copyOf(inputs); view = Collections.unmodifiableMap(new LinkedHashMap<>(view)); }
     }
     interface Host {
@@ -36,22 +41,22 @@ final class SessionRecoveryController {
     }
     private void save(Capture c) {
         try {
-            String identity = c.profile() == null ? null : SessionResumeStore.profileIdentity(c.profile());
+            String identity = c.profile() == null ? null : c.profileIdentity();
             files.save(files.capture(SessionResumeStore.key(c.profile()), identity, c.inputs(), c.view()));
         }
         catch (Exception e) { later(() -> host.failed("Could not save session recovery: " + e.getMessage())); }
     }
-    void activate(Path profile, String activationError) {
+    /** {@code profileIdentity}: the active profile's creation nonce as loaded, or null (no project, or none). */
+    void activate(Path profile, String profileIdentity, String activationError) {
         host.driver().submit(new ResumeEvents.Activated(profile == null ? null : profile.toString()));
         long generation = state().generation();
         host.render();
         io.execute(() -> {
-            String key = null, error = activationError, identity = null;
+            String key = null, error = activationError, identity = profile == null ? null : profileIdentity;
             SessionResumeStore.Snapshot snapshot = null;
             if (error == null) {
                 try {
                     key = SessionResumeStore.key(profile);
-                    if (profile != null) identity = SessionResumeStore.profileIdentity(profile);
                     snapshot = files.load(key).orElse(null);
                 }
                 catch (Exception e) { error = "Session recovery unavailable: " + e.getMessage(); }

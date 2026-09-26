@@ -7,10 +7,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 ## [Unreleased]
 
 - **A recreated project is not offered the old project's session.** Recovery was keyed by the profile's
-  path, so deleting a project and recreating it in the same place (for example by extracting a download
-  again) showed the previous project's "Restore last session" offer. Each saved session now also records
-  which profile file captured it; a different profile at the same path gets no offer, and the status says
-  when that session was captured. The offer message now names its capture time too.
+  path, so deleting a project and recreating it in the same place showed the previous project's "Restore
+  last session" offer. A project profile now carries a random `profileNonce`, written once when the analyser
+  creates the profile and kept by every save; each saved session records the nonce of the profile that
+  captured it. A different profile at the same path gets no offer (`capturedBy: "different profile at this
+  path"`), and a session or profile without a nonce is withheld as `capturedBy: "unknown"` rather than
+  guessed. An existing profile gains a nonce the first time the analyser saves a change to it, so that
+  profile's committed file gets one new line. A withheld offer still names when it was captured and what it
+  would have opened, and the offer message now names its capture time.
 
 ## [1.20.1] - 2026-09-24
 

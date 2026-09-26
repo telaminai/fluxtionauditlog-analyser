@@ -33,16 +33,26 @@ public class SessionRecovery implements EventLogSource {
         if (e.generation() != generation || !"checking".equals(state)) return stale();
         key = e.key() == null ? "" : e.key();
         candidate = e.snapshot();
+        boolean project = !SessionResumeStore.NO_PROJECT.equals(key);
         if (candidate != null && !candidate.key().equals(key)) {
             candidate = null; state = "unavailable"; message = "Recovery belongs to another project";
-        } else if (candidate != null && e.profileIdentity() != null
+        } else if (candidate != null && project
+                && (e.profileIdentity() == null || candidate.profileIdentity() == null)) {
+            // A missing identity never implies a match (edit-loop spec §E): the session predates profile
+            // identity, or this profile has no creation nonce yet. Who captured it is unknown — withhold.
+            state = "unavailable";
+            message = "A session saved at this path on " + candidate.capturedAt() + " cannot be tied to this "
+                    + "profile (it was saved before profile identity, or the profile has no identity yet); "
+                    + "it is not offered";
+            identityCheck = "unknown";
+            withheld = candidate; candidate = null;
+        } else if (candidate != null && project
                 && !e.profileIdentity().equals(candidate.profileIdentity())) {
-            // Same path, different profile file: the project was replaced or recreated here, or the snapshot
-            // predates identities. An unchanged input hash says nothing about who captured it — withhold.
+            // Same path, different profile: the project was deleted and recreated here. An unchanged input
+            // hash says nothing about who captured it — withhold.
             state = "unavailable";
             message = "A session saved at this path on " + candidate.capturedAt() + " was captured by a different "
-                    + "profile file (the project was replaced or recreated, or the save predates profile identity); "
-                    + "it is not offered";
+                    + "profile (the project was replaced or recreated at this path); it is not offered";
             identityCheck = "different profile at this path";
             withheld = candidate; candidate = null;
         } else if (e.error() != null) {
@@ -51,7 +61,7 @@ public class SessionRecovery implements EventLogSource {
             state = candidate == null ? "none" : "offered";
             message = candidate == null ? "No saved session for this project"
                     : "Restore the session captured " + candidate.capturedAt() + " is available; nothing opened";
-            if (candidate != null) identityCheck = e.profileIdentity() == null ? "no project" : "same profile";
+            if (candidate != null) identityCheck = project ? "same profile" : "no project";
         }
         auditLog.info("recovery", state).info("generation", generation);
         return true;
@@ -111,6 +121,10 @@ public class SessionRecovery implements EventLogSource {
         auditLog.info("recovery", state).info("outcome", message);
         return true;
     }
+    private static List<Map<String,String>> inputOrigin(SessionResumeStore.Snapshot snapshot) {
+        return snapshot.inputs().stream().map(i -> Map.of("role", i.role(), "path", i.path(),
+                "identity", i.sha256() == null ? "unverified" : "sha256")).toList();
+    }
     private boolean stale() { auditLog.info("recovery", "stale completion ignored"); return false; }
     public long generation() { return generation; }
     public SessionResumeStore.Snapshot candidate() { return candidate; }
@@ -123,9 +137,13 @@ public class SessionRecovery implements EventLogSource {
         out.put("available", "offered".equals(state));
         if (candidate != null) {
             out.put("capturedAt", candidate.capturedAt());
-            out.put("inputs", candidate.inputs().stream().map(i -> Map.of("role", i.role(), "path", i.path(), "identity", i.sha256() == null ? "unverified" : "sha256")).toList());
+            out.put("inputs", inputOrigin(candidate));
         }
-        if (withheld != null) out.put("capturedAt", withheld.capturedAt());
+        if (withheld != null) {
+            // §E: a withheld session still discloses when it was captured and what it would have opened
+            out.put("capturedAt", withheld.capturedAt());
+            out.put("inputs", inputOrigin(withheld));
+        }
         if (!identityCheck.isEmpty()) out.put("capturedBy", identityCheck);
         if (!checks.isEmpty()) out.put("checks", checks.stream().map(c -> Map.of("role", c.input().role(), "path", c.input().path(), "status", c.status())).toList());
         out.put("identityScope", "file bytes at session capture; not proof of application build or execution identity");
