@@ -53,7 +53,7 @@ public record FramingScan(List<Integer> candidates, int inspectedChars, int insp
             // line may begin with one — and that line is still the item's own header. Unrecognised, a BOM'd collapsed file
             // had its SECOND header taken as its own and was reported clean. Only position 0, only once: a BOM anywhere
             // else is payload text, and never makes a line a header.
-            int headerAt = i == 0 && text.charAt(0) == '\ufeff' ? 1 : i;
+            int headerAt = i == 0 && AuditText.isBom(text.charAt(0)) ? 1 : i;   // the one BOM rule (MA, AuditText)
             if (open == 0 && isHeader(text, headerAt, lineEnd)) {
                 if (seenHeader) candidates.add(line);
                 seenHeader = true;

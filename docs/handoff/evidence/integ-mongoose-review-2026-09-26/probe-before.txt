@@ -1,0 +1,4 @@
+pending indexed=0 full candidates=[3] adapterText=  tail: x\n findings=[]
+same-length decode error=MalformedInputException
+same-length state=UNKNOWN digests=1 identity=FollowIdentity[verdict=UNCHANGED, reason=every byte compared, identical] damage=[Follow could not read bytes appended after record 1 of this log: they are not valid UTF-8. The records before them are shown; whether this log is complete is unknown until it is reopened.]
+coverage bound=2 maxRead=1 annotations={riskMonitor=this log sets riskMonitor's audit level to WARN at record 1 (logTime 0). Nothing later in the records sharing its grouping changes it, so after record 1 and before the stream-end marker preceding record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran}

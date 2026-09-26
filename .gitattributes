@@ -30,3 +30,7 @@ src/test/resources/framing/unterminated-tail.yaml whitespace=-blank-at-eol
 docs/handoff/evidence/m68-1-rereview-2026-09-24/set4-p19-p20-e2e-before.txt whitespace=-blank-at-eol
 docs/handoff/evidence/m68-1-rereview-2026-09-24/set5-p24-headless-first-run.log whitespace=-blank-at-eol
 docs/handoff/evidence/m68-1-rereview-2026-09-24/set7-p38-e2e-4251bae3.txt whitespace=-blank-at-eol
+
+# MA-0's whitespace-only fixture is three blank lines and nothing else: the blank lines at its end ARE the fixture.
+# Only the end-of-file check is switched off, so a trailing space or a tab-space fault would still be caught.
+src/test/resources/conformance/c27-whitespace-only.yaml whitespace=-blank-at-eof

@@ -184,6 +184,16 @@ public final class RolledLogStore implements LogStore {
      * {@link #sourceDiagnostics()} names which file. Set-level completeness would need set-level
      * evidence — a manifest, or a marker that names its successor — which Format 1 has no room for.
      */
+    /** Each member's run boundaries, moved into the set's numbering. A FILE boundary is not a run boundary. */
+    @Override
+    public List<Integer> runBoundaries() {
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < members.size(); i++) {
+            for (int b : members.get(i).runBoundaries()) out.add(firstRow[i] + b);
+        }
+        return List.copyOf(out);
+    }
+
     @Override
     public StreamEnd streamEnd() {
         StreamEnd worst = null;
@@ -200,6 +210,16 @@ public final class RolledLogStore implements LogStore {
         // the set's own count as though they described the same thing (re-review B2).
         return worst.inMember(paths.get(worstIndex).getFileName().toString(),
                 members.get(worstIndex).size(), firstRow[worstIndex]);
+    }
+
+    /**
+     * A set of ONE file is that file for the empty-log sentence (targeted re-review of PR #40, optional 2): its index
+     * counts one file, so the finding says "this file", and it must then say what that file's marker says — the same
+     * sentence the file gets when opened on its own. The SET's own claim, {@link #streamEnd()}, stays UNKNOWN.
+     */
+    @Override
+    public StreamEnd emptyLogClaim() {
+        return members.size() == 1 ? members.get(0).streamEnd() : streamEnd();
     }
 
     /** True when every member carries a marker that checks out — worth SAYING, never worth believing. */

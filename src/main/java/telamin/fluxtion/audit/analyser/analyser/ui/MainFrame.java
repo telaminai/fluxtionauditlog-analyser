@@ -1438,6 +1438,10 @@ public final class MainFrame extends JFrame {
             }
         }
         if (!warnings.isEmpty()) echo.put("warnings", warnings);
+        // D-MA0c: the reply carries the log's producer findings under the key `context` already uses
+        if (store != null && producerDiagnostics != null && !producerDiagnostics.isClean()) {
+            echo.put("producer", producerDiagnostics.messages());
+        }
         return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
     }
 
@@ -1522,7 +1526,8 @@ public final class MainFrame extends JFrame {
         return telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.render(
                 spec, resolution, content,
                 (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
-                TimeFormat.utc(System.currentTimeMillis()));
+                TimeFormat.utc(System.currentTimeMillis()),
+                store == null ? null : producerDiagnostics);   // D-MA0c: the log's findings are on the page
     }
 
     /** One record as evidence lines: the numbered node log, the same shape the finding report uses. */
@@ -2494,7 +2499,7 @@ public final class MainFrame extends JFrame {
 
         @Override public String whyNotVisible(SpotlightTarget t) {
             return switch (t.family()) {
-                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> "session design is unavailable, or the anchor is missing, ambiguous or outside the document";
+                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> designNotVisible(t);
                 case RECORDS_ROW -> store == null ? "no log is open, so there is no record " + t.argument()
                         : "record " + t.argument() + " is not in the table — it is out of range, or still filtered out";
                 case DETAIL_NODE -> "'" + t.argument() + "' has no block in the record detail — select a record in "
@@ -2538,6 +2543,28 @@ public final class MainFrame extends JFrame {
             };
         }
     };
+
+    /**
+     * Why a design target is not lit, said as the one reason that applies. It used to be one sentence for all of
+     * them ("unavailable, or missing, ambiguous or outside"), which a model read as "the design is not open" when
+     * the design was open and the XML was simply too narrow to show the line.
+     */
+    private String designNotVisible(SpotlightTarget t) {
+        var doc = session().processor().designSession.document();
+        if (doc == null) return "no session design is open — open {design: <path>} first";
+        if (t.family() == SpotlightTarget.Family.DESIGN_BEAN) {
+            int n = doc.beans(t.argument()).size();
+            if (n == 0) return "no bean '" + t.argument() + "' in " + doc.file() + " (context.design.beans lists them)";
+            if (n > 1) return "bean id '" + t.argument() + "' is declared " + n + " times in " + doc.file()
+                    + "; light it by line with source:design:line:<n>";
+        }
+        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && (t.number() < 1 || t.number() > doc.lines()))
+            return "line " + t.number() + " is outside " + doc.file() + " (1–" + doc.lines() + ")";
+        if (t.family() == SpotlightTarget.Family.DESIGN)
+            return "the design is open but its view is not on screen: the Source pane is hidden or too small";
+        return "the design is open but that line is not on screen: the Source pane is too small to show it. "
+                + "Widen the window or the side panel, or light source:design";
+    }
 
     private Integer designTargetLine(SpotlightTarget target) {
         var doc = session().processor().designSession.document();
@@ -3063,6 +3090,7 @@ public final class MainFrame extends JFrame {
                 name -> exportReportPdfWithChooser(name),
                 this::removeReport,
                 this::renameReport);
+        reportsPanel.setLogFindings(() -> store == null ? null : producerDiagnostics);   // D-MA0c
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);
@@ -4163,7 +4191,9 @@ public final class MainFrame extends JFrame {
         // the three checks read the index and the third reads a record's text.
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
-                        loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText());
+                        loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText(),
+                        loaded.emptyLogClaim());
+        if (reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
         String producerWarning = producerWarning();
         status.setText(statusText(loaded.size(), range,
                 logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
@@ -4522,6 +4552,9 @@ public final class MainFrame extends JFrame {
         publishPairing();
         // M68.5, the review's "table not suspended": the table states the session's file-identity verdict, from here
         tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        // M68.7 (owner, Q4): the charts and the detail pane state the same verdict, from the same snapshot
+        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
     }
 
 
@@ -4545,7 +4578,10 @@ public final class MainFrame extends JFrame {
             openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
         } else if (on) {
             followTimer.start();
-            status.setText("Following " + displayName(followPath) + " — watching for new records…" + trailingPendingNote());
+            // MA-0.5: the line Follow starts with keeps the log's warning. It used to drop it, so an empty file being
+            // followed read "watching for new records…" and nothing else until its first record arrived.
+            status.setText("Following " + displayName(followPath) + " — watching for new records…"
+                    + producerWarning() + trailingPendingNote());
         } else {
             followTimer.stop();
         }
@@ -4569,7 +4605,15 @@ public final class MainFrame extends JFrame {
             if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
             reportIdentityToSession(store.followIdentity());   // M68.5: before anything the poll adds is published
         } catch (java.io.IOException ex) {
+            reportIdentityToSession(store.followIdentity());   // a failed poll also retires the session's earlier verification
             status.setText("Follow read failed: " + rootMessage(ex));
+            // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
+            // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on
+            // EVERY tick, so the fault never reached context's producer list or the tooltip — only this one
+            // status line. Refresh them here too — but only when the current findings do not already carry the
+            // damage (third re-review O-B; wording corrected in the fourth, O-2), because after the first failure
+            // nothing moves and a rebuild every second is pure cost.
+            refreshFollowDiagnostics(store.streamEnd(), 0, true);
             return;
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
@@ -4593,20 +4637,9 @@ public final class MainFrame extends JFrame {
         // so `context.streamEnd` said "missing_records" to an agent while the person watching the file
         // was shown nothing at all. The completeness state is re-read on every tick and the human
         // surfaces are refreshed when it moves, whether or not any record came with it.
-        var end = store.streamEnd();
-        // M68.3: the pending frame is re-scanned when it GROWS. A live log with no separators at all never adds a
-        // record, so without this its collapsed framing would never be suspected while it was being followed.
-        String pending = store.pendingFrameText();
-        int pendingChars = pending == null ? 0 : pending.length();
-        if (followNeedsDiagnosticRefresh(followStreamEnd, end, added) || pendingChars != followPendingChars) {
-            followStreamEnd = end;
-            followPendingChars = pendingChars;
-            producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                    .of(store.index(), store::rawText, store.sourceDiagnostics(),
-                            store.completenessDiagnostics(), store.completenessIsNote(), pending);
-            status.setToolTipText(producerDiagnostics.isClean() ? null
-                    : String.join("\n\n", producerDiagnostics.messages()));
-        }
+        // Integration: MA's refresh rule (only when the stream end or the rows moved, and a repeated failure skipped)
+        // with M68.3's (also when the pending frame grows) — both live in refreshFollowDiagnostics.
+        refreshFollowDiagnostics(store.streamEnd(), added, false);
         if (added == 0) {
             // R12-2: a tick with nothing new used to overwrite whatever the status bar was saying, so an
             // explanation of why an action did nothing vanished about a second later while Follow was on.
@@ -4630,6 +4663,40 @@ public final class MainFrame extends JFrame {
         tablePanel.scrollToLast();
         status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
                 store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+    }
+
+    /**
+     * Recompute the producer findings and the status tooltip when the follow state moved — on a tick that
+     * read, and (second re-review O2) on a tick whose read FAILED, because that is the tick the fault appears.
+     */
+    private void refreshFollowDiagnostics(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int added,
+                                          boolean readFailed) {
+        java.util.List<String> damage = store.sourceDiagnostics();
+        if (readFailed) {
+            // Third re-review O-B: a failed tick adds no rows and leaves the state UNKNOWN, so the only thing that
+            // can have changed is the damage itself. The first failure is new; every later one on the same bytes
+            // is identical, and rebuilding the findings each second cost 73–201 ms on the EDT on a 1M-record log.
+            // Keyed on what the CURRENT findings carry, not on a remembered copy: the findings are also rebuilt on
+            // load, and a reloaded store failing at the same row would otherwise match a stale copy and be skipped.
+            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) return;
+        }
+        // M68.3: the pending frame is re-scanned when it GROWS. A live log with no separators at all never adds a
+        // record, so without this its collapsed framing would never be suspected while it was being followed.
+        String pending = store.pendingFrameText();
+        int pendingChars = pending == null ? 0 : pending.length();
+        if (!readFailed && !followNeedsDiagnosticRefresh(followStreamEnd, end, added) && pendingChars == followPendingChars) {
+            return;
+        }
+        followStreamEnd = end;
+        followPendingChars = pendingChars;
+        var before = producerDiagnostics == null ? List.<String>of() : producerDiagnostics.messages();
+        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                .of(store.index(), store::rawText, damage,
+                        store.completenessDiagnostics(), store.completenessIsNote(), pending, store.emptyLogClaim());
+        status.setToolTipText(producerDiagnostics.isClean() ? null
+                : String.join("\n\n", producerDiagnostics.messages()));
+        // D-MA0c: the Reports tab states the log's findings, so a followed log that changes them re-renders it
+        if (reportsPanel != null && !before.equals(producerDiagnostics.messages())) reportsPanel.refresh();
     }
 
     /** The follow line's time range, or the words for a log that carries no timestamps. */
@@ -6229,8 +6296,15 @@ public final class MainFrame extends JFrame {
             }
             Path file = Path.of(path);
             if (!Files.isReadable(file)) {
+                // A relative path resolves against this process's working directory, never the project: say so,
+                // or a model reports that the (committed) GraphML "does not exist".
+                String why = file.isAbsolute() ? "" : "; a relative path resolves against the analyser's working "
+                        + "directory (" + Path.of("").toAbsolutePath() + "), not a project"
+                        + (project.hasProject() ? " — the open project is "
+                                + telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : "")
+                        + ". Pass an absolute path";
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                        "cannot read graphml '" + path + "'");
+                        "cannot read graphml '" + path + "'" + why);
             }
             topologyPanel.load(file);
             if (!topologyPanel.hasTopology()) {

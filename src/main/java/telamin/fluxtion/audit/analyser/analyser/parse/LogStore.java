@@ -93,6 +93,15 @@ public interface LogStore extends AutoCloseable {
     }
 
     /**
+     * The claim an empty-log finding is worded from: what the ONE file said about its end, when there is one file.
+     * Only the wording reads it ({@code ProducerDiagnostics}); it never replaces {@link #streamEnd()}, which a rolled
+     * set keeps UNKNOWN whatever its members say. The default is {@link #streamEnd()}: a single-file store IS its file.
+     */
+    default StreamEnd emptyLogClaim() {
+        return streamEnd();
+    }
+
+    /**
      * A bounded view for a walk that may overlap a follow append (M65 D-F0). {@link #size()} is fixed when the
      * view is taken; {@link #record}/{@link #rawText} serve rows below it from data captured with that size, so a
      * walker never reads a row the store is still writing. Take one per walk; do not hold it across walks.
@@ -184,6 +193,14 @@ public interface LogStore extends AutoCloseable {
      */
     default int appendFrom(java.nio.file.Path path) throws java.io.IOException {
         return -1;
+    }
+
+    /**
+     * Row indices at which a new run begins after a stream-end marker, ascending. Empty for a store that
+     * cannot see markers. Used where a state set in one run must not be silently carried into the next.
+     */
+    default java.util.List<Integer> runBoundaries() {
+        return java.util.List.of();
     }
 
     /** Release any resources (e.g. a mapped file channel). No-op by default. */

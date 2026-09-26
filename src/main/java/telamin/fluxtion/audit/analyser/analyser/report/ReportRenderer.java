@@ -96,6 +96,21 @@ public final class ReportRenderer {
 
     public static byte[] render(ReportSpec spec, ReportResolver.Resolution resolution,
                                 List<SectionContent> content, String logFile, String analysedAt) {
+        return render(spec, resolution, content, logFile, analysedAt, null);
+    }
+
+    /** The heading of the block that carries the log's own producer findings (D-MA0c). */
+    public static final String LOG_FINDINGS_LABEL = "LOG FINDINGS — what the file itself shows";
+
+    /**
+     * @param logFindings the log's producer findings (D-MA0c), or null. "Findings that matter on the status bar matter
+     *                    in the report": every one is printed, in its own order — source damage first — before any
+     *                    section, beside the other announce lines, because a reader must know the file is empty or
+     *                    damaged before a single claim about it renders.
+     */
+    public static byte[] render(ReportSpec spec, ReportResolver.Resolution resolution,
+                                List<SectionContent> content, String logFile, String analysedAt,
+                                telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics logFindings) {
         PdfDoc doc = new PdfDoc();
         Cursor c = new Cursor();
 
@@ -113,6 +128,12 @@ public final class ReportRenderer {
         }
         if (resolution.summary() != null) {
             callout(doc, c, "UNRESOLVED REFERENCES", resolution.summary(), WARN, WARN_BG);
+        }
+        if (logFindings != null && !logFindings.isClean()) {
+            // a note-only set (a rolled set's completeness statement) is stated, never flagged
+            boolean warn = logFindings.firstWarning().isPresent();
+            callout(doc, c, LOG_FINDINGS_LABEL, String.join("\n\n", logFindings.messages()),
+                    warn ? WARN : MUTED, warn ? WARN_BG : PANEL);
         }
         if (!spec.notes().isBlank()) {
             callout(doc, c, NARRATIVE_LABEL, spec.notes(), NARRATIVE, NARRATIVE_BG);

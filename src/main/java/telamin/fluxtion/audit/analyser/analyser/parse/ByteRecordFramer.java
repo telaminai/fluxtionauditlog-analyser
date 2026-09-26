@@ -65,7 +65,7 @@ public final class ByteRecordFramer {
     private static long processLine(ByteArrayOutputStream line, long lineStart, long recStart,
                                     ByteArrayOutputStream rec, Sink sink) {
         byte[] lb = line.toByteArray();
-        if (isSeparator(lb)) {
+        if (isSeparator(lb, lineStart)) {
             if (recStart >= 0) {
                 emit(recStart, rec, sink);
                 rec.reset();
@@ -88,17 +88,38 @@ public final class ByteRecordFramer {
         sink.accept(recStart, end, new String(bytes, 0, end, StandardCharsets.UTF_8));
     }
 
-    /** True if the line (with its EOL) trims to exactly {@code ---}. */
-    private static boolean isSeparator(byte[] b) {
-        int a = 0, e = b.length;
+    /**
+     * True if the line (with its EOL) trims to exactly {@code ---}.
+     *
+     * <p>A leading UTF-8 byte-order mark is skipped, for the reason given in {@code RecordFramer}: it is
+     * a character rather than whitespace, so a BOM before the file's first separator stopped it
+     * separating. In bytes the BOM is the three-byte sequence {@code EF BB BF}.
+     */
+    private static boolean isSeparator(byte[] b, long lineStart) {
+        // Only at byte 0 of the FILE, for the reason RecordFramer.isSeparator gives: a payload can never
+        // sit there, and mid-file the shipped 1.0.45 exporter does not escape a BOM'd separator (review F1).
+        int a = lineStart == 0 ? skipBom(b) : 0, e = b.length;
         while (a < e && isWs(b[a])) a++;
         while (e > a && isWs(b[e - 1])) e--;
         return (e - a) == 3 && b[a] == '-' && b[a + 1] == '-' && b[a + 2] == '-';
     }
 
+    /** A lone byte-order mark is not content: a BOM-only file is empty, not a one-record file. */
     private static boolean isBlank(byte[] b) {
-        for (byte value : b) if (!isWs(value)) return false;
+        for (int i = skipBom(b); i < b.length; i++) if (!isWs(b[i])) return false;
         return true;
+    }
+
+    /** The index after a UTF-8 BOM at the head of this line, or 0 when there is none. */
+    private static int skipBom(byte[] b) {
+        int i = 0;
+        // Repeated marks are real: two BOM'd files concatenated, or a tool adding one to a file that
+        // already had it. Skipping only the first left the second as content.
+        while (b.length >= i + 3 && (b[i] & 0xFF) == 0xEF && (b[i + 1] & 0xFF) == 0xBB
+                && (b[i + 2] & 0xFF) == 0xBF) {
+            i += 3;
+        }
+        return i;
     }
 
     private static boolean isWs(byte b) {

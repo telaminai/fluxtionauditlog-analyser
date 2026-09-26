@@ -19,7 +19,8 @@ public final class HeaderParser {
     /** Parses a header line (with or without the leading {@code #}); never throws. */
     public static RecordHeader parse(String line) {
         if (line == null) return RecordHeader.EMPTY;
-        String s = line.strip();
+        // AuditText.strip for the same reason as RecordParser: a BOM'd header is still a header.
+        String s = AuditText.strip(line);
         if (!s.startsWith("#")) return RecordHeader.EMPTY;
         Matcher m = HEADER.matcher(s);
         if (!m.matches()) return RecordHeader.EMPTY;

@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mutation_gate_fast as fast  # noqa: E402  (the fast engine and branch-subset selection)
+import mutation_shards as sharding  # noqa: E402
 
 CASES = [('follow-hold',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
@@ -416,6 +417,79 @@ CASES += [
      'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
 ]
 
+# 2026-09-26 fresh-look run: at the default window the design text had no room, and two neighbouring spotlights
+# each drew an edge through the other's line
+DESIGN_SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DesignSourcePanel.java'
+SPOTLIGHT_GEOMETRY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SpotlightGeometry.java'
+DESIGN_FILES = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/design/DesignFiles.java'
+CASES += [
+    # the wrapped status must not take the design text's height
+    # (PR #35 review: witnessed by a note that overflows by construction; the default-window test depended on
+    # the temporary path's length and font metrics, and the mutation survived on Linux)
+    ('design-status-capped', DESIGN_SOURCE_PANEL, 'top.add(statusScroll);', 'top.add(status);',
+     'DesignSpotlightFrameTest#anOverflowingStatusNoteLeavesTheXmlItsHeight'),
+    # the bean list yields width to the XML in a narrow pane
+    ('design-bean-list-fits', DESIGN_SOURCE_PANEL,
+     '            @Override public void doLayout() { fitBeanList(this); super.doLayout(); }\n',
+     '            @Override public void doLayout() { super.doLayout(); }\n',
+     'DesignSpotlightFrameTest#atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit'),
+    # neighbouring spotlights share one separator instead of crossing each other's line
+    ('spotlight-neighbours-separate', SPOTLIGHT_GEOMETRY,
+     '                if (cu.y + cu.height > mid) cu.height = mid - cu.y;\n', '',
+     'SpotlightGeometryTest#neighbouringLinesMeetAtOneSeparatorAndNeitherOutlineCrossesTheOtherLine'),
+    # a refused design inside an unopened project names open {project}
+    ('design-refusal-names-project', DESIGN_FILES,
+     'throw new IOException("file outside authorised roots: " + requested + projectHint(found)',
+     'throw new IOException("file outside authorised roots: " + requested',
+     'DesignFilesRefusalHintTest#aDesignInsideAProjectThatIsNotOpenNamesOpenProjectBeforeSourceRoot'),
+    # PR #35 review: a theme switch replaces the divider; listening only on the first one loses the first drag after it
+    ('design-drag-survives-theme', DESIGN_SOURCE_PANEL,
+     '            @Override public void updateUI() { super.updateUI(); listenForDrag(this); }\n',
+     '            private boolean listened;\n'
+     '            @Override public void updateUI() { super.updateUI(); if (!listened) { listened = true; listenForDrag(this); } }\n',
+     'DesignSourcePanelLayoutTest#aDraggedWidthIsKeptWithAndWithoutAThemeSwitchFirst'),
+    # PR #35 review: the open project is recognised by filesystem identity, not by its lexical path
+    ('design-hint-project-identity', DESIGN_FILES,
+     '                .filter(dir -> project == null || !sameDirectory(dir, project))',
+     '                .filter(dir -> project == null || !dir.equals(project))',
+     'DesignFilesRefusalHintTest#theOpenProjectReachedThroughAnAliasIsNotSuggestedAgain'),
+]
+# Combined Follow/session/framing and captured coverage boundaries.
+CASES += [('integration-failed-identity',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java',
+  '            this.readIdentity = null;\n'
+  '            this.followIdentity = new FollowIdentity(FollowIdentity.Verdict.UNVERIFIED,\n'
+  '                    "the current file could not be decoded as UTF-8");\n',
+  '',
+  'HeapLogStoreFollowIdentityTest#unreadableSameLengthReplacementRetiresTheVerifiedIdentity'),
+ ('integration-failed-session',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  '            reportIdentityToSession(store.followIdentity());   // a failed poll also retires the '
+  "session's earlier verification\n",
+  '',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce'),
+ ('integration-coverage-bound',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/CoverageService.java',
+  'PerNodeLevelChanges.of(store, rows)',
+  'PerNodeLevelChanges.of(store)',
+  'CoveragePerNodeLevelTest#annotationsRespectTheCapturedRowsAndTerminalBoundary'),
+ ('integration-pending-refresh',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  ' && pendingChars == followPendingChars',
+  '',
+  'StatusExplanationSurvivesFrameTest#pendingGrowthRefreshesFindingsWithoutAddingAnyRows'),
+ ('integration-failure-refresh',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (!readFailed && !followNeedsDiagnosticRefresh',
+  'if (!followNeedsDiagnosticRefresh',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce'),
+ ('integration-repeat-failure-skip',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  '            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) '
+  'return;',
+  '            if (false) return;',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce')]
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')
@@ -649,7 +723,14 @@ def main():
     parser.add_argument('--changed-since', metavar='REF',
                         help='mutations mode on a BRANCH: run only the controls the diff against REF can affect, '
                              'and print every control skipped. Never a substitute for the full set.')
+    parser.add_argument('--shard-index', type=int, help='zero-based worker index; independent checkout/display required')
+    parser.add_argument('--shard-count', type=int, help='partition the FULL registry across this many workers')
     args = parser.parse_args()
+    if args.shard_index is not None or args.shard_count is not None:
+        if (args.shard_index is None or args.shard_count is None or
+                not 0 <= args.shard_index < args.shard_count or args.mode != 'mutations' or
+                args.engine != 'fast' or args.case or args.changed_since):
+            parser.error('sharding requires fast mutations, both shard arguments, a valid index, and no subset/case selection')
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     result = {'mode': args.mode, 'runs': []}
@@ -683,6 +764,14 @@ def main():
         print('display:', sum(s['tests'] for s in r['suites']), 'tests, zero failures/errors/skips', flush=True)
         return
     cases = selected_cases(args.case)  # ALL anchors before the shared baseline or any mutation
+    if args.shard_index is not None:
+        shards, loads = sharding.plan(cases, args.shard_count)
+        cases = shards[args.shard_index]
+        result['shard'] = {'index': args.shard_index, 'count': args.shard_count,
+                           'revision': sharding.revision(), 'cases': [c[0] for c in cases]}
+        save()
+        print(f'Shard {args.shard_index + 1}/{args.shard_count}: {len(cases)} controls; '
+              f'estimated control time {loads[args.shard_index]:.1f}s (setup/baseline additional)', flush=True)
     if args.mode == 'compare':
         planted = [c for c in PLANTED if Path(c[1]).read_text().count(c[2]) == 1]
         assert len(planted) == len(PLANTED), 'a planted control lost its anchor'

@@ -63,6 +63,24 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- TEST ONLY: the RELEASED Mongoose audit exporter, so the analyser's separator language is tested
+             against the bytes that exporter actually writes (independent review F1). Widening the reader's
+             idea of a separator once silently reopened mongoose-plugins#39 — the fix and the escape live in
+             different repos and nothing tested them together. Every transitive dependency is excluded: the
+             test loads only the exporter's nested YamlContainerWriter, which needs nothing but a Writer.
+             Pinned to the release the escape shipped in; move it when the exporter's escape changes. -->
+        <dependency>
+            <groupId>com.telamin</groupId>
+            <artifactId>svc-admin-web</artifactId>
+            <version>1.0.45</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <!-- fluxtion-runtime is not on Maven Central; the same public Repsy repo examples/fixture-generator

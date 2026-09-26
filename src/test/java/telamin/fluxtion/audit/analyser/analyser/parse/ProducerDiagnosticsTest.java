@@ -119,10 +119,23 @@ class ProducerDiagnosticsTest {
         assertEquals(ProducerDiagnostics.Kind.UNSEPARATED, d.findings().get(0).kind());
     }
 
+    /**
+     * CHANGED by MA-0, deliberately. This used to assert that an empty log says NOTHING, which is the
+     * behaviour MA-0 exists to reverse: every empty shape returned before any check ran, so a log with
+     * no records raised no warning at all and a marker over it read {@code complete}. What made an
+     * empty file look healthy was the missing warning, not the verdict.
+     *
+     * <p>A NULL index still says nothing, and that distinction is load-bearing: callers wanting only
+     * the reader's diagnostics echoed pass null while having parsed records perfectly well.
+     */
     @Test
-    void anEmptyLogSaysNothing() {
-        assertTrue(ProducerDiagnostics.of(new LogIndex(), row -> "").isClean());
-        assertTrue(ProducerDiagnostics.of(null, row -> "").isClean());
+    void anEmptyLogIsNowAFindingButANullIndexStillSaysNothing() {
+        ProducerDiagnostics empty = ProducerDiagnostics.of(new LogIndex(), row -> "");
+        assertFalse(empty.isClean(), "MA-0: a log with no records is a finding");
+        assertEquals(ProducerDiagnostics.Kind.EMPTY_LOG, empty.firstWarning().orElseThrow().kind());
+
+        assertTrue(ProducerDiagnostics.of(null, row -> "").isClean(),
+                "no index supplied is not a claim about the file");
     }
 
     @Test

@@ -1,0 +1,17 @@
+{
+  "counts": {
+    "tests": 106,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0
+  },
+  "reports": 21,
+  "nonpassing": [
+    [
+      "telamin.fluxtion.audit.analyser.analyser.ui.NamedGraphAndMenuSpotlightFrameTest",
+      "lightingASecondMenu_keepsWhatTheEchoSaid_byReplaceAndByAdd(Path)",
+      "failure",
+      "what the echo said is what is lit, after the Audit log menu's close listener has run ==> expected: <[menu:AI:Posture]> but was: <[]>"
+    ]
+  ]
+}

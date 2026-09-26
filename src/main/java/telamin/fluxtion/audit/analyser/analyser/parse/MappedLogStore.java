@@ -25,6 +25,7 @@ public final class MappedLogStore implements LogStore {
     private final FileChannel channel;
     private final LogIndex index;
     private final StreamEnd streamEnd;
+    private final java.util.List<Integer> runBoundaries;
     private final Path path;
     private final FileReadIdentity readIdentity;
     private final boolean includesEofRecord;
@@ -55,6 +56,7 @@ public final class MappedLogStore implements LogStore {
             includesEofRecord = eof && lastIndexed;
         }
         this.streamEnd = tracker.resolve();
+        this.runBoundaries = tracker.runBoundaries();
         this.readIdentity = capture.finish();
         this.channel = FileChannel.open(path, StandardOpenOption.READ);
     }
@@ -78,6 +80,11 @@ public final class MappedLogStore implements LogStore {
     @Override
     public StreamEnd streamEnd() {
         return streamEnd;
+    }
+
+    @Override
+    public java.util.List<Integer> runBoundaries() {
+        return runBoundaries;
     }
 
     @Override
