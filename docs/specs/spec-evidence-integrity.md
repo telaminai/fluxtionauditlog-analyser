@@ -563,8 +563,10 @@ responsibilities, and no further client trial: these are contract and acceptance
   saved focus (set 13; `TopologyPanel.renderFocusForReport`, `TopologyReportFocusTest`, end-to-end scenario 13), and
   a series section, extracted synchronously under the current filter onto a detached chart (`ReportSeriesPicture`,
   `ReportSeriesPictureTest`). A focus that no longer resolves, and a series that cannot be extracted, print NOT
-  RENDERED with the reason. A general check that a chart does not
-  contradict its series is not built; the no-data and no-room repairs are narrower.
+  RENDERED with the reason. **The chart and the series verb agree** — checked in set 13 as a cross-path regression, not
+  at run time: over the committed series fixture, across keys, formulas, both resolve policies and time windows, the
+  chart's `SeriesExtractor` and the verb's `SeriesScan` count the same points (`ChartSeriesAgreementTest`). It found no
+  disagreement. It is a regression over one fixture, not a proof for every log.
 - **D-E2 / R2, the coverage table.** Obeys the session's claim (refused, qualified or full), captured with the store
   and graph it scores (`ReportCoverage`).
 - **D-E3 / M68.4, nested keys.** Named by path since set 13, like top-level ones; a free-form `call` is left to its
