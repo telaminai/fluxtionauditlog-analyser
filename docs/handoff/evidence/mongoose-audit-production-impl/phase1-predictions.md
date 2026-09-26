@@ -496,3 +496,9 @@ orphans.
 4. **P15.4 — suite.** New tests: six fixtures, two renderer, two coverage-report, one frame test class (new, so both CI
    display lists gain it). Headless **2393 + 10 ± 2**; the frame class runs only with a display. `MainFrame` changes,
    so the display gate runs.
+
+**P15 outcome (recorded after the trials, `25d031e1`).** P15.1 **wrong** — one existing test,
+`CoveragePerNodeLevelTest.levelChangesNeverMoveTheDenominatorOrTheLedger`, compared whole ledger rows and failed on the
+new field; narrowed, not deleted. P15.2 held. P15.3 held, eight of eight, plus one witness P15 did not foresee: the
+frame test found the Follow status line dropping the warning, and removing the fix fails it. P15.4 held: 2405/0/0/110,
+2393 + 12. The display gate ran 110 frame tests with no failure and one skip that `main` shows too on this desktop.

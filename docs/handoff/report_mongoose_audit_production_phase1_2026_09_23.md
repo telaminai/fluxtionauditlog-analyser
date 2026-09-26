@@ -638,6 +638,41 @@ comment.
 
 **Suite:** 1,980/0/62 — 1,978 plus R-B's and R-C's tests. R-A extends an existing test.
 
+## Phase 1 completion — D-MA0c, MA-0.5, MA-8's report path, MA-6.3 (2026-09-26)
+
+Branch `feat/mongoose-audit-phase1-completion`, from `main` `14d04a2f` (1.22.0), one branch for one review at the
+owner's request. Predictions P15 committed first (`2cf3bfe6`); implementation `25d031e1`. **Not reviewed yet.**
+
+| Item | What changed | Regression |
+| --- | --- | --- |
+| **D-MA0c** | The log's producer findings reach all three report surfaces: the PDF (`ReportRenderer`, a *LOG FINDINGS* callout, damage first), the Reports tab (a banner beside the other announce lines, re-rendered when the findings change under Follow) and the `report` reply (`producer`, the key `context` already uses). Named *Log findings* so it is not confused with the tab's M66 *Producer findings* sub-tab, which is the design producer. | `ReportLogFindingsTest` (PDF, clean-log control); `LogFindingsOnEverySurfaceFrameTest` (reply, tab) |
+| **MA-0.5** | One wording for cold open and Follow: "No records in this file yet." A pending frame under Follow is still not an empty file (V2). **Found by the new frame test, not predicted:** the status line Follow starts with dropped the log's warning — any warning — until the next record arrived. Fixed. | `LogFindingsOnEverySurfaceFrameTest`: five surfaces show it, all five clear after a record; a document still being written is not "empty" |
+| **MA-8's report path** | An annotated uncovered row gains `levelChange`; the table's notes carry `levelAnnotationsNote` and one `node: annotation` line each. Status, reason, count and ratio do not move. | `ReportLogFindingsTest` (row, notes, printed under the table) |
+| **MA-6.3** | Fixtures c25–c30: marker declaring zero, two empty marked segments, whitespace only, zero bytes (also the empty export), good / AFMT-3 / good under a marker declaring 3, a per-node level change. **`bothPathsAgree` now compares the producer findings for every fixture**, with AF-10's completeness sentence (c24) the one tolerated loss. The rolled set of empty members is not one file and stays a unit test. | `FormatConformanceTest` c25–c30 and the strengthened agreement |
+
+**Predictions against outcome.** P15.1 (no existing test breaks) was **wrong**:
+`CoveragePerNodeLevelTest.levelChangesNeverMoveTheDenominatorOrTheLedger` compared whole ledger rows, and the new
+field is a row change by design. It was narrowed, not deleted: the ledger must be identical *apart from*
+`levelChange`, that field must equal the verb's own annotation, and a control asserts the row is annotated inside
+the interval so the comparison is not vacuous. P15.2 held on every fixture. P15.3 held: **eight witnesses, all
+hold** under the strict protocol — PDF callout, reply `producer`, tab banner, the Follow line's warning, the
+ledger's `levelChange`, `EMPTY_LOG`, `noRecordKey`, the MA-8 control-event parse — each a `<failure>` at its named
+test carrying its label, SHA-256 restored, `git status -- src/main` clean, green after
+([output](evidence/mongoose-audit-production-impl/phase1-completion/witness15-output.txt),
+[script](evidence/mongoose-audit-production-impl/phase1-completion/witness15.py)). P15.4 held: headless
+**2405 / 0 / 0 / 110** over 323 reports, no orphans — 2393 + 12, inside 10 ± 2; the two extra skips are the new
+frame class, which runs only with a display.
+
+**Display gate:** 22 frame suites, 110 tests, **0 failures, 0 errors, 1 skip**, and the gate refuses on the skip.
+The skip is `PersonAtTheScreenFrameTest`'s keyboard-focus assumption; `main` `14d04a2f` skips the same test with
+the same message on this desktop, so it is the desktop, not this branch. **CI's Xvfb `ui-frame` job is the
+decisive run** and has not happened
+([summary](evidence/mongoose-audit-production-impl/phase1-completion/display-gate-summary.txt)).
+
+Also: `mkdocs build --strict`, `git diff --check`, the four doc tests and the public-repo sweep pass; the format-spec
+page gains rows C25–C30. **Not fixed, noticed:** that page's fixture table already lacked C19–C24; left for a
+separate change rather than widened into this one.
+
 ## Tenth re-review — targeted acceptance of the ninth round
 
 Targeted tenth re-review `bcc2bef0` on `review/mongoose-tenth-rereview-2026-09-26`
@@ -1021,7 +1056,8 @@ personal data before each push. Only files I authored were committed.
   integration (`99f9ec47`, no merge defect). **CI's frame job has never run on this branch**; a pull request is
   what would run it. Not merged: the owner's call.
 
-Three release-note items stand, unchanged by this round: the producer findings are not in the report
-surface yet (D-MA0c); the `attach` default overload quietly drops fan-out for any other capture-service
+Three release-note items stood after round ten: the producer findings are not in the report
+surface yet (D-MA0c — **implemented on `feat/mongoose-audit-phase1-completion`, awaiting review**, see *Phase 1
+completion*); the `attach` default overload quietly drops fan-out for any other capture-service
 implementation; and **OD-5 is still the one open owner decision** — whether Chronicle gets a marker —
 which is why MA-2's Chronicle half was not implemented.

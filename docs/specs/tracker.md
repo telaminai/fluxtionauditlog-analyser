@@ -184,6 +184,9 @@ still to do.
   [Phase 1 report](../handoff/report_mongoose_audit_production_phase1_2026_09_23.md).
   **Phase 1 SHIPPED in analyser 1.22.0 (2026-09-26)**, after ten review rounds and the integration review
   onto M44.4/M68 (PR #34). D-MA0c and MA-0.5 above remain open; shipping closes neither.
+  **D-MA0c and MA-0.5 IMPLEMENTED, awaiting review (2026-09-26)** on `feat/mongoose-audit-phase1-completion`: the
+  findings are on the PDF, the Reports tab and the `report` reply; one empty-file wording; the Follow status line
+  keeps its warning (found by the new frame test). Report ▸ *Phase 1 completion*.
 - **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
   processor with no `EventLogManager`** — including **AOT processors built without audit**, the
   low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);
@@ -213,7 +216,9 @@ still to do.
   on AFMT-3.**
   **READER HALF DONE in phase 1**, keyed on **framing** — the first non-blank, non-comment line — not on a
   substring search, which was a V1 hole review found: a headerless document that merely mentioned the key
-  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) is open.
+  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) is open — **implemented, awaiting
+  review (2026-09-26):** c25–c30 through both paths, and both paths must agree on the producer findings for every
+  fixture.
   **Reader half SHIPPED in analyser 1.22.0 (2026-09-26).**
 - **[MA-7] ◧ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
   finding in this spec. An event `toString()` carrying a line that **trims to** `---` — space, tab or CR,
@@ -242,7 +247,8 @@ still to do.
   selections explained by nothing, run boundaries qualified; and a change applies by the RUNTIME's rule —
   `groupId` gates it against the processor's `groupingId`, it is not node membership (the phase-1 reading
   was inferred and wrong). **Coverage annotation SHIPPED in analyser 1.22.0 (2026-09-26); MA-8's report
-  path is open.** Review found four surviving
+  path is open** — **implemented, awaiting review (2026-09-26):** the report's coverage row carries `levelChange` and
+  the table's notes state it. Review found four surviving
   mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding

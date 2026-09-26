@@ -1,0 +1,28 @@
+Display gate, `python3 tools/verify_project_chart_review.py --mode display` on 25d031e1 (macOS desktop, JDK 21).
+The gate exited 1 because it rejects skips; every suite below has 0 failures and 0 errors.
+The one skip is PersonAtTheScreenFrameTest's focus assumption ("the display did not give the frame keyboard
+focus"); main 14d04a2f skips the same test with the same message on this desktop, twice re-run. CI's Xvfb job decides it.
+
+PairingDuringLoadFrameTest: tests=12 failures=0 errors=0 skipped=0
+AsyncOpenInterleavingFrameTest: tests=12 failures=0 errors=0 skipped=0
+SpotlightFrameTest: tests=4 failures=0 errors=0 skipped=0
+WestColumnStartsCollapsedFrameTest: tests=3 failures=0 errors=0 skipped=0
+MenuScreenshotFrameTest: tests=1 failures=0 errors=0 skipped=0
+PersonAtTheScreenFrameTest: tests=3 failures=0 errors=0 skipped=1
+NamedGraphAndMenuSpotlightFrameTest: tests=7 failures=0 errors=0 skipped=0
+SessionRecoveryFrameTest: tests=10 failures=0 errors=0 skipped=0
+SourceFreshnessFrameTest: tests=2 failures=0 errors=0 skipped=0
+TemplateCatalogueFrameTest: tests=1 failures=0 errors=0 skipped=0
+DesignSpotlightFrameTest: tests=2 failures=0 errors=0 skipped=0
+JavaSourceSpotlightFrameTest: tests=12 failures=0 errors=0 skipped=0
+LoadedFileObservationFrameTest: tests=1 failures=0 errors=0 skipped=0
+ChartLifecycleReviewFrameTest: tests=11 failures=0 errors=0 skipped=0
+ProjectPanelChartLifecycleFrameTest: tests=3 failures=0 errors=0 skipped=0
+DuplicateGlobalChartsFrameTest: tests=2 failures=0 errors=0 skipped=0
+SilentActionDisclosureFrameTest: tests=1 failures=0 errors=0 skipped=0
+StatusExplanationSurvivesFrameTest: tests=5 failures=0 errors=0 skipped=0
+DuplicateChartRepairFrameTest: tests=10 failures=0 errors=0 skipped=0
+MenuLayoutFrameTest: tests=5 failures=0 errors=0 skipped=0
+NoLogDesignJourneyFrameTest: tests=1 failures=0 errors=0 skipped=0
+LogFindingsOnEverySurfaceFrameTest: tests=2 failures=0 errors=0 skipped=0
+TOTAL: tests=110 failures=0 errors=0 skipped=1
