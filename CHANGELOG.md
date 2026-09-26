@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **An assistant can ask `context` for only the part it needs.** `context {sections: ["pairing"]}` returns
+  just those sections — `log`, `project`, `pairing`, `processors`, `source`, `topology`, `view`, `charts`,
+  `menus`, `design`, `handoff` — and skips reading the rest. Each section is exactly what the full context
+  would say, and any warning that qualifies it (a load still in flight, producer faults, time disorder, a
+  partial dispatch order) comes with it; a `scope` block says what was selected and carried. An unknown or
+  empty list is refused. Calling `context` with no `sections` is unchanged.
+
 ## [1.20.1] - 2026-09-24
 
 - **An assistant can find its way around the new menus.** Pointing at a menu item that is not where it was asked

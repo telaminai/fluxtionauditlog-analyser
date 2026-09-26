@@ -269,6 +269,16 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
 ]
 
+# §H feedback 17: context {sections} is a filter over the full payload that keeps each selected verdict's qualification.
+CONTEXT_SECTIONS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/ContextSections.java'
+CASES += [
+    ('context-projection', CONTEXT_SECTIONS, '                if (selects(key)) {', '                if (!key.isEmpty()) {',
+     'ContextSectionsTest#menuOnly_isTheMenusAndTheScope_andNothingElse'),
+    ('context-qualification', CONTEXT_SECTIONS, '"producer", List.of("pairing", "view", "charts"));',
+     '"producer", List.of("view", "charts"));',
+     'ContextSectionsTest#aSelectedVerdictCarriesItsBasisAndEveryQualification'),
+]
+
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
     names = re.search(r"-Dtest='([^']+)'", ci).group(1).split(',')

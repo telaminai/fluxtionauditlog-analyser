@@ -175,9 +175,13 @@ public final class ActionExecutor implements RenderExecutor {
                 }
             }
             case "context" -> {
+                // §H feedback 17: a bad selection is refused here, before the EDT hop reads anything
+                var sections = telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.parse(
+                        params == null ? null : params.get("sections"));
+                if (!sections.ok()) return ActionResult.error(sections.error());
                 return onEdt(() -> app == null
                         ? ActionResult.error("'context' is not enabled here")
-                        : app.context());
+                        : sections.selection() == null ? app.context() : app.context(sections.selection()));
             }
             case "screenshot" -> {
                 var out = guardedPath(params.get("path"));   // B1: opt-in + confined; verbs never write elsewhere

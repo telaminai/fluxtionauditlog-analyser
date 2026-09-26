@@ -305,6 +305,21 @@ Three more on `open`, so an agent can manage what is loaded rather than only add
 When the project points at a glossary (*Portable context ▸ Vocabulary*), its text leads every *Explain*
 prompt and is served as `context.vocabulary.text`, so the assistant reads `live` the way this system means it.
 
+!!! tip "Ask `context` for part of it — `sections`"
+
+    `context` with no parameters is the whole payload, as it always was. `context {sections: [...]}` returns
+    only the named sections: `log`, `project` (with the portable context — runbooks, glossary, analyses,
+    environments, report destinations), `pairing` (`graphPairing`), `processors`, `source`, `topology`,
+    `view` (filter, counts, selection, flags, spotlight), `charts`, `menus`, `design` and `handoff`. The
+    rest is not read. Each returned key is exactly what the full context holds for the same state — a
+    projection, never a second answer. A warning that qualifies a selected fact travels with it:
+    `inFlight`, `dispatchOrder`, `timeOrder` and `producer` are carried whenever they apply, and
+    `scope.carried` says why, so `sections: ["pairing"]` during a load or on a log with producer faults
+    still says so. `scope` also names what was selected and every available section. An unknown name, an
+    empty list or a non-list is refused before anything is read. The Project panel is drawn only from a
+    full `context`. On the fixed test fixture the full response is 1709 bytes, `["menus"]` 541 and
+    `["pairing"]` 817 — measured, not a promise about your session.
+
 `context` is also what the **Project panel** draws (*User guide ▸ The Project panel*): one payload, two
 readers. It reports the graph whether or not a log is open, `log.openedBy` (you, the action socket, the
 command line that started the app, or — for a log the app reopened by itself — *the previous session,
