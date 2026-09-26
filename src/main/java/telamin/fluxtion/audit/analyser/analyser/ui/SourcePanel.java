@@ -108,6 +108,11 @@ public final class SourcePanel extends JPanel {
     public SourcePanel() {
         super(new BorderLayout());
         setBorder(UiTheme.pad());
+        // showing a Java pane rechecks what it shows (edit-loop spec §C): a tab switch back to stale text
+        // must not present it as current
+        addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & java.awt.event.HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) revalidateShown();
+        });
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         backButton.setEnabled(false);
@@ -217,6 +222,268 @@ public final class SourcePanel extends JPanel {
         this.service = service;
     }
 
+    // ---- reading a pane's file ----------------------------------------------------------------------
+
+    /**
+     * How a pane's file is read. Always called off the EDT against a {@link SourceService.Lookup} captured on
+     * it; a test may substitute a read that blocks. Edit-loop spec §C: a pane that shows a file must be able
+     * to recheck it on disk without the EDT waiting on the filesystem.
+     */
+    java.util.function.BiFunction<SourceService.Lookup, String, Optional<SourceDocument>> reader =
+            SourceService.Lookup::freshDocument;
+    /** Whether a Ctrl-clicked type has source to open. */
+    java.util.function.BiFunction<SourceService.Lookup, String, Boolean> existence = SourceService.Lookup::exists;
+    private long typeClickTicket;
+    private java.util.concurrent.Future<?> pendingTypeCheck;
+    private javax.swing.Timer typeCheckDeadline;
+
+    /** Supersede any pending Ctrl-click check: it is cancelled, removed from the queue, and can never navigate. */
+    private void supersedeTypeCheck() {
+        typeClickTicket++;
+        cancelQueued(pendingTypeCheck);
+        pendingTypeCheck = null;
+        if (typeCheckDeadline != null) typeCheckDeadline.stop();
+    }
+
+    /**
+     * Open {@code fqn} if it has source (a Ctrl-clicked type). The check runs off the EDT (PR #30 review, finding
+     * 3): it used to read the whole file, then search source archives, on the EDT, only to test existence. A
+     * newer click or navigation in the meantime wins.
+     */
+    void openTypeIfPresent(String fqn) {
+        if (service == null || fqn == null) return;
+        supersedeTypeCheck();
+        long ticket = typeClickTicket;
+        SourceService.Lookup lookup = service.captureLookup();
+        var check = existence;
+        // the same bounded deadline as a pane read: past it the check is cancelled and its result, if it ever
+        // arrives, is discarded — a click from long ago must not navigate (PR #30 re-review, R1)
+        typeCheckDeadline = new javax.swing.Timer((int) Math.max(1, readDeadline.toMillis()), e -> {
+            if (ticket != typeClickTicket) return;
+            supersedeTypeCheck();
+            decisions.accept("type-check " + fqn + ": expired");
+        });
+        typeCheckDeadline.setRepeats(false);
+        typeCheckDeadline.start();
+        pendingTypeCheck = offEdt(() -> check.apply(lookup, fqn), present -> {
+            if (ticket != typeClickTicket || !service.isCurrent(lookup)) { decisions.accept("type-check " + fqn + ": discarded"); return; }
+            typeCheckDeadline.stop();
+            pendingTypeCheck = null;
+            decisions.accept("type-check " + fqn + ": " + (Boolean.TRUE.equals(present) ? "opened" : "absent"));
+            if (Boolean.TRUE.equals(present)) openFqn(fqn);
+        }, failure -> {
+            // PR #30 re-review, R1: a failure — the queue being full, or the lookup itself failing — finishes the
+            // request and is shown. An obsolete failure only records that it was discarded.
+            if (ticket != typeClickTicket) { decisions.accept("type-check " + fqn + ": discarded"); return; }
+            typeCheckDeadline.stop();
+            pendingTypeCheck = null;
+            typeClickTicket++;                                    // finished: nothing later may navigate or expire
+            String reason = failure.getMessage() != null ? failure.getMessage() : failure.getClass().getSimpleName();
+            revealPaneFor(nodePane);                              // failure feedback must also be visible in Processor-only mode
+            nodePane.label.setText("could not check whether " + fqn + " has source: " + reason);
+            decisions.accept("type-check " + fqn + ": failed: " + reason);
+        });
+    }
+
+    /**
+     * Test seam: told, on the EDT, what became of each completed read or type check — "installed X",
+     * "discarded X: …", "type-check X: opened|absent|discarded …" — so a test can wait for a completion to reach
+     * its decision instead of guessing with sleeps (PR #30 review, O1).
+     */
+    java.util.function.Consumer<String> decisions = d -> { };
+
+    /** Queued (not yet running) source work — for tests of the pending-work bound. */
+    static int pendingSourceWork() { return READS.getQueue().size(); }
+
+    /** True while a Ctrl-click existence check is pending (queued, running, or awaiting its deadline) — for tests. */
+    boolean typeCheckPending() { return pendingTypeCheck != null || (typeCheckDeadline != null && typeCheckDeadline.isRunning()); }
+
+    /** True when no source work is running or queued — for tests. */
+    static boolean sourceWorkIdle() { return READS.getActiveCount() == 0 && READS.getQueue().isEmpty(); }
+
+    /** How long a read may take before the pane says it gave up and ignores the late answer. */
+    java.time.Duration readDeadline = java.time.Duration.ofSeconds(5);
+
+    private record Read(SourceDocument document, EventProcessorModel model) { }
+
+    /**
+     * Read {@code fqn} for {@code pane} off the EDT, then install its text, origin and — for the selected
+     * processor — the service's model, all from that one read (edit-loop spec §C). A newer request, a
+     * configuration change or the deadline supersedes this one; a superseded answer is dropped, never
+     * installed. While the read runs, a pane already showing that file says its text is not yet rechecked;
+     * a pane switching to a new name shows no stale body under that name.
+     */
+    private void load(Pane pane, String fqn, Runnable then) {
+        load(pane, fqn, then, reason -> { });
+    }
+
+    /**
+     * As {@link #load(Pane, String, Runnable)}, with {@code gaveUp} told why when the read times out or fails —
+     * so a navigation waiting on it can say why it did not happen (PR #30 review, finding 5).
+     */
+    private void load(Pane pane, String fqn, Runnable then, java.util.function.Consumer<String> gaveUp) {
+        if (service == null || fqn == null) return;
+        cancelQueued(pane.pendingRead);                            // superseded: a queued read never runs
+        long ticket = ++pane.readTicket;
+        pane.reading = true;
+        SourceService.Lookup lookup = service.captureLookup();
+        if (Objects.equals(fqn, pane.fqn) && !pane.source.isEmpty()) {
+            pane.label.setRows(1);
+            pane.label.setText(fqn + "  —  checking the file on disk; the text below is not yet rechecked");
+        } else {
+            pane.fqn = fqn; pane.source = ""; pane.model = null;
+            pane.label.setRows(1);
+            pane.label.setText(fqn + "  —  reading");
+            pane.renderPlain("Reading " + fqn + " …");
+        }
+        javax.swing.Timer deadline = new javax.swing.Timer((int) Math.max(1, readDeadline.toMillis()), e -> {
+            if (pane.readTicket != ticket) return;
+            pane.readTicket++;                                   // the late answer is never installed
+            pane.reading = false;
+            cancelQueued(pane.pendingRead);
+            pane.label.setText(fqn + "  —  reading the file on disk timed out; "
+                    + (pane.source.isEmpty() ? "nothing was read" : "the text below is unchecked"));
+            // the body must not go on saying "Reading …" under a header that says it gave up (finding 4)
+            if (pane.source.isEmpty()) pane.renderPlain("Timed out after " + readDeadline.toMillis() + " ms reading "
+                    + fqn + "; nothing was read. Navigate to it again to retry.");
+            gaveUp.accept("the read of " + fqn + " timed out");
+        });
+        deadline.setRepeats(false);
+        deadline.start();
+        var reads = reader;
+        pane.pendingRead = offEdt(() -> {
+            Optional<SourceDocument> document = reads.apply(lookup, fqn);
+            return new Read(document.orElse(null),
+                    document.map(d -> EventProcessorModel.parse(fqn, d.text())).orElse(null));
+        }, read -> {
+            deadline.stop();
+            if (pane.readTicket != ticket) { decisions.accept("discarded " + fqn + ": superseded or expired"); return; }
+            pane.reading = false;
+            if (service == null || !service.isCurrent(lookup)) {   // the switch that caused this reads anew
+                decisions.accept("discarded " + fqn + ": configuration changed"); return;
+            }
+            install(pane, fqn, read, lookup);
+            decisions.accept("installed " + fqn);
+            then.run();
+        }, failure -> {
+            deadline.stop();
+            if (pane.readTicket != ticket) return;
+            pane.reading = false;
+            pane.label.setText(fqn + "  —  could not read the file on disk: " + failure.getMessage()
+                    + (pane.source.isEmpty() ? "" : "; the text below is unchecked"));
+            gaveUp.accept("the read of " + fqn + " failed: " + failure.getMessage());
+        });
+    }
+
+    /**
+     * Source reads get their own small pool (PR #30 review, finding 4). A hung filesystem that ignores interrupts
+     * can hold at most these threads; further reads queue behind them, and a superseded or timed-out read is
+     * cancelled so it never runs. The shared background pool is unbounded, so each navigation would otherwise
+     * leave one more blocked thread behind.
+     */
+    private static final java.util.concurrent.ThreadPoolExecutor READS = readPool();
+    /**
+     * At most this much source work waits behind the two workers (PR #30 re-review, R1). Each pane keeps at most one
+     * pending read and each panel at most one pending type check — a newer request cancels AND removes the older
+     * from the queue — so the limit is reached only if both workers are held and several panels queue at once.
+     * Work refused because the queue is full fails at once with a message rather than waiting unseen.
+     *
+     * <p>Limit, stated plainly: cancellation removes queued work and interrupts running work, but a read that
+     * ignores interruption (a hung network mount) keeps its worker until it returns. Two such reads occupy both
+     * workers; further reads then time out at their deadline, and say so, until one returns.
+     */
+    private static final int SOURCE_QUEUE_LIMIT = 8;
+
+    private static java.util.concurrent.ThreadPoolExecutor readPool() {
+        var count = new java.util.concurrent.atomic.AtomicInteger();
+        var pool = new java.util.concurrent.ThreadPoolExecutor(2, 2, 30, java.util.concurrent.TimeUnit.SECONDS,
+                new java.util.concurrent.LinkedBlockingQueue<>(SOURCE_QUEUE_LIMIT), r -> {
+                    Thread t = new Thread(r, "analyser-source-read-" + count.incrementAndGet());
+                    t.setDaemon(true);
+                    return t;
+                });
+        pool.allowCoreThreadTimeOut(true);
+        return pool;
+    }
+
+    /** The pane's read runs on the source-read pool and answers on the EDT — never on the EDT itself. */
+    private static <T> java.util.concurrent.Future<?> offEdt(java.util.function.Supplier<T> work,
+                                                              java.util.function.Consumer<T> done,
+                                                              java.util.function.Consumer<Throwable> failed) {
+        Runnable task = () -> {
+            try {
+                T result = work.get();
+                SwingUtilities.invokeLater(() -> done.accept(result));
+            } catch (Throwable t) {
+                SwingUtilities.invokeLater(() -> failed.accept(t));
+            }
+        };
+        try {
+            return READS.submit(task);
+        } catch (java.util.concurrent.RejectedExecutionException full) {
+            SwingUtilities.invokeLater(() -> failed.accept(new java.io.IOException(
+                    "source reads are backed up behind reads that are not responding; try again shortly")));
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }
+    }
+
+    /** Cancel {@code work} and, if it is still queued, remove it: a cancelled FutureTask otherwise stays queued. */
+    private static void cancelQueued(java.util.concurrent.Future<?> work) {
+        if (work == null) return;
+        work.cancel(true);
+        if (work instanceof Runnable queued) READS.remove(queued);
+    }
+
+    private void install(Pane pane, String fqn, Read read, SourceService.Lookup lookup) {
+        SourceDocument document = read.document();
+        pane.label.setRows(1);
+        if (document == null) {
+            boolean wasShown = Objects.equals(fqn, pane.fqn) && !pane.source.isEmpty();
+            pane.fqn = fqn; pane.source = ""; pane.model = null;
+            pane.label.setText(fqn + "  —  not found under the configured source roots"
+                    + (wasShown ? " (it was shown before: deleted, renamed or no longer under these roots;"
+                    + " its former text is not shown)" : ""));
+            pane.label.setToolTipText(null);
+            pane.showNothingToShow(fqn);
+        } else if (Objects.equals(fqn, pane.fqn) && document.equals(pane.snapshot)) {
+            pane.label.setText(fqn);                             // unchanged on disk
+        } else {
+            boolean sameFile = Objects.equals(fqn, pane.fqn) && !pane.source.isEmpty();
+            int caret = sameFile ? pane.text.getCaretPosition() : 0;
+            pane.navigation++;
+            pane.fqn = fqn; pane.source = document.text(); pane.model = read.model(); pane.snapshot = document;
+            highlighter.render(pane.text.getStyledDocument(), pane.source);
+            pane.text.setWrap(wrap);
+            pane.text.setCaretPosition(Math.min(caret, pane.text.getDocument().getLength()));
+            pane.label.setText(fqn);
+            sourceViewChanged();
+        }
+        if (document != null) {
+            // disk freshness is not source/run identity: a fresh read still says so
+            pane.label.setToolTipText("Source/run: unverified · " + document.identity()
+                    + " · rendered-text-utf8 SHA-256 " + document.revision());
+        }
+        if (Objects.equals(fqn, service.selectedFqn())) service.acceptModel(lookup, fqn, read.model());
+    }
+
+    /** Recheck every file a pane shows — a pane coming into view, or the log/graph replaced. */
+    public void revalidateShown() {
+        if (service == null) return;
+        for (Pane pane : List.of(processorPane, nodePane)) {
+            if (pane.fqn != null && fileView == null) load(pane, pane.fqn, () -> { });
+        }
+    }
+
+    /** True while a pane's read is outstanding — for tests. */
+    boolean reading() {
+        return processorPane.reading || nodePane.reading;
+    }
+
+    /** A pane's header line — for tests of what it discloses while and after reading. */
+    String processorLabel() { return processorPane.label.getText(); }
+    String nodeLabel() { return nodePane.label.getText(); }
+    String nodePaneFqn() { return nodePane.fqn; }
+
     public void setProcessors(List<String> fqns, String selected) {
         syncing = true;
         try {
@@ -240,29 +507,15 @@ public final class SourcePanel extends JPanel {
      */
     public void showSelectedProcessor() {
         if (service == null) return;
-        boolean processorChanged = rerenderIfChanged(processorPane);
-        rerenderIfChanged(nodePane);
+        supersedeTypeCheck();                                     // a configuration refresh supersedes a pending click
+        // Both panes re-read their file (off the EDT): the roots may now resolve the name to something else
+        // or to nothing, and a MISS placeholder names roots that changed even when the miss did not (review
+        // F4). review R2-F5: a configuration refresh is not a request to navigate — an unchanged hit keeps
+        // its viewport and caret; only a new name is scrolled to its declaration.
+        if (nodePane.fqn != null) load(nodePane, nodePane.fqn, () -> { });
         String fqn = service.selectedFqn();
-        if (fqn == null) return;
-        // review R2-F5: a configuration refresh is not a request to navigate. An unchanged hit keeps
-        // its viewport and caret; only a new name or a re-read pane is scrolled to its declaration.
-        if (processorChanged || !Objects.equals(fqn, processorPane.fqn)) openFqn(fqn);
-    }
-
-    /**
-     * Re-read a pane's file when the roots now resolve its name to something else (or to nothing). A pane
-     * showing a MISS is always re-rendered: its placeholder names the roots searched and the project they
-     * came from, and those changed even when the miss did not (review F4 — the node pane kept naming the
-     * previous project's root after a switch that still could not find the file).
-     */
-    private boolean rerenderIfChanged(Pane pane) {
-        if (pane.fqn == null) return false;
-        String now = service.sourceForFqn(pane.fqn).orElse("");
-        if (pane.source.isEmpty() || !now.equals(pane.source)) {
-            pane.render(pane.fqn);
-            return true;
-        }
-        return false;
+        if (fqn != null && !Objects.equals(fqn, processorPane.fqn)) { openFqn(fqn); return; }
+        if (processorPane.fqn != null) load(processorPane, processorPane.fqn, () -> { });
     }
 
     /** The processor pane's caret position — for tests of what a refresh must NOT move. */
@@ -364,6 +617,16 @@ public final class SourcePanel extends JPanel {
     /** Open a node's declaring class (via the selected processor) and scroll to {@code method}. */
     public void openInstance(String instanceId, String method) {
         if (service == null) return;
+        supersedeTypeCheck();                 // at the entrance, not after the processor read (PR #30 re-review, R1)
+        String processor = service.selectedFqn();
+        if (processor == null) { resolveInstance(instanceId, method); return; }
+        // The node's class comes from the processor as it is on disk NOW: after a class rename, a model
+        // cached from the old file would send this to the removed class (edit-loop spec §C).
+        load(processorPane, processor, () -> resolveInstance(instanceId, method),
+                why -> nodePane.label.setText("could not open node '" + instanceId + "': " + why));
+    }
+
+    private void resolveInstance(String instanceId, String method) {
         String fqn = service.fqnForInstance(instanceId);
         if (fqn != null) {
             openFqnAtMethod(fqn, method);
@@ -389,15 +652,16 @@ public final class SourcePanel extends JPanel {
         if (service == null || eventSimpleName == null) return;
         String fqn = service.selectedFqn();
         if (fqn == null) return;
-        navigate(fqn, null);
         // an event class may be nested (Events.MarketDataEvent); the overload names the simple type
         String simple = simpleName(eventSimpleName.strip());
-        int off = SourceNavigation.eventHandlerOffset(processorPane.source, simple);
-        if (off < 0) return;
-        // navigate() may have just replaced the document, and a scroll issued before the new view has
-        // been laid out lands roughly a screen out — the target ends up at the bottom instead of the top.
-        // Deferring puts it after layout.
-        SwingUtilities.invokeLater(() -> processorPane.scrollToOffset(off));
+        navigate(fqn, null, () -> {
+            int off = SourceNavigation.eventHandlerOffset(processorPane.source, simple);
+            if (off < 0) return;
+            // the read may have just replaced the document, and a scroll issued before the new view has
+            // been laid out lands roughly a screen out — the target ends up at the bottom instead of the top.
+            // Deferring puts it after layout.
+            SwingUtilities.invokeLater(() -> processorPane.scrollToOffset(off));
+        });
     }
 
     private static String simpleName(String fqn) {
@@ -413,7 +677,12 @@ public final class SourcePanel extends JPanel {
 
     /** Navigate to a source file (recording history when the file changes) and scroll to a method. */
     private void navigate(String fqn, String method) {
+        navigate(fqn, method, null);
+    }
+
+    private void navigate(String fqn, String method, Runnable instead) {
         if (service == null || fqn == null) return;
+        supersedeTypeCheck();                                     // a pending Ctrl-click check yields to this navigation
         boolean leavingFile = fileView != null;
         if (fileView != null) {
             backStack.push(new History(null, fileView)); fileView = null; backButton.setEnabled(true);
@@ -422,27 +691,30 @@ public final class SourcePanel extends JPanel {
         boolean newName = !Objects.equals(fqn, pane.fqn);
         // a miss is retried on every navigation — the roots may have changed since it was rendered — but
         // only a NEW name is history worth going back to
-        if (newName || pane.source.isEmpty()) {
-            if (newName && pane.fqn != null && !leavingFile) {
-                backStack.push(new History(pane.fqn, null));
-                backButton.setEnabled(true);
-            }
-            pane.render(fqn);
+        // History records files that were SHOWN. A pane showing a missing class (a "not found" placeholder) or a
+        // read still pending is not pushed: Back returns to the last file you actually saw (PR #30 review, 6).
+        if (newName && pane.fqn != null && !leavingFile && !pane.source.isEmpty()) {
+            backStack.push(new History(pane.fqn, null));
+            backButton.setEnabled(true);
         }
         revealPaneFor(pane);
-        // With no method to aim at, land on the TYPE rather than at line 1. A Fluxtion graph's node
-        // classes are commonly nested in one holder, so opening the file is only half the answer —
-        // the reader still has to find the class among its siblings. Single-type files are unaffected:
-        // the declaration is at the top anyway.
-        int off = method != null
-                ? SourceNavigation.methodDeclOffset(pane.source, method)
-                : SourceNavigation.typeDeclOffset(pane.source, simpleName(fqn));
-        pane.scrollToOffset(off >= 0 ? off : 0);
+        // Every navigation rechecks the file — a same-name hit included (edit-loop spec §C: an unchanged
+        // name is not an unchanged file). With no method to aim at, land on the TYPE rather than at line 1.
+        // A Fluxtion graph's node classes are commonly nested in one holder, so opening the file is only
+        // half the answer — the reader still has to find the class among its siblings.
+        load(pane, fqn, instead != null ? instead : () -> {
+            int off = method != null
+                    ? SourceNavigation.methodDeclOffset(pane.source, method)
+                    : SourceNavigation.typeDeclOffset(pane.source, simpleName(fqn));
+            pane.scrollToOffset(off >= 0 ? off : 0);
+        });
     }
 
     /** Navigate back to the previously shown source file (Alt+Left / Cmd|Ctrl+[). */
-    private void back() {
+    /** Navigate back (Alt+Left / Cmd|Ctrl+[). Package-private for tests of what Back supersedes. */
+    void back() {
         if (backStack.isEmpty()) return;
+        supersedeTypeCheck();                                     // Back is a navigation: a pending Ctrl-click yields
         History previous = backStack.pop();
         if (previous.file() != null) {
             historyDestination = previous.file().file();
@@ -453,14 +725,15 @@ public final class SourcePanel extends JPanel {
         fileView = null;
         String prev = previous.fqn();
         Pane pane = paneFor(prev);
-        pane.render(prev);
         revealPaneFor(pane);
         backButton.setEnabled(!backStack.isEmpty());
-        // if we've returned to the EventProcessor, scroll to the triggering handler for the record
-        if (service != null && prev.equals(service.selectedFqn()) && dispatchRecord != null) {
-            int off = SourceNavigation.methodDeclOffset(pane.source, dispatchRecord.callback());
-            pane.scrollToOffset(off >= 0 ? off : 0);
-        }
+        load(pane, prev, () -> {
+            // if we've returned to the EventProcessor, scroll to the triggering handler for the record
+            if (service != null && prev.equals(service.selectedFqn()) && dispatchRecord != null) {
+                int off = SourceNavigation.methodDeclOffset(pane.source, dispatchRecord.callback());
+                pane.scrollToOffset(off >= 0 ? off : 0);
+            }
+        });
     }
 
     private void installBackKeyBindings() {
@@ -480,6 +753,7 @@ public final class SourcePanel extends JPanel {
     }
 
     public void showFile(DesignWorkspace.View view, String note, boolean history) {
+        supersedeTypeCheck();                                     // opening a file supersedes a pending Ctrl-click
         boolean fromHistory = Objects.equals(historyDestination, view.file());
         historyDestination = null;
         if (history && !fromHistory) {
@@ -518,6 +792,7 @@ public final class SourcePanel extends JPanel {
     public record JavaBand(Rectangle bounds, boolean partial) { }
 
     public JavaAnchor showJavaSnapshot(String fqn, SourceDocument document, EventProcessorModel model) {
+        supersedeTypeCheck();                                     // a spotlight destination supersedes a pending Ctrl-click
         Pane pane = Objects.equals(fqn, service.selectedFqn()) ? processorPane : nodePane;
         fileView = null;
         if (pane.snapshot == null || !pane.snapshot.equals(document)) {
@@ -611,6 +886,9 @@ public final class SourcePanel extends JPanel {
         private EventProcessorModel model;
         private SourceDocument snapshot;
         private long navigation;
+        private long readTicket;
+        private java.util.concurrent.Future<?> pendingRead;
+        private boolean reading;
 
         Pane(String role) {
             super(new BorderLayout());
@@ -673,26 +951,6 @@ public final class SourcePanel extends JPanel {
             sourceViewChanged();
         }
 
-        void render(String newFqn) {
-            navigation++; snapshot = null; sourceViewChanged();
-            label.setRows(1);
-            Optional<String> src = service.sourceForFqn(newFqn);
-            fqn = newFqn;
-            if (src.isPresent()) {
-                source = src.get();
-                model = EventProcessorModel.parse(newFqn, source);
-                label.setText(newFqn);
-                highlighter.render(text.getStyledDocument(), source);
-                text.setWrap(wrap);
-                text.setCaretPosition(0);
-            } else {
-                source = "";
-                model = null;
-                label.setText(newFqn + "  —  not found under the configured source roots");
-                showNothingToShow(newFqn);
-            }
-        }
-
         /**
          * What the viewer shows when there is no file behind the name: an explanation, the roots actually
          * searched, where those roots came from, and the way to change them. An empty editor says "nothing
@@ -739,7 +997,7 @@ public final class SourcePanel extends JPanel {
             // a Type -> open it if resolvable
             if (!ref.identifier().isEmpty() && Character.isUpperCase(ref.identifier().charAt(0))) {
                 String target = model.resolveSimpleType(ref.identifier());
-                if (target != null && service.sourceForFqn(target).isPresent()) openFqn(target);
+                if (target != null) openTypeIfPresent(target);
             }
         }
 
