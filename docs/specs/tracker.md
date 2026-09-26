@@ -839,7 +839,7 @@ verdict, which is owned jointly.
   affected-name count being small** (Q2 closed the inflow). Count first; if more than a handful, or no count can be
   established, Q5 goes back to the owner with the escape as the alternative. The repair asks before renaming and keeps
   the definition; the duplicate-name repair from PR #13 is the pattern to reuse. ☐ not started.
-- [M68.7] ◧ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
+- [M68.7] ☑ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
   by the owner 2026-09-26: M68 ships as an explicit partial delivery** (D-E9's producer half makes a whole one
   impossible), with its gaps stated, **but the charts are marked before G14 runs, because G14's pass condition lands on
   that surface.** After an in-place rewrite the table shows its banner (UNVERIFIED / REPLACEMENT and that its rows are
@@ -847,7 +847,11 @@ verdict, which is owned jointly.
   verdict, from the same session snapshot, on the chart area and the detail pane. Acceptance: after an in-place rewrite
   of a mapped log, every open chart and the detail pane state the verdict; a control that removes the chart mark fails
   a named assertion. The detail pane's mark does not gate G14.
-  **Built 2026-09-26 on `feat/m68-7-identity-mark`; awaiting review, so ◧ not ☑.** One banner on `GraphTabs` above
+  **Status, three separate facts.** *Review:* accepted at `bc16193c` (focused re-review,
+  `review/m68-7-identity-mark-2026-09-26`, after the first review `34f4d800` and its R1 fix). *Implementation:*
+  **merged to main 2026-09-26 as `e02418a8`** (PR #39, approved head `97fa0b46`). *Release:* **not yet released** —
+  no published analyser carries M68.7 until the next release, and G14 tests a published artefact, so the chart mark
+  reaches G14 only then. Built 2026-09-26 on `feat/m68-7-identity-mark`. One banner on `GraphTabs` above
   every chart tab (a chart opened after the verdict is under it) and one on `DetailPanel`, both set in
   `onSessionSnapshot` beside the table's; WHEN is the table's rule (`LogTablePanel.identityBannerText`), so the three
   cannot disagree. Acceptance run on a real display: `IdentityMarkFrameTest` — a SHOWN frame, a memory-mapped log, a

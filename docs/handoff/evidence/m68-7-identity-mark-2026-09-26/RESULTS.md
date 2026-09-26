@@ -112,3 +112,27 @@ The PR conflicted with main, so GitHub ran no `pull_request` CI on `de994b35`. I
   - all 9 M68.7 and M68.5 controls caught (32.2 s);
   - `mvn -q clean test`: 2414 / 0 / 0 / 111, 325 reports, no orphans;
   - display gate: 22 suites, 111 / 0 / 0 / 1, the same focus-guarded skip (second attempt, preserved).
+
+## Accepted, merged, not yet released (2026-09-26)
+- **Review:** the focused re-review accepted the corrections at `bc16193c`
+  (`docs/handoff/review_m68_7_identity_mark_2026_09_26_codex_recheck.md`). R1 is closed, and no required correction
+  remains. The re-review reproduced:
+  - headless: 2414 / 0 / 0 / 111, 325 reports, no orphans;
+  - display: 111 / 0 / 0 / 0 across 22 suites;
+  - the nine targeted controls, and both banner-detachment controls at the on-screen assertions.
+- **Implementation:** PR #39 was merged to main as `e02418a8`. The approved head `97fa0b46` was unchanged, main was
+  its ancestor, and the merge tree is identical to the approved tree. The merge was made locally under the personal
+  identity. CI on the approved head was run `36269296444`: green, with ui-frame at zero skips and mutation-gate 174/174.
+- **Release:** not released. M68.7 ships with the next analyser release.
+- **G14 remains blocked on things outside this item.** The charts mark (the Q4 condition) is merged, but G14 still
+  needs:
+  - a release that carries it;
+  - the owner's decision on how its "chart or report" alternative is assessed.
+
+  That decision keeps the four distinctions:
+  1. A mapped in-place rewrite refuses report requests.
+  2. An atomic replacement may permit an export, with `identityNote` in the reply.
+  3. That PDF carries its existing changed-on-disk metadata note, but no M68.7 banner.
+  4. That note is metadata, not the session's verdict and reason.
+
+  Merging M68.7 does not declare G14 unblocked or accepted.
