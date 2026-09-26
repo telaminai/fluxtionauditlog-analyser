@@ -122,4 +122,90 @@ class TopologyWholeOrRefusedTest {
         assertFalse(reply.ok(), reply.toMap().toString());
         assertTrue(selected(panel).isEmpty(), "R5: " + selected(panel));
     }
+
+    // ---- re-review N1 (2026-09-26): the save is judged on the state the request's OWN transitions leave ----------------
+
+    /** A panel with a one-node focus already applied — the state N1's refused call destroyed. */
+    private static TopologyPanel focused(java.util.List<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec> saved) {
+        var panel = new TopologyPanel();
+        panel.load(GRAPH);
+        panel.bindNamedFocuses(() -> saved, () -> { });
+        var ex = executor(panel, null);
+        assertTrue(ex.render("topology", Map.of("select", "rootNode", "scope", "node", "focus", true)).ok());
+        assertEquals(1, panel.cursorState().get("contextDepth"), "precondition: one focus context applied");
+        return panel;
+    }
+
+    @Test
+    @DisplayName("N1: {showAll, saveFocusAs} refuses and leaves the existing focus exactly as it was")
+    void aRefusedSaveAfterShowAllLeavesTheExistingFocus() {
+        // witness: the trial run omitting showAll's transition (review-n1-showall-in-preparation)
+        var saved = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>();
+        var panel = focused(saved);
+        var before = new java.util.LinkedHashMap<>(panel.cursorState());
+        var reply = executor(panel, null).render("topology", Map.of("showAll", true, "saveFocusAs", "review-focus"));
+        assertFalse(reply.ok(), reply.toMap().toString());
+        assertEquals(before, panel.cursorState(), "N1: a refused call leaves the prior topology state unchanged");
+        assertTrue(saved.isEmpty(), "and saves nothing");
+    }
+
+    @Test
+    @DisplayName("N1: showAll with select and saveFocusAs, but no focus, refuses without changing anything")
+    void showAllAndSelectWithoutFocusRefusesWhole() {
+        var saved = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>();
+        var panel = focused(saved);
+        var before = new java.util.LinkedHashMap<>(panel.cursorState());
+        var reply = executor(panel, null).render("topology",
+                Map.of("showAll", true, "select", "riskCheck", "saveFocusAs", "x"));
+        assertFalse(reply.ok(), reply.toMap().toString());
+        assertEquals(before, panel.cursorState(), "N1: unchanged");
+    }
+
+    @Test
+    @DisplayName("N1: showAll, select, focus and saveFocusAs in one call succeed — the request establishes what it saves")
+    void showAllThenSelectFocusAndSaveInOneCallSaves() {
+        var saved = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>();
+        var panel = focused(saved);
+        var reply = executor(panel, null).render("topology", Map.of("showAll", true, "select", "riskCheck",
+                "scope", "node", "focus", true, "saveFocusAs", "risk"));
+        assertTrue(reply.ok(), reply.toMap().toString());
+        assertEquals(java.util.List.of("risk"), saved.stream().map(f -> f.name()).toList());
+        assertEquals(1, panel.cursorState().get("contextDepth"), "the new focus replaced the old one");
+    }
+
+    @Test
+    @DisplayName("N1 preserved: pop:1 at depth 1 refuses; pop:1 at depth 2 saves; pop:all refuses — each whole")
+    void popsAreJudgedOnTheirRealEffect() {
+        var saved = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>();
+        var panel = focused(saved);
+        var ex = executor(panel, null);
+        var before = new java.util.LinkedHashMap<>(panel.cursorState());
+        assertFalse(ex.render("topology", Map.of("pop", 1, "saveFocusAs", "x")).ok());
+        assertEquals(before, panel.cursorState(), "pop:1 at depth 1 would leave the full graph: refused, unchanged");
+        assertFalse(ex.render("topology", Map.of("pop", "all", "saveFocusAs", "x")).ok());
+        assertEquals(before, panel.cursorState());
+        // a second level, then pop one: depth 1 remains, so the save succeeds (built from a wider first level)
+        var wide = new TopologyPanel();
+        wide.load(GRAPH);
+        wide.bindNamedFocuses(() -> saved, () -> { });
+        var wex = executor(wide, null);
+        assertTrue(wex.render("topology", Map.of("select", "rootNode", "scope", "all", "focus", true)).ok());
+        assertTrue(wex.render("topology", Map.of("select", "rootNode", "scope", "node", "focus", true)).ok());
+        assertEquals(2, wide.cursorState().get("contextDepth"), "precondition: two levels");
+        var popped = wex.render("topology", Map.of("pop", 1, "saveFocusAs", "outer"));
+        assertTrue(popped.ok(), popped.toMap().toString());
+        assertEquals(1, wide.cursorState().get("contextDepth"));
+        assertTrue(saved.stream().anyMatch(f -> f.name().equals("outer")));
+    }
+
+    @Test
+    @DisplayName("N1 preserved: a no-op focus, scope and routeBound keep an existing focus saveable")
+    void aNoOpFocusScopeAndRouteBoundStillSave() {
+        var saved = new java.util.ArrayList<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec>();
+        var panel = focused(saved);
+        var reply = executor(panel, null).render("topology",
+                Map.of("focus", true, "scope", "neighbours", "routeBound", false, "saveFocusAs", "kept"));
+        assertTrue(reply.ok(), reply.toMap().toString());
+        assertEquals(java.util.List.of("kept"), saved.stream().map(f -> f.name()).toList());
+    }
 }

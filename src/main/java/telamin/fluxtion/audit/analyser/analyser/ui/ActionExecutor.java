@@ -1276,53 +1276,8 @@ public final class ActionExecutor implements RenderExecutor {
         if (problem != null) return ActionResult.error(problem + " — nothing was changed");
         if (app != null) app.showTab("Topology");
 
-        if (params.containsKey("scaffolding")) topology.setScaffoldingVisible(bool(params.get("scaffolding")));
-        if (params.containsKey("showAll") && bool(params.get("showAll"))) topology.showAll();
-
-        // Tracking is set BEFORE anything that could follow, so one call can turn it off AND select
-        // without the selection dragging the source pane along on its way out. Ordering is the whole
-        // meaning of the flag here.
-        if (params.containsKey("sync")) topology.setSourceSync(bool(params.get("sync")));
-
-        if (params.containsKey("select")) {
-            String id = str(params.get("select"));
-            if (id != null && !topology.hasNode(id)) {
-                return ActionResult.error("no node '" + id + "' in this topology");
-            }
-            topology.selectNode(id);
-        }
-        // review P1: the routes hop bound was reachable only from a Swing checkbox, so an agent was
-        // told in the echo that the unbounded answer was "one untick away" and had no way to untick it.
-        // Read BEFORE scope, so a single call can set both and get the answer it asked for.
-        Object routeBound = params.get("routeBound");
-        if (routeBound instanceof Boolean b) {
-            topology.setRouteBound(b);
-        } else if (routeBound != null) {
-            return ActionResult.error("routeBound must be true or false, got '" + routeBound + "'");
-        }
-        String scope = str(params.get("scope"));
-        if (scope != null) {
-            try {
-                topology.setScope(telamin.fluxtion.audit.analyser.analyser.topology.TopologyFocus.Scope
-                        .valueOf(scope.toUpperCase(java.util.Locale.ROOT)));
-            } catch (IllegalArgumentException e) {
-                return ActionResult.error("unknown scope '" + scope + "'");
-            }
-        }
-        // M27: pop leaves contexts ("all" = back to the full graph); focus accepts a BOOLEAN
-        // (true pushes the selection's scope as a context, false exits the filter) or a STRING
-        // (recall a named focus); saveFocusAs names the current context, with an optional rationale.
-        Object pop = params.get("pop");
-        if (pop != null) {
-            topology.popFocus("all".equalsIgnoreCase(String.valueOf(pop)));
-        }
-        Object focus = params.get("focus");
-        if (focus instanceof String namedFocus) {
-            String err = topology.recallFocus(namedFocus);
-            if (err != null) return ActionResult.error(err);
-        } else if (focus != null) {
-            topology.setFocus(bool(focus));
-        }
+        String transitionError = applyFocusTransitions(topology, params);
+        if (transitionError != null) return ActionResult.error(transitionError);
         String saveFocusAs = str(params.get("saveFocusAs"));
         if (saveFocusAs != null) {
             String err = topology.saveFocusAs(saveFocusAs, str(params.get("rationale")));
@@ -1361,6 +1316,52 @@ public final class ActionExecutor implements RenderExecutor {
         return ActionResult.ok("topology", "topology", echo);
     }
 
+    /**
+     * Re-review N1: the topology fields that change the focus-relevant state, applied to {@code t} in the verb's order —
+     * scaffolding, showAll, sync, select, routeBound, scope, pop, focus. ONE routine for the real panel and for the
+     * whole-request check's trial copy, so what the check sees is what the apply does. Returns an error, or null. Every
+     * field was validated by {@link #topologyProblem} first; the returns below are the apply's own last line of defence.
+     */
+    private String applyFocusTransitions(TopologyPanel t, Map<String, Object> params) {
+        if (params.containsKey("scaffolding")) t.setScaffoldingVisible(bool(params.get("scaffolding")));
+        if (params.containsKey("showAll") && bool(params.get("showAll"))) t.showAll();
+        // Tracking is set BEFORE anything that could follow, so one call can turn it off AND select without the
+        // selection dragging the source pane along on its way out. Ordering is the whole meaning of the flag here.
+        if (params.containsKey("sync")) t.setSourceSync(bool(params.get("sync")));
+        if (params.containsKey("select")) {
+            String id = str(params.get("select"));
+            if (id != null && !t.hasNode(id)) return "no node '" + id + "' in this topology";
+            t.selectNode(id);
+        }
+        // review P1: read BEFORE scope, so a single call can set both and get the answer it asked for
+        Object routeBound = params.get("routeBound");
+        if (routeBound instanceof Boolean b) {
+            t.setRouteBound(b);
+        } else if (routeBound != null) {
+            return "routeBound must be true or false, got '" + routeBound + "'";
+        }
+        String scope = str(params.get("scope"));
+        if (scope != null) {
+            try {
+                t.setScope(telamin.fluxtion.audit.analyser.analyser.topology.TopologyFocus.Scope
+                        .valueOf(scope.toUpperCase(java.util.Locale.ROOT)));
+            } catch (IllegalArgumentException e) {
+                return "unknown scope '" + scope + "'";
+            }
+        }
+        // M27: pop leaves contexts ("all" = back to the full graph); focus accepts a BOOLEAN (true pushes the
+        // selection's scope as a context, false exits the filter) or a STRING (recall a named focus)
+        Object pop = params.get("pop");
+        if (pop != null) t.popFocus("all".equalsIgnoreCase(String.valueOf(pop)));
+        Object focus = params.get("focus");
+        if (focus instanceof String namedFocus) {
+            return t.recallFocus(namedFocus);
+        } else if (focus != null) {
+            t.setFocus(bool(focus));
+        }
+        return null;
+    }
+
     /** M68.4 (D-E3): why this topology call must be refused whole, or null — checked before anything is applied. */
     private String topologyProblem(Map<String, Object> params) {
         if (params.containsKey("select")) {
@@ -1383,13 +1384,16 @@ public final class ActionExecutor implements RenderExecutor {
             String why = topology.recallFocusProblem(namedFocus);
             if (why != null) return why;
         }
-        // Independent review R5: saveFocusAs's own precondition, judged on the state THIS request leaves before the save
-        // runs. It used to be checked only when the save ran, after select had already been applied.
+        // Independent review R5, re-review N1: saveFocusAs's precondition is judged on the state THIS request's own
+        // transitions leave. They run on a detached trial copy through applyFocusTransitions — the routine the real
+        // apply uses — so showAll, select, pop and focus are not modelled a second time; R5's first fix modelled three
+        // of them and a refused {showAll, saveFocusAs} cleared the focus it had seen.
         if (params.containsKey("saveFocusAs")) {
-            Object focus = params.get("focus");
-            String why = topology.saveFocusAsProblem(str(params.get("saveFocusAs")), params.containsKey("select"),
-                    str(params.get("select")), params.get("pop"), focus instanceof Boolean ? focus
-                            : focus instanceof String ? focus : focus == null ? null : bool(focus));
+            String name = str(params.get("saveFocusAs"));
+            if (name == null || name.isBlank()) return "'saveFocusAs' needs a name";
+            TopologyPanel trial = topology.trialCopy();
+            String why = applyFocusTransitions(trial, params);
+            if (why == null) why = trial.saveFocusAsPrecondition(name);
             if (why != null) return why;
         }
         String orientation = str(params.get("orientation"));
