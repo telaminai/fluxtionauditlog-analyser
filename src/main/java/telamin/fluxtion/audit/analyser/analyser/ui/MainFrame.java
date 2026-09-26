@@ -4429,6 +4429,9 @@ public final class MainFrame extends JFrame {
         publishPairing();
         // M68.5, the review's "table not suspended": the table states the session's file-identity verdict, from here
         tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        // M68.7 (owner, Q4): the charts and the detail pane state the same verdict, from the same snapshot
+        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
     }
 
 

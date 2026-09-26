@@ -43,6 +43,36 @@ public final class GraphTabs extends JPanel {
     private final List<JButton> editingButtons = new ArrayList<>();
     /** Shown only while definitions are withheld: the way out that is not "close the app and edit a file". */
     private final JButton repairButton = new JButton("Repair names…");
+    /**
+     * M68.7 (owner, Q4): the charts' statement that the file behind the log changed after it was read. One banner
+     * above every chart tab, so a chart opened after the verdict is under it too. It holds no verdict: the frame sets
+     * it from the session snapshot, beside the table's (M68.5). G14's pass condition lands on this surface.
+     */
+    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel();
+
+    /**
+     * What the charts say for a file-identity verdict, or null for none. WHEN is the table's rule
+     * ({@link LogTablePanel#identityBannerText}), so the surfaces cannot disagree about whether the file changed;
+     * this says only what that means for a chart.
+     */
+    static String identityBannerText(String verdict, String reason) {
+        if (LogTablePanel.identityBannerText(verdict, reason) == null) return null;
+        return "⚠ " + (reason == null ? "the file behind this log changed after it was read" : reason)
+                + " · these charts are not verified against the file as it is now — reopen the log to redraw them from it";
+    }
+
+    /** Show {@code note} above the charts, or hide the banner for null. Call on the EDT. */
+    public void setIdentityNote(String note) {
+        identityBanner.setText(note == null ? "" : note);
+        identityBanner.setToolTipText(note);
+        identityBanner.setVisible(note != null);
+        revalidate();
+    }
+
+    /** The banner's text, or null while it is hidden. */
+    String identityNote() {
+        return identityBanner.isVisible() ? identityBanner.getText() : null;
+    }
     private Runnable repairHandler = () -> { };
 
     public void setRepairHandler(Runnable handler) {
@@ -137,7 +167,13 @@ public final class GraphTabs extends JPanel {
         bar.add(close);
         bar.add(delete);
         bar.add(repairButton);
-        add(bar, BorderLayout.NORTH);
+        identityBanner.setVisible(false);
+        identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        identityBanner.setForeground(UiTheme.warnForeground());       // theme-aware, light and dark, as the table's
+        JPanel north = new JPanel(new BorderLayout());
+        north.add(bar, BorderLayout.NORTH);
+        north.add(identityBanner, BorderLayout.SOUTH);
+        add(north, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
         definitionNotice.setEditable(false);
         definitionNotice.setLineWrap(true);

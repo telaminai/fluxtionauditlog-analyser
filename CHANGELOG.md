@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- **Charts and the record detail pane now say when the file behind the log has changed.** After a log was rewritten
+  in place, the table warned that its rows were the log as it was indexed, while the charts and the detail pane went
+  on showing values with nothing to say they might no longer match the file. Both now carry the same warning, with
+  the same reason, above every open chart — including one opened afterwards — and above the record. Reopening the log
+  clears all three.
+
 ## [1.22.0] - 2026-09-26
 
 ### Added
