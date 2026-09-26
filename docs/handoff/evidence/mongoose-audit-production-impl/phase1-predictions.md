@@ -375,3 +375,49 @@ ungrouped note says " sets it to ". The cross-marker unreadable clause says "A l
    test): reverting each of R7-1, R7-2, R7-3 and R7-4's fix goes red at its own dedicated test's own assertion.
 7. **P12.7 — suite.** Headless grows by the two new dedicated tests, 2102 → **2104**, skips unchanged at 98.
    `MainFrame` is not touched. O7-3 regenerates `dependency-reduced-pom.xml` with no other diff.
+
+## P13 · Eighth re-review — recorded before these fixes
+
+Eighth re-review `ba463890` (branch `review/mongoose-eighth-rereview-2026-09-26`) against `e5541d5b`: two required
+(R8-1, R8-2), seven optional (R8-3–R8-9), all taken. The reviewer's `R8Review` was re-run on `e5541d5b` first and
+reproduces every note byte-identically (the recorded file omits the program's final blank line). **Owner decisions,
+2026-09-26:** (1) option (b) — a change's annotation stops at the **second** stream-end marker after it, so at most one
+marker is ever crossed; (2) the one-stream limit is documented, not put in the note: the spec and the class Javadoc
+record the owner's statement that the producer writes one processor per grouping, and that "in the records sharing
+its grouping" relies on it; (3) targeted witnesses for R8-1 and R8-2 only, plus the reviewer's probe mutations P1 and
+P2 shown red through the matrix's offenders assertion once R8-5 is fixed; (4) every optional item taken; (5)
+`dependency-reduced-pom.xml` untracked and ignored, the shade configuration unchanged.
+
+**Wording, fixed before coding.**
+- R8-1: the spanning later-run clause becomes "for the records in view after that marker[ and before E2], in <scope>,
+  those lines are absent only if …", E2 being the closer or the second marker, whichever comes first.
+- R8-2 under (b): records past the second marker are outside the window, so probe **P** (view only past it) gets
+  **no annotation** and **Q** annotates only record 2; "Every record in view is in a LATER run — a stream-end marker
+  before record K begins it" then always names the one marker crossed.
+- R8-3: `holdsLead` carries the conclusion's whole condition: V reads "If the change at record 1 (logTime 1) named no
+  node, it holds until record 3 (logTime 3) sets it to INFO"; W the same with "at least until"; X "If the change at
+  record 1 (logTime 1) named no node and it applied here, it holds until …".
+- R8-4: a null-record row reads "a record this reader could not read, whose text names the control event"; Y1 shows
+  "record 3 (logTime 3)"; a row whose raw time cannot be read says "record N (its time was not read)"; Y2's nested
+  `event:` line is no longer read, so Y2 reads "Nothing later …".
+
+1. **P13.1 — probes.** M's clause gains "after that marker and before record 4, in the records sharing its
+   grouping"; N's gains "and before the stream-end marker preceding record 4"; O's gains the grouping scope. P → null;
+   Q's view drops record 3. V, W, X, Y1, Y2 as above; R, S, T, U unchanged; Y3 unchanged.
+2. **P13.2 — breakage.** Existing assertions that pin the unbounded spanning clause break and are rewritten: the
+   `CoveragePerNodeLevelTest` spanning test ("from record 3 on, those lines are absent only if it survived the marker")
+   and `notEstablishedAndSpanningABoundaryConditionsBothHalves` ("those lines are absent only if it applied here and it
+   survived the marker") — **2 tests, 2 assertions**. The three dead guards (R8-6) are rewritten deliberately, not
+   broken. No other test breaks.
+3. **P13.3 — the matrix.** New boundaries: `twoMarkers` (spanning, a record in view past the second marker),
+   `pastCloser` (spanning, a record in view past the closer), `twoMarkersAfter` (wholly after, records either side of
+   the second marker) and `pastSecondOnly` (wholly after, the only record in view past the second marker). 3 × 5 × 8 ×
+   8 × 3 = **2880 logs**; the 360 `pastSecondOnly` cells give **no annotation** and the other **2520 annotate**. New
+   rules — the bound rule applied to "absent only if" sentences; no note names a record past the second marker; the
+   wholly-after marker precedes the first record in view with no marker between; a "holds" clause carries the
+   conclusion's condition; and R8-5's tightening — are green on the fixed code.
+4. **P13.4 — witnesses.** Restoring e5541d5b's unbounded spanning clause goes red at the dedicated R8-1 test's
+   "R8-1 M" assertion; removing the second-marker stop goes red at "R8-2 P". P1 and P2, re-applied to the fixed code,
+   turn the matrix red through its **offenders** assertion (not reach alone).
+5. **P13.5 — suite.** Headless grows by the new dedicated tests (R8-1/R8-2, R8-3, R8-4: three) from 2104 to
+   **2107**; skips stay 98. `MainFrame` untouched. After `mvn -q clean package`, `git status` is clean.
