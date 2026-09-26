@@ -69,6 +69,11 @@ class VerbSchemasTest {
         assertTrue(aggregate.contains("records you happened to read are only a sample"), aggregate);
         assertTrue(aggregate.contains("returns firstRecordIndex and lastRecordIndex, the first and last record it counted")
                 && aggregate.contains("filter to the event an application logs to learn when it first logged it"), aggregate);
+        // Haiku 4v4 replication (2026-09-27): runs that FILTERED aggregate to the event received firstRecordIndex and
+        // were right; the run that never filtered was wrong. The description shows the filtered call itself.
+        assertTrue(aggregate.contains("{metric: count, filter: {dimensions: [\"<EventName>\"]}}")
+                && aggregate.contains("as firstRecordIndex, the record where it first did"), aggregate);
+        assertFalse(aggregate.contains("limit"), "no limit wording on aggregate: earlier trials showed it misleads: " + aggregate);
         String metric = (String) ((Map<String, Object>) ((Map<String, Object>) schema("aggregate").get("properties"))
                 .get("metric")).get("description");
         assertTrue(metric.contains("application itself logged a breach flag")

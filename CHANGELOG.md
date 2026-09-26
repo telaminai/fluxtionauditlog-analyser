@@ -12,7 +12,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   as the first breach, not the application's own `RiskBreachEvent`. The tool descriptions now say that records
   read are only a sample, and that `breach_count` counts the application's breach flags, not values over a limit.
   Earlier wording that defined a "first" occurrence in prose was dropped: in two 10-vs-10 trials it lowered correct
-  first-breach answers.
+  first-breach answers. The `aggregate` description shows the filtered call itself
+  (`{metric: count, filter: {dimensions: ["<EventName>"]}}`), because models that made that call received the first
+  record and answered correctly.
 - **Spotlight guidance points menu answers at the item.** The `spotlight` description asks for the item
   (`menu:<Menu>:<item>`), not the menu alone, the status bar or an unrelated toolbar button. Its example targets
   no longer suggest the status bar or the Flag button, the two a model lit for menu answers.

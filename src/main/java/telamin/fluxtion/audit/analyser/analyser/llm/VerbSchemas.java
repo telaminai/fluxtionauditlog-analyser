@@ -19,7 +19,9 @@ public final class VerbSchemas {
         s.put("aggregate", schema("Read-only counts/rates over the whole log; never mutates the UI. Answer "
                         + "'how many' here: records you happened to read are only a sample. With the total it "
                         + "returns firstRecordIndex and lastRecordIndex, the first and last record it counted: "
-                        + "filter to the event an application logs to learn when it first logged it.",
+                        + "filter to the event an application logs to learn when it first logged it. Example: "
+                        + "{metric: count, filter: {dimensions: [\"<EventName>\"]}} returns how often the application "
+                        + "logged that event and, as firstRecordIndex, the record where it first did.",
                 props(
                         p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute. "
                                 + "breach_count counts records where the application itself logged a breach flag "
