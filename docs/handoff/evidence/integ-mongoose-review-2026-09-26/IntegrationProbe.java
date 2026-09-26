@@ -19,7 +19,7 @@ public class IntegrationProbe {
         Path p=Files.writeString(root.resolve("pending.yaml"),pending);
         HeapLogStore s=HeapLogStore.fromFile(p).forFollow();s.appendFrom(p);
         var d=ProducerDiagnostics.of(s.index(),s::rawText,s.sourceDiagnostics(),s.completenessDiagnostics(),s.completenessIsNote(),s.pendingFrameText());
-        System.out.println("pending indexed="+s.size()+" full candidates="+FramingScan.of(pending,10000).candidates()+" adapterText="+s.pendingFrameText().replace("\n","\\n")+" findings="+d.findings());
+        System.out.println("pending indexed="+s.size()+" full candidates="+FramingScan.of(pending,10000).candidates()+" adapterText="+String.valueOf(s.pendingFrameText()).replace("\n","\\n")+" findings="+d.findings());
         Path bad=Files.writeString(root.resolve("bad.yaml"),RECORD+MARKER);
         HeapLogStore b=HeapLogStore.fromFile(bad).forFollow();b.appendFrom(bad);
         byte[] bytes=Files.readAllBytes(bad);bytes[10]=(byte)0xff;Files.write(bad,bytes);
@@ -32,6 +32,7 @@ public class IntegrationProbe {
             void check(int r){reads.add(r);if(r>=2)throw new AssertionError("outside captured bound: "+r);}
             public LogRecord record(int r){check(r);return inner.record(r);} public String rawText(int r){check(r);return inner.rawText(r);}
             public List<Integer> runBoundaries(){return List.of(2,3);}
+            public Long minLogTime(){return inner.minLogTime();} public Long maxLogTime(){return inner.maxLogTime();}
             public void close(){}
         };
         var topology=GraphMlParser.parse(Files.readString(Path.of("src/test/resources/topology/demo-quote-processor-noaudit.graphml")));
