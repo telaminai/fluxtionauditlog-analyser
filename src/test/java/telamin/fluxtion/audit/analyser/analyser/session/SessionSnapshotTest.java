@@ -179,4 +179,39 @@ class SessionSnapshotTest {
         assertEquals(List.of(), heard, "R4: and no listener heard of a change that no fact made");
     }
 
+    @Test
+    @DisplayName("O1: a listener that posts a fact does not make a later listener hear the older snapshot last")
+    void aListenerThatPostsDoesNotReorderDelivery() {
+        // witness: publishSnapshot's loop without the stop once a newer snapshot has been delivered
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        SessionDriver d = pairOpen(adapter, 1, 1);
+        List<String> delivered = new ArrayList<>();
+        var once = new java.util.concurrent.atomic.AtomicBoolean();
+        d.onSnapshot(s -> {
+            if (once.compareAndSet(false, true)) d.post(new SessionEvents.ViewFilterChanged("second"));
+        });
+        d.onSnapshot(s -> delivered.add(s.filterKey()));
+
+        d.post(new SessionEvents.ViewFilterChanged("first"));
+
+        assertEquals("second", d.snapshot().filterKey());
+        assertEquals("second", delivered.get(delivered.size() - 1),
+                "O1: the last snapshot a listener hears is the one in force: " + delivered);
+        assertFalse(delivered.contains("first") && delivered.indexOf("first") > delivered.indexOf("second"),
+                "O1: never an older one after a newer one: " + delivered);
+    }
+
+    @Test
+    @DisplayName("O2: the graph revision binds the facts the session holds — path, source, declared ids, node types")
+    void graphRevisionBindsTheHeldFactsNotContent() {
+        // pins the stated meaning (O2): an edge-only change is not seen, because the session is never told edges. A
+        // membership qualification depends only on declared ids, so it may stand; content identity is NOT claimed.
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        SessionDriver d = pairOpen(adapter, 1, 1);
+        long revision = d.snapshot().graphRevision();
+        d.submit(SessionFixtures.graph("/g.graphml", "OPENED", DECLARED, List.of("EventLogManager")));
+        assertEquals(revision, d.snapshot().graphRevision(), "the same held facts: the same revision, whatever the edges");
+        d.submit(SessionFixtures.graph("/g.graphml", "OPENED", Set.of("checked", "child"), List.of("EventLogManager")));
+        assertNotEquals(revision, d.snapshot().graphRevision(), "a declared id changed: a different revision");
+    }
 }

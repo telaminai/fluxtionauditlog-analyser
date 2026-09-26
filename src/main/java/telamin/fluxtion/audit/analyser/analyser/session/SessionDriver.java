@@ -215,7 +215,13 @@ public final class SessionDriver {
         SessionSnapshot next = SessionSnapshot.of(processor);
         if (next.equals(snapshot)) return;
         snapshot = next;
-        for (var listener : snapshotListeners) listener.accept(next);
+        for (var listener : snapshotListeners) {
+            // Independent review O1: a listener that posts a fact runs it as the next operation, which publishes a NEWER
+            // snapshot to every listener before this loop resumes. Carrying on with this older one would make every
+            // listener after it hear the older snapshot last. Once a newer one is out, this one is finished.
+            if (snapshot != next) return;
+            listener.accept(next);
+        }
     }
 
     /**
