@@ -64,6 +64,14 @@ non-empty destination is never merged or overwritten; and extraction is staged b
 then moved into place atomically. Archive mode bits are ignored—only the fixed root lifecycle allowlist
 (`mvnw`, run, export, stop and key-check shell wrappers) receives executable bits.
 
+A template's own project settings may only point inside the project being installed. Before the move, every
+source folder its profile names is checked: a folder outside the project (including one that leaves and comes
+back in through the archive's own folder name), the whole project, a `~` or absolute path, a path through a
+file, or a workspace anchor refuses the installation and nothing is installed. A folder that does not exist
+yet, such as a future `target/` directory, is allowed when it would sit inside the project. Maven repositories
+are not subject to this rule. Projects you set up yourself may still name folders outside the project on
+purpose, such as a neighbouring module.
+
 The analyser **does not run downloaded code**. When the project is ready it shows fixed, copyable build,
 run, export and stop commands selected from recognised filenames. You decide whether to paste them into
 a terminal. If the catalogue is unreachable, the error gives the manual template-gallery route instead

@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A downloaded template can only grant reads inside its own project.** Installing a template now refuses
+  it if its settings name a source folder outside the project, the whole project, a home or absolute path,
+  or a workspace anchor. Nothing is installed when that happens. Projects you set up yourself can still point
+  at folders outside the project, such as a neighbouring module.
+- **A graph opened with no log says it was not compared.** The Topology tab now states that nothing is shown
+  as matched or executed, instead of saying nothing, so a design-first look at a project (design, topology
+  and Java, no log) cannot be mistaken for a checked one.
+
 ## [1.20.1] - 2026-09-24
 
 - **An assistant can find its way around the new menus.** Pointing at a menu item that is not where it was asked

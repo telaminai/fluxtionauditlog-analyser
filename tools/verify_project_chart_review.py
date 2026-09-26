@@ -251,6 +251,8 @@ CASES.extend([
 # Menu discoverability after the 1.20.0 reorganisation: a miss says where the item went; context lists the menus.
 MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
+TEMPLATE_ARCHIVE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/template/TemplateArchive.java'
+TEMPLATE_ROOTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/TemplateRoots.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -267,6 +269,26 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
     ('context-menu-changes', MAIN_FRAME, '            out.put("menuChanges", MenuHints.changes(menuMap()));', '',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    # edit-loop spec §I1: a template profile may only grant reads inside the project it installs
+    ('template-root-install-check', TEMPLATE_ARCHIVE,
+     '            if (hasProfile) telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, profileInStage);\n', '',
+     'TemplateRootContainmentTest#aRootThatLeavesTheProjectIsRefused'),
+    # §I1: ../<archive-root>/… resolves inside staging and outside the installed project; only this rule refuses it
+    ('template-root-leading-parent', TEMPLATE_ROOTS,
+     '        if (normal.getName(0).toString().equals("..")) throw refuse(root, "leaves the project");\n', '',
+     'TemplateRootContainmentTest#aRootThatReentersThroughTheArchiveRootsOwnNameIsRefused'),
+    # §I1 / D3: src/.., . and ./ are the whole project, which containment alone would accept
+    ('template-root-whole-project', TEMPLATE_ROOTS,
+     '        if (normal.toString().isEmpty()) throw refuse(root, "is the project root itself, which would grant the whole project");\n', '',
+     'TemplateRootContainmentTest#aRootThatIsTheWholeProjectIsRefused'),
+    # §I1: the design-first tour's first step needs no log — requiring one must fail the no-log journey
+    ('no-log-design-open', MAIN_FRAME, '            return openDesign(path, () -> true);\n',
+     '            return store == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("open a log first") : openDesign(path, () -> true);\n',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
+    # §I1: with no log, the Topology tab must say the graph was not compared, not stay silent
+    ('no-log-pairing-note', MAIN_FRAME,
+     '            if (store == null) publishPairing();      // §I1: a graph opened with no log says it was not compared\n', '',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
 ]
 
 def display_classes(root=Path('.')):

@@ -279,7 +279,11 @@ public final class MainFrame extends JFrame {
         // node tooltips pick up the class javadoc when a source root reaches the class
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // one place remembers a loaded topology, whichever entry point loaded it
-        topologyPanel.onTopologyLoaded(f -> { rememberGraphml(f); compareGraphCopies(f); refreshProjectPanel(); });
+        topologyPanel.onTopologyLoaded(f -> {
+            rememberGraphml(f); compareGraphCopies(f);
+            if (store == null) publishPairing();      // §I1: a graph opened with no log says it was not compared
+            refreshProjectPanel();
+        });
         // the topology gets its own source viewer, sharing this service — so navigating from the graph
         // keeps the graph on screen instead of switching to the sibling Source tab
         topologyPanel.bindSource(sourceService);
@@ -4265,8 +4269,15 @@ public final class MainFrame extends JFrame {
      * M35.6 — push the verdict onto the Topology panel, where it stays. Called wherever
      * {@code lastPairing} changes, so the panel and {@code context} can never disagree.
      */
+    static final String NO_LOG_PAIRING_NOTE = "no log open — this graph is not compared with any run: nothing here is "
+            + "shown as matched or executed";
+
     private void publishPairing() {
-        if (!topologyPanel.hasGraph() || lastPairing == null) {
+        if (topologyPanel.hasGraph() && store == null && !loadInFlight) {
+            // edit-loop spec §I1: a graph opened with no log is the design-first tour's first step. Silence
+            // there read as "nothing wrong"; say plainly that nothing was compared, matched or executed.
+            topologyPanel.setPairingNote(NO_LOG_PAIRING_NOTE);
+        } else if (!topologyPanel.hasGraph() || lastPairing == null) {
             topologyPanel.setPairingNote(null);
         } else {
             topologyPanel.setPairingNote(lastPairing.applies()
