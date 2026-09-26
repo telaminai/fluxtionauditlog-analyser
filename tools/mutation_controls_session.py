@@ -255,4 +255,16 @@ CONTROLS = [
     ('set13-chart-series-agree', J + 'graph/SeriesScan.java',
      '            count++;\n            sum += v;', '            count += 2;\n            sum += v;',
      'ChartSeriesAgreementTest#theChartAndTheSeriesVerbCountTheSamePoints'),
+    # ---- re-review 2026-09-26 (93046a48, set 14): N1 and N2
+    ('review-n1-showall-in-preparation', UI + 'ActionExecutor.java',
+     '        if (params.containsKey("showAll") && bool(params.get("showAll"))) t.showAll();',
+     '        if (params.containsKey("showAll") && bool(params.get("showAll")) && t == topology) t.showAll();',
+     'TopologyWholeOrRefusedTest#aRefusedSaveAfterShowAllLeavesTheExistingFocus'),
+    ('review-n2-report-forces-locf', UI + 'ReportSeriesPicture.java',
+     '                    parsed.resolve());', '                    SeriesExtractor.Resolve.LOCF);',
+     'ReportSeriesCallTest#aStrictCallIsNotCarried'),
+    ('review-n2-report-drops-call-filter', UI + 'ReportSeriesPicture.java',
+     '                    parsed.filter(),',
+     '                    new telamin.fluxtion.audit.analyser.analyser.filter.FilterState(),',
+     'ReportSeriesCallTest#theCallFilterIsHonoured'),
 ]
