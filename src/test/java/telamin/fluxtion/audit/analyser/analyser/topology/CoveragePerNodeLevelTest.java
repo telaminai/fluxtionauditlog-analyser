@@ -24,6 +24,38 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class CoveragePerNodeLevelTest {
 
+    @Test
+    void annotationsRespectTheCapturedRowsAndTerminalBoundary() {
+        HeapLogStore inner = new HeapLogStore(control(1000, "riskMonitor", "WARN")
+                + plainRecord(1001) + control(1002, "riskMonitor", "INFO"));
+        var reads = new java.util.ArrayList<Integer>();
+        var bounded = new telamin.fluxtion.audit.analyser.analyser.parse.LogStore() {
+            public int size() { return inner.size(); }
+            public telamin.fluxtion.audit.analyser.analyser.index.LogIndex index() { return inner.index(); }
+            private void check(int row) {
+                assertTrue(row < 2, "annotation must not read beyond the captured bound: " + row);
+                reads.add(row);
+            }
+            public telamin.fluxtion.audit.analyser.analyser.model.LogRecord record(int row) { check(row); return inner.record(row); }
+            public String rawText(int row) { check(row); return inner.rawText(row); }
+            public Long minLogTime() { return inner.minLogTime(); }
+            public Long maxLogTime() { return inner.maxLogTime(); }
+            public java.util.List<Integer> runBoundaries() { return java.util.List.of(2, 3); }
+            public void close() { }
+        };
+        var topology = GraphMlParser.parse(resource("/topology/demo-quote-processor-noaudit.graphml"));
+        var result = CoverageService.assess(bounded, false, null,
+                new CoverageService.Input(topology, Scaffolding.authoredNodes(topology), null), 2);
+        assertEquals(2, result.echo().get("logRecords"), "coverage names the captured population");
+        assertEquals(1, java.util.Collections.max(reads), "control: the last included record was examined");
+        String note = annotations(result).get("riskMonitor");
+        assertNotNull(note, "the quiet node remains annotated within the bound");
+        assertTrue(note.contains("before the stream-end marker preceding record 3"),
+                "the boundary at the exclusive end closes the window: " + note);
+        assertFalse(note.contains("logTime 1002"), "the later restoration was not inspected: " + note);
+        assertFalse(note.contains("record 4"), "the boundary beyond the captured population is excluded: " + note);
+    }
+
     private static String resource(String path) {
         try (InputStream in = CoveragePerNodeLevelTest.class.getResourceAsStream(path)) {
             assertNotNull(in, "not in the test runtime: " + path);
