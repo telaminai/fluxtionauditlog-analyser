@@ -70,12 +70,12 @@ class NoLogDesignJourneyFrameTest {
             Path project = new TemplateArchive().install(springTemplate("src/main/java", DESIGN_ROOT), tmp.resolve("my-project")).projectRoot();
             onEdt(() -> { f.frame.setSize(1500, 950); f.frame.setVisible(true); f.frame.validate(); });
 
-            choose(f, "Project", "Open project…", project.resolve(".analyser/project.fluxtion-settings").toFile());
+            choose(f, "Project", "Open project…", "Open project", project.resolve(".analyser/project.fluxtion-settings").toFile());
             awaitContext(f, c -> String.valueOf(c.get("project")).contains("my-project"), "project opened");
 
             AtomicReference<String> before = new AtomicReference<>();
             onEdt(() -> before.set(f.status()));
-            choose(f, "Sources", "Open design…", project.resolve(DESIGN_ROOT + "/application-context.xml").toFile());
+            choose(f, "Sources", "Open design…", "Open design", project.resolve(DESIGN_ROOT + "/application-context.xml").toFile());
             // settle on either outcome — the design opened, or the status line changed to say why not — then assert
             // the design read directly, so a refusal fails HERE with its reason (PR #31 review, finding 6)
             var design = awaitContext(f, c -> c.get("design") instanceof Map<?, ?> d && d.get("file") != null
@@ -84,7 +84,7 @@ class NoLogDesignJourneyFrameTest {
             assertTrue(file != null && String.valueOf(file).endsWith("application-context.xml"),
                     "the design is read through the template's design root with no log open; status: " + f.status());
 
-            choose(f, "Sources", "Open GraphML…", project.resolve("src/main/resources/MarketProcessor.graphml").toFile());
+            choose(f, "Sources", "Open GraphML…", "Open processor GraphML", project.resolve("src/main/resources/MarketProcessor.graphml").toFile());
             var withGraph = awaitContext(f, c -> c.get("graphPairing") instanceof Map<?, ?>, "graph opened");
 
             AtomicReference<SourcePanel> beside = new AtomicReference<>();
@@ -132,7 +132,11 @@ class NoLogDesignJourneyFrameTest {
     // ---- driving the real menu items --------------------------------------------------------------------------
 
     /** Click Menu ▸ Item (it must be present and enabled with no log) and answer its file chooser with {@code file}. */
-    private static void choose(Frame f, String menu, String item, File file) throws Exception {
+    /**
+     * Click Menu ▸ Item and answer the chooser THAT CLICK opened: one not already showing before the click, whose
+     * title is {@code title}. A previous chooser still closing can no longer be matched (PR #31 re-review nit).
+     */
+    private static void choose(Frame f, String menu, String item, String title, File file) throws Exception {
         AtomicReference<JMenuItem> found = new AtomicReference<>();
         onEdt(() -> {
             JMenuBar bar = f.frame.getJMenuBar();
@@ -147,17 +151,19 @@ class NoLogDesignJourneyFrameTest {
         });
         assertNotNull(found.get(), menu + " ▸ " + item + " is on the menu bar");
         assertTrue(found.get().isEnabled(), menu + " ▸ " + item + " is enabled with no log open");
+        java.util.Set<Window> before = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        onEdt(() -> { for (Window w : Window.getWindows()) if (w.isShowing()) before.add(w); });
         SwingUtilities.invokeLater(found.get()::doClick);               // the chooser is modal: do not wait on it
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         JFileChooser chooser = null;
         while (chooser == null && System.nanoTime() < deadline) {
             Thread.sleep(20);
             AtomicReference<JFileChooser> seen = new AtomicReference<>();
-            onEdtLater(() -> { for (Window w : Window.getWindows()) if (w.isShowing() && w instanceof JDialog d) {
-                JFileChooser c = find(d.getContentPane()); if (c != null) seen.set(c); } });
+            onEdtLater(() -> { for (Window w : Window.getWindows()) if (w.isShowing() && w instanceof JDialog d && !before.contains(d)) {
+                JFileChooser c = find(d.getContentPane()); if (c != null && title.equals(c.getDialogTitle())) seen.set(c); } });
             chooser = seen.get();
         }
-        assertNotNull(chooser, menu + " ▸ " + item + " opened a file chooser");
+        assertNotNull(chooser, menu + " ▸ " + item + " opened a new \"" + title + "\" file chooser");
         JFileChooser c = chooser;
         onEdtLater(() -> { c.setSelectedFile(file); c.approveSelection(); });
     }
