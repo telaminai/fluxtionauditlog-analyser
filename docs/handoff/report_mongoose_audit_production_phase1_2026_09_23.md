@@ -752,6 +752,22 @@ moved above `noRecordKey`'s Javadoc.
 suites, **117 tests, 0 failures, 0 skips**. All nineteen `p15`–`p17` controls caught, byte-identical restores
 ([summary](evidence/mongoose-audit-production-impl/phase1-completion/rereview-controls-summary.txt)).
 
+**Merge of `main` (M68.7, PR #39) — `a978f7ec`**, re-verified by the reviewer: both CI frame lists at 23 suites with
+`IdentityMarkFrameTest` and `LogFindingsOnEverySurfaceFrameTest` in each; every control set kept; 193 anchors.
+
+**R2 — the load site for a set of one (P18 `daa7b5ef`, fix `7e08b82f`).** *Cause:* the store test calls
+`ProducerDiagnostics` with `set.emptyLogClaim()` directly, and for every single-file store `emptyLogClaim()` equals
+`streamEnd()`, so nothing failed if the frame's load site passed `loaded.streamEnd()` (X5). *Test:*
+`LogFindingsOnEverySurfaceFrameTest#aOneMemberSetOpenedInTheFrameIsWordedAsItsFile` — a report selected over an empty
+file, a zero-marker file opened as a set of one (`open {logs: [path]}`), a wait on frame fields (the store is a
+`RolledLogStore`, the findings object changed), then the first warning, the tooltip and the Reports tab all carry the
+ended sentence. *Control:* `p18-one-member-set-at-load-site`, red at "the frame's first warning is the file's own ended
+sentence: No records in this file yet…"; `p17-cold-open-passes-stream-end` and `p17-one-member-set-is-its-file` still
+caught. **No control at the Follow site, and that is not a gap:** only `HeapLogStore` follows, and its `emptyLogClaim()`
+IS its `streamEnd()`, so reverting that site is an equivalent mutation (the reviewer's X6). *Counts:* preflight **194**
+anchors, 23 suites; headless **2437 / 0 / 0 / 119** over 328 reports (one test added, a frame method); display 23 suites,
+**119 tests, 0 failures, 0 skips**. CHANGELOG unchanged — no user-visible behaviour moved.
+
 ## Tenth re-review — targeted acceptance of the ninth round
 
 Targeted tenth re-review `bcc2bef0` on `review/mongoose-tenth-rereview-2026-09-26`

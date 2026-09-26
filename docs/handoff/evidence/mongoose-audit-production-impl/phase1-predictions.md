@@ -611,3 +611,8 @@ preflight 23 suites, 193 anchors.
 4. **P18.4 — counts.** Preflight **194** anchors, 23 suites. Headless **2436 + 1** total, **118 + 1** skipped (one frame
    method), 328 reports. Display 23 suites, **119** tests, no failure. CHANGELOG unchanged: no user-visible behaviour moves.
 5. **P18.5 — CI** on the new head: build, `ui-frame` with 0 skips across 23 suites, `mutation-gate` with every control caught.
+
+**P18 outcome (recorded after the trials, `7e08b82f`).** Every prediction held. P18.1: the frame test passes. P18.2:
+`p18-one-member-set-at-load-site` red at the first-warning assertion (a failure); both p17 controls still caught. P18.3:
+no Follow-site control, the mutation being equivalent. P18.4: 194 anchors; 2437/0/0/119 over 328 reports; display 119
+tests, no skip; CHANGELOG untouched. P18.5 is CI's.
