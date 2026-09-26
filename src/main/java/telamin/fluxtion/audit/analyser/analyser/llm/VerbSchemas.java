@@ -16,9 +16,14 @@ public final class VerbSchemas {
     public static Map<String, Object> all() {
         Map<String, Object> s = new LinkedHashMap<>();
 
-        s.put("aggregate", schema("Read-only counts/rates over the log; never mutates the UI.",
+        s.put("aggregate", schema("Read-only counts/rates over the whole log; never mutates the UI. Answer "
+                        + "'how many' here: records you happened to read are only a sample. It returns counts, not "
+                        + "record positions; for 'when did X first happen', use series crossings instead.",
                 props(
-                        p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute"),
+                        p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute. "
+                                + "breach_count counts records where the application itself logged a breach flag "
+                                + "(a key ending in Breach, set true); a value exceeding a limit is not the same "
+                                + "thing"),
                         p("groupBy", enumStr("dimension", "thread", "hour", "minute", "day", "none"), "bucketing"),
                         p("filter", filterObject(), "optional scope for the aggregation"),
                         p("limit", integer(), "max buckets returned (default 500)")),
@@ -27,7 +32,9 @@ public final class VerbSchemas {
         s.put("series", schema("Read-only: stats and threshold crossings over any key or formula, "
                         + "computed in the analyser — ask 'where does X exceed Y' in ONE call instead of "
                         + "paging records. Crossings are edge events with recordIndex/byteOffset anchors "
-                        + "for a targeted 'read'; capped with an explicit truncated flag.",
+                        + "for a targeted 'read'; capped with an explicit truncated flag. When the application "
+                        + "reported an event is a crossing of the key it writes for that event (its flag or "
+                        + "counter), not the first time an underlying value passes a limit.",
                 props(
                         p("expr", string(), "a key (\"instanceId.key\") or a formula over keys, e.g. "
                                 + "\"ask.price - bid.price\""),
@@ -45,7 +52,8 @@ public final class VerbSchemas {
 
         s.put("read", schema("Read-only: the raw text of N records around an anchor, so you can seek the "
                         + "log through this socket without filesystem access. Max " + ReadService.MAX_COUNT
-                        + " records/call.",
+                        + " records/call. A window of records is a sample: do not count events or name a "
+                        + "'first' from it; use aggregate for counts and series crossings for positions.",
                 props(
                         p("recordIndex", integer(), "anchor by record index (0-based)"),
                         p("byteOffset", integer(), "anchor by byte offset (resolves to the containing "
