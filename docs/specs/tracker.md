@@ -542,8 +542,10 @@ node was absent from a graph that declares it, reported that faithfully, and the
 same packet shows a chart reporting no data where the series response yields a point, and a requested illustration
 missing from an export that reported success.
 
-**Independent review, 2026-09-26** (`0bb01fa8`): R1–R8 and the remaining implementable gaps are implemented on
-`feat/m44-single-state-session` and tracked under **M44.4r** below; not yet independently accepted.
+**Independent review, 2026-09-26** (`0bb01fa8`): R1–R8 and the remaining implementable gaps were implemented on
+`feat/m44-single-state-session` and are tracked under **M44.4r**. They were accepted by the two re-reviews, and
+merged to main with PR #25 on 2026-09-26. **The M68 items below stay open (◧):** merging put their code on main;
+it closed none of them. Q4 (partial delivery), Q5 and each slice's own stated gaps remain as written.
 
 Sibling of the tool-agreement spec, which governs agreement *between* tools. Distinct from the Mongoose audit
 format proposal, which governs how a producer writes and delivers its file; the two meet only at D-E9, the framing
@@ -1876,8 +1878,22 @@ of the originals is in `057a069a`.)*
         N1 accepted; the original N2 cases pass. F1 found a new literal-key-to-formula regression in N2;
         the owner authorised the reviewer to fix it on the review branch. Acceptance evidence and final gate
         results are recorded in that report; integration remains separate.
-    - ☐ **independent acceptance** of the rest is recorded in the re-review above; none is claimed here
-    - ☐ owner: Q4 partial delivery, Q5 saved names with `"`, O2 content identity (spec-evidence-integrity ▸ Open)
+      - ☑ impl (**reviewer-authored**, owner-authorised) · F1 a report `key` stays a literal `GraphKey` through
+        `SeriesScan.parseKeyCall`, with the shared scope/resolution parsing (`ed97f363`). **Checked by the
+        implementer, not independently reviewed:** `expr` unchanged, the value-sensitive test and its control
+        `review-n2-report-literal-key` re-run on the final tree.
+    - **Status at merge (2026-09-26):**
+      - **Implemented:** everything above.
+      - **Accepted:** R1–R4, R6–R8, O1 and set 13 (`93046a48`); N1 and the original N2 cases (`04174894`).
+      - **Not independently accepted:** F1's correction, which its reviewer wrote.
+      - **Merged to main via PR #25:** yes.
+      - **Still open:**
+        - [M44.4] §13's open acceptance (below);
+        - the owner decisions Q4 (partial delivery), Q5 (saved names with `"`) and O2 (graph-content identity),
+          none decided by this merge;
+        - the optional follow-ups: the empty series picture's "widen the filter" advice (review O1) and the lone-point
+          dot;
+        - the Mongoose integration, scheduled after this merge.
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button

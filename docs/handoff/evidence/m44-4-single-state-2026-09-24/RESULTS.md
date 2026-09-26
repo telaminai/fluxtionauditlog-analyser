@@ -312,3 +312,42 @@ where it used to become STRICT silently; that is a recorded behaviour change (CH
 - **`mkdocs build --strict`**, **`git diff --check`** and the sweep: clean.
 - **The re-review's probes on the fix:** see `fix14-probe/`. The direct probe is run as a copy that only drops the
   removed view-filter argument; the PDF probe is unchanged. The exported PDF was rendered page by page and inspected.
+
+## Status at merge (2026-09-26)
+
+**PR #25 is merged with the focused re-review's branch integrated.** The review commits `04174894` (review, evidence,
+predictions) and `ed97f363` (F1's correction) sit directly on the PR head `85a3f598`, and were fast-forwarded in
+unchanged. Every change in them concerns this PR's own N2 series section. There were no fixes for the separately
+scheduled Mongoose work to carry across.
+
+- **Implemented:** M44.4a–d; the review round R1–R8, O1 and O2; set 13; N1; N2; and F1.
+- **Accepted:**
+  - R1–R4, R6–R8, O1 and set 13, by `93046a48`;
+  - N1 and both original N2 counterexamples, by `04174894`.
+- **Checked but not independently reviewed:** F1 was authored by its reviewer, with the owner's authorisation. I
+  checked it on the final tree:
+  - `key` becomes a literal `Expr.Ref(GraphKey)` through `parseKeyCall`;
+  - `expr` still goes through the unchanged `parseCall(params)`;
+  - scope and resolution parsing is the one shared private method;
+  - `aLiteralKeyNeverBecomesAFormula` compares pixels against an independent chart at `(1000, 7)`, so a picture at
+    101 fails it;
+  - its control `review-n2-report-literal-key` was caught.
+- **Still open:**
+  - M44.4's §13 acceptance, in the tracker;
+  - the owner decisions Q4, Q5 and graph-content identity, none decided here;
+  - the optional presentation follow-ups: the empty series picture's filter advice (review O1) and the lone-point
+    dot;
+  - every M68 tracker item, which stays ◧;
+  - the Mongoose integration, which comes next.
+
+**Gates on the final tree `ed97f363`, JDK 21, run by me:**
+- **Headless `mvn clean test`: 2,211 / 0 / 0 / 101** over 301 mapped reports, no orphans.
+- **Frame suite, with `-Djava.awt.headless=false` directly: 102 / 0 / 0 / 1.** The skip is
+  `PersonAtTheScreenFrameTest#escapeWithTheSearchHistoryPopupFocused…`, whose assumption needs keyboard focus that
+  this display does not give. It skipped again when re-run alone. The zero-skip evidence is CI's `ui-frame` job,
+  which runs this suite under Xvfb and fails on any skip.
+- **`verify-m68-1-coverage.py`, on the built jar: 89 / 0**, scenarios 13, 17 and 18 included.
+- **Targeted controls:** `review-n2-report-literal-key`, `review-n2-report-forces-locf`,
+  `review-n2-report-drops-call-filter` and `review-n1-showall-in-preparation`. All 4 were caught in 14.0 s, with each
+  source restored byte-identical. No full mutation gate was run.
+- **`mkdocs build --strict`**, **`git diff --check`** and the sweep: clean, before commit.
