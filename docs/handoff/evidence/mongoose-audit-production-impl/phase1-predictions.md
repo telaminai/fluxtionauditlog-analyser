@@ -457,3 +457,42 @@ record in view is in a LATER run". `R8Review` and `R9Matrix` reproduce their rec
    matrix through its **offenders** assertion. `witness13.py` still holds all four of its controls.
 4. **P14.4 — suite.** Three new tests: 2107 → **2110**, skips 98. `MainFrame` untouched; `git status` clean after
    `mvn -q clean package`.
+
+## P15 · Phase-1 completion — D-MA0c, MA-0.5, MA-8's report path, MA-6.3 — recorded before any change
+
+Branch `feat/mongoose-audit-phase1-completion`, from `main` `14d04a2f` (1.22.0 released). One branch, one review, at
+the owner's request. Baseline `mvn -q clean package` on JDK 21: **2393 / 0 / 0 / 108** over 321 mapped reports, no
+orphans.
+
+**What each item means, read from the spec (`spec-mongoose-audit-production.md`), not from memory.**
+- **D-MA0c** — routing the empty-log finding to the report means routing **all** producer findings there. Three
+  report surfaces exist and none carries them: the PDF (`ReportRenderer`), the Reports tab's investigation report
+  (`ReportsPanel`) and the `report` verb's reply. (The tab's existing "Producer findings" sub-tab is M66's design
+  producer, a different thing; the new block is named **"Log findings"** so the two are not confused.)
+- **MA-0.5** (acceptance MA-0 #5, D-MA0d) — under Follow, an empty file opened before its first record shows the
+  finding, and it clears on **every** surface when a record arrives. The wording is about the file; V2 requires the
+  finding to read the same in Follow as on a cold open, so there is **one** wording for both: "No records in this
+  file yet." A pending frame under Follow stays **not** an empty log: a cold open of the same bytes reads that frame
+  as a record, and V2 lets the two differ only by that one pending document.
+- **MA-8's report path** — a report's coverage table carries the level-change annotations the `coverage` verb
+  already returns: each annotated uncovered node keeps `status: uncovered` (annotate, never excuse) and gains a
+  `levelChange` value, and the table's notes say what the annotations are and are not.
+- **MA-6.3** (and the fixture clauses MA-0 #7, MA-8 #6) — conformance fixtures run through both paths
+  (`FormatConformanceTest`): five of MA-0's six empty shapes (a marker declaring 0; zero bytes; whitespace only; two
+  empty marked segments; the empty export, which is zero bytes and so shares that fixture), MA-6's good / AFMT-3 /
+  good under a marker declaring 3, and MA-8's per-node level change. **The sixth empty shape, a rolled set whose
+  members are all empty, is not a single file**, so it stays a unit test, as C10/C14/C15 have no file. Each fixture's
+  semantic gets a mutation witness.
+
+1. **P15.1 — breakage.** The wording change breaks nothing: the two assertions on it test prefixes ("No records in
+   this file", "No rec…") that the new text keeps. Adding `producer` to the report echo, a callout to the PDF and a
+   column value to the coverage ledger breaks no existing assertion.
+2. **P15.2 — both paths agree** on every new fixture: record count, stream-end state, and the producer findings'
+   kinds, in order. c25/c26/c27/c28 raise `EMPTY_LOG`; c29 raises `NO_RECORD_KEY` with the state `complete, 3 of 3`;
+   c30 yields the same per-node annotation from both stores.
+3. **P15.3 — witnesses** (strict protocol, targeted, one per item): removing the PDF callout fails the renderer test;
+   removing the report echo's `producer` fails the frame test; removing the ledger's `levelChange` fails the coverage
+   report test; removing `EMPTY_LOG`, `noRecordKey` and the MA-8 parse each fail their fixture's test.
+4. **P15.4 — suite.** New tests: six fixtures, two renderer, two coverage-report, one frame test class (new, so both CI
+   display lists gain it). Headless **2393 + 10 ± 2**; the frame class runs only with a display. `MainFrame` changes,
+   so the display gate runs.
