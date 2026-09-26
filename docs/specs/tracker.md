@@ -1918,17 +1918,26 @@ of the originals is in `057a069a`.)*
 
   Each was caught by review and fixed call site by call site; this item removes the class.
 
-  **Inventory of replicated derived state** (read from `main` at `11029c92`; RAN only where marked):
+  **Inventory of replicated derived state** (read from `main` at `11029c92`). The two new drifts were witnessed
+  on a real display with a throwaway probe that asserted each defect exists; both passed. They are not committed:
+  a committed test that asserts a defect would be a test to delete, so each becomes a wrong-result witness in
+  this item's acceptance instead.
 
   | State (`MainFrame`) | Computed at | Read by | Drift found |
   |---|---|---|---|
   | `producerDiagnostics` | 3: close, load, Follow refresh | status bar, tooltip (2 sites), `context`, `report` reply, PDF, Reports tab (supplier + 3 refresh triggers) | **yes** — the five defects above, each fixed separately |
-  | `timeOrderReport` | 2: close, load (S3, reader and rolled-set loads) | status bar, `context.timeOrder`, the assistant's time-order note, a load dialog | **yes, by reading** — never recomputed on a Follow append, so violations in appended records are not reported and every surface keeps the load-time verdict |
-  | the status bar line | 4 composers: load, Follow start, two Follow ticks | the person | **yes, by reading** — the load line carries provenance and the time-order warning; `followStatusText` carries neither, so both vanish on the first Follow tick while `context` still states them |
+  | `timeOrderReport` | 2: close, load (S3, reader and rolled-set loads) | status bar, `context.timeOrder`, the assistant's time-order note, a load dialog | **yes, WITNESSED 2026-09-27** — never recomputed on a Follow append. A log in order (1000, 2000), followed, then 1500 appended: the row is indexed and a cold open of the same bytes reports the violation, but the followed session gives `context.timeOrder = null` and nothing on the status bar |
+  | the status bar line | 4 composers: load, Follow start, two Follow ticks | the person | **yes, WITNESSED 2026-09-27** — load line: `… · prod-EU-7 (unordered.yml) · ⚠ time-order violations (1) …`; after one Follow tick: `Following unordered.yml · 3 records · …`. Both are gone from the line while `context` still reports `timeOrder` and `provenance=prod-EU-7` |
   | `logProvenance` / `logProvenanceSource` | 3: close, load, project-environment match | `context`, Project panel, reports, status bar | **latent** — the session's `OpenLog.provenance` is set from the opener only and never hears the environment match. It has no reader today, so it is a dead duplicate, wrong the moment something reads it |
   | `loggedNodeSample`, `loggedSampleScanned`, `observedLevel` | frame, then posted in `LogAppended` | the session (pairing) | none — the frame is the producer and the session the owner; the frame does not read its copy back |
   | `flaggedRows` / `findings` | 7 paired sites | flags, reports | none — the invariant "a finding's row is flagged" is hand-kept at every site and holds today; low priority |
   | `followStreamEnd`, `followPendingChars` | the Follow refresh | the refresh gate | not state — change detectors; they go when the findings are a fact |
+
+  **Split, so the witnessed defects stop hurting before the graph work** (owner-reviewed suggestion, 2026-09-27):
+  *first*, a small surface fix — Follow appends re-run `TimeOrderValidator`, and the Follow status line carries
+  provenance and the time-order warning — with W1 and W2 as its wrong-result witnesses; *then* the snapshot move
+  below. The scans stay in the frame: the processor receives their RESULTS as facts and never walks the index on a
+  Follow tick.
 
   **Design — follow the M44 pattern, and say which parts go through the Fluxtion graph:**
   - **Through the graph** (session state, one owner). The FRAME keeps doing the scan (`ProducerDiagnostics.of`,
