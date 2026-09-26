@@ -311,6 +311,9 @@ changes it, so …" are unbounded in the same way.**
   grouping, record N, could not be read …".
 - **O7-1:** `of()` skips `record == null` before it can mark the row unreadable (`:139`). No current store reaches
   this. If a future store could return null, treat a row whose raw text names the control event as unreadable.
+- **O7-3, outside this round's diff:** `mvn -q clean package` rewrites the committed `dependency-reduced-pom.xml`,
+  adding `com.telamin:svc-admin-web:1.0.45`, so the committed copy is stale against `pom.xml` (RUN; I restored the
+  file and did not commit the rewrite). Regenerate and commit it, or stop tracking it.
 - **O7-2:** fix the report's two table phrasings, the "every branch phrasing reached" sentence, the status line at
   `:816`, and the tracker's suite count, as in 9.
 
