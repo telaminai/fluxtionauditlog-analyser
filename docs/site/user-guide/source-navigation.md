@@ -22,6 +22,15 @@ shown before. Clicking a node to open its class uses the processor as it is on d
 rename it opens the new class. Being current with disk is not the same as matching the run: the header's
 tooltip still reads **Source/run: unverified**, with the file and its SHA-256.
 
+Until a source pane has read the selected processor after a configuration change, the analyser does not
+read it on the window's own thread to answer other questions: `context` omits node types and says
+`processorModel: not yet read`, and a design bean without a class says `classLookup: processor source not yet
+read`. When two panes read the processor, the answer from the later request wins even if the earlier one
+arrives last. Source reads share a small pool, so a hung disk holds at most two threads; a read that times
+out says so in the pane, and a node you asked to open says why it did not. Ctrl-click on a type checks that
+it has source in the background. **Back** returns to the last file you actually saw: a "not found" pane is
+not added to the history.
+
 ## Spring design and file glances
 
 **Sources ▸ Open design…** selects the session's Spring XML. Add its directory to source roots first;

@@ -73,7 +73,12 @@ class JavaSourceSpotlightFrameTest {
         assumeFalse(GraphicsEnvironment.isHeadless());Path file=source(tmp);
         Files.writeString(file,"package com.acme;\npublic class Node {\n public OldType child;\n}\n");
         try(var f=new Frame(tmp)) {
-            show(f,tmp.resolve("src"));onEdt(()->{service(f).select("com.acme.Node");assertEquals("com.acme.OldType",service(f).fqnForInstance("child"));});
+            // PR #30 review, finding 2: the EDT no longer reads the processor to answer — until a read installs a
+            // model it is "not yet read". A spotlight read installs the OldType model first.
+            show(f,tmp.resolve("src"));onEdt(()->{service(f).select("com.acme.Node");
+                assertNull(service(f).fqnForInstance("child"),"the EDT does not read the processor");assertFalse(service(f).modelRead());});
+            assertTrue(f.ex.render("spotlight",Map.of("target",TARGET)).ok());
+            onEdt(()->assertEquals("com.acme.OldType",service(f).fqnForInstance("child"),"the spotlight's read installed the model"));
             Files.writeString(file,"package com.acme;\npublic class Node {\n public NewType child;\n}\n");
             var r=f.ex.render("spotlight",Map.of("target",TARGET));assertTrue(r.ok(),r.toMap().toString());
             onEdt(()->assertEquals("com.acme.NewType",service(f).fqnForInstance("child")));

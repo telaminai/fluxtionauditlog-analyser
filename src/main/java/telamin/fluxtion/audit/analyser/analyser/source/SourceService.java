@@ -25,6 +25,9 @@ public final class SourceService {
     private EventProcessorModel selectedModel;
     /** True once {@link #selectedModel} answers for the current selection, even when the answer is "none". */
     private boolean selectedModelKnown;
+    /** Sequence of the read whose model is installed; a read captured earlier never replaces it. */
+    private long installedSequence = -1;
+    private long readSequence;
 
     public void configure(List<String> roots, String selectedFqn) {
         configure(roots, selectedFqn, List.of(), false);
@@ -66,6 +69,10 @@ public final class SourceService {
     public Optional<EventProcessorModel> selectedModel() {
         if (selectedModelKnown) return Optional.ofNullable(selectedModel);
         if (selectedFqn == null) return Optional.empty();
+        // Edit-loop spec §C (PR #30 review, finding 2): the EDT never reads the processor. Until a pane installs
+        // a snapshot the model is "not yet read" — a context call or the design view says so rather than
+        // stalling on the filesystem or seeing a newer file than the pane shows. Background callers still read.
+        if (javax.swing.SwingUtilities.isEventDispatchThread()) return Optional.empty();
         Optional<String> src = sourceForFqn(selectedFqn);
         selectedModel = src.map(s -> EventProcessorModel.parse(selectedFqn, s)).orElse(null);
         selectedModelKnown = true;
@@ -79,7 +86,8 @@ public final class SourceService {
     }
 
     /** Captured on the EDT; the worker owns no mutable service or Swing state. */
-    public record Lookup(long generation, String selectedFqn, SourceRootResolver roots, MavenSourceResolver archives) {
+    public record Lookup(long generation, String selectedFqn, SourceRootResolver roots, MavenSourceResolver archives,
+                         long sequence) {
         public Optional<SourceDocument> freshDocumentForSpotlight(String fqn) {
             return freshDocument(fqn);
         }
@@ -90,8 +98,15 @@ public final class SourceService {
             Optional<SourceDocument> root = roots.document(fqn);
             return root.isPresent() ? root : archives.freshDocument(fqn);
         }
+        /** Whether {@code fqn} has source — a root file's existence, else an archive entry. Off the EDT. */
+        public boolean exists(String fqn) {
+            if (javax.swing.SwingUtilities.isEventDispatchThread())
+                throw new IllegalStateException("Source lookups must run off the EDT");
+            return roots.find(fqn).isPresent() || archives.freshDocument(fqn).isPresent();
+        }
     }
-    public Lookup captureLookup() { return new Lookup(generation, selectedFqn, resolver, maven); }
+    /** Captured on the EDT: the configuration it reads against, and its place in read order. */
+    public Lookup captureLookup() { return new Lookup(generation, selectedFqn, resolver, maven, ++readSequence); }
     public boolean isCurrent(Lookup lookup) { return generation == lookup.generation(); }
     /** Install the model parsed from the SAME snapshot rendered by an accepted plan. Never reread here. */
     public void acceptSpotlightModel(Lookup lookup, String fqn, EventProcessorModel model) {
@@ -104,8 +119,16 @@ public final class SourceService {
      */
     public void acceptModel(Lookup lookup, String fqn, EventProcessorModel model) {
         if (!isCurrent(lookup)) throw new IllegalStateException("Source configuration changed");
-        if (java.util.Objects.equals(fqn, selectedFqn)) { selectedModel = model; selectedModelKnown = true; }
+        if (!java.util.Objects.equals(fqn, selectedFqn)) return;
+        // Two panels share this service (PR #30 review, finding 1): a read captured earlier and landing later —
+        // the embedded pane stalled on the old file — must not replace the model a newer read installed.
+        if (lookup.sequence() < installedSequence) return;
+        installedSequence = lookup.sequence();
+        selectedModel = model; selectedModelKnown = true;
     }
+
+    /** True once the selected processor's model is known (installed from a read, or found absent). */
+    public boolean modelRead() { return selectedModelKnown; }
 
     /** FQN of the declared type of a node instanceId in the selected processor, or null. */
     public String fqnForInstance(String instanceId) {

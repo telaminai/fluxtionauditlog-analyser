@@ -231,6 +231,25 @@ public final class SourcePanel extends JPanel {
      */
     java.util.function.BiFunction<SourceService.Lookup, String, Optional<SourceDocument>> reader =
             SourceService.Lookup::freshDocument;
+    /** Whether a Ctrl-clicked type has source to open. */
+    java.util.function.BiFunction<SourceService.Lookup, String, Boolean> existence = SourceService.Lookup::exists;
+    private long typeClickTicket;
+
+    /**
+     * Open {@code fqn} if it has source (a Ctrl-clicked type). The check runs off the EDT (PR #30 review, finding
+     * 3): it used to read the whole file, then search source archives, on the EDT, only to test existence. A
+     * newer click or navigation in the meantime wins.
+     */
+    void openTypeIfPresent(String fqn) {
+        if (service == null || fqn == null) return;
+        long ticket = ++typeClickTicket;
+        SourceService.Lookup lookup = service.captureLookup();
+        var check = existence;
+        offEdt(() -> check.apply(lookup, fqn), present -> {
+            if (ticket == typeClickTicket && Boolean.TRUE.equals(present) && service.isCurrent(lookup)) openFqn(fqn);
+        }, failure -> { });
+    }
+
     /** How long a read may take before the pane says it gave up and ignores the late answer. */
     java.time.Duration readDeadline = java.time.Duration.ofSeconds(5);
 
@@ -244,7 +263,16 @@ public final class SourcePanel extends JPanel {
      * a pane switching to a new name shows no stale body under that name.
      */
     private void load(Pane pane, String fqn, Runnable then) {
+        load(pane, fqn, then, reason -> { });
+    }
+
+    /**
+     * As {@link #load(Pane, String, Runnable)}, with {@code gaveUp} told why when the read times out or fails —
+     * so a navigation waiting on it can say why it did not happen (PR #30 review, finding 5).
+     */
+    private void load(Pane pane, String fqn, Runnable then, java.util.function.Consumer<String> gaveUp) {
         if (service == null || fqn == null) return;
+        if (pane.pendingRead != null) pane.pendingRead.cancel(true);   // superseded: a queued read never runs
         long ticket = ++pane.readTicket;
         pane.reading = true;
         SourceService.Lookup lookup = service.captureLookup();
@@ -261,13 +289,18 @@ public final class SourcePanel extends JPanel {
             if (pane.readTicket != ticket) return;
             pane.readTicket++;                                   // the late answer is never installed
             pane.reading = false;
+            if (pane.pendingRead != null) pane.pendingRead.cancel(true);
             pane.label.setText(fqn + "  —  reading the file on disk timed out; "
                     + (pane.source.isEmpty() ? "nothing was read" : "the text below is unchecked"));
+            // the body must not go on saying "Reading …" under a header that says it gave up (finding 4)
+            if (pane.source.isEmpty()) pane.renderPlain("Timed out after " + readDeadline.toMillis() + " ms reading "
+                    + fqn + "; nothing was read. Navigate to it again to retry.");
+            gaveUp.accept("the read of " + fqn + " timed out");
         });
         deadline.setRepeats(false);
         deadline.start();
         var reads = reader;
-        offEdt(() -> {
+        pane.pendingRead = offEdt(() -> {
             Optional<SourceDocument> document = reads.apply(lookup, fqn);
             return new Read(document.orElse(null),
                     document.map(d -> EventProcessorModel.parse(fqn, d.text())).orElse(null));
@@ -284,13 +317,43 @@ public final class SourcePanel extends JPanel {
             pane.reading = false;
             pane.label.setText(fqn + "  —  could not read the file on disk: " + failure.getMessage()
                     + (pane.source.isEmpty() ? "" : "; the text below is unchecked"));
+            gaveUp.accept("the read of " + fqn + " failed: " + failure.getMessage());
         });
     }
 
-    /** The pane's read runs on the background pool and answers on the EDT — never on the EDT itself. */
-    private static <T> void offEdt(java.util.function.Supplier<T> work, java.util.function.Consumer<T> done,
-                                   java.util.function.Consumer<Throwable> failed) {
-        telamin.fluxtion.audit.analyser.analyser.core.Background.run(work, done, failed);
+    /**
+     * Source reads get their own small pool (PR #30 review, finding 4). A hung filesystem that ignores interrupts
+     * can hold at most these threads; further reads queue behind them, and a superseded or timed-out read is
+     * cancelled so it never runs. The shared background pool is unbounded, so each navigation would otherwise
+     * leave one more blocked thread behind.
+     */
+    private static final java.util.concurrent.ThreadPoolExecutor READS = readPool();
+
+    private static java.util.concurrent.ThreadPoolExecutor readPool() {
+        var count = new java.util.concurrent.atomic.AtomicInteger();
+        var pool = new java.util.concurrent.ThreadPoolExecutor(2, 2, 30, java.util.concurrent.TimeUnit.SECONDS,
+                new java.util.concurrent.LinkedBlockingQueue<>(), r -> {
+                    Thread t = new Thread(r, "analyser-source-read-" + count.incrementAndGet());
+                    t.setDaemon(true);
+                    return t;
+                });
+        pool.allowCoreThreadTimeOut(true);
+        return pool;
+    }
+
+    /** The pane's read runs on the source-read pool and answers on the EDT — never on the EDT itself. */
+    private static <T> java.util.concurrent.Future<?> offEdt(java.util.function.Supplier<T> work,
+                                                              java.util.function.Consumer<T> done,
+                                                              java.util.function.Consumer<Throwable> failed) {
+        Runnable task = () -> {
+            try {
+                T result = work.get();
+                SwingUtilities.invokeLater(() -> done.accept(result));
+            } catch (Throwable t) {
+                SwingUtilities.invokeLater(() -> failed.accept(t));
+            }
+        };
+        return READS.submit(task);
     }
 
     private void install(Pane pane, String fqn, Read read, SourceService.Lookup lookup) {
@@ -479,7 +542,8 @@ public final class SourcePanel extends JPanel {
         if (processor == null) { resolveInstance(instanceId, method); return; }
         // The node's class comes from the processor as it is on disk NOW: after a class rename, a model
         // cached from the old file would send this to the removed class (edit-loop spec §C).
-        load(processorPane, processor, () -> resolveInstance(instanceId, method));
+        load(processorPane, processor, () -> resolveInstance(instanceId, method),
+                why -> nodePane.label.setText("could not open node '" + instanceId + "': " + why));
     }
 
     private void resolveInstance(String instanceId, String method) {
@@ -538,6 +602,7 @@ public final class SourcePanel extends JPanel {
 
     private void navigate(String fqn, String method, Runnable instead) {
         if (service == null || fqn == null) return;
+        typeClickTicket++;                                        // a pending Ctrl-click check yields to this navigation
         boolean leavingFile = fileView != null;
         if (fileView != null) {
             backStack.push(new History(null, fileView)); fileView = null; backButton.setEnabled(true);
@@ -546,6 +611,8 @@ public final class SourcePanel extends JPanel {
         boolean newName = !Objects.equals(fqn, pane.fqn);
         // a miss is retried on every navigation — the roots may have changed since it was rendered — but
         // only a NEW name is history worth going back to
+        // History records files that were SHOWN. A pane showing a missing class (a "not found" placeholder) or a
+        // read still pending is not pushed: Back returns to the last file you actually saw (PR #30 review, 6).
         if (newName && pane.fqn != null && !leavingFile && !pane.source.isEmpty()) {
             backStack.push(new History(pane.fqn, null));
             backButton.setEnabled(true);
@@ -736,6 +803,7 @@ public final class SourcePanel extends JPanel {
         private SourceDocument snapshot;
         private long navigation;
         private long readTicket;
+        private java.util.concurrent.Future<?> pendingRead;
         private boolean reading;
 
         Pane(String role) {
@@ -845,7 +913,7 @@ public final class SourcePanel extends JPanel {
             // a Type -> open it if resolvable
             if (!ref.identifier().isEmpty() && Character.isUpperCase(ref.identifier().charAt(0))) {
                 String target = model.resolveSimpleType(ref.identifier());
-                if (target != null && service.sourceForFqn(target).isPresent()) openFqn(target);
+                if (target != null) openTypeIfPresent(target);
             }
         }
 

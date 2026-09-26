@@ -70,4 +70,24 @@ class SourceServiceTest {
         assertTrue(svc.sourceForFqn(PKG + ".DemoMarketMakerStrategy").isPresent());
         assertTrue(svc.sourceForFqn("com.acme.does.NotExist").isEmpty());
     }
+
+    /**
+     * PR #30 review, finding 2: after a configuration change the model is unknown; the EDT must not read the
+     * processor to find out (a context call or the design view would stall it, and could see a newer file than
+     * the pane shows). Off the EDT the lazy read remains.
+     */
+    @Test
+    void onTheEdtAnUnreadModelIsNotReadAndSaysSo(@TempDir Path tmp) throws Exception {
+        Path file = tmp.resolve("com/acme/generated/P.java");
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, "package com.acme.generated;\nimport com.acme.node.RiskCheck;\n"
+                + "public class P {\n    private final RiskCheck riskCheck = new RiskCheck();\n}\n");
+        SourceService svc = new SourceService();
+        svc.configure(List.of(tmp.toString()), "com.acme.generated.P");
+        String[] onEdt = new String[1]; boolean[] read = new boolean[1];
+        javax.swing.SwingUtilities.invokeAndWait(() -> { onEdt[0] = svc.fqnForInstance("riskCheck"); read[0] = svc.modelRead(); });
+        assertNull(onEdt[0], "the EDT must not read the processor to answer: the model is not yet read");
+        assertFalse(read[0], "and the service says so");
+        assertEquals("com.acme.node.RiskCheck", svc.fqnForInstance("riskCheck"), "off the EDT the lazy read remains");
+    }
 }

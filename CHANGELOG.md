@@ -11,6 +11,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   that node could still land on the removed class. Every navigation now re-reads the file, reopening a log
   or graph rechecks both source panes, and node navigation uses the processor as it is on disk. Reads run in
   the background with a visible "not yet rechecked" state, so a slow disk no longer freezes the window.
+- **Source panes no longer let an older read win, and a hung disk cannot pile up threads.** With both source
+  panes reading the processor, an older read that arrived last could put back the pre-rename model; the later
+  request now always wins. `context` and the design view no longer read the processor on the window's thread
+  (they say "not yet read" instead), Ctrl-click checks existence in the background, a timed-out read says so in
+  the pane body, a node that could not open says why, and at most two threads wait on a hung disk.
 
 ## [1.20.1] - 2026-09-24
 
