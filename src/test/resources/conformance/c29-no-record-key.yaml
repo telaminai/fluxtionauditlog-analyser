@@ -1,0 +1,21 @@
+---
+#00:00:00.000 [main] INFO L
+eventLogRecord:
+  logTime: 1000
+  event: PriceEvent
+  nodeLogs:
+    - priceHandler: { price: 195.30}
+---
+mainonPriceEventPriceEvent{symbol=AAPL, price=195.31}195.31200
+---
+#00:00:00.002 [main] INFO L
+eventLogRecord:
+  logTime: 1002
+  event: PriceEvent
+  nodeLogs:
+    - priceHandler: { price: 195.32}
+---
+eventLogRecord:
+  streamEnd: normal
+  streamEndRecords: 3
+---

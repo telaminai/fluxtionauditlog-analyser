@@ -212,6 +212,16 @@ public final class RolledLogStore implements LogStore {
                 members.get(worstIndex).size(), firstRow[worstIndex]);
     }
 
+    /**
+     * A set of ONE file is that file for the empty-log sentence (targeted re-review of PR #40, optional 2): its index
+     * counts one file, so the finding says "this file", and it must then say what that file's marker says — the same
+     * sentence the file gets when opened on its own. The SET's own claim, {@link #streamEnd()}, stays UNKNOWN.
+     */
+    @Override
+    public StreamEnd emptyLogClaim() {
+        return members.size() == 1 ? members.get(0).streamEnd() : streamEnd();
+    }
+
     /** True when every member carries a marker that checks out — worth SAYING, never worth believing. */
     private boolean everyMemberIsWhole() {
         if (members.isEmpty()) return false;

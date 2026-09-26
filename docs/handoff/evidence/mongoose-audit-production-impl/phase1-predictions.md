@@ -457,3 +457,162 @@ record in view is in a LATER run". `R8Review` and `R9Matrix` reproduce their rec
    matrix through its **offenders** assertion. `witness13.py` still holds all four of its controls.
 4. **P14.4 — suite.** Three new tests: 2107 → **2110**, skips 98. `MainFrame` untouched; `git status` clean after
    `mvn -q clean package`.
+
+## P15 · Phase-1 completion — D-MA0c, MA-0.5, MA-8's report path, MA-6.3 — recorded before any change
+
+Branch `feat/mongoose-audit-phase1-completion`, from `main` `14d04a2f` (1.22.0 released). One branch, one review, at
+the owner's request. Baseline `mvn -q clean package` on JDK 21: **2393 / 0 / 0 / 108** over 321 mapped reports, no
+orphans.
+
+**What each item means, read from the spec (`spec-mongoose-audit-production.md`), not from memory.**
+- **D-MA0c** — routing the empty-log finding to the report means routing **all** producer findings there. Three
+  report surfaces exist and none carries them: the PDF (`ReportRenderer`), the Reports tab's investigation report
+  (`ReportsPanel`) and the `report` verb's reply. (The tab's existing "Producer findings" sub-tab is M66's design
+  producer, a different thing; the new block is named **"Log findings"** so the two are not confused.)
+- **MA-0.5** (acceptance MA-0 #5, D-MA0d) — under Follow, an empty file opened before its first record shows the
+  finding, and it clears on **every** surface when a record arrives. The wording is about the file; V2 requires the
+  finding to read the same in Follow as on a cold open, so there is **one** wording for both: "No records in this
+  file yet." A pending frame under Follow stays **not** an empty log: a cold open of the same bytes reads that frame
+  as a record, and V2 lets the two differ only by that one pending document.
+- **MA-8's report path** — a report's coverage table carries the level-change annotations the `coverage` verb
+  already returns: each annotated uncovered node keeps `status: uncovered` (annotate, never excuse) and gains a
+  `levelChange` value, and the table's notes say what the annotations are and are not.
+- **MA-6.3** (and the fixture clauses MA-0 #7, MA-8 #6) — conformance fixtures run through both paths
+  (`FormatConformanceTest`): five of MA-0's six empty shapes (a marker declaring 0; zero bytes; whitespace only; two
+  empty marked segments; the empty export, which is zero bytes and so shares that fixture), MA-6's good / AFMT-3 /
+  good under a marker declaring 3, and MA-8's per-node level change. **The sixth empty shape, a rolled set whose
+  members are all empty, is not a single file**, so it stays a unit test, as C10/C14/C15 have no file. Each fixture's
+  semantic gets a mutation witness.
+
+1. **P15.1 — breakage.** The wording change breaks nothing: the two assertions on it test prefixes ("No records in
+   this file", "No rec…") that the new text keeps. Adding `producer` to the report echo, a callout to the PDF and a
+   column value to the coverage ledger breaks no existing assertion.
+2. **P15.2 — both paths agree** on every new fixture: record count, stream-end state, and the producer findings'
+   kinds, in order. c25/c26/c27/c28 raise `EMPTY_LOG`; c29 raises `NO_RECORD_KEY` with the state `complete, 3 of 3`;
+   c30 yields the same per-node annotation from both stores.
+3. **P15.3 — witnesses** (strict protocol, targeted, one per item): removing the PDF callout fails the renderer test;
+   removing the report echo's `producer` fails the frame test; removing the ledger's `levelChange` fails the coverage
+   report test; removing `EMPTY_LOG`, `noRecordKey` and the MA-8 parse each fail their fixture's test.
+4. **P15.4 — suite.** New tests: six fixtures, two renderer, two coverage-report, one frame test class (new, so both CI
+   display lists gain it). Headless **2393 + 10 ± 2**; the frame class runs only with a display. `MainFrame` changes,
+   so the display gate runs.
+
+**P15 outcome (recorded after the trials, `25d031e1`).** P15.1 **wrong** — one existing test,
+`CoveragePerNodeLevelTest.levelChangesNeverMoveTheDenominatorOrTheLedger`, compared whole ledger rows and failed on the
+new field; narrowed, not deleted. P15.2 held. P15.3 held, eight of eight, plus one witness P15 did not foresee: the
+frame test found the Follow status line dropping the warning, and removing the fix fails it. P15.4 held: 2405/0/0/110,
+2393 + 12. The display gate ran 110 frame tests with no failure and one skip that `main` shows too on this desktop.
+
+## P16 · Review of phase-1 completion — protection for D-MA0c, registered controls, five optional items — recorded before any change
+
+Review of `14d04a2f..ce2bfa0c` accepted the behaviour and refused the merge: three things D-MA0c depends on have no
+regression (the frame's PDF path, H1; the Reports tab refresh on load, H2, and on Follow, H3), and none of the eight
+witnesses is in the CI gate. Nothing below has been run when this is committed. Read before writing: `PdfDoc` writes
+text uncompressed (`(…) Tj`, only `—`/quotes/ellipsis substituted), so ASCII assertions on the bytes are sound;
+`report {path}` goes through `MainFrame.renderReportPdf` once the frame's config allows assistant exports;
+`awaitLoaded` calls `context`, so a test that must make no verb call between a load and a read waits on frame fields.
+
+1. **P16.1 — H1.** A frame test exporting through `report {path}` finds `LOG FINDINGS` and "No records in this file
+   yet." in the PDF over an empty followed file, and neither after a record arrives. With `renderReportPdf` passing
+   `null`, it fails at the assertion that the exported PDF carries the findings.
+2. **P16.2 — H2 and H3.** Reading the tab with no verb between: after a Follow poll that adds a record, the banner is
+   gone; after opening c29's file while the tab shows a report made over an empty file, the tab names the record with
+   no record key. Removing the load refresh fails the load test; removing the Follow refresh fails the Follow test —
+   each at its named assertion. **Risk named:** if some other listener re-renders the tab on load (a session
+   snapshot, a tab selection), H2 still survives, and this prediction is wrong.
+3. **P16.3 — registration.** All eight `witness15.py` controls plus H1, H2, H3 and the optional items' controls (H4,
+   V2's pending frame, the empty-log wording, the tab's note styling) go into `tools/mutation_controls_session.py`:
+   **fifteen** new entries, the preflight anchor count rises by fifteen, and each anchor occurs exactly once.
+4. **P16.4 — item 5.** The tightened MA-8.2 test passes; H4 (the note on every uncovered row) fails it.
+5. **P16.5 — item 6.** Comparing messages as well as kinds passes all 34 conformance tests. **No production control
+   exists for it**: both paths build findings with the same `ProducerDiagnostics`, and no fixture carries a path-only
+   diagnostic, so a mutation that changes wording changes it on both paths. It is protection against a future
+   divergence, and is recorded as a test change without a witness.
+6. **P16.6 — item 7.** The V2 test on the status bar, the tooltip and the `report` reply passes; firing `EMPTY_LOG`
+   despite a pending frame fails it.
+7. **P16.7 — item 8.** The wording is chosen from the shape, one per shape: a file whose marker says it ended with zero
+   records (c25, c26) no longer says "yet" or "buffering"; a rolled set of empty members (through `RolledLogStore`)
+   is named as a set of files; zero bytes and whitespace keep "No records in this file yet.". Cold open and Follow
+   still agree, because both pass the same stream-end state. Existing assertions on the prefix
+   (`EmptyLogAndRecordKeyDiagnosticsTest`, `BinaryAuditReaderTest`) still hold; the conformance prefix check is
+   updated per fixture. Control: the wording that ignores the state fails c25.
+8. **P16.8 — item 9.** A note-only set on the Reports tab is drawn muted, like the PDF; a warning set keeps the warning
+   banner. Control: drawing a note-only set as a warning fails the new panel test.
+9. **P16.9 — suite.** Headless **2405 + 4 ± 2**; skips **110 + 3** (three new frame methods). Display: 22 suites, the
+   new methods included, no failure; the `PersonAtTheScreenFrameTest` focus skip may recur locally.
+10. **P16.10 — main.** PR #40 is CONFLICTING against `main` 1.22.1, and a conflicting PR does not run CI, so `main` is
+    merged INTO this branch (never the reverse). Only `CHANGELOG.md` conflicts: kept both, main's 1.22.1 section intact,
+    this branch's lines under `[Unreleased]`.
+11. **P16.11 — CI.** Build green; `ui-frame` under Xvfb green with **zero skips** — the local focus skip does not recur
+    there; `mutation-gate` green over the full gate, the new controls included.
+
+**P16 outcome (recorded after the trials, `7bc54231`).** P16.1 held. P16.2 **half wrong**: H2 held; H3 as the review
+stated it (a record appended) SURVIVED, because an append re-renders the tab through `onFilterChanged` — the named risk,
+from the other side — and the test now drives a change that adds no record. P16.3 **wrong by one**: sixteen controls,
+not fifteen (the rolled-set wording has its own); preflight 167 → 183, each anchor once. P16.4 held. P16.5 held — 34/34
+with messages compared, no control. P16.6 held, red at the status bar. P16.7 held. P16.8 held. P16.9 **wrong on the
+total**: this branch's own +4 headless and +3 skipped are as predicted, but the merge of `main` 1.22.1 added 15 tests and
+2 skips the prediction did not count — 2427/0/0/115. Display: 115 frame tests, no skip. P16.10 held (CHANGELOG only).
+P16.11 held: on PR #40 (`2d9cd4f9`) build, `ui-frame` under Xvfb and the full `mutation-gate` all pass.
+
+## P17 · Targeted re-review of PR #40 — R1 (V2 at the Follow call site) and three optional items — recorded before any change
+
+The re-review (range `ce2bfa0c..2d9cd4f9`) accepted everything but one test-only gap: nothing fails if the Follow call
+site passes `null` for the stream-end claim (X4). Read before writing, run nothing: a one-member rolled set CAN be
+opened — `open {logs: [one path]}` reaches `RollSetResolver.resolve` (`ActionExecutor` `:1151` → `openLogs`) with no
+count check, and `RolledLogStore` already words its completeness for one member (`:257`). The COLD-OPEN call site has the
+same gap as X4: nothing in the frame fails if it passes `null` either.
+
+1. **P17.1 — R1.** A frame test follows an empty unmarked file, appends a marker declaring zero, and polls once. The
+   followed first warning EQUALS a cold open's of the same bytes (`new HeapLogStore(…)`), and IS the
+   `EMPTY_FILE_ENDED` sentence; the status tooltip and the Reports tab (a report selected beforehand) carry it, read with
+   no verb between. X4 fails it at the V2 equality, not an error or a skip.
+2. **P17.2 — the cold-open call site**, not named by the review: a frame test cold-opens a marked-empty file and the
+   tooltip carries the ended sentence; the same `null` mutation at that site fails it. One more control.
+3. **P17.3 — optional 1.** `aRecordStillBeingWrittenIsNotAnEmptyFile` creates its report first, so its first tab read is
+   real; it still passes, and `p16-v2-pending-frame-is-not-empty` now goes red at THAT line rather than the status bar.
+4. **P17.4 — optional 2.** Taken. The claim an empty-log sentence reads is the one FILE's when there is one: a
+   `LogStore` method, defaulting to `streamEnd()`, that `RolledLogStore` overrides for a single member — `streamEnd()`
+   itself is untouched, because a rolled set is never reported complete. Both frame call sites pass it, so **the X4 anchor
+   changes** from `store.streamEnd()` to that method; the control is the same mutation (`null`) on the new text. A test
+   through `RolledLogStore` gets the ended sentence for a one-member set whose file declares zero, equal to the file
+   opened alone. One more control.
+5. **P17.5 — optional 3.** The three constants and `emptyLogMessage` move above `noRecordKey`'s Javadoc; no behaviour.
+6. **P17.6 — anchors.** Preflight **186** = 183 + X4 + the cold-open site + the one-member set. Each once.
+7. **P17.7 — controls.** The three new ones caught at their named assertions; the sixteen `p15-*`/`p16-*` still caught.
+8. **P17.8 — suite.** Headless **2427 + 1** run (the `RolledLogStore` test) and **115 + 2** skipped (two frame methods),
+   326 reports, no new class. Display: 22 suites, **117** tests.
+9. **P17.9 — CI** on the new head: build, `ui-frame` with no skip, `mutation-gate` with every control caught.
+
+**P17 outcome (recorded after the trials, `bbb286fe`).** Every prediction held. P17.1: R1's test passes and X4 is red at
+the V2 equality (a failure, not an error). P17.2: the cold-open site's `null` is red at "the frame's cold open words it as
+the store does". P17.3: `p16-v2` moved its red line to the tab read, as predicted. P17.4: a one-member set opens through
+`open {logs: [...]}`; fixed through `emptyLogClaim()`, X4's anchor moved with it. P17.5: Javadoc moved, no behaviour.
+P17.6: 186 anchors. P17.7: 3 + 16 caught. P17.8: 2430/0/0/117, 326 reports; display 117 tests, no skip. P17.9 is CI's.
+
+## P18 · R2 of the targeted re-review of PR #40 — the frame's load site for a one-member set — recorded before any change
+
+The re-review closed R1 (the conflict with main, `a978f7ec`) and found one gap: nothing fails if the frame's LOAD site
+passes `loaded.streamEnd()` instead of `loaded.emptyLogClaim()` (X5). The store test calls `ProducerDiagnostics`
+directly, and for a single-file store the two methods are equal, so the cold-open test cannot tell them apart. Baseline
+at `a978f7ec` (main's M68.7 included): headless **2436 / 0 / 0 / 118** over 328 reports; display 23 suites, 118 tests;
+preflight 23 suites, 193 anchors.
+
+1. **P18.1 — the test.** `LogFindingsOnEverySurfaceFrameTest#aOneMemberSetOpenedInTheFrameIsWordedAsItsFile`: a report is
+   selected over an empty file first; a file holding only a zero-count marker is opened as a set of one
+   (`open {logs: [path]}`); the test waits on frame fields — the store is a `RolledLogStore` and the findings object has
+   changed — never on a verb; then the first warning starts with `EMPTY_FILE_ENDED`, and the status tooltip and the
+   Reports tab carry it. It passes on the real code.
+2. **P18.2 — the control.** `p18-one-member-set-at-load-site` (the load site's `emptyLogClaim()` → `streamEnd()`) fails
+   that test at its first-warning assertion — a failure, not an error or a skip. `p17-cold-open-passes-stream-end` and
+   `p17-one-member-set-is-its-file` still hold.
+3. **P18.3 — no control at the Follow site.** Only `HeapLogStore` follows, and its `emptyLogClaim()` IS its `streamEnd()`,
+   so reverting that site is an equivalent mutation (the reviewer's X6). Stated, not run.
+4. **P18.4 — counts.** Preflight **194** anchors, 23 suites. Headless **2436 + 1** total, **118 + 1** skipped (one frame
+   method), 328 reports. Display 23 suites, **119** tests, no failure. CHANGELOG unchanged: no user-visible behaviour moves.
+5. **P18.5 — CI** on the new head: build, `ui-frame` with 0 skips across 23 suites, `mutation-gate` with every control caught.
+
+**P18 outcome (recorded after the trials, `7e08b82f`).** Every prediction held. P18.1: the frame test passes. P18.2:
+`p18-one-member-set-at-load-site` red at the first-warning assertion (a failure); both p17 controls still caught. P18.3:
+no Follow-site control, the mutation being equivalent. P18.4: 194 anchors; 2437/0/0/119 over 328 reports; display 119
+tests, no skip; CHANGELOG untouched. P18.5 is CI's.

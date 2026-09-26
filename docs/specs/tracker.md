@@ -182,18 +182,7 @@ still to do.
   threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
   index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
   must not be merged; its own entry records the detail.
-- **[MA-0] ◧ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
-  the only one here._ Every empty shape returns from `ProducerDiagnostics` before any check, so an empty
-  log raises nothing, marked or unmarked. A **finding**, never a seventh state; keyed on zero records only
-  (the quiet-level case is already caught by `ONLY_CONTROL_EVENTS`). Acceptance and the six-case table are
-  in the spec, adopted from review's run on the published 1.19.0 jar.
-  **PHASE 1 DONE, two clauses open:** the finding fires for all six shapes and an empty file now opens by
-  extension. **D-MA0c** (findings reach the report surface — `ReportRenderer` carries none) and **MA-0.5**
-  (the Follow path) are NOT done. The end-to-end claim is also narrower than it sounds: the tests drive
-  `ReaderRegistry.readerFor`, not `MainFrame.loadFile`.
-  [Phase 1 report](../handoff/report_mongoose_audit_production_phase1_2026_09_23.md).
-  **Phase 1 SHIPPED in analyser 1.22.0 (2026-09-26)**, after ten review rounds and the integration review
-  onto M44.4/M68 (PR #34). D-MA0c and MA-0.5 above remain open; shipping closes neither.
+- **[MA-0] ☑ — SHIPPED in 1.23.0** · moved to [the completed tracker](completed/tracker.md) ("MA-0 · MA-8 · … SHIPPED in 1.23.0").
 - **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
   processor with no `EventLogManager`** — including **AOT processors built without audit**, the
   low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);
@@ -223,7 +212,9 @@ still to do.
   on AFMT-3.**
   **READER HALF DONE in phase 1**, keyed on **framing** — the first non-blank, non-comment line — not on a
   substring search, which was a V1 hole review found: a headerless document that merely mentioned the key
-  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) is open.
+  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) **DONE — merged to `main`
+  2026-09-26 (PR #40), released in 1.23.0:** c25–c30 through both paths, and both paths must agree on the producer
+  findings, kind and message, for every fixture.
   **Reader half SHIPPED in analyser 1.22.0 (2026-09-26).**
 - **[MA-7] ◧ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
   finding in this spec. An event `toString()` carrying a line that **trims to** `---` — space, tab or CR,
@@ -241,19 +232,7 @@ still to do.
   the published 1.19.0 analyser jar: benign and hostile payloads both read `records=3, complete, 3 of 3`,
   with the indented, tab, CR and node-value variants covered. **The writer half and moving framing into
   core are phase 2.**
-- **[MA-8] ◧ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
-  sibling._ A node at `WARN` runs but reads as never logged, and the control record naming its
-  `sourceId` and level is in the log. Measured: `complete`, 6 of 6, no findings, zero entries for a node
-  that ran three times. Coverage must say why it is silent instead of listing it as uncovered.
-  **PHASE 1 DONE:** `PerNodeLevelChanges` reads the level changes a log states about itself and
-  `CoverageService` annotates uncovered nodes with them — **annotate, never excuse** (the node stays in
-  the ratio), read **unfiltered**, keyed on the event TYPE. **Reworked after the independent review
-  (2026-09-24):** intervals are by record ORDER, closed by the next per-node or global change, empty
-  selections explained by nothing, run boundaries qualified; and a change applies by the RUNTIME's rule —
-  `groupId` gates it against the processor's `groupingId`, it is not node membership (the phase-1 reading
-  was inferred and wrong). **Coverage annotation SHIPPED in analyser 1.22.0 (2026-09-26); MA-8's report
-  path is open.** Review found four surviving
-  mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
+- **[MA-8] ☑ — SHIPPED in 1.23.0** · moved to [the completed tracker](completed/tracker.md) ("MA-0 · MA-8 · … SHIPPED in 1.23.0").
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
   one reads `complete` with no finding. **Cause NOT established.** **The tracker repro is stale** — it
@@ -323,11 +302,10 @@ still to do.
   Suite 2110/0/0/98. **Still open:** whether a deployed plugin returns a null record; the producer's one-processor-
   per-grouping statement (owner). **Independently accepted** by a targeted tenth re-review (`bcc2bef0`, scope
   `8a35a988..d8bb6e3c` only): R9-1–R9-3 and O9-1 closed, no required correction, 2110/0/0/98 and all eight controls
-  reproduced. **Phase 1's analyser review loop is closed; merge awaits the owner.** Before merge: open a pull request
-  so CI's `ui-frame` job runs on this branch for the first time, and merge with the personal identity. **Agreed open,
-  not closed by any review:** D-MA0c (findings on the report surface), MA-0.5 (the Follow path), MA-8's report
-  path, MA-6.3 (conformance fixtures), MA-5.7 (every-backend contract), deployed-plugin null-record behaviour, and the
-  producer's one-processor-per-grouping premise (owner). **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  reproduced. **Phase 1's analyser review loop is closed** — merged (PR #34) and released in 1.22.0. **Its four agreed
+  open clauses — D-MA0c, MA-0.5, MA-8's report path, MA-6.3 — are DONE and merged to `main` 2026-09-26 (PR #40,
+  `4060684e`), released in 1.23.0.** **Still open:** MA-5.7 (every-backend contract), deployed-plugin null-record
+  behaviour, and the producer's one-processor-per-grouping premise (owner). **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and
@@ -654,17 +632,20 @@ those seams, so the order below groups by what a single change set can close.
 people and two unblock nobody, and a session handed a list will naturally start with the concrete reproducible
 defects rather than the policy work.
 
-1. **The new-node stub policy (BETA-B2).** Nothing in the beta can be judged until it lands, because the central task
-   measures the tester rather than the product without it.
-2. **SG-2, the hosted download — part done.** Acquisition, setup and validation are closed on the real hosted
+1. **G14**, the acceptance run from a real download — **moved to the front by the owner, 2026-09-26.** Its analyser
+   conditions are met: M68.7's chart mark is released in 1.23.0, and the report question is answered (option A: only a
+   marked live chart qualifies). **What remains:** the harness, PR #37 (re-review of its fixes, plus pass condition 3
+   reworded for option A), and the playground bundle's pins (mongoose 1.0.30, analyser 1.23.0) so the public download it
+   acquires carries both. A G14 run exercises the hosted changed-graph step that SG-2 still lists; it does not close SG-2
+   by itself.
+2. ~~**The new-node stub policy (BETA-B2).**~~ **Done** — shipped in starter 1.0.74 (BETA-B2 ☑ above); this line was
+   out of date.
+3. **SG-2, the hosted download — part done.** Acquisition, setup and validation are closed on the real hosted
    archive; **changed-graph generation and run on that archive are not.** The template choice can now be argued on
    merit rather than by elimination, which was the point of this item, but the guided path is not yet proven true
    for the hosted route end to end. What remains is a single acceptance naming the hosted template.
-3. **The jars**, built once for both BETA-B4 and M67.1.
-4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
-5. **G14**, the acceptance run from a real download, once the rest is in — **and after M68.7 marks the charts**
-   (owner, Q4, 2026-09-26): G14's pass condition lands on the chart surface. **Also before G14: the owner settles how
-   its "chart or report" alternative is assessed** (M68.7's entry lists the four distinctions).
+4. **The jars**, built once for both BETA-B4 and M67.1.
+5. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
 
 **One decision is the owner's and must be settled before the work starts, not invented during it: what does a newly
 generated node log?** Too much costs allocation and dispatch time in a runtime that sells zero allocation, and fills
@@ -849,9 +830,9 @@ verdict, which is owned jointly.
   a named assertion. The detail pane's mark does not gate G14.
   **Status, three separate facts.** *Review:* accepted at `bc16193c` (focused re-review,
   `review/m68-7-identity-mark-2026-09-26`, after the first review `34f4d800` and its R1 fix). *Implementation:*
-  **merged to main 2026-09-26 as `e02418a8`** (PR #39, approved head `97fa0b46`). *Release:* **not yet released** —
-  no published analyser carries M68.7 until the next release, and G14 tests a published artefact, so the chart mark
-  reaches G14 only then. Built 2026-09-26 on `feat/m68-7-identity-mark`. One banner on `GraphTabs` above
+  **merged to main 2026-09-26 as `e02418a8`** (PR #39, approved head `97fa0b46`). *Release:* **released in 1.23.0** (2026-09-26, tag `v1.23.0` at `11414e95`) —
+  the published analyser now carries the chart mark G14 needs (the Q4 condition). G14 is still not unblocked: the
+  owner's chart-or-report decision and the harness (PR #37) remain. Built 2026-09-26 on `feat/m68-7-identity-mark`. One banner on `GraphTabs` above
   every chart tab (a chart opened after the verdict is under it) and one on `DetailPanel`, both set in
   `onSessionSnapshot` beside the table's; WHEN is the table's rule (`LogTablePanel.identityBannerText`), so the three
   cannot disagree. Acceptance run on a real display: `IdentityMarkFrameTest` — a SHOWN frame, a memory-mapped log, a
@@ -867,15 +848,22 @@ verdict, which is owned jointly.
   **Not covered:** a chart exported into a report or PDF, and a standalone chart-image export (`ChartPanel.toImage`),
   carry no mark — neither is a live surface, and both are outside this item's acceptance; the screenshot verb captures
   the window, so it carries the banner.
-  **Owner decision before G14 — not settled here.** G14's pass condition accepts "a chart **or report**"; the report
+  **G14's report assessment.** **Answered by the owner 2026-09-26: option A — only a marked live chart qualifies.** G14's pass needs a chart on the
+  live canvas, drawn from logged values, showing no file-identity mark; a report may accompany it as supporting evidence
+  but cannot pass G14 by itself. No code change follows; the protocol's pass condition 3 changes from "chart or report"
+  to "a chart, optionally with a report" (a required correction on PR #37). Rejected: B, reports carry the session's
+  verdict (new work that would hold G14), and C, scoring on the PDF's changed-on-disk note and the reply's
+  `identityNote` (metadata standing in for the verdict). B can follow as its own item if reports should later qualify
+  alone.
+  The distinctions it was decided on, kept: G14's pass condition accepted "a chart **or report**"; the report
   side differs by route, and the distinctions must be kept when it is decided: (1) a same-length in-place rewrite of a
   mapped log makes the real dispatcher **refuse** report requests; (2) an atomic replacement leaves the retained
   channel readable, so an export **succeeds** and its reply carries `identityNote`; (3) that PDF has no M68.7 banner,
   but its existing header/footer says `log changed-on-disk`, so it is not wholly unqualified; (4) that note is a
   metadata observation (`snapshotNote()`), not the session's verdict and reason. How G14 assesses a report — restrict
   qualifying evidence to the marked live chart, require the session's qualification or refusal on reports, or specify
-  how the existing note and the reply are read — is the owner's call. M68.7 does not expand the report path and does
-  not by itself unblock G14.
+  how the existing note and the reply are read — was the owner's call, answered above. M68.7 does not expand the
+  report path.
 
 Owner questions in the spec: **Q4 and Q5 answered 2026-09-26** (partial delivery with M68.7 gating G14; a repair
 journey for saved names, count first). **Q1 and Q3 answered the same day, as recommended:** a genuine

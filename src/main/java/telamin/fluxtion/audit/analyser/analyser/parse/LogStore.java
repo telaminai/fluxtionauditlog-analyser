@@ -93,6 +93,15 @@ public interface LogStore extends AutoCloseable {
     }
 
     /**
+     * The claim an empty-log finding is worded from: what the ONE file said about its end, when there is one file.
+     * Only the wording reads it ({@code ProducerDiagnostics}); it never replaces {@link #streamEnd()}, which a rolled
+     * set keeps UNKNOWN whatever its members say. The default is {@link #streamEnd()}: a single-file store IS its file.
+     */
+    default StreamEnd emptyLogClaim() {
+        return streamEnd();
+    }
+
+    /**
      * A bounded view for a walk that may overlap a follow append (M65 D-F0). {@link #size()} is fixed when the
      * view is taken; {@link #record}/{@link #rawText} serve rows below it from data captured with that size, so a
      * walker never reads a row the store is still writing. Take one per walk; do not hold it across walks.

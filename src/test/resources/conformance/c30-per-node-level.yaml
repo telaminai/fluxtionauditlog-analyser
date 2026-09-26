@@ -1,0 +1,15 @@
+---
+eventLogRecord:
+  logTime: 1000
+  groupingId: null
+  event: EventLogControlEvent
+  eventToString: EventLogConfig{level=WARN, logRecordProcessor=null, sourceId=riskMonitor, groupId=null}
+  nodeLogs:
+---
+eventLogRecord:
+  logTime: 1001
+  groupingId: null
+  event: Quote
+  nodeLogs:
+    - quoteHandler: { seen: true}
+---
