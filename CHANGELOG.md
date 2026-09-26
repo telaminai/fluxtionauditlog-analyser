@@ -149,6 +149,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   would say, and any warning that qualifies it (a load still in flight, producer faults, time disorder, a
   partial dispatch order, and a rolled set's file list with the view's file-local offsets) comes with it; a `scope` block says what was selected and carried. An unknown or
   empty list is refused. Calling `context` with no `sections` is unchanged.
+- **A downloaded template's source folders must lie inside its own project.** Installing a template now
+  refuses it if any of its project settings files — the main one, a named one, or a nested module's — names a
+  source folder outside the project, the whole project, a home, absolute or Windows-style path, or a workspace
+  anchor. Nothing is installed when that happens. This covers source folders only: a template's saved charts
+  can still name external CSV files, which are not checked. Projects you set up yourself can still point at
+  folders outside the project, such as a neighbouring module.
+- **After a failed log open, the Topology tab again says the graph was not compared.**
+- **A graph opened with no log says it was not compared.** The Topology tab now states that nothing is shown
+  as matched or executed, instead of saying nothing, so a design-first look at a project (design, topology
+  and Java, no log) cannot be mistaken for a checked one.
 
 ## [1.20.1] - 2026-09-24
 

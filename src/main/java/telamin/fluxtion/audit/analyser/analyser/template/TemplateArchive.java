@@ -81,6 +81,14 @@ public final class TemplateArchive {
             Path root = soleProjectRoot(staging);
             Path profileInStage = root.resolve(ProjectProfile.CANONICAL_RELATIVE);
             boolean hasProfile = Files.isRegularFile(profileInStage, LinkOption.NOFOLLOW_LINKS);
+            // before the move: a refused profile never becomes an installed project (edit-loop spec §I1). Every
+            // settings file is a potential read grant — the root profile, a named one, a nested module's (PR #31 review).
+            try (var files = Files.walk(root)) {
+                for (Path settings : files.filter(p -> p.getFileName().toString().endsWith(".fluxtion-settings")
+                        && Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)).sorted().toList()) {
+                    telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);
+                }
+            }
             List<String> commands = commandsFor(root);
 
             // An empty directory is allowed by D-4, but move-without-replace requires it not to exist.

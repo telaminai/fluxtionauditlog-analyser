@@ -257,6 +257,7 @@ TEMPLATE_ARCHIVE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/templ
 SESSION_RECOVERY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/SessionRecovery.java'
 RECOVERY_CONTROLLER = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SessionRecoveryController.java'
 PROJECT_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectProfile.java'
+TEMPLATE_ROOTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/TemplateRoots.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -377,6 +378,39 @@ CASES += [
     # PR #29 review 3: a projection without fluxtionKey reads no key file
     ('context-key-file-guard', MAIN_FRAME, '            if (need.test("fluxtionKey")) {', '            if (true) {',
      'ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile'),
+    # edit-loop spec §I1: a template profile may only grant reads inside the project it installs
+    ('template-root-install-check', TEMPLATE_ARCHIVE,
+     '                    telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);\n', '',
+     'TemplateRootContainmentTest#aRootThatLeavesTheProjectIsRefused'),
+    # §I1: ../<archive-root>/… resolves inside staging and outside the installed project; only this rule refuses it
+    ('template-root-leading-parent', TEMPLATE_ROOTS,
+     '        if (normal.getName(0).toString().equals("..")) throw refuse(root, "leaves the project");\n', '',
+     'TemplateRootContainmentTest#aRootThatReentersThroughTheArchiveRootsOwnNameIsRefused'),
+    # §I1 / D3: src/.., . and ./ are the whole project, which containment alone would accept
+    ('template-root-whole-project', TEMPLATE_ROOTS,
+     '        if (normal.toString().isEmpty()) throw refuse(root, "is the project root itself, which would grant the whole project");\n', '',
+     'TemplateRootContainmentTest#aRootThatIsTheWholeProjectIsRefused'),
+    # PR #31 review 2: every settings file in the archive is a read grant, not only the root profile
+    ('template-root-every-profile', TEMPLATE_ARCHIVE,
+     'files.filter(p -> p.getFileName().toString().endsWith(".fluxtion-settings")',
+     'files.filter(p -> p.equals(root.resolve(".analyser/project.fluxtion-settings"))',
+     'TemplateRootContainmentTest#everyProjectProfileInTheArchiveIsChecked_namedAndNested'),
+    # PR #31 review 3: Windows path syntax is refused on every OS
+    ('template-root-backslash', TEMPLATE_ROOTS,
+     '        if (root.indexOf(\'\\\\\') >= 0) throw refuse(root, "contains a backslash (Windows path syntax)");\n', '',
+     'TemplateRootContainmentTest#windowsPathSyntaxIsRefusedOnEveryOs'),
+    # PR #31 review 5: a failed log open returns to no log, and the note comes back
+    ('no-log-note-after-failed-open', MAIN_FRAME,
+     '        if (store == null && topologyPanel.hasGraph()) publishPairing();\n', '',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
+    # §I1: the design-first tour's first step needs no log — requiring one must fail the no-log journey
+    ('no-log-design-open', MAIN_FRAME, '            return openDesign(path, () -> true);\n',
+     '            return store == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("open a log first") : openDesign(path, () -> true);\n',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
+    # §I1: with no log, the Topology tab must say the graph was not compared, not stay silent
+    ('no-log-pairing-note', MAIN_FRAME,
+     '            if (store == null) publishPairing();      // §I1: a graph opened with no log says it was not compared\n', '',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
 ]
 
 def display_classes(root=Path('.')):

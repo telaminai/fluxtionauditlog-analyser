@@ -292,7 +292,11 @@ public final class MainFrame extends JFrame {
         // node tooltips pick up the class javadoc when a source root reaches the class
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // one place remembers a loaded topology, whichever entry point loaded it
-        topologyPanel.onTopologyLoaded(f -> { rememberGraphml(f); compareGraphCopies(f); refreshProjectPanel(); });
+        topologyPanel.onTopologyLoaded(f -> {
+            rememberGraphml(f); compareGraphCopies(f);
+            if (store == null) publishPairing();      // §I1: a graph opened with no log says it was not compared
+            refreshProjectPanel();
+        });
         topologyPanel.onGraphChanged(this::reportGraphToSession);   // M44.4a: every graph change, one entrance
         // the topology gets its own source viewer, sharing this service — so navigating from the graph
         // keeps the graph on screen instead of switching to the sibling Source tab
@@ -3213,6 +3217,9 @@ public final class MainFrame extends JFrame {
         // M44.4c: nothing to do for the verdict. Whether it is PENDING is the session's fact (its gate knows an open is in
         // flight), so the snapshot published at the end of this operation says so, and the listener renders it. Review
         // B1's rule still holds — no verdict about the previous pair while a log loads — it just has one owner now.
+        // §I1: with a graph and no log, the no-log note gives way while a load is in flight, and returns when one
+        // fails or is cancelled — a snapshot need not change for either, so render it here.
+        if (store == null && topologyPanel.hasGraph()) publishPairing();
     }
 
     private JPanel buildFilterBar() {
@@ -4273,13 +4280,20 @@ public final class MainFrame extends JFrame {
      * M35.6 — push the verdict onto the Topology panel, where it stays. Called wherever
      * the session snapshot changes (M44.4c), so the panel and {@code context} can never disagree.
      */
+    static final String NO_LOG_PAIRING_NOTE = "no log open — this graph is not compared with any run: nothing here is "
+            + "shown as matched or executed";
+
     private void publishPairing() {
         // M44.4c: rendered from the snapshot, whole. The pairing, its qualifications, the log size and the filter they
         // are read against all come from ONE completed operation, so the note cannot mix a verdict with another
         // moment's staleness.
         var snap = sessionSnapshot();
         var published = snap.publishedPairing();
-        if (!topologyPanel.hasGraph() || published == null) {
+        if (topologyPanel.hasGraph() && store == null && !loadInFlight) {
+            // edit-loop spec §I1: a graph opened with no log is the design-first tour's first step. Silence
+            // there read as "nothing wrong"; say plainly that nothing was compared, matched or executed.
+            topologyPanel.setPairingNote(NO_LOG_PAIRING_NOTE);
+        } else if (!topologyPanel.hasGraph() || published == null) {
             topologyPanel.setPairingNote(null);
         } else {
             var held = snap.qualifications();
