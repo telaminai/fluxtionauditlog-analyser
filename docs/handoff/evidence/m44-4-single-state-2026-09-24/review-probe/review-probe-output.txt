@@ -1,0 +1,13 @@
+snapshot.before=false
+snapshot.after=true, nodeStillQualified=true
+listener.order=[second, first], final=second
+topology.before=[]
+topology.reply={ok=false, error=nothing to save — the full graph is not a focus; apply one first}, selectedAfter=[rootNode]
+mapped.changed=ReadThroughIdentity[verdict=UNVERIFIED, reason=the opened file changed in place, so the records already indexed may no longer match it; reads are suspended until the log is reopened, bytesRetained=false], rolled.changed=null
+rolled.rawChanged=true
+framing.bomCollapse=[]
+framing.plainCollapse=[6]
+framing.bomFindings=[]
+framing.pendingLarge=[]
+framing.staticLarge=[Finding[kind=FRAMING_NOT_ASSESSED, message=Record 1 is longer than the 1048576 characters the framing check reads, and nothing in that part looked like a further record. Whether more records run into the rest was NOT assessed.], Finding[kind=NO_NODE_LOGS, message=No node logged anything in any of the 1 record(s), so there is nothing to read, filter or plot. Usually the graph was built without addEventAudit() — without it the EventLogManager auditor is never installed and nodeLogs is empty for every cycle. A node also needs an audit logger (typically by extending EventLogNode) and must call auditLog.info(key, value) for its values to appear.]]
+savedQuote.address=graph:"saved"chart", parses=false
