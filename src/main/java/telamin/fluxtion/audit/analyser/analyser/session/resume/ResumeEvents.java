@@ -6,7 +6,13 @@ import java.util.List;
 public final class ResumeEvents {
     private ResumeEvents() { }
     public record Activated(String profile) { }
-    public record OfferLoaded(long generation, String key, SessionResumeStore.Snapshot snapshot, String error) { }
+    /** {@code profileIdentity}: the active profile's file identity, or null when no project is active. */
+    public record OfferLoaded(long generation, String key, SessionResumeStore.Snapshot snapshot, String error,
+                              String profileIdentity) {
+        public OfferLoaded(long generation, String key, SessionResumeStore.Snapshot snapshot, String error) {
+            this(generation, key, snapshot, error, null);
+        }
+    }
     public record Requested(long generation, boolean accept) { }
     public record Checked(long generation, List<SessionResumeStore.Check> checks, String error, long operationId) {
         public Checked(long generation, List<SessionResumeStore.Check> checks, String error) {

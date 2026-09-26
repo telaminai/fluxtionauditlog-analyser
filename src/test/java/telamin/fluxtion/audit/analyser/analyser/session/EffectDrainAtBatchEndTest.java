@@ -92,7 +92,7 @@ class EffectDrainAtBatchEndTest {
         boolean[] reentrant = {true};
         SessionDriver driver = new SessionDriver(effect -> {
             if (reentrant[0]) {
-                holder[0].submit(new SessionEvents.LogObserved(true, "/logs/other.yaml", "DECLARED"));
+                holder[0].submit(new SessionEvents.GraphCleared());
             }
             return new SessionEvents.StatusShown(effect.opId(), "ok");
         });
@@ -108,8 +108,8 @@ class EffectDrainAtBatchEndTest {
         // EffectQueue therefore catches it and stashes it; the driver rethrows once batchEnd has
         // returned. This asserts the processor still dispatches afterwards.
         reentrant[0] = false;
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/after.yaml", "DECLARED"));
-        assertTrue(driver.processor().openLog.isOpen(),
+        driver.submit(SessionFixtures.graph("/graphs/after.graphml"));
+        assertTrue(driver.processor().openGraph.isOpen(),
                 "an event submitted after the violation must still be dispatched — if this fails the "
                         + "processor was left mid-cycle and nothing would ever run again");
     }
@@ -142,7 +142,7 @@ class EffectDrainAtBatchEndTest {
         SessionDriver driver = new SessionDriver(adapter);
 
         open(driver, A, TransitionKind.STARTUP_ACTIVATION);
-        driver.submit(new SessionEvents.GraphObserved(true, "/graphs/other.graphml", "OPENED",
+        driver.submit(SessionFixtures.graph("/graphs/other.graphml", "OPENED",
                 java.util.Set.of("supermarketTill"), List.of("EventLogManager")));
         // A log that the open graph does not describe: the arrival decides a close, the close produces
         // a result, the result produces a warning. More than one round of batchEnd, all inside one
@@ -169,8 +169,8 @@ class EffectDrainAtBatchEndTest {
         SessionDriver driver = new SessionDriver(adapter);
 
         open(driver, A, TransitionKind.STARTUP_ACTIVATION);
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
-        driver.submit(new SessionEvents.GraphObserved(true, "/graphs/run.graphml", "OPENED"));
+        SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
+        driver.submit(SessionFixtures.graph("/graphs/run.graphml"));
         adapter.forget();
 
         open(driver, "/projects/beta.properties", TransitionKind.EXPLICIT_SWITCH);

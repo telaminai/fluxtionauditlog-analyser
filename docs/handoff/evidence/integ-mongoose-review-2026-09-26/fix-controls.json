@@ -1,0 +1,385 @@
+{
+  "mode": "mutations",
+  "runs": [
+    {
+      "name": "integration-failed-identity",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java",
+      "sha256": "877a1d4e98fc5456d7e18c02996dcdaceb6c1c93d9322af0c73490339091bd96",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "exit": 1,
+        "suites": [
+          {
+            "name": "HeapLogStoreFollowIdentityTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "unreadableSameLengthReplacementRetiresTheVerifiedIdentity"
+            ],
+            "assertions": [
+              {
+                "test": "unreadableSameLengthReplacementRetiresTheVerifiedIdentity",
+                "kind": "failure",
+                "message": "org.opentest4j.MultipleFailuresError: failed reads retire current-byte claims (2 failures)\n\torg.opentest4j.AssertionFailedError: a failed decode must not retain the earlier UNCHANGED identity ==> expected: <UNVERIFIED> but was: <UNCHANGED>\n\torg.opentest4j.AssertionFailedError: a replaced file must not retain its opening digest ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "suites": [
+          {
+            "name": "HeapLogStoreFollowIdentityTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "unreadableSameLengthReplacementRetiresTheVerifiedIdentity"
+            ],
+            "assertions": []
+          }
+        ]
+      },
+      "seconds": 1.3,
+      "verdict": "caught"
+    },
+    {
+      "name": "integration-failed-session",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "d3b10be1e31d8df480aad3da92d625823ba7821429f4a2d1ce2da53d2e64e89d",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "exit": 1,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aFailedFollowPollPublishesIdentityAndDamageOnce"
+            ],
+            "assertions": [
+              {
+                "test": "aFailedFollowPollPublishesIdentityAndDamageOnce",
+                "kind": "failure",
+                "message": "org.opentest4j.MultipleFailuresError: a failed poll publishes both kinds of evidence (1 failure)\n\torg.opentest4j.AssertionFailedError: the failing poll must publish its identity to the session immediately ==> expected: <UNVERIFIED> but was: <VERIFIED>"
+              }
+            ]
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aFailedFollowPollPublishesIdentityAndDamageOnce"
+            ],
+            "assertions": []
+          }
+        ]
+      },
+      "seconds": 4.5,
+      "verdict": "caught"
+    },
+    {
+      "name": "integration-coverage-bound",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/CoverageService.java",
+      "sha256": "395b9c99d7aaebb2ee8839f5076aa8f185c77eecaea4f74849c95bbce36c24f3",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "exit": 1,
+        "suites": [
+          {
+            "name": "CoveragePerNodeLevelTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "annotationsRespectTheCapturedRowsAndTerminalBoundary"
+            ],
+            "assertions": [
+              {
+                "test": "annotationsRespectTheCapturedRowsAndTerminalBoundary",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: annotation must not read beyond the captured bound: 2 ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "suites": [
+          {
+            "name": "CoveragePerNodeLevelTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "annotationsRespectTheCapturedRowsAndTerminalBoundary"
+            ],
+            "assertions": []
+          }
+        ]
+      },
+      "seconds": 1.3,
+      "verdict": "caught"
+    },
+    {
+      "name": "integration-pending-refresh",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "d3b10be1e31d8df480aad3da92d625823ba7821429f4a2d1ce2da53d2e64e89d",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "exit": 1,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "pendingGrowthRefreshesFindingsWithoutAddingAnyRows"
+            ],
+            "assertions": [
+              {
+                "test": "pendingGrowthRefreshesFindingsWithoutAddingAnyRows",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: pending growth must refresh the collapsed-framing finding without an indexed row ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "pendingGrowthRefreshesFindingsWithoutAddingAnyRows"
+            ],
+            "assertions": []
+          }
+        ]
+      },
+      "seconds": 4.8,
+      "verdict": "caught"
+    },
+    {
+      "name": "integration-failure-refresh",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "d3b10be1e31d8df480aad3da92d625823ba7821429f4a2d1ce2da53d2e64e89d",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "exit": 1,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aFailedFollowPollPublishesIdentityAndDamageOnce"
+            ],
+            "assertions": [
+              {
+                "test": "aFailedFollowPollPublishesIdentityAndDamageOnce",
+                "kind": "failure",
+                "message": "org.opentest4j.MultipleFailuresError: a failed poll publishes both kinds of evidence (3 failures)\n\torg.opentest4j.AssertionFailedError: new damage refreshes findings even when completeness was already UNKNOWN ==> expected: not same but was: <ProducerDiagnostics[findings=[]]>\n\torg.opentest4j.AssertionFailedError: the producer findings must contain the new decode damage ==> expected: <true> but was: <false>\n\torg.opentest4j.AssertionFailedError: the same damage must reach the visible status tooltip ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aFailedFollowPollPublishesIdentityAndDamageOnce"
+            ],
+            "assertions": []
+          }
+        ]
+      },
+      "seconds": 5.2,
+      "verdict": "caught"
+    },
+    {
+      "name": "integration-repeat-failure-skip",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "d3b10be1e31d8df480aad3da92d625823ba7821429f4a2d1ce2da53d2e64e89d",
+      "baselineGreen": true,
+      "engine": "fast",
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "siteKind": "java",
+      "fullCompileFallback": false,
+      "mutated": {
+        "exit": 1,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aFailedFollowPollPublishesIdentityAndDamageOnce"
+            ],
+            "assertions": [
+              {
+                "test": "aFailedFollowPollPublishesIdentityAndDamageOnce",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: a repeated failed poll with identical damage must not rebuild findings ==> expected: telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics@6dcb9111<ProducerDiagnostics[findings=[Finding[kind=SOURCE_DAMAGE, message=Follow could not read this log: its current bytes are not valid UTF-8. The 1 previously read records are shown from the retained snapshot; whether the current file is complete is unknown until it is reopened.]]]> but was: telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics@46a15f03<ProducerDiagnostics[findings=[Finding[kind=SOURCE_DAMAGE, message=Follow could not read this log: its current bytes are not valid UTF-8. The 1 previously read records are shown from the retained snapshot; whether the current file is complete is unknown until it is reopened.]]]>"
+              }
+            ]
+          }
+        ]
+      },
+      "restored": {
+        "exit": 0,
+        "suites": [
+          {
+            "name": "StatusExplanationSurvivesFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aFailedFollowPollPublishesIdentityAndDamageOnce"
+            ],
+            "assertions": []
+          }
+        ]
+      },
+      "seconds": 4.5,
+      "verdict": "caught"
+    }
+  ],
+  "engine": "fast",
+  "baseline": {
+    "exit": 0,
+    "suites": [
+      {
+        "name": "HeapLogStoreFollowIdentityTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "append",
+          "touched",
+          "unreadableSameLengthReplacementRetiresTheVerifiedIdentity",
+          "sameLengthRewrite",
+          "differentFileSamePath",
+          "missing",
+          "middleRewritePlusAppend"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "StatusExplanationSurvivesFrameTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aReportLinkToAChartThatIsGoneSaysSo",
+          "anExplanationSurvivesAnIdleFollowTick",
+          "aFailedFollowPollPublishesIdentityAndDamageOnce",
+          "aReportLinkToAClosedChartOpensIt",
+          "pendingGrowthRefreshesFindingsWithoutAddingAnyRows"
+        ],
+        "assertions": []
+      },
+      {
+        "name": "CoveragePerNodeLevelTest",
+        "tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "testNames": [
+          "aQuietPerNodeLevelIsAnnotatedAgainstThatNode",
+          "aFieldThatIsNotTheFieldIsNotReadAsItOrAsAbsent",
+          "aGlobalRestoreClosesAPerNodeInterval",
+          "levelChangesNeverMoveTheDenominatorOrTheLedger",
+          "aQuietenedThenRestoredNodeIsStillAnnotatedForItsWindow",
+          "theRestoreBoundaryIsHalfOpen",
+          "aWindowThatClosedBeforeTheScopeDoesNotExplainSilenceInIt",
+          "aChangeAfterTheScopeDoesNotExplainSilenceBeforeIt",
+          "oneInstantInsideIsExplainedAndOneAfterIsNot",
+          "aTimedWindowClosedByAnUntimedChangeIsKept",
+          "aLaterGroupsWindowIsFoundWhenTheFirstDoesNotApply",
+          "aLookalikeEventNameIsNotAControlEvent",
+          "anAnnotatedNodeStaysUncoveredAndInTheRatio",
+          "aRecordThatIsNotAControlEventIsNotReadAsALevelChange",
+          "aScopeSpanningARunBoundaryIsDefiniteOnlyBeforeIt",
+          "aChangeAddressedToAnotherGroupingDoesNotApply_andInAnUngroupedProcessorItDoes",
+          "annotationsRespectTheCapturedRowsAndTerminalBoundary",
+          "aControlAfterTheRecordsInViewExplainsNothing_evenUntimed",
+          "aLoudLevelIsNotAnExplanation",
+          "twoUntimedChangesReadAsUntimedRatherThanAsAHugeNegativeNumber",
+          "aFilterHidingTheControlRecordStillAnnotates",
+          "anEmptySelectionIsExplainedByNothing",
+          "aFullyQualifiedControlEventNameIsRecognised",
+          "aScopeWhollyAfterARunBoundaryGetsNoDefiniteClaim",
+          "theAnnotationCarriesItsOwnCaveat"
+        ],
+        "assertions": []
+      }
+    ]
+  },
+  "seconds": 33.6
+}

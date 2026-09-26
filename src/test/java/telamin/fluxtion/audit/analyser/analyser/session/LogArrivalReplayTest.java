@@ -26,8 +26,8 @@ class LogArrivalReplayTest {
     private static final String AUDITOR = "EventLogManager";
 
     /** A graph carrying the given node ids, with audit installed. */
-    private static SessionEvents.GraphObserved graph(Set<String> declared) {
-        return new SessionEvents.GraphObserved(true, "/g.graphml", "OPENED", declared,
+    private static SessionEvents.GraphOpened graph(Set<String> declared) {
+        return SessionFixtures.graph("/g.graphml", "OPENED", declared,
                 List.of(AUDITOR, "PriceListener", "QuotePublisher"));
     }
 
@@ -153,7 +153,7 @@ class LogArrivalReplayTest {
     @DisplayName("a graph with no auditor is NOT_ENABLED — the earliest catchable form of the mistake")
     void aGraphWithoutAnAuditorIsAProblem() {
         SessionDriver[] d = new SessionDriver[1];
-        drive(d, new SessionEvents.GraphObserved(true, "/g.graphml", "OPENED",
+        drive(d, SessionFixtures.graph("/g.graphml", "OPENED",
                 Set.of("priceListener"), List.of("PriceListener", "QuotePublisher")));
         SessionProcessor p = d[0].processor();
 
@@ -180,7 +180,7 @@ class LogArrivalReplayTest {
     void theQuestionsDoNotDetermineEachOther() {
         SessionDriver[] d = new SessionDriver[1];
         FakeSessionAdapter adapter = drive(d,
-                new SessionEvents.GraphObserved(true, "/g.graphml", "OPENED",
+                SessionFixtures.graph("/g.graphml", "OPENED",
                         Set.of("priceListener", "quotePublisher"),
                         List.of("PriceListener", "QuotePublisher")),   // no auditor
                 log(Set.of("priceListener", "quotePublisher")));       // but a perfect pairing

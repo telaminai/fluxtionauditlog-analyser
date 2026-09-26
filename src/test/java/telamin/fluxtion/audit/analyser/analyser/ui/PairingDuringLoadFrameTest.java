@@ -173,6 +173,197 @@ class PairingDuringLoadFrameTest {
         }
     }
 
+    /**
+     * Round 4, O-i, reworded by M44.4b (spec §13, D-S13.5) to the property it protects. The ring holds 2,000 records,
+     * "a long investigation's worth of transitions", and one record per append would evict them in about half an hour.
+     * Round 4 met that by keeping the session UNINFORMED of appends until coverage read the claim. M44.4b informs it
+     * on every poll, so its verdict is current, and meets the cost in the sink: re-scopes are held in a ring of their
+     * own. So the assertion is no longer "no record was written" but "no transition was evicted, and the appends are
+     * on the record" — and the claim counts the appended records without anything refreshing it on read.
+     */
+    @Test
+    void aFollowAppendEvictsNoTransitionRecordAndTheClaimIsCurrent(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        StringBuilder yaml = new StringBuilder();
+        for (int i = 0; i < 600; i++) {
+            yaml.append("---\neventLogRecord:\n  logTime: ").append(1000 + i).append("\n  event: Tick\n  nodeLogs:\n")
+                .append("    - rootNode: { v: 1}\n    - riskCheck: { v: 1}\n    - output: { v: 1}\n");
+        }
+        Path audit = Files.writeString(tmp.resolve("churn-600.yaml"), yaml.append("---\n").toString());
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graph.toAbsolutePath().toString())));
+            awaitVerdict(ex);
+            var sessionField = MainFrame.class.getDeclaredField("session");
+            sessionField.setAccessible(true);
+            var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
+            render(ex, "open", Map.of("follow", true));
+            Thread.sleep(1500);                                   // let Follow settle before counting
+            var transitionsBefore = onEdtGet(() -> session.auditSink().transitions());
+            long rescopesBefore = onEdtGet(() -> (long) session.auditSink().matching("event: LogAppended").size());
+            for (int n = 0; n < 5; n++) {
+                Files.writeString(audit, "eventLogRecord:\n  logTime: " + (5000 + n) + "\n  event: Tick\n  nodeLogs:\n"
+                        + "    - rootNode: { v: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
+                long deadline = System.currentTimeMillis() + 15_000;
+                int want = 601 + n;
+                while (System.currentTimeMillis() < deadline) {
+                    Object log = find(onEdtGet(() -> render(ex, "context", Map.of())), "log");
+                    if (log instanceof Map<?, ?> l && Integer.valueOf(want).equals(l.get("records"))) break;
+                    Thread.sleep(100);
+                }
+            }
+            Thread.sleep(1200);                                   // one more poll past the last append
+            assertEquals(transitionsBefore, onEdtGet(() -> session.auditSink().transitions()),
+                    "five Follow appends must leave the transition record exactly as it was");
+            long rescopes = onEdtGet(() -> (long) session.auditSink().matching("event: LogAppended").size()) - rescopesBefore;
+            assertTrue(rescopes >= 1 && rescopes <= 5, "each poll that added records is on the record as a re-scope: " + rescopes);
+            Map<String, Object> reply = render(ex, "coverage", Map.of());
+            String claim = String.valueOf(find(reply, "claimNote"));
+            assertTrue(claim.contains("of 605 records"), "the claim counts the appended records when read: " + claim);
+            render(ex, "open", Map.of("follow", false));
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
+    /**
+     * Round 3, N1 — exactly the re-review's reproduction, through Follow on a real store: a 600-record log whose ids are
+     * all declared, whole-log coverage, Follow on, one appended record writing an undeclared id. The qualification
+     * must stop claiming to confirm the whole log, and the published pairing's scope must count the new record.
+     */
+    @Test
+    void aFollowAppendMakesTheWholeLogVerdictStale(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        StringBuilder yaml = new StringBuilder();
+        for (int i = 0; i < 600; i++) {
+            yaml.append("---\neventLogRecord:\n  logTime: ").append(1000 + i).append("\n  event: Tick\n  nodeLogs:\n")
+                .append("    - rootNode: { v: 1}\n    - riskCheck: { v: 1}\n    - output: { v: 1}\n");
+        }
+        Path audit = Files.writeString(tmp.resolve("followed-600.yaml"), yaml.append("---\n").toString());
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graph.toAbsolutePath().toString())));
+            awaitVerdict(ex);
+            render(ex, "coverage", Map.of());
+            Map<String, Object> before = onEdtGet(() -> pairing(ex));
+            assertTrue(String.valueOf(((Map<?, ?>) before.get("qualifiedBy")).get("note"))
+                    .contains("confirms the sampled pairing for the whole log"), "setup: " + before);
+
+            render(ex, "open", Map.of("follow", true));
+            Files.writeString(audit, "eventLogRecord:\n  logTime: 5000\n  event: Tick\n  nodeLogs:\n"
+                    + "    - lateForeign: { v: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
+            long deadline = System.currentTimeMillis() + 15_000;
+            Map<String, Object> after = null;
+            while (System.currentTimeMillis() < deadline) {
+                Map<String, Object> ctx = onEdtGet(() -> render(ex, "context", Map.of()));
+                Object log = find(ctx, "log");
+                if (log instanceof Map<?, ?> l && Integer.valueOf(601).equals(l.get("records"))) {
+                    after = onEdtGet(() -> pairing(ex));
+                    break;
+                }
+                Thread.sleep(100);
+            }
+            assertNotNull(after, "Follow never delivered the appended record");
+            Map<?, ?> q = (Map<?, ?>) after.get("qualifiedBy");
+            assertEquals(Boolean.TRUE, q.get("stale"), "the whole-log verdict is about the old revision: " + q);
+            assertFalse(String.valueOf(q.get("note")).contains("confirms the sampled pairing for the whole log"),
+                    "a stale verdict must not claim the whole log: " + q.get("note"));
+            assertEquals("first 500 of 601 records", after.get("pairingScope"), "the published pairing counts it too");
+            // round 4, Q2: the fields as well as the words — a stale comparison claims neither the whole log nor to
+            // supersede the sample
+            assertEquals("first 600 of 601 records", q.get("scope"), "stale scope states what was compared: " + q);
+            assertEquals(Boolean.FALSE, q.get("supersedesSample"), "a stale comparison supersedes nothing: " + q);
+            var panelField = MainFrame.class.getDeclaredField("topologyPanel");
+            panelField.setAccessible(true);
+            var panel = (TopologyPanel) panelField.get(frame.get());
+            String line = onEdtGet(panel::statusLine);
+            assertTrue(line.startsWith("first 600 of 601 records: all 3 logged id(s) declared"), "panel leads: " + line);
+            assertFalse(line.contains("confirms"), line);
+            render(ex, "open", Map.of("follow", false));
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
+    /**
+     * Re-review O-c: the parity case above uses a one-record log, so it never compares a SAMPLED verdict. Three
+     * loops collected the sample (the frame's pairingAgainst, discovery's discoverGraphs0 and the session's
+     * observation); with 600 records all three must state the same 500-of-600 verdict. Since M44.4b the frame's loop
+     * is gone and the frame publishes the session's verdict, so the frame leg compares what it publishes.
+     */
+    @Test
+    void aSampledPairingAgreesAcrossFrameDiscoveryAndSession(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "requires a real frame");
+        Path graph = Path.of("docs/handoff/evidence/unguided-session-2026-09-21/fixtures/MarketProcessor.src-round3.graphml");
+        StringBuilder yaml = new StringBuilder();
+        for (int i = 0; i < 600; i++) {
+            yaml.append("---\neventLogRecord:\n  logTime: ").append(1000 + i).append("\n  event: Tick\n  nodeLogs:\n")
+                .append("    - rootNode: { v: 1}\n    - riskCheck: { v: 1}\n    - output: { v: 1}\n");
+        }
+        Path audit = Files.writeString(tmp.resolve("constructed-600.yaml"), yaml.append("---\n").toString());
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", Files.createDirectories(tmp.resolve("home")).toString());
+        AtomicReference<MainFrame> frame = new AtomicReference<>();
+        try {
+            onEdt(() -> frame.set(new MainFrame()));
+            ActionExecutor ex = executorOf(frame.get());
+            onEdt(() -> render(ex, "open", Map.of("log", audit.toString())));
+            awaitLoaded(ex);
+            onEdt(() -> render(ex, "open", Map.of("graphml", graph.toAbsolutePath().toString())));
+            awaitVerdict(ex);
+            onEdt(() -> render(ex, "source_root", Map.of("add", List.of(graph.toAbsolutePath().getParent().toString()))));
+            var discover = MainFrame.class.getDeclaredMethod("discoverGraphs0");
+            discover.setAccessible(true);
+            // M44.4b: the frame no longer computes a pairing (pairingAgainst is deleted); it PUBLISHES the session's.
+            // The frame leg of the parity is therefore what it publishes — the verdict context and the panel render —
+            // which is the stronger comparison: the old one checked a recomputation nothing on screen displayed.
+            var publishedField = MainFrame.class.getDeclaredMethod("sessionSnapshot");   // M44.4c: the frame keeps no copy
+            publishedField.setAccessible(true);
+            var sessionField = MainFrame.class.getDeclaredField("session");
+            sessionField.setAccessible(true);
+            Path wanted = graph.toAbsolutePath().normalize();
+            onEdt(() -> {
+                try {
+                    var discovered = ((telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Result)
+                            discover.invoke(frame.get())).candidates().stream()
+                            .filter(c -> c.file().toAbsolutePath().normalize().equals(wanted))
+                            .findFirst().orElseThrow().pairing();
+                    var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
+                    assertEquals("first 500 of 600 records", discovered.scope(), "discovery is sampled");
+                    // round 4, Q9: the ARRIVAL's own sample, as the session recorded it when the log landed. The later
+                    // observation overwrites the node's fields, so only the audit record shows what the arrival —
+                    // which decides whether a graph is kept — actually judged.
+                    String arrival = session.auditSink().records().stream()
+                            .filter(r -> r.contains("via: LogOpened")).findFirst().orElse("");
+                    assertTrue(arrival.contains("sampled: 500") && arrival.contains("total: 600"),
+                            "arrival sample: the LogOpened record must show the same 500 of 600: " + arrival);
+                    assertEquals(discovered, ((telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot)
+                            publishedField.invoke(frame.get())).publishedPairing(), "frame/discovery, sampled");
+                    assertEquals(discovered, session.snapshot().pairing(), "session/discovery, sampled");
+                } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+            });
+        } finally {
+            System.setProperty("user.home", home);
+            if (frame.get() != null) onEdt(() -> frame.get().dispose());
+        }
+    }
+
     /** TA-1: the producer graph is committed; the three-node audit record is constructed. */
     @Test
     void committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession(@TempDir Path tmp) throws Exception {
@@ -192,24 +383,46 @@ class PairingDuringLoadFrameTest {
             var context = awaitVerdict(ex);
             assertEquals(3, context.get("declaredByGraph"), "session includes the framework logger");
             assertEquals(Boolean.TRUE, context.get("applies"));
-            var discovered = telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
-                    List.of(graph.getParent().toString()), java.util.Set.of("rootNode", "riskCheck", "output"))
-                    .candidates().stream().filter(c -> c.file().equals(graph)).findFirst().orElseThrow().pairing();
+            // M68.1 re-review R1/R2: discovery is read through the PRODUCT's own path (source root + the frame's
+            // discoverGraphs0), not a hand-built GraphmlDiscovery.scan call. The hand-built call passed an id
+            // set with no scope, so it could only ever agree with an unscoped verdict — it tested the fixture's
+            // arguments, not what an agent is shown. The three equality assertions below are unchanged.
+            onEdt(() -> render(ex, "source_root", Map.of("add", List.of(graph.toAbsolutePath().getParent().toString()))));
+            var discover = MainFrame.class.getDeclaredMethod("discoverGraphs0");
+            discover.setAccessible(true);
+            Path wanted = graph.toAbsolutePath().normalize();
+            var discovered = onEdtGet(() -> {
+                try {
+                    var result = (telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Result)
+                            discover.invoke(frame.get());
+                    return result.candidates().stream()
+                            .filter(c -> c.file().toAbsolutePath().normalize().equals(wanted))
+                            .findFirst().orElseThrow().pairing();
+                } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+            });
+            assertEquals("all 1 records", discovered.scope(), "discovery states its scope, as the frame does");
             var sessionField = MainFrame.class.getDeclaredField("session");
             sessionField.setAccessible(true);
             var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) sessionField.get(frame.get());
-            var storeField = MainFrame.class.getDeclaredField("store");
-            storeField.setAccessible(true);
-            var judge = MainFrame.class.getDeclaredMethod("pairingAgainst", telamin.fluxtion.audit.analyser.analyser.parse.LogStore.class);
-            judge.setAccessible(true);
+            // M44.4b: the frame leg is the verdict it PUBLISHES; it no longer computes one (see the sampled case above)
+            var publishedField = MainFrame.class.getDeclaredMethod("sessionSnapshot");   // M44.4c: the frame keeps no copy
+            publishedField.setAccessible(true);
             onEdt(() -> {
                 try {
-                    assertEquals(discovered, judge.invoke(frame.get(), storeField.get(frame.get())), "frame/discovery parity");
-                    assertEquals(discovered, session.processor().pairing.verdict(), "session/discovery parity");
+                    assertEquals(discovered, ((telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot)
+                            publishedField.invoke(frame.get())).publishedPairing(), "frame/discovery parity");
+                    assertEquals(discovered, session.snapshot().pairing(), "session/discovery parity");
                 } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
             });
             assertEquals(3, discovered.matched());
             assertFalse(discovered.reason().contains("different build"));
+            // review O1: the pairing verdict leads the Topology panel's status line, so it is the part that
+            // survives clipping, and the whole line is the label's tooltip
+            var panelField = MainFrame.class.getDeclaredField("topologyPanel");
+            panelField.setAccessible(true);
+            var panel = (TopologyPanel) panelField.get(frame.get());
+            String line = onEdtGet(panel::statusLine);
+            assertTrue(line.startsWith("every node id checked is declared (3/3"), "pairing first: " + line);
         } finally {
             System.setProperty("user.home", home);
             if (frame.get() != null) onEdt(() -> frame.get().dispose());
@@ -260,6 +473,7 @@ class PairingDuringLoadFrameTest {
                 render(ex, "open", openB);
                 echo.set(render(ex, "open", Map.of("graphml", graphB.toString())));
                 during.set(pairing(ex));
+                sectionsAgreeWithTheFullContext(ex);   // §H feedback 17: mid-load, the qualified case
             });
             Map<String, Object> g = (Map<String, Object>) ((Map<String, Object>) echo.get().get("opened")).get("graphml");
             assertEquals(ActionExecutor.PAIRING_PENDING, g.get("pairing"), "echo: " + g);
@@ -275,6 +489,7 @@ class PairingDuringLoadFrameTest {
             assertEquals(1, pairBB.get("declaredByGraph"));
             assertEquals(1, pairBB.get("loggedNodes"));
             assertTrue(String.valueOf(pairBB.get("graphPath")).endsWith("b.graphml"), pairBB.toString());
+            onEdt(() -> sectionsAgreeWithTheFullContext(ex));
         } finally {
             System.setProperty("user.home", home);
             if (frame.get() != null) SwingUtilities.invokeAndWait(() -> frame.get().dispose());
@@ -449,6 +664,29 @@ class PairingDuringLoadFrameTest {
         return r.toMap();
     }
 
+    /**
+     * §H feedback 17 on the real builder: in one EDT turn, every section's projection holds exactly the keys the
+     * full context holds for that section, equal, plus each qualifier the full context carries for it.
+     */
+    @SuppressWarnings("unchecked")
+    private static void sectionsAgreeWithTheFullContext(ActionExecutor ex) {
+        var sections = telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.SECTIONS;
+        var qualifiers = telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.QUALIFIERS;
+        Map<String, Object> full = (Map<String, Object>) render(ex, "context", Map.of()).get("context");
+        for (String name : sections.keySet()) {
+            Map<String, Object> part = (Map<String, Object>) render(ex, "context",
+                    Map.of("sections", List.of(name))).get("context");
+            for (String key : full.keySet()) {
+                boolean expected = sections.get(name).contains(key)
+                        || qualifiers.getOrDefault(key, List.of()).contains(name);
+                assertEquals(expected, part.containsKey(key), name + " → " + key);
+                if (expected) assertEquals(full.get(key), part.get(key), name + " → " + key);
+            }
+            assertEquals(full.keySet().stream().filter(part::containsKey).count() + 1, part.size(),
+                    name + " has only full-context keys and its scope: " + part.keySet());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> pairing(ActionExecutor ex) {
         Map<String, Object> ctx = render(ex, "context", Map.of());
@@ -489,6 +727,12 @@ class PairingDuringLoadFrameTest {
             Thread.sleep(50);
         }
         fail("load still in flight after 20s: " + last.get());
+    }
+
+    private static <T> T onEdtGet(java.util.function.Supplier<T> body) throws Exception {
+        AtomicReference<T> out = new AtomicReference<>();
+        onEdt(() -> out.set(body.get()));
+        return out.get();
     }
 
     private static void onEdt(Runnable r) throws Exception {

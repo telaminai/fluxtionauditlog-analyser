@@ -33,6 +33,15 @@ class TrailingWhitespaceTest {
      */
     private static final List<String> EVIDENCE = List.of(
             "src/test/resources/formula-golden/",
+            // M68.3: constructed framing fixtures. The runtime writes "eventLogRecord: " WITH a trailing space, and the
+            // header predicate under test must accept it; a fixture without it would test a shape no producer writes.
+            "src/test/resources/framing/",
+            // M68.1 round 3: captured end-to-end output, kept byte-for-byte as the trial record. The first headless
+            // run of set 5 failed on this file, because it was committed without running the suite. (A second entry,
+            // a .log capture, was listed here too; this test reads no .log file, so it did nothing — round 4, O-ii.)
+            "docs/handoff/evidence/m68-1-rereview-2026-09-24/set4-p19-p20-e2e-before.txt",
+            // round 4: the same kind of capture, of the pre-fix 4251bae3 jar, checked for blanks before committing
+            "docs/handoff/evidence/m68-1-rereview-2026-09-24/set7-p38-e2e-4251bae3.txt",
             // Captured producer spike output: its spaces are evidence, not prose formatting.
             "docs/handoff/evidence/mongoose-audit-production-2026-09-23/spike-output.txt",
             // Captured generator outputs, whose manifests pin the original bytes. Do not reformat.

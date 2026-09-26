@@ -1,0 +1,3 @@
+combined open: pairingScope='first 500 of 600 records' sampled=True verdict='the graph declares all 3 node(s) this log writes (judged on the first 500 of 600 records)'
+graph first: pairingScope='first 500 of 600 records' sampled=True verdict='the graph declares all 3 node(s) this log writes (judged on the first 500 of 600 records)'
+log first: pairingScope='first 500 of 600 records' sampled=True verdict='the graph declares all 3 node(s) this log writes (judged on the first 500 of 600 records)'

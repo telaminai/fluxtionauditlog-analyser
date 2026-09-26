@@ -137,6 +137,87 @@ class StatusExplanationSurvivesFrameTest {
         }
     }
 
+    @Test
+    void aFailedFollowPollPublishesIdentityAndDamageOnce() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = writeLog();
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            prepareManualFollow(f, log);
+            onEdt(() -> {
+                poll(f.frame);
+                var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session");
+                assertEquals("VERIFIED", session.snapshot().logIdentity(), "control: the idle poll verified the file");
+                var before = field(f.frame, "producerDiagnostics");
+                byte[] bytes;
+                try {
+                    bytes = Files.readAllBytes(log);
+                    bytes[10] = (byte) 0xff;
+                    Files.write(log, bytes);
+                } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+                poll(f.frame);
+                var findings = (telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(f.frame, "producerDiagnostics");
+                assertAll("a failed poll publishes both kinds of evidence",
+                        () -> assertEquals("UNVERIFIED", session.snapshot().logIdentity(),
+                                "the failing poll must publish its identity to the session immediately"),
+                        () -> assertNotSame(before, findings, "new damage refreshes findings even when completeness was already UNKNOWN"),
+                        () -> assertTrue(findings.messages().stream().anyMatch(m -> m.contains("not valid UTF-8")),
+                                "the producer findings must contain the new decode damage"),
+                        () -> assertTrue(String.valueOf(status(f.frame).getToolTipText()).contains("not valid UTF-8"),
+                                "the same damage must reach the visible status tooltip"));
+                try { Files.write(log, new byte[]{(byte) 0xff}, java.nio.file.StandardOpenOption.APPEND); }
+                catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+                poll(f.frame);
+                assertSame(findings, field(f.frame, "producerDiagnostics"),
+                        "a repeated failed poll with identical damage must not rebuild findings");
+            });
+        }
+    }
+
+    @Test
+    void pendingGrowthRefreshesFindingsWithoutAddingAnyRows() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = writeLog();
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            prepareManualFollow(f, log);
+            onEdt(() -> {
+                append(log, "eventLogRecord:\n  logTime: 2000\n");
+                poll(f.frame);
+                var initial = (telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(f.frame, "producerDiagnostics");
+                assertFalse(initial.findings().stream().anyMatch(x -> x.kind().name().equals("UNSEPARATED")),
+                        "control: a single pending header is not collapsed framing");
+                var store = (telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store");
+                int rows = store.size();
+                append(log, "eventLogRecord:\n  logTime: 3000\n");
+                poll(f.frame);
+                var findings = (telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(f.frame, "producerDiagnostics");
+                assertEquals(rows, store.size(), "neither pending header is indexed");
+                assertTrue(findings.findings().stream().anyMatch(x -> x.kind().name().equals("UNSEPARATED")),
+                        "pending growth must refresh the collapsed-framing finding without an indexed row");
+                assertNotEquals(null, status(f.frame).getToolTipText(), "the finding reaches the visible tooltip");
+            });
+        }
+    }
+
+    private static void prepareManualFollow(AsyncOpenInterleavingFrameTest.Frame f, Path log) throws Exception {
+        assertTrue(f.ex.render("open", Map.of("log", log.toString())).ok(), "the fixture opens");
+        AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+        assertTrue(f.ex.render("open", Map.of("follow", true)).ok(), "the fixture follows");
+        onEdt(() -> ((Timer) field(f.frame, "followTimer")).stop());
+    }
+
+    private static void append(Path path, String text) {
+        try { Files.writeString(path, text, java.nio.file.StandardOpenOption.APPEND); }
+        catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+    }
+
+    private static void poll(MainFrame frame) {
+        try {
+            var method = MainFrame.class.getDeclaredMethod("pollFollow");
+            method.setAccessible(true);
+            method.invoke(frame);
+        } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+    }
+
     private static void invokeSay(MainFrame frame, String message) {
         try {
             var m = MainFrame.class.getDeclaredMethod("sayToStatus", String.class);

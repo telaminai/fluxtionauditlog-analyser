@@ -98,6 +98,16 @@ public final class ReportsPanel extends JPanel {
     private final JPanel detail = new JPanel();
     private final javax.swing.JTabbedPane categories = new javax.swing.JTabbedPane();
     private final ProducerFindingsPanel producerFindings = new ProducerFindingsPanel();
+    /**
+     * D-MA0c: the LOG's own producer findings — empty, damaged, run together. Not {@link #producerFindings}, which is
+     * M66's design producer. Supplied by the owner of the loaded log; nothing when unset.
+     */
+    private Supplier<telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics> logFindings = () -> null;
+
+    /** D-MA0c: where the report reads the loaded log's producer findings from. */
+    public void setLogFindings(Supplier<telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics> source) {
+        this.logFindings = source == null ? () -> null : source;
+    }
 
     public ReportsPanel(Supplier<List<ReportSpec>> reports,
                         Function<ReportSpec, ReportResolver.Resolution> resolve,
@@ -220,6 +230,16 @@ public final class ReportsPanel extends JPanel {
         }
         if (res.summary() != null) {
             detail.add(banner("UNRESOLVED", res.summary(), null, null));
+        }
+        // D-MA0c: what the file itself shows is announced beside the other announce lines, before any section — the
+        // same place, and the same words, as the PDF
+        var findings = logFindings.get();
+        if (findings != null && !findings.isClean()) {
+            String label = telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.LOG_FINDINGS_LABEL;
+            String body = String.join("\n\n", findings.messages());
+            // A set of notes only — a rolled set's completeness note — states a limit, not a fault: muted, as the
+            // PDF draws it. Anything else is a warning, and wears the warning banner.
+            detail.add(findings.firstWarning().isPresent() ? banner(label, body, null, null) : noteBanner(label, body));
         }
         if (!spec.notes().isBlank()) {
             detail.add(narrative(spec.notes()));
@@ -359,6 +379,16 @@ public final class ReportsPanel extends JPanel {
             b.setAlignmentX(Component.LEFT_ALIGNMENT);
             box.add(b);
         }
+        return box;
+    }
+
+    /** A banner for a statement of a limit: the muted accent and the panel's own background, as the PDF's MUTED. */
+    private JPanel noteBanner(String heading, String body) {
+        JPanel box = calloutBox(theme.mutedFg(), theme.panelBg());
+        JTextArea h = bold(heading);
+        h.setForeground(theme.mutedFg());
+        box.add(h);
+        box.add(wrapped(body));
         return box;
     }
 

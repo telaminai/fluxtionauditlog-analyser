@@ -50,13 +50,45 @@ public final class DesignFiles {
         if (matches.size() > 1) throw new IOException("ambiguous file under authorised roots: " + matches);
         if (matches.isEmpty()) {
             if (readableCandidates.size() == 1) {
-                Path parent = readableCandidates.iterator().next().getParent();
+                Path found = readableCandidates.iterator().next();
+                Path parent = found.getParent();
                 String call = telamin.fluxtion.audit.analyser.analyser.llm.Json.write(Map.of("add", List.of(parent.toString())));
-                throw new IOException("file outside authorised roots: " + requested + "; to authorise its parent, call source_root " + call + ", then retry open {design}. No root was added.");
+                throw new IOException("file outside authorised roots: " + requested + projectHint(found)
+                        + "; to authorise its parent only, call source_root " + call + ", then retry open {design}. No root was added.");
             }
-            throw new IOException("file unavailable or outside authorised roots: " + requested);
+            throw new IOException("file unavailable or outside authorised roots: " + requested
+                    + (path.isAbsolute() ? projectHint(path) : relativeHint()));
         }
         return matches.iterator().next();
+    }
+
+    /** "; it is inside the project D — open {project: D} …", when the file belongs to a project that is not open. */
+    private String projectHint(Path file) {
+        return telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.enclosingProject(file)
+                .filter(dir -> project == null || !sameDirectory(dir, project))
+                .map(dir -> "; it is inside the project " + dir + " — open {project: "
+                        + telamin.fluxtion.audit.analyser.analyser.llm.Json.write(dir.toString())
+                        + "} applies that project's own source roots, then retry")
+                .orElse("");
+    }
+
+    /**
+     * The same directory by filesystem identity: a project opened through an alias (a symlink) is lexically unlike the
+     * canonical directory found above the file (PR #35 review). Metadata only; it grants nothing. When identity cannot
+     * be read, the lexical comparison decides, which at worst suggests opening the open project again.
+     */
+    private static boolean sameDirectory(Path a, Path b) {
+        try { return Files.isSameFile(a, b); }
+        catch (IOException | SecurityException e) { return a.equals(b); }
+    }
+
+    /** A relative path resolves against the open project and the roots; say which, since none may be set. */
+    private String relativeHint() {
+        String against = project == null && roots.isEmpty() ? "no project is open and no source roots are set"
+                : "it was looked up under " + (project == null ? "" : "the project " + project + (roots.isEmpty() ? "" : " and "))
+                  + (roots.isEmpty() ? "" : "the source roots " + roots);
+        return "; a relative path resolves against the open project and the source roots, and " + against
+                + ". Pass an absolute path, or open the project first with open {project: <dir>}";
     }
 
     public String read(Path path) throws IOException {

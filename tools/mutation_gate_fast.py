@@ -42,6 +42,8 @@ RUN_TIMEOUT_SECONDS = 600
 FULL_SET_TRIGGERS = (
     'tools/verify_project_chart_review.py',
     'tools/mutation_gate_fast.py',
+    'tools/mutation_shards.py',
+    'tools/mutation_timings.json',
     'tools/gate/',
     'pom.xml',
     '.github/workflows/',

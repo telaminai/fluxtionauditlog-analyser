@@ -140,10 +140,22 @@ public final class SettingsShare {
      * analyser must not strip a newer one's facts from a shared profile on its next save.
      */
     public String export(AppConfig c, Set<Category> categories, Path projectRoot, Properties previous) {
+        return export(c, categories, projectRoot, previous, null);
+    }
+
+    /**
+     * As above, for a project profile: {@code profileNonce} is the profile's creation nonce (edit-loop spec
+     * §E, {@link ProjectProfile#NONCE_KEY}), written only into a profile — never into a share export, which
+     * has no {@code projectRoot}. {@link #preview} reads whitelisted keys only, so an import ignores it.
+     */
+    public String export(AppConfig c, Set<Category> categories, Path projectRoot, Properties previous,
+                         String profileNonce) {
         Properties p = sortedProps();
         p.setProperty("share.version", Integer.toString(SHARE_VERSION));
         if (projectRoot == null) {
             p.setProperty("share.exportedAt", Instant.now().toString());
+        } else if (profileNonce != null) {
+            p.setProperty("profileNonce", profileNonce);
         }
 
         if (categories.contains(Category.SOURCE_ROOTS)) {

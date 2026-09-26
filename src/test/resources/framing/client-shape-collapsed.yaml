@@ -1,0 +1,92 @@
+eventLogRecord: 
+    eventTime: 1000
+    logTime: 1000
+    groupingId: null
+    event: LifecycleEvent
+    eventToString: Init
+    thread: main
+    nodeLogs: 
+        - child: { lifecycle: initialise}
+    endTime: 1001
+eventLogRecord: 
+    eventTime: 1001
+    logTime: 1001
+    groupingId: null
+    event: SinkRegistration
+    eventToString: SinkRegistration{checked}
+    thread: main
+    nodeLogs: 
+        - checked: { method: sinkRegistration}
+    endTime: 1002
+eventLogRecord: 
+    eventTime: 1002
+    logTime: 1002
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=10.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { method: onPriceUpdate, price: 10.0}
+        - child: { method: onChild, triggerFired: true}
+    endTime: 1003
+eventLogRecord: 
+    eventTime: 1003
+    logTime: 1003
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=20.0, filterId=9}
+    thread: main
+    nodeLogs: 
+    endTime: 1004
+eventLogRecord: 
+    eventTime: 1004
+    logTime: 1004
+    groupingId: null
+    event: Signal
+    eventToString: Signal{filterString=pause}
+    thread: main
+    nodeLogs: 
+        - child: { method: onSignalPause}
+    endTime: 1005
+eventLogRecord: 
+    eventTime: 1005
+    logTime: 1005
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=30.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { method: onPriceUpdate, price: 30.0}
+        - child: { method: onChild, triggerFired: true}
+    endTime: 1006
+eventLogRecord: 
+    eventTime: 1006
+    logTime: 1006
+    groupingId: null
+    event: ExportFunctionAuditEvent
+    eventToString: reset
+    thread: main
+    nodeLogs: 
+        - child: { method: reset}
+    endTime: 1007
+eventLogRecord: 
+    eventTime: 1007
+    logTime: 1007
+    groupingId: null
+    event: PriceUpdate
+    eventToString: PriceUpdate{symbol=DEMO, price=40.0, filterId=7}
+    thread: main
+    nodeLogs: 
+        - rootNode: { method: onPriceUpdate, price: 40.0}
+        - child: { method: onChild, triggerFired: true}
+    endTime: 1008
+eventLogRecord: 
+    eventTime: 1008
+    logTime: 1008
+    groupingId: null
+    event: Checked
+    eventToString: Checked[price=40.0, count=1]
+    thread: main
+    nodeLogs: 
+        - checked: { price: 40.0, count: 1}
+    endTime: 1009

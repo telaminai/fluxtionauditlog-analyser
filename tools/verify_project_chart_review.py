@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mutation_gate_fast as fast  # noqa: E402  (the fast engine and branch-subset selection)
+import mutation_shards as sharding  # noqa: E402
 
 CASES = [('follow-hold',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
@@ -251,6 +252,13 @@ CASES.extend([
 # Menu discoverability after the 1.20.0 reorganisation: a miss says where the item went; context lists the menus.
 MENU_HINTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MenuHints.java'
 MAIN_FRAME = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java'
+SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SourcePanel.java'
+SOURCE_SERVICE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/source/SourceService.java'
+TEMPLATE_ARCHIVE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/template/TemplateArchive.java'
+SESSION_RECOVERY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/SessionRecovery.java'
+RECOVERY_CONTROLLER = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SessionRecoveryController.java'
+PROJECT_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ProjectProfile.java'
+TEMPLATE_ROOTS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/config/TemplateRoots.java'
 CASES += [
     ('menu-hint-renamed', MENU_HINTS, 'List.of("Reset", "Reset (close log + graph)")', 'List.of()',
      'MenuHintsTest#theRenamedResetPointsAtItsNewName_whateverSpellingWasUsed'),
@@ -267,7 +275,220 @@ CASES += [
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
     ('context-menu-changes', MAIN_FRAME, '            out.put("menuChanges", MenuHints.changes(menuMap()));', '',
      'NamedGraphAndMenuSpotlightFrameTest#aMenuMissSaysWhereTheItemIs_andContextListsTheMenus'),
+    # edit-loop spec §C: Topology's embedded pane fills itself only on first use; a reopened log must recheck it
+    ('source-embedded-refresh', MAIN_FRAME,
+     '                    sourcePanel.showSelectedProcessor();\n                    topologyPanel.revalidateEmbeddedSource();',
+     '                    sourcePanel.showSelectedProcessor();',
+     'SourceFreshnessFrameTest#bothPanesShowTheFileAsItIsAfterTheLogIsReopenedAndOnTheNextNavigation'),
+    # §C: node-id navigation after a rename must use the model from the same read, not a cached one
+    ('source-service-model', SOURCE_PANEL,
+     '        if (Objects.equals(fqn, service.selectedFqn())) service.acceptModel(lookup, fqn, read.model());', '',
+     'SourcePanelFreshnessTest#afterAClassRenameNodeNavigationUsesTheProcessorAsItIsNow'),
+    # §C: a read that blocks must not block the EDT
+    ('source-reads-off-edt', SOURCE_PANEL,
+     '        return READS.submit(task);',
+     '        task.run(); return java.util.concurrent.CompletableFuture.completedFuture(null);',
+     'SourcePanelFreshnessTest#aBlockedReadLeavesTheEdtResponsiveAndASupersededAnswerIsDropped'),
+    # §C: an unchanged name is not an unchanged file
+    ('source-same-name-reread', SOURCE_PANEL,
+     '        load(pane, fqn, instead != null ? instead : () -> {',
+     '        if (!newName && !pane.source.isEmpty()) return;\n        load(pane, fqn, instead != null ? instead : () -> {',
+     'SourcePanelFreshnessTest#navigatingToTheSameClassAgainShowsItsFileAsItIsNow'),
+    # §C: an answer past its deadline (or superseded) is never installed
+    ('source-stale-ticket', SOURCE_PANEL,
+     '            deadline.stop();\n            if (pane.readTicket != ticket) { decisions.accept("discarded " + fqn + ": superseded or expired"); return; }\n            pane.reading = false;\n            if (service == null',
+     '            deadline.stop();\n            pane.reading = false;\n            if (service == null',
+     'SourcePanelFreshnessTest#aReadPastItsDeadlineSaysSoAndItsLateAnswerIsIgnored'),
+    # PR #30 review 1: two panels share the service; an older read landing last must not replace a newer model
+    ('source-model-sequence', SOURCE_SERVICE, '        if (lookup.sequence() < installedSequence) return;\n', '',
+     'SourcePanelFreshnessTest#anOlderReadFromTheOtherPaneCannotReplaceANewerModel'),
+    # PR #30 review 2: the EDT never reads the processor to learn its model
+    ('source-model-no-edt-read', SOURCE_SERVICE,
+     '        if (javax.swing.SwingUtilities.isEventDispatchThread()) return Optional.empty();\n', '',
+     'SourceServiceTest#onTheEdtAnUnreadModelIsNotReadAndSaysSo'),
+    # PR #30 review 3: a Ctrl-click's existence check runs off the EDT
+    ('source-type-click-off-edt', SOURCE_PANEL,
+     '        pendingTypeCheck = offEdt(() -> check.apply(lookup, fqn), present -> {\n',
+     '        Boolean onEdt = check.apply(lookup, fqn);\n        pendingTypeCheck = offEdt(() -> onEdt, present -> {\n',
+     'SourcePanelFreshnessTest#aTypeClickChecksExistenceOffTheEdtThenOpensIt'),
+    # PR #30 review 4: at the deadline the body stops saying it is reading
+    ('source-timeout-body', SOURCE_PANEL,
+     '            if (pane.source.isEmpty()) pane.renderPlain("Timed out after " + readDeadline.toMillis() + " ms reading "\n'
+     '                    + fqn + "; nothing was read. Navigate to it again to retry.");\n', '',
+     'SourcePanelFreshnessTest#aTimedOutReadOfANewNameSaysItTimedOutInTheBodyToo'),
+    # PR #30 review 4: hung reads hold a bounded number of threads
+    ('source-reads-bounded', SOURCE_PANEL, 'new java.util.concurrent.ThreadPoolExecutor(2, 2,',
+     'new java.util.concurrent.ThreadPoolExecutor(64, 64,',
+     'SourcePanelFreshnessTest#readsThatHangDoNotAccumulateThreadsWithoutBound'),
+    # PR #30 review 5: a node request whose processor read gives up says why
+    ('source-node-open-reason', SOURCE_PANEL,
+     '                why -> nodePane.label.setText("could not open node \'" + instanceId + "\': " + why));',
+     '                why -> { });',
+     'SourcePanelFreshnessTest#aNodeRequestWhoseProcessorReadTimesOutSaysWhyItDidNotOpen'),
+    # edit-loop spec §G, feedback 8: archive modes are ignored, so the fixed list is what makes generate.sh runnable
+    ('installer-authoring-executables', TEMPLATE_ARCHIVE, '"setup.sh", "validate.sh", "generate.sh");',
+     '"setup.sh", "validate.sh");', 'TemplateArchiveTest#springAuthoringScriptsAreInstalledRunnableWithoutChmod'),
+    # PR #27 review nit 1: only ROOT entries on the list become executable; a basename-only match would
+    # make a nested bundle/tools/generate.sh executable
+    ('installer-nested-script-not-executable', TEMPLATE_ARCHIVE,
+     "if (portable.indexOf('/') == portable.lastIndexOf('/') && POSIX_EXECUTABLES.contains(base)) {",
+     'if (POSIX_EXECUTABLES.contains(base)) {',
+     'TemplateArchiveTest#archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist'),
+    # edit-loop spec §E: without the profile-identity comparison a project recreated at the same path is offered the old session
+    ('recovery-profile-identity', SESSION_RECOVERY, '                && !e.profileIdentity().equals(candidate.profileIdentity())) {',
+     '                && false) {', 'SessionRecoveryTest#aSessionCapturedByADifferentProfileAtThisPathIsWithheldNotOffered'),
+    # PR #28 review: a missing identity is 'unknown', never 'different profile' and never a match
+    ('recovery-identity-unknown', SESSION_RECOVERY,
+     '                && (e.profileIdentity() == null || candidate.profileIdentity() == null)) {', '                && false) {',
+     'SessionRecoveryTest#aSessionWithoutAProfileIdentityIsWithheldAsCapturedByAnUnknownProfile'),
+    # PR #28 review: a withheld offer still discloses its input origin (§E)
+    ('recovery-withheld-input-origin', SESSION_RECOVERY, '            out.put("inputs", inputOrigin(withheld));', '',
+     'SessionRecoveryTest#aWithheldOfferStillDisclosesItsInputOrigin'),
+    # PR #28 review: the capturing identity is taken when the capture is built, not when the queued save runs
+    ('recovery-identity-at-capture', RECOVERY_CONTROLLER,
+     '            String identity = c.profile() == null ? null : c.profileIdentity();',
+     '            String identity = c.profile() == null ? null : telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.nonce(c.profile()).orElse(null);',
+     'SessionRecoveryControllerTest#theCapturingIdentityIsTakenWhenTheCaptureIsBuiltNotWhenItIsSaved'),
+    # PR #28 review: the identity is a creation nonce, kept by every save of the profile
+    ('profile-nonce-kept-by-saves', PROJECT_PROFILE,
+     '        String nonce = previous == null ? null : validNonce(previous.getProperty(NONCE_KEY));', '        String nonce = null;',
+     'ProjectProfileTest#theCreationNonceIsMintedOnceKeptBySavesAndNeverShared'),
 ]
+
+# M44.4 and M68 (feat/m44-single-state-session): the mutation witnesses behind that branch's evidence sets, registered
+# so they protect the code from now on instead of recording one run. See tools/mutation_controls_session.py.
+from mutation_controls_session import CONTROLS as SESSION_CONTROLS  # noqa: E402
+assert not {c[0] for c in CASES} & {c[0] for c in SESSION_CONTROLS}, 'a session control reuses a control name'
+CASES += SESSION_CONTROLS
+
+# §H feedback 17: context {sections} is a filter over the full payload that keeps each selected verdict's qualification.
+CONTEXT_SECTIONS = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/ContextSections.java'
+CASES += [
+    ('context-projection', CONTEXT_SECTIONS, '                if (selects(key)) {', '                if (!key.isEmpty()) {',
+     'ContextSectionsTest#menuOnly_isTheMenusAndTheScope_andNothingElse'),
+    ('context-qualification', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
+     '"producer", List.of("topology", "view", "charts"),',
+     'ContextSectionsTest#aSelectedVerdictCarriesItsBasisAndEveryQualification'),
+    # PR #29 review 1: a rolled set's member list travels with the view, whose selection has file-local offsets
+    ('context-files-with-view', CONTEXT_SECTIONS, '            "files", List.of("view"));', '            "files", List.of());',
+     'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
+    # PR #29 review 2: collapsed-framing producer faults qualify the topology cursor's record and row count
+    ('context-producer-with-topology', CONTEXT_SECTIONS, '"producer", List.of("pairing", "topology", "view", "charts"),',
+     '"producer", List.of("pairing", "view", "charts"),',
+     'ContextSectionsTest#aRolledSetsFilesTravelWithTheView_andProducerFaultsWithTheTopology'),
+    # PR #29 review 3: a projection without fluxtionKey reads no key file
+    ('context-key-file-guard', MAIN_FRAME, '            if (need.test("fluxtionKey")) {', '            if (true) {',
+     'ContextSectionsTest#aProjectionWithoutFluxtionKeyReadsNoKeyFile'),
+    # edit-loop spec §I1: a template profile may only grant reads inside the project it installs
+    ('template-root-install-check', TEMPLATE_ARCHIVE,
+     '                    telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);\n', '',
+     'TemplateRootContainmentTest#aRootThatLeavesTheProjectIsRefused'),
+    # §I1: ../<archive-root>/… resolves inside staging and outside the installed project; only this rule refuses it
+    ('template-root-leading-parent', TEMPLATE_ROOTS,
+     '        if (normal.getName(0).toString().equals("..")) throw refuse(root, "leaves the project");\n', '',
+     'TemplateRootContainmentTest#aRootThatReentersThroughTheArchiveRootsOwnNameIsRefused'),
+    # §I1 / D3: src/.., . and ./ are the whole project, which containment alone would accept
+    ('template-root-whole-project', TEMPLATE_ROOTS,
+     '        if (normal.toString().isEmpty()) throw refuse(root, "is the project root itself, which would grant the whole project");\n', '',
+     'TemplateRootContainmentTest#aRootThatIsTheWholeProjectIsRefused'),
+    # PR #31 review 2: every settings file in the archive is a read grant, not only the root profile
+    ('template-root-every-profile', TEMPLATE_ARCHIVE,
+     'files.filter(p -> p.getFileName().toString().endsWith(".fluxtion-settings")',
+     'files.filter(p -> p.equals(root.resolve(".analyser/project.fluxtion-settings"))',
+     'TemplateRootContainmentTest#everyProjectProfileInTheArchiveIsChecked_namedAndNested'),
+    # PR #31 review 3: Windows path syntax is refused on every OS
+    ('template-root-backslash', TEMPLATE_ROOTS,
+     '        if (root.indexOf(\'\\\\\') >= 0) throw refuse(root, "contains a backslash (Windows path syntax)");\n', '',
+     'TemplateRootContainmentTest#windowsPathSyntaxIsRefusedOnEveryOs'),
+    # PR #31 review 5: a failed log open returns to no log, and the note comes back
+    ('no-log-note-after-failed-open', MAIN_FRAME,
+     '        if (store == null && topologyPanel.hasGraph()) publishPairing();\n', '',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
+    # §I1: the design-first tour's first step needs no log — requiring one must fail the no-log journey
+    ('no-log-design-open', MAIN_FRAME, '            return openDesign(path, () -> true);\n',
+     '            return store == null ? telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("open a log first") : openDesign(path, () -> true);\n',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
+    # §I1: with no log, the Topology tab must say the graph was not compared, not stay silent
+    # (on main's session snapshot, a graph opening re-renders through the snapshot listener, so the no-log branch of
+    # publishPairing is what carries this, not the explicit re-render on load)
+    ('no-log-pairing-note', MAIN_FRAME,
+     '        if (topologyPanel.hasGraph() && store == null && !loadInFlight) {\n',
+     '        if (false) {\n',
+     'NoLogDesignJourneyFrameTest#designTopologyAndJavaOpenWithNoLogAndClaimNoComparison'),
+]
+
+# 2026-09-26 fresh-look run: at the default window the design text had no room, and two neighbouring spotlights
+# each drew an edge through the other's line
+DESIGN_SOURCE_PANEL = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/DesignSourcePanel.java'
+SPOTLIGHT_GEOMETRY = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/SpotlightGeometry.java'
+DESIGN_FILES = 'src/main/java/telamin/fluxtion/audit/analyser/analyser/design/DesignFiles.java'
+CASES += [
+    # the wrapped status must not take the design text's height
+    # (PR #35 review: witnessed by a note that overflows by construction; the default-window test depended on
+    # the temporary path's length and font metrics, and the mutation survived on Linux)
+    ('design-status-capped', DESIGN_SOURCE_PANEL, 'top.add(statusScroll);', 'top.add(status);',
+     'DesignSpotlightFrameTest#anOverflowingStatusNoteLeavesTheXmlItsHeight'),
+    # the bean list yields width to the XML in a narrow pane
+    ('design-bean-list-fits', DESIGN_SOURCE_PANEL,
+     '            @Override public void doLayout() { fitBeanList(this); super.doLayout(); }\n',
+     '            @Override public void doLayout() { super.doLayout(); }\n',
+     'DesignSpotlightFrameTest#atTheDefaultWindowSizeTheXmlIsReadableAndABeanCanBeLit'),
+    # neighbouring spotlights share one separator instead of crossing each other's line
+    ('spotlight-neighbours-separate', SPOTLIGHT_GEOMETRY,
+     '                if (cu.y + cu.height > mid) cu.height = mid - cu.y;\n', '',
+     'SpotlightGeometryTest#neighbouringLinesMeetAtOneSeparatorAndNeitherOutlineCrossesTheOtherLine'),
+    # a refused design inside an unopened project names open {project}
+    ('design-refusal-names-project', DESIGN_FILES,
+     'throw new IOException("file outside authorised roots: " + requested + projectHint(found)',
+     'throw new IOException("file outside authorised roots: " + requested',
+     'DesignFilesRefusalHintTest#aDesignInsideAProjectThatIsNotOpenNamesOpenProjectBeforeSourceRoot'),
+    # PR #35 review: a theme switch replaces the divider; listening only on the first one loses the first drag after it
+    ('design-drag-survives-theme', DESIGN_SOURCE_PANEL,
+     '            @Override public void updateUI() { super.updateUI(); listenForDrag(this); }\n',
+     '            private boolean listened;\n'
+     '            @Override public void updateUI() { super.updateUI(); if (!listened) { listened = true; listenForDrag(this); } }\n',
+     'DesignSourcePanelLayoutTest#aDraggedWidthIsKeptWithAndWithoutAThemeSwitchFirst'),
+    # PR #35 review: the open project is recognised by filesystem identity, not by its lexical path
+    ('design-hint-project-identity', DESIGN_FILES,
+     '                .filter(dir -> project == null || !sameDirectory(dir, project))',
+     '                .filter(dir -> project == null || !dir.equals(project))',
+     'DesignFilesRefusalHintTest#theOpenProjectReachedThroughAnAliasIsNotSuggestedAgain'),
+]
+# Combined Follow/session/framing and captured coverage boundaries.
+CASES += [('integration-failed-identity',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/parse/HeapLogStore.java',
+  '            this.readIdentity = null;\n'
+  '            this.followIdentity = new FollowIdentity(FollowIdentity.Verdict.UNVERIFIED,\n'
+  '                    "the current file could not be decoded as UTF-8");\n',
+  '',
+  'HeapLogStoreFollowIdentityTest#unreadableSameLengthReplacementRetiresTheVerifiedIdentity'),
+ ('integration-failed-session',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  '            reportIdentityToSession(store.followIdentity());   // a failed poll also retires the '
+  "session's earlier verification\n",
+  '',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce'),
+ ('integration-coverage-bound',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/topology/CoverageService.java',
+  'PerNodeLevelChanges.of(store, rows)',
+  'PerNodeLevelChanges.of(store)',
+  'CoveragePerNodeLevelTest#annotationsRespectTheCapturedRowsAndTerminalBoundary'),
+ ('integration-pending-refresh',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  ' && pendingChars == followPendingChars',
+  '',
+  'StatusExplanationSurvivesFrameTest#pendingGrowthRefreshesFindingsWithoutAddingAnyRows'),
+ ('integration-failure-refresh',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  'if (!readFailed && !followNeedsDiagnosticRefresh',
+  'if (!followNeedsDiagnosticRefresh',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce'),
+ ('integration-repeat-failure-skip',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
+  '            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) '
+  'return;',
+  '            if (false) return;',
+  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce')]
 
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()
@@ -502,7 +723,14 @@ def main():
     parser.add_argument('--changed-since', metavar='REF',
                         help='mutations mode on a BRANCH: run only the controls the diff against REF can affect, '
                              'and print every control skipped. Never a substitute for the full set.')
+    parser.add_argument('--shard-index', type=int, help='zero-based worker index; independent checkout/display required')
+    parser.add_argument('--shard-count', type=int, help='partition the FULL registry across this many workers')
     args = parser.parse_args()
+    if args.shard_index is not None or args.shard_count is not None:
+        if (args.shard_index is None or args.shard_count is None or
+                not 0 <= args.shard_index < args.shard_count or args.mode != 'mutations' or
+                args.engine != 'fast' or args.case or args.changed_since):
+            parser.error('sharding requires fast mutations, both shard arguments, a valid index, and no subset/case selection')
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     result = {'mode': args.mode, 'runs': []}
@@ -536,6 +764,14 @@ def main():
         print('display:', sum(s['tests'] for s in r['suites']), 'tests, zero failures/errors/skips', flush=True)
         return
     cases = selected_cases(args.case)  # ALL anchors before the shared baseline or any mutation
+    if args.shard_index is not None:
+        shards, loads = sharding.plan(cases, args.shard_count)
+        cases = shards[args.shard_index]
+        result['shard'] = {'index': args.shard_index, 'count': args.shard_count,
+                           'revision': sharding.revision(), 'cases': [c[0] for c in cases]}
+        save()
+        print(f'Shard {args.shard_index + 1}/{args.shard_count}: {len(cases)} controls; '
+              f'estimated control time {loads[args.shard_index]:.1f}s (setup/baseline additional)', flush=True)
     if args.mode == 'compare':
         planted = [c for c in PLANTED if Path(c[1]).read_text().count(c[2]) == 1]
         assert len(planted) == len(PLANTED), 'a planted control lost its anchor'

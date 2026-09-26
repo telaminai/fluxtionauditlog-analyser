@@ -145,7 +145,7 @@ public final class MainFrame extends JFrame {
     // follow / tail mode (H8.7): poll a growing local file and append new records live
     private static final int FOLLOW_POLL_MS = 1000;
     private Timer followTimer;
-    private boolean following;
+    private volatile boolean following;       // M68.5: read off the EDT by the request-time identity check
     private String followPath;                       // local path being tailed, or null
     private JToggleButton followButton;              // toolbar toggle (kept in sync)
     private JCheckBoxMenuItem followMenuItem;        // Audit-log-menu toggle (kept in sync)
@@ -227,8 +227,21 @@ public final class MainFrame extends JFrame {
         startMcpIndicatorWatch();
         // M44.2: the coverage verdict is the processor's. Lazily read, so the driver is not built
         // before the fields its adapter performs against exist.
-        actionExecutor.bindCoverageClaim(() -> session == null
-                ? null : session.processor().coverageClaim.assessment());
+        // M44.4b: read from the SNAPSHOT. The coverage verb runs on the socket thread, which used to read the processor's
+        // live fields — and, since round 4, to invokeAndWait a refresh onto the EDT first. Follow now reports every
+        // append as it lands, so the snapshot is current, immutable and safe to read here.
+        // M68.5 (D-E6): at each record-reading request, off the EDT. Under Follow the poll decides (FollowIdentity), so
+        // this observes only a log that is not being followed; what it sees reaches the session and the status line.
+        actionExecutor.bindReadIdentity(this::observeReadIdentity);
+        addWindowFocusListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                observeReadIdentity();              // a person coming back to the window is the next observation
+            }
+        });
+        actionExecutor.bindSessionSnapshot(() -> {
+            var driver = session;
+            return driver == null ? null : driver.snapshot();
+        });
         actionExecutor.bindIgnoredParameters(supplied -> {
             var driver = session();
             driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents
@@ -279,7 +292,12 @@ public final class MainFrame extends JFrame {
         // node tooltips pick up the class javadoc when a source root reaches the class
         topologyPanel.setSourceResolver(sourceService::sourceForFqn);
         // one place remembers a loaded topology, whichever entry point loaded it
-        topologyPanel.onTopologyLoaded(f -> { rememberGraphml(f); compareGraphCopies(f); refreshProjectPanel(); });
+        topologyPanel.onTopologyLoaded(f -> {
+            rememberGraphml(f); compareGraphCopies(f);
+            if (store == null) publishPairing();      // §I1: a graph opened with no log says it was not compared
+            refreshProjectPanel();
+        });
+        topologyPanel.onGraphChanged(this::reportGraphToSession);   // M44.4a: every graph change, one entrance
         // the topology gets its own source viewer, sharing this service — so navigating from the graph
         // keeps the graph on screen instead of switching to the sibling Source tab
         topologyPanel.bindSource(sourceService);
@@ -410,6 +428,12 @@ public final class MainFrame extends JFrame {
         return west;
     }
 
+    /** The root every project pointer resolves against — the open project's directory — or null with none open. */
+    private Path projectRootForPointers() {
+        return project.hasProject()
+                ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
+    }
+
     /** M38.2: the glossary pointer as context reports it — path, where it lands, whether it exists, its text. */
     private Map<String, Object> vocabularyForContext() {
         Map<String, Object> v = new java.util.LinkedHashMap<>();
@@ -417,10 +441,15 @@ public final class MainFrame extends JFrame {
         Path root = project.hasProject()
                 ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
         v.put("path", config.vocabularyPath);
-        Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, config.vocabularyPath);
+        // M68.5 (acceptance 8): resolved and diagnosed — a failure names the root tried and where it landed
+        var pointer = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolution(root, config.vocabularyPath);
+        if (pointer.root() != null) v.put("root", pointer.root());
+        if (pointer.problem() != null) v.put("problem", pointer.problem());
+        Path abs = pointer.resolved();
+        if (abs == null) v.put("exists", false);
         if (abs != null) {
             v.put("resolved", abs.toString());
-            boolean exists = java.nio.file.Files.isRegularFile(abs);
+            boolean exists = pointer.exists();
             v.put("exists", exists);
             if (exists) {
                 String text = vocabularyText();
@@ -461,11 +490,12 @@ public final class MainFrame extends JFrame {
             // without opening every file. Served from the profile, never read from the file — a pointer
             // whose file changes must not silently change what context says.
             if (ptr.description() != null) one.put("description", ptr.description());
-            Path abs = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolve(root, rel);
-            if (abs != null) {
-                one.put("resolved", abs.toString());
-                one.put("exists", java.nio.file.Files.isRegularFile(abs));
-            }
+            // M68.5 (acceptance 8): a pointer that fails names the root that was tried, and why it failed
+            var pointer = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.resolution(root, rel);
+            if (pointer.root() != null) one.put("root", pointer.root());
+            if (pointer.resolved() != null) one.put("resolved", pointer.resolved().toString());
+            one.put("exists", pointer.exists());
+            if (pointer.problem() != null) one.put("problem", pointer.problem());
             one.put("from", project.hasProject() ? "project" : "own settings");
             one.put("note", "a pointer — read the file from the repository; the analyser stores no instructions and executes nothing");
             rbs.add(one);
@@ -1309,42 +1339,35 @@ public final class MainFrame extends JFrame {
                     Files.write(out, render);
                     echo.put("path", out.toAbsolutePath().toString());
                 } catch (java.io.IOException e) {
+                    // M68.4 (D-E3): the report WAS saved above — say so, so a refusal is not read as "nothing happened"
                     return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                            "could not write " + resolvedPath + ": " + e.getMessage());
+                            "report '" + spec.name() + "' was saved, but could not write " + resolvedPath + ": "
+                                    + e.getMessage());
                 }
             }
         }
         if (!warnings.isEmpty()) echo.put("warnings", warnings);
+        // D-MA0c: the reply carries the log's producer findings under the key `context` already uses
+        if (store != null && producerDiagnostics != null && !producerDiagnostics.isClean()) {
+            echo.put("producer", producerDiagnostics.messages());
+        }
         return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
     }
 
     /**
-     * Coverage's graph facts belong to the UI, but its scoring is pure and shared with the action echo.
-     * The report gets the complete ledger rather than coverage's intentionally short agent-facing gap
-     * list; a PDF reader needs covered and excluded nodes to check the denominator too.
+     * Coverage's graph facts belong to the UI, but its scoring is pure and shared with the action echo — and whether a
+     * number may be printed at all is the SESSION's decision (independent review R2): the report used to decide that for
+     * itself, knowing one of the four refusals, and exported a ratio the coverage verb refused. The store, the graph and
+     * the claim are read here together, on the EDT, so the verdict describes exactly what is scored.
      */
     private telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData coverageForReport(
             boolean filtered) {
-        if (store == null || !topologyPanel.hasTopology()) {
-            return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(
-                    java.util.List.of(), null, java.util.List.of("coverage needs a loaded declared topology"),
-                    "coverage needs a loaded declared topology");
-        }
-        var graphSource = topologyPanel.graphSource();
-        if (graphSource != null && !graphSource.supportsCoverage()
-                && graphSource != telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE) {
-            String reason = "this graph was " + graphSource.describe + ", so coverage cannot mean anything: "
-                    + "it subtracts what ran from what was declared, and here the declared set is what ran";
-            return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(
-                    java.util.List.of(), null, java.util.List.of(reason), reason);
-        }
-        var input = new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
-                topologyPanel.fullTopology(), topologyPanel.authoredNodeIds(), topologyPanel.sourceResolver());
-        var assessed = telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(
-                store, filtered, filter, input);
-        return new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(assessed.ledger(),
-                assessed.scalarLine(), assessed.notes(), assessed.ledger().isEmpty()
-                        ? "the topology declares no reportable nodes" : null);
+        var input = topologyPanel.hasTopology()
+                ? new telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.Input(
+                        topologyPanel.fullTopology(), topologyPanel.authoredNodeIds(), topologyPanel.sourceResolver())
+                : null;
+        return telamin.fluxtion.audit.analyser.analyser.report.ReportCoverage.forReport(
+                store, input, sessionSnapshot().claim(), filtered, filter);
     }
 
     /** Assemble what each section can show headlessly, and render (M33.3 — see recorded deviations). */
@@ -1373,29 +1396,37 @@ public final class MainFrame extends JFrame {
                     yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
                             null, null,
                             new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
-                                    "Trend · " + s.ref(), panel.scopeText(), paintOf(panel)),
+                                    "Trend · " + s.ref(), panel.scopeText(), panel.renderForReport(1200, 600)),
                             mk.table().rows().isEmpty() ? null : mk.table());
                 }
-                case TOPOLOGY ->
-                        // recorded deviation: no per-focus offscreen render exists yet; the PDF states
-                        // the gap instead of silently omitting the section it resolved
-                        new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                                "Focus · " + s.ref(),
-                                java.util.List.of("(the focus renders in the app's Topology tab; "
-                                        + "image export for focus sections is a recorded gap)"),
-                                null, null);
-                case SERIES ->
-                        new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                                "Series",
-                                java.util.List.of("(series sections render as charts in the app; "
-                                        + "PDF assembly for them is a recorded gap)"),
-                                null, null);
+                case TOPOLOGY -> {
+                    // the review's gap table (M68.2): the focus is drawn off-screen; one that no longer resolves says why
+                    var focus = topologyPanel.renderFocusForReport(s.ref(), 1200, 800);
+                    yield focus == null
+                            ? new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                    "Focus · " + s.ref(), java.util.List.of("the focus is not defined, or names no node "
+                                            + "in the loaded graph"), null, null)
+                            : new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(null, null,
+                                    new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                                            "Focus · " + s.ref(), focus.caption(), focus.image()), null);
+                }
+                case SERIES -> {
+                    // the review's gap table (M68.2): drawn from the Graph tab's own extraction and chart, off-screen
+                    var drawn = ReportSeriesPicture.of(store, s.call(), 1200, 600);   // the stored call decides; re-review N2
+                    yield drawn.image() == null
+                            ? new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
+                                    "Series", java.util.List.of(drawn.problem()), null, null)
+                            : new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(null, null,
+                                    new telamin.fluxtion.audit.analyser.analyser.report.FindingReport.Picture(
+                                            "Series", drawn.caption(), drawn.image()), null);
+                }
                 case TABLE -> {
                     var assembled = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb
                             .assembleTable(s, store, this::coverageForReport);
                     warnings.addAll(assembled.notes());
+                    // M68.1 (D-E2): and onto the page, under the table, as the Reports tab already shows them
                     yield new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
-                            "Table", null, null, assembled.table());
+                            "Table", null, null, assembled.table(), assembled.notes());
                 }
                 case NARRATIVE ->
                         telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent.EMPTY;
@@ -1404,7 +1435,8 @@ public final class MainFrame extends JFrame {
         return telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.render(
                 spec, resolution, content,
                 (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
-                TimeFormat.utc(System.currentTimeMillis()));
+                TimeFormat.utc(System.currentTimeMillis()),
+                store == null ? null : producerDiagnostics);   // D-MA0c: the log's findings are on the page
     }
 
     /** One record as evidence lines: the numbered node log, the same shape the finding report uses. */
@@ -1553,7 +1585,7 @@ public final class MainFrame extends JFrame {
             panel.setRecordMarker(record.logTime(), marker);
             java.awt.image.BufferedImage plot;
             try {
-                plot = paintOf(panel);
+                plot = panel.renderForReport(1200, 600);   // M68.2: offscreen at page size, not the live tab
             } finally {
                 panel.setRecordMarker(null, null);
             }
@@ -1590,11 +1622,12 @@ public final class MainFrame extends JFrame {
             echo.put("wholeGraphView", views.wholeGraph() != null);
             echo.put("graph", graphName == null || graphName.isBlank() ? null : graphName);
             echo.put("pages", pictures.size());
-            // a topology that has no node from this record is a build mismatch, not an empty cycle —
-            // silently omitting the picture would leave the reader wondering where it went
+            // a topology that has no node from this record is a disagreement between the two, not an empty
+            // cycle — silently omitting the picture would leave the reader wondering where it went. M68.1
+            // re-review R3: it states the disagreement; it used to conclude "a different build".
             if (withTopology && topologyPanel.hasTopology() && views.trace() == null) {
-                echo.put("warning", "none of this record's nodes are in the loaded topology — "
-                        + "the graphml is probably from a different build");
+                echo.put("warning", telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                        .findingHasNoDeclaredNode());
             }
             // an empty finding still produces a valid report; say so rather than let the caller assume
             // the explanation made it in
@@ -1636,16 +1669,6 @@ public final class MainFrame extends JFrame {
             if (bar.getMenu(i) != null) names.add(bar.getMenu(i).getText());
         }
         return names;
-    }
-
-    private static java.awt.image.BufferedImage paintOf(java.awt.Component c) {
-        if (c.getWidth() <= 0 || c.getHeight() <= 0) return null;
-        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
-                c.getWidth(), c.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
-        java.awt.Graphics2D g = img.createGraphics();
-        c.paint(g);
-        g.dispose();
-        return img;
     }
 
     private void exportRecords(boolean yaml) {
@@ -2385,7 +2408,7 @@ public final class MainFrame extends JFrame {
 
         @Override public String whyNotVisible(SpotlightTarget t) {
             return switch (t.family()) {
-                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> "session design is unavailable, or the anchor is missing, ambiguous or outside the document";
+                case DESIGN, DESIGN_BEAN, DESIGN_LINE -> designNotVisible(t);
                 case RECORDS_ROW -> store == null ? "no log is open, so there is no record " + t.argument()
                         : "record " + t.argument() + " is not in the table — it is out of range, or still filtered out";
                 case DETAIL_NODE -> "'" + t.argument() + "' has no block in the record detail — select a record in "
@@ -2429,6 +2452,28 @@ public final class MainFrame extends JFrame {
             };
         }
     };
+
+    /**
+     * Why a design target is not lit, said as the one reason that applies. It used to be one sentence for all of
+     * them ("unavailable, or missing, ambiguous or outside"), which a model read as "the design is not open" when
+     * the design was open and the XML was simply too narrow to show the line.
+     */
+    private String designNotVisible(SpotlightTarget t) {
+        var doc = session().processor().designSession.document();
+        if (doc == null) return "no session design is open — open {design: <path>} first";
+        if (t.family() == SpotlightTarget.Family.DESIGN_BEAN) {
+            int n = doc.beans(t.argument()).size();
+            if (n == 0) return "no bean '" + t.argument() + "' in " + doc.file() + " (context.design.beans lists them)";
+            if (n > 1) return "bean id '" + t.argument() + "' is declared " + n + " times in " + doc.file()
+                    + "; light it by line with source:design:line:<n>";
+        }
+        if (t.family() == SpotlightTarget.Family.DESIGN_LINE && (t.number() < 1 || t.number() > doc.lines()))
+            return "line " + t.number() + " is outside " + doc.file() + " (1–" + doc.lines() + ")";
+        if (t.family() == SpotlightTarget.Family.DESIGN)
+            return "the design is open but its view is not on screen: the Source pane is hidden or too small";
+        return "the design is open but that line is not on screen: the Source pane is too small to show it. "
+                + "Widen the window or the side panel, or light source:design";
+    }
 
     private Integer designTargetLine(SpotlightTarget target) {
         var doc = session().processor().designSession.document();
@@ -2952,6 +2997,7 @@ public final class MainFrame extends JFrame {
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
                 name -> exportReportPdfWithChooser(name));
+        reportsPanel.setLogFindings(() -> store == null ? null : producerDiagnostics);   // D-MA0c
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);
@@ -3196,17 +3242,12 @@ public final class MainFrame extends JFrame {
         loadInFlight = busy;
         progress.setVisible(busy);
         refreshCloseItems();        // a pending load is something to close: at start, supersede and completion
-        if (busy) {
-            // review B1: a verdict is about a PAIR. The log half is being replaced, so the verdict
-            // retires with it; context says pending until the load lands (or fails, below).
-            lastPairing = null;
-            publishPairing();
-        } else if (lastPairing == null && store != null && topologyPanel.hasGraph() && session != null) {
-            // the load did not land (onLoaded sets the verdict before clearing busy): the previous
-            // log is still the open one, and the session's verdict about it is still true
-            lastPairing = session.processor().pairing.verdict();
-            publishPairing();
-        }
+        // M44.4c: nothing to do for the verdict. Whether it is PENDING is the session's fact (its gate knows an open is in
+        // flight), so the snapshot published at the end of this operation says so, and the listener renders it. Review
+        // B1's rule still holds — no verdict about the previous pair while a log loads — it just has one owner now.
+        // §I1: with a graph and no log, the no-log note gives way while a load is in flight, and returns when one
+        // fails or is cancelled — a snapshot need not change for either, so render it here.
+        if (store == null && topologyPanel.hasGraph()) publishPairing();
     }
 
     private JPanel buildFilterBar() {
@@ -3835,8 +3876,11 @@ public final class MainFrame extends JFrame {
         topologyPanel.clearExecution();
         topologyPanel.setOrderMeaningful(true);   // M34 review F3: "ARRIVAL ORDER" described THAT source
         topologyPanel.clearSourceGraph();         // M34 review F1: a reader's graph is log-derived state
-        lastPairing = null;                // review F2: the verdict was about THIS log — with it gone the
-        publishPairing();                  // graph makes no claim, and the panel's note must not keep one
+        // review F2: the verdict was about THIS log, and with it gone the graph makes no claim. The LogCleared fact below
+        // (or the LogClosed result, inside an effect) changes the snapshot, and the listener clears the note (M44.4c).
+        // M44.4a: the close is a fact. Inside a CloseLogEffect it is queued behind the LogClosed result and
+        // arrives as a recorded no-op; from Audit log ▸ Close log it is how the processor learns the log went.
+        if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogCleared(sessionLogGeneration));
         pendingProjectOffer = null;        // review F3: an offer made for a log that is no longer open
         pendingRolledSetOffer = null;      // M35.9: likewise
         if (reportsPanel != null) reportsPanel.refresh();   // re-render: anchors now say why they fail
@@ -3861,9 +3905,7 @@ public final class MainFrame extends JFrame {
 
     /** Close the loaded topology, leaving the log alone (M35.1). */
     private void closeGraph() {
-        topologyPanel.clearGraph();
-        lastPairing = null;
-        publishPairing();
+        topologyPanel.clearGraph();                   // GraphCleared → snapshot → the listener clears the note
         status.setText(store == null ? "No log open" : "Graph closed · " + store.size() + " records");
         updateLifecycleMenu();
         refreshProjectPanel();                                        // M37
@@ -3878,11 +3920,9 @@ public final class MainFrame extends JFrame {
 
     /** Close items are enabled only when there is something to close. */
     private void updateLifecycleMenu() {
-        // M44: the single place the processor is told what is open. Every path that opens or closes a
-        // log or graph already lands here, which is why the observation hangs off it rather than being
-        // hand-placed at ten call sites that would drift apart.
-        noteLogState();
-        noteGraphState();
+        // M44.4a: this no longer tells the processor what is open. It inferred that from the frame's fields on ten
+        // call sites; the graph now reports each change as a fact at the one place it happens (TopologyPanel's
+        // graph-changed hook, closeLog), and a log's arrival is the LogOpened result.
         syncRecordsCard();          // M36: the start page shows exactly when there is no log
         refreshCloseItems();
     }
@@ -3918,17 +3958,13 @@ public final class MainFrame extends JFrame {
         // in force before it — from this operation's own immutable request, not from whichever entrance
         // (a person re-opening a graph from Recent, say) ran while the load was in flight.
         sessionInteractive = !request.suppressDialogs();
-        int scanned = Math.min(loaded.size(), PAIRING_SAMPLE);
-        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        java.util.List<String> levels = new java.util.ArrayList<>();
-        for (int row = 0; row < scanned; row++) {
-            var rec = loaded.record(row);
-            for (var nodeLog : rec.nodeLogs()) logged.add(nodeLog.instanceId());
-            levels.add(rec.level());
-        }
-        String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels).mostVerbose();
+        // Round 4, Q9: the arrival's sample is drawn by the same method as every other (O-c) — this was the fourth
+        // loop, and nothing noticed when it drifted, because the observation that follows overwrote it
+        LoggedSample arrival = sampleLoggedIds(loaded);
+        String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(arrival.levels()).mostVerbose();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, request.provenance(),
-                logged, scanned, loaded.size(), level == null ? null : level.toString()));
+                arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString()));
+        if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
             loaded.close();
@@ -3994,8 +4030,7 @@ public final class MainFrame extends JFrame {
             status.setText(status.getText() + "  ·  the previous log's source-supplied graph closed with it");
         }
         refreshLoggedNodeSample();     // the observation fields, for the menu funnel's later refreshes
-        lastPairing = session.processor().pairing.verdict();   // judged in the LogOpened submit above
-        publishPairing();
+        publishPairing();                                     // the arrival's verdict, judged in the LogOpened submit above
         offerSourceGraph(loaded);      // M34.1 — after the re-pair, so a stale graph is gone first
         maybeOfferProject(loadFromSocket);   // M20.3 — the log may sit inside a project
         flaggedRows.clear();       // flags are per-file (model row indices)
@@ -4063,13 +4098,21 @@ public final class MainFrame extends JFrame {
         // the three checks read the index and the third reads a record's text.
         producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
                 .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
-                        loaded.completenessDiagnostics(), loaded.completenessIsNote());
+                        loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText(),
+                        loaded.emptyLogClaim());
+        if (reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
         String producerWarning = producerWarning();
         status.setText(statusText(loaded.size(), range,
                 logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
                         : displayName(location),
                 loaded.streamEnd().isKnownComplete(), orderWarning, producerWarning,
                 trailingPendingNote()));
+        // M68.5: a log reopened because its file was replaced says so on the line that follows the load, not only on the
+        // line the load has just overwritten. The reason is the session's (OpenLog), so it is not a frame copy.
+        var reopened = sessionSnapshot();
+        if ("REOPENED".equals(reopened.logIdentity())) {
+            status.setText(status.getText() + "  ·  ⚠ " + reopened.logIdentityReason());
+        }
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(producerDiagnostics.isClean() ? null
                 : String.join("\n\n", producerDiagnostics.messages()));
@@ -4159,15 +4202,13 @@ public final class MainFrame extends JFrame {
      * ranking nobody asked for is a recommendation nobody can see the cost of.
      */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.Result discoverGraphs0() {
-        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        if (store != null) {
-            int scan = Math.min(store.size(), PAIRING_SAMPLE);
-            for (int row = 0; row < scan; row++) {
-                for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
-            }
-        }
+        // M68.1 re-review R2: tell discovery what the ids were drawn from, so its candidates' pairings carry
+        // the same scope as the frame's and the session's — one verdict, one scope, every surface (and, round 3
+        // O-c, one sampling method)
+        LoggedSample sample = sampleLoggedIds(store);
         return telamin.fluxtion.audit.analyser.analyser.topology.GraphmlDiscovery.scan(
-                config.sourceRoots, logged);
+                config.sourceRoots, sample.ids(), store == null ? -1 : sample.scanned(),
+                store == null ? -1 : sample.total());
     }
 
     /**
@@ -4211,23 +4252,25 @@ public final class MainFrame extends JFrame {
     }
 
     /** The loaded graph judged against a log — one comparison, used by both open directions. */
-    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing pairingAgainst(LogStore log) {
+    /**
+     * Round 3, O-c: the ONE place the pairing sample is drawn. The frame's pairing, discovery's candidates and the
+     * session's observation each used to run their own first-{@value #PAIRING_SAMPLE}-records loop, so nothing
+     * stopped them drifting apart; they now all call this, and a sampled parity test holds them to one verdict.
+     */
+    private record LoggedSample(java.util.Set<String> ids, int scanned, int total, java.util.List<String> levels) { }
+
+    private static LoggedSample sampleLoggedIds(LogStore log) {
         java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        int scan = Math.min(log.size(), PAIRING_SAMPLE);
+        java.util.List<String> levels = new java.util.ArrayList<>();
+        if (log == null) return new LoggedSample(logged, 0, 0, levels);
+        int total = log.size();
+        int scan = Math.min(total, PAIRING_SAMPLE);
         for (int row = 0; row < scan; row++) {
-            for (var nodeLog : log.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
+            var record = log.record(row);
+            levels.add(record.level());
+            for (var nodeLog : record.nodeLogs()) logged.add(nodeLog.instanceId());
         }
-        var p = telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.of(
-                telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
-                        topologyPanel.fullTopology()), logged);
-        if (log.size() > PAIRING_SAMPLE) {
-            // review F1: the numbers describe the SAMPLE, and the sentence must say so — "the N node(s)
-            // this log writes" is a whole-log claim this method never checked
-            p = new telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing(
-                    p.logged(), p.matched(), p.applies(),
-                    p.reason() + " (judged on the first " + PAIRING_SAMPLE + " of " + log.size() + " records)");
-        }
-        return p;
+        return new LoggedSample(logged, scan, total, levels);
     }
 
     /**
@@ -4241,13 +4284,15 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing judgeOpenedGraph() {
         if (store == null || !topologyPanel.hasGraph()) {
-            lastPairing = null;
             publishPairing();
             return null;
         }
-        var pairing = pairingAgainst(store);
-        lastPairing = pairing;
+        // M44.4b: the SESSION's verdict. GraphOpened was posted by the panel's hook when the graph loaded; every caller
+        // is a menu or socket entrance, outside any operation, so it has already run and the snapshot is current. The
+        // frame used to compute the same pairing again here, from the same sample — the duplicate D-E2 forbids.
+        var pairing = session().snapshot().publishedPairing();
         publishPairing();
+        if (pairing == null) return null;
         String name = topologyPanel.graphLabel();     // may have no FILE — a source can supply one
         // review M34 F5: "you opened it deliberately" is false for a graph the SOURCE supplied — nobody
         // opened it. It is kept because it arrived with this log and is the source's own claim.
@@ -4263,18 +4308,36 @@ public final class MainFrame extends JFrame {
 
     /**
      * M35.6 — push the verdict onto the Topology panel, where it stays. Called wherever
-     * {@code lastPairing} changes, so the panel and {@code context} can never disagree.
+     * the session snapshot changes (M44.4c), so the panel and {@code context} can never disagree.
      */
+    static final String NO_LOG_PAIRING_NOTE = "no log open — this graph is not compared with any run: nothing here is "
+            + "shown as matched or executed";
+
     private void publishPairing() {
-        if (!topologyPanel.hasGraph() || lastPairing == null) {
+        // M44.4c: rendered from the snapshot, whole. The pairing, its qualifications, the log size and the filter they
+        // are read against all come from ONE completed operation, so the note cannot mix a verdict with another
+        // moment's staleness.
+        var snap = sessionSnapshot();
+        var published = snap.publishedPairing();
+        if (topologyPanel.hasGraph() && store == null && !loadInFlight) {
+            // edit-loop spec §I1: a graph opened with no log is the design-first tour's first step. Silence
+            // there read as "nothing wrong"; say plainly that nothing was compared, matched or executed.
+            topologyPanel.setPairingNote(NO_LOG_PAIRING_NOTE);
+        } else if (!topologyPanel.hasGraph() || published == null) {
             topologyPanel.setPairingNote(null);
         } else {
-            topologyPanel.setPairingNote(lastPairing.applies()
-                    ? "fits this log (" + lastPairing.matched() + "/" + lastPairing.logged() + ")"
-                    : "\u26a0 DOES NOT FIT THIS LOG \u2014 " + lastPairing.reason());
+            var held = snap.qualifications();
+            topologyPanel.setPairingNote(held == null ? published.note()
+                    : held.panelNote(published, snap.total(), snap.filterKey()));
         }
         refreshProjectPanel();                                        // M37 D-L4: the verdict is a row
     }
+
+    /**
+     * The persistent pairing note, in the three states the verdict can actually be in (M68.1, D-E1/D-E2).
+     * "fits this log" used to cover all of them, including a graph kept against a log with no node output
+     * and a graph kept on a partial match — neither of which the comparison showed to fit.
+     */
 
     // File observations only: no automatic selection or session transition follows a copy comparison.
     private telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology comparedGraph;
@@ -4315,8 +4378,92 @@ public final class MainFrame extends JFrame {
         });
     }
 
-    /** The most recent re-pair verdict, surfaced by {@code context} (M35.2). */
-    private telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing lastPairing;
+    /**
+     * M44.4c: the session's decided state. The frame keeps no verdict of its own — not the pairing (M44.4b), not the
+     * comparisons that qualify it, not which pair they are bound to — and reads this instead. Before the driver exists,
+     * nothing has been decided, which is what {@link telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot#EMPTY} says.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot sessionSnapshot() {
+        var driver = session;
+        return driver == null ? telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot.EMPTY : driver.snapshot();
+    }
+
+    /** Round 4, Q5b: the identity of the filter in force, so a filtered comparison knows when it stopped being current. */
+    private String filterKeyNow() {
+        return filter == null ? null : telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter).toString();
+    }
+
+    /**
+     * M44.4b: a Follow append is reported to the session as it lands — one fact per poll that added records. The
+     * session re-scopes its own verdict, and the snapshot listener publishes it. This replaces two round-3/4 workarounds:
+     * the frame re-judging its OWN copy of the pairing on every append, and the session being refreshed lazily from
+     * the socket thread with invokeAndWait. The audit cost that forced the second (O-i) is met by retaining re-scopes in
+     * a ring of their own (SessionAuditSink), not by keeping the session uninformed.
+     */
+    /**
+     * M68.5: Follow's verdict about the file, reported to the session only when it CHANGES — an unchanged verdict on
+     * every idle poll is the non-change that cost transition records twice already in M44.4.
+     */
+    private void reportIdentityToSession(telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity identity) {
+        if (session == null || identity == null) return;
+        var snap = sessionSnapshot();
+        // APPEND and UNCHANGED alternate on every append-then-idle pair of polls, and mean the same thing to the
+        // session: the same file, every byte already read verified. Reporting them apart would post two facts per
+        // append. So the session hears one state for both, and a fact only when THAT changes.
+        boolean verified = identity.verdict() == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.APPEND
+                || identity.verdict() == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.UNCHANGED;
+        String verdict = verified ? "VERIFIED" : identity.verdict().name();
+        String reason = verified ? "the same file; every byte already read is verified unchanged" : identity.reason();
+        if (verdict.equals(snap.logIdentity()) && reason.equals(snap.logIdentityReason())) return;
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved(sessionLogGeneration, verdict, reason));
+        if (identity.verdict() == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.UNVERIFIED) {
+            status.setText("⚠ " + displayName(followPath) + ": " + identity.reason());
+        }
+    }
+
+    /**
+     * M68.5: observe the open log's file now (any thread), and report a CHANGE to the session and the status line on the
+     * EDT. Returns what was observed, so the caller can refuse or label what it was about to serve.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity observeReadIdentity() {
+        var s = store;
+        if (s == null || following) return null;
+        var identity = s.readThroughIdentity();
+        if (identity != null) {
+            long generation = sessionLogGeneration;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                var snap = sessionSnapshot();
+                if (session == null || generation != snap.logGeneration()) return;       // a newer log since
+                String verdict = identity.verdict().name();
+                if (verdict.equals(snap.logIdentity()) && identity.reason().equals(snap.logIdentityReason())) return;
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogIdentityObserved(generation, verdict, identity.reason()));
+                status.setText("⚠ " + displayName(logDisplayLocation) + ": " + identity.reason());
+            });
+        }
+        return identity;
+    }
+
+    private void reportAppendToSession() {
+        if (session == null || store == null) return;
+        refreshLoggedNodeSample();
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogAppended(sessionLogGeneration, loggedNodeSample,
+                loggedSampleScanned, store.size(), observedAuditLevel()));
+    }
+
+    /**
+     * M44.4b/c: the snapshot changed, so render it. The driver calls this only when something differs, on the EDT,
+     * outside any operation. There is nothing to decide here — which comparisons still describe the pairing is the
+     * session's {@code pairingQualifier}, bound by log generation and graph revision.
+     */
+    private void onSessionSnapshot(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        publishPairing();
+        // M68.5, the review's "table not suspended": the table states the session's file-identity verdict, from here
+        tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        // M68.7 (owner, Q4): the charts and the detail pane state the same verdict, from the same snapshot
+        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+    }
+
 
     /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
     private void setFollowing(boolean on) {
@@ -4338,7 +4485,10 @@ public final class MainFrame extends JFrame {
             openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
         } else if (on) {
             followTimer.start();
-            status.setText("Following " + displayName(followPath) + " — watching for new records…" + trailingPendingNote());
+            // MA-0.5: the line Follow starts with keeps the log's warning. It used to drop it, so an empty file being
+            // followed read "watching for new records…" and nothing else until its first record arrived.
+            status.setText("Following " + displayName(followPath) + " — watching for new records…"
+                    + producerWarning() + trailingPendingNote());
         } else {
             followTimer.stop();
         }
@@ -4360,12 +4510,29 @@ public final class MainFrame extends JFrame {
             var observed = telamin.fluxtion.audit.analyser.analyser.core.FileObservation.capture(Path.of(followPath));
             added = store.appendFrom(Path.of(followPath));
             if (added > 0) { observedLogStore = store; logObservations = List.of(observed); }
+            reportIdentityToSession(store.followIdentity());   // M68.5: before anything the poll adds is published
         } catch (java.io.IOException ex) {
+            reportIdentityToSession(store.followIdentity());   // a failed poll also retires the session's earlier verification
             status.setText("Follow read failed: " + rootMessage(ex));
+            // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
+            // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on
+            // EVERY tick, so the fault never reached context's producer list or the tooltip — only this one
+            // status line. Refresh them here too — but only when the current findings do not already carry the
+            // damage (third re-review O-B; wording corrected in the fourth, O-2), because after the first failure
+            // nothing moves and a rebuild every second is pure cost.
+            refreshFollowDiagnostics(store.streamEnd(), 0, true);
             return;
         }
         if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
             followTimer.stop();          // avoid re-entrant reloads while the async load runs
+            var identity = store.followIdentity();
+            if (identity != null && identity.verdict()
+                    == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.REPLACEMENT) {
+                // M68.5 (D-E6): announced BEFORE anything further is served. The reopen is a new log generation, so
+                // every verdict about the old content retires with it; the reopened log carries this reason.
+                status.setText("⚠ " + displayName(followPath) + " was replaced on disk — " + identity.reason()
+                        + " — reopening it as a new log; nothing shown from the old content is current");
+            }
             // review F1: carry WHO ASKED, not just what was declared — a rotation's audience is
             // whoever was there for the open that started it
             // M38.3: re-declare what the OPENER declared, not what the project supplied — the environment is
@@ -4377,15 +4544,9 @@ public final class MainFrame extends JFrame {
         // so `context.streamEnd` said "missing_records" to an agent while the person watching the file
         // was shown nothing at all. The completeness state is re-read on every tick and the human
         // surfaces are refreshed when it moves, whether or not any record came with it.
-        var end = store.streamEnd();
-        if (followNeedsDiagnosticRefresh(followStreamEnd, end, added)) {
-            followStreamEnd = end;
-            producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                    .of(store.index(), store::rawText, store.sourceDiagnostics(),
-                            store.completenessDiagnostics(), store.completenessIsNote());
-            status.setToolTipText(producerDiagnostics.isClean() ? null
-                    : String.join("\n\n", producerDiagnostics.messages()));
-        }
+        // Integration: MA's refresh rule (only when the stream end or the rows moved, and a repeated failure skipped)
+        // with M68.3's (also when the pending frame grows) — both live in refreshFollowDiagnostics.
+        refreshFollowDiagnostics(store.streamEnd(), added, false);
         if (added == 0) {
             // R12-2: a tick with nothing new used to overwrite whatever the status bar was saying, so an
             // explanation of why an action did nothing vanished about a second later while Follow was on.
@@ -4397,6 +4558,10 @@ public final class MainFrame extends JFrame {
             return;
         }
         if (tableModel != null) tableModel.rowsAppended(before);
+        // Round 3, N1: an append is a new log revision. The sample (while under PAIRING_SAMPLE records), the
+        // session's own pairing and the published pairing all move with it, and every qualification is re-read
+        // at the new size — which is what marks a whole-log verdict about the old revision as stale.
+        reportAppendToSession();                   // M44.4b: the session re-scopes; its snapshot republishes
         Long mx = store.maxLogTime();
         if (mx != null) timeSlider.extendAbsMax(mx);
         timeSlider.setHistogram(buildHistogram(store, 160));
@@ -4407,11 +4572,48 @@ public final class MainFrame extends JFrame {
                 store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
     }
 
+    /**
+     * Recompute the producer findings and the status tooltip when the follow state moved — on a tick that
+     * read, and (second re-review O2) on a tick whose read FAILED, because that is the tick the fault appears.
+     */
+    private void refreshFollowDiagnostics(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int added,
+                                          boolean readFailed) {
+        java.util.List<String> damage = store.sourceDiagnostics();
+        if (readFailed) {
+            // Third re-review O-B: a failed tick adds no rows and leaves the state UNKNOWN, so the only thing that
+            // can have changed is the damage itself. The first failure is new; every later one on the same bytes
+            // is identical, and rebuilding the findings each second cost 73–201 ms on the EDT on a 1M-record log.
+            // Keyed on what the CURRENT findings carry, not on a remembered copy: the findings are also rebuilt on
+            // load, and a reloaded store failing at the same row would otherwise match a stale copy and be skipped.
+            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) return;
+        }
+        // M68.3: the pending frame is re-scanned when it GROWS. A live log with no separators at all never adds a
+        // record, so without this its collapsed framing would never be suspected while it was being followed.
+        String pending = store.pendingFrameText();
+        int pendingChars = pending == null ? 0 : pending.length();
+        if (!readFailed && !followNeedsDiagnosticRefresh(followStreamEnd, end, added) && pendingChars == followPendingChars) {
+            return;
+        }
+        followStreamEnd = end;
+        followPendingChars = pendingChars;
+        var before = producerDiagnostics == null ? List.<String>of() : producerDiagnostics.messages();
+        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
+                .of(store.index(), store::rawText, damage,
+                        store.completenessDiagnostics(), store.completenessIsNote(), pending, store.emptyLogClaim());
+        status.setToolTipText(producerDiagnostics.isClean() ? null
+                : String.join("\n\n", producerDiagnostics.messages()));
+        // D-MA0c: the Reports tab states the log's findings, so a followed log that changes them re-renders it
+        if (reportsPanel != null && !before.equals(producerDiagnostics.messages())) reportsPanel.refresh();
+    }
+
     /** The follow line's time range, or the words for a log that carries no timestamps. */
     private String followRange() {
         return store == null || store.minLogTime() == null ? "no timestamps"
                 : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
     }
+
+    /** M68.3: the pending frame's size at the last diagnostic rebuild under Follow. */
+    private int followPendingChars;
 
     /** The producer warning as the status bar renders it, shared by the load and follow lines. */
     private String producerWarning() {
@@ -4419,7 +4621,10 @@ public final class MainFrame extends JFrame {
         // nothing about the set" — and must not wear a warning glyph. It still reaches the tooltip and
         // `context`; it simply is not a fault.
         return producerDiagnostics.firstWarning()
-                .map(f -> "  ·  ⚠ " + f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ')
+                // M68.3: a framing finding is a SUSPICION, and the label on the bar says so like the message does
+                .map(f -> "  ·  ⚠ " + (f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.UNSEPARATED
+                                ? "suspected missing record separators"
+                                : f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
                         + " — ask 'context', or hover")
                 .orElse("");
     }
@@ -4589,6 +4794,7 @@ public final class MainFrame extends JFrame {
                     sourcePanel.setProcessors(candidates, inferred);
                     topologyPanel.setEmbeddedProcessors(candidates, inferred);
                     sourcePanel.showSelectedProcessor();
+                    topologyPanel.revalidateEmbeddedSource();
                     saveConfigQuietly();
                     refreshProjectPanel();                            // M37: "selected" just changed
                 },
@@ -4652,6 +4858,7 @@ public final class MainFrame extends JFrame {
         sourcePanel.setProcessors(candidateProcessors(), config.selectedEventProcessor);
         topologyPanel.setEmbeddedProcessors(candidateProcessors(), config.selectedEventProcessor);
         sourcePanel.showSelectedProcessor();
+        topologyPanel.revalidateEmbeddedSource();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
         if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too
         rebuildRecentMenu();
@@ -4771,6 +4978,14 @@ public final class MainFrame extends JFrame {
     }
 
     private void onFilterChanged() {
+        // round 4, Q5b: a changed filter makes a filtered comparison stale. M44.4c: the session is told, and the snapshot
+        // listener repaints if that changes what the note says. Only a CHANGE is a fact: this method also runs on every
+        // Follow append, and posting an unchanged key there wrote two transition records per append (set 3, caught by
+        // the O-i frame test). Compared against the session's own key, so the frame keeps no copy of it.
+        String key = filterKeyNow();
+        if (session != null && !java.util.Objects.equals(key, sessionSnapshot().filterKey())) {
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged(key));
+        }
         tablePanel.reFilter();
         if (store != null) {
             showingLabel.setText("showing " + tablePanel.viewRowCount() + " of " + store.size());
@@ -5007,7 +5222,6 @@ public final class MainFrame extends JFrame {
                         ? ", wrote " + telamin.fluxtion.audit.analyser.analyser.config.ReferenceSet.FILE_NAME
                         : "")
                     + (selection.graph() == null ? "" : " and opened " + selection.graph().getFileName()));
-            noteGraphState();
         }
     }
 
@@ -5040,7 +5254,8 @@ public final class MainFrame extends JFrame {
      * The session transition processor and its driver. Created lazily because it must not exist before
      * the fields its adapter performs against ({@code project}, {@code store}, {@code topologyPanel}).
      */
-    private telamin.fluxtion.audit.analyser.analyser.session.SessionDriver session;
+    /** Volatile since M44.4b: the socket thread reads the snapshot through it. */
+    private volatile telamin.fluxtion.audit.analyser.analyser.session.SessionDriver session;
 
     /**
      * Whether the request in flight came from a person. It is <b>rendering</b>, not policy: the
@@ -5069,10 +5284,11 @@ public final class MainFrame extends JFrame {
         if (session == null) {
             session = new telamin.fluxtion.audit.analyser.analyser.session.SessionDriver(
                     this::performSessionEffect);
-            // The processor starts knowing nothing. Tell it what is already open, or its first
-            // boundary decision would be made against an empty world.
-            noteLogState();
-            noteGraphState();
+            // The processor starts knowing nothing. A graph can already be on screen (the start page's demo, a
+            // command-line graph), so it is told — as a fact, like every other graph change. A LOG cannot be: every
+            // load lands through the LogOpened result, which builds the driver first.
+            session.onSnapshot(this::onSessionSnapshot);
+            if (topologyPanel.hasGraph()) session.post(graphFact());
         }
         return session;
     }
@@ -5097,7 +5313,7 @@ public final class MainFrame extends JFrame {
                 .OpenProjectRequested(driver.nextOpId(), file.toString(), kind, source));
         syncBusyWithGate();
         projectDesignChanged();
-        if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), null);
+        if (sessionProblem == null && recovery != null) recovery.activate(project.activeFile(), project.activeNonce(), null);
         return sessionProblem == null;
     }
 
@@ -5232,15 +5448,6 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * Tell the processor what is open. Called from the paths that change it and are <b>not</b> the
-     * session adapter — a log opened from the Audit log menu, a log closed from the Audit log menu, the socket's
-     * own close verbs. Inside a transition the processor learns the same facts from the typed results
-     * ({@code LogClosed}), so calling this from {@code closeLog()} itself would both duplicate them and
-     * re-enter the driver mid-cycle.
-     *
-     * <p>Scheduled for deletion with {@code LogObserved}, when the slice that moves log opening lands.
-     */
-    /**
      * The distinct instanceIds the open log writes, sampled once when it loads.
      *
      * <p>Cached deliberately: {@link #updateLifecycleMenu()} is the observation funnel and has ten
@@ -5262,49 +5469,40 @@ public final class MainFrame extends JFrame {
     private String observedLevel;
 
     private void refreshLoggedNodeSample() {
-        java.util.Set<String> logged = new java.util.LinkedHashSet<>();
-        int scan = 0;
-        if (store != null) {
-            scan = Math.min(store.size(), PAIRING_SAMPLE);
-            for (int row = 0; row < scan; row++) {
-                for (var nodeLog : store.record(row).nodeLogs()) logged.add(nodeLog.instanceId());
-            }
-        }
-        loggedNodeSample = logged;
-        loggedSampleScanned = scan;
-        java.util.List<String> levels = new java.util.ArrayList<>();
-        if (store != null) {
-            for (int row = 0; row < scan; row++) levels.add(store.record(row).level());
-        }
-        observedLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(levels).mostVerbose();
+        LoggedSample sample = sampleLoggedIds(store);          // round 3, O-c: the same sample as the frame's
+        loggedNodeSample = sample.ids();
+        loggedSampleScanned = sample.scanned();
+        observedLevel = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(sample.levels()).mostVerbose();
     }
 
-    private void noteLogState() {
-        if (session == null || session.isDispatching()) return;
-        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogObserved(
-                store != null, logDisplayLocation, logProvenance,
-                loggedNodeSample, loggedSampleScanned, store == null ? 0 : store.size(),
-                store == null ? null : observedAuditLevel()));
+    /**
+     * M44.4a (spec §13, D-S13.2): the graph on screen changed — opened, supplied by a reader, or cleared. Reported as
+     * a fact through {@code post}, so a change made by an effect mid-operation is queued and recorded rather than
+     * dropped, which is what the observation funnel did with {@code isDispatching()}.
+     */
+    private void reportGraphToSession() {
+        if (session == null) {
+            session();                               // creation states the graph now on screen
+            return;
+        }
+        session.post(graphFact());
     }
 
-    /** As {@link #noteLogState()}, for the topology graph. */
-    private void noteGraphState() {
-        if (session == null || session.isDispatching()) return;
+    private Object graphFact() {
+        if (!topologyPanel.hasGraph()) return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared();
         Path graphFile = topologyPanel.loadedGraphFile();
-        boolean open = topologyPanel.hasGraph();
         java.util.List<String> types = new java.util.ArrayList<>();
-        if (open) {
-            var full = topologyPanel.fullTopology();
-            if (full != null) {
-                for (var n : full.nodes()) types.add(n.simpleName());
-            }
+        var full = topologyPanel.fullTopology();
+        if (full != null) {
+            for (var n : full.nodes()) types.add(n.simpleName());
         }
-        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphObserved(
-                open, graphFile == null ? null : graphFile.toString(),
-                topologyPanel.graphSource() == null ? null : topologyPanel.graphSource().name(),
-                open ? telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(
-                        topologyPanel.fullTopology()) : java.util.Set.of(), types));
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphOpened(graphFile == null ? null : graphFile.toString(),
+                topologyPanel.graphSource().name(),
+                telamin.fluxtion.audit.analyser.analyser.topology.GraphPairing.declaredNodeIds(full), types);
     }
+
+    /** The processor's generation of the log that is open here, stated on every fact about it (M44.4a). */
+    private long sessionLogGeneration = -1;
 
     /** The rendering half: make the UI reflect settings that have already been swapped. */
     private void applyProjectSettings() {
@@ -5655,7 +5853,10 @@ public final class MainFrame extends JFrame {
                 if (view.bean() != null) {
                     echo.put("nodeId", view.bean()); echo.put("recordsRelationship", "unverified");
                     String fqn = view.document().beans(view.bean()).getFirst().attr("class");
-                    if (fqn.isBlank()) fqn = sourceService.fqnForInstance(view.bean());
+                    if (fqn.isBlank()) {
+                        fqn = sourceService.fqnForInstance(view.bean());
+                        if (fqn == null && !sourceService.modelRead()) echo.put("classLookup", "processor source not yet read");
+                    }
                     boolean source = false;
                     if (fqn != null) try { designFiles().fqn(fqn); source = true; } catch (java.io.IOException ignored) { }
                     echo.put("source", source);
@@ -5764,6 +5965,20 @@ public final class MainFrame extends JFrame {
             // know that nothing judged in this call was judged against THIS log.
             echo.put("loading", true);
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "log", echo);
+        }
+
+        @Override
+        public String qualifyPublishedPairing(java.util.Map<String, Object> coverageEcho) {
+            // M44.4c: the comparison is a fact for the session, which binds it to the pair it names — the identity the
+            // coverage verb captured BEFORE its scan — or refuses it as stale. Round 3's N2 rules (a narrower comparison
+            // never replaces a wider one) live in PairingQualifications, now held by the session's pairingQualifier.
+            var driver = session;
+            if (driver == null || !(coverageEcho.get(ActionExecutor.PAIR_LOG_GENERATION) instanceof Long generation)
+                    || !(coverageEcho.get(ActionExecutor.PAIR_GRAPH_REVISION) instanceof Long revision)) {
+                return null;                          // no pair identity, no qualification: never bind by guesswork
+            }
+            driver.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.MembershipCompared(generation, revision, coverageEcho));
+            return driver.processor().pairingQualifier.lastSaid();
         }
 
         @Override
@@ -5986,8 +6201,15 @@ public final class MainFrame extends JFrame {
             }
             Path file = Path.of(path);
             if (!Files.isReadable(file)) {
+                // A relative path resolves against this process's working directory, never the project: say so,
+                // or a model reports that the (committed) GraphML "does not exist".
+                String why = file.isAbsolute() ? "" : "; a relative path resolves against the analyser's working "
+                        + "directory (" + Path.of("").toAbsolutePath() + "), not a project"
+                        + (project.hasProject() ? " — the open project is "
+                                + telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : "")
+                        + ". Pass an absolute path";
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
-                        "cannot read graphml '" + path + "'");
+                        "cannot read graphml '" + path + "'" + why);
             }
             topologyPanel.load(file);
             if (!topologyPanel.hasTopology()) {
@@ -6002,6 +6224,10 @@ public final class MainFrame extends JFrame {
             // and corroborated a wrong verdict. Two facts, two names; no key left that means either.
             echo.put("graphNodes", topologyPanel.graphNodeCount());
             echo.put("authoredNodes", topologyPanel.authoredNodeIds().size());
+            // M68.1 (D-E10): say how "authored" was decided — declared by the graph, inferred from class
+            // names, or mixed — so the count can be checked rather than taken on trust
+            echo.put("authorshipBasis", telamin.fluxtion.audit.analyser.analyser.topology.Scaffolding
+                    .authorshipBasis(topologyPanel.fullTopology()));
             echo.put("copyComparison", graphCopyComparison());
             if (loadInFlight) {
                 // A log is still loading (openLog returns before its load lands). Judging now would
@@ -6010,8 +6236,7 @@ public final class MainFrame extends JFrame {
                 // re-open. onLoaded re-judges the opened graph against the log that lands.
                 // Review B1: the verdict in force was about the previous pair, so it goes with it —
                 // otherwise context and the topology note attached graph A's verdict to graph B.
-                lastPairing = null;
-                publishPairing();
+                publishPairing();                     // the snapshot is pending: no verdict about the previous pair
                 updateLifecycleMenu();
                 echo.put("pairing", PAIRING_PENDING);
                 echo.put("loading", true);
@@ -6028,6 +6253,7 @@ public final class MainFrame extends JFrame {
                 echo.put("appliesToOpenLog", pairing.applies());
                 echo.put("loggedNodes", pairing.logged());
                 echo.put("declaredByGraph", pairing.matched());
+                echo.putAll(pairing.facts());
                 echo.put("verdict", pairing.reason() + (pairing.applies() ? ""
                         : " — kept anyway, because you opened it deliberately (M35.3). A stale "
                                 + "graph is only closed when a LOG arrives and finds it there."));
@@ -6329,28 +6555,58 @@ public final class MainFrame extends JFrame {
             }
         }
 
-        private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult contextResult(Map<String,Object> out) {
+        private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult contextResult(Map<String,Object> out,
+                telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.Selection sections) {
+            // §H feedback 17: a projection is never drawn — the Project panel reads the whole payload
+            if (sections != null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok(
+                    "context", "context", sections.project(out));
             if (projectPanel != null) projectPanel.render(ProjectModel.from(out));
             if (sourcePanel != null) sourcePanel.designNote(designViewNote(sourcePanel.fileView()));
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("context", "context", out);
         }
 
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context() {
+            return context((telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.Selection) null);
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult context(
+                telamin.fluxtion.audit.analyser.analyser.llm.ContextSections.Selection sections) {
             Map<String, Object> out = new java.util.LinkedHashMap<>();
+            // §H feedback 17: with a selection, the file reads and source lookups nobody asked for are skipped.
+            // Only skipped — a needed key is built by exactly the code below, and contextResult then filters.
+            java.util.function.Predicate<String> need = sections == null ? k -> true : sections::needs;
 
             // the same assembly the pasted prompt uses, rendered as JSON instead of prose
-            telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts facts =
-                    telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.of(
+            telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts facts = !need.test("log") && !need.test("source") ? null
+                    : telamin.fluxtion.audit.analyser.analyser.llm.SessionFacts.of(
                             currentLogFileInfo(), config.selectedEventProcessor, sourceService,
                             telamin.fluxtion.audit.analyser.analyser.llm.PromptBuilder.nodeTypes(
                                     selectedRecords, sourceService));
-            Map<String, Object> log = facts.logAsMap();
+            Map<String, Object> log = facts == null ? new java.util.LinkedHashMap<>() : facts.logAsMap();
             // M37: who asked. The OpenRequest carries it (M35.9); the Project panel is its first human reader
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
             if (store != null) {
                 log.put("freshness", logFreshness());
                 log.put("following", following);
                 log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
+                // M68.5 (D-E6): what Follow established about the FILE, from the session; absent before the first poll
+                var identitySnap = sessionSnapshot();
+                var observedNow = observeReadIdentity();       // not following: observed at THIS request (D-E6)
+                if (observedNow != null) {
+                    log.put("identity", Map.of("state", observedNow.verdict().name().toLowerCase(java.util.Locale.ROOT),
+                            "reason", observedNow.reason(), "readsSuspended", observedNow.suspendsReads()));
+                } else if (identitySnap.logIdentity() != null) {
+                    log.put("identity", Map.of("state", identitySnap.logIdentity().toLowerCase(java.util.Locale.ROOT),
+                            "reason", String.valueOf(identitySnap.logIdentityReason())));
+                } else if (!store.readThroughAssessed()) {
+                    // independent review R3: a store that never looks at its file is SAID not to — its null identity
+                    // would otherwise read exactly like a check that passed (agents only: the status bar speaks only
+                    // of a change, and there is none to speak of)
+                    log.put("identity", Map.of("state", "not assessed", "reason", "this log's reader does not report "
+                            + "whether its file has changed since it was read, so no change being shown is not evidence "
+                            + "that there was none"));
+                }
             }
             if (store != null && store.trailingRecordsIncluded() >= 0) {
                 log.put("trailingRecordsIncluded", store.trailingRecordsIncluded());
@@ -6387,7 +6643,7 @@ public final class MainFrame extends JFrame {
                 proj.put("note", "your own settings — no project is open");
             }
             out.put("project", proj);
-            if (project.hasProject()) {
+            if (project.hasProject() && need.test("skills")) {
                 telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
                         .skillsProvenance(project.activeFile()).ifPresent(value -> {
                             Map<String, Object> skills = new java.util.LinkedHashMap<>();
@@ -6399,12 +6655,15 @@ public final class MainFrame extends JFrame {
             // M19.12 / D-X3: facts this process can observe, not a claim about a future Maven JVM.
             // The credential value never enters this map; the fixed tilde path avoids leaking the local
             // account name into context or screenshots.
-            Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
-            fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
-            fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
-            fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
-                    + "overrides this file; FLUXTION_API_KEY is not read by the builder");
-            out.put("fluxtionKey", fluxtionKey);
+            // §H feedback 17: a projection without fluxtionKey does not read the key file at all
+            if (need.test("fluxtionKey")) {
+                Map<String, Object> fluxtionKey = new java.util.LinkedHashMap<>();
+                fluxtionKey.put("canonicalFilePresent", fluxtionKeyStore.keyPresent());
+                fluxtionKey.put("canonicalFile", "~/.fluxtion/fluxtion.apiKeyFile");
+                fluxtionKey.put("precedenceNote", "a -Dfluxtion.apiKey system property passed to the build "
+                        + "overrides this file; FLUXTION_API_KEY is not read by the builder");
+                out.put("fluxtionKey", fluxtionKey);
+            }
             // M37: the graph is reported whether or not a log is open. It sat inside the store block, so
             // with the log closed and a graph "still loaded" (closeLog's own words) context disowned it —
             // the disowning defect M34.2 fixed for hasGraph(), one level up.
@@ -6431,15 +6690,20 @@ public final class MainFrame extends JFrame {
                 // only describe a graph that is actually there: a verdict beside "graph": null is
                 // the tool asserting something about an artefact it does not have, which is the
                 // defect class this milestone is about
-                if (loadInFlight) {
+                var snap = sessionSnapshot();         // M44.4c: one completed operation's verdict, whole
+                var published = snap.publishedPairing();
+                if (snap.pending()) {
                     // review B1: while a log loads, ANY verdict here would be about the previous pair
                     pair.put("pairing", PAIRING_PENDING_CONTEXT);
                     pair.put("loading", true);
-                } else if (gf && lastPairing != null) {
-                    pair.put("applies", lastPairing.applies());
-                    pair.put("loggedNodes", lastPairing.logged());
-                    pair.put("declaredByGraph", lastPairing.matched());
-                    pair.put("verdict", lastPairing.reason());
+                } else if (gf && published != null) {
+                    pair.put("applies", published.applies());
+                    pair.put("loggedNodes", published.logged());
+                    pair.put("declaredByGraph", published.matched());
+                    pair.putAll(published.facts());
+                    var held = snap.qualifications();
+                    if (held != null) pair.put("qualifiedBy", held.toMap(snap.total(), snap.filterKey()));
+                    pair.put("verdict", published.reason());
                 }
                 // M40 (review F1): the audit verdict is a fact about the loaded GRAPH, so it belongs
                 // beside the pairing, not inside the topology block — that block sits below a
@@ -6452,14 +6716,14 @@ public final class MainFrame extends JFrame {
                 pair.put("auditLogging", audit.verdict().name().toLowerCase(java.util.Locale.ROOT));
                 if (audit.message() != null) pair.put("auditLoggingNote", audit.message());
                 if (gf) pair.put("copyComparison", graphCopyComparison());
-                out.put("graphPairing", pair);
+                if (need.test("graphPairing")) out.put("graphPairing", pair);
                 // M44.3 D-A4: a load that has not landed is reportable — today a hung load looked idle
                 String inFlight = session == null ? null : session.processor().operationGate.inFlightWhat();
                 if (inFlight != null) out.put("inFlight", inFlight);
             }
             // M37: the processors as a LIST — configured, selected, and whether each resolves to source.
             // A dropdown shows one value at a time; the panel and the agent both need the set.
-            {
+            if (need.test("processors")) {
                 List<Map<String, Object>> procs = new ArrayList<>();
                 java.util.Set<String> configured = new java.util.LinkedHashSet<>(config.eventProcessorFqns);
                 for (String fqn : candidateProcessors()) {
@@ -6476,7 +6740,7 @@ public final class MainFrame extends JFrame {
             // M38.1: runbook POINTERS — where the knowledge is, never what to do. Reported whether or not a
             // log is open; the panel renders each as a row because a pointer an agent will act on and a
             // human cannot see is precisely the shape spec-portable-context exists to avoid (D-C7).
-            {
+            if (need.test("runbooks")) {
                 List<Map<String, Object>> rbs = runbooksForContext();
                 if (!rbs.isEmpty()) out.put("runbooks", rbs);
             }
@@ -6512,6 +6776,12 @@ public final class MainFrame extends JFrame {
                     one.put("provenance", e.provenance());
                     if (e.logDir() != null) one.put("logDir", e.logDir());
                     one.put("default", e.name().equals(config.defaultEnvironment));
+                    // D-E7 (set 13): a logDir that cannot be followed says why, naming the root tried
+                    if (e.logDir() != null) {
+                        String why = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.directoryResolution(
+                                projectRootForPointers(), e.logDir()).problem();
+                        if (why != null) one.put("problem", why);
+                    }
                     envs.add(one);
                 }
                 out.put("environments", envs);
@@ -6519,7 +6789,7 @@ public final class MainFrame extends JFrame {
             // M38.2: the glossary pointer — and, when the file is there, its text (D-C3: served in context).
             // Tier 1 and inert, which is why serving the CONTENT here is right where serving a runbook's
             // would be wrong: a glossary is read, a runbook is acted on.
-            {
+            if (need.test("vocabulary")) {
                 Map<String, Object> v = vocabularyForContext();
                 if (!v.isEmpty()) out.put("vocabulary", v);
             }
@@ -6555,6 +6825,12 @@ public final class MainFrame extends JFrame {
                     one.put("location", d.location());
                     one.put("kind", d.kind().name().toLowerCase(java.util.Locale.ROOT));
                     one.put("from", project.hasProject() ? "project" : "own settings");
+                    // D-E7 (set 13): a directory that is not there says so; a remote place says it is not checked
+                    String why = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.destinationProblem(
+                            projectRootForPointers(), d);
+                    if (why != null) one.put("problem", why);
+                    String unchecked = telamin.fluxtion.audit.analyser.analyser.config.Runbooks.destinationNote(d);
+                    if (unchecked != null) one.put("note", unchecked);
                     ds.add(one);
                 }
                 out.put("reportDestinations", ds);
@@ -6614,35 +6890,41 @@ public final class MainFrame extends JFrame {
             // assembled last, so a socket-driven fresh start — the exact case `--rest` exists for — reported
             // no roots at all until the first log had loaded, and the Project panel drew "No source roots"
             // over roots a project had just supplied.
-            Map<String, Object> source = facts.sourceAsMap();
-            // each root with its tier — a flat list cannot say which roots a project brought, which are the
-            // user's own, and which is the demo's transient root that a restart forgets
-            List<Map<String, Object>> tiers = new ArrayList<>();
-            Path projRoot = project.hasProject()
-                    ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
-            for (String r : effectiveSourceRoots()) {
-                Map<String, Object> one = new java.util.LinkedHashMap<>();
-                one.put("path", r);
-                one.put("tier", demoRoots.contains(r) ? "demo (transient)" : project.hasProject() ? "project" : "own settings");
-                // M38.6 D-C9: the FORM the profile stores it in — "absolute" on a row you are about to share is
-                // the whole warning, delivered before a colleague's machine delivers it as a failure
-                one.put("form", telamin.fluxtion.audit.analyser.analyser.config.PathForm
-                        .of(r, projRoot, config.workspaceRoot, System.getProperty("user.home")).label);
-                tiers.add(one);
+            if (need.test("source")) {
+                Map<String, Object> source = facts.sourceAsMap();
+                // each root with its tier — a flat list cannot say which roots a project brought, which are the
+                // user's own, and which is the demo's transient root that a restart forgets
+                List<Map<String, Object>> tiers = new ArrayList<>();
+                Path projRoot = project.hasProject()
+                        ? telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile()) : null;
+                for (String r : effectiveSourceRoots()) {
+                    Map<String, Object> one = new java.util.LinkedHashMap<>();
+                    one.put("path", r);
+                    one.put("tier", demoRoots.contains(r) ? "demo (transient)" : project.hasProject() ? "project" : "own settings");
+                    // M38.6 D-C9: the FORM the profile stores it in — "absolute" on a row you are about to share is
+                    // the whole warning, delivered before a colleague's machine delivers it as a failure
+                    one.put("form", telamin.fluxtion.audit.analyser.analyser.config.PathForm
+                            .of(r, projRoot, config.workspaceRoot, System.getProperty("user.home")).label);
+                    tiers.add(one);
+                }
+                source.put("rootTiers", tiers);
+                if (config.workspaceRoot != null && !config.workspaceRoot.isBlank()) {
+                    source.put("workspaceRoot", config.workspaceRoot);
+                    Path ws = telamin.fluxtion.audit.analyser.analyser.config.PathForm.workspaceDir(projRoot, config.workspaceRoot);
+                    if (ws != null) source.put("workspaceDir", ws.toString());
+                }
+                // PR #30 review, finding 2: the EDT does not read the processor to answer. Until a source pane has
+                // read it, node types are omitted and this says why, rather than stalling or guessing.
+                if (config.selectedEventProcessor != null && !sourceService.modelRead())
+                    source.put("processorModel", "not yet read — node types appear once a source pane reads the processor");
+                out.put("source", source);
             }
-            source.put("rootTiers", tiers);
-            if (config.workspaceRoot != null && !config.workspaceRoot.isBlank()) {
-                source.put("workspaceRoot", config.workspaceRoot);
-                Path ws = telamin.fluxtion.audit.analyser.analyser.config.PathForm.workspaceDir(projRoot, config.workspaceRoot);
-                if (ws != null) source.put("workspaceDir", ws.toString());
-            }
-            out.put("source", source);
 
             // M40.1 review F1: the topology BEFORE the fresh-start early return below. It sat after it, so with a
             // graph open and no log ever loaded — the exact case audit readiness exists for — `context` carried
             // no `topology` and therefore no verdict; only the `topology` verb's echo had it. Same trap that hid
             // `source` until M37.
-            if (topologyPanel.hasTopology()) out.put("topology", topologyPanel.cursorState());
+            if (topologyPanel.hasTopology() && need.test("topology")) out.put("topology", topologyPanel.cursorState());
 
             // exactly the shape 'aggregate' takes for its own filter, so it can be passed straight back
             Map<String, Object> f = new java.util.LinkedHashMap<>();
@@ -6651,7 +6933,7 @@ public final class MainFrame extends JFrame {
             // "nothing is open" cannot be bootstrapped from the socket at all.
             if (filter == null) {
                 out.put("filter", f);
-                return contextResult(out);
+                return contextResult(out, sections);
             }
             if (filter.fromMillis() != null) f.put("from", filter.fromMillis());
             if (filter.toMillis() != null) f.put("to", filter.toMillis());
@@ -6706,10 +6988,22 @@ public final class MainFrame extends JFrame {
             List<String> graphs = graphTabs.graphNames();
             if (!graphs.isEmpty()) {
                 out.put("graphs", graphs);
-                out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
+                // M68.6 (D-E5): how to POINT at each chart. Plain where the grammar carries the name, quoted for one
+                // saved before names were refused — so an agent never has to work out the escape for itself
+                if (need.test("graphAddresses")) out.put("graphAddresses", graphs.stream().map(SpotlightTarget::graphAddress).toList());
+                // R8: a chart with no address is SAID to have none (null above), and why — never given one that fails
+                if (need.test("graphAddressUnavailable")) {
+                    Map<String, Object> unavailable = new java.util.LinkedHashMap<>();
+                    for (String g : graphs) {
+                        String why = SpotlightTarget.graphAddressUnavailable(g);
+                        if (why != null) unavailable.put(g, why);
+                    }
+                    if (!unavailable.isEmpty()) out.put("graphAddressUnavailable", unavailable);
+                }
+                if (need.test("graphScopes")) out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
             }
 
-            return contextResult(out);
+            return contextResult(out, sections);
         }
 
         @Override
@@ -6757,7 +7051,7 @@ public final class MainFrame extends JFrame {
 
     /** Startup and project reopen use exactly the same offer; CLI opens grant no restore permission. */
     public void offerSessionRecovery() {
-        recovery.activate(project.activeFile(), projectLoadNote != null && !projectLoadNote.loaded()
+        recovery.activate(project.activeFile(), project.activeNonce(), projectLoadNote != null && !projectLoadNote.loaded()
                 ? projectLoadNote.message() : null);
     }
 
@@ -6789,7 +7083,8 @@ public final class MainFrame extends JFrame {
         view.put("loadedGraphHash", topologyPanel.loadedGraphSha256());
         view.put("provenance", logProvenance);
         view.put("format", loadedLogFormat);
-        return new SessionRecoveryController.Capture(project.activeFile(), inputs, view);
+        // §E: the capturing profile's identity is taken here, with the inputs, not when the queued save runs
+        return new SessionRecoveryController.Capture(project.activeFile(), project.activeNonce(), inputs, view);
     }
 
     private void applyRecovery(long generation,

@@ -97,10 +97,14 @@ public record StreamEndMarker(String reason, long records) {
      * BOM'd file whose FIRST record was a marker being indexed as an ordinary record, and the file then
      * reported one record more than it declared. Rare — a marker is seldom first — and a one-line fix, so
      * there is no reason to leave it.
+     *
+     * <p>Package-private so {@code ProducerDiagnostics} uses THIS one rather than its own. MA-6 first
+     * shipped with {@link String#trim()}, which keeps the BOM, and flagged every healthy BOM'd file as
+     * having no record key — a duplicated framing rule drifting from the original, which is the failure
+     * this project has now made often enough to name.
      */
-    private static String strip(String line) {
-        String t = asciiStrip(line);
-        return t.isEmpty() || t.charAt(0) != '﻿' ? t : asciiStrip(t.substring(1));
+    static String strip(String line) {
+        return AuditText.strip(line);
     }
 
     /**
@@ -115,14 +119,7 @@ public record StreamEndMarker(String reason, long records) {
      * conforming reader would not claim. There is now one definition and one function.
      */
     private static String asciiStrip(String s) {
-        int a = 0, b = s.length();
-        while (a < b && isSpace(s.charAt(a))) a++;
-        while (b > a && isSpace(s.charAt(b - 1))) b--;
-        return s.substring(a, b);
-    }
-
-    private static boolean isSpace(char c) {
-        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+        return AuditText.asciiStrip(s);
     }
 
     /**

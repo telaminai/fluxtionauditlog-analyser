@@ -37,11 +37,13 @@ class SourcePanelRootChangeTest {
 
         service.configure(List.of(oldRoot.toString()), FQN);
         panel.showSelectedProcessor();
+        settle(panel);
         assertFalse(panel.hasProcessorOpen(), "control: the old root has no such file");
 
         // the switch — same selected name, different roots — exactly what a project switch does
         service.configure(List.of(newRoot.toString()), FQN);
         panel.showSelectedProcessor();
+        settle(panel);
         assertTrue(panel.hasProcessorOpen(),
                 "the pane must re-read an unchanged name once the roots resolve it; the stale placeholder was the bug");
     }
@@ -56,10 +58,12 @@ class SourcePanelRootChangeTest {
         panel.bind(service);
         service.configure(List.of(withFile.toString()), FQN);
         panel.showSelectedProcessor();
+        settle(panel);
         assertTrue(panel.hasProcessorOpen());
 
         service.configure(List.of(without.toString()), FQN);
         panel.showSelectedProcessor();
+        settle(panel);
         assertFalse(panel.hasProcessorOpen(), "a file the new roots cannot see must not stay on screen as if they could");
     }
 
@@ -101,11 +105,14 @@ class SourcePanelRootChangeTest {
         panel.bind(service);
         service.configure(List.of(oldRoot.toString()), FQN);
         panel.showSelectedProcessor();
+        settle(panel);
         panel.openFqn(nodeFqn);                       // the node pane: a miss under the old roots
+        settle(panel);
         assertTrue(panel.nodePaneText().contains(oldRoot.toString()), panel.nodePaneText());
 
         service.configure(List.of(newRoot.toString()), FQN);
         panel.showSelectedProcessor();                 // still a miss — but the roots searched changed
+        settle(panel);
         String node = panel.nodePaneText();
         assertTrue(node.contains(newRoot.toString()), "review F4: the placeholder must name the roots NOW searched:\n" + node);
         assertFalse(node.contains(oldRoot.toString()), "and not the previous project's:\n" + node);
@@ -124,11 +131,27 @@ class SourcePanelRootChangeTest {
         panel.bind(service);
         service.configure(List.of(root.toString()), FQN);
         panel.showSelectedProcessor();
+        settle(panel);
         assertTrue(panel.hasProcessorOpen());
         panel.setProcessorCaretPosition(1000);
 
         service.configure(List.of(root.toString()), FQN);     // same roots, same processor: nothing changed
         panel.showSelectedProcessor();
+        settle(panel);
         assertEquals(1000, panel.processorCaretPosition(), "an unchanged hit is not re-navigated");
+    }
+
+    /**
+     * Wait for the panel's reads to land. Panes read their files off the EDT and install on it (edit-loop
+     * spec §C), so a test must let that happen before looking at what they show.
+     */
+    static void settle(SourcePanel panel) throws Exception {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+        do {
+            javax.swing.SwingUtilities.invokeAndWait(() -> { });
+            if (!panel.reading()) { javax.swing.SwingUtilities.invokeAndWait(() -> { }); return; }
+            Thread.sleep(5);
+        } while (System.nanoTime() < deadline);
+        fail("source reads did not settle");
     }
 }

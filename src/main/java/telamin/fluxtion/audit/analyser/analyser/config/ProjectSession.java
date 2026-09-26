@@ -43,6 +43,12 @@ public final class ProjectSession {
 
     /** Null while no project is open. */
     private Path activeFile;
+    /**
+     * The active profile's creation nonce as this session loaded or last wrote it (edit-loop spec §E), or null.
+     * Held in memory so a session capture can take it at the moment the capture is built, without file I/O,
+     * and so it names the profile whose settings are actually in play.
+     */
+    private String activeNonce;
     /** The project-scoped settings as they were before any project was opened; null until first open. */
     private ProjectProfile.Snapshot noProjectDefaults;
     private boolean dirty;
@@ -76,6 +82,11 @@ public final class ProjectSession {
 
     public Path activeFile() {
         return activeFile;
+    }
+
+    /** The active profile's creation nonce ({@link ProjectProfile#NONCE_KEY}); null with no project or none recorded. */
+    public String activeNonce() {
+        return activeFile == null ? null : activeNonce;
     }
 
     /** The project's display name — its directory, since every profile has the same file name. */
@@ -118,10 +129,12 @@ public final class ProjectSession {
         if (!result.loaded()) {
             // a stale pointer would re-report the same failure on every launch
             activeFile = null;
+            activeNonce = null;
             config.activeProjectPath = "";
             noProjectDefaults = null;
             return new ProjectProfile.LoadResult(false, result.message() + " — continuing without a project");
         }
+        activeNonce = result.nonce();
         return result;
     }
 
@@ -141,6 +154,7 @@ public final class ProjectSession {
             return result;
         }
         activeFile = file;
+        activeNonce = result.nonce();
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
         dirty = false;
@@ -161,10 +175,11 @@ public final class ProjectSession {
         ProjectProfile.save(file, config, share);
         writes++;
         activeFile = file;
+        activeNonce = ProjectProfile.nonce(file).orElse(null);
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
         dirty = false;
-        return new ProjectProfile.LoadResult(true, "new project: " + file);
+        return new ProjectProfile.LoadResult(true, "new project: " + file, activeNonce);
     }
 
     /** Fork the current settings to a new path, which becomes active. There is no plain "save". */
@@ -172,6 +187,7 @@ public final class ProjectSession {
         ProjectProfile.save(file, config, share);
         writes++;
         activeFile = file;
+        activeNonce = ProjectProfile.nonce(file).orElse(null);
         config.activeProjectPath = file.toString();
         ProjectProfile.addRecent(config.recentProjects, file.toString());
         dirty = false;
@@ -189,6 +205,7 @@ public final class ProjectSession {
             ProjectProfile.restore(noProjectDefaults, config);
         }
         activeFile = null;
+        activeNonce = null;
         config.activeProjectPath = "";
         dirty = false;
     }
@@ -219,6 +236,8 @@ public final class ProjectSession {
             ProjectProfile.save(activeFile, config, share);
             writes++;
             dirty = false;
+            // the write keeps the file's nonce, or adopts one for a profile that had none (see NONCE_KEY)
+            activeNonce = ProjectProfile.nonce(activeFile).orElse(null);
         } catch (IOException e) {
             // a read-only checkout or a deleted directory: keep the edit in memory and keep the app
             // usable. Losing the file is not a reason to lose the session.

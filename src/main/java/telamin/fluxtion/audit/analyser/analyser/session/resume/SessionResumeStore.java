@@ -21,8 +21,19 @@ public final class SessionResumeStore {
         }
     }
     public record Identity(String role, String path, String sha256, String problem) { }
-    public record Snapshot(String key, String capturedAt, List<Identity> inputs, Map<String,Object> view) {
+    /**
+     * {@code profileIdentity} is the capturing profile's creation nonce ({@code ProjectProfile.NONCE_KEY}),
+     * taken when the capture was built: the key is a real path, and a project deleted and recreated at that
+     * path (a re-extracted download, say) would otherwise inherit the old project's offer (edit-loop spec §E).
+     * Null for the no-project bucket, for a profile that has no nonce, and for snapshots written before this
+     * field existed — a missing identity never counts as the same profile.
+     */
+    public record Snapshot(String key, String capturedAt, List<Identity> inputs, Map<String,Object> view,
+                           String profileIdentity) {
         public Snapshot { inputs = List.copyOf(inputs); view = Collections.unmodifiableMap(new LinkedHashMap<>(view)); }
+        public Snapshot(String key, String capturedAt, List<Identity> inputs, Map<String,Object> view) {
+            this(key, capturedAt, inputs, view, null);
+        }
     }
     public record Check(Identity input, String status) {
         public boolean unchanged() { return "unchanged".equals(status); }
@@ -34,8 +45,12 @@ public final class SessionResumeStore {
     }
 
     public Snapshot capture(String key, List<Input> inputs, Map<String,Object> view) {
+        return capture(key, null, inputs, view);
+    }
+
+    public Snapshot capture(String key, String profileIdentity, List<Input> inputs, Map<String,Object> view) {
         List<Identity> identities = inputs.stream().map(i -> identity(i.role(), i.path())).toList();
-        return new Snapshot(key, java.time.Instant.now().toString(), identities, view);
+        return new Snapshot(key, java.time.Instant.now().toString(), identities, view, profileIdentity);
     }
 
     public List<Check> check(Snapshot snapshot) {
@@ -85,6 +100,7 @@ public final class SessionResumeStore {
         root.put("version", 1);
         root.put("key", snapshot.key());
         root.put("capturedAt", snapshot.capturedAt());
+        if (snapshot.profileIdentity() != null) root.put("profileIdentity", snapshot.profileIdentity());
         root.put("inputs", snapshot.inputs().stream().map(i -> {
             Map<String,Object> m = new LinkedHashMap<>();
             m.put("role", i.role()); m.put("path", i.path()); m.put("sha256", i.sha256()); m.put("problem", i.problem());
@@ -124,7 +140,10 @@ public final class SessionResumeStore {
             rawView.forEach((k,value) -> view.put((String)k,value));
             String at = (String)root.get("capturedAt");
             java.time.Instant.parse(at);
-            return Optional.of(new Snapshot(key, at, entries, view));
+            Object profileIdentity = root.get("profileIdentity");
+            if (profileIdentity != null && !(profileIdentity instanceof String))
+                throw new IllegalArgumentException("invalid recovery profile identity");
+            return Optional.of(new Snapshot(key, at, entries, view, (String) profileIdentity));
         } catch (RuntimeException e) { throw new IOException("invalid recovery file: " + e.getMessage(), e); }
     }
 

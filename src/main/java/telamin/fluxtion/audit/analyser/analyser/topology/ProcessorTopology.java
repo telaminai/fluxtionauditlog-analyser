@@ -170,8 +170,10 @@ public final class ProcessorTopology {
     }
 
     /**
-     * How well a topology matches a log. A partial match usually means the GraphML came from a different
-     * build than the log — the failure mode this whole record exists to make visible.
+     * How well a topology matches a log, by name, against <b>every</b> declared node. A log id the graph
+     * does not declare is the failure this record exists to make visible — but it is a <em>name</em>
+     * mismatch. It does not establish which build either artefact came from, so {@link #describe()} states
+     * the ids and stops there (M68.1): the reader, not the tool, decides which artefact is right.
      */
     public record Match(Set<String> matched, Set<String> unknownToTopology, Set<String> notInLog) {
 
@@ -194,8 +196,8 @@ public final class ProcessorTopology {
                         : matched.size() + " of " + (matched.size() + notInLog.size())
                           + " nodes appear in this log";
             }
-            return "topology may be from a different build — " + unknownToTopology.size()
-                   + " node(s) in the log are not in the graph: " + preview(unknownToTopology);
+            return unknownToTopology.size() + " node id(s) written in the log are not declared in the graph: "
+                   + preview(unknownToTopology);
         }
 
         private static String preview(Set<String> ids) {

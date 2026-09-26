@@ -81,6 +81,21 @@ class SessionGraphShapeTest {
     }
 
     @Test
+    @DisplayName("M44.4c: the qualifier runs after the pair it binds to, and asks for no effect")
+    void theQualifierFollowsThePairAndActsOnNothing() {
+        ProcessorTopology topology = topology();
+        // After all three in the same cycle: a Follow append or a new graph must be seen by the binding in the cycle
+        // that caused it, or a comparison would stay bound to a pair that has already changed.
+        for (String parent : new String[]{"openLog", "openGraph", "pairing"}) {
+            assertTrue(hasEdge(topology, parent, "pairingQualifier"), parent + " must run before pairingQualifier");
+        }
+        // Its facts are gated by the pair identity they carry, inside the node, not by the operation gate: nobody
+        // requested a comparison, so there is no opId to match. What it must never do is act.
+        assertFalse(hasEdge(topology, "pairingQualifier", "effectQueue"),
+                "a qualification is a statement about evidence; it may not request an effect");
+    }
+
+    @Test
     @DisplayName("the gate is upstream of the state it guards, and of the decision")
     void theGateGuardsEverythingDownstream() {
         ProcessorTopology topology = topology();

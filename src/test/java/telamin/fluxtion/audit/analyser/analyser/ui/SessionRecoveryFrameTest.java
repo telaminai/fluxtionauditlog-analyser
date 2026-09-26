@@ -73,6 +73,47 @@ class SessionRecoveryFrameTest {
         } finally { stop(); }
     }
 
+    /**
+     * Edit-loop spec §E, first fixture, through the real frame: a session captured under profile P at path X,
+     * the project deleted and recreated at X with a new profile, then activated. The key (the path) matches and
+     * the external log is unchanged, yet the new project must not be offered the old one's session. The profiles
+     * differ by creation nonce, which involves no filesystem property, so this holds on macOS, Linux and Windows.
+     */
+    @Test void aProjectRecreatedAtTheSamePathIsNotOfferedTheOldProjectsSession() throws Exception {
+        start();
+        try {
+            Path elsewhere = Files.copy(log, Files.createDirectories(tmp.resolve("elsewhere")).resolve("external.yml"));
+            act("open", Map.of("log", elsewhere.toString(), "format", "yaml"));
+            await(c -> c.containsKey("log"));
+            act("open", Map.of("close", "project"));
+            drainRecovery();
+            disposeFrame();
+
+            Path project = profile.getParent().getParent();
+            try (var walk = Files.walk(project)) {
+                for (Path p : walk.sorted(java.util.Comparator.reverseOrder()).toList()) Files.delete(p);
+            }
+            Files.createDirectories(project);
+            ProjectProfile.save(profile, new AppConfig(), new SettingsShare());   // a new profile: a new creation nonce
+
+            frame = edt(MainFrame::new);
+            executor = field(frame, "actionExecutor", ActionExecutor.class);
+            act("open", Map.of("project", profile.toString()));
+            var withheld = await(c -> "unavailable".equals(map(c.get("restoration")).get("state")));
+            var restoration = map(withheld.get("restoration"));
+            assertEquals("different profile at this path", restoration.get("capturedBy"), restoration.toString());
+            assertTrue(String.valueOf(restoration.get("message")).contains("captured by a different profile"), restoration.toString());
+            assertNotNull(restoration.get("capturedAt"), "the withheld session says when it was captured");
+            var origin = (restoration.get("inputs") instanceof List<?> l ? l : List.of()).stream().map(i -> map(i)).toList();
+            assertTrue(origin.size() == 1 && "log".equals(origin.getFirst().get("role"))
+                    && String.valueOf(origin.getFirst().get("path")).endsWith("external.yml"),
+                    "the withheld session discloses its input origin: " + restoration);
+            assertFalse(withheld.containsKey("log"), withheld.toString());
+            assertFalse(executor.render("open", Map.of("restore", "last")).ok(), "a withheld session cannot be restored");
+            assertFalse(context().containsKey("log"));
+        } finally { stop(); }
+    }
+
     @Test void changedLogIsRefusedWhileUnchangedDesignIsRestored() throws Exception {
         start();
         try {
@@ -161,7 +202,7 @@ class SessionRecoveryFrameTest {
             edt(() -> { field(frame, "readerRegistry", telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry.class).register(delayed); return null; });
             var files = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
                     field(frame,"configStore",ConfigStore.class).path().getParent().resolve("sessions"));
-            files.save(files.capture(profile.toRealPath().toString(), List.of(
+            files.save(files.capture(profile.toRealPath().toString(), ProjectProfile.nonce(profile).orElseThrow(), List.of(
                     new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("log",log.toString())), Map.of("format","test-slow")));
             edt(() -> { frame.offerSessionRecovery(); return null; });
             await(c -> "offered".equals(map(c.get("restoration")).get("state")));
@@ -202,7 +243,7 @@ class SessionRecoveryFrameTest {
             edt(() -> { field(frame,"readerRegistry",telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry.class).register(delayed); return null; });
             var files = new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore(
                     field(frame,"configStore",ConfigStore.class).path().getParent().resolve("sessions"));
-            files.save(files.capture(profile.toRealPath().toString(),List.of(
+            files.save(files.capture(profile.toRealPath().toString(),ProjectProfile.nonce(profile).orElseThrow(),List.of(
                     new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("log",log.toString()),
                     new telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Input("design",design.toString())),Map.of("format","test-slow")));
             edt(() -> { frame.offerSessionRecovery(); return null; });

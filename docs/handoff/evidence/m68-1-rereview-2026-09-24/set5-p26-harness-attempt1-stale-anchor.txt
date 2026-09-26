@@ -1,0 +1,21 @@
+baseline…
+baseline GREEN: 58 tests, 0 skipped
+M1 ignore declared authorship: RED, a <failure> at EvidenceIntegrityCoverageTest.thePacketGraphGivesThreeAndThree (5 failing); restored byte-identical; green again
+M2 restore authored-only membership: RED, a <failure> at EvidenceIntegrityCoverageTest.aDeclaredFrameworkNodeThatLogsDoesNotWarn (3 failing); restored byte-identical; green again
+M3a derive membership from the ratio: RED, a <failure> at EvidenceIntegrityCoverageTest.zeroPopulationIsNoRatioNotNoMembership (3 failing); restored byte-identical; green again
+M3b derive no-ratio from no-membership (the brief's third): RED, a <failure> at EvidenceIntegrityCoverageTest.noOutputKeepsARatioOfZero (1 failing); restored byte-identical; green again
+M4 retention reaches a downstream claim: RED, a <failure> at CoveragePolicyEvidenceTest.noNodeOutputIsNotAFit (2 failing); restored byte-identical; green again
+M5 the PDF drops a table's notes again: RED, a <failure> at ReportRendererTest.aTablesNotesAreOnThePageAsTheyAreOnScreen (1 failing); restored byte-identical; green again
+M6 the session verdict loses its scope (R2): RED, a <failure> at SessionPairingScopeTest.theSessionVerdictCarriesItsScope (5 failing); restored byte-identical; green again
+M6f the session verdict loses its scope, seen by the parity test (R1): RED, a <failure> at PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession (5 failing); restored byte-identical; green again
+M7 discovery loses its scope (R2): RED, a <failure> at PairingScopeSurfacesTest.discoveryIsScopedAndCarriesItsFacts (3 failing); restored byte-identical; green again
+M7f discovery loses its scope, seen by the parity test (R1): RED, a <failure> at PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession (3 failing); restored byte-identical; green again
+M8 discovery drops the pairing facts (O2): RED, a <failure> at PairingScopeSurfacesTest.discoveryIsScopedAndCarriesItsFacts (1 failing); restored byte-identical; green again
+Traceback (most recent call last):
+  File "/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/tools/mutate-m68-1.py", line 205, in <module>
+    main()
+    ~~~~^^
+  File "/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/tools/mutate-m68-1.py", line 171, in main
+    assert orig.count(old) == 1, (name, 'anchor not unique or missing')
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('M9 a whole-log comparison never supersedes (R2)', 'anchor not unique or missing')

@@ -18,6 +18,13 @@ public interface AppControl {
 
     /** Design/source reads may block on I/O and are invoked off the UI thread by the executor. */
     default ActionResult openDesign(String path) { return ActionResult.error("design view is not enabled here"); }
+
+    /**
+     * M68.1 re-review R2: a whole-log membership comparison has just run. Attach it to the pairing currently
+     * published, so that pairing is qualified — or superseded — and says so. Returns the sentence the
+     * qualification states, or {@code null} when there is no published pairing to qualify.
+     */
+    default String qualifyPublishedPairing(java.util.Map<String, Object> coverageEcho) { return null; }
     default ActionResult openDiagnostics(String path) { return ActionResult.error("producer findings are not enabled here"); }
     default ActionResult discoverDiagnostics() { return ActionResult.error("diagnostic discovery is not enabled here"); }
     default ActionResult source(java.util.Map<String, Object> selectors) { return ActionResult.error("source navigation is not enabled here"); }
@@ -205,6 +212,16 @@ public interface AppControl {
      * query to the user's own filter is passing it straight back rather than reconstructing it.
      */
     ActionResult context();
+
+    /**
+     * §H feedback 17: only the named sections, each equal to the same key of {@link #context()} on the same
+     * state, with any qualifier that applies and a {@code scope}. This default is the reference semantics —
+     * project the full payload; an implementation may override it to skip reading what was not asked for.
+     */
+    default ActionResult context(ContextSections.Selection selection) {
+        ActionResult full = context();
+        return full.ok() ? ActionResult.ok(full.action(), full.payloadKey(), selection.project(full.payload())) : full;
+    }
 
     /** Bring a named side tab to the front ({@code Summary|Source|Graph|Topology|Analyser assistant}). */
     boolean showTab(String name);

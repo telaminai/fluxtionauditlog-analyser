@@ -11,6 +11,295 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   `breach_count` counts records where the application itself logged a breach (not values over a limit), and
   that when the application first did something is the earliest record of the event it logs for it, or the
   first value of its own counter, not the first record whose values look over a limit.
+## [1.23.0] - 2026-09-26
+
+### Added
+
+- **A report says what the log itself shows.** An empty file, a damaged one, or one holding a document with no
+  record key is now stated on the exported PDF, on the Reports tab and in the `report` reply, under **Log
+  findings** — the same findings the status bar and `context` give, damage first. A report made over a clean log
+  is unchanged.
+- **A report's coverage table carries level changes.** A node the log set to a quiet audit level is annotated on
+  its row (`levelChange`) and in the notes under the table, exactly as the `coverage` verb returns it. It stays
+  uncovered and in the ratio: the annotation explains, it never excuses.
+- **Six conformance fixtures for the producer findings** (C25–C30): four empty-file shapes, a complete file that
+  still holds a corrupt document, and a per-node level change. Both reading paths must now agree on the producer
+  findings for every fixture, not only on the records.
+
+### Changed
+
+- **The empty-file message reads the same however the file was opened**, and fits what was read. A file that may
+  still be written says "No records in this file yet."; a file whose own stream-end marker says the writer finished
+  with nothing says so instead of suggesting a buffering writer — also when that marker arrives while the file is
+  followed, and when the file is opened as a rolled set of one; an empty rolled set of several files is named as a set.
+  A file being followed and the same file opened cold say the same thing.
+- **A rolled set's completeness note is drawn as a note on the Reports tab**, muted as on the PDF, rather than in the
+  warning banner a fault gets.
+
+### Fixed
+
+- **Turning Follow on no longer hides the log's warning.** The status line Follow starts with dropped it, so an
+  empty file being followed read "watching for new records…" and nothing else until its first record arrived.
+
+- **Charts and the record detail pane now say when the file behind the log has changed.** After a log was rewritten
+  in place, the table warned that its rows were the log as it was indexed, while the charts and the detail pane went
+  on showing values with nothing to say they might no longer match the file. Both now carry the same warning, with
+  the same reason, above every open chart — including one opened afterwards — and above the record. Reopening the log
+  clears all three.
+
+## [1.22.1] - 2026-09-26
+
+- **The Design view shows its XML at the default window size.** The file path and note at the top of the
+  Design view wrapped without limit in the narrow side panel and took the whole height, and the bean list kept
+  a fixed 210 px, so on a fresh 1200×800 window the XML itself had no room. Every `source:design:bean:` and
+  `source:design:line:` spotlight was refused, while `context` listed the bean. The note now keeps three rows
+  and scrolls, and the bean list takes at most 30% of the pane (210 px when there is room; a dragged divider
+  is kept, only capped, including a first drag after a theme switch).
+- **A refused design spotlight says why.** It said "session design is unavailable, or the anchor is missing,
+  ambiguous or outside the document" for every cause. It now names the one that applies: no design open, no
+  such bean, a bean id declared more than once, a line outside the file, or a line that is not on screen.
+- **Neighbouring spotlights no longer draw through each other's line.** Two spotlights on adjacent lines each
+  outlined 6 px beyond their line, so each outline crossed the other line's text. Their outlines now meet in
+  one separator halfway between the lines.
+- **Opening a project's file by path points you to the project.** A design outside the source roots was
+  refused with a suggestion to authorise its parent directory; assistants widened that to the whole project
+  directory. When the file sits in a project that is not open, the refusal now names `open {project: <dir>}`
+  first, which applies the project's own roots; the project already open is never suggested, even when it was
+  opened through a directory alias. A relative path says what it was resolved against (and that
+  a `graphml` path resolves against the analyser's working directory, not a project) and asks for an absolute path.
+
+## [1.22.0] - 2026-09-26
+
+### Added
+
+- **An empty log now says it is empty.** A file with no records reads as exactly that, in all six shapes
+  it can take, instead of opening silently with nothing in it and leaving you to guess whether the run
+  produced nothing or the reader found nothing. A file with no index supplied is untouched — that means
+  *no index*, not *no records*.
+- **A document that is not a log is named as one.** A YAML file that never opens a record is reported
+  rather than read as a log with no content. The test is the file's framing — its first non-blank,
+  non-comment line — not a search for the key somewhere in the text, so a document that merely mentions
+  `eventLogRecord` is still not a log. The warning quotes the line it found and says what a stream-end
+  marker would and would not establish, rather than asserting a verdict.
+- **An uncovered node whose audit level was changed now says so.** A node set to `WARN` still runs, but
+  its info lines are suppressed, so it carried no entries and coverage listed it as uncovered with no
+  explanation — while the record stating the change sat in the same file. That change is now shown
+  beside the node, naming the records that open and close it. It is an annotation, never an excuse: the
+  node stays in the uncovered list and in the ratio, and the annotation is read even when a filter hides
+  the record it came from. A change applies exactly as the runtime applies it: a change naming no node
+  sets every node, a change addressed to another processor grouping does not apply, and a later change —
+  per-node or global — ends it. A node name is compared exactly as written, so a name with extra
+  spaces or punctuation addresses no node. Records are matched to a processor by the grouping each
+  declares, so one processor's change never explains or ends another's, and a record that declares no
+  grouping is qualified rather than assumed. For records after a stream-end marker the explanation is
+  conditional: the log does not say whether the level survived into the later run. Every explanation
+  states each thing the log leaves open — whether the change named no node or a node literally called
+  "null", whether it applied, whether it survived a marker — in the one condition its conclusion rests on,
+  and the change that ends a window is described with the same care as the one that began it. A change
+  the log does not show to have applied is described as recorded, never as having set the level; one
+  described as setting the level applied whenever the change before it did, within the same run. A control
+  record the analyser cannot read ends the explanation there and says so, rather than being passed over as
+  if it changed nothing, and a change after a stream-end marker is named without claiming the level lasted
+  until it. Every conclusion is bounded — the definite one and the conditional one about a later run
+  alike: it speaks for the records after the change (or after the marker) and before the window ends — the
+  next change, an unreadable control record or a stream-end marker — in the change's own grouping, never
+  for the whole log. An annotation stops at the second stream-end marker after its change — counting every
+  marker, so two written back to back with an empty run between them are two — and records past it get no
+  level explanation and stay uncovered. When the records in view include some the annotation does not
+  concern, it says it speaks for those it does. A condition in force — that the change named no node, that
+  it applied — is carried into every sentence resting on it. A record a log reader could not read at all,
+  but whose header names the control event, is described as that, with the time its header states; every
+  header field the format permits is read, and nothing from the payload.
+- An empty or blank file now opens by its extension rather than being refused as unreadable.
+
+### Fixed
+
+- **Follow no longer calls a replaced, unreadable file unchanged.** A failed UTF-8 read retires the earlier
+  verification and opening digest immediately, including when the file size is unchanged. The session receives
+  that failure on the same poll, and the diagnostic identifies the displayed records as a retained snapshot.
+- **A byte-order mark no longer changes a verdict.** A record behind a BOM lost its thread, level and
+  logger, and because the finest level is read from there, `auditLevelFinest` fell from DEBUG to INFO and
+  coverage went on to say debug calls might be missing. It was not only a first-line problem: a file made
+  by concatenating two runs carries a mark in the middle, and every record behind it was affected the
+  same way.
+- A BOM before a file's first `---` stopped it separating, so the head of a healthy file ran together; a
+  file containing only byte-order marks framed as one record instead of reading as empty. A BOM counts
+  **only at the very start of a file**: an event value containing a BOM-prefixed `---` line and marker
+  lines is not a record boundary and cannot make a log read as complete. Two BOM'd files concatenated
+  therefore no longer separate at the join, and the missing-separator warning says so.
+- Following a growing log no longer fails when a poll lands inside a multi-byte character; the rest of
+  the character is awaited, and until it arrives the log does not claim to be complete. Bytes that can
+  never form a character fail loudly rather than being waited for, and the log then says its
+  completeness is unknown until it is reopened, rather than keeping the verdict it had before them. That
+  failure is reported as damage to the source, first among the log's findings, and reaches the assistant
+  and the status tooltip even while the file keeps growing. If the file is later replaced by a longer
+  readable one, it is reloaded rather than read as though the new content had been appended; a replacement
+  of the same length is not detected, and the log keeps saying its completeness is unknown until reopened.
+- A healthy record read through the binary reader is no longer reported as missing its record key.
+- An event whose name merely resembles the framework's own control event is no longer counted as one.
+
+### Changed
+
+- Record lines are trimmed of **ASCII whitespace only** — space, tab, CR, LF — matching the format
+  specification and the rest of the reader, where one path previously trimmed every Unicode space. A line
+  indented with an ideographic or em space is no longer trimmed to its content, and the fields on it are
+  lost. YAML permits only the space character for indentation and no known producer emits one.
+
+## [1.21.0] - 2026-09-26
+
+- **Source panes show the file as it is now.** After a regeneration, the Topology tab's source pane kept
+  showing the old processor, even after the log was reopened; and after renaming a node's class, opening
+  that node could still land on the removed class. Every navigation now re-reads the file, reopening a log
+  or graph rechecks both source panes, and node navigation uses the processor as it is on disk. Reads run in
+  the background with a visible "not yet rechecked" state, so a slow disk no longer freezes the window.
+- **Source panes no longer let an older read win, and a hung disk cannot pile up threads.** With both source
+  panes reading the processor, an older read that arrived last could put back the pre-rename model; the later
+  request now always wins. `context` and the design view no longer read the processor on the window's thread
+  (they say "not yet read" instead), Ctrl-click checks existence in the background, a timed-out read says so in
+  the pane body, a node that could not open says why, and at most two threads wait on a hung disk. Superseded
+  reads and Ctrl-click checks are removed from the queue rather than left waiting, and a Ctrl-click check has
+  the same time limit as a read, so a stale click can no longer open a class long after it was made.
+- **A Ctrl-click that cannot be checked now says why.** If the source reads are backed up or the lookup fails,
+  the node pane explains it instead of silently doing nothing, and Back, opening a file, a spotlight or opening
+  a node all cancel a pending Ctrl-click so it can no longer open a class over what you navigated to.
+  In Processor-only mode, a failed check opens Split view so its explanation is visible alongside the processor.
+- **A rolled set now stops serving a member file that changed in place, and says which one.** A single log whose
+  file was rewritten in place is refused until it is reopened, but the same file inside a rolled set was still read,
+  through an index that no longer matched it. A rolled set now reports its members' changes, naming the member, and
+  refuses record reads while any member's reads are suspended. A log whose reader cannot check for changes (a plugin
+  reader) now says `identity: not assessed` in `context` instead of saying nothing, which read like a check that passed.
+- **An exported coverage table now says when coverage is refused.** The report scored coverage by its own rules,
+  which knew only one of the four reasons coverage can be meaningless. So where the `coverage` verb refused (a kept
+  graph that does not describe the log, a graph built from what ran, a graph with no audit logger), the PDF still
+  printed a ratio. The table now follows the same decision: it prints the refusal instead of a number. A qualified
+  figure, such as one from a log captured below TRACE, carries its qualification as the first note.
+- **A coverage answer can no longer be credited to a log or graph opened while it ran.** Coverage took the log, the
+  session's identity for it and the graph at three different moments, and read the view filter while it scanned. A
+  log opened in between gave the old log's comparison the new log's identity, so an id from the old file was shown as
+  a finding about the new one. Everything coverage scores is now captured at one moment, and the scan uses that copy.
+  If the log or graph changes while it runs, the reply says `superseded`, and the comparison qualifies nothing.
+- **A legal one-record log is no longer reported as several records run together.** The check for missing `---`
+  separators counted the words `eventLogRecord:` anywhere in a record, including inside a quoted value. So a record
+  that mentioned them in its own text was reported as "2 records run together". The check now looks only at lines
+  that start a record, outside quoted values. It reports a real collapse as a suspicion, naming the lines it read and
+  the lines that look like new records. A record too long to check in full now says it was not checked, instead of
+  passing as clean — and so does the record still being written under Follow. Under Follow, a log that never writes a
+  separator is noticed before its first record is complete. A file that starts with a byte-order mark is checked the
+  same way as one without (it used to hide a collapse) (M68.3).
+- **More assistant requests are now honoured whole or refused whole, and a refusal no longer changes the view.** This
+  covers the calls below. Some calls still keep what worked and name what did not, on purpose: a report keeps its good
+  sections beside a rejected one, `graph` applies its series, markers and bands one by one, `source_root` adds and
+  removes each path on its own, and a saved analysis stops at the first failing step. Unknown keys are named, not
+  refused — at the top level and inside items too, by path (`notes[1].txt`, `sections[0].focuss`); a section's
+  free-form `call` is left to the verb it names. The full list is in the evidence-integrity spec (D-E3).
+  - `open` with a rolled set and a graph opened only the logs, and the graph was dropped without a word. It now opens
+    both, and the graph stays. The same applies to a log with an explicit `format` together with a graph.
+  - `topology` checks every field before applying any. A bad scope or unknown node used to be refused after the
+    selection had already changed. An orientation it did not know silently became top-down, and is now refused.
+  - `topology {recordIndex}` with nothing selected did nothing and replied with record 0. It now selects that record,
+    or refuses saying why (no log, not in the log, hidden by the filter).
+  - `flag` refuses a record that is not in the log instead of attaching the finding to the last record.
+  - `goto` on an empty log is refused, where it used to answer "record 0".
+  - `topology` with `saveFocusAs` and nothing to save is refused before anything is applied — whether there was no
+    focus, or the same call removes it (`pop`, or `showAll`). It used to select the node it was given, or clear the
+    focus, and then refuse. The check runs the call's own steps on a detached copy of the view first. `focus: true`
+    with `saveFocusAs` in one call still saves the focus that call applies.
+  - A refused call leaves the spotlight lit. Dropped anchors, a failed source-root removal, a rename's extra fields
+    and misspelled parameters are now named (M68.4).
+- **A chart can no longer be given a name that the assistant cannot point at.** `graph` accepted a name with a colon
+  in it, and `spotlight` then could not address that chart. A name containing `:` or `"`, or exactly `note` or
+  `series`, is now refused when it is given, and nothing is created. Charts already saved under such a name still
+  open and still answer to the `graph` verb, and are never renamed for you. Spotlight reaches a saved name with a colon
+  or a reserved word quoted, `graph:"a:b":note:2`, and `context.graphAddresses` lists that address. A saved name that
+  contains `"` cannot be written as an address at all: `context.graphAddresses` gives it none (null), and
+  `context.graphAddressUnavailable` says why. Renaming the chart gives it one. **Repair names…** applies the same rule
+  to the names it gives (M68.6).
+- **Charts in exported reports are drawn at page size, and a section that cannot be drawn says so.** A report's
+  chart was a capture of its tab at the tab's current size, controls included. A tab that was not showing made the
+  picture a sliver, and the chart inside it then claimed "No data under the current filter" over a series that had
+  data. Charts are now drawn off-screen at the page's size. A plot with no room to draw says that, and the no-data
+  sentence is kept for charts that really have no data. A requested topology section, or a chart that produced no
+  picture, used to leave nothing on the page. It now prints NOT RENDERED with the reason. A topology section for a
+  saved focus is now drawn in the PDF, captioned with its node count. So is a series section, drawn from exactly its
+  stored call — the same expression, resolution (STRICT unless the call says LOCF) and filter the `series` verb uses
+  for that call, so the picture shows the points the verb counts. The view filter on screen does not apply to it, and
+  the caption says which scope and resolution were drawn. A call a single drawn series cannot carry (`crossings`,
+  `buckets`, `limit`, both `key` and `expr`, an unknown key) says NOT RENDERED and why, as does a focus that no longer
+  resolves (M68.2).
+- **`series` now refuses a `resolve` it does not know.** Anything other than STRICT or LOCF used to become STRICT
+  without a word; it is now an error naming the value.
+- Report series calls using `key` preserve the literal field name, including punctuation and spaces;
+  a key such as `node.value+1` is not evaluated as a formula. Formula evaluation remains explicit through `expr`.
+- **A project pointer that cannot be followed now says which project root it tried.** A runbook or glossary pointer
+  whose file was missing said only "NOT found under the project root", without saying which root. One that could not
+  be resolved at all showed no warning: either no project was open, or its path left the project folder. The
+  Project panel and `context` now state the failure. A missing file names the root and the path it resolved to. A
+  path outside the root is refused, naming the root. With no project open, the pointer says there is no root to
+  resolve it against. An environment's log directory and a report destination directory are checked the same way; a
+  remote destination (`s3://`, `https://`) says it is not checked rather than passing as fine (M68.5).
+- **The assistant's record verbs now check whether a log you are not following has changed on disk, before they
+  answer.** Before, `read`, `aggregate`, `series`, `coverage` and the others kept serving rows after the file changed.
+  For a large log read directly from the file, an in-place rewrite could make those rows describe bytes that were no
+  longer there. Such a rewrite now suspends those verbs until the log is reopened, and says why. A file replaced at
+  its path is labelled superseded, because what is shown is still the file that was opened. `context.log.identity`
+  reports it, and so does the status line when you return to the window. The log table now shows the same warning
+  above its rows, saying they are the log as it was indexed. A log opened through a plugin reader is not checked (it
+  says `not assessed`) (M68.5).
+- **Follow now notices when the file it is following is replaced, not only when it shrinks.** A file rewritten at the
+  same length used to count as "no growth" and was ignored. A rewrite in the middle combined with an append was
+  indexed as an append, over records that had changed. Follow now compares every byte already read. If they changed,
+  or a different file now has the path, the change is announced and the log is reopened; `context.log.identity`
+  says why. A file that cannot be verified says so rather than passing as unchanged (M68.5).
+- **Opening a log and a graph together no longer loses the graph.** `open {log, graphml}` replied `ok`, then closed the
+  graph a moment later if it did not fit the log. The analyser treated a graph opened while the log was still loading
+  as left over from the previous investigation. A graph somebody opens after asking for a log is now kept for that
+  log, and the mismatch is announced instead. A graph that was already open before the request, or one a log's
+  reader supplied, is still closed when it does not fit (M68.4).
+- **A coverage run now carries the log and graph it was made against.** Coverage scans the whole log in the
+  background, then records what it found against the graph's pairing verdict. If another log or graph opened while
+  the scan ran, the result was recorded against the new pair, although it described the old one. The comparison now
+  carries the pair it names, and the analyser refuses to apply it to any other (M44.4c). That was only sound once the
+  log itself was captured at the same moment as that identity — see "A coverage answer can no longer be credited to
+  a log or graph opened while it ran", above.
+- **Following a live log no longer pushes the analyser's own session history out of its audit record.** Each Follow
+  update is kept in a small ring of its own. Opening, closing and switching projects therefore stay on the record however
+  long a log is followed. The export interleaves both rings and says how many of each it dropped. The coverage verb
+  also reads the session's verdict as of the last completed step, and no longer waits on the window to refresh it
+  (M44.4b).
+- **Coverage now refuses a graph that a log's reader inferred, as it always said it would.** The session tracked a
+  graph by its file, and a graph supplied by a log's reader has none. So the analyser's session believed no graph
+  was open while one was on screen. The refusal to score coverage against a graph built from what ran therefore
+  never came from the session. Internally, graphs and log closes now reach the session as facts at the place they
+  happen, not through a menu-refresh observation that skipped any change made mid-operation (M44.4a).
+- **Spring authoring scripts are installed runnable.** A Spring template installed from the analyser left
+  `setup.sh`, `validate.sh` and `generate.sh` without the execute bit, so `./setup.sh` failed with
+  "permission denied". They are now made executable with the other bundle scripts. Archive file modes
+  are still never trusted.
+- **A recreated project is not offered the old project's session.** Recovery was keyed by the profile's
+  path, so deleting a project and recreating it in the same place showed the previous project's "Restore
+  last session" offer. A project profile now carries a random `profileNonce`, written once when the analyser
+  creates the profile and kept by every save; each saved session records the nonce of the profile that
+  captured it. A different profile at the same path gets no offer (`capturedBy: "different profile at this
+  path"`), and a session or profile without a nonce is withheld as `capturedBy: "unknown"` rather than
+  guessed. An existing profile gains a nonce the first time the analyser saves a change to it, so that
+  profile's committed file gets one new line. A withheld offer still names when it was captured and what it
+  would have opened, and the offer message now names its capture time.
+- **An assistant can ask `context` for only the part it needs.** `context {sections: ["pairing"]}` returns
+  just those sections — `log`, `project`, `pairing`, `processors`, `source`, `topology`, `view`, `charts`,
+  `menus`, `design`, `handoff` — and skips the file reads and lookups behind the rest. Each section is exactly what the full context
+  would say, and any warning that qualifies it (a load still in flight, producer faults, time disorder, a
+  partial dispatch order, and a rolled set's file list with the view's file-local offsets) comes with it; a `scope` block says what was selected and carried. An unknown or
+  empty list is refused. Calling `context` with no `sections` is unchanged.
+- **A downloaded template's source folders must lie inside its own project.** Installing a template now
+  refuses it if any of its project settings files — the main one, a named one, or a nested module's — names a
+  source folder outside the project, the whole project, a home, absolute or Windows-style path, or a workspace
+  anchor. Nothing is installed when that happens. This covers source folders only: a template's saved charts
+  can still name external CSV files, which are not checked. Projects you set up yourself can still point at
+  folders outside the project, such as a neighbouring module.
+- **After a failed log open, the Topology tab again says the graph was not compared.**
+- **A graph opened with no log says it was not compared.** The Topology tab now states that nothing is shown
+  as matched or executed, instead of saying nothing, so a design-first look at a project (design, topology
+  and Java, no log) cannot be mistaken for a checked one.
 
 ## [1.20.1] - 2026-09-24
 
@@ -42,6 +331,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   side, but a zoom is a view and is forgotten, while a pin is saved with the chart and comes back on
   reload. The zoom controls had no tooltip at all and the pin's did not mention that it persists.
 
+
+
 - **Duplicate chart names can now be repaired in the app.** A project holding two charts under one name
   still withholds both rather than guessing, but the Graph panel now offers **Repair names…**, which
   names each contested chart, says what it contains, and offers rename or delete for each. Nothing is
@@ -52,6 +343,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   assistant's `graph` action, and a chart made while names are unresolved is kept when they are repaired.
   Nothing is written to the project until then. Duplicates were creatable by earlier releases, so this
   affected people who had done nothing wrong.
+
 
 - **An assistant that sends a chart series in the wrong shape is now told so.** `graph {series}` takes
   `"instanceId.key"` strings. An object such as `{expr, label}` used to be turned into a key that could
@@ -107,6 +399,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   it did before; the first save after upgrading then records every chart's current style, so an older
   project file does gain a style line per chart once you save it. An unrecognised style in a hand-edited
   profile is dropped rather than applied.
+
+- Coverage no longer tells you a node is missing from a graph that declares it. The analyser now reads the graph's own declaration of which nodes are framework plumbing (`fluxtion.framework`) before falling back to guessing from class names, so a framework class you used as a node and named is counted as yours; and it checks whether a logged node is in the graph against **every** declared node rather than only the authored ones, so a framework node that writes audit output no longer raises a warning. On the recovery-packet graph this changes coverage from 2 declared and 2 covered to the honest 3 and 3. `coverage` and the graph-open echo say how authorship was decided (`authorshipBasis`: declared, inferred or mixed), and framework nodes are listed separately under `frameworkNodesNotScored` rather than vanishing.
+- Mismatch messages state the fact and stop. The three messages that used to conclude, from a node-name mismatch, that a graph and its log came from separate builds — the coverage warning, the topology match line and the pairing's own reason — now name the ids that disagree and leave the judgement to you, because matching node names do not establish which build either file came from.
+- A graph with no node eligible to score now reports **no ratio** instead of a vacuous 100%. `coverage` carries `ratioAvailable` and a `ratioNote`, and membership is reported separately under `membership` — it can be fully established even when there is nothing to score.
+- A graph kept against a log is no longer described as fitting it unless it does. The Topology panel says *kept, not confirmed* when the log recorded no node output and *kept on a partial match* when some logged ids are not in the graph; `context.graphPairing` and the graph-open echo add `membershipEstablished`, `everyObservedIdDeclared`, `pairingScope`, `pairingSampled` and `appliesMeans`, because `applies` is a keep-it-open policy, not proof of fit. Coverage's policy no longer returns its fullest verdict for either case, and when the pairing was judged on a sample it says which records it looked at.
+- An exported report PDF now prints the notes under each table that the Reports tab already shows on screen. A coverage table used to export as "declared 3 · covered 3" with no sign that the log wrote a node id the graph does not declare, while the same report on screen said so; the page now carries that warning, the exclusions note and the audit-level caveat.
+- The graph pairing now says what it looked at however you open the files. Opening a log and a graph in one call, or the graph first, used to publish a 500-record sample as a claim about the whole log — "declares all 3 node(s) this log writes" about a log that writes 4 — while opening the log first labelled it correctly. `context.graphPairing`, the Topology panel and GraphML discovery now all state the same scope (`pairingScope`, `pairingSampled`), and discovery's candidates carry the same `membershipEstablished` / `everyObservedIdDeclared` / `appliesMeans` facts as `context`.
+- When `coverage` compares the whole log, it now qualifies the pairing shown on open and says so. If it finds a node id the sample could not see, `context.graphPairing.qualifiedBy` and the Topology panel say the sampled pairing is superseded and name the id, and the `coverage` reply carries `qualifiedPublishedPairing`. The qualification is dropped when a different log or graph is opened. When the same log grows under Follow, it is kept but marked stale — `qualifiedBy.stale`, with `logRecordsAtComparison` and `logRecordsNow` — and it restates exactly what it compared ("first 600 of 601 records") instead of speaking for the whole log.
+- Under Follow, the graph pairing now counts appended records. A followed log that grew from 600 to 601 records used to go on publishing "first 500 of 600 records" in `context`, the Topology panel and the coverage claim; the pairing is now re-judged against the current log on every append, so all three say "first 500 of 601".
+- Narrowing the view no longer erases a whole-log finding. Running `coverage` on a filter after running it on the whole log used to replace the whole-log result, so the Topology panel went back to leading with the sampled verdict the whole-log run had already disproved. The whole-log result now stays in the lead, the filtered result is stated beside it (`qualifiedBy.narrower`), and the filtered `coverage` reply says which whole-log finding is still in force. A later whole-log run replaces an earlier filtered one, because it covers everything the filter could find.
+- Two `coverage` runs on different filters no longer erase each other's findings. Each undeclared node id a filtered run finds is kept, with the filter it was found under, in `qualifiedBy.undeclaredFromEarlierFilters`, until a whole-log run replaces them all; the next filtered reply says which comparison it replaced and what that had found; and with no whole-log run, the Topology panel note leads with the undeclared ids filters have found.
+- A filtered comparison now remembers its filter. After you change the filter it is reported as "an earlier filter (…)" with `filterStale: true`, instead of going on calling itself the current filter.
+- A stale comparison's fields now say what its words say: `qualifiedBy.scope` states what was compared ("first 600 of 601 records") and `supersedesSample` is false, where they used to still read "whole log" and true beside `stale: true`.
+- Following a live log no longer fills the session's own audit record. Each append used to write one record to a 2,000-record ring, evicting the session's real history in about half an hour at one append a second; the session's view of the log is now refreshed when `coverage` reads it. The session's record of a log arriving also states the sample it was judged on.
+- More messages state a mismatch without concluding which build a file came from: the warning on a single-record finding export, the step-through status ("N not declared in this topology"), both named-focus recall messages, the in-app help and three passages of the published docs. The help page used to tell you to treat a mismatch as a versioning fault; it now says the two files disagree about which nodes exist.
+- The Topology panel's status line now leads with the pairing verdict, which it used to put fifth, where it was cut off at every window size, and the verdict leads with what qualifies it: the sample it was judged on ("first 500 of 600 records: …"), or, once `coverage` has compared the whole log, what that found. Hovering the line shows all of it.
+- A coverage claim qualified by the pairing no longer hides the capture-level caveat: when the log was not captured at TRACE, the claim note says so as well.
 
 ## [1.19.1] - 2026-09-24
 

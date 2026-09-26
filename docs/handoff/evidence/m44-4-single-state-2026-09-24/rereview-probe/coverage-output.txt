@@ -1,0 +1,104 @@
+1. the packet graph with its three declared authored nodes
+  PASS declared 3
+  PASS covered 3
+  PASS ratio 1.0
+  PASS authorship declared by the graph
+  PASS no out-of-topology warning
+  PASS no build-provenance claim on coverage or context
+  PASS context: membership established
+  PASS context: every observed id declared
+  PASS context: applies is labelled a retention policy
+2. a declared framework node that writes
+  PASS no warning for a declared framework node
+  PASS population unchanged at 3
+  PASS framework node disclosed outside the denominator
+3. no node output at all
+  PASS context: membership NOT established
+  PASS coverage: membership NOT established
+4. WRONG-RESULT WITNESS — a foreign id must still warn
+  PASS the graph is retained on a partial match
+  PASS …and context says not every observed id is declared
+  PASS the warning appears
+  PASS it names the foreign id
+  PASS it states the fact without a build conclusion
+5. acceptance 3 in every open order: a 600-record log, the only foreign id in record 600
+  PASS combined: the graph is still open
+  PASS combined: the pairing says it is a sample
+  PASS combined: and names its scope
+  PASS combined: the verdict sentence carries the scope
+  PASS combined: whole-log coverage finds the id the sample could not see
+  PASS combined: and its reply says it qualified the published pairing
+  PASS combined: context now carries the qualification
+  PASS combined: naming the foreign id
+  PASS graph first: the graph is still open
+  PASS graph first: the pairing says it is a sample
+  PASS graph first: and names its scope
+  PASS graph first: the verdict sentence carries the scope
+  PASS graph first: whole-log coverage finds the id the sample could not see
+  PASS graph first: and its reply says it qualified the published pairing
+  PASS graph first: context now carries the qualification
+  PASS graph first: naming the foreign id
+  PASS log first: the graph is still open
+  PASS log first: the pairing says it is a sample
+  PASS log first: and names its scope
+  PASS log first: the verdict sentence carries the scope
+  PASS log first: whole-log coverage finds the id the sample could not see
+  PASS log first: and its reply says it qualified the published pairing
+  PASS log first: context now carries the qualification
+  PASS log first: naming the foreign id
+7. N1 — a Follow append must not leave a whole-log verdict describing the old log
+  PASS before the append, coverage confirms the whole log
+  PASS the followed store now holds 601 records
+  PASS the qualification no longer claims to confirm the whole log
+  PASS and says the log has grown since coverage compared it
+  PASS the published pairing's scope counts the appended record
+  PASS a fresh coverage finds the appended foreign id
+  PASS and is not stale
+  PASS the coverage claim's own scope counts the appended record too (the session's copy)
+8. N2 — a narrower comparison must not erase a wider one, in either order
+  PASS whole then filtered: the whole-log finding still stands in context
+  PASS …and the filtered comparison is stated beside it
+  PASS …and the filtered coverage reply says the whole-log finding still stands
+  PASS filtered then whole: the whole-log finding leads
+  PASS …and the earlier, dominated filtered comparison is not carried
+9. Q5a/Q5b — two filtered comparisons must not erase each other, and a changed filter is not current
+  PASS A then B: the id filter A found is still in context
+  PASS …and the filter-B reply says what it replaced and what that had found
+  PASS after the filter changes, a filtered comparison no longer calls itself the current filter
+  PASS …and says the filter has changed
+10. Q2 — a stale whole-log qualification's fields must not claim the whole log
+  PASS stale: scope states what was compared
+  PASS stale: supersedesSample is false
+6. the exported PDF says what the screen says (D-E2)
+  PASS the report exported
+  PASS the page carries the membership warning
+  PASS the page carries the honest figures
+13. M68.2 — a requested topology section renders or says why not (D-E8)
+  PASS M68.2: the focus the section names is saved
+  PASS M68.2: the report exported
+  PASS M68.2: the focus section is drawn, captioned, and not reported as NOT RENDERED
+11. M68.4 — a combined open keeps the graph it asked for, on the FINAL state
+  PASS M68.4: the graph the request opened is still loaded
+  PASS M68.4: and the mismatch is stated, not hidden
+12. M68.5 — a same-length rewrite under Follow is announced, and the reopened log says why
+  PASS M68.5: the rewrite is detected and the log reopened
+  PASS M68.5: and it says the content already read changed
+14. M68.4 acceptance 5 — topology {recordIndex} from a fresh load selects the record, and says so
+  PASS M68.4: the reply names the record asked for
+  PASS M68.4: and the record is really selected
+  PASS M68.4: a record the log does not have is refused, naming the range
+15. M68.4 acceptance 4 — a rolled set opened with a graph keeps both, pairing reported, on the FINAL state
+  PASS M68.4: the combined rolled-set open replies ok
+  PASS M68.4: the graph is still loaded
+  PASS M68.4: and its pairing is reported
+16. M68.3 — framing: a legal one-record file is not accused; a collapsed one is SUSPECTED, with evidence
+  PASS M68.3: a legal one-record file with the key in a quoted value is NOT reported as run together
+  PASS M68.3: a collapsed file is suspected, as a suspicion
+  PASS M68.3: and names the span it inspected
+17. independent review R2 — the exported coverage table obeys the session's refusal
+  PASS R2: the coverage verb refuses the retained foreign pair
+  PASS R2: the report still exports
+  PASS R2: the page states the refusal
+  PASS R2: and prints no ratio
+
+all M68.1 end-to-end checks passed

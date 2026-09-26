@@ -305,4 +305,31 @@ class ProjectSessionTest {
         assertTrue(s.hasProject(), "restart must resume the project, not forget it");
         assertEquals(file, s.activeFile());
     }
+    /**
+     * Edit-loop spec §E: the session holds the active profile's creation nonce in memory, so a recovery capture
+     * takes it when the capture is built — no file read — and it names the profile whose settings are in play.
+     */
+    @Test
+    void theActiveNonceFollowsTheProfileInPlay(@TempDir Path dir) throws Exception {
+        AppConfig c = configWith("/work/src");
+        ProjectSession s = session(c);
+        assertNull(s.activeNonce(), "no project, no nonce");
+        Path a = ProjectProfile.pathFor(dir.resolve("a"));
+        s.create(a);
+        String nonceA = s.activeNonce();
+        assertNotNull(nonceA, "a created project has a nonce");
+        assertEquals(ProjectProfile.nonce(a).orElseThrow(), nonceA);
+        c.sourceRoots.add("/work/more");
+        s.requestSave();
+        s.flush();
+        assertEquals(nonceA, s.activeNonce(), "a save keeps it");
+
+        Path b = ProjectProfile.pathFor(dir.resolve("b"));
+        s.saveAs(b);
+        assertNotEquals(nonceA, s.activeNonce(), "a fork is a new profile");
+        assertTrue(s.open(a).loaded());
+        assertEquals(nonceA, s.activeNonce(), "opening a profile loads its nonce");
+        s.close();
+        assertNull(s.activeNonce());
+    }
 }

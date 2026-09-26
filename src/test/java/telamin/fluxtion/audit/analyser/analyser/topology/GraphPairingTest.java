@@ -37,7 +37,10 @@ class GraphPairingTest {
         assertFalse(p.applies());
         assertEquals(3, p.logged());
         assertEquals(0, p.matched());
-        assertTrue(p.reason().contains("different system or build"), p.reason());
+        // M68.1: states the count and stops. It used to conclude "different system or build"; a name
+        // mismatch does not establish that, and this assertion now forbids the conclusion.
+        assertTrue(p.reason().contains("declares only 0 of the 3"), p.reason());
+        assertFalse(p.reason().toLowerCase().contains("build"), "no build conclusion: " + p.reason());
         assertFalse(p.reason().contains("closed"), "the reason states the FACT; the ACTION "
                 + "is the caller's word, because log-open closes and graph-open keeps: " + p.reason());
         assertTrue(p.reason().contains("0 of the 3"), "the numbers travel with the verdict: " + p.reason());
@@ -74,7 +77,11 @@ class GraphPairingTest {
     void aLogThatWritesNothingCannotConvictTheGraph() {
         var p = GraphPairing.of(Set.of("a", "b"), Set.of());
         assertTrue(p.applies(), "silence is not evidence of mismatch");
-        assertTrue(p.reason().contains("cannot say"), p.reason());
+        // …and it is not evidence of FIT either. Kept is a policy; evidenced() is the fact (M68.1).
+        assertFalse(p.evidenced(), "no node output means no membership comparison was possible");
+        assertFalse(p.everyObservedIdDeclared());
+        assertTrue(p.reason().contains("no membership comparison was possible"), p.reason());
+        assertTrue(p.reason().contains("kept, not confirmed"), p.reason());
     }
 
     @Test

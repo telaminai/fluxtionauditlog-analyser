@@ -133,8 +133,9 @@ and silent outside it — and the silence is what gets trusted:
 - **The four-term sweep cannot see inside images.** It passed for the whole life of the repo while
   release screenshots carried real names onto the public site (found 2026-08-16). Screenshots are now
   generated under an isolated `user.home`, never taken.
-- **The sweep cannot see git metadata.** 214 commits carry an employer-domain author address; the count
-  is pinned in CLAUDE.md and re-checked before every release.
+- **The sweep cannot see git metadata.** 225 commits carry an employer-domain author address; the count
+  is pinned in CLAUDE.md and re-checked before every release. A merge made through GitHub takes the
+  account email, not the local config — check its author.
 - **`mkdocs build --strict` cannot see `docs/specs/`.** It is not part of the built site, so the link
   checker never visits it. Twelve stale links in two days were found by reading before
   `SpecLinksResolveTest` was added.
@@ -267,5 +268,5 @@ only. New designs get a `spec-<name>.md`; superseded ones move to `completed/`.
 
 - The fatjar version comes from the manifest via `ReleaseNotes.version()` — use
   `getPackage().getImplementationVersion()`, NOT a classpath manifest scan (that returns a dependency's).
-- Shade regenerates `dependency-reduced-pom.xml` on `package`; it's tracked, so commit or revert it
-  deliberately.
+- Shade regenerates `dependency-reduced-pom.xml` on `package`. It is a build output, untracked and in
+  `.gitignore` since 2026-09-26 (eighth re-review R8-7), so a package leaves `git status` clean.

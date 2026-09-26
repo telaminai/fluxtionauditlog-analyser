@@ -55,16 +55,51 @@ class TemplateArchiveTest {
 
     @Test
     void archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist() throws Exception {
-        byte[] archive = zip(Map.of("bundle/evil.sh", "not an allowed program".getBytes()));
+        // evil.sh is not on the list at all; tools/generate.sh has an allowed basename but is nested, and
+        // only root entries may become executable (a basename-only match would wrongly allow it).
+        Map<String, byte[]> entries = new LinkedHashMap<>();
+        entries.put("bundle/evil.sh", "not an allowed program".getBytes());
+        entries.put("bundle/tools/generate.sh", "#!/bin/sh\necho nested\n".getBytes());
+        byte[] archive = zip(entries);
         Path destination = temp.resolve("mode");
         new TemplateArchive().install(claimExecutable(archive), destination);
         try {
-            Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(destination.resolve("evil.sh"));
-            assertFalse(permissions.contains(PosixFilePermission.OWNER_EXECUTE));
-            assertFalse(permissions.contains(PosixFilePermission.GROUP_EXECUTE));
-            assertFalse(permissions.contains(PosixFilePermission.OTHERS_EXECUTE));
+            for (String file : List.of("evil.sh", "tools/generate.sh")) {
+                Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(destination.resolve(file));
+                assertFalse(permissions.contains(PosixFilePermission.OWNER_EXECUTE),
+                        file + " must not become executable: " + permissions);
+                assertFalse(permissions.contains(PosixFilePermission.GROUP_EXECUTE), file + " " + permissions);
+                assertFalse(permissions.contains(PosixFilePermission.OTHERS_EXECUTE), file + " " + permissions);
+            }
         } catch (UnsupportedOperationException ignored) {
             // No executable bit exists on this file system; the claim still was not applied.
+        }
+    }
+
+    /**
+     * Edit-loop spec §G, feedback 8: a Spring authoring bundle installed through this route left setup.sh,
+     * validate.sh and generate.sh at 0644, so {@code ./setup.sh} failed. The archive's own mode is ignored
+     * by design, so the fixed list is what makes them runnable: install, then run each one directly.
+     */
+    @Test
+    void springAuthoringScriptsAreInstalledRunnableWithoutChmod() throws Exception {
+        Map<String, byte[]> entries = new LinkedHashMap<>();
+        for (String script : List.of("setup.sh", "validate.sh", "generate.sh")) {
+            entries.put("bundle/" + script, ("#!/bin/sh\necho " + script + "\n").getBytes());
+        }
+        Path destination = temp.resolve("authoring");
+        new TemplateArchive().install(zip(entries), destination);
+        boolean posix = Files.getFileStore(destination).supportsFileAttributeView("posix");
+        org.junit.jupiter.api.Assumptions.assumeTrue(posix, "no POSIX execute bit on this file system");
+        for (String script : List.of("setup.sh", "validate.sh", "generate.sh")) {
+            Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(destination.resolve(script));
+            assertTrue(permissions.contains(PosixFilePermission.OWNER_EXECUTE), script + " " + permissions);
+            Process run = new ProcessBuilder("./" + script).directory(destination.toFile())
+                    .redirectErrorStream(true).start();
+            String out = new String(run.getInputStream().readAllBytes()).trim();
+            assertTrue(run.waitFor(30, java.util.concurrent.TimeUnit.SECONDS), script + " did not finish");
+            assertEquals(0, run.exitValue(), script + " -> " + out);
+            assertEquals(script, out);
         }
     }
 
@@ -163,9 +198,10 @@ class TemplateArchiveTest {
         out.closeEntry();
     }
 
-    /** Mark the central-directory entry 0755/Unix without changing its contents. */
+    /** Mark every central-directory entry 0755/Unix without changing its contents. */
     private static byte[] claimExecutable(byte[] zip) {
         byte[] out = zip.clone();
+        int marked = 0;
         for (int i = 0; i + 46 <= out.length; i++) {
             if ((out[i] & 0xff) == 0x50 && (out[i + 1] & 0xff) == 0x4b
                     && (out[i + 2] & 0xff) == 0x01 && (out[i + 3] & 0xff) == 0x02) {
@@ -175,9 +211,10 @@ class TemplateArchiveTest {
                 out[i + 39] = (byte) (external >>> 8);
                 out[i + 40] = (byte) (external >>> 16);
                 out[i + 41] = (byte) (external >>> 24);
-                return out;
+                marked++;
             }
         }
-        throw new AssertionError("zip has no central-directory entry");
+        if (marked == 0) throw new AssertionError("zip has no central-directory entry");
+        return out;
     }
 }

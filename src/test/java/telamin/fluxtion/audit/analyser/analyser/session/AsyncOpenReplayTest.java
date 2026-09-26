@@ -18,8 +18,8 @@ class AsyncOpenReplayTest {
 
     private static final String AUDITOR = "EventLogManager";
 
-    private static SessionEvents.GraphObserved graph(String path, Set<String> declared) {
-        return new SessionEvents.GraphObserved(true, path, "OPENED", declared, List.of(AUDITOR, "PriceListener"));
+    private static SessionEvents.GraphOpened graph(String path, Set<String> declared) {
+        return SessionFixtures.graph(path, "OPENED", declared, List.of(AUDITOR, "PriceListener"));
     }
 
     private static SessionEvents.OpenLogRequested open(SessionDriver d, String location) {
@@ -102,9 +102,11 @@ class AsyncOpenReplayTest {
         d.submit(open(d, "/a.yaml"));                              // lands synchronously: A/A fits
         assertEquals(0, adapter.countOf(SessionEffects.CloseGraphEffect.class));
 
-        // the person opens a mismatching graph B (kept: intent), then the menu funnel re-observes the log
+        // the person opens a mismatching graph B (kept: intent), then a fact about the unchanged log arrives. The
+        // menu funnel that used to re-observe it is gone (M44.4a); LogAppended is the fact that still reaches this
+        // node without a request, and it must not re-judge the graph either.
         d.submit(graph("/b.graphml", Set.of("supermarketTill")));
-        d.submit(new SessionEvents.LogObserved(true, "/a.yaml", "DECLARED", Set.of("priceListener"), 1, 1));
+        d.submit(new SessionEvents.LogAppended(d.processor().openLog.generation(), Set.of("priceListener"), 1, 1, null));
 
         assertEquals(0, adapter.countOf(SessionEffects.CloseGraphEffect.class),
                 "the pre-fix version closed B here: an observation of the unchanged log re-judged the new graph");

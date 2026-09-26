@@ -33,9 +33,16 @@ architecture, conventions). This file is only the rules that must never be skipp
    and then read every visible string — title bar, status bar, paths — before committing. **The same rule
    covers transcripts**: `docs/site/sample-conversations.md` is written by `tools/capture-conversations.py` from a
    real run under the same isolated home; a hand-typed transcript is a screenshot the sweep cannot read either.
-   **The sweep cannot see git metadata either.** **214** commits carry an employer-domain author
-   email into the public history — 132 on the third sweep term's domain, 82 on the fourth's. Rewriting
+   **The sweep cannot see git metadata either.** **225** commits carry an employer-domain author
+   email into the public history — 132 on the third sweep term's domain, 93 on the fourth's. Rewriting
    is ruled out by rule 3, so that history is accepted and recorded here.
+   **Counted again 2026-09-26:** the fourth rose from 82 to 93, and all eleven new commits are pull-request
+   merges made through GitHub (PRs between #7 and #26, merged 2026-09-24 to 2026-09-26). **A merge made
+   through GitHub — the web button or `gh pr merge` — is authored with the GitHub account's primary email, not
+   the repo-local `user.email`**, so the pinned config cannot protect it. The account's commit email was
+   changed after #26, and #27 onwards carry the personal address, but check the author of every such
+   merge: `git log -1 --format='%ae' <merge>` must print the personal address. If it cannot be trusted,
+   merge locally instead — `git merge --no-ff` with the personal identity, then push.
    **Counted again 2026-08-25** (M36/M19 release check): the third-term total has not moved since the
    config was pinned, so the mitigation is holding; the fourth is 82, not the 81 this paragraph
    claimed, and the newest such commit is still dated 2026-08-20 — a miscount, not a new leak. The
@@ -46,7 +53,8 @@ architecture, conventions). This file is only the rules that must never be skipp
    so the leak kept growing — every commit made on 2026-08-20 before that check carries it.
    The config is pinned now. Verify it, and do not take this file's word for it:
    `git config user.email` must print the personal address, and
-   `git log --format='%ae' | sort | uniq -c` must show no new employer-domain commits. **Run both
+   `git log --format='%ae' | sort | uniq -c` must show no new employer-domain commits, and that
+   includes merges made through GitHub. **Run both
    before every release**, because a recorded mitigation that stopped being true reads exactly like
    one that is.
 2. **CHANGELOG.md**: every user-visible change adds a line under `## [Unreleased]` in the same commit.
@@ -81,7 +89,22 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.20.0 released 2026-09-24**, with separate Project,
+`docs/specs/completed/tracker.md`. **Latest: 1.23.0 released 2026-09-26**: M68.7 — the charts and the record
+detail pane state the file-identity verdict the table already states (the G14 chart-mark condition) — and the
+phase-1 completion of the Mongoose audit reader: a report, the Reports tab and the `report` reply carry the log's own
+findings; one empty-file wording chosen from what was read, the same on a cold open and under Follow; a report's
+coverage table carries per-node level changes; conformance fixtures c25–c30. MA-0 and MA-8 are complete.
+**1.22.1 (the same day)**: the design-first first look (PR #35) —
+the Design view keeps its XML at the default window, design refusals name their one cause, neighbouring spotlights
+share a separator, and a refused project file points to `open {project}`.
+**1.22.0 (the same day)**: the reader half of the Mongoose audit
+format on top of M44.4/M68 — an empty log and a document that is not a log are named as findings,
+coverage annotates a node whose audit level was changed per node, one byte-order-mark rule and
+ASCII-only trimming across the reader, and Follow retires its verification when a file stops decoding.
+Producer halves (MA-2 writer, MA-5.7) stay open; MA-0/MA-8's report paths and the MA-6.3 fixtures shipped in 1.23.0.
+**1.21.0 (the same day)** shipped M44.4, the single-state session, and the M68 evidence-integrity code
+(its six items stay open until each acceptance is shown), with the Spring edit-loop slices 1–3 and 8.
+**1.20.0 released 2026-09-24**, with separate Project,
 Sources and Audit log menus, refreshed guides/screenshots, menu-path guards, and the fast mutation
 gate in CI. Chart lifecycle fixes shipped in 1.19.2/1.19.3. Remaining menu owner decisions stay live.
 See `docs/handoff/release_analyser_1_20_0_2026_09_24.md`. **Earlier shipped through 2026-09-23 (v1.19.0 released 2026-09-23: revision-bound Java source spotlights with asynchronous preparation, viewport remeasurement and honest partial disclosure; v1.18.0 the same day: audit format 1.1 §1a — a log can say whether it is whole, `context.log.streamEnd` reports the claim, an unclaimed file reads as `unknown` and a rolled set is never reported complete; v1.17.0 2026-09-21: the tool-agreement block TA-1…TA-8, Follow through `open {follow}`, pending EOF records, chart/topology/report fixes; v1.16.0 2026-09-20: M66 design render — the Spring XML on the canvas, adding `source` as the SIXTEENTH verb — plus the project-starter journey, project landing and explicit session recovery; v1.15.0 released 2026-09-18: M64.10/.11/.12 — a spotlight target may name its chart or reach a menu item, the guidance says a call replaces unless it adds — plus `/manifest` carrying the bridge `instructions` and the external-label fixes, all reviewed twice; v1.14.0 and v1.14.1 released 2026-09-17: the M46 agent-API closure, M44.3b close supersedes a pending open, M48.7 the shared canvas through `open {posture | record}`, M64 spotlight .1–.9 incl. the point-at-the-fault skill and `topology:verdict`, M65 follow refreshes open graphs; earlier: v1.13.0–1.13.2 2026-09-16, v1.12.0, v1.11.0 2026-08-27)):** MCP bridge

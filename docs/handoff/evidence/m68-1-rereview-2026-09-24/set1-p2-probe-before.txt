@@ -1,0 +1,3 @@
+combined open: pairingScope='scope not recorded' sampled=False verdict='the graph declares all 3 node(s) this log writes'
+graph first: pairingScope='scope not recorded' sampled=False verdict='the graph declares all 3 node(s) this log writes'
+log first: pairingScope='first 500 of 600 records' sampled=True verdict='the graph declares all 3 node(s) this log writes (judged on the first 500 of 600 records)'

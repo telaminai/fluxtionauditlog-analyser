@@ -1,0 +1,30 @@
+INVESTIGATION
+
+Constructed review: focus and requested series
+
+
+  WRITTEN AGAINST               constructed-series.yaml · 3 record(s) · 00:00:01.000->00:00:03.000
+  AUTHORED VIEW                 all event types
+  LOG                           constructed-series.yaml - loaded snapshot; log unchanged-metadata; graph un...
+  CREATED                       2026-09-26T12:10:41.110353Z
+  RENDERED                      2026-09-26 12:10:41.141
+
+
+
+Focus · review-focus
+
+focus 'review-focus' · 1 node
+
+
+
+
+review-series · constructed-series.yaml - loaded snapshot; log unchanged-metadata; graph unchanged-metadata (metad...   1/2
+Series
+
+rootNode.v · 3 points · under the current filter
+
+
+
+
+review-series · constructed-series.yaml - loaded snapshot; log unchanged-metadata; graph unchanged-metadata (metad...   2/2
+

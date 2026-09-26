@@ -429,4 +429,76 @@ class ProjectProfileTest {
         assertEquals(10, recents.size());
         assertEquals(10, java.util.Set.copyOf(recents).size(), "no duplicates");
     }
+    // ---- edit-loop spec §E: the profile's creation nonce ------------------------------------------
+
+    /**
+     * PR #28 review findings 1–2: the recovery identity is a creation NONCE written into the profile, not a
+     * file-system property (an inode is reused on Linux; NTFS tunnels creation times on Windows). This pins
+     * the chosen lifecycle: minted when the file is created, kept by every save, never carried by a share
+     * export, ignored by an import, and a known family so neither load nor save warns about it.
+     */
+    @Test
+    void theCreationNonceIsMintedOnceKeptBySavesAndNeverShared(@TempDir Path dir) throws Exception {
+        Path file = ProjectProfile.pathFor(dir.resolve("p"));
+        AppConfig c = configWith("/src/a", "com.acme.A", "g");
+        assertTrue(ProjectProfile.save(file, c, share));
+        String nonce = ProjectProfile.nonce(file).orElse(null);
+        assertNotNull(nonce, "creating a profile mints its nonce");
+
+        c.sourceRoots.add("/src/b");
+        assertTrue(ProjectProfile.save(file, c, share), "a real change is written");
+        assertEquals(nonce, ProjectProfile.nonce(file).orElse(null), "a save keeps the profile's creation nonce");
+        String bytes = Files.readString(file);
+        assertFalse(ProjectProfile.save(file, c, share), "a no-op save still writes nothing (M35.11)");
+        assertEquals(bytes, Files.readString(file));
+
+        AppConfig loaded = new AppConfig();
+        ProjectProfile.LoadResult result = ProjectProfile.load(file, loaded, share);
+        assertTrue(result.loaded(), result.message());
+        assertEquals(nonce, result.nonce(), "loading reports the profile's nonce");
+        assertFalse(result.message().contains("⚠"), "the nonce is not refused or warned about: " + result.message());
+        assertEquals(bytes, ProjectProfile.write(loaded, share, file), "load then write round-trips byte-for-byte");
+        assertTrue(KnownKeys.PROFILE_FAMILIES.contains(KnownKeys.family(ProjectProfile.NONCE_KEY)),
+                "an owned family: the writer decides it, preserve-unknown never copies it about");
+
+        String shared = share.export(loaded, SettingsShare.Category.defaults());
+        assertFalse(shared.contains(ProjectProfile.NONCE_KEY), "a share export never carries the nonce: " + shared);
+
+        // importing another profile's text into this project changes its settings, not which profile it is
+        Path other = ProjectProfile.pathFor(dir.resolve("q"));
+        ProjectProfile.save(other, configWith("/src/q", "com.acme.Q", "h"), share);
+        String otherNonce = ProjectProfile.nonce(other).orElseThrow();
+        assertNotEquals(nonce, otherNonce, "a different profile has its own nonce");
+        SettingsShare.ImportPlan plan = share.preview(Files.readString(other), loaded, ProjectProfile.baseDirFor(other));
+        share.apply(plan, ProjectProfile.PROJECT_SCOPED, loaded);
+        assertTrue(ProjectProfile.save(file, loaded, share));
+        assertEquals(nonce, ProjectProfile.nonce(file).orElse(null), "an import does not transfer the other profile's nonce");
+
+        Path fork = ProjectProfile.pathFor(dir.resolve("fork"));
+        ProjectProfile.save(fork, loaded, share);
+        assertNotEquals(nonce, ProjectProfile.nonce(fork).orElse(null), "save-as to a new file is a new profile");
+    }
+
+    /**
+     * A profile with no nonce (written before this key, or shipped in a bundle) is adopted on its first REAL
+     * write — never on a no-op, which must stay a no-op for a committed file (M35.11).
+     */
+    @Test
+    void aProfileWithoutANonceAdoptsOneOnlyWhenItIsWrittenAnyway(@TempDir Path dir) throws Exception {
+        Path file = ProjectProfile.pathFor(dir.resolve("bundle"));
+        Files.createDirectories(file.getParent());
+        AppConfig c = configWith("/src/a", "com.acme.A", "g");
+        String withoutNonce = share.export(c, ProjectProfile.PROJECT_SCOPED, ProjectProfile.baseDirFor(file));
+        Files.writeString(file, withoutNonce);
+        assertTrue(ProjectProfile.nonce(file).isEmpty());
+
+        AppConfig loaded = new AppConfig();
+        assertNull(ProjectProfile.load(file, loaded, share).nonce());
+        assertFalse(ProjectProfile.save(file, loaded, share), "no-op: nothing written, so no nonce is added");
+        assertEquals(withoutNonce, Files.readString(file));
+
+        loaded.sourceRoots.add("/src/b");
+        assertTrue(ProjectProfile.save(file, loaded, share));
+        assertTrue(ProjectProfile.nonce(file).isPresent(), "a real write adopts a nonce for a profile that had none");
+    }
 }

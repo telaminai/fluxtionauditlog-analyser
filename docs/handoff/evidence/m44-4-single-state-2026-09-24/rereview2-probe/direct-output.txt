@@ -1,0 +1,34 @@
+PASS original showAll/save plus later visibility fields refused
+PASS original showAll/save plus later visibility fields cursor unchanged
+PASS original showAll/save plus later visibility fields contexts/labels unchanged
+PASS original showAll/save plus later visibility fields saved definitions/notifications unchanged
+REFUSAL {ok=false, error=nothing to save — the full graph is not a focus; apply one first — nothing was changed}
+PASS refused call did not initialise source pane
+PASS showAll plus pop refused
+PASS showAll plus pop cursor unchanged
+PASS showAll plus pop contexts/labels unchanged
+PASS showAll plus pop saved definitions/notifications unchanged
+REFUSAL {ok=false, error=nothing to save — the full graph is not a focus; apply one first — nothing was changed}
+PASS named partial focus plus select with invalid later field refused
+PASS named partial focus plus select with invalid later field cursor unchanged
+PASS named partial focus plus select with invalid later field contexts/labels unchanged
+PASS named partial focus plus select with invalid later field saved definitions/notifications unchanged
+REFUSAL {ok=false, error=orientation must be 'left_right' or 'top_down', got 'diagonal' — nothing was changed}
+PASS named partial focus plus select saves
+PASS named recall wins in apply order and saves resolved ids
+PASS partial recall disclosed
+PASS routes plus routeBound plus focus saves
+PASS trial does not save or notify
+PASS two-level copy fixture
+PASS trial preserves context ids/order/labels
+PASS trial autoplay is stopped
+PASS trial mutation leaves original stack unchanged
+PASS verb counterexample count 0
+PASS report counterexample count 0
+SERIES {expr=nodeA.x + nodeB.y, resolve=STRICT, points=0}
+CAPTION nodeA.x + nodeB.y · 0 points · STRICT · scope: the whole log (the call names no filter); the view filter does not apply
+PASS verb counterexample count 1
+PASS report counterexample count 1
+SERIES {expr=rootNode.v, resolve=STRICT, points=1, stats={min=3.0, minAt=2000, max=3.0, maxAt=2000, mean=3.0, first=3.0, firstAt=2000, last=3.0, lastAt=2000}}
+CAPTION rootNode.v · 1 point · STRICT · scope: the call's filter: logTime 2000–2000; the view filter does not apply
+TOTAL 26 assertions

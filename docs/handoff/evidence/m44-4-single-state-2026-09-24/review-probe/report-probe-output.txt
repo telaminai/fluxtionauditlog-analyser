@@ -1,0 +1,6 @@
+ACTION {'ok': False, 'error': 'the graph and this log disagree about which nodes exist (the graph declares only 0 of the 1 node(s) this log writes), so a denominator taken from the graph would score nodes this log may not contain. It was kept because it was opened deliberately; scoring against it would still be wrong.'}
+REPORT_OK True PDF_EXISTS True
+PDF (Constructed coverage review) Tj
+PDF (declared 3 · covered 0 · uncovered 3 · ratio 0.0 · 1 records · scope: whole log) Tj
+PDF (excluded 2 declared item\(s\) that can never write audit output: 1 event class\(es\), 1 exported service\(s\). They appear in the) Tj
+PDF (1 node id\(s\) written in this log are not declared anywhere in the graph \(18 declared nodes compared\). Coverage figures above) Tj

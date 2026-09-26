@@ -1,0 +1,54 @@
+1. the packet graph with its three declared authored nodes
+  PASS declared 3
+  PASS covered 3
+  PASS ratio 1.0
+  PASS authorship declared by the graph
+  PASS no out-of-topology warning
+  PASS no build-provenance claim on coverage or context
+  PASS context: membership established
+  PASS context: every observed id declared
+  PASS context: applies is labelled a retention policy
+2. a declared framework node that writes
+  PASS no warning for a declared framework node
+  PASS population unchanged at 3
+  PASS framework node disclosed outside the denominator
+3. no node output at all
+  PASS context: membership NOT established
+  PASS coverage: membership NOT established
+4. WRONG-RESULT WITNESS — a foreign id must still warn
+  PASS the graph is retained on a partial match
+  PASS …and context says not every observed id is declared
+  PASS the warning appears
+  PASS it names the foreign id
+  PASS it states the fact without a build conclusion
+5. acceptance 3 in every open order: a 600-record log, the only foreign id in record 600
+  PASS combined: the graph is still open
+  PASS combined: the pairing says it is a sample
+  PASS combined: and names its scope
+  PASS combined: the verdict sentence carries the scope
+  PASS combined: whole-log coverage finds the id the sample could not see
+  PASS combined: and its reply says it qualified the published pairing
+  PASS combined: context now carries the qualification
+  PASS combined: naming the foreign id
+  PASS graph first: the graph is still open
+  PASS graph first: the pairing says it is a sample
+  PASS graph first: and names its scope
+  PASS graph first: the verdict sentence carries the scope
+  PASS graph first: whole-log coverage finds the id the sample could not see
+  PASS graph first: and its reply says it qualified the published pairing
+  PASS graph first: context now carries the qualification
+  PASS graph first: naming the foreign id
+  PASS log first: the graph is still open
+  PASS log first: the pairing says it is a sample
+  PASS log first: and names its scope
+  PASS log first: the verdict sentence carries the scope
+  PASS log first: whole-log coverage finds the id the sample could not see
+  PASS log first: and its reply says it qualified the published pairing
+  PASS log first: context now carries the qualification
+  PASS log first: naming the foreign id
+6. the exported PDF says what the screen says (D-E2)
+  PASS the report exported
+  PASS the page carries the membership warning
+  PASS the page carries the honest figures
+
+all M68.1 end-to-end checks passed

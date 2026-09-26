@@ -1,0 +1,17 @@
+PASS boundaries [1, 1]
+PASS R9-1 no annotation after 2 adjacent markers
+PASS boundaries [1, 1, 1]
+PASS R9-1 no annotation after 3 adjacent markers
+PASS R9-1 no annotation after empty intervening run
+PASS one marker still annotates
+PASS R9-2 eventTime annotation equals standard header
+PASS R9-2 conclusion ends before record 3
+HEADER NOTE this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It holds at least until record 3 (logTime 3), a record this reader could not read, whose text names the control event; whether that record changed riskMonitor's audit level is not established. After record 1 and before record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+PASS R9-2 payload spoof does not close window
+PASS R9-3 qualified lead for [0, 1]
+PASS R9-3 unchanged bound for [0, 1]
+LATER NOTE this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). The next change to riskMonitor's audit level in the same grouping is at record 5 (logTime 5), which sets it to INFO. Every record in view that this annotation concerns is in a LATER run — a stream-end marker before record 2 begins it — and the log does not say whether the level survived into it. If the change at record 1 (logTime 1) survived the marker, then after that marker and before the stream-end marker preceding record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+PASS R9-3 qualified lead for [1, 2, 3]
+PASS R9-3 unchanged bound for [1, 2, 3]
+LATER NOTE this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). The next change to riskMonitor's audit level in the same grouping is at record 5 (logTime 5), which sets it to INFO. Every record in view that this annotation concerns is in a LATER run — a stream-end marker before record 2 begins it — and the log does not say whether the level survived into it. If the change at record 1 (logTime 1) survived the marker, then after that marker and before the stream-end marker preceding record 3, in the records sharing its grouping, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+TOTAL 13 checks passed

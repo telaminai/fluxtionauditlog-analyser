@@ -1,0 +1,5 @@
+VIEW_FILTER {"ok": true, "action": "filter", "applied": {"from": 3000, "to": 3000, "dimensions": null, "text": ""}}
+STRICT {"ok": true, "action": "series", "result": {"expr": "nodeA.x + nodeB.y", "resolve": "STRICT", "points": 0}}
+FILTERED {"ok": true, "action": "series", "result": {"expr": "rootNode.v", "resolve": "STRICT", "points": 1, "stats": {"min": 3.0, "minAt": 2000, "max": 3.0, "maxAt": 2000, "mean": 3.0, "first": 3.0, "firstAt": 2000, "last": 3.0, "lastAt": 2000}}}
+REPORT {"ok": true, "action": "report", "applied": {"name": "review-series", "title": "Constructed N2 review: the stored calls decide scope", "created": true, "sections": 2, "writtenAgainst": "constructed-series.yaml \u00b7 3 record(s) \u00b7 00:00:01.000\u219200:00:03.000", "path": "<artifact-directory>/series-counterexamples.pdf"}}
+PDF_EXISTS true

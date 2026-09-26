@@ -1,0 +1,51 @@
+baseline…
+baseline GREEN: 62 tests, 0 skipped
+M1 ignore declared authorship: RED, a <failure> at EvidenceIntegrityCoverageTest.thePacketGraphGivesThreeAndThree (5 failing); restored byte-identical; green again
+M2 restore authored-only membership: RED, a <failure> at EvidenceIntegrityCoverageTest.aDeclaredFrameworkNodeThatLogsDoesNotWarn (3 failing); restored byte-identical; green again
+M3a derive membership from the ratio: RED, a <failure> at EvidenceIntegrityCoverageTest.zeroPopulationIsNoRatioNotNoMembership (3 failing); restored byte-identical; green again
+M3b derive no-ratio from no-membership (the brief's third): RED, a <failure> at EvidenceIntegrityCoverageTest.noOutputKeepsARatioOfZero (1 failing); restored byte-identical; green again
+M4 retention reaches a downstream claim: RED, a <failure> at CoveragePolicyEvidenceTest.noNodeOutputIsNotAFit (2 failing); restored byte-identical; green again
+M5 the PDF drops a table's notes again: RED, a <failure> at ReportRendererTest.aTablesNotesAreOnThePageAsTheyAreOnScreen (1 failing); restored byte-identical; green again
+M6 the session verdict loses its scope (R2): RED, a <failure> at SessionPairingScopeTest.theSessionVerdictCarriesItsScope (5 failing); restored byte-identical; green again
+M6f the session verdict loses its scope, seen by the parity test (R1): RED, a <failure> at PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession (5 failing); restored byte-identical; green again
+M7 discovery loses its scope (R2): RED, a <failure> at PairingScopeSurfacesTest.discoveryIsScopedAndCarriesItsFacts (3 failing); restored byte-identical; green again
+M7f discovery loses its scope, seen by the parity test (R1): RED, a <failure> at PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession (3 failing); restored byte-identical; green again
+M8 discovery drops the pairing facts (O2): RED, a <failure> at PairingScopeSurfacesTest.discoveryIsScopedAndCarriesItsFacts (1 failing); restored byte-identical; green again
+M9 a whole-log comparison never supersedes (R2): RED, a <failure> at PairingScopeSurfacesTest.aWholeLogComparisonSupersedesTheSample (4 failing); restored byte-identical; green again
+M10 the finding export concludes a build again (R3): RED, a <failure> at MismatchWordingTest.eachSentenceStatesTheDisagreementAndNoBuildConclusion (2 failing); restored byte-identical; green again
+M10g the repository guard sees it too: RED, a <failure> at UserVisibleWordingGuardTest.noJavaStringLiteralDrawsTheBuildConclusion (2 failing); restored byte-identical; green again
+M11 the help page instructs the conclusion again (R3): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M12 the audit label states retention as fit (O3): RED, a <failure> at SessionPairingScopeTest.theAuditLabelSeparatesKeepFromFit (1 failing); restored byte-identical; green again
+M13 a pairing qualification hides the level caveat again (O4): RED, a <failure> at CoveragePolicyEvidenceTest.bothQualificationsAreStated (1 failing); restored byte-identical; green again
+M14 the tooltip loses the full line (O1): RED, a <failure> at TopologyStatusTooltipTest.theTooltipCarriesEveryPartOnItsOwnLine (1 failing); restored byte-identical; green again
+M16 a sampled note loses its leading scope (set 3): RED, a <failure> at PairingScopeSurfacesTest.theNoteLeadsWithItsScope (3 failing); restored byte-identical; green again
+M17 the panel note leads with the sample again (set 3): RED, a <failure> at PairingScopeSurfacesTest.thePanelNoteLeadsWithWhatQualifiesIt (4 failing); restored byte-identical; green again
+M18 a grown log never makes the whole-log verdict stale (N1): RED, a <failure> at PairingScopeSurfacesTest.aGrownLogMakesTheWholeLogVerdictStale (2 failing); restored byte-identical; green again
+M18f the same, through Follow on a real store (N1): RED, a <failure> at PairingDuringLoadFrameTest.aFollowAppendMakesTheWholeLogVerdictStale (2 failing); restored byte-identical; green again
+M19f the published pairing is not re-judged after an append (N1): RED, a <failure> at PairingDuringLoadFrameTest.aFollowAppendMakesTheWholeLogVerdictStale (1 failing); restored byte-identical; green again
+M20 the session ignores a change of total (N1): RED, a <failure> at SessionPairingScopeTest.aGrownLogReScopesTheSessionVerdict (2 failing); restored byte-identical; green again
+M21 rescoping leaves the old total (N1): RED, a <failure> at PairingScopeSurfacesTest.aRescopedPairingCountsTheAppendedRecords (1 failing); restored byte-identical; green again
+M22 a narrower comparison replaces the wider (N2): RED, a <failure> at PairingScopeSurfacesTest.aNarrowerComparisonNeverReplacesAWiderOne (2 failing); restored byte-identical; green again
+M23 plant a text block carrying the conclusion (N3): RED, a <failure> at UserVisibleWordingGuardTest.noJavaStringLiteralDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M24 plant the conclusion split across two literals (N3): RED, a <failure> at UserVisibleWordingGuardTest.noJavaStringLiteralDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M25 plant it in the in-app assistant prompt (N3): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M26 plant it in a served skill (N3): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M27 plant it in an [Unreleased] changelog line (O-a): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M28f discovery samples differently from the frame and the session (O-c): RED, a <failure> at PairingDuringLoadFrameTest.aSampledPairingAgreesAcrossFrameDiscoveryAndSession (2 failing); restored byte-identical; green again
+M40 two filtered comparisons erase each other again (Q5a): RED, a <failure> at PairingScopeSurfacesTest.twoFilteredComparisonsKeepEachOthersFindings (1 failing); restored byte-identical; green again
+M41 a filter's finding no longer leads the panel (Q5a): RED, a <failure> at PairingScopeSurfacesTest.twoFilteredComparisonsKeepEachOthersFindings (1 failing); restored byte-identical; green again
+M42 a changed filter still calls itself current (Q5b): RED, a <failure> at PairingScopeSurfacesTest.aChangedFilterMakesAFilteredComparisonStale (1 failing); restored byte-identical; green again
+M43 a stale comparison's scope field claims the whole log again (Q2): RED, a <failure> at PairingScopeSurfacesTest.aGrownLogMakesTheWholeLogVerdictStale (3 failing); restored byte-identical; green again
+M43f the same, through Follow on a real store (Q2): RED, a <failure> at PairingDuringLoadFrameTest.aFollowAppendMakesTheWholeLogVerdictStale (3 failing); restored byte-identical; green again
+M44 a stale comparison claims to supersede the sample again (Q2): RED, a <failure> at PairingScopeSurfacesTest.aGrownLogMakesTheWholeLogVerdictStale (2 failing); restored byte-identical; green again
+M45 plant the phrase wrapped across a line break (Q6): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M46 plant it with Markdown emphasis (Q6): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M47 plant it with an HTML tag (Q6): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M48 plant it with two spaces (Q6): RED, a <failure> at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M49 plant it in a text block wrapped across lines (Q6): RED, a <failure> at UserVisibleWordingGuardTest.noJavaStringLiteralDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M50 plant it with a non-breaking space (Q6): RED, a <failure> at UserVisibleWordingGuardTest.noJavaStringLiteralDrawsTheBuildConclusion (1 failing); restored byte-identical; green again
+M51 the guard stops normalising (Q6): RED, a <failure> at UserVisibleWordingGuardTest.theGuardMatchesTheSixShapesRoundFourFound (1 failing); restored byte-identical; green again
+M52f the arrival draws its own sample again (Q9): RED, a <failure> at PairingDuringLoadFrameTest.aSampledPairingAgreesAcrossFrameDiscoveryAndSession (1 failing); restored byte-identical; green again
+M53f every append spends a session audit record again (O-i): RED, a <failure> at PairingDuringLoadFrameTest.aFollowAppendWritesNoSessionAuditRecordUntilCoverageReadsIt (1 failing); restored byte-identical; green again
+C1 CONTROL: a mutation that only makes the named test crash (O-b): ERROR, not a failure, at PairingScopeSurfacesTest.aWholeLogComparisonSupersedesTheSample: the test crashed, which proves nothing; control recognised; green again
+M15f the pairing note goes back to fifth place (O1): RED, a <failure> at PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession (2 failing); restored byte-identical; green again

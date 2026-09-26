@@ -87,6 +87,40 @@ public final class RolledLogStore implements LogStore {
         return members.stream().flatMap(m -> m.readIdentities().stream()).toList();
     }
 
+    /**
+     * Independent review R3: the set's freshness is its members'. Records and raw text are read through each member, so
+     * a mapped member rewritten in place must suspend the SET's reads exactly as it suspends its own — the set used to
+     * inherit {@code LogStore}'s null and serve the changed bytes through its old merged index. The most severe member
+     * speaks for the set (reads suspended outranks superseded-but-retained), and its reason says which member it is.
+     */
+    @Override
+    public ReadThroughIdentity readThroughIdentity() {
+        ReadThroughIdentity worst = null;
+        int worstIndex = -1;
+        for (int i = 0; i < members.size(); i++) {
+            ReadThroughIdentity id = members.get(i).readThroughIdentity();
+            if (id == null) continue;
+            if (worst == null || (id.suspendsReads() && !worst.suspendsReads())) {
+                worst = id;
+                worstIndex = i;
+            }
+        }
+        if (worst == null) return null;
+        String member = paths.get(worstIndex).getFileName() + " (file " + (worstIndex + 1) + " of " + members.size()
+                + " in this rolled set)";
+        return new ReadThroughIdentity(worst.verdict(), "member " + member + ": " + worst.reason(), worst.bytesRetained());
+    }
+
+    /** Independent review R3: assessed only if every member is — one unassessed member leaves the set unassessed. */
+    @Override
+    public boolean readThroughAssessed() {
+        if (members.isEmpty()) return false;
+        for (LogStore m : members) {
+            if (!m.readThroughAssessed()) return false;
+        }
+        return true;
+    }
+
     /** The member files, load (content) order. */
     public List<Path> files() {
         return paths;
@@ -150,6 +184,16 @@ public final class RolledLogStore implements LogStore {
      * {@link #sourceDiagnostics()} names which file. Set-level completeness would need set-level
      * evidence — a manifest, or a marker that names its successor — which Format 1 has no room for.
      */
+    /** Each member's run boundaries, moved into the set's numbering. A FILE boundary is not a run boundary. */
+    @Override
+    public List<Integer> runBoundaries() {
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < members.size(); i++) {
+            for (int b : members.get(i).runBoundaries()) out.add(firstRow[i] + b);
+        }
+        return List.copyOf(out);
+    }
+
     @Override
     public StreamEnd streamEnd() {
         StreamEnd worst = null;
@@ -166,6 +210,16 @@ public final class RolledLogStore implements LogStore {
         // the set's own count as though they described the same thing (re-review B2).
         return worst.inMember(paths.get(worstIndex).getFileName().toString(),
                 members.get(worstIndex).size(), firstRow[worstIndex]);
+    }
+
+    /**
+     * A set of ONE file is that file for the empty-log sentence (targeted re-review of PR #40, optional 2): its index
+     * counts one file, so the finding says "this file", and it must then say what that file's marker says — the same
+     * sentence the file gets when opened on its own. The SET's own claim, {@link #streamEnd()}, stays UNKNOWN.
+     */
+    @Override
+    public StreamEnd emptyLogClaim() {
+        return members.size() == 1 ? members.get(0).streamEnd() : streamEnd();
     }
 
     /** True when every member carries a marker that checks out — worth SAYING, never worth believing. */

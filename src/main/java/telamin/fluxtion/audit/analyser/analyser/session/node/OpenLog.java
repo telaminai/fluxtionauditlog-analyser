@@ -11,9 +11,9 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
  *
  * <p>Two inputs, and they are different kinds of fact. {@link SessionEvents.LogClosed} is a
  * <b>result</b>: it answers a {@code CloseLogEffect} this processor asked for, and it is what proves
- * the close happened rather than merely being requested. {@link SessionEvents.LogObserved} is an
- * <b>observation</b>: slice 1 does not own log opening yet, so the adapter reports it, and that input
- * is deleted by the slice that moves the open path.
+ * the close happened rather than merely being requested. {@link SessionEvents.LogOpened} is the result of
+ * the open the processor asked for. {@link SessionEvents.LogCleared} and {@link SessionEvents.LogAppended} are
+ * <b>facts</b> (M44.4a): nobody requested them, so each names the log {@link #generation()} it describes.
  */
 public class OpenLog implements EventLogSource {
 
@@ -36,6 +36,10 @@ public class OpenLog implements EventLogSource {
     private int sampled;
     private int total;
     private String mostVerboseLevel;
+    private long generation;
+    /** M68.5: the file identity verdict for this generation, and why — null until Follow has polled. */
+    private String identity;
+    private String identityReason;
 
     public OpenLog(OperationGate gate) {
         this.gate = gate;
@@ -58,6 +62,8 @@ public class OpenLog implements EventLogSource {
         sampled = 0;
         total = 0;
         mostVerboseLevel = null;
+        identity = null;                        // M68.5: a deliberate close ends the story; a later open is not a reopen
+        identityReason = null;
         auditLog.info("openLog", "none").info("via", "LogClosed");
         return wasOpen;
     }
@@ -67,31 +73,108 @@ public class OpenLog implements EventLogSource {
         if (!gate.accepted()) {
             return false;                       // a superseded load landed late: refused, state untouched
         }
+        String previousPath = logPath;          // M68.5: read BEFORE it is overwritten (set 5, P25: it was not)
         logPath = event.logPath();
         provenance = event.provenance();
         loggedNodeIds = event.loggedNodeIds();
         sampled = event.sampled();
         total = event.total();
         mostVerboseLevel = event.mostVerboseLevel();
-        auditLog.info("openLog", event.logPath()).info("via", "LogOpened");
+        // M68.5: a log reopened at the SAME path because the previous content was replaced says so, whatever the
+        // reload's own status line says afterwards — the announcement is state, not a transient message
+        boolean reopenedAfterReplacement = "REPLACEMENT".equals(identity) && java.util.Objects.equals(previousPath, event.logPath());
+        String replacedBecause = identityReason;
+        identity = reopenedAfterReplacement ? "REOPENED" : null;
+        identityReason = reopenedAfterReplacement ? "reopened because the file was replaced on disk: " + replacedBecause : null;
+        generation++;
+        // round 4, Q9: the arrival records its sample, so what the arrival judged can be checked after the fact
+        auditLog.info("openLog", event.logPath()).info("via", "LogOpened").info("sampled", sampled).info("total", total)
+                .info("generation", generation);
         return true;
     }
-    /** M35-era observation: still the route for closes and menu refreshes; never judged (M44.3a). */
+
+    /**
+     * M44.4a: a close that happened outside a transition. Refused unless it names the log that is open — a close
+     * posted during an operation arrives after it, by which time a {@code LogClosed} result may already have
+     * closed this log (a no-op, recorded) or a newer log may be open (a stale fact, refused and recorded).
+     */
     @OnEventHandler
-    public boolean onLogObserved(SessionEvents.LogObserved event) {
-        String wasPath = logPath;
-        java.util.Set<String> wasIds = loggedNodeIds;
-        logPath = event.open() ? event.logPath() : null;
-        provenance = event.open() ? event.provenance() : null;
-        loggedNodeIds = event.open() ? event.loggedNodeIds() : java.util.Set.of();
-        sampled = event.open() ? event.sampled() : 0;
-        total = event.open() ? event.total() : 0;
-        mostVerboseLevel = event.open() ? event.mostVerboseLevel() : null;
-        auditLog.info("openLog", event.open() ? event.logPath() : "none").info("via", "observation");
-        // Dirty ONLY when something moved. The boolean is Fluxtion's propagation control, so returning
-        // true unconditionally would re-derive every dependent on every observation — including the
-        // ones the menu funnel fires when nothing has changed at all.
-        return !java.util.Objects.equals(wasPath, logPath) || !wasIds.equals(loggedNodeIds);
+    public boolean onLogCleared(SessionEvents.LogCleared event) {
+        if (!current(event.generation(), "LogCleared")) return false;
+        logPath = null;
+        provenance = null;
+        loggedNodeIds = java.util.Set.of();
+        sampled = 0;
+        total = 0;
+        mostVerboseLevel = null;
+        identity = null;
+        identityReason = null;
+        auditLog.info("openLog", "none").info("via", "LogCleared");
+        return true;
+    }
+
+    /**
+     * M44.4a: the open log grew. Dirty only when something moved — the boolean is Fluxtion's propagation control,
+     * and the pairing and the coverage claim below are recomputed only when it is true. M68.1 round 3, N1: a grown
+     * total IS something that moved, because the total is half of the pairing's scope.
+     */
+    @OnEventHandler
+    public boolean onLogAppended(SessionEvents.LogAppended event) {
+        if (!current(event.generation(), "LogAppended")) return false;
+        boolean moved = total != event.total() || sampled != event.sampled()
+                || !loggedNodeIds.equals(event.loggedNodeIds())
+                || !java.util.Objects.equals(mostVerboseLevel, event.mostVerboseLevel());
+        loggedNodeIds = event.loggedNodeIds();
+        sampled = event.sampled();
+        total = event.total();
+        mostVerboseLevel = event.mostVerboseLevel();
+        auditLog.info("openLog", "appended").info("sampled", sampled).info("total", total);
+        return moved;
+    }
+
+    /** M68.5: Follow's verdict about the file. Dirty only when the verdict or its reason moved. */
+    @OnEventHandler
+    public boolean onLogIdentityObserved(SessionEvents.LogIdentityObserved event) {
+        if (!current(event.generation(), "LogIdentityObserved")) return false;
+        boolean moved = !java.util.Objects.equals(identity, event.verdict())
+                || !java.util.Objects.equals(identityReason, event.reason());
+        identity = event.verdict();
+        identityReason = event.reason();
+        if ("REPLACEMENT".equals(identity) || "UNVERIFIED".equals(identity)) {
+            auditLog.warn("logIdentity", identity).warn("reason", identityReason);
+        } else {
+            auditLog.info("logIdentity", identity);
+        }
+        return moved;
+    }
+
+    public String identity() {
+        return identity;
+    }
+
+    public String identityReason() {
+        return identityReason;
+    }
+
+    private boolean current(long named, String what) {
+        if (named != generation) {
+            auditLog.warn("staleFact", what).warn("generation", named).warn("current", generation);
+            return false;
+        }
+        if (logPath == null) {
+            auditLog.info("noOp", what).info("reason", "no log open");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Which open this is: incremented by every accepted {@code LogOpened}. A fact about a log names the generation
+     * it was read from, so it can never be applied to a different log opened since — the same rule as
+     * {@code staleResult}, applied to facts that no request id can correlate.
+     */
+    public long generation() {
+        return generation;
     }
 
     public boolean isOpen() {

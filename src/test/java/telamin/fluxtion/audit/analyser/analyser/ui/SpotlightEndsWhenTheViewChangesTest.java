@@ -19,13 +19,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * worse than none</i> (D-SP3). One test per verb, so that removing one verb from
  * {@link SpotlightTarget#VIEW_CHANGING_VERBS} turns exactly that verb's test red.
  *
- * <p>What is asserted is that the adapter was TOLD to clear before the verb ran — whether the verb then
- * succeeds is irrelevant (here most are refused for want of a log), because the view a spotlight pointed
- * at is no longer something the caller is looking at once it has asked for another.
+ * <p><b>Changed by M68.4 (spec-evidence-integrity D-E3, "what a refusal preserves").</b> This test used to assert that
+ * the adapter was told to clear BEFORE the verb ran, whether or not it then succeeded, on the reasoning that the caller
+ * had asked for another view. D-E3 names that ordering a defect: a REFUSED call leaves the view as it was, so the
+ * spotlight that pointed into it is still pointing at the right thing, and putting it out destroyed context the caller
+ * was relying on. Now: a view-changing verb that SUCCEEDS puts it out; one that is refused leaves it lit. The
+ * per-verb cases keep their original property — removing a verb from {@link SpotlightTarget#VIEW_CHANGING_VERBS}
+ * turns exactly that verb's case red — through {@link ActionExecutor#putsOutSpotlight}, the policy render uses.
  */
 class SpotlightEndsWhenTheViewChangesTest {
 
+    private static final ActionResult OK = ActionResult.ok("verb", "applied", Map.of());
+    private static final ActionResult REFUSED = ActionResult.error("refused");
+
+    /** The per-verb property, through the policy render applies: succeeded → out, refused → lit. */
+    private static int policy(String verb, Map<String, Object> params) {
+        assertEquals(false, ActionExecutor.putsOutSpotlight(verb, params, REFUSED), verb + ": a refusal must leave it lit");
+        return ActionExecutor.putsOutSpotlight(verb, params, OK) ? 1 : 0;
+    }
+
     private static int clearsCausedBy(String verb, Map<String, Object> params) {
+        return clearsCausedBy(verb, params, false);
+    }
+
+    /** Through the real {@code render}; the double's app calls fail, or succeed when {@code appSucceeds}. */
+    private static int clearsCausedBy(String verb, Map<String, Object> params, boolean appSucceeds) {
         AtomicInteger clears = new AtomicInteger();
         HeapLogStore store = new HeapLogStore("");
         GraphTabs tabs = new GraphTabs();
@@ -39,7 +57,9 @@ class SpotlightEndsWhenTheViewChangesTest {
                         return null;
                     }
                     Class<?> type = method.getReturnType();
-                    if (type == ActionResult.class) return ActionResult.error("the double does nothing");
+                    if (type == ActionResult.class) return appSucceeds
+                            ? ActionResult.ok("open", "log", Map.of("path", "/run.yaml", "loading", true))
+                            : ActionResult.error("the double does nothing");
                     if (type == boolean.class) return false;
                     if (type == List.class) return List.of();
                     return null;
@@ -53,27 +73,38 @@ class SpotlightEndsWhenTheViewChangesTest {
 
     @Test
     void openPutsItOut() {
-        assertEquals(1, clearsCausedBy("open", Map.of("log", "/run.yaml")));
+        assertEquals(1, policy("open", Map.of("log", "/run.yaml")));
+        assertEquals(1, clearsCausedBy("open", Map.of("log", "/run.yaml"), true), "a real open that succeeded");
     }
 
     @Test
     void filterPutsItOut() {
-        assertEquals(1, clearsCausedBy("filter", Map.of("text", "breach")));
+        assertEquals(1, policy("filter", Map.of("text", "breach")));
     }
 
     @Test
     void gotoPutsItOut() {
-        assertEquals(1, clearsCausedBy("goto", Map.of("recordIndex", 3)));
+        assertEquals(1, policy("goto", Map.of("recordIndex", 3)));
     }
 
     @Test
     void graphPutsItOut() {
-        assertEquals(1, clearsCausedBy("graph", Map.of("name", "Spread", "keys", List.of("quotePublisher.spread"))));
+        assertEquals(1, policy("graph", Map.of("name", "Spread", "keys", List.of("quotePublisher.spread"))));
     }
 
     @Test
     void topologyPutsItOut() {
-        assertEquals(1, clearsCausedBy("topology", Map.of("select", "priceListener")));
+        assertEquals(1, policy("topology", Map.of("select", "priceListener")));
+    }
+
+    // ---- M68.4 (D-E3): a refused call leaves the spotlight on the view it did not change ------------------
+
+    @Test
+    void aRefusedCallLeavesItLit() {
+        // witness: render back to clearing before renderVerb runs
+        assertEquals(0, clearsCausedBy("open", Map.of("log", "/run.yaml")), "the open was refused");
+        assertEquals(0, clearsCausedBy("goto", Map.of("recordIndex", 3)), "no such record in an empty log");
+        assertEquals(0, clearsCausedBy("topology", Map.of("select", "priceListener")), "no topology to drive");
     }
 
     // ---- the ones that must NOT: they are how the tutor checks what it lit, or they change no view ----

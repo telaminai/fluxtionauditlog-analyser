@@ -126,6 +126,31 @@ class ReportRendererTest {
                 data, hot, rowWhen, label);
     }
 
+    // ---- M68.2 (D-E8): a requested section renders or says why not -----------------------------------
+
+    @Test
+    void aChartWithNoPictureSaysItWasNotRendered() {
+        // witness: the CHART/TOPOLOGY case back to "if (body.picture() != null) picture(...)" and nothing else
+        ReportSpec spec = spec(SectionSpec.chart("spread"));
+        String pdf = body(ReportRenderer.render(spec, resolve(spec, Map.of()),
+                List.of(new ReportRenderer.SectionContent(null, null,
+                        new FindingReport.Picture("Trend · spread", "scope", null), null)), "demo.yaml", null));
+        assertTrue(pdf.contains("NOT RENDERED"), "a requested chart that produced no picture must say so");
+        assertTrue(pdf.contains("spread"));
+    }
+
+    @Test
+    void aTopologySectionStatesItsGapOnThePage() {
+        // the G14 packet's missing illustration: the gap was built as text that the TOPOLOGY case never printed
+        ReportSpec spec = spec(SectionSpec.topology("checks"));
+        var resolution = ReportResolver.resolve(spec, STORE.index(), Map.of(), Set.of(), Set.of("checks"), new FilterState());
+        String pdf = body(ReportRenderer.render(spec, resolution,
+                List.of(new ReportRenderer.SectionContent("Focus · checks",
+                        List.of("(image export for focus sections is a recorded gap)"), null, null)), "demo.yaml", null));
+        assertTrue(pdf.contains("NOT RENDERED"), pdf.length() + " bytes");
+        assertTrue(pdf.contains("image export for focus sections is a recorded gap"));
+    }
+
     @Test
     void aTablePrintsItsHighlightRule() {   // acceptance 7, the render half
         ReportSpec spec = spec(SectionSpec.table(Map.of("verb", "read"), List.of(),
@@ -149,6 +174,27 @@ class ReportRendererTest {
 
         assertTrue(pdf.contains(scalar), "the renderer receives the scalar string assembled for the panel");
         assertTrue(pdf.contains("empty result"), "the PDF names why the table has no rows");
+    }
+
+    @Test
+    void aTablesNotesAreOnThePageAsTheyAreOnScreen() {
+        // M68.1 (D-E2): the Reports tab renders a table's notes under it; the PDF used to route them only
+        // into the reply's warnings, so an exported coverage table said 3 of 3 while the log wrote an id the
+        // graph does not declare. The same report must say the same thing on both surfaces.
+        String warning = "MEMBERSHIP-NOTE-MARKER 1 node id(s) written in this log are not declared anywhere";
+        ReportSpec spec = spec(SectionSpec.table(Map.of("verb", "coverage"), List.of(), null, null));
+        ReportRenderer.TableData covered = new ReportRenderer.TableData(
+                List.of(new ColumnSpec("instance", "instance", "", "", "")),
+                List.of(List.of("checked")), new boolean[1], null, null, "declared 3 · covered 3", null);
+        String withNotes = body(ReportRenderer.render(spec, resolve(spec, Map.of()),
+                List.of(new ReportRenderer.SectionContent("Table", null, null, covered, List.of(warning))),
+                "demo.yaml", null));
+        assertTrue(withNotes.contains("MEMBERSHIP-NOTE-MARKER"), "the note is printed under its table");
+
+        String without = body(ReportRenderer.render(spec, resolve(spec, Map.of()),
+                List.of(new ReportRenderer.SectionContent("Table", null, null, covered)), "demo.yaml", null));
+        assertFalse(without.contains("MEMBERSHIP-NOTE-MARKER"),
+                "and the marker is not there by accident: the four-argument form carries no notes");
     }
 
     @Test
@@ -181,5 +227,18 @@ class ReportRendererTest {
         assertTrue(pdf.contains("WRITTEN AGAINST"));
         assertTrue(pdf.contains("AUTHORED VIEW"));
         assertTrue(pdf.contains("all event types"));
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("R8 (review gap table): a series section the PDF cannot assemble says NOT RENDERED, with its reason")
+    void anUnassembledSeriesSectionSaysNotRendered() {
+        // witness: the SERIES case printing its gap as plain text again
+        ReportSpec spec = spec(SectionSpec.series(Map.of("verb", "series", "key", "spread")));
+        String pdf = body(ReportRenderer.render(spec, resolve(spec, Map.of()), List.of(new ReportRenderer.SectionContent(
+                "Series", List.of("(series sections render as charts in the app; PDF assembly for them is a recorded gap)"),
+                null, null)), "demo.yaml", null));
+        assertFalse(pdf.contains("DID NOT RESOLVE"), "precondition: the section resolved");
+        assertTrue(pdf.contains("NOT RENDERED"), "a requested section that did not render says so, labelled");
+        assertTrue(pdf.contains("recorded gap"), "with its reason");
     }
 }

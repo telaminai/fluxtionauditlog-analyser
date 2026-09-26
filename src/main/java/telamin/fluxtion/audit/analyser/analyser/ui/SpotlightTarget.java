@@ -65,7 +65,8 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
          * whichever chart tab is showing; {@code graph:Spread:note:2} is note 2 on the chart named "Spread", and
          * lighting it selects that chart first. A chart literally named {@code note} or {@code series} is reachable
          * as its plot ({@code graph:note}) but not its parts — {@code graph:note:2} is the bare form; and a name
-         * containing {@code :} is unreachable, since {@code :} is the part separator.
+         * containing {@code :} is unreachable, since {@code :} is the part separator. M68.6: such names can no longer
+         * be MADE ({@link #chartNameProblem}); one already saved is reached quoted, {@code graph:"a:b":note:2}.
          */
         GRAPH("graph[:<name>]", false),
         GRAPH_NOTE("graph[:<name>]:note:<n>", true),
@@ -155,6 +156,10 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
                     : sub(rest, "node", Family.TOPOLOGY_NODE, name, false);
             case "graph" -> {
                 if (rest == null) yield ok(Family.GRAPH, null, name);
+                // M68.6 (D-E5, Q2 = refuse): the COMPATIBLE address. A saved chart whose name this grammar cannot
+                // carry — a ':' inside it, or exactly "note"/"series" — is reachable quoted, exactly as saved:
+                // graph:"a:b", graph:"a:b":note:2. New names that would need it are refused where they are made.
+                if (rest.startsWith("\"")) yield quotedGraph(rest, name);
                 String part = rest.toLowerCase(Locale.ROOT);
                 // the bare forms carry the keyword AND a colon: "note:2", "series:x". A chart whose NAME merely
                 // starts with the word ("Series A", "Notes on spread") is a chart (review F1); a chart named
@@ -232,6 +237,53 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
             return unknown("'" + parsed.target().name() + "' — chart notes are numbered from 1; the form is " + Family.GRAPH_NOTE.form());
         }
         return parsed;
+    }
+
+    private static Parsed quotedGraph(String rest, String name) {
+        int close = rest.indexOf('"', 1);
+        if (close < 0) return unknown("'" + name + "' opens a quoted chart name and never closes it");
+        String chart = rest.substring(1, close);
+        if (chart.isEmpty()) return unknown("'" + name + "' names no chart — the form is " + Family.GRAPH.form());
+        String after = rest.substring(close + 1);
+        if (after.isEmpty()) return withGraph(ok(Family.GRAPH, null, name), chart);
+        if (!after.startsWith(":")) return unknown("'" + name + "': expected ':note:<n>' or ':series:<label>' after the quoted name");
+        String part = after.substring(1);
+        Parsed inner = part.toLowerCase(Locale.ROOT).startsWith("note:")
+                ? oneBased(sub(part, "note", Family.GRAPH_NOTE, name, true))
+                : part.toLowerCase(Locale.ROOT).startsWith("series:")
+                        ? sub(part, "series", Family.GRAPH_SERIES, name, false)
+                        : unknown("'" + name + "': expected ':note:<n>' or ':series:<label>' after the quoted name");
+        return inner.ok() ? withGraph(inner, chart) : inner;
+    }
+
+    /**
+     * M68.6 (D-E5; owner, 2026-09-24, Q2: REFUSE at creation). Why a chart may not be GIVEN this name, or null when it
+     * may. The rule is the grammar's: every name a chart can be given must be addressable, unquoted, by
+     * {@code graph:<name>}, {@code graph:<name>:note:<n>} and {@code graph:<name>:series:<label>}.
+     */
+    public static String chartNameProblem(String name) {
+        return telamin.fluxtion.audit.analyser.analyser.config.ChartNames.problem(name);   // one rule, every entrance
+    }
+
+    /**
+     * Independent review R8: why {@code chartName} has NO address, or null when it has one. The quoted form carries any
+     * name without a {@code "}; a name saved with one before names were refused cannot be written in the grammar at all.
+     * No escape is invented for it — that compatibility choice is the owner's — so the address is reported unavailable.
+     */
+    public static String graphAddressUnavailable(String chartName) {
+        if (chartName == null || chartNameProblem(chartName) == null || chartName.indexOf('"') < 0) return null;
+        return "chart '" + chartName + "' has no spotlight address: its saved name contains '\"', which the address "
+                + "grammar cannot carry. The chart is kept as saved and still answers to the graph verb; renaming it "
+                + "(graph {name, rename}) to a name without '\"' gives it an address";
+    }
+
+    /**
+     * The address that lights {@code chartName}: plain where the grammar carries it, quoted where only that can, and
+     * null where neither can (independent review R8 — it used to return a quoted string the parser refuses).
+     */
+    public static String graphAddress(String chartName) {
+        if (chartNameProblem(chartName) == null) return "graph:" + chartName.trim();
+        return graphAddressUnavailable(chartName) == null ? "graph:\"" + chartName + "\"" : null;
     }
 
     private static Parsed withGraph(Parsed parsed, String chart) {

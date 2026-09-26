@@ -32,6 +32,14 @@ import java.util.List;
  * open the snapshot. Opening a live sink would mean the act of inspecting the log changes the log —
  * self-observation altering the evidence, which is the one failure this product may not have.
  *
+ * <h2>Retained by kind (M44.4b, spec §13 D-S13.5)</h2>
+ * The processor is generated with tracing on, so every event publishes one record — that is what makes "absent from
+ * the record" mean "did not run", and it is kept. Follow reports each poll's appends as a {@code LogAppended} fact, a
+ * re-scope that at one poll a second would evict a 2,000-record ring's transitions in about half an hour. So
+ * re-scopes are held in a ring of their own ({@link #RESCOPE_CAPACITY}) and can never push a transition out. Both
+ * rings count what they dropped, and {@link #records()} and the export interleave them in arrival order, so the
+ * record says what it omitted rather than silently omitting it.
+ *
  * <p>Not thread-safe by design; the driver is synchronous and single-threaded.
  */
 public final class SessionAuditSink implements LogRecordListener {
@@ -39,8 +47,19 @@ public final class SessionAuditSink implements LogRecordListener {
     /** Enough to hold a long investigation's worth of transitions, small enough to never matter. */
     public static final int DEFAULT_CAPACITY = 2_000;
 
+    /** Re-scopes kept: enough to see recent Follow activity, never enough to matter. */
+    public static final int RESCOPE_CAPACITY = 200;
+
+    /** The event line a re-scope record carries — read from a real record, not assumed. */
+    static final String RESCOPE_EVENT = "event: LogAppended";
+
     private final int capacity;
-    private final Deque<String> records = new ArrayDeque<>();
+    private final Deque<Held> records = new ArrayDeque<>();
+    private final Deque<Held> rescopes = new ArrayDeque<>();
+    private long sequence;
+    private long droppedRescopes;
+
+    private record Held(long seq, String text) { }
 
     private long total;
     private long dropped;
@@ -68,10 +87,19 @@ public final class SessionAuditSink implements LogRecordListener {
         try {
             String text = logRecord.asCharSequence().toString();
             total++;
-            records.addLast(text);
-            while (records.size() > capacity) {
-                records.removeFirst();
-                dropped++;
+            Held held = new Held(sequence++, text);
+            if (text.contains(RESCOPE_EVENT)) {
+                rescopes.addLast(held);
+                while (rescopes.size() > RESCOPE_CAPACITY) {
+                    rescopes.removeFirst();
+                    droppedRescopes++;
+                }
+            } else {
+                records.addLast(held);
+                while (records.size() > capacity) {
+                    records.removeFirst();
+                    dropped++;
+                }
             }
         } catch (RuntimeException e) {
             sinkFailures++;
@@ -81,9 +109,22 @@ public final class SessionAuditSink implements LogRecordListener {
         }
     }
 
-    /** The records currently held, oldest first. */
+    /** The records currently held, both rings interleaved, oldest first. */
     public List<String> records() {
-        return List.copyOf(records);
+        List<Held> all = new ArrayList<>(records.size() + rescopes.size());
+        all.addAll(records);
+        all.addAll(rescopes);
+        all.sort(java.util.Comparator.comparingLong(Held::seq));
+        List<String> out = new ArrayList<>(all.size());
+        for (Held h : all) out.add(h.text());
+        return out;
+    }
+
+    /** The transition records only — everything except re-scopes. */
+    public List<String> transitions() {
+        List<String> out = new ArrayList<>(records.size());
+        for (Held h : records) out.add(h.text());
+        return out;
     }
 
     /** Every record ever offered, including any the ring has since dropped. */
@@ -91,9 +132,18 @@ public final class SessionAuditSink implements LogRecordListener {
         return total;
     }
 
-    /** How many the ring discarded — nonzero means {@link #records()} is not the whole session. */
+    /** How many the rings discarded, both kinds — nonzero means {@link #records()} is not the whole session. */
     public long dropped() {
+        return dropped + droppedRescopes;
+    }
+
+    /** How many TRANSITION records were discarded. Re-scopes cannot cause this. */
+    public long droppedTransitions() {
         return dropped;
+    }
+
+    public long droppedRescopes() {
+        return droppedRescopes;
     }
 
     public long sinkFailures() {
@@ -106,13 +156,15 @@ public final class SessionAuditSink implements LogRecordListener {
 
     /** True when the record held is complete: nothing dropped and nothing failed to be written. */
     public boolean isComplete() {
-        return dropped == 0 && sinkFailures == 0;
+        return dropped() == 0 && sinkFailures == 0;
     }
 
     public void clear() {
         records.clear();
+        rescopes.clear();
         total = 0;
         dropped = 0;
+        droppedRescopes = 0;
         sinkFailures = 0;
         firstSinkFailure = null;
     }
@@ -128,7 +180,7 @@ public final class SessionAuditSink implements LogRecordListener {
         // lost on the round trip). No header line is invented: the runtime record carries its own
         // logTime, and a level the sink never retained would be a fabrication.
         StringBuilder out = new StringBuilder();
-        for (String record : records) {
+        for (String record : records()) {
             out.append("---\n");
             out.append(record);
             if (record.isEmpty() || record.charAt(record.length() - 1) != '\n') {
@@ -146,7 +198,7 @@ public final class SessionAuditSink implements LogRecordListener {
     /** Every record containing the given text — the cheap way to ask "what happened to operation 7?". */
     public List<String> matching(String text) {
         List<String> hits = new ArrayList<>();
-        for (String record : records) {
+        for (String record : records()) {
             if (record.contains(text)) {
                 hits.add(record);
             }

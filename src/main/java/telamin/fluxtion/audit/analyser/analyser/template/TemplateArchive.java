@@ -31,8 +31,12 @@ public final class TemplateArchive {
     public static final long MAX_ENTRY_BYTES = 64L * 1024 * 1024;
     public static final long MAX_EXPANDED_BYTES = 512L * 1024 * 1024;
     private static final Pattern WINDOWS_ABSOLUTE = Pattern.compile("^[A-Za-z]:[/\\\\].*");
+    // Spring authoring bundles ship setup/validate/generate beside the lifecycle scripts; the template marks
+    // them executable, but this installer never trusts archive modes, so they must be named here too
+    // (edit-loop spec §G, feedback 8: they arrived 0644 and ./setup.sh failed with "permission denied").
     private static final Set<String> POSIX_EXECUTABLES = Set.of(
-            "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh");
+            "mvnw", "run-server.sh", "export-audit.sh", "stop-server.sh", "check-fluxtion-key.sh",
+            "setup.sh", "validate.sh", "generate.sh");
 
     public record Installed(Path projectRoot, Path profile, List<String> commands) {
         public Installed {
@@ -77,6 +81,14 @@ public final class TemplateArchive {
             Path root = soleProjectRoot(staging);
             Path profileInStage = root.resolve(ProjectProfile.CANONICAL_RELATIVE);
             boolean hasProfile = Files.isRegularFile(profileInStage, LinkOption.NOFOLLOW_LINKS);
+            // before the move: a refused profile never becomes an installed project (edit-loop spec §I1). Every
+            // settings file is a potential read grant — the root profile, a named one, a nested module's (PR #31 review).
+            try (var files = Files.walk(root)) {
+                for (Path settings : files.filter(p -> p.getFileName().toString().endsWith(".fluxtion-settings")
+                        && Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)).sorted().toList()) {
+                    telamin.fluxtion.audit.analyser.analyser.config.TemplateRoots.requireContained(root, settings);
+                }
+            }
             List<String> commands = commandsFor(root);
 
             // An empty directory is allowed by D-4, but move-without-replace requires it not to exist.

@@ -159,6 +159,10 @@ public final class DuplicateChartRepair {
             if (choice.action() == Action.DELETE) continue;   // the person asked for this one to go
             String to = choice.newName() == null ? "" : choice.newName().trim();
             if (to.isEmpty()) throw new IllegalArgumentException("a renamed chart needs a name (index " + i + ")");
+            // M68.6 (D-E5): the repair is a naming entrance too — it renames saved definitions directly, past the UI's
+            // rename — so it applies the same rule, or it would recreate the unaddressable names M68.6 refuses
+            String problem = ChartNames.problem(to);
+            if (problem != null) throw new IllegalArgumentException("'" + to + "' cannot be used: " + problem);
             out.add(saved.get(i).withName(to));
         }
 

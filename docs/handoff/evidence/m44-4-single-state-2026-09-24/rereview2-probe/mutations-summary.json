@@ -1,0 +1,83 @@
+{
+  "seconds": 14.4,
+  "runs": [
+    {
+      "name": "review-n1-showall-in-preparation",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java",
+      "sha256": "4b456013ced4dd8668465053f672ddff03e7f1d66bd04f01f44a4aa8cb23668f",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 3.4,
+      "mutated": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.TopologyWholeOrRefusedTest",
+          "method": "aRefusedSaveAfterShowAllLeavesTheExistingFocus",
+          "kind": "failure",
+          "message": "org.opentest4j.AssertionFailedError: N1: a refused call leaves the prior topology state unchanged ==> expected: <{recordIndex=0, rowIndex=-1, orderMeaningful=true, graphSource=OPENED, atEntry=true, rowCount=0, recordsOpen=0, position=no records, currentNode=null, selected=[], scope=node, routeBound=true, focus=true, context=All (23) \u25b8 rootNode \u00b7 node (1), contextDepth=1, scaffolding=false, syncSource=true, visibleNodes=1, totalNodes=23, dispatchHierarchy=unknown, dispatchNote=Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges., callout=true}> but was: <{recordIndex=0, rowIndex=-1, orderMeaningful=true, graphSource=OPENED, atEntry=true, rowCount=0, recordsOpen=0, position=no records, currentNode=null, selected=[], scope=node, routeBound=true, focus=false, context=All (23), contextDepth=0, scaffolding=false, syncSource=true, visibleNodes=11, totalNodes=23, dispatchHierarchy=unknown, dispatchNote=Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges., callout=true}>"
+        }
+      ],
+      "restored": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.TopologyWholeOrRefusedTest",
+          "method": "aRefusedSaveAfterShowAllLeavesTheExistingFocus",
+          "kind": "passed",
+          "message": null
+        }
+      ]
+    },
+    {
+      "name": "review-n2-report-forces-locf",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ReportSeriesPicture.java",
+      "sha256": "7decebb0a8e7ca92dd83aa8c0feaffd15df118a4b7af89b93f5ef5618a49e7bc",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 2.6,
+      "mutated": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.ReportSeriesCallTest",
+          "method": "aStrictCallIsNotCarried",
+          "kind": "failure",
+          "message": "org.opentest4j.AssertionFailedError: N2: the report draws the call's STRICT resolution, not LOCF: nodeA.x + nodeB.y \u00b7 2 points \u00b7 STRICT \u00b7 scope: the whole log (the call names no filter); the view filter does not apply ==> expected: <0> but was: <2>"
+        }
+      ],
+      "restored": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.ReportSeriesCallTest",
+          "method": "aStrictCallIsNotCarried",
+          "kind": "passed",
+          "message": null
+        }
+      ]
+    },
+    {
+      "name": "review-n2-report-drops-call-filter",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ReportSeriesPicture.java",
+      "sha256": "7decebb0a8e7ca92dd83aa8c0feaffd15df118a4b7af89b93f5ef5618a49e7bc",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 2.5,
+      "mutated": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.ReportSeriesCallTest",
+          "method": "theCallFilterIsHonoured",
+          "kind": "failure",
+          "message": "org.opentest4j.AssertionFailedError: N2: the report draws the call's filter, not the whole log or the view's: rootNode.v \u00b7 3 points \u00b7 STRICT \u00b7 scope: the call's filter: logTime 2000\u20132000; the view filter does not apply ==> expected: <1> but was: <3>"
+        }
+      ],
+      "restored": [
+        {
+          "class": "telamin.fluxtion.audit.analyser.analyser.ui.ReportSeriesCallTest",
+          "method": "theCallFilterIsHonoured",
+          "kind": "passed",
+          "message": null
+        }
+      ]
+    }
+  ]
+}

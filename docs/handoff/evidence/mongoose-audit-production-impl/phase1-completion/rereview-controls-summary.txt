@@ -1,0 +1,8 @@
+Targeted re-review of PR #40: the three p17 controls, and p16-v2 (whose red line moved), from the fast-engine runs on
+bbb286fe. Columns: name | verdict | byte-identical restore | kind | named test | assertion. All nineteen p15-p17 controls
+were caught in the same two runs (3 + 16).
+
+p17-v2-follow-passes-stream-end | caught | restored=True | failure | aFollowedFileThatGainsAZeroMarkerSaysWhatAColdOpenSays | AssertionFailedError: V2: Follow says what a cold open of the same bytes says
+p17-cold-open-passes-stream-end | caught | restored=True | failure | aColdOpenOfAFileWhoseMarkerSaysItEndedSaysSo | AssertionFailedError: the frame's cold open words it as the store does
+p17-one-member-set-is-its-file | caught | restored=True | failure | aOneMemberRolledSetIsWordedAsItsFile | AssertionFailedError: worded from its file: No records in this file yet. A file can be empty because nothing has been written, because the writer is buffering, or because
+p16-v2-pending-frame-is-not-empty | caught | restored=True | failure | aRecordStillBeingWrittenIsNotAnEmptyFile | AssertionFailedError: the Reports tab, read before any verb

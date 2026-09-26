@@ -200,15 +200,52 @@ public final class ChartPanel extends JPanel {
         repaint();
     }
 
-    /** Renders the current chart to an image (for PNG/JPEG export) at the current on-screen size. */
+    /** Renders the current chart to an image (for PNG/JPEG export), at least 640×360. */
     public java.awt.image.BufferedImage toImage() {
-        int w = Math.max(getWidth(), 640), h = Math.max(getHeight(), 360);
+        return toImage(Math.max(getWidth(), 640), Math.max(getHeight(), 360));
+    }
+
+    /**
+     * M68.2 (D-E8): render the chart LAID OUT at {@code w×h}, offscreen. The old export made a w×h image and then
+     * painted into it at the component's OWN size — a chart in a tab that was not showing is a few pixels wide, so the
+     * plot was starved into a sliver and reported "No data under the current filter" over a series with a point in
+     * it (the G14 recovery packet's PDF). The component is sized to the image for the paint, then restored.
+     */
+    public java.awt.image.BufferedImage toImage(int w, int h) {
+        java.awt.Dimension was = getSize();
+        setSize(w, h);
+        doLayout();
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
-        paint(g); // include the legend in its reserved strip
-        g.dispose();
+        try {
+            paint(g); // include the legend in its reserved strip
+        } finally {
+            g.dispose();
+            setSize(was);
+            doLayout();
+        }
         return img;
     }
+
+    /**
+     * M68.2 (D-E8): the three reasons a plot is not drawn, told apart. "No data under the current filter" is a claim
+     * about the DATA and may only be made when there is none to plot; a plot area too small to draw in is a claim
+     * about the SIZE, and it used to wear the data's sentence.
+     */
+    static String emptyPlotMessage(boolean noSeries, boolean noPoints, int plotW, int plotH) {
+        if (noSeries) return "No numeric series selected — pick a nodeLogs key and Add.";
+        if (noPoints) return "No data under the current filter — the configured series matched no "
+                + "records in view. Widen the filter to see them.";
+        return "The plot has no room at this size (" + Math.max(0, plotW) + "×" + Math.max(0, plotH)
+                + " px) — the series has data; make the chart larger to see it.";
+    }
+
+    /** What the last paint said instead of a plot, or null when it drew one — so a test reads the claim, not pixels. */
+    String lastEmptyMessage() {
+        return lastEmptyMessage;
+    }
+
+    private String lastEmptyMessage;
 
     /** Which series are measured against the right-hand scale. */
     public void setAxes(telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment axes) {
@@ -540,19 +577,17 @@ public final class ChartPanel extends JPanel {
         }
         if (plotW <= 10 || plotH <= 10 || Double.isNaN(vx0)) {
             g.setColor(text);
-            // two different absences, two different messages: "nothing configured" invites adding a
-            // key; "configured but filtered to nothing" must say the FILTER is why, or the reader
-            // concludes the chart is broken (a live user did, minutes into the Reports eyeball pass)
-            g.drawString(series.isEmpty()
-                            ? "No numeric series selected — pick a nodeLogs key and Add."
-                            : "No data under the current filter — the configured series matched no "
-                                    + "records in view. Widen the filter to see them.",
-                    L, h / 2);
+            // THREE absences, three messages: "nothing configured" invites adding a key; "configured but filtered
+            // to nothing" must say the FILTER is why, or the reader concludes the chart is broken (a live user did,
+            // minutes into the Reports eyeball pass); and M68.2: "no room to draw" must not say either of those
+            lastEmptyMessage = emptyPlotMessage(series.isEmpty(), Double.isNaN(vx0), plotW, plotH);
+            g.drawString(lastEmptyMessage, L, h / 2);
             paintExplanation(g, dark);
             g.dispose();
             return;
         }
 
+        lastEmptyMessage = null;
         String emptyReason = (String) windowScope().get("emptyReason");
         if ("window-outside-data".equals(emptyReason)) {
             g.setColor(text);

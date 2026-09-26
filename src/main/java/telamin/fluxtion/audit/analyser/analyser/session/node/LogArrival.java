@@ -28,6 +28,15 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents;
  * <p>This node owns the first. The verdict comes from {@link Pairing}, which states the FACT and
  * never the action, precisely so one comparison can serve two verbs.
  *
+ * <p><b>M68.4: residue is the graph that was open when the log was REQUESTED.</b> {@code open {log, graphml}} requests
+ * the log — the load goes pending — and then opens the graph, mid-load. This node used to judge whatever graph was
+ * open when the log landed, so it closed the graph the same request had just opened, after that request had replied
+ * {@code ok}: a request that silently lost half of itself (D-E3). A graph somebody OPENED after the log was requested
+ * was opened for this log — the second bullet's intent, not the first's residue — so it is kept and the mismatch
+ * announced. The distinction is whether a graph was OPENED since the request — counted, not compared, because a
+ * request that re-opens the graph already on screen asked for it too; a graph a log's reader
+ * supplied is nobody's intent and is judged as before.
+ *
  * <p><b>Why this was worth moving.</b> It lived in {@code MainFrame.repairLoadedGraph}, reachable
  * only by running the application, and it decides whether someone loses a graph they were reading.
  * The defect it prevents is silent: open a second log and the FIRST log's topology stays on screen,
@@ -44,6 +53,8 @@ public class LogArrival implements EventLogSource {
     private final EffectQueue effects;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
+    /** How many graph opens had happened when the log in flight was requested; node-local, so not final (FLX-1009). */
+    private long graphOpeningsAtRequest = -1;
 
     public LogArrival(OperationGate gate, Pairing pairing, OpenGraph openGraph, EffectQueue effects) {
         this.gate = gate;
@@ -64,6 +75,13 @@ public class LogArrival implements EventLogSource {
      * an unchanged log before the new graph, and the close effect cleared whatever was current. The
      * effect now also names the graph it judged, so an adapter holding a different one closes nothing.
      */
+    /** M68.4: remember which graph was open when the log was asked for — that one, and only that one, is residue. */
+    @OnEventHandler
+    public boolean onOpenLogRequested(SessionEvents.OpenLogRequested event) {
+        graphOpeningsAtRequest = openGraph.openings();
+        return false;                           // nothing downstream changes until the log lands
+    }
+
     @OnEventHandler
     public boolean onLogOpened(SessionEvents.LogOpened event) {
         if (!gate.accepted()) {
@@ -98,6 +116,16 @@ public class LogArrival implements EventLogSource {
                     .info("logged", pairing.verdict().logged());
             effects.request(new SessionEffects.ShowStatusEffect(event.opId(),
                     "graph kept — " + note(pairing)));
+            return true;
+        }
+        if (openGraph.openings() != graphOpeningsAtRequest && "OPENED".equals(openGraph.source())) {
+            auditLog.info("decision", "keep")
+                    .info("closingGraph", false)
+                    .info("reason", "graphOpenedForThisLog")
+                    .info("matched", pairing.verdict().matched())
+                    .info("logged", pairing.verdict().logged());
+            effects.request(new SessionEffects.ShowWarningEffect(event.opId(),
+                    "graph kept — it was opened for this log, but " + note(pairing)));
             return true;
         }
         auditLog.info("decision", "closeGraph")

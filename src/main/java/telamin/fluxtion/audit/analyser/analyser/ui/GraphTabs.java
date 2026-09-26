@@ -43,6 +43,44 @@ public final class GraphTabs extends JPanel {
     private final List<JButton> editingButtons = new ArrayList<>();
     /** Shown only while definitions are withheld: the way out that is not "close the app and edit a file". */
     private final JButton repairButton = new JButton("Repair names…");
+    /**
+     * M68.7 (owner, Q4): the charts' statement that the file behind the log changed after it was read. One banner
+     * above every chart tab, so a chart opened after the verdict is under it too. It holds no verdict: the frame sets
+     * it from the session snapshot, beside the table's (M68.5). G14's pass condition lands on this surface.
+     */
+    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel() {
+        /** Review O2: the warning colour follows the theme — recomputed whenever the look and feel is updated. */
+        @Override public void updateUI() {
+            super.updateUI();
+            setForeground(UiTheme.warnForeground());
+        }
+    };
+
+    /**
+     * What the charts say for a file-identity verdict, or null for none. WHEN is the table's rule
+     * ({@link LogTablePanel#identityBannerText}), so the surfaces cannot disagree about whether the file changed;
+     * this says only what that means for a chart.
+     */
+    static String identityBannerText(String verdict, String reason) {
+        if (LogTablePanel.identityBannerText(verdict, reason) == null) return null;
+        // Review O1: the verdict and the recovery lead, so a narrow pane still shows a complete sentence; the reason
+        // follows, and the whole note is the tooltip.
+        return "⚠ Charts not verified against the file on disk — reopen the log to redraw them · "
+                + (reason == null ? "the file behind this log changed after it was read" : reason);
+    }
+
+    /** Show {@code note} above the charts, or hide the banner for null. Call on the EDT. */
+    public void setIdentityNote(String note) {
+        identityBanner.setText(note == null ? "" : note);
+        identityBanner.setToolTipText(note);
+        identityBanner.setVisible(note != null);
+        revalidate();
+    }
+
+    /** The banner's text, or null while it is hidden. */
+    String identityNote() {
+        return identityBanner.isVisible() ? identityBanner.getText() : null;
+    }
     private Runnable repairHandler = () -> { };
 
     public void setRepairHandler(Runnable handler) {
@@ -137,7 +175,12 @@ public final class GraphTabs extends JPanel {
         bar.add(close);
         bar.add(delete);
         bar.add(repairButton);
-        add(bar, BorderLayout.NORTH);
+        identityBanner.setVisible(false);
+        identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        JPanel north = new JPanel(new BorderLayout());
+        north.add(bar, BorderLayout.NORTH);
+        north.add(identityBanner, BorderLayout.SOUTH);
+        add(north, BorderLayout.NORTH);
         add(tabs, BorderLayout.CENTER);
         definitionNotice.setEditable(false);
         definitionNotice.setLineWrap(true);
@@ -377,6 +420,7 @@ public final class GraphTabs extends JPanel {
      */
     boolean rename(GraphPanel gp, String name) {
         if (name == null || name.isBlank()) return false;
+        if (SpotlightTarget.chartNameProblem(name) != null) return false;   // M68.6: callers refuse first, and say why
         String to = name.trim();
         String from = gp.graphName();
         if (to.equals(from)) return true;                 // nothing to do, and not a collision with itself
@@ -391,6 +435,13 @@ public final class GraphTabs extends JPanel {
     private void promptRename(int i) {
         if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = JOptionPane.showInputDialog(this, "Graph name:", gp.graphName());
+        // M68.6 first, so the person is told the RIGHT reason: main's collision message would otherwise be shown for a
+        // name refused by the address grammar
+        String problem = name == null || name.isBlank() ? null : SpotlightTarget.chartNameProblem(name);
+        if (problem != null) {
+            JOptionPane.showMessageDialog(this, "Not renamed: " + problem, "Graph name", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (name != null && !name.isBlank() && !rename(gp, name)) {
             JOptionPane.showMessageDialog(this, "A chart with that name already exists, including closed charts.",
                     "Name already used", JOptionPane.WARNING_MESSAGE);

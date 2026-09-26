@@ -1,0 +1,8 @@
+P33a wrapped across a line break: baseline 3 green; mutated: STILL GREEN; restored byte-identical=True; green again=True
+P33b markdown emphasis: baseline 3 green; mutated: STILL GREEN; restored byte-identical=True; green again=True
+P33c an HTML tag: baseline 3 green; mutated: STILL GREEN; restored byte-identical=True; green again=True
+P33d two spaces: baseline 3 green; mutated: STILL GREEN; restored byte-identical=True; green again=True
+P33e a text block wrapping the phrase: baseline 3 green; mutated: STILL GREEN; restored byte-identical=True; green again=True
+P33f a non-breaking space: baseline 3 green; mutated: STILL GREEN; restored byte-identical=True; green again=True
+P34 the LogOpened sample drawn as PAIRING_SAMPLE - 1: baseline 2 green; mutated: STILL GREEN; restored byte-identical=True; green again=True
+P36 the .log exemption removed: baseline 2 green; mutated: STILL GREEN; restored byte-identical=True; green again=True

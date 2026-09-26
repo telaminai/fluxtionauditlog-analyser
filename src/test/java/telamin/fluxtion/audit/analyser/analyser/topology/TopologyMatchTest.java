@@ -35,7 +35,7 @@ class TopologyMatchTest {
     }
 
     @Test
-    void anInstanceIdMissingFromTheGraphSignalsAVersionMismatch() throws IOException {
+    void anInstanceIdMissingFromTheGraphIsNamedWithoutClaimingWhichBuild() throws IOException {
         ProcessorTopology.Match m = topology().match(
                 List.of("priceListener_2", "hedgeMonitor_7", "riskGate_8"));
         assertFalse(m.complete());
@@ -43,8 +43,11 @@ class TopologyMatchTest {
         assertEquals(1.0 / 3, m.coverage(), 1e-9);
 
         String said = m.describe();
-        assertTrue(said.contains("different build"), said);
         assertTrue(said.contains("hedgeMonitor_7"), "names the offending node: " + said);
+        assertTrue(said.contains("not declared in the graph"), "states the fact: " + said);
+        // M68.1: a name mismatch does not establish build identity. This test used to REQUIRE the phrase
+        // "different build"; it now forbids it, so reintroducing the conclusion fails here.
+        assertFalse(said.toLowerCase().contains("build"), "draws no build conclusion: " + said);
     }
 
     @Test

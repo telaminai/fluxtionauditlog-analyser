@@ -36,8 +36,8 @@ class SessionReplayTest {
         SessionProcessor processor = driver.processor();
 
         open(driver, A, TransitionKind.STARTUP_ACTIVATION);
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
-        driver.submit(new SessionEvents.GraphObserved(true, "/graphs/run.graphml", "OPENED"));
+        SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
+        driver.submit(SessionFixtures.graph("/graphs/run.graphml"));
         assertTrue(processor.openLog.isOpen(), "precondition: a log is open");
         assertTrue(processor.openGraph.isOpen(), "precondition: a graph is open");
         adapter.forget();
@@ -63,7 +63,7 @@ class SessionReplayTest {
         SessionDriver driver = new SessionDriver(adapter);
         SessionProcessor processor = driver.processor();
 
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
+        SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
         adapter.forget();
 
         // Same surface, same state as replay 1, opposite rule — because the KIND is different. This is
@@ -86,7 +86,7 @@ class SessionReplayTest {
         SessionProcessor processor = driver.processor();
 
         open(driver, A, TransitionKind.STARTUP_ACTIVATION);
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
+        SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
         adapter.forget();
 
         open(driver, "/projects/missing.properties", TransitionKind.EXPLICIT_SWITCH);
@@ -106,7 +106,7 @@ class SessionReplayTest {
         SessionDriver driver = new SessionDriver(adapter);
 
         open(driver, A, TransitionKind.STARTUP_ACTIVATION);
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
+        SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
         adapter.loadThrows = true;
         adapter.forget();
 
@@ -125,7 +125,7 @@ class SessionReplayTest {
         SessionDriver driver = new SessionDriver(adapter);
 
         open(driver, A, TransitionKind.EXPLICIT_SWITCH);
-        driver.submit(new SessionEvents.LogObserved(true, "/logs/run.yaml", "DECLARED"));
+        SessionFixtures.openLog(driver, adapter, "/logs/run.yaml");
         adapter.forget();
 
         open(driver, A, TransitionKind.EXPLICIT_SWITCH);
@@ -178,7 +178,7 @@ class SessionReplayTest {
         // this interleaves two cycles and the audit record cannot tell them apart afterwards.
         SessionDriver[] holder = new SessionDriver[1];
         SessionDriver driver = new SessionDriver(effect -> {
-            holder[0].submit(new SessionEvents.LogObserved(true, "/logs/other.yaml", "DECLARED"));
+            holder[0].submit(new SessionEvents.GraphCleared());
             return new SessionEvents.StatusShown(effect.opId(), "never gets here");
         });
         holder[0] = driver;
