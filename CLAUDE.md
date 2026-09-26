@@ -89,7 +89,10 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.22.0 released 2026-09-26**: the reader half of the Mongoose audit
+`docs/specs/completed/tracker.md`. **Latest: 1.22.1 released 2026-09-26**: the design-first first look (PR #35) —
+the Design view keeps its XML at the default window, design refusals name their one cause, neighbouring spotlights
+share a separator, and a refused project file points to `open {project}`.
+**1.22.0 (the same day)**: the reader half of the Mongoose audit
 format on top of M44.4/M68 — an empty log and a document that is not a log are named as findings,
 coverage annotates a node whose audit level was changed per node, one byte-order-mark rule and
 ASCII-only trimming across the reader, and Follow retires its verification when a file stops decoding.
