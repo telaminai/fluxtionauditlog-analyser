@@ -957,6 +957,55 @@ public final class MainFrame extends JFrame {
     }
 
     /**
+     * Remove a report (#23). Until this existed a report could be created and replaced by name but
+     * never removed, so a profile only accumulated — a throwaway diagnostic built to test PDF
+     * rendering became a permanent fixture of a shipped profile, and the only way out was to close
+     * the project and hand-edit the properties file.
+     *
+     * @return false when no report has that name — the caller says so rather than reporting success
+     */
+    boolean removeReport(String name) {
+        if (name == null || reportByName(name) == null) {
+            return false;
+        }
+        config.reports.removeIf(r -> r.name().equals(name));
+        onGraphsEdited();
+        if (reportsPanel != null) reportsPanel.refresh();
+        return true;
+    }
+
+    /**
+     * Rename a report, keeping everything it holds (#23), matching {@code graph {name, rename}}.
+     *
+     * <p>Refuses a name already taken rather than silently replacing: replace-by-name is right when
+     * you are REBUILDING a report and wrong when you are renaming one, because the second would
+     * destroy the target. Same rule {@code GraphTabs.rename} applies to charts.
+     *
+     * @return null on success, otherwise why it was refused
+     */
+    String renameReport(String from, String to) {
+        var existing = from == null ? null : reportByName(from);
+        if (existing == null) {
+            return "no report called \"" + from + "\"";
+        }
+        String target = to == null ? "" : to.trim();
+        if (target.isEmpty()) {
+            return "a renamed report needs a name";
+        }
+        if (target.equals(from)) {
+            return null;                                    // nothing to do, and not an error
+        }
+        if (reportByName(target) != null) {
+            return "a report called \"" + target + "\" already exists — renaming onto it would destroy it";
+        }
+        config.reports.removeIf(r -> r.name().equals(from));
+        config.reports.add(existing.withName(target));
+        onGraphsEdited();
+        if (reportsPanel != null) reportsPanel.refresh();
+        return null;
+    }
+
+    /**
      * A report's "open record" click (M33.4). A record hidden by the current filter must not fail
      * SILENTLY — a live eyeball pass hit exactly that ("I press the button, nothing happens"). The
      * click's intent is unambiguous, but widening the filter is a view mutation, so it is OFFERED
@@ -1255,6 +1304,48 @@ public final class MainFrame extends JFrame {
         var fp = telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
                 store.index(), loadedLogName(), logProvenance, logProvenanceSource);   // M38.3 F1: how it was obtained
         String name = params.get("name") == null ? null : params.get("name").toString();
+
+        // ---- delete / rename an existing report (#23) -------------------------------------------------
+        // Before these, a report could be created and replaced by name but never removed or renamed, so
+        // a profile only accumulated and an assistant could not clean up after itself. Both come FIRST:
+        // they take 'name' and no sections, which the build path would otherwise read as "replace with
+        // an empty report" — the destroy-on-replace trap.
+        if (Boolean.TRUE.equals(params.get("delete"))) {
+            if (name == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "delete needs 'name' — reports: " + reportNames());
+            }
+            var doomed = reportByName(name);
+            if (doomed == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "no report named '" + name + "' — reports: " + reportNames());
+            }
+            int sections = doomed.sections().size();
+            removeReport(name);
+            var echo = new java.util.LinkedHashMap<String, Object>();
+            echo.put("deleted", name);
+            echo.put("sections", sections);
+            echo.put("remaining", reportNames());
+            echo.put("note", "the report definition is gone; any PDF already rendered from it is a "
+                    + "separate file and is untouched");
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "deleted", echo);
+        }
+        Object renameTo = params.get("rename");
+        if (renameTo != null) {
+            if (name == null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
+                        "rename needs 'name' (the report to rename) — reports: " + reportNames());
+            }
+            String refused = renameReport(name, renameTo.toString());
+            if (refused != null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refused);
+            }
+            var echo = new java.util.LinkedHashMap<String, Object>();
+            echo.put("renamed", name);
+            echo.put("to", renameTo.toString());
+            echo.put("reports", reportNames());
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "renamed", echo);
+        }
 
         // ---- CSV export of one table section from an EXISTING report --------------------------------
         Object csv = params.get("csv");
@@ -2047,7 +2138,7 @@ public final class MainFrame extends JFrame {
                 this::readerSummaries, "Assistant"));
         ai.add(exchange);
         JMenuItem showExchange = new JMenuItem("Show exchange directory");
-        showExchange.addActionListener(e -> revealPath(config.assistantExportDir));
+        showExchange.addActionListener(e -> revealPath(AiMenuModel.exchangePath(config)));
         ai.add(showExchange);
 
         ai.addSeparator();
@@ -2969,7 +3060,9 @@ public final class MainFrame extends JFrame {
                 gname -> { sideTabs.setSelectedComponent(graphTabs); revealGraphByName(gname); },
                 fname -> { sideTabs.setSelectedComponent(topologyPanel); topologyPanel.recallFocus(fname); },
                 snap -> snap.applyTo(filter),
-                name -> exportReportPdfWithChooser(name));
+                name -> exportReportPdfWithChooser(name),
+                this::removeReport,
+                this::renameReport);
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);
@@ -5683,7 +5776,9 @@ public final class MainFrame extends JFrame {
     /** The window title carries the project, because "which settings am I using" is easy to lose. */
     private void setTitleForProject() {
         setTitle(project.hasProject()
-                ? "Fluxtion Audit Log Analyser — " + project.activeName()
+                // activeLabel, not activeName: several profiles can share a project root and edits
+                // auto-save into whichever is active, so the title must say WHICH (#22).
+                ? "Fluxtion Audit Log Analyser — " + project.activeLabel()
                 : "Fluxtion Audit Log Analyser");
     }
 
@@ -6562,6 +6657,11 @@ public final class MainFrame extends JFrame {
             proj.put("active", project.hasProject());
             if (project.hasProject()) {
                 proj.put("name", project.activeName());
+                // #22: name is the DIRECTORY and is identical for every profile under one root.
+                // label is what a person should be shown; profile names the one in force, or is
+                // absent for the canonical project.fluxtion-settings.
+                proj.put("label", project.activeLabel());
+                if (project.activeProfileName() != null) proj.put("profile", project.activeProfileName());
                 proj.put("settings", project.activeFile().toString());
                 proj.put("root", telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
                         .baseDirFor(project.activeFile()).toString());        // M37: the project's directory
@@ -6761,15 +6861,23 @@ public final class MainFrame extends JFrame {
                 }
                 out.put("reportDestinations", ds);
             }
-            // M37.6: where files LEAVE, and the reports the project holds. The exchange directory is
-            // machine-tier (a path on this disk, never shared); the reports are project-tier. Both were
-            // invisible outside their dialog/tab — and "exports off" is the state that made screenshot
-            // fail twice on 2026-08-27 with nothing on screen saying so.
+            // M37.6: where files LEAVE, and the reports the project holds. Both were invisible outside
+            // their dialog/tab — and "exports off" is the state that made screenshot fail twice on
+            // 2026-08-27 with nothing on screen saying so.
+            //
+            // #21: the OPT-IN is machine-tier and stays so; the DIRECTORY may be project-supplied, so
+            // `source` says which tier answered. Without it, "my screenshot landed somewhere else"
+            // has two indistinguishable causes.
             {
                 Map<String, Object> exports = new java.util.LinkedHashMap<>();
                 exports.put("enabled", config.assistantExports);
-                if (config.assistantExports && config.assistantExportDir != null && !config.assistantExportDir.isBlank()) {
-                    exports.put("dir", config.assistantExportDir);
+                var exchange = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
+                if (config.assistantExports && exchange.dir() != null && !exchange.dir().isBlank()) {
+                    exports.put("dir", exchange.dir());
+                    exports.put("source", exchange.source());
+                }
+                if (exchange.refusal() != null) {
+                    exports.put("refused", exchange.refusal());
                 }
                 out.put("exports", exports);
                 List<Map<String, Object>> reps = new ArrayList<>();

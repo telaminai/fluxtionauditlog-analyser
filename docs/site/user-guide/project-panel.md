@@ -17,7 +17,7 @@ It shows what is available even before a log is opened.
 | **Source roots** | each root with its **stored form** — *project-relative*, *workspace-relative*, *~*, *absolute*; under a project, *absolute* and *~* are a warning that the profile will not resolve on a colleague's machine — and the workspace anchor if declared | *project* / *own settings* / *demo (transient)* |
 | **Saved charts** | named chart definitions, including those waiting for input; an open chart still needs its data bindings checked | *saved* / *open* |
 | **Analyses** | each saved analysis — its rationale, step count and the parameters it needs; recall is *Project ▸ Run analysis* or `open {analysis}` — the panel only states the offer | *project* |
-| **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares — a directory that is not there is a warning; a remote place says it is not checked | the directory is *own settings* (a path on this machine, never shared); reports are *project* |
+| **Reports** | where files leave — the assistant's exchange directory, or *File exchange off* with where to turn it on — each **saved report** by title with its section count, and each **publish destination** (*publish to bucket: s3://… · s3*) the project declares — a directory that is not there is a warning; a remote place says it is not checked | the directory is *own settings*, or *project* when the open project supplied it (the **permission** is always your own settings, never shared); reports are *project* |
 
 An empty section is a sentence, not a blank — *"No graph — Sources ▸ Open GraphML…, or a reader may
 supply one with its log"* — so you never have to go elsewhere to learn why it is empty.
@@ -43,7 +43,8 @@ facts, and a fact the panel lacks is added to `context` first. The keys it draws
 `graphPairing` (`graph`, `graphSource`, `graphPath`, `applies`, `declaredByGraph`, `loggedNodes`,
 `verdict`, `sourceGraphOffered`, `sourceGraphNote`, `auditLogging`, `auditLoggingNote`), `processors` (`class`, `selected`, `source`,
 `from`), `source.rootTiers` (`path`, `tier`, `form`) and `source.workspaceRoot`, `exports` (`enabled`,
-`dir`), `reports` (`name`, `title`, `sections`, `from`), `reportDestinations` (`name`, `location`, `kind`,
+`dir`, `source` — `project` or `machine`, since a project may supply the directory — and `refused` when
+a project asked for one and did not get it), `reports` (`name`, `title`, `sections`, `from`), `reportDestinations` (`name`, `location`, `kind`,
 `from`, `problem`, `note`), and the portable-context facts — `runbooks` (`name`, `path`, `resolved`, `exists`, `from`),
 `vocabulary` (`path`, `resolved`, `exists`, `from`), `environments` (`name`, `provenance`, `logDir`,
 `default`, `problem`) with `provenanceSource`, `analyses` (`name`, `rationale`, `parameters`, `steps`, `from`), and

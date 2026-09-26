@@ -268,6 +268,13 @@ every machine. The anchor must be `.`, `..`, `../..` … (at or above the projec
 anything else is refused and announced. It rides the **Source roots** share category and applies to Maven
 repos too.
 
+**Declare it where the roots are.** *Settings ▸ Source roots* has a **Workspace anchor** control above the
+list. It is a short list, not a folder chooser, because the value is a *depth*: each entry shows the
+directory it resolves to on this machine and **how many of your current roots it would make portable**, so
+you pick the shallowest one that covers them by reading the list rather than by working out what `../..`
+means for your layout. The filesystem root is never offered — every path is under it, so it would claim a
+perfect score while writing your machine's whole layout into the profile as a run of `..` steps.
+
 **This does not weaken the pointer rule.** Runbook and vocabulary pointers stay project-relative with no
 `..` — those are things an agent acts on, and the trust boundary is the repository you cloned. Source roots
 and Maven repos are inert lists the analyser resolves, and may use the wider anchor.

@@ -40,15 +40,30 @@ public final class AiMenuModel {
                 : new Item(false, "Needs an open project — Project ▸ Open project");
     }
 
-    /** Show exchange directory — needs the exchange to be on AND to have somewhere to point. */
+    /**
+     * Show exchange directory — needs the exchange to be on AND to have somewhere to point.
+     *
+     * <p>#21: it points at the EFFECTIVE directory, which the open project may have supplied, and says
+     * when the project asked for one and did not get it. A menu item that opened the machine's
+     * directory while the assistant wrote to the project's would be the wrong kind of confident.
+     */
     public static Item showExchange(AppConfig config) {
         if (config == null || !config.assistantExports) {
             return new Item(false, "File exchange is off — turn it on in Report exchange directory…");
         }
-        if (config.assistantExportDir == null || config.assistantExportDir.isBlank()) {
-            return new Item(false, "No exchange directory is set — choose one in Report exchange directory…");
+        var exchange = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
+        if (exchange.dir() == null || exchange.dir().isBlank()) {
+            return new Item(false, exchange.refusal() != null ? exchange.refusal()
+                    : "No exchange directory is set — choose one in Report exchange directory…");
         }
-        return new Item(true, config.assistantExportDir);
+        return new Item(true, exchange.fromProject()
+                ? exchange.dir() + "  (this project's)"
+                : exchange.dir());
+    }
+
+    /** Where "Show exchange directory" opens — the effective directory, never the label. */
+    public static String exchangePath(AppConfig config) {
+        return telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config).dir();
     }
 
     /**

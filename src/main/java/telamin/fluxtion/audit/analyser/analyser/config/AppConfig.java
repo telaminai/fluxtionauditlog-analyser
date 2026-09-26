@@ -103,6 +103,13 @@ public final class AppConfig {
     public String assistantExportDir = "";
 
     /**
+     * Where THIS PROJECT would like the exchange directory to be — project-relative, no {@code ..}
+     * (#21). Project-tier, and it says WHERE, never WHETHER: {@link #assistantExports} stays machine
+     * tier, so opening a project can widen no permission. See {@link ExchangeDir}.
+     */
+    public String projectExchangeDir = "";
+
+    /**
      * The project profile currently active, or blank for none (M20).
      *
      * <p>GLOBAL and deliberately so: which project this machine last had open is a fact about the

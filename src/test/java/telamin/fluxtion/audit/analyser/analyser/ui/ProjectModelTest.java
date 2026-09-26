@@ -364,6 +364,38 @@ class ProjectModelTest {
         assertEquals(ProjectModel.Tone.NORMAL, ProjectModel.from(own).section(ProjectModel.ROOTS).rows().get(2).tone());
     }
 
+    /**
+     * #20 acceptance: declaring an anchor turns the warn rows normal with no restart.
+     *
+     * <p>The model half of it. The panel re-renders from {@code context} on every config change, and
+     * {@code context} recomputes each root's form from the live {@code workspaceRoot} — so the only
+     * thing that could keep a row warning after the anchor is declared is this mapping. What changes
+     * between the two halves here is exactly what changes in the app: the form, and nothing else.
+     */
+    @Test
+    void declaringTheAnchorClearsTheWarning_andTheWarningNamesTheControl() {
+        Map<String, Object> before = full();
+        before.put("source", Map.of("roots", List.of("a"), "rootTiers", List.of(
+                Map.of("path", "/work/shared-lib/src/main/java", "tier", "project", "form", "~"))));
+        ProjectModel.Row warned = ProjectModel.from(before).section(ProjectModel.ROOTS).rows().get(0);
+
+        assertEquals(ProjectModel.Tone.WARN, warned.tone());
+        assertTrue(warned.secondary().contains("Settings ▸ Source roots"),
+                "the remedy must NAME its control — it said 'declare a workspace anchor' for a control "
+                        + "that did not exist: " + warned.secondary());
+        assertEquals(ProjectModel.Target.SETTINGS_SOURCE, warned.target(),
+                "and the row's button opens that page");
+
+        Map<String, Object> after = full();
+        after.put("source", Map.of("roots", List.of("a"), "workspaceRoot", "..", "workspaceDir", "/work",
+                "rootTiers", List.of(Map.of("path", "/work/shared-lib/src/main/java", "tier", "project",
+                        "form", "workspace-relative"))));
+        List<ProjectModel.Row> rows = ProjectModel.from(after).section(ProjectModel.ROOTS).rows();
+
+        assertEquals(ProjectModel.Tone.NORMAL, rows.get(0).tone(), "same root, anchor declared");
+        assertFalse(rows.get(0).secondary().contains("colleague"), rows.get(0).secondary());
+    }
+
     @Test
     void abbreviationKeepsHeadAndTail_andNeverTouchesWhatIsCopied() {
         assertEquals("~/projects/demo/logs/a.yaml", ProjectModel.abbreviate("/Users/someone/projects/demo/logs/a.yaml", "/Users/someone", 44));
