@@ -402,3 +402,28 @@ grant is implied. C2, C3 and approved D1–D8 are unchanged; no tracker status m
 sweeps, and added-line local-path/address scans passed. Markdown link targets are unchanged,
 so SpecLinksResolveTest was not run. No product code, participant files, client session,
 provider call or release was involved. Commit identity was verified as the personal address.
+
+
+## C1 whole-project-root response — 2026-09-26
+
+Read review `657d881e` in full. **RUN:** a scratch JDK 21 path-mechanics check confirmed that
+`Path.of("src/..").normalize()`, `.` and `./` have empty textual forms, resolve to the project
+itself and pass the leading-parent check. A normalised `src/main/java` descendant stays nonempty.
+This was not an installer run or implementation acceptance.
+
+§I1 now refuses an empty normalised relative root before resolution, independently of the
+accepted leading-parent rule. Canonical containment alone is explicitly insufficient. Negative
+install fixtures cover the whole-project spellings, and removing only the empty-root guard
+must fail their refusal assertions with the other guards intact. This enforces the existing
+no-whole-project-grant policy; C2, C3 and D1–D8 are unchanged.
+
+The optional Windows clarification is adopted: refuse any root component, not only an absolute
+path. Drive-relative and rooted Windows forms get Windows-only install fixtures, explicitly
+not runnable in this macOS/Linux branch check. No Windows execution or installer acceptance
+is claimed here. Existing workspace-anchor strictness and Maven-repository scope are unchanged.
+
+**Documentation checks:** strict MkDocs, diff whitespace, tracked-file and added-line rule-one
+sweeps, and added-line local-path/address scans passed. Link targets are unchanged, so
+SpecLinksResolveTest was not run. Only §I1 and this appended response changed; no tracker mark
+moved. Personal commit identity was verified. No code, participant project, client session,
+key, merge or release was involved.

@@ -548,14 +548,20 @@ The containment check belongs in **TemplateArchive installation**, before the at
 against the **staged project root**, not the not-yet-installed destination or generic profile
 loading. There is no typed design-root key: check every source root in the template profile.
 Read profile paths using the loader's forms and project-relative base (not the `.analyser`
-directory), but reject home-relative (`~` or `~/`) and absolute template source roots.
+directory), but reject home-relative (`~` or `~/`) template source roots and any template
+source root with a root component (`Path.getRoot() != null`). On Windows this also refuses
+drive-relative `C:foo` and rooted `\foo`, not only absolute paths.
 The loader reads and validates `workspaceRoot` but does **not** use it to resolve source roots;
 it affects portable path export instead. Deliberately keep rejection of **any nonblank**
 template `workspaceRoot`, including `.`, as an extra restriction, not the containment boundary.
 
-**Every template source root must be a plain descendant path.** Before resolving it against
-staging, lexically normalise its relative form and refuse it if the first path component is
-`..`. This rule applies to existing and missing directories alike. In particular,
+**Every template source root must be a plain descendant path, never the project root itself.**
+Before resolving it against staging, lexically normalise its relative form and refuse it if
+it is empty (`normalised.toString().isEmpty()`) or its first path component is `..`.
+`src/..`, `.` and `./` normalise to the empty path and would grant the whole project; they
+must be refused even though canonical containment passes. Containment alone is insufficient:
+the lexical guards must also pass. These rules apply to existing and missing directories alike.
+In particular,
 `../<archive-root-name>/src/main/java` must be refused even when it resolves inside the staged
 project: after the move, the destination can have a different name and the same root escapes.
 The leading-parent rule, rather than rejection of a workspace anchor, prevents that widening.
@@ -579,9 +585,14 @@ Extraction creates only regular files and directories and refuses a symbolic-lin
 an archive cannot supply an internal filesystem symlink through this route. Assert that the
 installed tree contains no symbolic links, including when ZIP metadata requests one. Drop the
 unreachable archive-internal-symlink escape fixture rather than adding an implementation hook
-solely for it. Real install fixtures cover `../` escape, absolute/home-relative roots,
-rejection of nonblank workspace anchors (including `.`), a regular-file component, a missing
-internal future root and an installation parent reached through a filesystem alias. Add a
+solely for it. Real install fixtures cover `../` escape, roots with a root component,
+home-relative roots, rejection of nonblank workspace anchors (including `.`), a regular-file
+component, a missing internal future root and an installation parent reached through a
+filesystem alias. Add negative fixtures with `sourceRoot.0=src/..`, `.` and `./`: installation
+must refuse each whole-project root. Removing only the empty-root check must fail their
+refusal assertions while the leading-parent and canonical checks remain intact. Add Windows-only
+install fixtures for drive-relative `C:foo` and rooted `\foo`; these are **not runnable on a
+macOS/Linux branch check** and must be verified on Windows. Add a
 negative fixture whose profile root is `../<archive-root-name>/src/main/java` and whose chosen
 destination has a different name: installation must refuse it although canonical resolution
 inside staging succeeds. Use ordinary ZIP entry names. Removing just the leading-parent check
