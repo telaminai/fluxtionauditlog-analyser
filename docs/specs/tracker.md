@@ -182,6 +182,8 @@ still to do.
   (the Follow path) are NOT done. The end-to-end claim is also narrower than it sounds: the tests drive
   `ReaderRegistry.readerFor`, not `MainFrame.loadFile`.
   [Phase 1 report](../handoff/report_mongoose_audit_production_phase1_2026_09_23.md).
+  **Phase 1 SHIPPED in analyser 1.22.0 (2026-09-26)**, after ten review rounds and the integration review
+  onto M44.4/M68 (PR #34). D-MA0c and MA-0.5 above remain open; shipping closes neither.
 - **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
   processor with no `EventLogManager`** — including **AOT processors built without audit**, the
   low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);
@@ -193,8 +195,9 @@ still to do.
   getter, so the mechanism is to pass Mongoose's own listener into `attach`/`start`.
   **PHASE 1 DONE and MERGED to core `develop` (`2c4192e`), including MA-5.4 adopt-on-reattach and the
   listing-freeze fix** — both witnessed live, the second by reading the Chronicle queue back rather than a
-  counter. **MA-5.7** (the every-backend contract) is open. Two things merging does NOT do: core is not
-  released, and the bundle's mongoose pin is still 1.0.29, so nothing here reaches a developer yet. The
+  counter. **MA-5.7** (the every-backend contract) is open. **Core RELEASED as mongoose 1.0.30
+  (2026-09-26)**, with the `attach` overload and the per-record WARNING in its release notes. The bundle's
+  mongoose pin is still 1.0.29, so nothing here reaches a developer until that pin moves. The
   new `attach` default overload also **quietly drops fan-out** for any other capture-service
   implementation — a release note, not a defect.
   **Recurring intake 2026-09-25:** feedback 13 reports silent stdout on the bundle's older pins;
@@ -211,6 +214,7 @@ still to do.
   **READER HALF DONE in phase 1**, keyed on **framing** — the first non-blank, non-comment line — not on a
   substring search, which was a V1 hole review found: a headerless document that merely mentioned the key
   read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) is open.
+  **Reader half SHIPPED in analyser 1.22.0 (2026-09-26).**
 - **[MA-7] ◧ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
   finding in this spec. An event `toString()` carrying a line that **trims to** `---` — space, tab or CR,
   matching the framers' own predicate, **not** an exact match — plus marker lines breaks the framing
@@ -237,7 +241,8 @@ still to do.
   (2026-09-24):** intervals are by record ORDER, closed by the next per-node or global change, empty
   selections explained by nothing, run boundaries qualified; and a change applies by the RUNTIME's rule —
   `groupId` gates it against the processor's `groupingId`, it is not node membership (the phase-1 reading
-  was inferred and wrong). **MA-8's report path is open.** Review found four surviving
+  was inferred and wrong). **Coverage annotation SHIPPED in analyser 1.22.0 (2026-09-26); MA-8's report
+  path is open.** Review found four surviving
   mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
