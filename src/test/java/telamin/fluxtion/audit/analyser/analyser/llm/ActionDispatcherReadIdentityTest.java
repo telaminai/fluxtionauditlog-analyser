@@ -49,6 +49,25 @@ class ActionDispatcherReadIdentityTest {
     }
 
     @Test
+    @DisplayName("R3: a rolled set whose mapped member changed in place is refused here, naming the member")
+    void aRolledSetsChangedMemberIsRefused(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        // independent review R3: the set inherited a null identity, so this guard never saw a member's change
+        String record = "eventLogRecord:\n  event: Tick\n  logTime: 1\n  nodeLogs:\n    - rootNode: {v: 1}\n---\n";
+        var a = dir.resolve("a.yaml");
+        var b = dir.resolve("b.yaml");
+        java.nio.file.Files.writeString(a, record);
+        java.nio.file.Files.writeString(b, record);
+        try (var rolled = telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore.open(java.util.List.of(a, b), 0)) {
+            var before = java.nio.file.Files.getLastModifiedTime(b);
+            java.nio.file.Files.writeString(b, record.replace("v: 1", "v: 9"));
+            java.nio.file.Files.setLastModifiedTime(b, java.nio.file.attribute.FileTime.fromMillis(before.toMillis() + 2000));
+            ActionResult r = dispatcher(rolled.readThroughIdentity()).dispatch(Map.of("action", "series", "params", Map.of()));
+            assertFalse(r.ok(), r.toMap().toString());
+            assertTrue(String.valueOf(r.toMap()).contains("member b.yaml"), r.toMap().toString());
+        }
+    }
+
+    @Test
     @DisplayName("retained superseded content is served, labelled")
     void retainedIsLabelled() {
         ActionResult r = dispatcher(RETAINED).dispatch(Map.of("action", "series", "params", Map.of()));

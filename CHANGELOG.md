@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- **A rolled set now stops serving a member file that changed in place, and says which one.** A single log whose
+  file was rewritten in place is refused until it is reopened, but the same file inside a rolled set was still read,
+  through an index that no longer matched it. A rolled set now reports its members' changes, naming the member, and
+  refuses record reads while any member's reads are suspended. A log whose reader cannot check for changes (a plugin
+  reader) now says `identity: not assessed` in `context` instead of saying nothing, which read like a check that passed.
 - **An exported coverage table now says when coverage is refused.** The report scored coverage by its own rules,
   which knew only one of the four reasons coverage can be meaningless. So where the `coverage` verb refused (a kept
   graph that does not describe the log, a graph built from what ran, a graph with no audit logger), the PDF still

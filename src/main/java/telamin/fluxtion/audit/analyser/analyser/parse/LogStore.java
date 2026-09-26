@@ -149,10 +149,23 @@ public interface LogStore extends AutoCloseable {
 
     /**
      * M68.5 (D-E6): what changed about the file behind this log since it was opened, observed now; null when no change
-     * was observed (metadata only — never proof of unchanged bytes) or for a store with no file.
+     * was observed (metadata only — never proof of unchanged bytes), for a store with no file, or for a store that does
+     * not look at all — which {@link #readThroughAssessed()} tells apart.
      */
     default ReadThroughIdentity readThroughIdentity() {
         return null;
+    }
+
+    /**
+     * Independent review R3: whether {@link #readThroughIdentity()} actually LOOKS at a file. The null it returns meant
+     * both "looked, and saw no change" and "never looked", and a caller could not tell which.
+     *
+     * <p><b>The SPI boundary, stated.</b> The default is false: a store a plugin reader supplies is not assessed, and
+     * nothing may present its null as a check that passed. The built-in heap and mapped stores opened from a file
+     * assess; a rolled set assesses only if every member does.
+     */
+    default boolean readThroughAssessed() {
+        return false;
     }
 
     /** M68.3: the frame still being written under Follow, observable but not a record; null for most stores. */

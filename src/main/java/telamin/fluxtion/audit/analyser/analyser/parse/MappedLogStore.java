@@ -92,6 +92,11 @@ public final class MappedLogStore implements LogStore {
         return path == null ? null : ReadThroughIdentity.classify(atOpen, ReadThroughIdentity.metaOf(path), false);
     }
 
+    /** Independent review R3: assessed whenever there is a file behind the channel. */
+    @Override public boolean readThroughAssessed() {
+        return path != null;
+    }
+
     @Override public int trailingRecordsIncluded() { return includesEofRecord ? 1 : 0; }
     @Override public int trailingRecordsPending() { return 0; }
 

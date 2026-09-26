@@ -6478,6 +6478,13 @@ public final class MainFrame extends JFrame {
                 } else if (identitySnap.logIdentity() != null) {
                     log.put("identity", Map.of("state", identitySnap.logIdentity().toLowerCase(java.util.Locale.ROOT),
                             "reason", String.valueOf(identitySnap.logIdentityReason())));
+                } else if (!store.readThroughAssessed()) {
+                    // independent review R3: a store that never looks at its file is SAID not to — its null identity
+                    // would otherwise read exactly like a check that passed (agents only: the status bar speaks only
+                    // of a change, and there is none to speak of)
+                    log.put("identity", Map.of("state", "not assessed", "reason", "this log's reader does not report "
+                            + "whether its file has changed since it was read, so no change being shown is not evidence "
+                            + "that there was none"));
                 }
             }
             if (store != null && store.trailingRecordsIncluded() >= 0) {

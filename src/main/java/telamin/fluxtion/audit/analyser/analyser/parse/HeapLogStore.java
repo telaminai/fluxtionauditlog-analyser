@@ -250,6 +250,11 @@ public final class HeapLogStore implements LogStore {
                 : ReadThroughIdentity.classify(atOpen, ReadThroughIdentity.metaOf(source), true);
     }
 
+    /** Independent review R3: assessed when this store was read from a file it can look at again. */
+    @Override public boolean readThroughAssessed() {
+        return source != null && atOpen != null;
+    }
+
     /** M68.5: what the last Follow poll established about the file's identity, or null before the first poll. */
     @Override public FollowIdentity followIdentity() { return followIdentity; }
 
