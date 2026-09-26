@@ -1404,7 +1404,7 @@ public final class MainFrame extends JFrame {
                 }
                 case SERIES -> {
                     // the review's gap table (M68.2): drawn from the Graph tab's own extraction and chart, off-screen
-                    var drawn = ReportSeriesPicture.of(store, filter, s.call(), 1200, 600);
+                    var drawn = ReportSeriesPicture.of(store, s.call(), 1200, 600);   // the stored call decides; re-review N2
                     yield drawn.image() == null
                             ? new telamin.fluxtion.audit.analyser.analyser.report.ReportRenderer.SectionContent(
                                     "Series", java.util.List.of(drawn.problem()), null, null)

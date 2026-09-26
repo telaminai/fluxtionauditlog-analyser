@@ -440,6 +440,35 @@ def main():
             check("R2: the page states the refusal", "coverage REFUSED" in text, text[:300])
             check("R2: and prints no ratio", " ratio " not in text,
                   [l for l in text.splitlines() if "ratio" in l][:3])
+
+            print("18. re-review N2 — a report's series section draws exactly its stored call")
+            # The re-review's two counterexamples: the report forced LOCF and used the view filter, so it drew 2 points
+            # where series {resolve:STRICT} found 0, and 3 where the call's filter selected 1. Red on the aaca6166 jar.
+            series_log = os.path.join(work, "n2-series.yaml")
+            with open(series_log, "w") as out:
+                for t, node, key, val in ((1000, "nodeA", "x", 1), (2000, "nodeB", "y", 2), (3000, "nodeA", "x", 4)):
+                    out.write(f"eventLogRecord:\n  event: Tick\n  logTime: {t}\n  nodeLogs:\n    - {node}: {{{key}: {val}}}\n---\n")
+                for t, val in ((1000, 1), (2000, 3), (3000, 2)):
+                    out.write(f"eventLogRecord:\n  event: Tick\n  logTime: {t}\n  nodeLogs:\n    - rootNode: {{v: {val}}}\n---\n")
+            a.act("open", close="all")
+            a.act("open", log=series_log)
+            settle(a)
+            strict = a.act("series", expr="nodeA.x + nodeB.y", resolve="STRICT")
+            windowed = a.act("series", expr="rootNode.v", filter={"from": 2000, "to": 2000})
+            check("N2: the verb finds 0 STRICT points and 1 windowed point",
+                  (strict.get("result") or {}).get("points") == 0 and (windowed.get("result") or {}).get("points") == 1,
+                  {"strict": strict, "windowed": windowed})
+            pdf = os.path.join(exchange, "n2-series.pdf")
+            reply = a.act("report", name="n2-series", title="N2 verification", path=pdf, sections=[
+                {"kind": "series", "call": {"verb": "series", "expr": "nodeA.x + nodeB.y", "resolve": "STRICT"}},
+                {"kind": "series", "call": {"verb": "series", "expr": "rootNode.v", "filter": {"from": 2000, "to": 2000}}}])
+            check("N2: the report exports", reply.get("ok") is True and os.path.exists(pdf), reply)
+            text = open(pdf, "rb").read().decode("latin-1") if os.path.exists(pdf) else ""
+            check("N2: the STRICT section draws the verb's 0 points, and says STRICT",
+                  "nodeA.x + nodeB.y \xb7 0 points \xb7 STRICT" in text, [l for l in text.splitlines() if "points" in l][:4])
+            check("N2: the windowed section draws the verb's 1 point, in the call's scope",
+                  "rootNode.v \xb7 1 point \xb7 STRICT \xb7 scope: the call's filter: logTime 2000" in text,
+                  [l for l in text.splitlines() if "point" in l][:4])
     finally:
         shutil.rmtree(work, ignore_errors=True)
         shutil.rmtree(home, ignore_errors=True)

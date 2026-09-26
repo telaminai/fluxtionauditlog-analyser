@@ -63,9 +63,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   data. Charts are now drawn off-screen at the page's size. A plot with no room to draw says that, and the no-data
   sentence is kept for charts that really have no data. A requested topology section, or a chart that produced no
   picture, used to leave nothing on the page. It now prints NOT RENDERED with the reason. A topology section for a
-  saved focus is now drawn in the PDF, captioned with its node count, and so is a series section, from the same
-  extraction and chart the Graph tab uses, under the current filter. A focus that no longer resolves, or a series that
-  cannot be extracted, says NOT RENDERED and why (M68.2).
+  saved focus is now drawn in the PDF, captioned with its node count. So is a series section, drawn from exactly its
+  stored call — the same expression, resolution (STRICT unless the call says LOCF) and filter the `series` verb uses
+  for that call, so the picture shows the points the verb counts. The view filter on screen does not apply to it, and
+  the caption says which scope and resolution were drawn. A call a single drawn series cannot carry (`crossings`,
+  `buckets`, `limit`, both `key` and `expr`, an unknown key) says NOT RENDERED and why, as does a focus that no longer
+  resolves (M68.2).
+- **`series` now refuses a `resolve` it does not know.** Anything other than STRICT or LOCF used to become STRICT
+  without a word; it is now an error naming the value.
 - **A project pointer that cannot be followed now says which project root it tried.** A runbook or glossary pointer
   whose file was missing said only "NOT found under the project root", without saying which root. One that could not
   be resolved at all showed no warning: either no project was open, or its path left the project folder. The

@@ -29,7 +29,7 @@ class ReportSeriesPictureTest {
     void aKeySeriesIsDrawn() throws Exception {
         // witness: ReportSeriesPicture.of returning no picture
         var out = new AtomicReference<ReportSeriesPicture.Result>();
-        SwingUtilities.invokeAndWait(() -> out.set(ReportSeriesPicture.of(STORE, new FilterState(),
+        SwingUtilities.invokeAndWait(() -> out.set(ReportSeriesPicture.of(STORE,
                 Map.of("key", "rootNode.v"), 1200, 600)));
         assertNull(out.get().problem(), out.get().problem());
         assertNotNull(out.get().image(), "C: drawn");
@@ -43,8 +43,8 @@ class ReportSeriesPictureTest {
         var expr = new AtomicReference<ReportSeriesPicture.Result>();
         var none = new AtomicReference<ReportSeriesPicture.Result>();
         SwingUtilities.invokeAndWait(() -> {
-            expr.set(ReportSeriesPicture.of(STORE, new FilterState(), Map.of("expr", "rootNode.v * 2"), 1200, 600));
-            none.set(ReportSeriesPicture.of(STORE, new FilterState(), Map.of(), 1200, 600));
+            expr.set(ReportSeriesPicture.of(STORE, Map.of("expr", "rootNode.v * 2"), 1200, 600));
+            none.set(ReportSeriesPicture.of(STORE, Map.of(), 1200, 600));
         });
         assertNotNull(expr.get().image(), String.valueOf(expr.get().problem()));
         assertTrue(expr.get().caption().contains("3 points"), expr.get().caption());
