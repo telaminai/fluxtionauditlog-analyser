@@ -33,6 +33,10 @@ or a G14 pass. The running project remains untouched.
   external roots in user-authored profiles. Verify topology/source with no log, and under
   approved D5 offer a verified reachable process with disclosed inferred
   project association; withhold ambiguous or stale offers. No automatic control or token disclosure.
+  **In review (§I1):** [PR #31](https://github.com/telaminai/fluxtionauditlog-analyser/pull/31) — install-time
+  template-root containment, the visible no-log pairing note and a real-frame no-log journey; the template's
+  design-root and guide change is in review in the template repository. The §I2 console offer is not started.
+  Not closed until merged.
 - ☐ **Project input grants, approved policy; implementation open** — spec §E, feedback 11:
   retain M68.5's canonical root diagnostics work. D3 approves offering explicit role-scoped
   grants at project opening, showing what becomes readable; opening alone authorises neither
@@ -47,6 +51,9 @@ or a G14 pass. The running project remains untouched.
   belongs in the analyser. D1–D8 were approved by the owner on 2026-09-26 and are recorded in
   the spec. Its eight startable slices retain their acceptance, and published/provider checks
   still cannot be closed by branch fixtures. Policy approval advances no implementation mark.
+  **In review, 2026-09-26 (producer repositories, not closed here):** slice 5 compile profile with staged
+  scan output, slice 6 guide text and per-command CLI help, slice 7 audited CSV rejection event (D1). Each
+  was verified on branch fixtures, keyless; published-download acceptance remains open.
 
 The existing **MA-2/MA-5/OD-5**, **Staged feedback — next chart capabilities** and
 **Staged feedback — authoring route and hosted audit boundary** entries retain their statuses.
