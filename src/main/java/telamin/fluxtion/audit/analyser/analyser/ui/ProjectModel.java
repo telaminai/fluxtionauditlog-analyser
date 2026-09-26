@@ -356,8 +356,13 @@ public record ProjectModel(List<Section> sections) {
             // correct on this machine and no other; "~" means correct for this person and no other.
             boolean notPortable = inProject && form != null && (form.equals("absolute") || form.equals("~"))
                     && !(tier != null && tier.startsWith("demo"));
+            // #20: the remedy now NAMES its control. It said "declare a workspace anchor" while no
+            // control to declare one existed anywhere in the app — an instruction whose only execution
+            // was hand-editing the profile. The row's Settings… button opens exactly this page.
             String detail = form == null ? null : "stored as " + form
-                    + (notPortable ? " — this profile will not resolve it on a colleague's machine; declare a workspace anchor or move it under the project" : "");
+                    + (notPortable ? " — this profile will not resolve it on a colleague's machine; "
+                            + "declare a workspace anchor in Settings \u25b8 Source roots, or move it under "
+                            + "the project" : "");
             rows.add(new Row(str(r.get("path")), detail, str(r.get("path")), tier,
                     tier != null && tier.startsWith("demo") ? Tone.MUTED : notPortable ? Tone.WARN : Tone.NORMAL, Target.SETTINGS_SOURCE));
         }

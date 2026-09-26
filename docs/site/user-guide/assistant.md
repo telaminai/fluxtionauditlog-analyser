@@ -376,6 +376,15 @@ second export under the same name is refused rather than silently replacing the 
 yourself, through a menu chooser, are unaffected: picking a location in a dialog *is* the
 authorisation.
 
+**A project may say where that directory is — never whether.** A repository knows something your machine
+does not: that its exports belong in `src/report/shared` beside the evidence they are about. So a profile
+can carry *This project's directory* (Settings ▸ Assistant), a path **relative to the project root** with
+no `..`, and the assistant writes there instead. The permission is untouched: it is yours, it stays in
+your own settings, and opening someone's project can never turn the exchange on. A value that is
+absolute, home-relative, escapes the project, or names a directory that is not there is **refused with
+its reason** and the machine setting is used — nothing is created on your disk by opening a profile.
+`context` reports which tier answered under `exports.source`.
+
 ### Does my client launch the analyser?
 
 **No — you start the analyser yourself, and leave it open.** Your MCP client launches a small *bridge*

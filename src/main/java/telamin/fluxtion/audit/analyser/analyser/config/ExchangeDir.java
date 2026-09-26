@@ -88,14 +88,17 @@ public record ExchangeDir(String dir, String source, String refusal) {
     }
 
     /**
-     * The project's root directory from the active profile path ({@code <root>/.analyser/project…}),
-     * or null when no project is open.
+     * The project's root directory, or null when no project is open.
+     *
+     * <p>Via {@link ProjectProfile#baseDirFor}, which is where the rule lives: a project profile in
+     * {@code <root>/.analyser/} anchors on {@code <root>}, and a loose settings file anchors on its
+     * own directory. A second copy of that rule here would be a second thing to get wrong when named
+     * profiles changed it once already.
      */
-    static Path projectRoot(AppConfig c) {
-        if (c.activeProjectPath == null || c.activeProjectPath.isBlank()) {
+    public static Path projectRoot(AppConfig c) {
+        if (c == null || c.activeProjectPath == null || c.activeProjectPath.isBlank()) {
             return null;
         }
-        Path dir = Path.of(c.activeProjectPath).toAbsolutePath().normalize().getParent();  // .analyser
-        return dir == null ? null : dir.getParent();
+        return ProjectProfile.baseDirFor(Path.of(c.activeProjectPath));
     }
 }
