@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-09-26
+
 - **Source panes show the file as it is now.** After a regeneration, the Topology tab's source pane kept
   showing the old processor, even after the log was reopened; and after renaming a node's class, opening
   that node could still land on the removed class. Every navigation now re-reads the file, reopening a log
