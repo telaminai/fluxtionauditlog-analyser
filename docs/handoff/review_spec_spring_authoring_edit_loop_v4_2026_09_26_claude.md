@@ -167,3 +167,35 @@ exception is C2's hidden D1 dependency.
   - the proposed pipeline, installer, recovery, pane and console behaviours in operation;
   - real provider prerequisites;
   - published-artifact acceptance.
+
+## Addendum, 2026-09-26: decisions commit `13c44071`
+
+Checked `449265ec..13c44071` (the same four files). This is a documentation-only check: the
+decision text and the C1–C3 status, with no source re-inspection.
+
+**D1–D8 are recorded consistently.** The decision table in the spec's final section lists all
+eight as owner-approved on 2026-09-26, and states that approval is not delivery. A search of the
+spec, tracker, upstream asks and companion review found no remaining phrasing that presents a
+decision as open. The patterns searched were "D5 chooses", "past D5", "upstream core rejection
+counter" as a dependency, and "owner chooses". The slice list now names only technical and
+evidential dependencies, and D6 defers Windows entry points explicitly (§G, lines 331–334).
+
+**Status of this review's corrections:**
+- **C2, resolved.** D1 rejects blank rows through the audited typed rejection event. Slice 7 now
+  requires that path before claiming full rejection accounting.
+- **C3, no longer applies.** D7 chose option (a): demo handlers are retyped to the shared
+  interface, and vendor mappers emit it (§I3, lines 616–627). No adapter needs placing, and "no
+  casts to demo classes" stays consistent.
+- **C1, still open.** The §I1 negative case at lines 540–542 is unchanged. The analyser cannot tell
+  which `sourceRoot` is the design root, and profiles legitimately declare roots outside the
+  project (`config/PathForm.java:13,34`). Move the check to `TemplateArchive` installation:
+  - every root in an installed template's profile must resolve inside the installed project after
+    `realpath`, including through symlinks, or the install is refused;
+  - roots in user-written profiles are left to §E and D3;
+  - **control:** remove the install-time check, and a constructed archive with a `../` or
+    symlinked root must fail its install assertion.
+
+**Verdict: ready for implementation once C1 is corrected.** Slices 1–7 may start now. Slice 8's
+negative case needs C1's placement first.
+
+The added lines are clean of public-data terms and local paths (RUN).
