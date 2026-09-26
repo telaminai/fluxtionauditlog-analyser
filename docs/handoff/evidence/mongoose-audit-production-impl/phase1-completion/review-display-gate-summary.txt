@@ -1,0 +1,25 @@
+Display gate on 7bc54231, `verify_project_chart_review.py --mode display`, macOS desktop, JDK 21. Exit 0.
+
+PairingDuringLoadFrameTest: tests=12 failures=0 errors=0 skipped=0
+AsyncOpenInterleavingFrameTest: tests=12 failures=0 errors=0 skipped=0
+SpotlightFrameTest: tests=4 failures=0 errors=0 skipped=0
+WestColumnStartsCollapsedFrameTest: tests=3 failures=0 errors=0 skipped=0
+MenuScreenshotFrameTest: tests=1 failures=0 errors=0 skipped=0
+PersonAtTheScreenFrameTest: tests=3 failures=0 errors=0 skipped=0
+NamedGraphAndMenuSpotlightFrameTest: tests=7 failures=0 errors=0 skipped=0
+SessionRecoveryFrameTest: tests=10 failures=0 errors=0 skipped=0
+SourceFreshnessFrameTest: tests=2 failures=0 errors=0 skipped=0
+TemplateCatalogueFrameTest: tests=1 failures=0 errors=0 skipped=0
+DesignSpotlightFrameTest: tests=4 failures=0 errors=0 skipped=0
+JavaSourceSpotlightFrameTest: tests=12 failures=0 errors=0 skipped=0
+LoadedFileObservationFrameTest: tests=1 failures=0 errors=0 skipped=0
+ChartLifecycleReviewFrameTest: tests=11 failures=0 errors=0 skipped=0
+ProjectPanelChartLifecycleFrameTest: tests=3 failures=0 errors=0 skipped=0
+DuplicateGlobalChartsFrameTest: tests=2 failures=0 errors=0 skipped=0
+SilentActionDisclosureFrameTest: tests=1 failures=0 errors=0 skipped=0
+StatusExplanationSurvivesFrameTest: tests=5 failures=0 errors=0 skipped=0
+DuplicateChartRepairFrameTest: tests=10 failures=0 errors=0 skipped=0
+MenuLayoutFrameTest: tests=5 failures=0 errors=0 skipped=0
+NoLogDesignJourneyFrameTest: tests=1 failures=0 errors=0 skipped=0
+LogFindingsOnEverySurfaceFrameTest: tests=5 failures=0 errors=0 skipped=0
+TOTAL: tests=115 failures=0 errors=0 skipped=0

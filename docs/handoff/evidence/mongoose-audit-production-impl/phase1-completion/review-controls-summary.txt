@@ -1,0 +1,23 @@
+The sixteen registered controls (tools/mutation_controls_session.py, p15-* and p16-*), run through
+`verify_project_chart_review.py --mode mutations --engine fast --case ...` on this branch. Columns: name | verdict |
+byte-identical restore | the named test that went red | its assertion (truncated). The first ten were one run, which
+stopped at p16-h3 SURVIVING the review's scenario as stated (a record appended); the test was changed (7bc54231) and
+the last six, h3 included, were a second run.
+
+p15-pdf-log-findings-callout | caught | restored=True | theLogsFindingsAreOnThePdf_damageFirst | AssertionFailedError: the page states what the file itself shows
+p15-report-reply-producer | caught | restored=True | anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives | AssertionFailedError: D-MA0c: the report verb's reply: {ok=true, action=report, applied={name=inv, title=inv, created=true, sections=1, writtenAgainst
+p15-reports-tab-banner | caught | restored=True | anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives | AssertionFailedError: D-MA0c: the Reports tab: inv
+p15-follow-line-keeps-warning | caught | restored=True | anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives | AssertionFailedError: the status bar, on the line Follow starts with: Following empty.yml — watching for new records…
+p15-ledger-level-change | caught | restored=True | aReportsCoverageRowCarriesTheLevelChange_andStaysUncovered | AssertionFailedError: the row carries the level change the coverage verb returns: {instanceId=riskMonitor, class=com.acme.demo.node.Nodes$RiskMonitor,
+p15-c25-empty-log-raised | caught | restored=True | c25_aMarkerDeclaringZeroIsCompleteAndStillAnEmptyLog | java.lang.AssertionError: c25-marker-declaring-zero.yaml: an empty file raised nothing: []
+p15-c29-no-record-key-raised | caught | restored=True | c29_aCompleteFileCanStillHoldADocumentWithNoRecordKey | AssertionFailedError: the headerless document is named: []
+p15-c30-control-event-parse | caught | restored=True | c30_aPerNodeLevelChangeAnnotatesTheSameNodeOnBothPaths | AssertionFailedError: the quiet node is annotated with its level: {authorshipBasis=inferred, ratioAvailable=true, ratio=0.0, logRecords=2, note=a node
+p16-h1-frame-pdf-gets-findings | caught | restored=True | theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives | AssertionFailedError: H1: the exported PDF states what the file itself shows
+p16-h2-tab-refresh-on-load | caught | restored=True | theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween | AssertionFailedError: the new log's finding — its record with no record key — is on the tab: inv
+p16-h3-tab-refresh-on-follow | caught | restored=True | theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween | AssertionFailedError: H3: the findings changed with no new record, and the tab must say so: inv  written against empty.yml · 0 record(s) · view: all ev
+p16-h4-level-change-on-every-row | caught | restored=True | levelChangesNeverMoveTheDenominatorOrTheLedger | AssertionFailedError: the rows carrying levelChange are the annotated nodes at 1003
+p16-v2-pending-frame-is-not-empty | caught | restored=True | aRecordStillBeingWrittenIsNotAnEmptyFile | AssertionFailedError: the status bar: Following empty.yml · 0 records · no timestamps  ·  ⚠ empty log — ask 'context', or hover · 1 trailing record pe
+p16-wording-marker-says-ended | caught | restored=True | c25_aMarkerDeclaringZeroIsCompleteAndStillAnEmptyLog | AssertionFailedError: c25-marker-declaring-zero.yaml: one wording per shape, about the file: No records in this file yet. A file can be empty because
+p16-wording-rolled-set | caught | restored=True | aRolledSetOfEmptyMembersIsNamedAsASet | AssertionFailedError: named as a set: No records in this file yet. A file can be empty because nothing has been written, because the writer is bufferi
+p16-tab-note-only-muted | caught | restored=True | aNoteOnlySetIsDrawnMuted_likeThePdf | AssertionFailedError: a statement of a limit is drawn muted, not as a warning
+16 controls, 16 caught

@@ -641,7 +641,8 @@ comment.
 ## Phase 1 completion — D-MA0c, MA-0.5, MA-8's report path, MA-6.3 (2026-09-26)
 
 Branch `feat/mongoose-audit-phase1-completion`, from `main` `14d04a2f` (1.22.0), one branch for one review at the
-owner's request. Predictions P15 committed first (`2cf3bfe6`); implementation `25d031e1`. **Not reviewed yet.**
+owner's request. Predictions P15 committed first (`2cf3bfe6`); implementation `25d031e1`. **Reviewed once** — behaviour
+accepted, merge refused on protection; fixed below (*Review of phase-1 completion*).
 
 | Item | What changed | Regression |
 | --- | --- | --- |
@@ -672,6 +673,54 @@ decisive run** and has not happened
 Also: `mkdocs build --strict`, `git diff --check`, the four doc tests and the public-repo sweep pass; the format-spec
 page gains rows C25–C30. **Not fixed, noticed:** that page's fixture table already lacked C19–C24; left for a
 separate change rather than widened into this one.
+
+### Review of phase-1 completion — four required, five optional, all taken
+
+The review accepted the behaviour and refused the merge: the frame's PDF path (H1) and the Reports tab refresh on load
+(H2) and on Follow (H3) had no regression, and none of the eight witnesses was in the CI gate. Predictions P16 first
+(`6725efc1`). `main` 1.22.1 merged INTO this branch (`bd4d2a2d`) because PR #40 was CONFLICTING and ran no CI; only
+`CHANGELOG.md` conflicted. Fixes `ac766a35`, `7bc54231`.
+
+| # | Item | Test | Control | Red at |
+| --- | --- | --- | --- | --- |
+| 1 | H1 — the PDF through the frame | `LogFindingsOnEverySurfaceFrameTest#theExportedPdfCarriesTheLogsFindings_andLosesThemWhenARecordArrives` (`report {path}` → `renderReportPdf`) | `p16-h1-frame-pdf-gets-findings` | "H1: the exported PDF states what the file itself shows" |
+| 2 | H2 — the tab on load | `…#theTabIsCurrentAfterASecondLogLoads_withNoVerbInBetween` (c29 opened over an empty file; waits on frame fields) | `p16-h2-tab-refresh-on-load` | "the new log's finding … is on the tab" |
+| 2 | H3 — the tab on Follow | `…#theTabIsCurrentAfterAFollowPoll_withNoVerbInBetween` | `p16-h3-tab-refresh-on-follow` | "H3: the findings changed with no new record, and the tab must say so" |
+| 3 | Registration | 16 entries in `tools/mutation_controls_session.py`; preflight **167 → 183** anchors, each once | all 16 | [summary](evidence/mongoose-audit-production-impl/phase1-completion/review-controls-summary.txt) |
+| 5 | H4 — MA-8.2 | `CoveragePerNodeLevelTest#levelChangesNeverMoveTheDenominatorOrTheLedger` | `p16-h4-level-change-on-every-row` | "the rows carrying levelChange are the annotated nodes at 1003" |
+| 6 | Messages in `bothPathsAgree` | `FormatConformanceTest` (all 34) | **none** — see below | — |
+| 7 | V2 on every surface | `…#aRecordStillBeingWrittenIsNotAnEmptyFile` | `p16-v2-pending-frame-is-not-empty` | "the status bar: … ⚠ empty log …" |
+| 8 | Wording by shape | `FormatConformanceTest#c25…`, `EmptyLogAndRecordKeyDiagnosticsTest#aRolledSetOfEmptyMembersIsNamedAsASet` (through `RolledLogStore`), `#aFileWhoseMarkerSaysItEndedEmptyIsNotWaitingForAWriter` | `p16-wording-marker-says-ended`, `p16-wording-rolled-set` | "one wording per shape"; "named as a set" |
+| 9 | Note-only muted on the tab | `ReportsPanelLogFindingsTest` (colour against the tab's own muted line; a warning control) | `p16-tab-note-only-muted` | "a statement of a limit is drawn muted, not as a warning" |
+
+**H3 as the review stated it survived, and the test was wrong, not the code.** The first gate run stopped at
+`p16-h3` *survived*. A probe (a stack trace on every render, bytes restored) showed why: a poll that ADDS records
+re-applies the filter, and `onFilterChanged` re-renders the tab (`reportsPanel.rerender()`, D-I3, `:4996`) — so with a
+record appended the Follow refresh is redundant. It is load-bearing only when the findings change with no new record.
+The test now appends a document still being written — the file stops being empty (V2), no row is added, and it asserts
+no row was added — then reads the tab. That was P16.2's named risk, from the other direction.
+
+**Item 6 has no control, deliberately.** Both paths build findings with one `ProducerDiagnostics`, and no fixture
+carries a path-only diagnostic, so any production mutation of a wording changes both paths alike. The comparison
+guards a future divergence; it is recorded as a test change with no witness.
+
+**Item 8's wording**, one sentence per shape, all opening on "No records": a file that may still be written — "No
+records in this file yet." (unchanged); a single file whose marker says it ended with zero —
+"No records in this file, and its stream-end marker says the writer finished having written none.", with no "yet" and
+no buffering; a rolled set — "No records in this rolled set yet: none of its N files holds a record." Cold open and
+Follow pass the same stream-end state, so V2 holds.
+
+**The V2 test's first tab read is vacuous** (no report is selected when it runs); the V2 control went red at the status
+bar instead. The tab under a pending frame is covered by the H3 test, where a report is selected.
+
+**Gates:** headless **2427 / 0 / 0 / 115** over 326 reports, no orphans. Display gate on `7bc54231`: 22 suites, **115
+tests, 0 failures, 0 errors, 0 skips** — the focus skip did not recur
+([summary](evidence/mongoose-audit-production-impl/phase1-completion/review-display-gate-summary.txt)). All sixteen
+controls red at their named assertion, byte-identical restore, green after.
+
+**Predictions, the misses.** P16.2 half wrong (H3, above). P16.3 said fifteen controls; sixteen, because the rolled-set
+wording needed its own. P16.9's total was wrong: it counted this branch's tests (+4 run headless and +3 frame tests
+skipped headless — both as predicted) and not the ones `main` 1.22.1 brought in (+15, +2 skipped).
 
 ## Tenth re-review — targeted acceptance of the ninth round
 

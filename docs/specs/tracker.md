@@ -196,7 +196,9 @@ still to do.
   onto M44.4/M68 (PR #34). D-MA0c and MA-0.5 above remain open; shipping closes neither.
   **D-MA0c and MA-0.5 IMPLEMENTED, awaiting review (2026-09-26)** on `feat/mongoose-audit-phase1-completion`: the
   findings are on the PDF, the Reports tab and the `report` reply; one empty-file wording; the Follow status line
-  keeps its warning (found by the new frame test). Report ▸ *Phase 1 completion*.
+  keeps its warning (found by the new frame test). Report ▸ *Phase 1 completion*. **Reviewed once:** behaviour
+  accepted; the protection it asked for is in — the frame's PDF, the tab on load and on Follow, sixteen controls in the
+  CI gate — and the empty-log sentence is now one per shape (a marker that says it ended, a rolled set).
 - **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
   processor with no `EventLogManager`** — including **AOT processors built without audit**, the
   low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);

@@ -545,3 +545,12 @@ text uncompressed (`(…) Tj`, only `—`/quotes/ellipsis substituted), so ASCII
     this branch's lines under `[Unreleased]`.
 11. **P16.11 — CI.** Build green; `ui-frame` under Xvfb green with **zero skips** — the local focus skip does not recur
     there; `mutation-gate` green over the full gate, the new controls included.
+
+**P16 outcome (recorded after the trials, `7bc54231`).** P16.1 held. P16.2 **half wrong**: H2 held; H3 as the review
+stated it (a record appended) SURVIVED, because an append re-renders the tab through `onFilterChanged` — the named risk,
+from the other side — and the test now drives a change that adds no record. P16.3 **wrong by one**: sixteen controls,
+not fifteen (the rolled-set wording has its own); preflight 167 → 183, each anchor once. P16.4 held. P16.5 held — 34/34
+with messages compared, no control. P16.6 held, red at the status bar. P16.7 held. P16.8 held. P16.9 **wrong on the
+total**: this branch's own +4 headless and +3 skipped are as predicted, but the merge of `main` 1.22.1 added 15 tests and
+2 skips the prediction did not count — 2427/0/0/115. Display: 115 frame tests, no skip. P16.10 held (CHANGELOG only).
+P16.11 is CI's, recorded in the report once it has run.
