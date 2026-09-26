@@ -32,6 +32,12 @@ jobs:
         run: python3 tools/test_tools.py
       - name: Acceptance analyser supervision tests
         run: python3 tools/test_analyser_session_watch.py
+      # The G14 harness grants the compilation key, and its key-leak scan is the declared
+      # compensating control. Under rule 8 a check that never runs is not a check, so the scan's
+      # regression tests run here. They patch KEY_FILE and TRIAL_TOKEN onto temporary files, start
+      # no model session and contact no network.
+      - name: G14 harness tests (key-leak scan, group reaping, refusals)
+        run: python3 tools/test_g14_runner.py
       # UI classes are only constructed, never shown, so the headless ubuntu runner is fine.
       - run: mvn -B verify
 
