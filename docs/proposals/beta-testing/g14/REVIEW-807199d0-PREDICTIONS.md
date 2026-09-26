@@ -77,4 +77,29 @@ fail by design, so a failed scan with 0 `secretOccurrences` is not by itself a l
 
 ## Misses
 
-Recorded after implementation.
+Three, two of them substantive.
+
+**Prediction 2 was wrong — the keychain could not be removed.** I predicted the documentation would
+show an explicit `CLAUDE_CODE_OAUTH_TOKEN` made the keychain unnecessary. It shows the opposite:
+`claude --help` documents keychain reads as something only `--bare` skips, and `--bare` makes auth
+"strictly ANTHROPIC_API_KEY or apiKeyHelper (OAuth and keychain are never read)" — incompatible with
+the OAuth token this rig supplies. So the only documented way to stop the read also stops the auth.
+Narrowed to the login keychain database instead of removed, and stated in PROTOCOL's claims-to-test
+list. If a reviewer can show the read is unnecessary, the grant should go entirely.
+
+**The reaping fix was wrong the first time, and its own test caught it.** I predicted the group test
+would pass once `killpg` was in place. It failed: `reap_process_group` reported failure even though
+both processes were dead. `killpg(pgid, 0)` was the liveness probe, and after the leader is signalled
+it becomes a ZOMBIE until this process waits on it — so the probe kept reporting the group alive and
+the reaper always fell through to failure. Fixed by enumerating the group with `ps` and discarding
+zombies. Worth recording because the bug was invisible to the design and only a real child-plus-
+grandchild test exposed it.
+
+**A test bug, not a code bug.** The `python3 -O` control ran its script through `-c`, where `__file__`
+is undefined, so the refusal looked as though it had not held. The script now passes an explicit path.
+
+**Predictions that held:** the empty Maven settings file (the templates declare `central` and the
+public Repsy repository in their own POM and resolve anonymously); the key file being a Java
+`Properties` file, which made `:` and whitespace legal separators an `=`-only parser would have
+missed; and the mis-numbered Q4 condition — main's answer enumerates no conditions at all, so "the
+fourth condition" described a structure that never existed.

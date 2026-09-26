@@ -97,8 +97,10 @@ All four, and the tracker's wording is deliberate — a run that *executes* is n
 1. **Acquisition** — the subject obtained the published download itself, and its digest matches the
    pristine copy the operator preserved.
 2. **Generation and run** — from that download, with the key, producing a processor and a run.
-3. **Canvas** — a chart or report made from actually logged values in the isolated analyser. This is
-   the step the 1.0.74 attempt never reached.
+3. **Canvas** — a chart or report made from actually logged values in the isolated analyser, and the
+   chart the subject produced **carries no superseded-content mark**: it was drawn from content the
+   session still holds as current. This is the step the 1.0.74 attempt never reached, and the mark is
+   the surface Q4's answer is about (M68.7).
 4. **Clean scans** — `keyscan.json` clean, and no claim in the subject's report that the transcript
    does not support.
 
@@ -111,14 +113,16 @@ counted as an acceptance.
 This harness is implemented and its controls are tested; **it does not schedule G14**. Two things must
 be settled by a person before an attempt, and neither is a code change.
 
-**M68 — one condition of its own answer gates this gate.** The owner answered Q4 on 2026-09-26: M68
-ships as an **explicit partial delivery**, because D-E9's producer half belongs to the Mongoose audit
-format work and M68 can therefore never be complete in this repository. That answer carries four
-conditions, and the fourth is addressed to G14:
+**M68 — part of its own answer gates this gate.** The owner answered Q4 on 2026-09-26: M68 ships as
+an explicit partial delivery, because D-E9's producer half belongs to the Mongoose audit format work
+and M68 can therefore never be complete in this repository. The answer addresses G14 directly. Quoting
+`docs/specs/spec-evidence-integrity.md` verbatim:
 
-> **charts are marked before G14 runs** — the charts must carry the file-identity mark (**M68.7**),
-> because G14's pass condition lands on that exact surface: an unmarked chart beside a marked table
-> would let G14 pass on content the session already knows is superseded.
+> **One gap is
+> closed before G14 runs, not after: the charts carry the file-identity mark (M68.7),** because G14's pass condition
+> lands on that exact surface; an unmarked chart beside a marked table would let G14 pass on content the session
+> already knows is superseded. The table stays marked rather than suspended. The detail pane's mark is part of M68.7
+> but does not gate G14.
 
 So M68 shipping does not by itself release G14. **M68.7 is the tracker's next M68 item and is this
 gate's prerequisite.** The detail pane's mark is part of M68.7 too but explicitly does not gate G14,
@@ -142,19 +146,32 @@ unaided will spend the effort there instead of on the design.
   key. Judge whether `key_leak_scan` plus a narrowed profile is adequate compensation, and whether the
   profile in `isolation_profile()` actually denies what this file claims it denies. The claims to test:
   the source tree unreadable, other analyser instances unreachable, `~/.fluxtion` invisible apart from
-  the key file itself.
+  the key file itself, **no grant for the owner's local Maven repository** (Java takes `user.home` from
+  the account, not the environment, so without this every JVM the subject starts would resolve to it),
+  and **the keychain reachable only as the single login database file**, never as a directory. The last
+  two were found by review, not by this document, which is why they are named here.
 - **The scan is detective, not preventive.** The transcript reaches disk before the scan runs, so a
   leak is already written when it is found. The verdict tells you to rotate. If that is judged
   insufficient, the alternative is a broker that injects the key without exposing the file, which is
   not implemented here.
+- **A failed scan is not automatically a leak.** The subject's `HOME` is `<base>/tmp/home`, so a
+  literal `cat ~/.fluxtion/fluxtion.apiKeyFile` reads a path that does not hold the key and can find
+  nothing. It still counts as a hygiene failure by design — the intent is what is being measured — so
+  a verdict with `keyPathReads` above zero and `secretOccurrences` at zero means the subject reached
+  for the key and missed, not that the key escaped. Read both numbers before rotating.
 - **`keyPathReads` is a regex over transcript text.** It catches the observed shape
   (`cat ~/.fluxtion/fluxtion.apiKeyFile`) and near neighbours. It will not catch an obfuscated read.
   It is a hygiene check, not an exfiltration defence.
-- **Tested and untested.** `tools/test_g14_runner.py` covers the scan: both leak shapes, every output
-  file, the short-value false-positive guard, the vacuous-when-absent case, and that the verdict never
-  contains the secret. `--preflight` has been exercised end to end. **`run_trial` has never been run** —
-  it needs the key and a staged analyser instance, so it is reviewed code, not exercised code. Treat
-  the first execution as part of the attempt and supervise it.
+- **Tested and untested.** `tools/test_g14_runner.py` covers the key-leak scan (every separator the
+  key file's `Properties` format allows, the project tree as well as the transcript, binaries and
+  oversize files skipped, the short-value false-positive guard, the vacuous-when-absent case, and that
+  the verdict never contains the secret), the sandbox profile's two reviewed grants, process-group
+  reaping against a real grandchild, and the refusals under `python3 -O`. It runs in CI. Two of those
+  carry a control that must go red when the fix is removed — the local Maven repository grant, and
+  leader-only signalling. **`run_trial`'s launch path has still never been executed** — it needs the
+  key and a staged analyser instance, so it is reviewed code, not exercised code. Its refusal paths
+  are exercised; nothing beyond them is. Treat the first execution as part of the attempt and
+  supervise it.
 - **One run is a hypothesis.** METHOD.md records that the current release checks are n = 1 per cell
   against the retired protocol's "three runs each". G14 is a single acceptance by construction, which
   is defensible for a gate about one published artefact — but say so in `SCORE.md` rather than letting

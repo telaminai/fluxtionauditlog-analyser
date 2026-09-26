@@ -15,6 +15,11 @@ Nothing below may change after sealing. A prediction edited after a result is no
 - Analyser: released `<jar>` sha256 `<digest>`; control `<jar>` sha256 `<digest>` if one is in play.
 - Cloud generator expected to stamp: `target generator version <x.y.z>`.
 - Instances: one isolated analyser per run. Cap `<seconds>`. Models and runs per cell: `<…>`.
+- **M68.7 chart marking landed in: release `<x.y.z>` / commit `<sha>`.** Not prose — fill it in or do
+  not seal. Q4's answer closes this gap *before* G14 runs, because an unmarked chart beside a marked
+  table would let this gate pass on content the session already knows is superseded.
+- Per-run Maven repository: `<base>/tmp/m2`, empty at launch. Recorded again in `meta.json` with its
+  final size, so a reviewer can see the build resolved from the network rather than from a warm cache.
 
 State the pristine digest here **before** launch. The run records what the subject actually obtained;
 the gate is that the two agree.
