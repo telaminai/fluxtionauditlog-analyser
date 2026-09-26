@@ -21,6 +21,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A Ctrl-click that cannot be checked now says why.** If the source reads are backed up or the lookup fails,
   the node pane explains it instead of silently doing nothing, and Back, opening a file, a spotlight or opening
   a node all cancel a pending Ctrl-click so it can no longer open a class over what you navigated to.
+  In Processor-only mode, a failed check opens Split view so its explanation is visible alongside the processor.
 - **A rolled set now stops serving a member file that changed in place, and says which one.** A single log whose
   file was rewritten in place is refused until it is reopened, but the same file inside a rolled set was still read,
   through an index that no longer matched it. A rolled set now reports its members' changes, naming the member, and

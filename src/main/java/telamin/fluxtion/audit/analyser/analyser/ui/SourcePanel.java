@@ -279,6 +279,7 @@ public final class SourcePanel extends JPanel {
             pendingTypeCheck = null;
             typeClickTicket++;                                    // finished: nothing later may navigate or expire
             String reason = failure.getMessage() != null ? failure.getMessage() : failure.getClass().getSimpleName();
+            revealPaneFor(nodePane);                              // failure feedback must also be visible in Processor-only mode
             nodePane.label.setText("could not check whether " + fqn + " has source: " + reason);
             decisions.accept("type-check " + fqn + ": failed: " + reason);
         });

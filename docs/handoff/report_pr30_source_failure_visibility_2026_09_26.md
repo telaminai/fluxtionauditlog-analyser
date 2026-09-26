@@ -29,4 +29,63 @@ mutation is planned. Record actual results below, including any prediction misse
 
 ## Results
 
-Pending. This prediction record claims no completed correction or verification.
+The prediction above was committed as `a70edec6` before the test or correction was written.
+
+**N1 fixed:** the current-ticket failure callback calls the existing `revealPaneFor(nodePane)`
+after finishing the check, before setting its label. Processor-only mode therefore becomes
+Split. The existing stale-ticket guard remains before every UI effect. No new message service,
+source read, history entry or model installation is introduced. The guide and Unreleased entry
+now describe that visible mode change explicitly.
+
+**Regression:** `SourceFreshnessFrameTest.aFailedTypeClickInProcessorModeShowsItsReason` uses
+MainFrame under an isolated home. It loads constructed processor Java, selects the Source tab
+and Processor-only mode, locates the `C()` token and dispatches a Ctrl-modified mouse-pressed
+event to the real text component. Its production mouse listener resolves the type and starts
+the injected failing lookup. This is a synthetic Swing mouse event in a real window, not a
+socket verb, a direct call to `openTypeIfPresent`, or a physical/Robot click.
+
+The test first asserts the Node label is hidden and processor text is showing. It waits for
+the actual failure decision, then checks the reason, `isShowing()`, nonempty visible bounds,
+the still-visible unchanged processor and completed check state.
+
+**Observed before correction:** against product source identical to `bf9c47b7`, the new test
+reported **1 total / 1 failure / 0 errors / 0 skips**, at its intended assertion:
+
+> a failed type click must show its reason in Processor-only mode ==> expected: <true> but was: <false>
+
+After adding the reveal call, the frame class passes. No baseline failure was an error or skip.
+This is a reproduced before/after regression; no mutation or byte-restore claim is made.
+
+**Optional N2 taken:** the stale-failure fake now remains held across cancellation interrupts
+until explicitly released. The newer navigation runs on the EDT; the test establishes A is
+shown and no old decision has arrived before releasing C. It still requires the actual
+`discarded` decision and unchanged A feedback. A `finally` releases the fake on assertion
+failure. This removes the misleading ordering claim identified by the review.
+
+## Commands and verification
+
+All runs used Corretto JDK 21 on macOS, in the isolated fix worktree. Display classes ran
+sequentially. Counts are total / failures / errors / skips from their Surefire XML.
+
+| Command | Result |
+|---|---|
+| `mvn -o -q test -Dtest=SourceFreshnessFrameTest#aFailedTypeClickInProcessorModeShowsItsReason -Djava.awt.headless=false -DargLine=-Djava.awt.headless=false` before fix | **1 / 1 / 0 / 0**, intended assertion above |
+| `mvn -o -q test -Dtest=SourcePanelFreshnessTest,SourceServiceTest,SourcePanelRootChangeTest` after fix | **23 + 5 + 6 = 34 / 0 / 0 / 0** |
+| `mvn -o -q test -Dtest=SourceFreshnessFrameTest -Djava.awt.headless=false -DargLine=-Djava.awt.headless=false` after fix | **2 / 0 / 0 / 0** |
+| `mvn -o -q test -Dtest=JavaSourceSpotlightFrameTest -Djava.awt.headless=false -DargLine=-Djava.awt.headless=false` after fix | **12 / 0 / 0 / 0** |
+| `mkdocs build --strict` | Passed |
+| `git diff --check` | Passed |
+| CLAUDE.md rule-one terms over tracked files and additions | Clean |
+
+All four frozen predictions held. The final scoped totals are **34 headless and 14 display**,
+with no failures, errors or skips.
+
+**READ:** `SourceFreshnessFrameTest` is already included in both CI display lists; no list edit
+or new suite was required. The current-ticket guard remains ahead of the reveal, so the
+obsolete-failure test still protects newer feedback. No generic screenshot depicts this
+conditional error state; the normal menu/source layout did not change.
+
+**Not run:** full suite, mutation gate/manual mutations, provider legs, LLM sessions or public
+release acceptance. The earlier unrun P2 remains unverified; this work does not supply its
+missing baseline. No participant files or keys were accessed. No owner policy was changed.
+No merge or release is performed; the author retains acceptance and merge responsibility.

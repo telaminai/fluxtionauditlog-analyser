@@ -33,7 +33,9 @@ occupy both workers; further reads then time out and say so. A node you asked to
 Ctrl-click on a type checks that
 it has source in the background, within the same time limit. A newer click or any navigation — Back, opening a
 file, a spotlight or opening a node — supersedes it, and a check that runs out of time never opens anything
-later. If the check cannot run (the reads are backed up) or fails, the node pane says why. **Back** returns to the last file you actually saw: a "not found" pane is
+later. If the check cannot run (the reads are backed up) or fails, the node pane says why;
+Processor-only mode switches to Split so the message and processor are both visible.
+**Back** returns to the last file you actually saw: a "not found" pane is
 not added to the history.
 
 ## Spring design and file glances

@@ -34,6 +34,66 @@ class SourceFreshnessFrameTest {
     }
 
     @Test
+    void aFailedTypeClickInProcessorModeShowsItsReason(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
+        Path root = Files.createDirectories(tmp.resolve("src"));
+        String processor = "com.acme.Processor";
+        String code = "package com.acme;\nimport com.acme.C;\npublic class Processor {\n"
+                + "    public Object build() { return new C(); }\n}\n";
+        Path file = root.resolve("com/acme/Processor.java");
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, code);
+        try (var f = new Frame(tmp)) {
+            SourcePanel panel = (SourcePanel) field(f.frame, "sourcePanel");
+            var outcome = new java.util.concurrent.LinkedBlockingQueue<String>();
+            var clicked = new AtomicReference<String>();
+            onEdt(() -> {
+                ((SourceService) field(f.frame, "sourceService")).configure(List.of(root.toString()), processor);
+                panel.existence = (lookup, fqn) -> {
+                    clicked.set(fqn);
+                    throw new java.io.UncheckedIOException(new java.io.IOException("fixture lookup failed"));
+                };
+                panel.decisions = d -> { if (d.startsWith("type-check")) outcome.add(d); };
+                panel.setMode(SourcePanel.Mode.PROCESSOR);
+                ((javax.swing.JTabbedPane) field(f.frame, "sideTabs")).setSelectedComponent(panel);
+                f.frame.setSize(1500, 950); f.frame.setVisible(true); f.frame.validate();
+                panel.openFqn(processor);
+            });
+            await(() -> panel.processorPaneText().equals(code), () -> "processor not loaded: " + panel.processorPaneText());
+            Object processorPane = field(panel, "processorPane");
+            Object nodePane = field(panel, "nodePane");
+            var label = (javax.swing.JTextArea) field(nodePane, "label");
+            onEdt(() -> {
+                assertFalse(label.isShowing(), "control: Node feedback is hidden in Processor-only mode");
+                var text = (javax.swing.JTextPane) field(processorPane, "text");
+                assertTrue(text.isShowing(), "control: the real processor text is on screen");
+                try {
+                    var character = text.modelToView2D(code.indexOf("C()"));
+                    assertNotNull(character, "control: the clicked type has screen geometry");
+                    text.dispatchEvent(new java.awt.event.MouseEvent(text, java.awt.event.MouseEvent.MOUSE_PRESSED,
+                            System.currentTimeMillis(), java.awt.event.InputEvent.CTRL_DOWN_MASK,
+                            (int) character.getX() + 2, (int) character.getCenterY(), 1, false,
+                            java.awt.event.MouseEvent.BUTTON1));
+                } catch (javax.swing.text.BadLocationException e) {
+                    throw new AssertionError("cannot locate the type click", e);
+                }
+            });
+            assertEquals("type-check com.acme.C: failed: java.io.IOException: fixture lookup failed",
+                    outcome.poll(5, TimeUnit.SECONDS), "the real text mouse listener reached the failure decision");
+            assertEquals("com.acme.C", clicked.get(), "the clicked type was resolved by the processor model");
+            onEdt(() -> {
+                f.frame.validate();
+                assertTrue(label.getText().contains("fixture lookup failed"), "the actual failure reason is retained");
+                assertTrue(label.isShowing(), "a failed type click must show its reason in Processor-only mode");
+                assertFalse(label.getVisibleRect().isEmpty(), "the failure label has visible bounds");
+                assertTrue(((javax.swing.JComponent) processorPane).isShowing(), "the processor stays on screen");
+                assertEquals(code, panel.processorPaneText(), "showing the failure does not replace processor text");
+                assertFalse(panel.typeCheckPending(), "the visible failure finishes the check");
+            });
+        }
+    }
+
+    @Test
     void bothPanesShowTheFileAsItIsAfterTheLogIsReopenedAndOnTheNextNavigation(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "real display required");
         Path root = Files.createDirectories(tmp.resolve("src"));

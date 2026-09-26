@@ -393,14 +393,33 @@ class SourcePanelFreshnessTest {
         CountDownLatch release = new CountDownLatch(1), entered = new CountDownLatch(1);
         panel.existence = (lookup, fqn) -> {
             entered.countDown();
-            try { release.await(10, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-            throw new java.io.UncheckedIOException(new java.io.IOException("disk said no"));
+            boolean interrupted = false;
+            try {
+                while (true) {
+                    try {
+                        if (!release.await(10, TimeUnit.SECONDS)) throw new AssertionError("held failure was not released");
+                        break;
+                    } catch (InterruptedException cancellation) {
+                        interrupted = true;                     // model a lookup that completes only on explicit release
+                    }
+                }
+                throw new java.io.UncheckedIOException(new java.io.IOException("disk said no"));
+            } finally {
+                if (interrupted) Thread.currentThread().interrupt();
+            }
         };
         SwingUtilities.invokeAndWait(() -> panel.openTypeIfPresent(c));
         assertTrue(entered.await(5, TimeUnit.SECONDS), "control: the Ctrl-click check is running");
-        panel.openFqn(a); settle(panel);                          // the newer navigation
-        String newerLabel = panel.nodeLabel();
-        release.countDown();                                     // C's lookup now fails, after A was shown
+        String newerLabel;
+        try {
+            SwingUtilities.invokeAndWait(() -> panel.openFqn(a));
+            settle(panel);
+            newerLabel = panel.nodeLabel();
+            assertTrue(panel.nodePaneText().contains("int a = 1;"), "control: A is shown before the old failure is released");
+            assertTrue(outcome.isEmpty(), "control: cancellation did not release the held failure");
+        } finally {
+            release.countDown();                                 // C's lookup now fails, after A was shown
+        }
         String decided = outcome.poll(5, TimeUnit.SECONDS);
         awaitSourceWorkIdle();
         assertEquals("type-check " + c + ": discarded", decided, "the obsolete failure reached its decision as discarded");
