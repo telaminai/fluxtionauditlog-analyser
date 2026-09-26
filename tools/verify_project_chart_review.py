@@ -290,7 +290,7 @@ CASES += [
      'SourcePanelFreshnessTest#navigatingToTheSameClassAgainShowsItsFileAsItIsNow'),
     # §C: an answer past its deadline (or superseded) is never installed
     ('source-stale-ticket', SOURCE_PANEL,
-     '            deadline.stop();\n            if (pane.readTicket != ticket) return;\n            pane.reading = false;\n            if (service == null',
+     '            deadline.stop();\n            if (pane.readTicket != ticket) { decisions.accept("discarded " + fqn + ": superseded or expired"); return; }\n            pane.reading = false;\n            if (service == null',
      '            deadline.stop();\n            pane.reading = false;\n            if (service == null',
      'SourcePanelFreshnessTest#aReadPastItsDeadlineSaysSoAndItsLateAnswerIsIgnored'),
     # PR #30 review 1: two panels share the service; an older read landing last must not replace a newer model
@@ -302,11 +302,8 @@ CASES += [
      'SourceServiceTest#onTheEdtAnUnreadModelIsNotReadAndSaysSo'),
     # PR #30 review 3: a Ctrl-click's existence check runs off the EDT
     ('source-type-click-off-edt', SOURCE_PANEL,
-     '        offEdt(() -> check.apply(lookup, fqn), present -> {\n'
-     '            if (ticket == typeClickTicket && Boolean.TRUE.equals(present) && service.isCurrent(lookup)) openFqn(fqn);\n'
-     '        }, failure -> { });\n',
-     '        Boolean present = check.apply(lookup, fqn);\n'
-     '        if (ticket == typeClickTicket && Boolean.TRUE.equals(present) && service.isCurrent(lookup)) openFqn(fqn);\n',
+     '        pendingTypeCheck = offEdt(() -> check.apply(lookup, fqn), present -> {\n',
+     '        Boolean onEdt = check.apply(lookup, fqn);\n        pendingTypeCheck = offEdt(() -> onEdt, present -> {\n',
      'SourcePanelFreshnessTest#aTypeClickChecksExistenceOffTheEdtThenOpensIt'),
     # PR #30 review 4: at the deadline the body stops saying it is reading
     ('source-timeout-body', SOURCE_PANEL,
