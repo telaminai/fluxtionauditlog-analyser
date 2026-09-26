@@ -55,14 +55,22 @@ class TemplateArchiveTest {
 
     @Test
     void archiveExecutableClaimIsIgnoredOutsideTheFixedAllowlist() throws Exception {
-        byte[] archive = zip(Map.of("bundle/evil.sh", "not an allowed program".getBytes()));
+        // evil.sh is not on the list at all; tools/generate.sh has an allowed basename but is nested, and
+        // only root entries may become executable (a basename-only match would wrongly allow it).
+        Map<String, byte[]> entries = new LinkedHashMap<>();
+        entries.put("bundle/evil.sh", "not an allowed program".getBytes());
+        entries.put("bundle/tools/generate.sh", "#!/bin/sh\necho nested\n".getBytes());
+        byte[] archive = zip(entries);
         Path destination = temp.resolve("mode");
         new TemplateArchive().install(claimExecutable(archive), destination);
         try {
-            Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(destination.resolve("evil.sh"));
-            assertFalse(permissions.contains(PosixFilePermission.OWNER_EXECUTE));
-            assertFalse(permissions.contains(PosixFilePermission.GROUP_EXECUTE));
-            assertFalse(permissions.contains(PosixFilePermission.OTHERS_EXECUTE));
+            for (String file : List.of("evil.sh", "tools/generate.sh")) {
+                Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(destination.resolve(file));
+                assertFalse(permissions.contains(PosixFilePermission.OWNER_EXECUTE),
+                        file + " must not become executable: " + permissions);
+                assertFalse(permissions.contains(PosixFilePermission.GROUP_EXECUTE), file + " " + permissions);
+                assertFalse(permissions.contains(PosixFilePermission.OTHERS_EXECUTE), file + " " + permissions);
+            }
         } catch (UnsupportedOperationException ignored) {
             // No executable bit exists on this file system; the claim still was not applied.
         }
@@ -190,9 +198,10 @@ class TemplateArchiveTest {
         out.closeEntry();
     }
 
-    /** Mark the central-directory entry 0755/Unix without changing its contents. */
+    /** Mark every central-directory entry 0755/Unix without changing its contents. */
     private static byte[] claimExecutable(byte[] zip) {
         byte[] out = zip.clone();
+        int marked = 0;
         for (int i = 0; i + 46 <= out.length; i++) {
             if ((out[i] & 0xff) == 0x50 && (out[i + 1] & 0xff) == 0x4b
                     && (out[i + 2] & 0xff) == 0x01 && (out[i + 3] & 0xff) == 0x02) {
@@ -202,9 +211,10 @@ class TemplateArchiveTest {
                 out[i + 39] = (byte) (external >>> 8);
                 out[i + 40] = (byte) (external >>> 16);
                 out[i + 41] = (byte) (external >>> 24);
-                return out;
+                marked++;
             }
         }
-        throw new AssertionError("zip has no central-directory entry");
+        if (marked == 0) throw new AssertionError("zip has no central-directory entry");
+        return out;
     }
 }
