@@ -45,6 +45,15 @@ class DesignFilesRefusalHintTest {
         assertTrue(why.contains("call source_root"), why);
     }
 
+    /** PR #35 review: a project opened through a directory alias was suggested again (lexical vs canonical paths). */
+    @Test void theOpenProjectReachedThroughAnAliasIsNotSuggestedAgain() throws Exception {
+        Path alias = Files.createSymbolicLink(tmp.resolve("bundle-alias"), project);
+        assertNotEquals(alias.toAbsolutePath().normalize(), project.toRealPath(), "control: the alias is lexically different");
+        String why = refusal(new DesignFiles(List.of(), alias), design.toString());
+        assertFalse(why.contains("open {project"), "the project open through an alias is not suggested again: " + why);
+        assertTrue(why.contains("call source_root"), "the narrow alternative stays: " + why);
+    }
+
     @Test void aFileInNoProjectKeepsOnlyTheSourceRootHint() throws Exception {
         Path loose = Files.writeString(tmp.resolve("loose.xml"), "<beans/>\n");
         String why = refusal(new DesignFiles(List.of(), null), loose.toString());

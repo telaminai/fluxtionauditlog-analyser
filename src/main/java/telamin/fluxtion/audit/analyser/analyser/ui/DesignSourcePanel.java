@@ -27,6 +27,14 @@ final class DesignSourcePanel extends JPanel {
     /** The bean list takes at most 30% of the pane (and never more than its usual 210 px); the XML keeps the rest. */
     static int beanListWidth(int splitWidth) { return Math.max(0, Math.min(BEAN_LIST_WIDTH, (int) (splitWidth * 0.3))); }
     private boolean dividerDragged;
+    /** Only a press on the divider is a drag: the split also moves it on every resize (its resize weight). */
+    private void listenForDrag(JSplitPane split) {
+        if (split.getUI() instanceof javax.swing.plaf.basic.BasicSplitPaneUI ui && ui.getDivider() != null) {
+            ui.getDivider().addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mousePressed(java.awt.event.MouseEvent e) { dividerDragged = true; }
+            });
+        }
+    }
     /** Follows the pane's width until the divider is dragged; after that it is only capped, never widened. */
     private void fitBeanList(JSplitPane split) {
         int width = split.getWidth(), fit = beanListWidth(width);
@@ -51,14 +59,10 @@ final class DesignSourcePanel extends JPanel {
         // fitted inside the split's own layout — a divider moved from a resize listener was not laid out.
         var split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(beans), sourceScroll) {
             @Override public void doLayout() { fitBeanList(this); super.doLayout(); }
+            // A theme switch replaces the UI delegate and with it the divider: listen on each new one (PR #35 review)
+            @Override public void updateUI() { super.updateUI(); listenForDrag(this); }
         };
         split.setDividerLocation(BEAN_LIST_WIDTH); split.setResizeWeight(0.22); add(split);
-        // Only a press on the divider is a drag: the split also moves it on every resize (its resize weight).
-        if (split.getUI() instanceof javax.swing.plaf.basic.BasicSplitPaneUI ui) {
-            ui.getDivider().addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override public void mousePressed(java.awt.event.MouseEvent e) { dividerDragged = true; }
-            });
-        }
         JPanel links = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton node = new JButton("Show node"), records = new JButton("Show records");
         links.add(node); links.add(records); links.add(new JLabel("Matched by name · relationship to this run unverified")); add(links, BorderLayout.SOUTH);

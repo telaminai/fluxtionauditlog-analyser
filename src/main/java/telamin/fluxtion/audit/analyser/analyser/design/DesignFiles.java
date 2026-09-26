@@ -65,11 +65,21 @@ public final class DesignFiles {
     /** "; it is inside the project D — open {project: D} …", when the file belongs to a project that is not open. */
     private String projectHint(Path file) {
         return telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.enclosingProject(file)
-                .filter(dir -> project == null || !dir.equals(project))
+                .filter(dir -> project == null || !sameDirectory(dir, project))
                 .map(dir -> "; it is inside the project " + dir + " — open {project: "
                         + telamin.fluxtion.audit.analyser.analyser.llm.Json.write(dir.toString())
                         + "} applies that project's own source roots, then retry")
                 .orElse("");
+    }
+
+    /**
+     * The same directory by filesystem identity: a project opened through an alias (a symlink) is lexically unlike the
+     * canonical directory found above the file (PR #35 review). Metadata only; it grants nothing. When identity cannot
+     * be read, the lexical comparison decides, which at worst suggests opening the open project again.
+     */
+    private static boolean sameDirectory(Path a, Path b) {
+        try { return Files.isSameFile(a, b); }
+        catch (IOException | SecurityException e) { return a.equals(b); }
     }
 
     /** A relative path resolves against the open project and the roots; say which, since none may be set. */

@@ -11,7 +11,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   a fixed 210 px, so on a fresh 1200×800 window the XML itself had no room. Every `source:design:bean:` and
   `source:design:line:` spotlight was refused, while `context` listed the bean. The note now keeps three rows
   and scrolls, and the bean list takes at most 30% of the pane (210 px when there is room; a dragged divider
-  is kept, only capped).
+  is kept, only capped, including a first drag after a theme switch).
 - **A refused design spotlight says why.** It said "session design is unavailable, or the anchor is missing,
   ambiguous or outside the document" for every cause. It now names the one that applies: no design open, no
   such bean, a bean id declared more than once, a line outside the file, or a line that is not on screen.
@@ -21,7 +21,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Opening a project's file by path points you to the project.** A design outside the source roots was
   refused with a suggestion to authorise its parent directory; assistants widened that to the whole project
   directory. When the file sits in a project that is not open, the refusal now names `open {project: <dir>}`
-  first, which applies the project's own roots. A relative path says what it was resolved against (and that
+  first, which applies the project's own roots; the project already open is never suggested, even when it was
+  opened through a directory alias. A relative path says what it was resolved against (and that
   a `graphml` path resolves against the analyser's working directory, not a project) and asks for an absolute path.
 
 ## [1.22.0] - 2026-09-26
