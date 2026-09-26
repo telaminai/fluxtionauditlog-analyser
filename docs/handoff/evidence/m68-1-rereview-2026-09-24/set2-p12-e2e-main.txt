@@ -1,0 +1,96 @@
+1. the packet graph with its three declared authored nodes
+  FAIL declared 3
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverLogged': [], 'dispatc
+  FAIL covered 3
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverLogged': [], 'dispatc
+  PASS ratio 1.0
+  FAIL authorship declared by the graph
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverLogged': [], 'dispatc
+  FAIL no out-of-topology warning
+       instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect
+  FAIL no build-provenance claim on coverage or context
+       {'dispatchnote': 'dispatch hierarchy unknown: this graph does not declare complete supertype routes. named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceids in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedfromdenominator': {'commands': 'an exported service interface — an entry point, not a node that logs', 'priceupdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverlogged': [], 'dispatc
+  FAIL context: membership established
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL context: every observed id declared
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL context: applies is labelled a retention policy
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+2. a declared framework node that writes
+  FAIL no warning for a declared framework node
+       instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect
+  FAIL population unchanged at 3
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 1, 'neverLogged': [{'instanceI
+  FAIL framework node disclosed outside the denominator
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 1, 'neverLogged': [{'instanceI
+3. no node output at all
+  FAIL context: membership NOT established
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL coverage: membership NOT established
+       {'ok': True, 'action': 'coverage', 'coverage': {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'excludedNote': "excluded 2 declared item(s) that can never write audit output: 1 event class(es), 1 exported service(s). They appear in the graph because the processor handles them, not because they run — counting them as 'never logged' would report a category error as a low score.", 'recordsScanned': 1, 'excludedFromDenominator': {'Commands':
+4. WRONG-RESULT WITNESS — a foreign id must still warn
+  PASS the graph is retained on a partial match
+  FAIL …and context says not every observed id is declared
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  PASS the warning appears
+  PASS it names the foreign id
+  FAIL it states the fact without a build conclusion
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverLogged': [], 'dispatc
+5. acceptance 3 in every open order: a 600-record log, the only foreign id in record 600
+  PASS combined: the graph is still open
+  FAIL combined: the pairing says it is a sample
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL combined: and names its scope
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL combined: the verdict sentence carries the scope
+       the graph declares 3 of the 3 node(s) this log writes
+  PASS combined: whole-log coverage finds the id the sample could not see
+  FAIL combined: and its reply says it qualified the published pairing
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverLogged': [], 'dispatc
+  FAIL combined: context now carries the qualification
+       {}
+  FAIL combined: naming the foreign id
+       {}
+  PASS graph first: the graph is still open
+  FAIL graph first: the pairing says it is a sample
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL graph first: and names its scope
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL graph first: the verdict sentence carries the scope
+       the graph declares 3 of the 3 node(s) this log writes
+  PASS graph first: whole-log coverage finds the id the sample could not see
+  FAIL graph first: and its reply says it qualified the published pairing
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverLogged': [], 'dispatc
+  FAIL graph first: context now carries the qualification
+       {}
+  FAIL graph first: naming the foreign id
+       {}
+  PASS log first: the graph is still open
+  FAIL log first: the pairing says it is a sample
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  FAIL log first: and names its scope
+       {'graph': 'MyProcessor.graphml', 'graphSource': 'OPENED', 'freshness': {'basis': 'size, modification time and file identity; unchanged metadata does not prove identical bytes', 'state': 'unchanged-metadata', 'members': [{'state': 'unchanged-metadata', 'onDisk': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionauditlog-analyser/docs/handoff/evidence/spring-g14-recovery-2026-09-24/MyProcessor.graphml', 'sizeBytes': 22834, 'modified': '2026-09-23T23:35:43.38757031Z', 'fileKey': '(dev=100000f,ino=168656040)', 'directory': False}, 'loaded': {'path': '/Users/greg/IdeaProjects/telamin/fluxtionaudit
+  PASS log first: the verdict sentence carries the scope
+  PASS log first: whole-log coverage finds the id the sample could not see
+  FAIL log first: and its reply says it qualified the published pairing
+       {'dispatchNote': 'Dispatch hierarchy unknown: this graph does not declare complete supertype routes. Named entry points are not a complete dispatch path; unlogged nodes are not ruled out by missing edges.', 'warning': 'instanceIds in the log are absent from the topology — the graphml is probably from a different build, which makes every other figure here suspect', 'excludedFromDenominator': {'Commands': 'an exported service interface — an entry point, not a node that logs', 'PriceUpdate': 'an event class — data entering the graph, not code that runs'}, 'covered': 2, 'neverLogged': [], 'dispatc
+  FAIL log first: context now carries the qualification
+       {}
+  FAIL log first: naming the foreign id
+       {}
+6. the exported PDF says what the screen says (D-E2)
+  PASS the report exported
+  FAIL the page carries the membership warning
+       the warning reached the agent reply but not the page
+  FAIL the page carries the honest figures
+       %PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [ 7 0 R ] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncodin
+
+34 check(s) FAILED: declared 3; covered 3; authorship declared by the graph; no out-of-topology warning; no build-provenance claim on coverage or context; context: membership established; context: every observed id declared; context: applies is labelled a retention policy; no warning for a declared framework node; population unchanged at 3; framework node disclosed outside the denominator; context: membership NOT established; coverage: membership NOT established; …and context says not every observed id is declared; it states the fact without a build conclusion; combined: the pairing says it is a sample; combined: and names its scope; combined: the verdict sentence carries the scope; combined: and its reply says it qualified the published pairing; combined: context now carries the qualification; combined: naming the foreign id; graph first: the pairing says it is a sample; graph first: and names its scope; graph first: the verdict sentence carries the scope; graph first: and its reply says it qualified the published pairing; graph first: context now carries the qualification; graph first: naming the foreign id; log first: the pairing says it is a sample; log first: and names its scope; log first: and its reply says it qualified the published pairing; log first: context now carries the qualification; log first: naming the foreign id; the page carries the membership warning; the page carries the honest figures

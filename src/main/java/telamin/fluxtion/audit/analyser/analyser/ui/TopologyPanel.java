@@ -360,9 +360,8 @@ public final class TopologyPanel extends JPanel {
      * meant — apply a focus first, then name it.
      */
     public String saveFocusAs(String name, String rationale) {
-        if (name == null || name.isBlank()) return "'saveFocusAs' needs a name";
-        if (fullTopology.isEmpty()) return "no topology is loaded";
-        if (focusStack.atFull()) return "nothing to save — the full graph is not a focus; apply one first";
+        String problem = saveFocusAsPrecondition(name);
+        if (problem != null) return problem;
         java.util.List<String> ids = java.util.List.copyOf(focusStack.world());
         java.util.List<telamin.fluxtion.audit.analyser.analyser.config.FocusSpec> list = namedFocuses.get();
         String trimmed = name.trim();
@@ -380,6 +379,62 @@ public final class TopologyPanel extends JPanel {
      * surfaced, never silently dropped: a partial resolve usually means a different build.
      * Returns an error message, or null.
      */
+    /**
+     * M68.4 (D-E3): why {@link #recallFocus} would refuse, WITHOUT changing anything — so a call carrying several
+     * fields can be refused whole, before any of them is applied. Null when the recall would succeed.
+     */
+    public String recallFocusProblem(String name) {
+        if (name == null || name.isBlank()) return "'focus' needs a name";
+        telamin.fluxtion.audit.analyser.analyser.config.FocusSpec spec = namedFocuses.get().stream()
+                .filter(f -> f.name().equals(name.trim())).findFirst().orElse(null);
+        if (spec == null) {
+            java.util.List<String> known = namedFocuses.get().stream()
+                    .map(telamin.fluxtion.audit.analyser.analyser.config.FocusSpec::name).toList();
+            return "no focus named '" + name + "'" + (known.isEmpty() ? "" : " — available: " + known);
+        }
+        if (spec.nodeIds().stream().noneMatch(fullTopology::contains)) {
+            return telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                    .focusNoneDeclared(spec.name(), spec.nodeIds().size());
+        }
+        return null;
+    }
+
+    /** Why {@link #saveFocusAs} would refuse on THIS panel's state as it is now, or null. The one check, shared. */
+    public String saveFocusAsPrecondition(String name) {
+        if (name == null || name.isBlank()) return "'saveFocusAs' needs a name";
+        if (fullTopology.isEmpty()) return "no topology is loaded";
+        if (focusStack.atFull()) return "nothing to save — the full graph is not a focus; apply one first";
+        return null;
+    }
+
+    /**
+     * Re-review N1: a DETACHED copy of this panel's focus-relevant state — the graph, the focus contexts, the selection,
+     * the scope, the route bound, scaffolding and the named focuses — for running a request's own transitions without
+     * touching the view. R5's first fix PREDICTED the effect of select/pop/focus and missed showAll, which cleared the
+     * focus of a call that was then refused. The request's transitions now run on this copy through the same code the
+     * real apply uses, and the save is judged on the copy's resulting state; nothing about the effect is modelled twice.
+     * The copy is never shown and never saves: it has no listeners, and its named focuses are only read.
+     */
+    public TopologyPanel trialCopy() {
+        TopologyPanel t = new TopologyPanel();
+        t.fullTopology = fullTopology;
+        t.graphSource = graphSource;
+        t.focusStack = new FocusStack(fullTopology);
+        for (FocusStack.Context ctx : focusStack.contextsOldestFirst()) t.focusStack.push(ctx.ids(), ctx.label());
+        t.selection.addAll(selection);
+        t.scope = scope;
+        t.boundRoutesBox.setSelected(boundRoutesBox.isSelected());
+        t.scaffoldingBox.setSelected(scaffoldingBox.isSelected());
+        t.namedFocuses = namedFocuses;
+        t.canvas.setClassificationTopology(fullTopology);
+        return t;
+    }
+
+    /** M68.4: whether the step cursor is bound to a record — {@link #moveToRecord} does nothing until it is. */
+    public boolean hasBoundRecord() {
+        return !cursor.isEmpty();
+    }
+
     public String recallFocus(String name) {
         lastRecallNote = "";
         if (name == null || name.isBlank()) return "'focus' needs a name";
@@ -392,8 +447,8 @@ public final class TopologyPanel extends JPanel {
         }
         java.util.List<String> resolved = spec.nodeIds().stream().filter(fullTopology::contains).toList();
         if (resolved.isEmpty()) {
-            return "focus '" + spec.name() + "': none of its " + spec.nodeIds().size()
-                    + " nodes exist in this topology — a different build?";
+            return telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                    .focusNoneDeclared(spec.name(), spec.nodeIds().size());
         }
         focusStack.popToFull();
         focusStack.push(resolved, spec.name());
@@ -404,8 +459,8 @@ public final class TopologyPanel extends JPanel {
         refreshCrumbs();
         int missing = spec.nodeIds().size() - resolved.size();
         if (missing > 0) {
-            lastRecallNote = missing + " of " + spec.nodeIds().size()
-                    + " nodes are not in this topology — the focus may be from a different build";
+            lastRecallNote = telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                    .focusPartlyDeclared(missing, spec.nodeIds().size());
             setStatus("focus '" + spec.name() + "': " + lastRecallNote);
         } else {
             setStatus("focus '" + spec.name() + "' (" + resolved.size() + " nodes)"
@@ -634,6 +689,17 @@ public final class TopologyPanel extends JPanel {
         this.topologyLoaded = listener == null ? f -> { } : listener;
     }
 
+    /**
+     * M44.4a: told whenever the graph on screen becomes a different graph or none — a file load, a reader-supplied
+     * graph taking the slot, or a clear. The ONE place the session learns about graphs, so no opening surface can
+     * forget to report (there are several, and the observation funnel they replace was hung off a menu refresh).
+     */
+    public void onGraphChanged(Runnable listener) {
+        this.graphChanged = listener == null ? () -> { } : listener;
+    }
+
+    private Runnable graphChanged = () -> { };
+
     /** Load a topology from a {@code .graphml}; a bad file reports rather than throwing. */
     /**
      * Drop the loaded graph entirely (M35.1) — the counterpart {@link #load} never had. Also clears
@@ -655,6 +721,7 @@ public final class TopologyPanel extends JPanel {
         refreshCrumbs();
         applyView(false);
         setStatus("No graph loaded — open a .graphml to see the topology.");
+        graphChanged.run();
     }
 
     /**
@@ -756,6 +823,7 @@ public final class TopologyPanel extends JPanel {
                 + candidate.describe
                 + (candidate.supportsCoverage() ? ""
                         : " — coverage cannot find a dead node in a graph built from what ran"));
+        graphChanged.run();
         return true;
     }
 
@@ -795,6 +863,7 @@ public final class TopologyPanel extends JPanel {
             pendingZoom = 0;                        // restore once; later loads fit as usual
         }
         setStatus(summary(topology, file));
+        graphChanged.run();                         // before the load listeners, which may judge the graph
         topologyLoaded.accept(file);
     }
 
@@ -893,12 +962,16 @@ public final class TopologyPanel extends JPanel {
     }
 
     private void renderStatus() {
-        StringBuilder sb = new StringBuilder(statusBase == null ? " " : statusBase);
+        // M68.1 re-review O1: the pairing verdict goes FIRST. It qualifies everything else on this line, and it
+        // used to be the fifth part of one clipped label — after the long hierarchy note — so it could not be
+        // read at any window size. The full line is also the label's tooltip, so nothing is lost when it clips.
+        StringBuilder sb = new StringBuilder();
+        appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
+        appendPart(sb, statusBase);
         appendPart(sb, stepPart);
         appendPart(sb, scopePart);
         appendPart(sb, copyComparisonPart);
         if (hasTopology()) appendPart(sb, EntryPointResolver.HIERARCHY_NOTE);
-        appendPart(sb, pairingPart);      // M35.6 — persistent, because it qualifies everything below
         if (!orderMeaningful) {
             appendPart(sb, "⚠ ARRIVAL ORDER, NOT DISPATCH ORDER — this source declares no order "
                     + "within a cycle, so position here is not causality");
@@ -913,7 +986,20 @@ public final class TopologyPanel extends JPanel {
                     + "path\" cannot appear and their absence proves nothing");
         }
         sb.append(viewNote());
-        status.setText(sb.toString());
+        String line = sb.length() == 0 ? " " : sb.toString();
+        status.setText(line);
+        status.setToolTipText(line.isBlank() ? null : statusTooltip(line));
+    }
+
+    /** The whole status line, one part per line, for the label's tooltip (O1: a clipped verdict stays readable). */
+    static String statusTooltip(String line) {
+        String escaped = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        return "<html>" + String.join("<br>", escaped.split("   \u00b7   ")) + "</html>";
+    }
+
+    /** The composed status line, for tests and the screenshot check — exactly what the label is given. */
+    String statusLine() {
+        return status.getText();
     }
 
     /**
@@ -1650,7 +1736,8 @@ public final class TopologyPanel extends JPanel {
         setStatus(describeEvent(record) + " — " + order.size()
                        + (AuditTrace.tracesEveryInvocation(record) ? " node(s) ran" : " node(s) logged")
                        + (unknown > 0 && hasTopology()
-                               ? "  ·  " + unknown + " not in this topology (different build?)" : ""));
+                               ? telamin.fluxtion.audit.analyser.analyser.topology.MismatchWording
+                                       .stepUnknownSuffix(unknown) : ""));
     }
 
     private String describeEvent(LogRecord record) {
@@ -1862,6 +1949,32 @@ public final class TopologyPanel extends JPanel {
                 fullTopology.subgraph(shown), order, entries, traced, touched, width, height);
 
         return new CycleViews(trace, whole, note);
+    }
+
+    /** A saved focus drawn for a report, with what its caption must say. */
+    public record FocusPicture(java.awt.image.BufferedImage image, String caption) { }
+
+    /**
+     * The review's gap table, M68.2: a report's TOPOLOGY section for a saved focus, drawn off-screen like the cycle views
+     * (no zoom, pan or selection inherited from the screen), or null when the focus is not defined or declares nothing
+     * in this graph — the caller then says NOT RENDERED and why. Ids the focus names that this graph lacks are counted
+     * in the caption, never silently dropped (the same rule as {@link #recallFocus}).
+     */
+    public FocusPicture renderFocusForReport(String name, int width, int height) {
+        if (name == null || fullTopology.isEmpty()) return null;
+        telamin.fluxtion.audit.analyser.analyser.config.FocusSpec spec = namedFocuses.get().stream()
+                .filter(f -> f.name().equals(name.trim())).findFirst().orElse(null);
+        if (spec == null) return null;
+        java.util.Set<String> resolved = new java.util.LinkedHashSet<>();
+        for (String id : spec.nodeIds()) if (fullTopology.contains(id)) resolved.add(id);
+        if (resolved.isEmpty()) return null;
+        java.awt.image.BufferedImage img = paintOffscreen(fullTopology.subgraph(resolved), List.of(), List.of(), false,
+                java.util.Set.of(), width, height);
+        int missing = spec.nodeIds().size() - resolved.size();
+        String caption = "focus '" + spec.name() + "' · " + resolved.size() + " node" + (resolved.size() == 1 ? "" : "s")
+                + (missing > 0 ? " · " + missing + " named by the focus are not in this graph" : "")
+                + (spec.rationale().isBlank() ? "" : " · " + spec.rationale());
+        return new FocusPicture(img, caption);
     }
 
     /**

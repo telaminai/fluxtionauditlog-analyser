@@ -68,6 +68,13 @@ public final class CoveragePolicy {
     private CoveragePolicy() {
     }
 
+    /** The level caveat, stated once so the level branch and the pairing branches cannot word it differently. */
+    private static String levelReason(String mostVerboseLevel) {
+        return "the most verbose record in this log is " + mostVerboseLevel + ", not TRACE, so a "
+                + "node may have run, logged, and had its output discarded for being below "
+                + "the captured level — a gap here is not proof a node never ran";
+    }
+
     /**
      * @param graphOpen        is a topology loaded
      * @param logOpen          is a log loaded
@@ -103,22 +110,45 @@ public final class CoveragePolicy {
         }
         if (pairing != null && !pairing.applies()) {
             return new Assessment(Claim.REFUSED,
-                    "this graph does not describe this log (" + pairing.reason() + "), so the "
-                            + "denominator belongs to a different system or build. It was kept because "
-                            + "you opened it deliberately; scoring against it would still be wrong");
+                    "the graph and this log disagree about which nodes exist (" + pairing.reason() + "), "
+                            + "so a denominator taken from the graph would score nodes this log may not "
+                            + "contain. It was kept because it was opened deliberately; scoring against it "
+                            + "would still be wrong");
+        }
+        // M68.1 (D-E1): applies() is a RETENTION policy, never evidence of fit. Two retained cases reached
+        // FULL before, and FULL's sentence says the graph describes this log — a claim neither supports.
+        // Re-review O4: one reason used to hide the others, so these two now carry the level caveat as well
+        // whenever it also applies — a reader needs both facts, and adding one can never change the claim.
+        String levelCaveat = mostVerboseLevel != null && !TRACE.equalsIgnoreCase(mostVerboseLevel)
+                ? " Also: " + levelReason(mostVerboseLevel) : "";
+        if (pairing != null && !pairing.evidenced()) {
+            return new Assessment(Claim.QUALIFIED,
+                    "no node output was recorded in the records the pairing checked, so it could not "
+                            + "establish that this graph describes this log. The graph is kept and the number "
+                            + "is computable, but it rests on no membership evidence, and every eligible node "
+                            + "therefore reads as uncovered: " + pairing.reason() + "." + levelCaveat);
+        }
+        if (pairing != null && !pairing.everyObservedIdDeclared()) {
+            return new Assessment(Claim.QUALIFIED,
+                    "the graph was kept on a partial match — it does not declare every node id this log "
+                            + "writes (" + pairing.reason() + "). Kept is not the same as fits: the number "
+                            + "describes the graph, not the ids it lacks." + levelCaveat);
         }
         if (mostVerboseLevel != null && !TRACE.equalsIgnoreCase(mostVerboseLevel)) {
-            return new Assessment(Claim.QUALIFIED,
-                    "the most verbose record in this log is " + mostVerboseLevel + ", not TRACE, so a "
-                            + "node may have run, logged, and had its output discarded for being below "
-                            + "the captured level — a gap here is not proof a node never ran");
+            return new Assessment(Claim.QUALIFIED, levelReason(mostVerboseLevel));
         }
-        if (total > sampled && sampled > 0) {
+        // the pairing's own scope, when it recorded one, is the same fact as the (sampled, total) arguments;
+        // either source is enough to say the fit was judged on part of the log
+        boolean argsSampled = total > sampled && sampled > 0;
+        if (argsSampled || (pairing != null && pairing.sampled())) {
+            String scope = argsSampled
+                    ? "the first " + sampled + " of " + total + " records"
+                    : "the " + pairing.scope();
             return new Assessment(Claim.QUALIFIED,
-                    "the graph/log pairing was judged from the first " + sampled + " of " + total
-                            + " records, so it is a sample rather than a whole-log claim");
+                    "the graph/log pairing was judged from " + scope
+                            + ", so it is a sample rather than a whole-log claim");
         }
-        return new Assessment(Claim.FULL, "the graph is declared, describes this log, and the log was "
-                + "captured at TRACE");
+        return new Assessment(Claim.FULL, "the graph is declared, declares every node id this log writes "
+                + "in the records compared, and the log was captured at TRACE");
     }
 }

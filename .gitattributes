@@ -16,3 +16,17 @@ src/test/resources/conformance/c21-real-export.yaml whitespace=-blank-at-eol
 # Preserve Maven's raw failing output, including its '[ERROR] ' line endings.
 docs/handoff/evidence/project-chart-review-fix-2026-09-24/before.txt whitespace=-blank-at-eol
 docs/handoff/evidence/project-chart-review-fix-2026-09-24/duplicate-before.txt whitespace=-blank-at-eol
+
+# M68.3's framing fixtures reproduce the producer's header shape, `eventLogRecord: ` and `nodeLogs: ` WITH the trailing
+# space Mongoose writes (see c21 above), which is the shape FramingScan must recognise. They are constructed, not
+# captured (src/test/resources/framing/README.md), but the trailing space is part of what they test. As above, only
+# the end-of-line check is switched off.
+src/test/resources/framing/apostrophe-then-collapse.yaml whitespace=-blank-at-eol
+src/test/resources/framing/client-shape-collapsed.yaml whitespace=-blank-at-eol
+src/test/resources/framing/quoted-key-one-record.yaml whitespace=-blank-at-eol
+src/test/resources/framing/unterminated-tail.yaml whitespace=-blank-at-eol
+
+# Preserved raw outputs from the M68.1 re-review trials, kept byte for byte as captured (evidence is not edited).
+docs/handoff/evidence/m68-1-rereview-2026-09-24/set4-p19-p20-e2e-before.txt whitespace=-blank-at-eol
+docs/handoff/evidence/m68-1-rereview-2026-09-24/set5-p24-headless-first-run.log whitespace=-blank-at-eol
+docs/handoff/evidence/m68-1-rereview-2026-09-24/set7-p38-e2e-4251bae3.txt whitespace=-blank-at-eol

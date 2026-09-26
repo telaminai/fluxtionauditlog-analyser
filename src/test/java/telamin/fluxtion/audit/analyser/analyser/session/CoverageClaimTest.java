@@ -23,25 +23,39 @@ class CoverageClaimTest {
 
     private static final String AUDITOR = "EventLogManager";
 
-    private static SessionDriver driver() {
-        return new SessionDriver(new FakeSessionAdapter());
-    }
-
-    private static SessionEvents.GraphObserved graph(String source, Set<String> declared, boolean audited) {
-        return new SessionEvents.GraphObserved(true, "/g.graphml", source, declared,
+    private static SessionEvents.GraphOpened graph(String source, Set<String> declared, boolean audited) {
+        return SessionFixtures.graph("/g.graphml", source, declared,
                 audited ? List.of(AUDITOR, "PriceListener") : List.of("PriceListener"));
     }
 
-    private static SessionEvents.LogObserved log(Set<String> logged, String level, int sampled, int total) {
-        return new SessionEvents.LogObserved(true, "/l.yaml", "DECLARED", logged, sampled, total, level);
+    /** M44.4a: a log is opened by request and result, so this is a marker the driver below expands. */
+    private record Log(Set<String> logged, String level, int sampled, int total) { }
+
+    private static Log log(Set<String> logged, String level, int sampled, int total) {
+        return new Log(logged, level, sampled, total);
+    }
+
+    /**
+     * The log first, then the graph. These cases are about what coverage may CLAIM for a pair, and a log arriving
+     * under an open graph is also JUDGED on arrival (LogArrival), which may close the graph. That is
+     * LogArrivalReplayTest's subject; here it would only remove the graph whose claim is being asserted.
+     */
+    private static SessionDriver apply(Object... facts) {
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(adapter);
+        for (Object f : facts) {
+            if (f instanceof Log l) {
+                SessionFixtures.openLog(d, adapter, "/l.yaml", "DECLARED", l.logged(), l.sampled(), l.total(), l.level());
+            }
+        }
+        for (Object f : facts) {
+            if (!(f instanceof Log)) d.submit(f);
+        }
+        return d;
     }
 
     private static CoveragePolicy.Assessment assess(Object... facts) {
-        SessionDriver d = driver();
-        for (Object f : facts) {
-            d.submit(f);
-        }
-        return d.processor().coverageClaim.assessment();
+        return apply(facts).processor().coverageClaim.assessment();
     }
 
     @Test
@@ -88,7 +102,8 @@ class CoverageClaimTest {
                 log(Set.of("priceListener", "quotePublisher", "orderTracker"), "TRACE", 3, 3));
 
         assertEquals(CoveragePolicy.Claim.REFUSED, a.claim());
-        assertTrue(a.reason().contains("different system or build"), a.reason());
+        assertTrue(a.reason().contains("disagree about which nodes exist"), a.reason());
+        assertFalse(a.reason().toLowerCase().contains("build"), "M68.1: no build conclusion: " + a.reason());
         // M35.3 keeps a graph a person opened against a mismatched log — announce, never forbid. That
         // is right, and it left a gap: coverage would score against it in silence. Keeping the graph
         // and refusing the NUMBER are not in tension; they are the same respect for intent.
@@ -134,12 +149,11 @@ class CoverageClaimTest {
     @Test
     @DisplayName("the claim reassesses when the graph closes — permission is not sticky")
     void closingTheGraphWithdrawsTheClaim() {
-        SessionDriver d = driver();
-        d.submit(graph("OPENED", Set.of("priceListener"), true));
-        d.submit(log(Set.of("priceListener"), "TRACE", 1, 1));
+        SessionDriver d = apply(graph("OPENED", Set.of("priceListener"), true),
+                log(Set.of("priceListener"), "TRACE", 1, 1));
         assertEquals(CoveragePolicy.Claim.FULL, d.processor().coverageClaim.assessment().claim());
 
-        d.submit(new SessionEvents.GraphObserved(false, null, null, Set.of(), List.of()));
+        d.submit(new SessionEvents.GraphCleared());
         assertEquals(CoveragePolicy.Claim.REFUSED, d.processor().coverageClaim.assessment().claim(),
                 "a claim granted against a graph must not outlive it");
     }
@@ -147,9 +161,7 @@ class CoverageClaimTest {
     @Test
     @DisplayName("the refusal is always in the record, with its reason")
     void theDecisionIsAudited() {
-        SessionDriver d = driver();
-        d.submit(graph("READER_INFERRED", Set.of("a"), true));
-        d.submit(log(Set.of("a"), "TRACE", 1, 1));
+        SessionDriver d = apply(graph("READER_INFERRED", Set.of("a"), true), log(Set.of("a"), "TRACE", 1, 1));
 
         assertFalse(d.auditSink().matching("coverageClaim").isEmpty());
         assertFalse(d.auditSink().matching("REFUSED").isEmpty(),

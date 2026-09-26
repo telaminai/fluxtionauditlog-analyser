@@ -1,0 +1,5 @@
+VIEW_FILTER {"ok": true, "action": "filter", "applied": {"from": 3000, "to": 3000, "dimensions": null, "text": ""}}
+LITERAL_EXPECTED {"ok": true, "action": "series", "result": {"expr": "`rootNode.v+1`", "resolve": "STRICT", "points": 1, "stats": {"min": 7.0, "minAt": 1000, "max": 7.0, "maxAt": 1000, "mean": 7.0, "first": 7.0, "firstAt": 1000, "last": 7.0, "lastAt": 1000}}}
+FORMULA_DIFFERENT {"ok": true, "action": "series", "result": {"expr": "rootNode.v+1", "resolve": "STRICT", "points": 1, "stats": {"min": 101.0, "minAt": 1000, "max": 101.0, "maxAt": 1000, "mean": 101.0, "first": 101.0, "firstAt": 1000, "last": 101.0, "lastAt": 1000}}}
+REPORT {"ok": true, "action": "report", "applied": {"name": "review-series", "title": "Constructed N2 review: literal key preservation", "created": true, "sections": 1, "writtenAgainst": "constructed-series.yaml \u00b7 1 record(s) \u00b7 00:00:01.000\u219200:00:01.000", "path": "<artifact-directory>/literal-key.pdf"}}
+PDF_EXISTS true

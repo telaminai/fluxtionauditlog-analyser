@@ -1,0 +1,18 @@
+eventLogRecord:
+  event: Tick
+  logTime: 1000
+  nodeLogs:
+    - rootNode: {v: 1}
+---
+eventLogRecord:
+  event: Tick
+  logTime: 2000
+  nodeLogs:
+    - rootNode: {v: 3}
+---
+eventLogRecord:
+  event: Tick
+  logTime: 3000
+  nodeLogs:
+    - rootNode: {v: 2}
+---

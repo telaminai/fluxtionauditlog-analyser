@@ -1,0 +1,4 @@
+literal extraction=7.0
+quoted verb={expr=`rootNode.v+1`, resolve=STRICT, points=1, stats={min=7.0, minAt=1000, max=7.0, maxAt=1000, mean=7.0, first=7.0, firstAt=1000, last=7.0, lastAt=1000}}
+unquoted formula={expr=rootNode.v+1, resolve=STRICT, points=1, stats={min=101.0, minAt=1000, max=101.0, maxAt=1000, mean=101.0, first=101.0, firstAt=1000, last=101.0, lastAt=1000}}
+report=rootNode.v+1 · 1 point · STRICT · scope: the whole log (the call names no filter); the view filter does not apply
