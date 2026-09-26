@@ -52,6 +52,11 @@ public final class HeapLogStore implements LogStore {
      * (S1). A reload that meets a replacement caught mid-character is the carried cold-open limitation.
      */
     private volatile boolean liveReadFailed;
+    /** M68.5: the file key of the content read, or null when the filesystem has none — never compared as equal. */
+    private Object fileKey;
+    private volatile FollowIdentity followIdentity;
+    /** M68.5: the file's metadata when the content in memory was read. */
+    private ReadThroughIdentity.Meta atOpen;
 
     public HeapLogStore(String file) {
         this(file, false);
@@ -144,6 +149,8 @@ public final class HeapLogStore implements LogStore {
         s.readIdentity = identity;
         s.source = path;
         s.byteLength = text.getBytes(StandardCharsets.UTF_8).length;
+        s.fileKey = keyOf(path);
+        s.atOpen = ReadThroughIdentity.metaOf(path);
         return s;
     }
 
@@ -154,6 +161,8 @@ public final class HeapLogStore implements LogStore {
         live.source = source;
         live.readIdentity = readIdentity;
         live.byteLength = byteLength;
+        live.fileKey = fileKey;
+        live.atOpen = atOpen;
         return live;
     }
 
@@ -180,32 +189,66 @@ public final class HeapLogStore implements LogStore {
         // A snapshot may include an EOF record. It cannot safely become an append-only index:
         // later fields would change an existing row. The adapter reloads it as an explicit live read.
         if (includesEofRecord) return -1;
-        byte[] bytes = Files.readAllBytes(p);
-        if (byteLength >= 0 && bytes.length < byteLength) return -1;   // truncated / rotated → caller reloads
-        if (bytes.length == byteLength) return 0;                        // no growth, in BYTES
-        // The bytes changed, so no opening digest describes this file any more and no earlier verdict
-        // covers it — whether or not they decode. This used to sit AFTER the decode, and a byte that can
-        // never be UTF-8 threw past it: the store kept COMPLETE and its old identity over bytes it had
-        // just refused (re-review RR-1). Retire both first; then decode.
-        this.readIdentity = null;
-        this.byteLength = bytes.length;
-        Utf8Prefix decoded;
+        // M68.5 (D-E6): identity is decided BEFORE anything is indexed. The old test was length only — shorter meant
+        // reload, equal meant nothing, longer meant append — so a same-length rewrite announced nothing and a middle
+        // rewrite plus an append was indexed as an append over bytes that no longer exist.
+        // Merged with phase 1's byte-level Follow (independent review F2, re-review RR-1): the file is read as BYTES and
+        // decoded only up to its last complete character, so a poll landing inside a multi-byte character holds those
+        // bytes back instead of failing, and a byte that can never be UTF-8 is a sticky fault, not an unreadable tick.
+        java.nio.file.attribute.BasicFileAttributes atStart = attributes(p);
+        byte[] bytes;
         try {
-            decoded = decodeCompletePrefix(bytes);
-        } catch (java.nio.charset.CharacterCodingException unreadable) {
-            this.liveReadFailed = true;
-            this.pendingBytes = 0;                        // not a character on its way: never presented as one
-            this.streamEnd = StreamEnd.unknown(index.size()).withRuns(streamEnd.runs());
-            throw unreadable;
+            bytes = Files.readAllBytes(p);
+        } catch (IOException e) {
+            bytes = null;
         }
-        // A read has already failed on bytes that can never be UTF-8, and those bytes do not go away by
-        // appending. So a decode that now SUCCEEDS means the file was replaced underneath the store — and a
-        // longer replacement looks exactly like an append. Reading it as one showed COMPLETE beside "unknown
-        // until it is reopened" (second re-review S1). Reload instead: the caller's reload is the only path
-        // that builds a store without the failure, which is the only honest way for it to go.
-        if (liveReadFailed) return -1;
-        String full = decoded.text();
-        if (full.length() < file.length()) return -1;    // truncated / rotated → caller reloads
+        java.nio.file.attribute.BasicFileAttributes after = attributes(p);
+        boolean changedDuringRead = atStart == null || after == null || atStart.size() != after.size()
+                || !atStart.lastModifiedTime().equals(after.lastModifiedTime())
+                || !java.util.Objects.equals(atStart.fileKey(), after.fileKey());
+        // Re-review RR-1's quiet route: after a failed read, a poll that finds the SAME bytes decodes nothing and
+        // changes nothing — the fault stands until the file is reopened.
+        if (liveReadFailed && bytes != null && bytes.length == byteLength) return 0;
+        String full = null;
+        int pending = 0;
+        if (bytes != null) {
+            // The bytes changed, so no opening digest describes this file any more and no earlier verdict covers it —
+            // whether or not they decode (re-review RR-1). Retire the identity first; then decode.
+            if (bytes.length != byteLength) this.readIdentity = null;
+            try {
+                Utf8Prefix decoded = decodeCompletePrefix(bytes);
+                full = decoded.text();
+                pending = decoded.pendingBytes();
+            } catch (java.nio.charset.CharacterCodingException unreadable) {
+                if (!changedDuringRead) {
+                    this.liveReadFailed = true;
+                    this.byteLength = bytes.length;
+                    this.pendingBytes = 0;                    // not a character on its way: never presented as one
+                    this.streamEnd = StreamEnd.unknown(index.size()).withRuns(streamEnd.runs());
+                    this.followIdentity = new FollowIdentity(FollowIdentity.Verdict.UNVERIFIED,
+                            "the file holds bytes that are not UTF-8; nothing more is read until it is reopened");
+                    throw unreadable;
+                }
+                // mid-write: checked again at the next poll, like any other change during a read
+            }
+        }
+        // A read has already failed on bytes that can never be UTF-8, and those bytes do not go away by appending. So
+        // a decode that now SUCCEEDS means the file was replaced underneath the store (second re-review S1): reload.
+        if (liveReadFailed && full != null) return -1;
+        FollowIdentity identity = FollowIdentity.classify(fileKey, file, after == null ? null : after.fileKey(),
+                full, full != null && changedDuringRead);
+        this.followIdentity = identity;
+        if (identity.verdict() == FollowIdentity.Verdict.REPLACEMENT) return -1;   // the caller reopens, and says why
+        if (!identity.mayIndexGrowth()) {
+            // Nothing new to index — but bytes held back as an unfinished character are content past the last item,
+            // exactly like a record still being written: the file cannot vouch for itself while they are there (F2).
+            if (full != null && !changedDuringRead) {
+                this.byteLength = bytes.length;
+                this.pendingBytes = pending;
+                if (trailingPending || pendingBytes > 0) streamEnd = pendingOverride(streamEnd, index.size());
+            }
+            return 0;                                      // unchanged, or not established: index nothing
+        }
         final int before = index.size();
         final int[] seen = {0};
         // M65 D-F0 part 1: publish the TEXT before the rows that point into it. The file is append-only, so
@@ -217,6 +260,7 @@ public final class HeapLogStore implements LogStore {
         // the file GROWS — a same-length re-read returns 0 above. Before, the retry was immediate but readers
         // could throw meanwhile (impl review F2).
         this.file = full;
+        this.atOpen = ReadThroughIdentity.metaOf(p);   // M68.5: the content in memory is now what was just read
         // Require a terminator so a record still being written isn't indexed until complete; the first
         // `before` records are byte-identical (append-only) so we skip them and add the rest.
         //
@@ -234,7 +278,8 @@ public final class HeapLogStore implements LogStore {
             if (seen[0]++ < before) return;               // already indexed, and byte-identical
             index.add(RecordParser.parse(raw.text(), raw.offset()));
         }, true);
-        this.pendingBytes = decoded.pendingBytes();
+        this.byteLength = bytes.length;
+        this.pendingBytes = pending;
         this.streamEnd = tracker.resolve();
         this.runBoundaries = tracker.runBoundaries();
         // Held-back bytes are content past the last item, exactly like a record still being written: the
@@ -305,6 +350,57 @@ public final class HeapLogStore implements LogStore {
 
     /** A record still being written, or the bytes of a character not yet finished: either way, not done. */
     @Override public int trailingRecordsPending() { return trailingPending || pendingBytes > 0 ? 1 : 0; }
+
+    /**
+     * M68.3 (acceptance 10): the frame still being written under Follow — the text after the last {@code ---} — or
+     * null when there is none. OBSERVABLE, not accepted: nothing here indexes it, and it is not a record until its
+     * separator arrives whole ("--" then "-\n" on a later poll stays pending until the line is complete).
+     */
+    @Override public String pendingFrameText() {
+        if (!trailingPending) return null;
+        String text = file;
+        int from = 0;
+        int i = 0;
+        while (i < text.length()) {
+            int end = text.indexOf('\n', i);
+            if (end < 0) break;                                   // the last line has no newline: part of the frame
+            String line = text.substring(i, end).strip();
+            if (line.equals("---")) from = end + 1;
+            i = end + 1;
+        }
+        String frame = text.substring(from);
+        return frame.isBlank() ? null : frame;
+    }
+
+    /**
+     * M68.5: a change on disk since the content was read. The text is in memory, so nothing on disk alters what this
+     * store serves: a change is labelled superseded, never suspended. Under Follow, {@link #followIdentity} decides.
+     */
+    @Override public ReadThroughIdentity readThroughIdentity() {
+        return source == null || atOpen == null ? null
+                : ReadThroughIdentity.classify(atOpen, ReadThroughIdentity.metaOf(source), true);
+    }
+
+    /** Independent review R3: assessed when this store was read from a file it can look at again. */
+    @Override public boolean readThroughAssessed() {
+        return source != null && atOpen != null;
+    }
+
+    /** M68.5: what the last Follow poll established about the file's identity, or null before the first poll. */
+    @Override public FollowIdentity followIdentity() { return followIdentity; }
+
+    private static Object keyOf(Path p) {
+        var a = attributes(p);
+        return a == null ? null : a.fileKey();
+    }
+
+    private static java.nio.file.attribute.BasicFileAttributes attributes(Path p) {
+        try {
+            return Files.readAttributes(p, java.nio.file.attribute.BasicFileAttributes.class);
+        } catch (IOException | SecurityException e) {
+            return null;
+        }
+    }
 
     @Override
     public StreamEnd streamEnd() {

@@ -1,0 +1,31 @@
+INVESTIGATION
+
+Constructed N2 review: the stored calls decide scope
+
+
+  WRITTEN AGAINST              constructed-series.yaml · 3 record(s) · 00:00:01.000->00:00:03.000
+  AUTHORED VIEW                all event types · time-bounded
+  LOG                          constructed-series.yaml - loaded snapshot; log unchanged-metadata; graph un...
+  CREATED                      2026-09-26T13:17:02.501844Z
+  RENDERED                     2026-09-26 13:17:02.526
+
+
+
+Series
+
+nodeA.x + nodeB.y · 0 points · STRICT · scope: the whole log (the call names no filter); the view filter does not
+apply
+
+
+
+
+review-series · constructed-series.yaml - loaded snapshot; log unchanged-metadata; graph unknown (metadata observa...   1/2
+Series
+
+rootNode.v · 1 point · STRICT · scope: the call's filter: logTime 2000-2000; the view filter does not apply
+
+
+
+
+review-series · constructed-series.yaml - loaded snapshot; log unchanged-metadata; graph unknown (metadata observa...   2/2
+

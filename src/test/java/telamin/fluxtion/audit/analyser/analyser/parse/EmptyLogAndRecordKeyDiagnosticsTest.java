@@ -116,8 +116,9 @@ class EmptyLogAndRecordKeyDiagnosticsTest {
         ProducerDiagnostics d = ProducerDiagnostics.of(
                 new LogIndex(), texts(), List.of(), List.of("a rolled set is never reported complete"), true);
 
-        assertFalse(d.isWarning(),
-                "isWarning() reads only get(0), which is the note — this is the trap MA-0.4 names");
+        // Merged with main (M68.3): isWarning() now asks whether ANY finding is more than a note, so the trap MA-0.4
+        // named — reading only get(0), which is the note — is fixed there. It sees the empty log behind the note.
+        assertTrue(d.isWarning(), "isWarning() sees past the note to the empty-log finding (the MA-0.4 trap, fixed)");
         assertTrue(d.firstWarning().isPresent(), "firstWarning() sees past it");
         assertEquals(ProducerDiagnostics.Kind.EMPTY_LOG, d.firstWarning().orElseThrow().kind(),
                 "and finds the empty-log finding behind the note");

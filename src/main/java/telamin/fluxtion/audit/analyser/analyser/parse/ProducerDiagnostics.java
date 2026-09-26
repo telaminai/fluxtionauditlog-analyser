@@ -89,17 +89,27 @@ public record ProducerDiagnostics(List<Finding> findings) {
          * not. A set whose every member says it is whole lands here. It belongs in the tooltip and in
          * {@code context}, and it must NOT raise a warning on the status bar.
          */
-        COMPLETENESS_NOTE
+        COMPLETENESS_NOTE,
+        /**
+         * M68.3 (D-E9): an item longer than the framing check reads, in which nothing suspicious was found in the part
+         * it did read. The rest was NOT assessed — which is a limit to state, never a clean bill (acceptance 10).
+         */
+        FRAMING_NOT_ASSESSED
+    }
+
+    /** Findings that state a limit rather than report a fault: they reach the tooltip and context, never a glyph. */
+    private static boolean isNote(Kind k) {
+        return k == Kind.COMPLETENESS_NOTE || k == Kind.FRAMING_NOT_ASSESSED;
     }
 
     /** True for a finding a person should see flagged, as opposed to one that merely states a limit. */
     public boolean isWarning() {
-        return !findings.isEmpty() && findings.get(0).kind() != Kind.COMPLETENESS_NOTE;
+        return findings.stream().anyMatch(f -> !isNote(f.kind()));
     }
 
     /** The first finding worth a warning glyph, or empty when the only findings are plain statements. */
     public java.util.Optional<Finding> firstWarning() {
-        return findings.stream().filter(f -> f.kind() != Kind.COMPLETENESS_NOTE).findFirst();
+        return findings.stream().filter(f -> !isNote(f.kind())).findFirst();
     }
 
     /**
@@ -149,6 +159,17 @@ public record ProducerDiagnostics(List<Finding> findings) {
     public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText,
                                          List<String> sourceDiagnostics, List<String> completeness,
                                          boolean note) {
+        return of(idx, rawText, sourceDiagnostics, completeness, note, null);
+    }
+
+    /**
+     * @param pendingFrame M68.3: the text still being written under Follow — after the last {@code ---}, not yet a
+     *                     record — or null. It is SCANNED, so a live collapsed log is suspected before its first
+     *                     separator ever arrives, and it is never accepted as a record by being looked at.
+     */
+    public static ProducerDiagnostics of(LogIndex idx, IntFunction<String> rawText,
+                                         List<String> sourceDiagnostics, List<String> completeness,
+                                         boolean note, String pendingFrame) {
         List<Finding> out = new ArrayList<>();
         for (String d : sourceDiagnostics) {
             out.add(new Finding(Kind.SOURCE_DAMAGE, d));
@@ -156,31 +177,46 @@ public record ProducerDiagnostics(List<Finding> findings) {
         for (String d : completeness) {
             out.add(new Finding(note ? Kind.COMPLETENESS_NOTE : Kind.COMPLETENESS_GAP, d));
         }
-        if (idx == null) {
+        if (idx == null && pendingFrame == null) {
             // No index SUPPLIED — callers that only want the reader's diagnostics echoed pass null.
             // That is not the same as a log with no records, and MA-0 must not fire on it: f20 parses a
             // whole record and still passes null here. D-MA0b keys on size() == 0, and only that.
             return new ProducerDiagnostics(List.copyOf(out));
         }
-        if (idx.size() == 0) {
+        boolean noRecords = idx == null || idx.size() == 0;
+        if (idx != null && idx.size() == 0 && pendingFrame == null) {
             // MA-0. Placed HERE, before the early return, because that return is why an empty log has
             // always been silent. Damage findings are already in `out`, so SOURCE_DAMAGE is stated
-            // first and this second (MA-0.6).
+            // first and this second (MA-0.6). Not said while Follow holds a pending frame: bytes are
+            // arriving, and that path is MA-0.5's, still open.
             out.add(new Finding(Kind.EMPTY_LOG,
                     "No records in this file. A file can be empty because nothing was written yet, "
                             + "because the writer is buffering, or because the processor cannot audit "
                             + "at all — this says the file is empty, not that the run produced nothing."));
             return new ProducerDiagnostics(List.copyOf(out));
         }
+        if (noRecords && pendingFrame == null) return new ProducerDiagnostics(List.copyOf(out));
 
         int damage = out.size();
-        unseparated(idx, rawText).ifPresent(out::add);
+        if (!noRecords) unseparated(idx, rawText, out);
+        // Independent review R7: the pending frame is scanned unless a collapse is ALREADY suspected. It was skipped
+        // whenever any finding had been added — including a NOT_ASSESSED one, which says nothing about the pending frame.
+        if (out.stream().skip(damage).noneMatch(f -> f.kind() == Kind.UNSEPARATED)) {
+            pendingUnseparated(pendingFrame).ifPresent(out::add);
+        }
+        if (noRecords) return new ProducerDiagnostics(List.copyOf(out));
+        boolean framingExplained = out.stream().anyMatch(f -> f.kind() == Kind.UNSEPARATED);
+        if (framingExplained) {
+            out.removeIf(f -> f.kind() == Kind.FRAMING_NOT_ASSESSED);   // one root cause; the limit is moot beside it
+        }
         // Only worth saying when the log is not ALREADY explained by one of the others: a file that ran
         // together also has no node logs on rows 1..n-1, and saying both would be two names for one bug.
-        if (out.size() == damage) {
+        boolean explained = out.stream().skip(damage).anyMatch(f -> !isNote(f.kind()));
+        if (!explained) {
             onlyControlEvents(idx).ifPresent(out::add);
         }
-        if (out.size() == damage) {
+        explained = out.stream().skip(damage).anyMatch(f -> !isNote(f.kind()));
+        if (!explained) {
             noNodeLogs(idx).ifPresent(out::add);
         }
         // MA-6 is independent of the three above: a document with no record key is a producer fault
@@ -190,13 +226,13 @@ public record ProducerDiagnostics(List<Finding> findings) {
     }
 
     /**
-     * A record whose own text contains a SECOND {@code eventLogRecord:} can only mean the separator is
-     * missing: the framer splits on {@code ---} lines, so without them every record in the file is
-     * delivered as one.
+     * M68.3 (D-E9): SUSPECTED collapsed framing — a record whose text contains lines that start like further records.
+     * {@link FramingScan} decides what counts: a column-0 header line outside any quoted value. The old test counted the
+     * key anywhere, including inside a quoted value, and called a legal one-record file two records run together.
      *
-     * <p>Detected on the text rather than by counting, because the count alone proves nothing — a
-     * one-record log is perfectly legal, and that is exactly what an unseparated ten-record log looks
-     * like from the outside.
+     * <p>Detected on the text rather than by counting, because the count alone proves nothing — a one-record log is
+     * perfectly legal, and that is exactly what an unseparated ten-record log looks like from the outside. An item
+     * too long to scan whole, with nothing found in the part scanned, is reported as NOT ASSESSED rather than clean.
      */
     /**
      * Does this document OPEN with the record key, as §1 requires?
@@ -298,27 +334,57 @@ public record ProducerDiagnostics(List<Finding> findings) {
         return sb.append("'").toString();
     }
 
-    private static java.util.Optional<Finding> unseparated(LogIndex idx, IntFunction<String> rawText) {
-        if (rawText == null) return java.util.Optional.empty();
+    private static void unseparated(LogIndex idx, IntFunction<String> rawText, List<Finding> out) {
+        if (rawText == null) return;
+        Finding notAssessed = null;
         for (int row = 0; row < idx.size(); row++) {
             String text = rawText.apply(row);
             if (text == null || text.isEmpty()) continue;
-            int scanned = Math.min(text.length(), SCAN_LIMIT);
-            int first = text.indexOf(RECORD_KEY);
-            if (first < 0) continue;
-            int second = text.indexOf(RECORD_KEY, first + RECORD_KEY.length());
-            if (second >= 0 && second < scanned) {
-                int buried = count(text, scanned);
-                return java.util.Optional.of(new Finding(Kind.UNSEPARATED,
-                        "This log is missing its record separators: record " + (row + 1) + " alone "
-                                + "contains " + buried + " records run together, so the count above is "
-                                + "wrong and every record after the first is invisible. A text audit "
-                                + "log is a sequence of documents separated by lines of '---' (Format "
-                                + "specification §1). record.toString() does NOT write it — the "
-                                + "sink must: append(\"---\\n\") before each record."));
+            FramingScan scan = FramingScan.of(text, SCAN_LIMIT);
+            if (scan.suspected()) {
+                out.add(new Finding(Kind.UNSEPARATED, suspectedMessage("record " + (row + 1), scan)));
+                return;
+            }
+            if (scan.truncated() && notAssessed == null) {
+                notAssessed = new Finding(Kind.FRAMING_NOT_ASSESSED, "Record " + (row + 1) + " is longer than the "
+                        + scan.inspectedChars() + " characters the framing check reads, and nothing in that part "
+                        + "looked like a further record. Whether more records run into the rest was NOT assessed.");
             }
         }
+        if (notAssessed != null) out.add(notAssessed);
+    }
+
+    private static java.util.Optional<Finding> pendingUnseparated(String pendingFrame) {
+        if (pendingFrame == null || pendingFrame.isBlank()) return java.util.Optional.empty();
+        FramingScan scan = FramingScan.of(pendingFrame, SCAN_LIMIT);
+        if (scan.suspected()) {
+            return java.util.Optional.of(new Finding(Kind.UNSEPARATED, suspectedMessage(
+                    "the record still being written (not yet ended by '---', and not counted)", scan)));
+        }
+        // Independent review R7: the indexed path said "NOT assessed" for a record too long to scan; the pending path
+        // said nothing, so a long live frame read as checked. It is said here too — as pending, never as a record.
+        if (scan.truncated()) {
+            return java.util.Optional.of(new Finding(Kind.FRAMING_NOT_ASSESSED, "The record still being written (not "
+                    + "yet ended by '---', and not counted) is longer than the " + scan.inspectedChars() + " characters the "
+                    + "framing check reads, and nothing in that part looked like a further record. Whether more records "
+                    + "run into the rest was NOT assessed."));
+        }
         return java.util.Optional.empty();
+    }
+
+    private static String suspectedMessage(String where, FramingScan scan) {
+        int runTogether = scan.candidates().size() + 1;
+        String lines = scan.candidates().size() <= 8 ? scan.candidates().toString()
+                : scan.candidates().subList(0, 8) + " and " + (scan.candidates().size() - 8) + " more";
+        return "Suspected missing record separators: " + where + " appears to hold " + runTogether
+                + " records run together — its line(s) " + lines + " start like new records ('" + RECORD_KEY
+                + "' at the start of a line, outside any quoted value) with no '---' before them. Inspected lines 1–"
+                + scan.inspectedLines() + " (" + scan.inspectedChars() + " characters)"
+                + (scan.truncated() ? "; the rest was not assessed" : "") + ". If they are records, the count above "
+                + "is wrong and every record after the first is hidden. A text audit log is a sequence of documents "
+                + "separated by lines of '---' (Format specification §1). record.toString() does NOT write it — the "
+                + "sink must: append(\"---\\n\") before each record. If instead a value was written unquoted with a "
+                + "line break in it, quote it.";
     }
 
     /** Records exist and not one of them carries a node log. */
@@ -359,14 +425,5 @@ public record ProducerDiagnostics(List<Finding> findings) {
         if (event == null) return false;
         int dot = event.lastIndexOf('.');
         return (dot < 0 ? event : event.substring(dot + 1)).equals(CONTROL_EVENT);
-    }
-
-    private static int count(String text, int limit) {
-        int n = 0;
-        for (int i = text.indexOf(RECORD_KEY); i >= 0 && i < limit;
-             i = text.indexOf(RECORD_KEY, i + RECORD_KEY.length())) {
-            n++;
-        }
-        return n;
     }
 }

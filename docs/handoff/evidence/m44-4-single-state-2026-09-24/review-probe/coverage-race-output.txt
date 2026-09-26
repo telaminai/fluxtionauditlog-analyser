@@ -1,0 +1,2 @@
+coverage.ok=true, result=[foreignOldLog]
+current.total=2, current.generation=2, qualification={by=coverage, scope=first 1 of 2 records, recordsCompared=1, membershipEstablished=true, everyObservedIdDeclared=false, notDeclared=[foreignOldLog], supersedesSample=false, stale=true, logRecordsAtComparison=1, logRecordsNow=2, note=coverage compared the first 1 of 2 records (1 records) against every declared node: 1 of 1 logged id(s) are not declared (foreignOldLog) — the log has grown since, so this no longer covers the whole log; run coverage again}

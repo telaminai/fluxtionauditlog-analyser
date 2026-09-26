@@ -377,6 +377,7 @@ public final class GraphTabs extends JPanel {
      */
     boolean rename(GraphPanel gp, String name) {
         if (name == null || name.isBlank()) return false;
+        if (SpotlightTarget.chartNameProblem(name) != null) return false;   // M68.6: callers refuse first, and say why
         String to = name.trim();
         String from = gp.graphName();
         if (to.equals(from)) return true;                 // nothing to do, and not a collision with itself
@@ -391,6 +392,13 @@ public final class GraphTabs extends JPanel {
     private void promptRename(int i) {
         if (i < 0 || i >= tabs.getTabCount() || !(tabs.getComponentAt(i) instanceof GraphPanel gp)) return;
         String name = JOptionPane.showInputDialog(this, "Graph name:", gp.graphName());
+        // M68.6 first, so the person is told the RIGHT reason: main's collision message would otherwise be shown for a
+        // name refused by the address grammar
+        String problem = name == null || name.isBlank() ? null : SpotlightTarget.chartNameProblem(name);
+        if (problem != null) {
+            JOptionPane.showMessageDialog(this, "Not renamed: " + problem, "Graph name", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (name != null && !name.isBlank() && !rename(gp, name)) {
             JOptionPane.showMessageDialog(this, "A chart with that name already exists, including closed charts.",
                     "Name already used", JOptionPane.WARNING_MESSAGE);

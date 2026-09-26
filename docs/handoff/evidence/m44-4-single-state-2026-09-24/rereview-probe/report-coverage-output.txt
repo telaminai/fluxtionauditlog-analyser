@@ -1,0 +1,5 @@
+ACTION {'ok': False, 'error': 'the graph and this log disagree about which nodes exist (the graph declares only 0 of the 1 node(s) this log writes), so a denominator taken from the graph would score nodes this log may not contain. It was kept because it was opened deliberately; scoring against it would still be wrong.'}
+REPORT_OK True PDF_EXISTS True
+PDF (Constructed coverage review) Tj
+PDF (no rows - coverage REFUSED: the graph and this log disagree about which nodes exist \(the graph declares on...) Tj
+PDF (coverage REFUSED: the graph and this log disagree about which nodes exist \(the graph declares only 0 of the 1 node\(s\) this) Tj

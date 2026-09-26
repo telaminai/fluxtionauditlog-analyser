@@ -1,0 +1,21 @@
+baseline…
+baseline GREEN: 41 tests, 0 skipped
+M1 ignore declared authorship: RED at EvidenceIntegrityCoverageTest.thePacketGraphGivesThreeAndThree (5 failing); restored byte-identical
+M2 restore authored-only membership: RED at EvidenceIntegrityCoverageTest.aDeclaredFrameworkNodeThatLogsDoesNotWarn (3 failing); restored byte-identical
+M3a derive membership from the ratio: RED at EvidenceIntegrityCoverageTest.zeroPopulationIsNoRatioNotNoMembership (3 failing); restored byte-identical
+M3b derive no-ratio from no-membership (the brief's third): RED at EvidenceIntegrityCoverageTest.noOutputKeepsARatioOfZero (1 failing); restored byte-identical
+M4 retention reaches a downstream claim: RED at CoveragePolicyEvidenceTest.noNodeOutputIsNotAFit (2 failing); restored byte-identical
+M5 the PDF drops a table's notes again: RED at ReportRendererTest.aTablesNotesAreOnThePageAsTheyAreOnScreen (1 failing); restored byte-identical
+M6 the session verdict loses its scope (R2): RED at SessionPairingScopeTest.theSessionVerdictCarriesItsScope (2 failing); restored byte-identical
+M6f the session verdict loses its scope, seen by the parity test (R1): SKIPPED (needs --frame)
+M7 discovery loses its scope (R2): RED at PairingScopeSurfacesTest.discoveryIsScopedAndCarriesItsFacts (1 failing); restored byte-identical
+M7f discovery loses its scope, seen by the parity test (R1): SKIPPED (needs --frame)
+M8 discovery drops the pairing facts (O2): RED at PairingScopeSurfacesTest.discoveryIsScopedAndCarriesItsFacts (1 failing); restored byte-identical
+M9 a whole-log comparison never supersedes (R2): RED at PairingScopeSurfacesTest.aWholeLogComparisonSupersedesTheSample (2 failing); restored byte-identical
+M10 the finding export concludes a build again (R3): RED at MismatchWordingTest.eachSentenceStatesTheDisagreementAndNoBuildConclusion (2 failing); restored byte-identical
+M10g …and the repository guard sees it too: RED at UserVisibleWordingGuardTest.noJavaStringLiteralDrawsTheBuildConclusion (2 failing); restored byte-identical
+M11 the help page instructs the conclusion again (R3): RED at UserVisibleWordingGuardTest.noHelpPageOrPublishedDocDrawsTheBuildConclusion (1 failing); restored byte-identical
+M12 the audit label states retention as fit (O3): RED at SessionPairingScopeTest.theAuditLabelSeparatesKeepFromFit (1 failing); restored byte-identical
+M13 a pairing qualification hides the level caveat again (O4): RED at CoveragePolicyEvidenceTest.bothQualificationsAreStated (1 failing); restored byte-identical
+M14 the tooltip loses the full line (O1): RED at TopologyStatusTooltipTest.theTooltipCarriesEveryPartOnItsOwnLine (1 failing); restored byte-identical
+M15f the pairing note goes back to fifth place (O1): SKIPPED (needs --frame)
