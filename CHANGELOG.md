@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.22.1] - 2026-09-26
+
 - **The Design view shows its XML at the default window size.** The file path and note at the top of the
   Design view wrapped without limit in the narrow side panel and took the whole height, and the bean list kept
   a fixed 210 px, so on a fresh 1200×800 window the XML itself had no room. Every `source:design:bean:` and
