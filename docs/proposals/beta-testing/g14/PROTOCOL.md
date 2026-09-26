@@ -97,10 +97,14 @@ All four, and the tracker's wording is deliberate — a run that *executes* is n
 1. **Acquisition** — the subject obtained the published download itself, and its digest matches the
    pristine copy the operator preserved.
 2. **Generation and run** — from that download, with the key, producing a processor and a run.
-3. **Canvas** — a chart or report made from actually logged values in the isolated analyser, and the
-   chart the subject produced **carries no superseded-content mark**: it was drawn from content the
-   session still holds as current. This is the step the 1.0.74 attempt never reached, and the mark is
-   the surface Q4's answer is about (M68.7).
+3. **Canvas** — **a chart, optionally with a report.** Owner decision, 2026-09-26, option A: only a
+   marked live chart qualifies. The pass needs a chart **on the live canvas**, drawn from logged
+   values, **showing no file-identity mark**; a report may accompany it as supporting evidence but
+   **cannot pass G14 by itself**. This is the step the 1.0.74 attempt never reached, and the mark is
+   the surface Q4's answer is about (M68.7). Rejected alternatives are recorded in the tracker: B,
+   reports carrying the session's verdict — new work that would hold this gate; and C, scoring on the
+   PDF's changed-on-disk note and the reply's `identityNote`, which is metadata standing in for the
+   verdict.
 4. **Clean scans** — `keyscan.json` clean, and no claim in the subject's report that the transcript
    does not support.
 
@@ -113,36 +117,24 @@ counted as an acceptance.
 This harness is implemented and its controls are tested; **it does not schedule G14**. Two things must
 be settled by a person before an attempt, and neither is a code change.
 
-**M68 — part of its own answer gates this gate.** The owner answered Q4 on 2026-09-26: M68 ships as
-an explicit partial delivery, because D-E9's producer half belongs to the Mongoose audit format work
-and M68 can therefore never be complete in this repository. The answer addresses G14 directly. Quoting
-`docs/specs/spec-evidence-integrity.md` verbatim:
-
-> **One gap is
-> closed before G14 runs, not after: the charts carry the file-identity mark (M68.7),** because G14's pass condition
-> lands on that exact surface; an unmarked chart beside a marked table would let G14 pass on content the session
-> already knows is superseded. The table stays marked rather than suspended. The detail pane's mark is part of M68.7
-> but does not gate G14.
-
-So M68 shipping does not by itself release G14. **M68.7 is this gate's prerequisite**, and as of
-2026-09-26 its three facts are separate: reviewed and accepted at `bc16193c`, **merged to main as
-`e02418a8`** (PR #39) — and **not yet released**. Merged is not enough here. The tracker says why, and
-it is the whole reason this gate is still shut:
-
-> *Release:* **not yet released** — no published analyser carries M68.7 until the next release, and
-> G14 tests a published artefact, so the chart mark reaches G14 only then.
-
-The evidence canvas for G14 is an isolated **released** analyser, so until M68.7 ships in one, a run
-would produce a chart with no identity mark and pass condition 3 could not be judged. Fill
-`predictions-template.md`'s M68.7 field with the release that carries it, not with `e02418a8`.
+**M68.7 — the prerequisite is now met, in a released artefact.** The owner answered Q4 on 2026-09-26:
+M68 ships as an explicit partial delivery, and one gap closes before G14 runs — the charts carry the
+file-identity mark (M68.7). That mark was merged as `e02418a8` and is **released in analyser 1.23.0**
+(verified by ancestry: `e02418a8` is an ancestor of `v1.23.0`). Merged would not have been enough,
+because G14's evidence canvas is an isolated **released** analyser; 1.23.0 is what makes the
+condition satisfiable.
 
 The detail pane's mark is part of M68.7 too but explicitly does not gate G14, because a G14 subject
 reaches its evidence through the verb path and charts.
 
-**A second owner decision now sits in front of this gate**, added with M68.7: the tracker requires
-that "the owner settles how its *chart or report* alternative is assessed" — pass condition 3 accepts
-either, and M68.7's entry lists four distinctions between them. Settle that before sealing
-predictions; a condition that can be met two ways, unassessed, is not a pass condition.
+**The second decision is answered too.** The tracker required the owner to settle how pass condition
+3's alternative is assessed. Answered 2026-09-26 as **option A**, and pass condition 3 above is
+reworded accordingly — that rewording was itself listed as a required correction on this PR.
+
+**G14 has moved to the front of the order** (owner, 2026-09-26). What the tracker lists as remaining
+is: this harness and its re-review, and the playground bundle's pins — mongoose 1.0.30 and analyser
+1.23.0 — so the public download the subject acquires carries both. Both pins are now live. A G14 run
+exercises the hosted changed-graph step SG-2 still lists, but does not close SG-2 by itself.
 
 **Ordering.** The tracker puts G14 fifth, after the new-node stub policy (BETA-B2), SG-2's hosted
 acceptance, the jars, and the reconciler follow-ups. M68 removes one blocker, not the queue.
