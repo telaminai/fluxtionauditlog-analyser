@@ -285,7 +285,8 @@ own. Whether marking the table is enough is Q4's partial-delivery decision. **Q4
 before G14 runs. M68.7 (review accepted at `bc16193c`, merged 2026-09-26 as `e02418a8`, released in 1.23.0):** the charts and the detail pane carry the same verdict and
 reason as the table, from the same snapshot and by the table's rule (`GraphTabs.identityBannerText`,
 `DetailPanel.identityBannerText`; `IdentityMarkFrameTest` on a shown frame and a mapped log, triggered through the real
-dispatcher, asserting the banners are on screen). **Open for the owner before G14:** how G14's "chart or report"
+dispatcher, asserting the banners are on screen). **Answered by the owner 2026-09-26, option A:** only a marked live chart qualifies for
+G14; a report may accompany it but cannot pass alone. The distinctions it was decided on: how G14's "chart or report"
 alternative is assessed — an in-place rewrite refuses report requests; an atomic replacement allows an export whose
 reply carries `identityNote` and whose PDF carries the existing `log changed-on-disk` metadata note but no M68.7
 banner; that note is a metadata observation, not the session's verdict.

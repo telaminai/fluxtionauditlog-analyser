@@ -632,18 +632,20 @@ those seams, so the order below groups by what a single change set can close.
 people and two unblock nobody, and a session handed a list will naturally start with the concrete reproducible
 defects rather than the policy work.
 
-1. **The new-node stub policy (BETA-B2).** Nothing in the beta can be judged until it lands, because the central task
-   measures the tester rather than the product without it.
-2. **SG-2, the hosted download — part done.** Acquisition, setup and validation are closed on the real hosted
+1. **G14**, the acceptance run from a real download — **moved to the front by the owner, 2026-09-26.** Its analyser
+   conditions are met: M68.7's chart mark is released in 1.23.0, and the report question is answered (option A: only a
+   marked live chart qualifies). **What remains:** the harness, PR #37 (re-review of its fixes, plus pass condition 3
+   reworded for option A), and the playground bundle's pins (mongoose 1.0.30, analyser 1.23.0) so the public download it
+   acquires carries both. A G14 run exercises the hosted changed-graph step that SG-2 still lists; it does not close SG-2
+   by itself.
+2. ~~**The new-node stub policy (BETA-B2).**~~ **Done** — shipped in starter 1.0.74 (BETA-B2 ☑ above); this line was
+   out of date.
+3. **SG-2, the hosted download — part done.** Acquisition, setup and validation are closed on the real hosted
    archive; **changed-graph generation and run on that archive are not.** The template choice can now be argued on
    merit rather than by elimination, which was the point of this item, but the guided path is not yet proven true
    for the hosted route end to end. What remains is a single acceptance naming the hosted template.
-3. **The jars**, built once for both BETA-B4 and M67.1.
-4. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
-5. **G14**, the acceptance run from a real download, once the rest is in — **and after M68.7 marks the charts**
-   (owner, Q4, 2026-09-26): G14's pass condition lands on the chart surface. **Also before G14: the owner settles how
-   its "chart or report" alternative is assessed** (M68.7's entry lists the four distinctions). **The chart-mark
-   condition is met by 1.23.0**; the owner decision and the harness are what remain for this gate.
+4. **The jars**, built once for both BETA-B4 and M67.1.
+5. **The reconciler follow-ups** (G12, G5, F5/G13/F10) and **G7**. Real, and they unblock nobody, so they come last.
 
 **One decision is the owner's and must be settled before the work starts, not invented during it: what does a newly
 generated node log?** Too much costs allocation and dispatch time in a runtime that sells zero allocation, and fills
@@ -846,15 +848,22 @@ verdict, which is owned jointly.
   **Not covered:** a chart exported into a report or PDF, and a standalone chart-image export (`ChartPanel.toImage`),
   carry no mark — neither is a live surface, and both are outside this item's acceptance; the screenshot verb captures
   the window, so it carries the banner.
-  **Owner decision before G14 — not settled here.** G14's pass condition accepts "a chart **or report**"; the report
+  **G14's report assessment.** **Answered by the owner 2026-09-26: option A — only a marked live chart qualifies.** G14's pass needs a chart on the
+  live canvas, drawn from logged values, showing no file-identity mark; a report may accompany it as supporting evidence
+  but cannot pass G14 by itself. No code change follows; the protocol's pass condition 3 changes from "chart or report"
+  to "a chart, optionally with a report" (a required correction on PR #37). Rejected: B, reports carry the session's
+  verdict (new work that would hold G14), and C, scoring on the PDF's changed-on-disk note and the reply's
+  `identityNote` (metadata standing in for the verdict). B can follow as its own item if reports should later qualify
+  alone.
+  The distinctions it was decided on, kept: G14's pass condition accepted "a chart **or report**"; the report
   side differs by route, and the distinctions must be kept when it is decided: (1) a same-length in-place rewrite of a
   mapped log makes the real dispatcher **refuse** report requests; (2) an atomic replacement leaves the retained
   channel readable, so an export **succeeds** and its reply carries `identityNote`; (3) that PDF has no M68.7 banner,
   but its existing header/footer says `log changed-on-disk`, so it is not wholly unqualified; (4) that note is a
   metadata observation (`snapshotNote()`), not the session's verdict and reason. How G14 assesses a report — restrict
   qualifying evidence to the marked live chart, require the session's qualification or refusal on reports, or specify
-  how the existing note and the reply are read — is the owner's call. M68.7 does not expand the report path and does
-  not by itself unblock G14.
+  how the existing note and the reply are read — was the owner's call, answered above. M68.7 does not expand the
+  report path.
 
 Owner questions in the spec: **Q4 and Q5 answered 2026-09-26** (partial delivery with M68.7 gating G14; a repair
 journey for saved names, count first). **Q1 and Q3 answered the same day, as recommended:** a genuine
