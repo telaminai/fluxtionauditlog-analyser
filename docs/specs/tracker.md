@@ -828,7 +828,7 @@ verdict, which is owned jointly.
   affected-name count being small** (Q2 closed the inflow). Count first; if more than a handful, or no count can be
   established, Q5 goes back to the owner with the escape as the alternative. The repair asks before renaming and keeps
   the definition; the duplicate-name repair from PR #13 is the pattern to reuse. ☐ not started.
-- [M68.7] ☐ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
+- [M68.7] ◧ **Mark the charts — and the detail pane — with the file-identity verdict. GATES G14.** From **Q4, answered
   by the owner 2026-09-26: M68 ships as an explicit partial delivery** (D-E9's producer half makes a whole one
   impossible), with its gaps stated, **but the charts are marked before G14 runs, because G14's pass condition lands on
   that surface.** After an in-place rewrite the table shows its banner (UNVERIFIED / REPLACEMENT and that its rows are
@@ -836,6 +836,14 @@ verdict, which is owned jointly.
   verdict, from the same session snapshot, on the chart area and the detail pane. Acceptance: after an in-place rewrite
   of a mapped log, every open chart and the detail pane state the verdict; a control that removes the chart mark fails
   a named assertion. The detail pane's mark does not gate G14.
+  **Built 2026-09-26 on `feat/m68-7-identity-mark`; awaiting review, so ◧ not ☑.** One banner on `GraphTabs` above
+  every chart tab (a chart opened after the verdict is under it) and one on `DetailPanel`, both set in
+  `onSessionSnapshot` beside the table's; WHEN is the table's rule (`LogTablePanel.identityBannerText`), so the three
+  cannot disagree. Acceptance run on a real display: `IdentityMarkFrameTest` — a memory-mapped log, a same-length
+  in-place rewrite, a record read — the session reports UNVERIFIED, all three surfaces carry its reason, a later
+  chart is marked, and a reopen clears all three. Four controls (`m68-7-*`) caught at named assertions. **Not covered:**
+  a chart exported into a report or PDF carries no mark — the report path is not a live surface and is outside this
+  item's acceptance; the screenshot verb captures the window, so it carries the banner.
 
 Owner questions in the spec: **Q4 and Q5 answered 2026-09-26** (partial delivery with M68.7 gating G14; a repair
 journey for saved names, count first). **Q1 and Q3 answered the same day, as recommended:** a genuine
