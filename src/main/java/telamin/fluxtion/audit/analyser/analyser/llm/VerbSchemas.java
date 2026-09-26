@@ -18,7 +18,7 @@ public final class VerbSchemas {
 
         s.put("aggregate", schema("Read-only counts/rates over the whole log; never mutates the UI. Answer "
                         + "'how many' here: records you happened to read are only a sample. It returns counts, not "
-                        + "record positions; for 'when did X first happen', use series crossings instead.",
+                        + "record positions.",
                 props(
                         p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute. "
                                 + "breach_count counts records where the application itself logged a breach flag "
@@ -32,9 +32,7 @@ public final class VerbSchemas {
         s.put("series", schema("Read-only: stats and threshold crossings over any key or formula, "
                         + "computed in the analyser — ask 'where does X exceed Y' in ONE call instead of "
                         + "paging records. Crossings are edge events with recordIndex/byteOffset anchors "
-                        + "for a targeted 'read'; capped with an explicit truncated flag. When the application "
-                        + "reported an event is a crossing of the key it writes for that event (its flag or "
-                        + "counter), not the first time an underlying value passes a limit.",
+                        + "for a targeted 'read'; capped with an explicit truncated flag.",
                 props(
                         p("expr", string(), "a key (\"instanceId.key\") or a formula over keys, e.g. "
                                 + "\"ask.price - bid.price\""),
@@ -53,7 +51,9 @@ public final class VerbSchemas {
         s.put("read", schema("Read-only: the raw text of N records around an anchor, so you can seek the "
                         + "log through this socket without filesystem access. Max " + ReadService.MAX_COUNT
                         + " records/call. A window of records is a sample: do not count events or name a "
-                        + "'first' from it; use aggregate for counts and series crossings for positions.",
+                        + "'first' from it. When did the application first do X? That is the earliest record of the "
+                        + "event it logs for X, or the first value of its own counter for X - not the first record "
+                        + "whose values look over a limit.",
                 props(
                         p("recordIndex", integer(), "anchor by record index (0-based)"),
                         p("byteOffset", integer(), "anchor by byte offset (resolves to the containing "

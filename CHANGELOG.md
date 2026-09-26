@@ -8,8 +8,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 - **An assistant is told where counts and "first" answers come from.** The tool descriptions now say that
   a window of records it has read is only a sample, that `aggregate` returns counts but not positions, that
-  `breach_count` counts records where the application itself logged a breach (not values over a limit),
-  and that when something first happened is a `series` crossing of the key the application writes for it.
+  `breach_count` counts records where the application itself logged a breach (not values over a limit), and
+  that when the application first did something is the earliest record of the event it logs for it, or the
+  first value of its own counter, not the first record whose values look over a limit.
 
 ## [1.20.1] - 2026-09-24
 

@@ -63,15 +63,18 @@ class VerbSchemasTest {
     @SuppressWarnings("unchecked")
     void countingAndFirstOccurrenceQuestionsAreSentToTheToolsThatAnswerThem() {
         String aggregate = (String) schema("aggregate").get("description");
-        assertTrue(aggregate.contains("counts, not record positions") && aggregate.contains("series crossings"), aggregate);
+        assertTrue(aggregate.contains("counts, not record positions"), aggregate);
         String metric = (String) ((Map<String, Object>) ((Map<String, Object>) schema("aggregate").get("properties"))
                 .get("metric")).get("description");
         assertTrue(metric.contains("application itself logged a breach flag")
                 && metric.contains("a value exceeding a limit is not the same"), metric);
-        String series = (String) schema("series").get("description");
-        assertTrue(series.contains("crossing of the key it writes for that event"), series);
         String read = (String) schema("read").get("description");
         assertTrue(read.contains("do not count events or name a 'first' from it"), read);
+        assertTrue(read.contains("earliest record of the event it logs") && read.contains("not the first record whose values look over a limit"),
+                "a first occurrence is the application's own event, not a value over a limit: " + read);
+        // 10-vs-10 (2026-09-26): steering 'first' questions to a series crossing sent models to the value crossing
+        String series = (String) schema("series").get("description");
+        assertFalse(series.contains("crossing of the key it writes"), "the series sentence that misled models stays out: " + series);
     }
 
     @Test
