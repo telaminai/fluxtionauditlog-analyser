@@ -18,6 +18,9 @@ or a G14 pass. The running project remains untouched.
   revalidate both the Source tab and Topology's embedded pane, replacing the service model
   from the same snapshot off the EDT, with stale/deleted/cancelled reads disclosed. Reuse the
   source-spotlight resolver; local Maven source lookup already exists.
+  **In review:** [PR #30](https://github.com/telaminai/fluxtionauditlog-analyser/pull/30) — both panes, service model
+  and off-EDT reads, five gate controls. Vendor-archive rediscovery (§C's last paragraph) stays open here.
+  Not closed until merged.
 - ☐ **Recovery profile identity** — spec §E, feedback 5: first reproduce capture under P at X,
   delete/recreate a profile at X, then activate it. Current real-path keys cannot distinguish
   replacement profiles. Bind identity, disclose capturedAt/capturing identity, withhold or
