@@ -6,6 +6,21 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **The window title names the profile, not just the project.** With several profiles in one project, the title
+  now says which one is active (`project — profile`), so you can see which profile your edits are saving into.
+- **A project can say where the assistant's exchange directory is.** A project-relative
+  `assistant.exchangeDir` places exported reports and screenshots beside the evidence they are about. It can only
+  choose WHERE — turning the exchange on stays a setting on your machine — and it must be a directory inside the
+  project: an absolute path, `..`, or a link that leads out of the project is refused, and the machine setting is
+  used instead.
+- **A workspace anchor can be declared from Settings ▸ Source roots.** The Project panel told you to declare one
+  and there was no control to do it. Each choice says where it lands and how many of your roots it makes portable.
+- **Reports can be deleted, renamed and restored.** Delete… and Rename… sit in the Reports tab, and the assistant
+  can do the same. A delete is recoverable: **Restore deleted…** brings the report back into its project. The last
+  20 deletions are kept on this machine, never in the project profile.
+
 ## [1.23.0] - 2026-09-26
 
 ### Added

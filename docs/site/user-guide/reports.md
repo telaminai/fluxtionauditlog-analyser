@@ -112,8 +112,14 @@ the charts it referenced and any PDF you already exported are untouched — a re
 references, and deleting the assembly is not deleting the evidence. Rename refuses a name that is
 already taken rather than quietly replacing that report.
 
-Assistants get the same two: `report {name, delete: true}` and `report {name, rename: "…"}`, so one
-that built a diagnostic can clear it away when it is done.
+**A delete can be undone.** A deleted report moves to a recently-deleted list; **Restore deleted…**
+brings it back into the project it came from. The list is kept on this machine, not in the project
+profile — a deleted report is never committed or shared — and holds the last 20 deletions. Restoring
+onto a name that has since been taken is refused, so nothing is replaced.
+
+Assistants get the same: `report {name, delete: true}`, `report {name, rename: "…"}`, and
+`report {restore: "<name>"}` (`restore: true` lists what can be restored), so one that built a
+diagnostic can clear it away when it is done — and anything it deletes can be brought back.
 
 Reports persist with your profile, travel with projects, and share under their **own category** —
 because a shared report carries narrative written about your data, which deserves its own consent

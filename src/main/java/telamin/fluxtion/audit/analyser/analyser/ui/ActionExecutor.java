@@ -224,8 +224,9 @@ public final class ActionExecutor implements RenderExecutor {
             case "report" -> {
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
+                // PR #33 review: 'restore' needs no name, and must not fall through to the single-record export
                 if (params.containsKey("sections") || params.containsKey("name")
-                        || params.containsKey("csv")) {
+                        || params.containsKey("csv") || params.containsKey("restore")) {
                     String resolved = null;
                     if (params.get("path") != null) {
                         var out = guardedPath(params.get("path"));   // B1: same guard, same directory

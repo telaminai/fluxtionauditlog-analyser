@@ -130,6 +130,11 @@ public final class AppConfig {
      * carries prose an agent wrote about your data, a different cargo from key names and formulas.
      */
     public final List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports = new ArrayList<>();
+    /**
+     * PR #33: reports deleted from any project, restorable (see {@link ReportBin}). MACHINE tier, like the recent
+     * lists: never written to a project profile or an export, so a deleted report is never committed or shared.
+     */
+    public final List<DeletedReport> deletedReports = new ArrayList<>();
     /** M38.1: runbook POINTERS — name → project-relative path (never contents). Project-scoped; see {@link Runbooks}. */
     /** M38.1/M43.2: name → pointer (path + optional description). ONE map, because a parallel
      *  description map is two things that can disagree about which runbooks exist. */

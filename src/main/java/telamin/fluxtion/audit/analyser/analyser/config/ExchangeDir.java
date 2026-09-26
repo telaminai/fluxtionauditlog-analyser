@@ -84,6 +84,20 @@ public record ExchangeDir(String dir, String source, String refusal) {
                     + "project (" + resolved + ") — it is NOT created from a profile; make it, or change the "
                     + "value. Using the machine setting instead");
         }
+        // PR #33 review, R2: the checks above are LEXICAL, and isDirectory follows links. A directory inside the
+        // project that is a symbolic link to somewhere else passed all of them, and git preserves links, so a
+        // cloned repository could point the assistant's WRITES outside the project. Compare where it really is.
+        try {
+            Path real = resolved.toRealPath();
+            Path realRoot = root.toRealPath();
+            if (!real.startsWith(realRoot)) {
+                return new ExchangeDir(machine, MACHINE, LABEL + ": '" + wanted + "' is a link that leaves the "
+                        + "project (it resolves to " + real + ") — using the machine setting instead");
+            }
+        } catch (java.io.IOException e) {
+            return new ExchangeDir(machine, MACHINE, LABEL + ": '" + wanted + "' could not be resolved ("
+                    + e.getMessage() + ") — using the machine setting instead");
+        }
         return new ExchangeDir(resolved.toString(), PROJECT, null);
     }
 

@@ -80,7 +80,8 @@ drive the same verbs:
   *account* of an investigation, not just its evidence. It appears in the **Reports** tab, renders to
   PDF with `path`, and exports a table's rows to CSV with `csv`. A finding section renders what
   `flag` wrote and the verb **cannot** set or change that text; narrative is always visibly labelled
-  as narrative. `report {name, delete: true}` removes one and `report {name, rename}` renames one,
+  as narrative. `report {name, delete: true}` removes one — recoverably: it can be brought back with
+  `report {restore: "<name>"}` or the Reports tab's **Restore deleted…** — and `report {name, rename}` renames one,
   so an assistant can clear away the diagnostics it built along the way. See
   [Investigation reports](reports.md).
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a

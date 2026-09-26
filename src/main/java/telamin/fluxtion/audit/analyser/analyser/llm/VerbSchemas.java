@@ -162,9 +162,11 @@ public final class VerbSchemas {
                         + "permanent fixture of a shared profile, indistinguishable from a real finding.",
                 props(
                         p("name", string(), "the report's identity — building again with the same name REPLACES it"),
-                        p("delete", bool(), "true removes the report named by 'name'. The report "
-                                + "DEFINITION goes; the log, the charts it cited and any PDF already "
-                                + "rendered are untouched"),
+                        p("delete", bool(), "true removes the report named by 'name', RECOVERABLY: it moves to "
+                                + "a recently-deleted list on this machine (restore it with 'restore'). The log, "
+                                + "the charts it cited and any PDF already rendered are untouched"),
+                        p("restore", string(), "the name of a deleted report to bring back into this project; "
+                                + "'true' lists what can be restored. Refused if a report of that name exists"),
                         p("rename", string(), "the new name for the report named by 'name'. Refused if "
                                 + "that name is taken — renaming onto an existing report would destroy it"),
                         p("title", string(), "the headline"),

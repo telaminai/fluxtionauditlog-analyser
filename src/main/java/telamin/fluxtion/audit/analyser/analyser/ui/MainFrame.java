@@ -965,13 +965,28 @@ public final class MainFrame extends JFrame {
      * @return false when no report has that name — the caller says so rather than reporting success
      */
     boolean removeReport(String name) {
-        if (name == null || reportByName(name) == null) {
+        // PR #33 review (owner, 2026-09-27): recoverable — the report moves to the machine-local bin, not away
+        if (telamin.fluxtion.audit.analyser.analyser.config.ReportBin.delete(config, name,
+                java.time.Instant.now().toString()) == null) {
             return false;
         }
-        config.reports.removeIf(r -> r.name().equals(name));
         onGraphsEdited();
         if (reportsPanel != null) reportsPanel.refresh();
         return true;
+    }
+
+    /** Restore a deleted report into this project; null on success, otherwise why not (nothing changes). */
+    String restoreReport(String name) {
+        String refused = telamin.fluxtion.audit.analyser.analyser.config.ReportBin.restore(config, name);
+        if (refused != null) return refused;
+        onGraphsEdited();
+        if (reportsPanel != null) { reportsPanel.refresh(); reportsPanel.select(name); }
+        return null;
+    }
+
+    /** Deleted reports that can be restored into this project, newest first. */
+    java.util.List<String> restorableReports() {
+        return telamin.fluxtion.audit.analyser.analyser.config.ReportBin.restorable(config);
     }
 
     /**
@@ -1310,6 +1325,24 @@ public final class MainFrame extends JFrame {
         // a profile only accumulated and an assistant could not clean up after itself. Both come FIRST:
         // they take 'name' and no sections, which the build path would otherwise read as "replace with
         // an empty report" — the destroy-on-replace trap.
+        Object restore = params.get("restore");
+        if (restore != null) {
+            // PR #33 review (owner, 2026-09-27): a delete is recoverable; `restore: true` lists, a name restores
+            if (Boolean.TRUE.equals(restore) || "true".equals(String.valueOf(restore))) {
+                var echo = new java.util.LinkedHashMap<String, Object>();
+                echo.put("restorable", restorableReports());
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "restorable", echo);
+            }
+            String restoreName = String.valueOf(restore);
+            String refused = restoreReport(restoreName);
+            if (refused != null) {
+                return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(refused);
+            }
+            var echo = new java.util.LinkedHashMap<String, Object>();
+            echo.put("restored", restoreName);
+            echo.put("reports", reportNames());
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "restored", echo);
+        }
         if (Boolean.TRUE.equals(params.get("delete"))) {
             if (name == null) {
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error(
@@ -1326,8 +1359,11 @@ public final class MainFrame extends JFrame {
             echo.put("deleted", name);
             echo.put("sections", sections);
             echo.put("remaining", reportNames());
-            echo.put("note", "the report definition is gone; any PDF already rendered from it is a "
-                    + "separate file and is untouched");
+            echo.put("restorable", "report {restore: \"" + name + "\"} brings it back into this project; the "
+                    + "last " + telamin.fluxtion.audit.analyser.analyser.config.ReportBin.CAPACITY
+                    + " deletions are kept on this machine");
+            echo.put("note", "the report was moved to the recently-deleted list; any PDF already rendered from it "
+                    + "is a separate file and is untouched");
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "deleted", echo);
         }
         Object renameTo = params.get("rename");
@@ -3091,6 +3127,7 @@ public final class MainFrame extends JFrame {
                 this::removeReport,
                 this::renameReport);
         reportsPanel.setLogFindings(() -> store == null ? null : producerDiagnostics);   // D-MA0c
+        reportsPanel.setRestore(this::restorableReports, this::restoreReport);   // PR #33: a delete is recoverable
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);

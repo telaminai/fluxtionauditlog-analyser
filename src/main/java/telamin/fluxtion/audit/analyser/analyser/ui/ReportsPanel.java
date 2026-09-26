@@ -150,6 +150,10 @@ public final class ReportsPanel extends JPanel {
         JButton delete = new JButton("Delete…");
         delete.addActionListener(e -> deleteSelected());
         bar.add(delete);
+        JButton restoreButton = new JButton("Restore deleted…");
+        restoreButton.setToolTipText("Bring back a report deleted from this project on this machine");
+        restoreButton.addActionListener(e -> restoreDeleted());
+        bar.add(restoreButton);
         add(bar, BorderLayout.NORTH);
 
         detail.setLayout(new BoxLayout(detail, BoxLayout.Y_AXIS));
@@ -225,6 +229,33 @@ public final class ReportsPanel extends JPanel {
      * assembly of them goes. A report authored against a log that is no longer open is exactly the one
      * a person is most likely to delete by mistake, so the log is named even when it is not loaded.
      */
+    /** PR #33: what can be restored, and how. Unset, the button says there is nothing to restore. */
+    private Supplier<List<String>> restorable = List::of;
+    private Function<String, String> restoreReport = n -> "restore is not available here";
+
+    public void setRestore(Supplier<List<String>> restorable, Function<String, String> restoreReport) {
+        this.restorable = restorable == null ? List::of : restorable;
+        this.restoreReport = restoreReport == null ? n -> "restore is not available here" : restoreReport;
+    }
+
+    private void restoreDeleted() {
+        List<String> names = restorable.get();
+        if (names.isEmpty()) {
+            javax.swing.JOptionPane.showMessageDialog(this, "No deleted reports to restore in this project.",
+                    "Restore deleted report", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        Object choice = javax.swing.JOptionPane.showInputDialog(this, "Restore which report?",
+                "Restore deleted report", javax.swing.JOptionPane.QUESTION_MESSAGE, null,
+                names.toArray(), names.get(0));
+        if (choice == null) return;
+        String refused = restoreReport.apply(choice.toString());
+        if (refused != null) {
+            javax.swing.JOptionPane.showMessageDialog(this, refused, "Restore deleted report",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
     public static String deleteWarning(ReportSpec spec) {
         int n = spec.sections().size();
         String cites = spec.fingerprint() == null
@@ -234,7 +265,9 @@ public final class ReportsPanel extends JPanel {
                 + cites + " Its " + n + " section" + (n == 1 ? "" : "s")
                 + " and the notes on them are lost.\n"
                 + "The log, the charts and any PDF already exported are NOT touched.\n\n"
-                + "This cannot be undone.";
+                + "It can be brought back with Restore deleted… — the last "
+                + telamin.fluxtion.audit.analyser.analyser.config.ReportBin.CAPACITY
+                + " deletions are kept on this machine.";
     }
 
     private void deleteSelected() {

@@ -96,7 +96,8 @@ class ReportCanBeRemovedTest {
                 "names the LOG it cites — a report authored against a log that is no longer open is "
                         + "the one most likely deleted by mistake: " + warning);
         assertTrue(warning.contains("2 sections"), "says how much is lost: " + warning);
-        assertTrue(warning.contains("cannot be undone"), warning);
+        assertTrue(warning.contains("Restore deleted"), "PR #33 review: the confirmation says how to undo it: " + warning);
+        assertFalse(warning.contains("cannot be undone"), "and no longer promises the opposite: " + warning);
         assertTrue(warning.contains("NOT touched"),
                 "and what SURVIVES — deleting the assembly is not deleting the evidence: " + warning);
     }

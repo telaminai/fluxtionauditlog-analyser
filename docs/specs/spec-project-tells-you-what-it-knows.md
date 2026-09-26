@@ -76,6 +76,12 @@ A configured directory that does not exist is **refused with its reason**, not s
 creating directories from a shared profile is the kind of side effect that should be deliberate.
 `context.exports` gains `source: "project" | "machine"` so the answer is visible.
 
+**Where it really is, not where it looks** (PR review, 2026-09-27). The checks above are lexical, and a directory
+inside the project can be a symbolic link to somewhere else; git preserves links, so a cloned repository can carry
+one. The resolved directory's real path must lie under the project root's real path, or the value is refused,
+naming the link, and the machine setting is used. A link that stays inside the project is accepted: the rule is
+where the directory lands, not whether a link is involved.
+
 ## D-3 — a workspace anchor can be declared where the roots are (#20)
 
 `Sources ▸ Source roots…` gains an anchor control at the top.
@@ -89,6 +95,15 @@ The Project panel's warn detail already tells people to do this. After this chan
 names the menu path, so the remedy is reachable from the warning.
 
 ## D-4 — a report can be removed and renamed (#23)
+
+**A delete is recoverable** (owner decision, 2026-09-27, on the PR review). As first built, the assistant's
+`report {name, delete: true}` destroyed any report at once, one the person wrote included, with no undo — the first
+verb that let an assistant irreversibly remove a person's work. Now a delete, from the tab or the verb, moves the
+report into a **recently-deleted list** instead; **Restore deleted…** in the Reports tab and
+`report {restore: "<name>"}` bring it back, and `report {restore: true}` lists what can be. The list is
+**machine-local** (the analyser's own settings, never the project profile or an export), because project profiles
+are committed and a deleted report written into one would be committed and shared. Each entry keeps the project it
+came from and is restored only there; the newest 20 are kept; a restore onto a name now taken is refused.
 
 Parity with what charts already have:
 
@@ -123,6 +138,10 @@ behaviour; the gap is that there was no way out, only in.
       shows how many roots each choice makes portable.
 - [x] Declaring an anchor turns the Project panel's warn rows normal without a restart.
 - [x] A report can be deleted from the UI and over MCP; the confirmation names the report and its log.
+- [x] A delete is recoverable, from both, into the project it came from; the list never reaches a profile
+  (`ReportBinTest`, `ReportRecoverableDeleteFrameTest`).
+- [x] A project-supplied exchange directory whose real path leaves the project is refused
+  (`ProjectSuppliedExchangeDirTest#aLinkOutOfTheProjectIsRefused`).
 - [x] A report can be renamed; replace-by-name still replaces.
 - [x] Deleting the last report leaves `report.count=0` and a well-formed profile.
 

@@ -237,4 +237,38 @@ class ProjectSuppliedExchangeDirTest {
             assertNotEquals(outside.toString(), resolved.dir(), "escaped with: " + hostile);
         }
     }
+
+    // ---- PR #33 review, R2: a link inside the project must not carry the write directory outside it ----
+
+    @Test
+    @DisplayName("A directory inside the project that is a link to OUTSIDE it is refused, naming the link")
+    void aLinkOutOfTheProjectIsRefused(@TempDir Path tmp) throws IOException {
+        Path root = Files.createDirectories(tmp.resolve("repo"));
+        Path outside = Files.createDirectories(tmp.resolve("somewhere-else"));
+        AppConfig c = projectAt(root);
+        Files.createSymbolicLink(root.resolve("exports"), outside);   // git preserves links, so a clone can carry one
+        c.projectExchangeDir = "exports";
+
+        ExchangeDir resolved = ExchangeDir.of(c);
+
+        assertEquals(ExchangeDir.MACHINE, resolved.source(), "a link that leaves the project must not be the write directory");
+        assertEquals(c.assistantExportDir, resolved.dir(), "the machine setting is used instead");
+        assertNotNull(resolved.refusal(), "and the person is told why");
+        assertTrue(resolved.refusal().contains("link"), "the refusal names the link: " + resolved.refusal());
+    }
+
+    @Test
+    @DisplayName("A link that stays INSIDE the project is still accepted: the rule is where it lands, not links as such")
+    void aLinkWithinTheProjectIsAccepted(@TempDir Path tmp) throws IOException {
+        Path root = Files.createDirectories(tmp.resolve("repo"));
+        Path shared = Files.createDirectories(root.resolve("reports/shared"));
+        AppConfig c = projectAt(root);
+        Files.createSymbolicLink(root.resolve("exports"), shared);
+        c.projectExchangeDir = "exports";
+
+        ExchangeDir resolved = ExchangeDir.of(c);
+
+        assertEquals(ExchangeDir.PROJECT, resolved.source(), "a link that stays in the project is the project's directory");
+        assertNull(resolved.refusal());
+    }
 }
