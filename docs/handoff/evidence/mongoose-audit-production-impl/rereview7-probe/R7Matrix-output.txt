@@ -1,0 +1,13 @@
+logs=360
+14 cells  boundaries=[none] closings=[null, perNode, unreadable]  «If the change at record 1 (logTime 1) applied here, riskMonitor's»
+32 cells  boundaries=[none] closings=[none, null, perNode, unreadable]  «applied here, riskMonitor's lines below WARN are not in this log; otherwise»
+120 cells  boundaries=[none, spanning, whollyAfter] closings=[none, null, perNode, unreadable]  «the log renders both identically. »
+15 cells  boundaries=[none] closings=[unreadable]  «, a control record this reader could not read; »
+30 cells  boundaries=[spanning, whollyAfter] closings=[unreadable]  «could not be read by this reader; »
+56 cells  boundaries=[spanning, whollyAfter] closings=[null, perNode]  «The next change to riskMonitor's audit level in the same grouping is at »
+72 cells  boundaries=[spanning, whollyAfter] closings=[null, perNode]  «among the records that likewise state no grouping is at »
+8 cells  boundaries=[spanning, whollyAfter] closings=[null, perNode]  «either way it would change this node, and only if»
+44 cells  boundaries=[spanning, whollyAfter] closings=[null, perNode]  «either way it changes this node»
+6 cells  boundaries=[none] closings=[unreadable]  «is not established. Before record »
+22 cells  boundaries=[spanning] closings=[perNode]  «which sets it to INFO. Before the stream-end marker»
+52 cells  boundaries=[spanning, whollyAfter] closings=[null]  «only the first would change it»

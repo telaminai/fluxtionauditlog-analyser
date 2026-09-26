@@ -1,0 +1,9 @@
+== J WARN riskMonitor rec 1; marker; readable control for priceListener rec 3; unreadable rec 4; view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). The next control record in the same grouping, record 4 (logTime 4), could not be read by this reader; whether that record changed riskMonitor's audit level is not established. Before the stream-end marker preceding record 3, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== K same, no marker
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It holds at least until record 4 (logTime 4), a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. Before record 4, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== L absent grouping, groupId alpha on both, closer across a marker, view rec 2
+   this log records a change setting riskMonitor's audit level to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change — addressed to processor grouping 'alpha' — applied here is not established. The next change to riskMonitor's audit level among the records that likewise state no grouping is at record 4 (logTime 4), which sets it to INFO. Before the stream-end marker preceding record 3, if the change at record 1 (logTime 1) applied here, riskMonitor's lines below WARN are not in this log. That marker begins a later run, and the log does not say whether the level survived into it: for the records in view from record 3 on, those lines are absent only if the change at record 1 (logTime 1) applied here and it survived the marker. It is still counted as uncovered, because a level change is not proof the node ran
+

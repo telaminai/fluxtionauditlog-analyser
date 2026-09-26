@@ -1,0 +1,27 @@
+== A absent grouping, unreadable closer, view rec 2
+   this log records a change setting riskMonitor's audit level to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied here is not established. It holds at least until record 3 (logTime 3), a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. If the change at record 1 (logTime 1) applied here, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+
+== B absent grouping, closer across a marker, view rec 2 (before the marker)
+   this log records a change setting riskMonitor's audit level to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change applied here is not established. The next change to riskMonitor's audit level among the records that likewise state no grouping is at record 4 (logTime 4), which sets it to INFO. If the change at record 1 (logTime 1) applied here, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+
+== C declared null, no closer, a later run after the view, view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). Nothing later in the records sharing its grouping changes it, so riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== D riskMonitor logs at rec 1; WARN at rec 2; unreadable at rec 4; view rec 3
+   this log sets riskMonitor's audit level to WARN at record 2 (logTime 2). It holds at least until record 4 (logTime 4), a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. Before record 4, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== E riskMonitor logs at rec 1; WARN at rec 2; marker; INFO at rec 5; view rec 3
+   this log sets riskMonitor's audit level to WARN at record 2 (logTime 2). The next change to riskMonitor's audit level in the same grouping is at record 5 (logTime 5), which sets it to INFO. Before the stream-end marker preceding record 4, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== F declared alpha WARN at rec 1; beta record with riskMonitor at rec 2; unreadable alpha at rec 4; view rec 3
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It was addressed to processor grouping 'alpha', which is the grouping the control record itself declares. It holds at least until record 4 (logTime 4), a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. Before record 4, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== G fully-qualified unreadable control event at rec 3, view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It holds at least until record 3 (logTime 3), a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. Before record 3, riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
+== H absent grouping, unreadable closer, view rec 2 (same as A: the premise path)
+   this log records a change setting riskMonitor's audit level to WARN at record 1 (logTime 1). The control record states no processor grouping, so whether this change — addressed to processor grouping 'alpha' — applied here is not established. It holds at least until record 3 (logTime 3), a control record this reader could not read; whether that record changed riskMonitor's audit level is not established. If the change at record 1 (logTime 1) applied here, riskMonitor's lines below WARN are not in this log; otherwise this change explains nothing here. It is still counted as uncovered, because a level change is not proof the node ran
+
+== I declared null, readable closer at rec 3, riskMonitor logs at rec 4, view rec 2
+   this log sets riskMonitor's audit level to WARN at record 1 (logTime 1). It holds until record 3 (logTime 3) sets it to INFO, so riskMonitor's lines below WARN are not in this log. It is still counted as uncovered, because a level change is not proof the node ran
+
