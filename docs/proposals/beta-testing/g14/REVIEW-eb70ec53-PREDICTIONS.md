@@ -55,3 +55,29 @@ counting (an even number of backslashes does *not* continue the line), and the n
 logical-line distinction. I predict I will implement those and still not match the JDK on some input,
 which is why the raw-line candidates stay and why unsupported forms must be recorded rather than
 dropped.
+
+## Misses
+
+**Predictions that held.** All four diagnoses and fixes landed as predicted, including the two details
+I flagged as easy to get wrong: ISO-8859-1 as the input encoding, and the odd-backslash rule for
+continuations. The JDK cross-check (`test_agrees_with_the_jdk`) confirms the decoder matches
+`java.util.Properties` on every shape the reviewer used, so the prediction that I would "implement
+those and still not match the JDK on some input" did **not** come true for the tested cases — though
+it remains true that the format has corners none of these tests reach, which is why the raw-line
+candidates and the fail-closed path stay.
+
+**Two misses, both in the enforcement test's fixtures rather than the fix.** The enforcement probe is
+new ground and both mistakes made a test lie in the safe-looking direction:
+
+1. I first placed the fake home *inside* the base under `/private/tmp`. The policy's second deny
+   alternative — everything under `/private/tmp` that is not `base/project` or `base/tmp` — then
+   swallowed the key file, and `test_the_key_file_itself_is_readable` failed in a way that looked
+   exactly like a policy bug. It was a fixture that did not mirror production, where home is
+   `/Users/<user>` and the two alternatives cannot overlap.
+2. Then both negative assertions passed for the wrong reason. `TemporaryDirectory()` lives under
+   `/var/folders`, `/var` is a symlink to `/private/var`, and SBPL matches the **resolved** path — so
+   the unresolved subpath in the policy never matched anything and "denied" was indistinguishable
+   from "no rule applied". Resolving the fixture paths fixed it.
+
+Both are recorded because they are the same class of error as the defect being fixed: a check that
+passes without exercising what it claims to exercise.

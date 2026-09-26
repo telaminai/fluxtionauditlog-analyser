@@ -40,6 +40,8 @@ CLAUDE_BIN = str(Path.home() / '.local/bin/claude')
 SCAFFOLD_URL = 'https://fluxtion-playground.dev/start/scaffold?template=analyser-bundle'
 DEFAULT_CAP_SECONDS = 1800  # the interrupted 1.0.74 attempt ran 869s and never reached a chart
 REAP_GRACE_SECONDS = 10
+# Below this length a candidate would match ordinary prose and fail every run on its own header.
+MIN_SECRET_LENGTH = 12
 # Bounds for the filesystem half of the key scan. A build tree holds jars and class files; reading
 # them whole would make the scan slower than the trial without finding text a key could hide in.
 SCAN_MAX_BYTES = 4 * 1024 * 1024
@@ -72,7 +74,7 @@ def resolve_java_home(explicit=None):
     return str(Path(found).resolve().parent.parent) if found else ''
 
 
-def isolation_profile(base, port, java_home):
+def isolation_profile(base, port, java_home, home=None, key_file=None):
     """Per-run sandbox profile.
 
     Deliberately weaker than the cold-start profile in three places, each forced by the journey:
@@ -96,7 +98,10 @@ def isolation_profile(base, port, java_home):
       strictly ANTHROPIC_API_KEY or apiKeyHelper — incompatible with the CLAUDE_CODE_OAUTH_TOKEN this
       rig uses. So the read is kept, narrowed from the whole directory to the login keychain database.
     """
-    home = str(Path.home())
+    # home/key_file are parameters so the enforcement tests can build a policy over disposable
+    # fixtures and run sandbox-exec against it without going near the real home or the real key.
+    home = str(home) if home else str(Path.home())
+    key_file = str(key_file) if key_file else str(KEY_FILE)
     return f'''(version 1)
 (allow default)
 (deny file-read*
@@ -105,7 +110,7 @@ def isolation_profile(base, port, java_home):
   (require-not (subpath "{home}/.local/share/claude"))
   (require-not (subpath "{java_home}"))
   (require-not (literal "{home}/Library/Keychains/login.keychain-db"))
-  (require-not (literal "{KEY_FILE}"))
+  (require-not (literal "{key_file}"))
   (require-not (literal "{home}/Library/Preferences/com.apple.security.plist")))
  (require-all (subpath "/private/tmp")
   (require-not (subpath "{base}/project"))
@@ -121,7 +126,7 @@ def isolation_profile(base, port, java_home):
  (require-all (remote ip "localhost:*")
   (require-not (remote ip "localhost:{port}"))))
 (allow network-outbound (remote tcp "localhost:{port}"))
-(deny file-read* (subpath "{home}/.fluxtion/") (require-not (literal "{KEY_FILE}")))
+(deny file-read* (require-all (subpath "{home}/.fluxtion/") (require-not (literal "{key_file}"))))
 '''
 
 
@@ -176,18 +181,25 @@ def _pid_alive(pid):
 
 
 def _group_members(pgid):
-    """Live, non-zombie pids in a process group.
+    """Live, non-zombie pids in a process group, or None when enumeration FAILED.
 
     `killpg(pgid, 0)` is not usable as the liveness probe: once signalled, the group's leader becomes
     a ZOMBIE until this process waits on it, and the probe keeps reporting the group alive — so the
-    reaper could never observe success and always fell through to reporting failure. Enumerating and
-    discarding zombies is what makes "the group is gone" observable before the caller waits.
+    reaper could never observe success. Enumerating and discarding zombies is what makes "the group is
+    gone" observable before the caller waits.
+
+    None is not an empty list, and the difference is the whole point: returning [] when `ps` fails or
+    times out made "I could not look" indistinguishable from "nothing is there", and the reaper
+    reported success over a process that was still running. A non-zero exit status counts as failure
+    too — it was previously unchecked.
     """
     try:
         out = subprocess.run(['ps', '-eo', 'pid=,pgid=,stat='], capture_output=True, text=True,
                              timeout=20)
     except (OSError, subprocess.SubprocessError):
-        return []
+        return None
+    if out.returncode != 0:
+        return None
     members = []
     for line in out.stdout.splitlines():
         parts = line.split(None, 2)
@@ -203,73 +215,181 @@ def _group_members(pgid):
 
 
 def _group_alive(pgid):
-    return bool(_group_members(pgid))
+    """True, False, or None when it could not be established."""
+    members = _group_members(pgid)
+    return None if members is None else bool(members)
 
 
-def reap_process_group(pid, grace=REAP_GRACE_SECONDS, signal_group=True):
+def reap_process_group(pgid, grace=REAP_GRACE_SECONDS, signal_group=True, leader_pid=None):
     """Terminate everything the subject started, not just the process it started first.
 
-    `start_new_session=True` puts the child in its own process group, but `terminate()` signals only
-    that group's leader. A build, a `java -jar` launch or a backgrounded `./generate.sh` survives it
-    and keeps running with the key readable and the network open, while the key scan and meta.json are
-    written around it. Signalling the GROUP is what ends the trial.
+    Takes the group id CAPTURED AT LAUNCH, never one looked up afterwards. Looking it up from the
+    leader was the second defect: after a normal exit `getpgid(leader)` raises, which was read as
+    "the group is gone" and reported success while children were still running — and the production
+    poll loop reaches exactly that state every time the subject exits on its own.
 
-    `signal_group=False` exists for the control in the tests: it reproduces the leader-only behaviour
-    this function replaces, and the reaping test must fail under it.
+    Returns True only when the group was OBSERVED empty. False means still alive, or that enumeration
+    could not establish it; an unverified cleanup must never read as a successful one.
+
+    `signal_group=False` reproduces the leader-only behaviour this function replaces, for the control
+    in the tests; it needs `leader_pid`.
     """
-    try:
-        pgid = os.getpgid(pid)
-    except ProcessLookupError:
-        return True
+    if not signal_group and leader_pid is None:
+        raise ValueError('leader-only signalling needs leader_pid')
 
-    send = (lambda s: os.killpg(pgid, s)) if signal_group else (lambda s: os.kill(pid, s))
+    def send(sig):
+        if signal_group:
+            os.killpg(pgid, sig)
+        else:
+            os.kill(leader_pid, sig)
+
     for sig, wait in ((signal.SIGTERM, grace), (signal.SIGKILL, 2.0)):
         try:
             send(sig)
         except ProcessLookupError:
-            return True
+            pass  # the target is gone; the GROUP may not be, so keep checking below
         except PermissionError:
             pass
         deadline = time.time() + wait
         while time.time() < deadline:
-            if not _group_alive(pgid):
+            if _group_alive(pgid) is False:
                 return True
             time.sleep(0.2)
-    return not _group_alive(pgid)
+    return _group_alive(pgid) is False
 
 
 def _looks_binary(sample):
     return b'\x00' in sample
 
 
-def key_secrets():
-    """Candidate secrets from the key file. Returns strings; never logs or returns the file itself.
+def _decode_properties(raw):
+    """Decode bytes the way `java.util.Properties.load(InputStream)` does.
 
-    The builder reads this file with `java.util.Properties.load` — verified by disassembling
-    `FluxtionConfigManager` in fluxtion-builder, not by reading the key file — so `=`, `:` and
-    whitespace are all legal separators and `#`/`!` start comments. A parser that assumed `key=value`
-    would report CLEAN on a leaked key written as `apiKey:secret`, which is the one thing this scan
-    must never do. Every line of 12+ characters is therefore taken whole AND after each legal
-    separator.
+    Implemented rather than approximated, because the approximation reported CLEAN on two leaked keys
+    the reviewer synthesised: a `\\uXXXX` escape and a backslash-newline continuation both decode to
+    a value that a separator-splitting parser never sees.
+
+    Three details that are easy to get wrong and each produce a false CLEAN:
+    * the stream is decoded as **ISO-8859-1**, not UTF-8, before escapes are processed;
+    * a line continues only when it ends in an ODD number of backslashes;
+    * leading whitespace on a continuation line is stripped, and escaped separators (`\\=`, `\\:`)
+      do not terminate the key.
+
+    Returns (values, unsupported) — `unsupported` collects raw lines this parser could not decode, so
+    the caller can fail closed instead of silently scanning for fewer things.
     """
-    secrets = set()
-    if not KEY_FILE.exists():
-        return secrets
-    for raw in KEY_FILE.read_text(errors='replace').splitlines():
-        line = raw.strip()
+    text = raw.decode('iso-8859-1')
+    values, unsupported = [], []
+
+    logical, pending = [], ''
+    for natural in text.split('\n'):
+        natural = natural.rstrip('\r')
+        if pending:
+            natural = pending + natural.lstrip(' \t\f')
+            pending = ''
+        stripped = natural.lstrip(' \t\f')
+        if not pending and (not stripped or stripped[0] in '#!'):
+            continue
+        trailing = len(natural) - len(natural.rstrip('\\'))
+        if trailing % 2 == 1:                      # odd count continues; even is an escaped backslash
+            pending = natural[:-1]
+            continue
+        logical.append(natural)
+    if pending:
+        logical.append(pending)
+
+    for line in logical:
+        line = line.lstrip(' \t\f')
         if not line or line[0] in '#!':
             continue
-        candidates = [line]
-        for separator in ('=', ':'):
-            if separator in line:
-                candidates.append(line.split(separator, 1)[1].strip())
-        parts = line.split(None, 1)
-        if len(parts) == 2:
-            candidates.append(parts[1].strip())
-        for candidate in candidates:
-            if len(candidate) >= 12:
-                secrets.add(candidate)
-    return secrets
+        # Find the separator: first unescaped =, :, or run of whitespace.
+        i, escaped, sep = 0, False, None
+        while i < len(line):
+            c = line[i]
+            if escaped:
+                escaped = False
+            elif c == '\\':
+                escaped = True
+            elif c in '=:':
+                sep = i
+                break
+            elif c in ' \t\f':
+                sep = i
+                break
+            i += 1
+        if sep is None:
+            value_part = line                      # a whole line with no separator IS a key with an
+        else:                                      # empty value; the line itself is still a candidate
+            rest = line[sep:]
+            rest = rest.lstrip(' \t\f')
+            if rest[:1] in ('=', ':'):
+                rest = rest[1:].lstrip(' \t\f')
+            value_part = rest
+        try:
+            values.append(_unescape_properties(value_part))
+        except ValueError:
+            unsupported.append(line)
+        if sep is not None:
+            try:
+                values.append(_unescape_properties(line))
+            except ValueError:
+                unsupported.append(line)
+    return values, unsupported
+
+
+def _unescape_properties(s):
+    """Java's `loadConvert`: \\uXXXX, \\t \\n \\r \\f, and \\<anything> -> <anything>."""
+    out, i = [], 0
+    while i < len(s):
+        c = s[i]
+        if c != '\\':
+            out.append(c)
+            i += 1
+            continue
+        i += 1
+        if i >= len(s):
+            break                                   # a trailing lone backslash is dropped, as Java does
+        c = s[i]
+        i += 1
+        if c == 'u':
+            if i + 4 > len(s):
+                raise ValueError('truncated unicode escape')
+            try:
+                out.append(chr(int(s[i:i + 4], 16)))
+            except ValueError:
+                raise ValueError('malformed unicode escape')
+            i += 4
+        elif c == 't':
+            out.append('\t')
+        elif c == 'n':
+            out.append('\n')
+        elif c == 'r':
+            out.append('\r')
+        elif c == 'f':
+            out.append('\f')
+        else:
+            out.append(c)
+    return ''.join(out)
+
+
+def key_secrets():
+    """Candidate secrets from the key file. Returns (secrets, unsupported); never returns the file.
+
+    The builder reads this file with `java.util.Properties.load` — verified by disassembling
+    `FluxtionConfigManager` in fluxtion-builder, not by reading the key file — so the file is DECODED
+    the way Java decodes it rather than split on a separator. Raw lines are kept as candidates too:
+    a key that leaks exactly as it appears on disk is caught even if the decoder is ever wrong.
+    """
+    if not KEY_FILE.exists():
+        return set(), []
+    raw = KEY_FILE.read_bytes()
+    decoded, unsupported = _decode_properties(raw)
+    secrets = {c for c in decoded if len(c) >= MIN_SECRET_LENGTH}
+    for line in raw.decode('iso-8859-1').splitlines():   # belt and braces: the on-disk form
+        line = line.strip()
+        if line and line[0] not in '#!' and len(line) >= MIN_SECRET_LENGTH:
+            secrets.add(line)
+    return secrets, unsupported
 
 
 KEY_PATH_PATTERN = re.compile(
@@ -289,12 +409,18 @@ def key_leak_scan(archive, base=None):
     """
     verdict = {'scannedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                'keyFilePresent': KEY_FILE.exists(), 'secretOccurrences': 0, 'keyPathReads': 0,
-               'files': {}, 'filesScanned': 0, 'filesSkipped': 0}
-    secrets = key_secrets()
+               'files': {}, 'filesScanned': 0, 'filesSkipped': 0, 'unsupportedKeyLines': 0}
+    secrets, unsupported = key_secrets()
+    verdict['unsupportedKeyLines'] = len(unsupported)
     if not verdict['keyFilePresent']:
         verdict['note'] = 'key file absent; scan is vacuous'
         verdict['clean'] = None
         return verdict
+    if unsupported:
+        # Fail closed. A line this parser could not decode may hold a secret it is therefore not
+        # searching for, so the scan cannot claim clean — it reports that it could not establish it.
+        verdict['note'] = (f'{len(unsupported)} key-file line(s) use a form this parser does not '
+                           'decode; the scan cannot establish clean')
 
     def scan(path, label):
         try:
@@ -334,7 +460,10 @@ def key_leak_scan(archive, base=None):
                 if path.is_file() and not path.is_symlink():
                     scan(path, str(path.relative_to(base)))
 
-    verdict['clean'] = verdict['secretOccurrences'] == 0 and verdict['keyPathReads'] == 0
+    if unsupported:
+        verdict['clean'] = None
+    else:
+        verdict['clean'] = verdict['secretOccurrences'] == 0 and verdict['keyPathReads'] == 0
     return verdict
 
 
@@ -472,9 +601,13 @@ def run_trial(run, model, base, input_file, cap, java_home):
             (archive / 'events.jsonl').open('x') as events:
         p = subprocess.Popen(command, cwd=project, env=env, stdout=subprocess.PIPE, stderr=err,
                              text=True, start_new_session=True)
+        # Captured NOW, while the leader is certainly alive. Looking it up after the subject exits
+        # raises, which used to be read as "the group is gone" while its children kept running.
+        pgid = os.getpgid(p.pid)
+        meta['processGroupId'] = pgid
         awake = subprocess.Popen(['/usr/bin/caffeinate', '-i', '-s', '-w', str(p.pid)],
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print('Started', run, model, p.pid, flush=True)
+        print('Started', run, model, p.pid, pgid, flush=True)
 
         def capture():
             for line_no, line in enumerate(p.stdout, 1):
@@ -497,7 +630,7 @@ def run_trial(run, model, base, input_file, cap, java_home):
             time.sleep(.25)
         # Reap the GROUP, on the cap and after a normal exit alike: anything the subject backgrounded
         # outlives its leader otherwise, and the scan below would run while it is still writing.
-        meta['processGroupReaped'] = reap_process_group(p.pid)
+        meta['processGroupReaped'] = reap_process_group(pgid)
         try:
             meta['exit'] = p.wait(timeout=20)
         except subprocess.TimeoutExpired:
@@ -526,6 +659,15 @@ def run_trial(run, model, base, input_file, cap, java_home):
         print('\nKEY LEAK DETECTED — run preserved as evidence, NOT an acceptance. Rotate the key.',
               file=sys.stderr)
         return 3
+    if scan['clean'] is None:
+        print('\nKEY SCAN COULD NOT ESTABLISH CLEAN — not an acceptance.', file=sys.stderr)
+        return 4
+    # Cleanup that was not observed to succeed cannot be read as a pass: descendants may still hold
+    # the key and the network, and the scan above ran while they could still be writing.
+    if meta.get('processGroupReaped') is not True:
+        print('\nPROCESS GROUP NOT CONFIRMED REAPED — not an acceptance; check for survivors in '
+              f'group {meta.get("processGroupId")}.', file=sys.stderr)
+        return 5
     return 0
 
 

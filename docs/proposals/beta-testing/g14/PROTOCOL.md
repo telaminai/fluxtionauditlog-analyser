@@ -158,7 +158,12 @@ unaided will spend the effort there instead of on the design.
 
 - **The containment trade is the whole argument.** G14 grants built-in tools, outbound network and the
   key. Judge whether `key_leak_scan` plus a narrowed profile is adequate compensation, and whether the
-  profile in `isolation_profile()` actually denies what this file claims it denies. The claims to test:
+  profile in `isolation_profile()` actually denies what this file claims it denies. These claims are
+  now checked against the **kernel**, not just the policy text: `SandboxEnforcementTest` runs
+  `sandbox-exec` over disposable fixtures and asserts both directions. That distinction is not
+  academic — the text-only version of these assertions passed against a policy that denied every read,
+  because SBPL combines multiple `deny` filters as alternatives, and the first real trial would have
+  aborted at launch. A negative-only test would still be passing. The claims to test:
   the source tree unreadable, other analyser instances unreachable, `~/.fluxtion` invisible apart from
   the key file itself, **no grant for the owner's local Maven repository** (Java takes `user.home` from
   the account, not the environment, so without this every JVM the subject starts would resolve to it),
@@ -176,16 +181,25 @@ unaided will spend the effort there instead of on the design.
 - **`keyPathReads` is a regex over transcript text.** It catches the observed shape
   (`cat ~/.fluxtion/fluxtion.apiKeyFile`) and near neighbours. It will not catch an obfuscated read.
   It is a hygiene check, not an exfiltration defence.
-- **Tested and untested.** `tools/test_g14_runner.py` covers the key-leak scan (every separator the
-  key file's `Properties` format allows, the project tree as well as the transcript, binaries and
-  oversize files skipped, the short-value false-positive guard, the vacuous-when-absent case, and that
-  the verdict never contains the secret), the sandbox profile's two reviewed grants, process-group
-  reaping against a real grandchild, and the refusals under `python3 -O`. It runs in CI. Two of those
-  carry a control that must go red when the fix is removed — the local Maven repository grant, and
-  leader-only signalling. **`run_trial`'s launch path has still never been executed** — it needs the
-  key and a staged analyser instance, so it is reviewed code, not exercised code. Its refusal paths
-  are exercised; nothing beyond them is. Treat the first execution as part of the attempt and
-  supervise it.
+- **Tested and untested.** `tools/test_g14_runner.py` is 40 tests, in CI. It covers the key-leak
+  scan (the `Properties` format **decoded as the JDK decodes it** — escapes, continuations,
+  ISO-8859-1 — cross-checked against `java.util.Properties` itself; the project tree as well as the
+  transcript; binaries and oversize files skipped; fail-closed on a line it cannot decode; and that
+  the verdict never contains the secret), the sandbox profile **enforced by the kernel** in both
+  directions, process-group cleanup after a normal exit as well as a cap, enumeration failure treated
+  as unknown rather than empty, and the refusals under `python3 -O`. Six fixes carry a control that
+  must go red when the fix is removed. **`run_trial`'s launch path has still never been executed** —
+  it needs the key and a staged analyser instance, so it is reviewed code, not exercised code. Its
+  refusal paths are exercised; nothing beyond them is. Treat the first execution as part of the
+  attempt and supervise it.
+- **The keychain grant is a disclosed trade, not a demonstrated minimum.** `claude --help` establishes
+  that `--bare` excludes OAuth and so is unusable here; it does **not** establish that
+  token-authenticated execution needs `login.keychain-db`. The narrowing is real; its necessity is
+  unverified, and no document in this PR should be read as claiming otherwise.
+- **Exit codes carry the verdict.** `0` only when the scan is clean *and* the process group was
+  observed reaped. `3` a leak, `4` a scan that could not establish clean, `5` cleanup not confirmed.
+  An unverified cleanup is not an acceptance: descendants may still hold the key and the network, and
+  the scan runs while they could still be writing.
 - **One run is a hypothesis.** METHOD.md records that the current release checks are n = 1 per cell
   against the retired protocol's "three runs each". G14 is a single acceptance by construction, which
   is defensible for a gate about one published artefact — but say so in `SCORE.md` rather than letting

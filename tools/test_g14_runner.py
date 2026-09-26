@@ -11,6 +11,7 @@ starts a model session. Every test patches `KEY_FILE` and `TRIAL_TOKEN` onto tem
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -230,21 +231,27 @@ class IsolationProfileTest(unittest.TestCase):
 class ReapProcessGroupTest(unittest.TestCase):
     """Finding 3 — the cap must end the subject's work, not just its first process."""
 
-    def start_family(self):
-        """A leader that spawns a sleeping grandchild and prints its pid."""
-        p = subprocess.Popen(['/bin/sh', '-c', 'sleep 120 & echo $!; sleep 120'],
+    def start_family(self, leader_exits=False):
+        """A leader that spawns a sleeping grandchild and prints its pid.
+
+        With leader_exits the leader returns immediately, leaving an orphaned child in the group —
+        the normal-exit shape the runner's poll loop reaches every time the subject finishes.
+        """
+        tail = 'exit 0' if leader_exits else 'sleep 120'
+        p = subprocess.Popen(['/bin/sh', '-c', f'sleep 120 & echo $!; {tail}'],
                              stdout=subprocess.PIPE, text=True, start_new_session=True)
+        pgid = os.getpgid(p.pid)
         grandchild = int(p.stdout.readline().strip())
         for _ in range(50):
             if g14._pid_alive(grandchild):
                 break
             time.sleep(0.05)
-        return p, grandchild
+        return p, pgid, grandchild
 
     def test_reaping_the_group_kills_the_grandchild(self):
-        p, grandchild = self.start_family()
+        p, pgid, grandchild = self.start_family()
         self.assertTrue(g14._pid_alive(grandchild), 'grandchild did not start')
-        reaped = g14.reap_process_group(p.pid, grace=3)
+        reaped = g14.reap_process_group(pgid, grace=3)
         p.wait(timeout=10)
         self.assertTrue(reaped, 'reap_process_group reported failure')
         self.assertFalse(g14._pid_alive(grandchild),
@@ -257,8 +264,8 @@ class ReapProcessGroupTest(unittest.TestCase):
         If leader-only signalling ever stops leaving the grandchild alive, the group test above
         proves nothing.
         """
-        p, grandchild = self.start_family()
-        g14.reap_process_group(p.pid, grace=1, signal_group=False)
+        p, pgid, grandchild = self.start_family()
+        g14.reap_process_group(pgid, grace=1, signal_group=False, leader_pid=p.pid)
         p.wait(timeout=10)
         still_running = g14._pid_alive(grandchild)
         if still_running:
@@ -332,6 +339,222 @@ class JavaHomeTest(unittest.TestCase):
         for needle in (str(Path.home()), '/Users/' + os.environ.get('USER', 'nobody'),
                        '/home/' + os.environ.get('USER', 'nobody')):
             self.assertNotIn(needle, source, f'a personal filesystem path is hard-coded: {needle}')
+
+
+
+class SandboxEnforcementTest(unittest.TestCase):
+    """Second review, finding 1 — the kernel's reading of the policy, not the policy's text.
+
+    The text-only assertions passed against a policy that denied EVERY read, because SBPL combines
+    multiple filters to `deny` as alternatives: "under ~/.fluxtion/ OR not the key file" matches all
+    files. `/bin/cat` aborted on an allowed project file. A negative-only test would still have
+    passed, which is how it shipped — so the positive direction is the one that matters here.
+
+    Disposable fixtures throughout: a fake home, a fake key, a fake keychain file. Nothing real is
+    read, no model session is started, and the probe is `/bin/cat`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        if sys.platform != 'darwin' or not Path('/usr/bin/sandbox-exec').exists():
+            raise unittest.SkipTest('sandbox-exec is macOS-only')
+
+    def setUp(self):
+        # The base goes under /private/tmp so the profile's own /private/tmp rules apply as they will
+        # in a run; the fake home goes OUTSIDE it, because in production home is /Users/<user> and the
+        # policy's two deny alternatives do not overlap. A fake home nested inside the base made the
+        # "/private/tmp except project and tmp" alternative swallow the key file — a fixture artifact
+        # that looks exactly like a policy bug, so the layout has to mirror production.
+        # .resolve() matters: the temp root lives under /var/folders, and /var is a symlink to
+        # /private/var. SBPL matches the RESOLVED path, so an unresolved subpath in the policy simply
+        # never matches and every negative assertion passes for the wrong reason. Production is
+        # unaffected — Path.home() is already canonical — but a fixture must be resolved to test it.
+        self.base = Path(tempfile.mkdtemp(dir='/private/tmp', prefix='g14-sbpl-')).resolve()
+        self._home_dir = tempfile.TemporaryDirectory()
+        self.home = (Path(self._home_dir.name).resolve()) / 'fakehome'
+        (self.home / '.fluxtion').mkdir(parents=True)
+        (self.home / 'Library' / 'Keychains').mkdir(parents=True)
+        self.key = self.home / '.fluxtion' / 'fluxtion.apiKeyFile'
+        self.key.write_text('apiKey=DUMMY-NOT-A-REAL-KEY-000000\n')
+        self.other_secret = self.home / '.fluxtion' / 'other-secret.txt'
+        self.other_secret.write_text('a second file in the key directory\n')
+        self.elsewhere = self.home / 'source-tree.txt'
+        self.elsewhere.write_text('pretend source tree\n')
+        (self.base / 'project').mkdir()
+        self.allowed = self.base / 'project' / 'input.txt'
+        self.allowed.write_text('an allowed project file\n')
+        (self.base / 'tmp').mkdir()
+        self.policy = self.base / 'isolation.sb'
+        self.policy.write_text(g14.isolation_profile(self.base, '54321', '/opt/jdk21',
+                                                     home=self.home, key_file=self.key))
+
+    def tearDown(self):
+        subprocess.run(['rm', '-rf', str(self.base)], check=False)
+        self._home_dir.cleanup()
+
+    def cat(self, path):
+        return subprocess.run(['/usr/bin/sandbox-exec', '-f', str(self.policy), '/bin/cat', str(path)],
+                              capture_output=True, text=True, timeout=60)
+
+    def test_allowed_project_file_is_readable(self):
+        """The positive direction. This is the assertion the shipped policy failed."""
+        out = self.cat(self.allowed)
+        self.assertEqual(out.returncode, 0,
+                         f'the policy aborted an ALLOWED read (rc={out.returncode}): {out.stderr}')
+        self.assertIn('an allowed project file', out.stdout)
+
+    def test_the_key_file_itself_is_readable(self):
+        """./generate.sh needs it; that is the whole reason the grant exists."""
+        out = self.cat(self.key)
+        self.assertEqual(out.returncode, 0, f'the key grant does not work: {out.stderr}')
+
+    def test_a_sibling_of_the_key_is_denied(self):
+        """`~/.fluxtion` invisible apart from the key file itself — PROTOCOL's third claim."""
+        self.assertNotEqual(self.cat(self.other_secret).returncode, 0,
+                            'a second file in the key directory was readable')
+
+    def test_the_rest_of_home_is_denied(self):
+        """The source tree stays unreadable — PROTOCOL's first claim."""
+        self.assertNotEqual(self.cat(self.elsewhere).returncode, 0,
+                            'a file elsewhere in home was readable')
+
+
+class NormalExitCleanupTest(unittest.TestCase):
+    """Second review, finding 2 — the leader exits, its children do not.
+
+    The runner's poll loop reaches this state on every normal exit, so it is the common path rather
+    than an edge case. Resolving the group from a dead leader made `getpgid` raise, which was read as
+    proof the group was empty.
+    """
+
+    def test_children_are_reaped_after_the_leader_exits_normally(self):
+        p = subprocess.Popen(['/bin/sh', '-c', 'sleep 120 & echo $!; exit 0'],
+                             stdout=subprocess.PIPE, text=True, start_new_session=True)
+        pgid = os.getpgid(p.pid)           # captured at launch, as the runner now does
+        child = int(p.stdout.readline().strip())
+        p.wait(timeout=10)                 # the leader is gone and already waited
+        self.assertTrue(g14._pid_alive(child), 'child did not start')
+        reaped = g14.reap_process_group(pgid, grace=3)
+        still = g14._pid_alive(child)
+        if still:
+            os.kill(child, 9)
+        self.assertFalse(still, 'a child outlived the leader and the cleanup reported success')
+        self.assertTrue(reaped)
+
+
+class EnumerationFailureTest(unittest.TestCase):
+    """Second review, finding 4 — "I could not look" must not read as "nothing is there"."""
+
+    def setUp(self):
+        self.p = subprocess.Popen(['/bin/sh', '-c', 'trap "" TERM; sleep 120'],
+                                  start_new_session=True)
+        self.pgid = os.getpgid(self.p.pid)
+        self._real_run = subprocess.run
+
+    def tearDown(self):
+        subprocess.run = self._real_run
+        try:
+            os.killpg(self.pgid, 9)
+        except (ProcessLookupError, PermissionError):
+            pass   # already reaped; macOS reports EPERM for an empty group as readily as ESRCH
+        self.p.wait(timeout=10)
+
+    def patch_ps(self, behaviour):
+        def fake(cmd, *a, **k):
+            if isinstance(cmd, list) and cmd and cmd[0] == 'ps':
+                return behaviour()
+            return self._real_run(cmd, *a, **k)
+        subprocess.run = fake
+
+    def test_ps_failure_is_not_a_reaped_group(self):
+        self.patch_ps(lambda: subprocess.CompletedProcess(['ps'], 1, '', 'ps: boom'))
+        self.assertFalse(g14.reap_process_group(self.pgid, grace=1),
+                         'a failed enumeration was reported as a successful cleanup')
+
+    def test_ps_timeout_is_not_a_reaped_group(self):
+        def boom():
+            raise subprocess.TimeoutExpired(['ps'], 20)
+        self.patch_ps(boom)
+        self.assertFalse(g14.reap_process_group(self.pgid, grace=1),
+                         'an enumeration timeout was reported as a successful cleanup')
+
+    def test_unknown_is_distinct_from_empty(self):
+        self.patch_ps(lambda: subprocess.CompletedProcess(['ps'], 1, '', ''))
+        self.assertIsNone(g14._group_members(self.pgid))
+        self.assertIsNone(g14._group_alive(self.pgid))
+
+class PropertiesDecodingTest(TempKeyTest):
+    """Second review, finding 3 — the loader's real format, not an approximation of it.
+
+    Two shapes the separator-splitting parser never saw decoded to the secret and produced CLEAN: a
+    `\\uXXXX` escape and a backslash-newline continuation. Both are ordinary Properties, both were
+    confirmed against JDK 21 by the reviewer, and either would have let a leaked key pass.
+    """
+
+    def assert_decoded_leak_caught(self, key_bytes, description):
+        self.key.write_bytes(key_bytes)
+        self.write('raw.jsonl', f'the model printed {SECRET} into its transcript\n')
+        verdict = g14.key_leak_scan(self.archive)
+        self.assertIs(verdict['clean'], False, f'{description}: decoded secret produced CLEAN')
+        self.assertGreaterEqual(verdict['secretOccurrences'], 1)
+        self.assertNotIn(SECRET, json.dumps(verdict), 'the verdict leaked the secret')
+
+    def test_unicode_escape_in_the_value(self):
+        escaped = SECRET.replace('-', r'\u002d')
+        self.assert_decoded_leak_caught(f'apiKey={escaped}\n'.encode(), 'unicode escape')
+
+    def test_backslash_newline_continuation(self):
+        head, tail = SECRET[:21], SECRET[21:]
+        self.assert_decoded_leak_caught(f'apiKey={head}\\\n    {tail}\n'.encode(), 'continuation')
+
+    def test_escaped_separator_still_caught(self):
+        """The reviewer's third probe, which already passed. Kept so it cannot regress."""
+        self.assert_decoded_leak_caught(f'api\\:Key={SECRET}\n'.encode(), 'escaped separator')
+
+    def test_iso_8859_1_is_the_input_encoding(self):
+        """Properties.load(InputStream) decodes ISO-8859-1; reading UTF-8 is a third wrong answer."""
+        value = SECRET + '\xe9'
+        self.key.write_bytes(('apiKey=' + value + '\n').encode('iso-8859-1'))
+        self.write('raw.jsonl', f'leaked {value}\n')
+        verdict = g14.key_leak_scan(self.archive)
+        self.assertIs(verdict['clean'], False)
+
+    def test_an_undecodable_line_fails_closed(self):
+        """A line this parser cannot decode may hold a secret it is not searching for."""
+        self.key.write_bytes(b'apiKey=\\uZZZZ-not-a-valid-escape-sequence\n')
+        self.write('raw.jsonl', 'nothing interesting here\n')
+        verdict = g14.key_leak_scan(self.archive)
+        self.assertIsNone(verdict['clean'], 'an undecodable key line still reported a verdict')
+        self.assertGreaterEqual(verdict['unsupportedKeyLines'], 1)
+
+    def test_agrees_with_the_jdk(self):
+        """Cross-check the decoder against java.util.Properties itself, not against my reading of it."""
+        java = shutil.which('java')
+        if not java:
+            raise unittest.SkipTest('no JDK on PATH')
+        cases = {
+            'escape': f'apiKey={SECRET.replace("-", r"\u002d")}\n',
+            'continuation': f'apiKey={SECRET[:21]}\\\n    {SECRET[21:]}\n',
+            'colon': f'apiKey:{SECRET}\n',
+            'whitespace': f'apiKey {SECRET}\n',
+        }
+        probe = self.root / 'Probe.java'
+        probe.write_text(
+            'import java.io.*;import java.util.*;\n'
+            'public class Probe{public static void main(String[] a)throws Exception{\n'
+            ' Properties p=new Properties();try(InputStream in=new FileInputStream(a[0])){p.load(in);}\n'
+            ' System.out.print(p.getProperty("apiKey",""));}}\n')
+        for name, text in cases.items():
+            f = self.root / f'{name}.properties'
+            f.write_bytes(text.encode('iso-8859-1'))
+            out = subprocess.run([java, str(probe), str(f)], capture_output=True, text=True,
+                                 timeout=180)
+            self.assertEqual(out.returncode, 0, f'{name}: probe failed: {out.stderr}')
+            jdk_value = out.stdout
+            decoded, unsupported = g14._decode_properties(f.read_bytes())
+            self.assertEqual(unsupported, [], f'{name}: parser reported the line unsupported')
+            self.assertIn(jdk_value, decoded,
+                          f'{name}: the JDK decoded a value this parser never produced')
 
 
 if __name__ == '__main__':
