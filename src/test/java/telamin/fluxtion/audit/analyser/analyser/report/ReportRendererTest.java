@@ -228,4 +228,17 @@ class ReportRendererTest {
         assertTrue(pdf.contains("AUTHORED VIEW"));
         assertTrue(pdf.contains("all event types"));
     }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("R8 (review gap table): a series section the PDF cannot assemble says NOT RENDERED, with its reason")
+    void anUnassembledSeriesSectionSaysNotRendered() {
+        // witness: the SERIES case printing its gap as plain text again
+        ReportSpec spec = spec(SectionSpec.series(Map.of("verb", "series", "key", "spread")));
+        String pdf = body(ReportRenderer.render(spec, resolve(spec, Map.of()), List.of(new ReportRenderer.SectionContent(
+                "Series", List.of("(series sections render as charts in the app; PDF assembly for them is a recorded gap)"),
+                null, null)), "demo.yaml", null));
+        assertFalse(pdf.contains("DID NOT RESOLVE"), "precondition: the section resolved");
+        assertTrue(pdf.contains("NOT RENDERED"), "a requested section that did not render says so, labelled");
+        assertTrue(pdf.contains("recorded gap"), "with its reason");
+    }
 }

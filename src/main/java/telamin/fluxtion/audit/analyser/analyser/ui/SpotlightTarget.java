@@ -265,9 +265,25 @@ public record SpotlightTarget(Family family, String argument, String name, Strin
         return telamin.fluxtion.audit.analyser.analyser.config.ChartNames.problem(name);   // one rule, every entrance
     }
 
-    /** The address that lights {@code chartName}: plain where the grammar carries it, quoted where only that can. */
+    /**
+     * Independent review R8: why {@code chartName} has NO address, or null when it has one. The quoted form carries any
+     * name without a {@code "}; a name saved with one before names were refused cannot be written in the grammar at all.
+     * No escape is invented for it — that compatibility choice is the owner's — so the address is reported unavailable.
+     */
+    public static String graphAddressUnavailable(String chartName) {
+        if (chartName == null || chartNameProblem(chartName) == null || chartName.indexOf('"') < 0) return null;
+        return "chart '" + chartName + "' has no spotlight address: its saved name contains '\"', which the address "
+                + "grammar cannot carry. The chart is kept as saved and still answers to the graph verb; renaming it "
+                + "(graph {name, rename}) to a name without '\"' gives it an address";
+    }
+
+    /**
+     * The address that lights {@code chartName}: plain where the grammar carries it, quoted where only that can, and
+     * null where neither can (independent review R8 — it used to return a quoted string the parser refuses).
+     */
     public static String graphAddress(String chartName) {
-        return chartNameProblem(chartName) == null ? "graph:" + chartName.trim() : "graph:\"" + chartName + "\"";
+        if (chartNameProblem(chartName) == null) return "graph:" + chartName.trim();
+        return graphAddressUnavailable(chartName) == null ? "graph:\"" + chartName + "\"" : null;
     }
 
     private static Parsed withGraph(Parsed parsed, String chart) {

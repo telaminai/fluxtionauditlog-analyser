@@ -29,7 +29,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   passing as clean — and so does the record still being written under Follow. Under Follow, a log that never writes a
   separator is noticed before its first record is complete. A file that starts with a byte-order mark is checked the
   same way as one without (it used to hide a collapse) (M68.3).
-- **An assistant request is now honoured whole or refused whole, and a refusal no longer changes the view.**
+- **More assistant requests are now honoured whole or refused whole, and a refusal no longer changes the view.** This
+  covers the calls below. Some calls still keep what worked and name what did not, on purpose: a report keeps its good
+  sections beside a rejected one, `graph` applies its series, markers and bands one by one, `source_root` adds and
+  removes each path on its own, and a saved analysis stops at the first failing step. Unknown top-level keys are
+  named, not refused, and keys nested inside items are not checked. The full list is in the evidence-integrity spec
+  (D-E3).
   - `open` with a rolled set and a graph opened only the logs, and the graph was dropped without a word. It now opens
     both, and the graph stays. The same applies to a log with an explicit `format` together with a graph.
   - `topology` checks every field before applying any. A bad scope or unknown node used to be refused after the
@@ -46,27 +51,32 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **A chart can no longer be given a name that the assistant cannot point at.** `graph` accepted a name with a colon
   in it, and `spotlight` then could not address that chart. A name containing `:` or `"`, or exactly `note` or
   `series`, is now refused when it is given, and nothing is created. Charts already saved under such a name still
-  open and still answer to the `graph` verb. Spotlight reaches them quoted, `graph:"a:b":note:2`, and
-  `context.graphAddresses` lists the address for every chart. **Repair names…** applies the same rule to the
-  names it gives (M68.6).
+  open and still answer to the `graph` verb, and are never renamed for you. Spotlight reaches a saved name with a colon
+  or a reserved word quoted, `graph:"a:b":note:2`, and `context.graphAddresses` lists that address. A saved name that
+  contains `"` cannot be written as an address at all: `context.graphAddresses` gives it none (null), and
+  `context.graphAddressUnavailable` says why. Renaming the chart gives it one. **Repair names…** applies the same rule
+  to the names it gives (M68.6).
 - **Charts in exported reports are drawn at page size, and a section that cannot be drawn says so.** A report's
   chart was a capture of its tab at the tab's current size, controls included. A tab that was not showing made the
   picture a sliver, and the chart inside it then claimed "No data under the current filter" over a series that had
   data. Charts are now drawn off-screen at the page's size. A plot with no room to draw says that, and the no-data
   sentence is kept for charts that really have no data. A requested topology section, or a chart that produced no
-  picture, used to leave nothing on the page. It now prints NOT RENDERED with the reason (M68.2).
+  picture, used to leave nothing on the page. It now prints NOT RENDERED with the reason. Topology sections for a
+  saved focus, and series sections, are not drawn in the PDF yet: each prints NOT RENDERED and says so (M68.2).
 - **A project pointer that cannot be followed now says which project root it tried.** A runbook or glossary pointer
   whose file was missing said only "NOT found under the project root", without saying which root. One that could not
   be resolved at all showed no warning: either no project was open, or its path left the project folder. The
   Project panel and `context` now state the failure. A missing file names the root and the path it resolved to. A
   path outside the root is refused, naming the root. With no project open, the pointer says there is no root to
   resolve it against (M68.5).
-- **A log you are not following now says when its file has changed, before it answers anything else.** Before, the
-  assistant's record verbs (`read`, `aggregate`, `series`, `coverage` and others) kept serving rows after the file
-  changed on disk. For a large log read directly from the file, an in-place rewrite could make those rows describe
-  bytes that were no longer there. Such a rewrite now suspends record reads until the log is reopened, and says why.
-  A file replaced at its path is labelled superseded, because what is shown is still the file that was opened.
-  `context.log.identity` reports it, and so does the status line when you return to the window (M68.5).
+- **The assistant's record verbs now check whether a log you are not following has changed on disk, before they
+  answer.** Before, `read`, `aggregate`, `series`, `coverage` and the others kept serving rows after the file changed.
+  For a large log read directly from the file, an in-place rewrite could make those rows describe bytes that were no
+  longer there. Such a rewrite now suspends those verbs until the log is reopened, and says why. A file replaced at
+  its path is labelled superseded, because what is shown is still the file that was opened. `context.log.identity`
+  reports it, and so does the status line when you return to the window. **Not covered yet:** the log table on screen
+  is not suspended or marked, and a log opened through a plugin reader is not checked (it says `not assessed`)
+  (M68.5).
 - **Follow now notices when the file it is following is replaced, not only when it shrinks.** A file rewritten at the
   same length used to count as "no growth" and was ignored. A rewrite in the middle combined with an append was
   indexed as an append, over records that had changed. Follow now compares every byte already read. If they changed,
@@ -77,10 +87,12 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   as left over from the previous investigation. A graph somebody opens after asking for a log is now kept for that
   log, and the mismatch is announced instead. A graph that was already open before the request, or one a log's
   reader supplied, is still closed when it does not fit (M68.4).
-- **A coverage run can no longer qualify the wrong graph's verdict.** Coverage scans the whole log in the background,
-  then records what it found against the graph's pairing verdict. If another log or graph opened while the scan ran,
-  the result was recorded against the new pair, although it described the old one. The comparison now carries the
-  log and graph it was made against, and the analyser refuses to apply it to anything else (M44.4c).
+- **A coverage run now carries the log and graph it was made against.** Coverage scans the whole log in the
+  background, then records what it found against the graph's pairing verdict. If another log or graph opened while
+  the scan ran, the result was recorded against the new pair, although it described the old one. The comparison now
+  carries the pair it names, and the analyser refuses to apply it to any other (M44.4c). That was only sound once the
+  log itself was captured at the same moment as that identity — see "A coverage answer can no longer be credited to
+  a log or graph opened while it ran", above.
 - **Following a live log no longer pushes the analyser's own session history out of its audit record.** Each Follow
   update is kept in a small ring of its own. Opening, closing and switching projects therefore stay on the record however
   long a log is followed. The export interleaves both rings and says how many of each it dropped. The coverage verb

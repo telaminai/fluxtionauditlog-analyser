@@ -155,7 +155,18 @@ public final class ReportRenderer {
                     mono(doc, c, "Record #" + f.recordIndex(), body.monoLines());
                 }
             }
-            case RECORD, SERIES -> {
+            case SERIES -> {
+                if (body.picture() != null) {
+                    picture(doc, c, body.picture());
+                } else {
+                    // Independent review (gap table, M68.2): a requested section that did not render says NOT RENDERED,
+                    // labelled like a chart or focus that failed — its reason used to print as ordinary text.
+                    callout(doc, c, "NOT RENDERED", "series section: " + (body.monoLines() == null
+                                    || body.monoLines().isEmpty() ? "the analyser produced no picture for this section"
+                                    : String.join(" ", body.monoLines())), WARN, WARN_BG);
+                }
+            }
+            case RECORD -> {
                 if (body.picture() != null) picture(doc, c, body.picture());
                 if (body.monoLines() != null) {
                     mono(doc, c, body.heading() != null ? body.heading()

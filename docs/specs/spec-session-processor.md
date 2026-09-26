@@ -609,7 +609,12 @@ D-S0.5 named `LogObserved` *"a state snapshot pretending to be an event."* It an
 open increments a log generation in `OpenLog`, and `LogAppended` carries the generation it was read from. An
 append for a log that has since been closed or replaced is refused as `staleFact` and changes nothing. That is
 the same rule as `staleResult`, applied to facts. `MembershipCompared` is gated the same way, against the
-pairing revision it qualifies. This replaces the frame's object-identity check (`qualifiedPairing ==
+pairing revision it qualifies. **What the graph revision identifies** (independent review O2): it moves when the
+graph's path, source, declared node ids or node types change — the facts `GraphOpened` carries. It does not see edges,
+declared authorship, audit capability beyond the node types, or the file's content, so it is NOT a content identity:
+a graph reloaded with those four facts unchanged keeps its revision. That is sound for what it binds today, a
+membership comparison, which depends only on declared ids. Anything that qualifies other graph facts must bind them
+itself, or the revision must grow to include them — an open design decision, not a claim. This replaces the frame's object-identity check (`qualifiedPairing ==
 lastPairing`) with a gate the audit log can show.
 
 **A graph opened outside a transition** (from the Sources menu, the Topology panel, or a reader supplying one) is
@@ -690,7 +695,7 @@ upstream fact stands: the POM says AGPL-3.0 while the source headers say AGPL-3.
 |---|---|---|
 | **M44.4a** | `GraphOpened`, `GraphCleared`, `LogCleared` and `LogAppended` as facts; the log-generation gate; `post(fact)`. *As built: `LogAppended` landed here, not in 4b, because deleting `LogObserved` removed its last consumer's route. The snapshot moved to 4b, since nothing reads it until the frame's copies go.* | `LogObserved`, `GraphObserved`, `noteLogState`, `noteGraphState`, the funnel in `updateLifecycleMenu`, the `isDispatching()` drop |
 | **M44.4b** | `SessionSnapshot` published after each operation, with a snapshot listener that republishes the pairing; `LogAppended` posted from Follow itself; the coverage verb reads the snapshot. *As built: M44.4d's retention landed here, because reporting appends without it breaks O-i. The frame's scorer `pairingAgainst` also went here, not in 4c, since nothing called it once the snapshot existed. Off-EDT `post` marshalling was not built: nothing posts off the EDT.* | `republishPairingAfterAppend`, `refreshSessionIfLogGrew`, `sessionNotedTotal`, the `invokeAndWait` |
-| **M44.4c** | `ViewFilterChanged`, `MembershipCompared`, and the `PairingQualifier` node. *As built: "pending" comes from the gate's `inFlightWhat()`, on the snapshot. The comparison carries the pair identity captured before its scan, which closed a race between scanning and opening that was not known when this table was written.* | `lastPairing`, `qualifications`, `qualifiedPairing`, `currentQualifications`, `setBusy`'s restore, the frame's `pairingAgainst` use |
+| **M44.4c** | `ViewFilterChanged`, `MembershipCompared`, and the `PairingQualifier` node. *As built: "pending" comes from the gate's `inFlightWhat()`, on the snapshot. The comparison carries the pair identity captured before its scan. ~~which closed a race between scanning and opening~~ — it did not, alone: the store was fetched before that identity and the graph after it, so a log opened between them gave the old store's comparison the new identity (independent review R1, 2026-09-26). The store, identity, graph facts, a filter copy and the scan bound are now captured in ONE EDT task, and a reply whose pair moved says `superseded`.* | `lastPairing`, `qualifications`, `qualifiedPairing`, `currentQualifications`, `setBusy`'s restore, the frame's `pairingAgainst` use |
 | ~~**M44.4d**~~ | *folded into 4b.* Retention by kind and the reworded O-i test shipped there. The DEBUG-level half of D-S13.5 was not built: with tracing on it removes keys and not records | — |
 
 ### Acceptance

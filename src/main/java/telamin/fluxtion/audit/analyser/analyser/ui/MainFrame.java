@@ -6849,6 +6849,13 @@ public final class MainFrame extends JFrame {
                 // M68.6 (D-E5): how to POINT at each chart. Plain where the grammar carries the name, quoted for one
                 // saved before names were refused — so an agent never has to work out the escape for itself
                 out.put("graphAddresses", graphs.stream().map(SpotlightTarget::graphAddress).toList());
+                // R8: a chart with no address is SAID to have none (null above), and why — never given one that fails
+                Map<String, Object> unavailable = new java.util.LinkedHashMap<>();
+                for (String g : graphs) {
+                    String why = SpotlightTarget.graphAddressUnavailable(g);
+                    if (why != null) unavailable.put(g, why);
+                }
+                if (!unavailable.isEmpty()) out.put("graphAddressUnavailable", unavailable);
                 out.put("graphScopes", graphs.stream().map(n -> graphTabs.graphNamed(n).scopeFacts()).toList());
             }
 

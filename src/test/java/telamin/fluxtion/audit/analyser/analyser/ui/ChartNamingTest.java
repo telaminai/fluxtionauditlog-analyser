@@ -91,4 +91,30 @@ class ChartNamingTest {
         var fixed = ex.render("graph", Map.of("name", "legacy:chart", "rename", "legacy chart"));
         assertTrue(fixed.ok(), "and it can be renamed to an addressable name: " + fixed.toMap());
     }
+
+    @Test
+    @DisplayName("R8: a saved name containing a quote has NO address — and says why — rather than one that does not parse")
+    void aSavedNameWithAQuoteHasNoAddress() {
+        // witness: graphAddress back to quoting a name the grammar cannot carry
+        String name = "saved\"chart";
+        assertNull(SpotlightTarget.graphAddress(name),
+                "R8: an address that does not parse must not be published as usable");
+        String why = SpotlightTarget.graphAddressUnavailable(name);
+        assertNotNull(why, "R8: and the absence is explained");
+        assertTrue(why.contains("\""), why);
+        assertNull(SpotlightTarget.graphAddressUnavailable("a:b"), "a colon name is reachable, quoted");
+        assertNull(SpotlightTarget.graphAddressUnavailable("Spread"));
+    }
+
+    @Test
+    @DisplayName("R8: a saved chart whose name contains a quote keeps its definition — never silently renamed")
+    void aSavedQuoteNameKeepsItsDefinition() throws Exception {
+        AtomicReference<GraphTabs> tabs = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> tabs.set(new GraphTabs()));
+        var ex = executor(tabs.get());
+        SwingUtilities.invokeAndWait(() -> tabs.get().addGraph("saved\"chart"));  // the restore path, as saved
+        var reply = ex.render("graph", Map.of("name", "saved\"chart", "series", List.of("n.v")));
+        assertTrue(reply.ok(), "the definition is kept and still answers to the graph verb: " + reply.toMap());
+        assertTrue(tabs.get().graphNames().contains("saved\"chart"), "under its own name: " + tabs.get().graphNames());
+    }
 }
