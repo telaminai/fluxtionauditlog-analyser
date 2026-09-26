@@ -182,7 +182,7 @@ still to do.
   threw `StringIndexOutOfBoundsException`, a half-written marker left a phantom row for ever, and the
   index was observably not monotonic. The attempt is reverted on `fix/follow-stale-partial-record`, which
   must not be merged; its own entry records the detail.
-- **[MA-0] ◧ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
+- **[MA-0] ☑ — the analyser reports an empty log as a finding** · _THIS repository; the smallest item and
   the only one here._ Every empty shape returns from `ProducerDiagnostics` before any check, so an empty
   log raises nothing, marked or unmarked. A **finding**, never a seventh state; keyed on zero records only
   (the quiet-level case is already caught by `ONLY_CONTROL_EVENTS`). Acceptance and the six-case table are
@@ -194,11 +194,15 @@ still to do.
   [Phase 1 report](../handoff/report_mongoose_audit_production_phase1_2026_09_23.md).
   **Phase 1 SHIPPED in analyser 1.22.0 (2026-09-26)**, after ten review rounds and the integration review
   onto M44.4/M68 (PR #34). D-MA0c and MA-0.5 above remain open; shipping closes neither.
-  **D-MA0c and MA-0.5 IMPLEMENTED, awaiting review (2026-09-26)** on `feat/mongoose-audit-phase1-completion`: the
+  **D-MA0c and MA-0.5 DONE — merged to `main` 2026-09-26 (PR #40, `4060684e`), NOT YET RELEASED.** Built on
+  `feat/mongoose-audit-phase1-completion`: the
   findings are on the PDF, the Reports tab and the `report` reply; one empty-file wording; the Follow status line
   keeps its warning (found by the new frame test). Report ▸ *Phase 1 completion*. **Reviewed once:** behaviour
   accepted; the protection it asked for is in — the frame's PDF, the tab on load and on Follow, sixteen controls in the
-  CI gate — and the empty-log sentence is now one per shape (a marker that says it ended, a rolled set).
+  CI gate — and the empty-log sentence is now one per shape (a marker that says it ended, a rolled set, a set of one).
+  Two targeted re-reviews followed; the last closed on the reviewer's mechanical conditions (no production diff, the
+  control red at its assertion, 194 anchors, CI green with 0 skips across 23 suites and 194 controls caught). Every
+  clause of MA-0 is now met; it moves to the completed tracker when it ships in a release.
 - **[MA-1] ☐ — a processor that cannot audit says so** · _rescoped twice._ The silent population is **any
   processor with no `EventLogManager`** — including **AOT processors built without audit**, the
   low-latency profile — not just `customHandler`. Detect by capability (`getAuditorById("eventLogger")`);
@@ -228,9 +232,9 @@ still to do.
   on AFMT-3.**
   **READER HALF DONE in phase 1**, keyed on **framing** — the first non-blank, non-comment line — not on a
   substring search, which was a V1 hole review found: a headerless document that merely mentioned the key
-  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) is open — **implemented, awaiting
-  review (2026-09-26):** c25–c30 through both paths, and both paths must agree on the producer findings for every
-  fixture.
+  read as a record. **Writer half is phase 2.** **MA-6.3** (conformance fixtures) **DONE — merged to `main`
+  2026-09-26 (PR #40), not yet released:** c25–c30 through both paths, and both paths must agree on the producer
+  findings, kind and message, for every fixture.
   **Reader half SHIPPED in analyser 1.22.0 (2026-09-26).**
 - **[MA-7] ◧ — framing injection: a payload forges a marker** · **GATES MA-2**, and the most serious
   finding in this spec. An event `toString()` carrying a line that **trims to** `---` — space, tab or CR,
@@ -248,7 +252,7 @@ still to do.
   the published 1.19.0 analyser jar: benign and hostile payloads both read `records=3, complete, 3 of 3`,
   with the indented, tab, CR and node-value variants covered. **The writer half and moving framing into
   core are phase 2.**
-- **[MA-8] ◧ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
+- **[MA-8] ☑ — coverage qualifies a node whose level was changed per node** · _THIS repository; an MA-0
   sibling._ A node at `WARN` runs but reads as never logged, and the control record naming its
   `sourceId` and level is in the log. Measured: `complete`, 6 of 6, no findings, zero entries for a node
   that ran three times. Coverage must say why it is silent instead of listing it as uncovered.
@@ -259,8 +263,9 @@ still to do.
   selections explained by nothing, run boundaries qualified; and a change applies by the RUNTIME's rule —
   `groupId` gates it against the processor's `groupingId`, it is not node membership (the phase-1 reading
   was inferred and wrong). **Coverage annotation SHIPPED in analyser 1.22.0 (2026-09-26); MA-8's report
-  path is open** — **implemented, awaiting review (2026-09-26):** the report's coverage row carries `levelChange` and
-  the table's notes state it. Review found four surviving
+  path DONE — merged to `main` 2026-09-26 (PR #40), not yet released:** the report's coverage row carries
+  `levelChange` (only on annotated nodes) and the table's notes state it. Moves to the completed tracker when it ships.
+  Review found four surviving
   mutations against an earlier helper-only test set; the tests now drive `CoverageService.assess`.
 - **[AFMT-3] — a live runtime defect, no longer a gate on MA-2** (MA-6 is the defence). Per-node `NONE`
   corrupts the next record, reproduced on today's bundle (`riskCheck`/`rootNode`); a marked file holding
@@ -331,11 +336,10 @@ still to do.
   Suite 2110/0/0/98. **Still open:** whether a deployed plugin returns a null record; the producer's one-processor-
   per-grouping statement (owner). **Independently accepted** by a targeted tenth re-review (`bcc2bef0`, scope
   `8a35a988..d8bb6e3c` only): R9-1–R9-3 and O9-1 closed, no required correction, 2110/0/0/98 and all eight controls
-  reproduced. **Phase 1's analyser review loop is closed; merge awaits the owner.** Before merge: open a pull request
-  so CI's `ui-frame` job runs on this branch for the first time, and merge with the personal identity. **Agreed open,
-  not closed by any review:** D-MA0c (findings on the report surface), MA-0.5 (the Follow path), MA-8's report
-  path, MA-6.3 (conformance fixtures), MA-5.7 (every-backend contract), deployed-plugin null-record behaviour, and the
-  producer's one-processor-per-grouping premise (owner). **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
+  reproduced. **Phase 1's analyser review loop is closed** — merged (PR #34) and released in 1.22.0. **Its four agreed
+  open clauses — D-MA0c, MA-0.5, MA-8's report path, MA-6.3 — are DONE and merged to `main` 2026-09-26 (PR #40,
+  `4060684e`), not yet released.** **Still open:** MA-5.7 (every-backend contract), deployed-plugin null-record
+  behaviour, and the producer's one-processor-per-grouping premise (owner). **Phase 2 has not started:** MA-1, MA-7's writer half plus framing into
   core, MA-2's TEXT writer. **Phase 3:** MA-4 and the virgin-LLM test, which the owner runs.
 - **[AF-4] ☐ — mongoose writes the text file** · _not this repository._ **SUPERSEDED as the place this
   work is specified: see [MA-0…MA-5] above and

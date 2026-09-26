@@ -96,7 +96,8 @@ share a separator, and a refused project file points to `open {project}`.
 format on top of M44.4/M68 — an empty log and a document that is not a log are named as findings,
 coverage annotates a node whose audit level was changed per node, one byte-order-mark rule and
 ASCII-only trimming across the reader, and Follow retires its verification when a file stops decoding.
-Producer halves (MA-2 writer, MA-6.3 fixtures, MA-5.7) and MA-0/MA-8's report paths stay open.
+Producer halves (MA-2 writer, MA-5.7) stay open; MA-0/MA-8's report paths and the MA-6.3 fixtures are merged to
+`main` (PR #40, 2026-09-26) and not yet released.
 **1.21.0 (the same day)** shipped M44.4, the single-state session, and the M68 evidence-integrity code
 (its six items stay open until each acceptance is shown), with the Spring edit-loop slices 1–3 and 8.
 **1.20.0 released 2026-09-24**, with separate Project,
