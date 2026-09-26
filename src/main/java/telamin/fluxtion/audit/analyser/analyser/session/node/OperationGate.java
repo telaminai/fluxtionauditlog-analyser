@@ -155,20 +155,33 @@ public class OperationGate implements EventLogSource {
     }
 
     /**
-     * Observations carry no id because nobody requested them. They are always accepted, and the record
-     * says which they were so that "accepted" never has to be read as "answered a request".
+     * Facts carry no id because nobody requested them (M44.4a). They are always accepted HERE — a fact about a
+     * log is gated by the log generation it names, in {@link OpenLog}, where the generation lives — and the record
+     * says which fact it was, so that "accepted" never has to be read as "answered a request".
      */
     @OnEventHandler
-    public boolean onLogObserved(SessionEvents.LogObserved event) {
-        accepted = true;
-        auditLog.info("fact", "observation").info("what", "LogObserved").info("open", event.open());
-        return true;
+    public boolean onGraphOpened(SessionEvents.GraphOpened event) {
+        return fact("GraphOpened");
     }
 
     @OnEventHandler
-    public boolean onGraphObserved(SessionEvents.GraphObserved event) {
+    public boolean onGraphCleared(SessionEvents.GraphCleared event) {
+        return fact("GraphCleared");
+    }
+
+    @OnEventHandler
+    public boolean onLogCleared(SessionEvents.LogCleared event) {
+        return fact("LogCleared");
+    }
+
+    @OnEventHandler
+    public boolean onLogAppended(SessionEvents.LogAppended event) {
+        return fact("LogAppended");
+    }
+
+    private boolean fact(String what) {
         accepted = true;
-        auditLog.info("fact", "observation").info("what", "GraphObserved").info("open", event.open());
+        auditLog.info("fact", "fact").info("what", what);
         return true;
     }
 

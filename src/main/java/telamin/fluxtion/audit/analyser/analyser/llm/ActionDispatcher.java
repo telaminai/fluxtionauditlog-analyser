@@ -86,6 +86,13 @@ public final class ActionDispatcher {
         Map<String, Object> params = req.get("params") instanceof Map<?, ?> p
                 ? (Map<String, Object>) p : Map.of();
 
+        // M68.5 (D-E6): observed BEFORE anything is served. A verb that reads records is refused while the opened file
+        // has changed in place under a store that reads through to it, and labelled when what it reads is the
+        // opened content of a file that has since been replaced.
+        var identity = READS_RECORDS.contains(action) && render != null ? render.readIdentity() : null;
+        if (identity != null && identity.suspendsReads()) {
+            return ActionResult.error(identity.reason() + ".");
+        }
         try {
             ActionResult result = switch (action) {
                 case "aggregate" -> ActionResult.ok("aggregate", "result",
@@ -99,9 +106,43 @@ public final class ActionDispatcher {
                 case "" -> ActionResult.error("missing 'action'");
                 default -> ActionResult.error("unknown verb '" + action + "'");
             };
-            return withIgnoredParams(result, action, params);
+            return withIdentityNote(withIgnoredParams(result, action, params), identity);
         } catch (RuntimeException e) {
             return ActionResult.error(action + " failed: " + e.getMessage());
+        }
+    }
+
+    /** The verbs whose answers are made of records; the rest describe the view, the graph or the transport. */
+    static final java.util.Set<String> READS_RECORDS = java.util.Set.of(
+            "aggregate", "read", "filter", "graph", "goto", "flag", "coverage", "series", "report");
+
+    private static ActionResult withIdentityNote(ActionResult result,
+                                                 telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity identity) {
+        if (identity == null || !result.ok() || result.payload() == null) return result;
+        Map<String, Object> payload = new java.util.LinkedHashMap<>(result.payload());
+        payload.put("identityNote", identity.reason());
+        return ActionResult.ok(result.action(), result.payloadKey(), payload);
+    }
+
+    /**
+     * Walk {@code value} against {@code schema}, adding an unknown key's path to {@code out}. Only a schema that DECLARES
+     * its properties is checked: a free-form object ({@code additionalProperties}, or none declared — a section's
+     * {@code call}) belongs to whatever reads it, and is not second-guessed here.
+     */
+    private static void nested(String path, Object value, Map<?, ?> schema, List<String> out) {
+        if (value instanceof List<?> list && schema.get("items") instanceof Map<?, ?> items) {
+            for (int i = 0; i < list.size(); i++) nested(path + "[" + i + "]", list.get(i), items, out);
+            return;
+        }
+        if (!(value instanceof Map<?, ?> map) || schema.containsKey("additionalProperties")
+                || !(schema.get("properties") instanceof Map<?, ?> props)) return;
+        for (Map.Entry<?, ?> e : map.entrySet()) {
+            String key = String.valueOf(e.getKey());
+            if (!props.containsKey(key)) {
+                out.add(path + "." + key);
+            } else if (props.get(key) instanceof Map<?, ?> prop) {
+                nested(path + "." + key, e.getValue(), prop, out);
+            }
         }
     }
 
@@ -112,11 +153,26 @@ public final class ActionDispatcher {
      * a verb that gains a param can never be accused of ignoring it.
      */
     private static ActionResult withIgnoredParams(ActionResult result, String action, Map<String, Object> params) {
-        if (!result.ok() || params.isEmpty() || result.payload() == null) return result;
+        if (params.isEmpty()) return result;
         if (!(VerbSchemas.all().get(action) instanceof Map<?, ?> schema)
                 || !(schema.get("properties") instanceof Map<?, ?> props)) return result;
-        List<String> ignored = params.keySet().stream().filter(k -> !props.containsKey(k)).sorted().toList();
+        List<String> ignored = new java.util.ArrayList<>(
+                params.keySet().stream().filter(k -> !props.containsKey(k)).sorted().toList());
+        // M68.4 (D-E3), set 13: keys nested inside items — a note, a marker, a section — are checked against the item's
+        // declared schema too, and named by path. They used to be "not audited", so a typo inside a list was dropped
+        // without a word while the same typo at the top level was named.
+        for (Map.Entry<String, Object> e : params.entrySet()) {
+            if (props.get(e.getKey()) instanceof Map<?, ?> prop) nested(e.getKey(), e.getValue(), prop, ignored);
+        }
         if (ignored.isEmpty()) return result;
+        if (!result.ok()) {
+            // M68.4 (D-E3): a refusal names them too. A misspelled key is often WHY a call failed, and it used to be
+            // named only on success — the one reply that did not need it
+            Object why = result.toMap().get("error");
+            return ActionResult.error(why + " (also not read — not parameters of '" + action + "': "
+                    + String.join(", ", ignored) + ")");
+        }
+        if (result.payload() == null) return result;
         Map<String, Object> payload = new java.util.LinkedHashMap<>(result.payload());
         payload.put("ignoredParams", ignored);
         return ActionResult.ok(result.action(), result.payloadKey(), payload);

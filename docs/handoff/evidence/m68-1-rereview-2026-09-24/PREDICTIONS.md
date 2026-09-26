@@ -1,0 +1,158 @@
+# Predictions — M68.1 re-review fixes, written before each trial
+
+Committed **before** the trial it predicts, so a result cannot be read back into it. Tree under test for the
+first set: `b5cc7772`, the branch with current `main` merged in (R5). Outcomes are recorded in `RESULTS.md` beside
+this file, including the ones that were wrong.
+
+## Set 1 — reproducing the review's findings, before any fix
+
+- **P1 (R1).** With a display, the twelve `*FrameTest` classes run with **exactly one failure**:
+  `PairingDuringLoadFrameTest.committedGraphPairsIdenticallyThroughFrameDiscoveryAndSession`, at its parity
+  assertion, with the frame's pairing carrying `recordsScanned=1, recordsTotal=1` and discovery's `-1, -1`.
+- **P2 (R2).** The review's probe on a jar built from this tree prints *scope not recorded* and
+  `sampled=False` for **combined open** and **graph first**, each with the verdict "declares all 3 node(s) this
+  log writes", and *first 500 of 600 records* for **log first**.
+- **P3 (R4).** The brief's third mutation — `ratioAvailable = coverage.denominator() > 0 && !logged.isEmpty()` —
+  leaves every current test **green**.
+- **P4 (R4, my own harness).** If a mutation stops the code compiling, the current `tools/mutate-m68-1.py` reports
+  it as **STILL GREEN**, because it counts failures in reports that were never written. The review describes the
+  harness as able to print a stale result; I predict the sharper defect is that it prints a *missing* result as a
+  pass. (It already deletes old reports before each run.)
+- **P5 (R3).** On this tree the four quoted conclusions are still present: the finding-export echo in
+  `MainFrame.java`, "different build?" in `TopologyPanel.java`, "Treat a mismatch as a version problem" in
+  `help.html`, and the different-build sentence in `docs/site/support.md`.
+- **P6 (R5).** The headless suite on this tree has **0 failures, 0 errors, 62 skips**, and its test count is
+  `main`'s count plus this branch's 18.
+
+## Set 2 — the fixes, written before any of these trials ran
+
+Fixes in the working tree at the time of writing: R2 (session and discovery scoped, discovery facts, whole-log
+qualification bound to the published pairing), R1 (parity test reads the product's own discovery path), R3 (one
+wording class, four code sites, help, two docs pages, a repository guard), R4 (zero-ratio test, new harness), O1
+(pairing note first, full-line tooltip), O3 (audit label), O4 (level caveat kept beside pairing qualifications), O5
+(focus-recall wording).
+
+- **P7.** Headless suite: **0 failures, 0 errors, 62 skipped, 1,925 tests** — set 1's 1,912 plus 13 new test
+  methods. Named risk: an existing headless test that asserts discovery's exact map keys or the old warning text.
+- **P8.** Frame suite with a display: **63 tests, 0 failures, 1 skipped** — the same skip as set 1. Named risk: a
+  frame test that asserts the *start* of the Topology status line, which O1 changes.
+- **P9.** `tools/mutate-m68-1.py`: baseline **green**; every headless mutation **RED at its named test**; every
+  restore byte-identical.
+- **P10.** `tools/mutate-m68-1.py --frame`: the three frame-only mutations (M6f, M7f, M15f) **RED at the parity test**.
+- **P11.** `tools/verify-m68-1-coverage.py` on the branch jar: **every check passes**, including all three open orders.
+- **P12.** The same script on a `main` jar: fails every scenario-5 scope and qualification check, as well as the 17
+  earlier failures.
+- **P13.** The review's own probe on the branch jar prints *first 500 of 600 records*, `sampled=True`, for **all
+  three** open orders.
+- **P14.** A screenshot through the jar's `screenshot` verb at the default window size shows the pairing note as the
+  **first readable text** of the Topology status line.
+
+## Set 3 — the note leads with what qualifies it (from P14), written before the fix exists
+
+Planned fix: a sampled pairing's note starts with its scope ("first 500 of 600 records: …"); once a whole-log
+comparison supersedes the sample, the panel note starts with that finding and puts the sampled verdict after it.
+The composition moves into a pure method so it can be tested without a display.
+
+- **P15.** A sampled pairing's `note()` **starts with** "first 500 of 600 records: ". An unsampled one is unchanged,
+  so the existing frame assertion `startsWith("every node id checked is declared (3/3")` still passes.
+- **P16.** The panel note after a superseding whole-log comparison **starts with** "whole log: 1 of 4 logged id(s)
+  not declared". After a confirming one it starts with the sampled note and ends with the confirmation.
+- **P17.** Screenshots at the default size: before coverage the first visible text is "first 500 of 600 records";
+  after coverage it is "whole log: 1 of 4". I expect the rest of each line to be clipped, as before.
+- **P18.** Headless **1,927 / 0 / 0 / 62** (two new test methods). Frame **63 / 0 / 1 skip**. Harness: every
+  mutation still RED at its named test, plus two new ones for this fix.
+
+## Set 4 — reproducing the re-review's findings on `550f98d8`, before any fix
+
+Re-review: `review/m68-1-rereview-2026-09-24` at `6a7042e7`. Its author also wrote the first review, so it is not
+independent; its findings are checked here, not assumed. Instruments added before this trial and committed with
+it: end-to-end scenarios 7 (N1, Follow append) and 8 (N2, whole then filtered, and the reverse), and a sampled
+parity frame test (O-c). No product code is changed for this set.
+
+- **P19 (N1).** On a jar built from `550f98d8`, scenario 7: the store reaches 601 records; *the qualification no
+  longer claims to confirm* **fails**; *says the log has grown* **fails**; *the published pairing's scope counts
+  the appended record* **fails**, because I read that `pollFollow` never touches the published pairing, so its
+  scope still says "first 500 of 600 records". A fresh coverage does find `lateForeign`.
+- **P20 (N2).** Scenario 8, whole then filtered: all three checks **fail** — the whole-log finding is gone from
+  `context`, nothing states the filtered comparison beside it, and the filtered reply does not mention the whole
+  log. Filtered then whole: both checks **pass**, because a plain overwrite by the wider comparison is what this
+  order wants.
+- **P21 (N3).** Three plants, each through the harness with a byte-identical restore — a text block carrying the
+  incident sentence in `MismatchWording.java`, the sentence split across two literals where neither half matches,
+  and a line in `src/main/resources/llm/system-prompt.md` — each leaves `UserVisibleWordingGuardTest` **green**.
+- **P22 (O-b).** A mutation that makes a named test **throw** rather than fail its assertion is reported **RED** by
+  the current harness.
+- **P23 (O-c).** The new sampled parity test **passes** on the current code: the three loops share one constant and
+  one first-N rule, so I expect them to agree today. The value of the test is that they cannot drift apart unseen.
+
+## Set 5 — the round 3 fixes, written before any of these trials ran
+
+Fixes in the working tree: N1 (qualification bound to a log revision and marked stale on growth; the published
+pairing re-judged on every append; the session re-scopes on a total change), N2 (a holder in which a narrower
+comparison never replaces a wider one), N3 (the guard reads text blocks and joined literals, and scans the assistant
+prompt, the skills and the changelog's `[Unreleased]` section), O-a (the unreleased lines describe the removed
+phrases instead of quoting them), O-b (the harness requires a `<failure>` and re-runs green after each restore),
+O-c (one sampling method).
+
+- **P24.** Headless: **1,933 tests, 0 failures, 0 errors, 64 skipped** — set 3's 1,927 plus four headless test
+  methods and two new frame methods, which skip headless.
+- **P25.** Frame suite with a display: **65 tests, 0 failures**, and either 0 or 1 skipped — the focus-dependent test
+  skipped here before and ran on the reviewer's machine.
+- **P26.** `tools/mutate-m68-1.py --frame`: baseline green; **every mutation RED with a `<failure>` at its named test**;
+  control C1 reported as **ERROR, not a failure**, and recognised; every restore byte-identical and green again.
+- **P27.** `tools/verify-m68-1-coverage.py` on the fixed jar: **every check passes**, scenarios 7 and 8 included.
+- **P28.** The one check added after set 4 — the coverage claim's own scope after an append — **fails on a jar built
+  from `550f98d8`**, where the claim note still says "of 600 records".
+- **P29.** Screenshots `{scope: "topology"}`, default size: before coverage the status line leads "first 500 of 600
+  records: every node…"; after whole-log coverage "whole log: 1 of 4 logged id(s) not de…"; **after the filtered
+  coverage, still "whole log: 1 of 4…"**, not the sample.
+
+## Set 6 — reproducing round 3 review's findings on `4251bae3`, before any fix
+
+Review: `review/m68-1-round3-2026-09-24` at `4769d93a`, by the author of both earlier reviews, so not independent.
+Instruments committed with this set, before any trial: end-to-end scenarios 9 (Q5a, Q5b) and 10 (Q2), and a frame
+test counting the session audit records written by five Follow appends (O-i). No product code changed.
+
+Frame runs use exactly: `mvn test -Djava.awt.headless=false -DargLine="-Djava.awt.headless=false" -Dtest=…
+-DfailIfNoTests=false`. `pom.xml:105` forces `-Djava.awt.headless=true` into `argLine`, so the `-DargLine` flag
+alone is ignored; the bare `-Djava.awt.headless=false` is what reaches the forked JVM. Every frame result below
+reports failures, errors and skipped separately.
+
+- **P30 (Q5a).** On a `4251bae3` jar, scenario 9's *A then B* checks **fail**: after filter B's coverage the id
+  filter A found is gone from `context`, and the reply does not mention it.
+- **P31 (Q5b).** After the filter changes to C with no coverage, `qualifiedBy.scope` **still reads "current
+  filter"** and there is no `filterStale` field: both checks **fail**.
+- **P32 (Q2).** After a Follow append, `qualifiedBy.scope` reads **"whole log"** and `supersedesSample` reads
+  **true**: both scenario 10 checks **fail**.
+- **P33 (Q6).** Each of the review's six plants, alone, leaves `UserVisibleWordingGuardTest` **green**.
+- **P34 (Q9).** The review's mutation — the `LogOpened` sample at `MainFrame.java:3876` drawn as
+  `PAIRING_SAMPLE - 1` — leaves both parity tests in `PairingDuringLoadFrameTest` **green**. My reading of why: the
+  session's later observation re-sends the correct sample, and since round 3 the log node propagates a change of
+  sample, so the arrival's wrong sample is overwritten before anything compares it.
+- **P35 (O-i).** The new frame test **fails on today's code**, reporting **5** session audit records for five
+  appends — one per append, because every append now sends the session an observation.
+- **P36 (O-ii).** Removing `set5-p24-headless-first-run.log` from `TrailingWhitespaceTest`'s exemption list leaves
+  that test **green**, because it scans no `.log` file.
+
+## Set 7 — the round 4 fixes, written before they exist
+
+Planned: Q5a — the holder keeps every undeclared id a filtered comparison found, with the filter it was found under,
+until a whole-log comparison replaces them all; the latest filtered comparison is shown beside, and its reply names
+what it replaced and what that had found; with no whole-log run, a filter's finding leads the panel note. Q5b — each
+filtered comparison records its filter; a changed filter makes it "an earlier filter (…)", `filterStale: true`. Q2 —
+a stale qualification publishes `scope` as what it compared and `supersedesSample: false`. Q6 — the guard matches
+normalised text: a paragraph's or text block's lines joined, Markdown emphasis and HTML tags and entities stripped,
+whitespace collapsed including U+00A0. Q9 — the `LogOpened` sample goes through `sampleLoggedIds`, its audit line
+records the sample and total, and the parity test reads that record. O-i — an append sends the session nothing; the
+session's copy is refreshed when coverage reads its claim. O-ii — the dead exemption removed. O-iii — frame mutations
+must fail with an expected message.
+
+- **P37.** End to end on the fixed jar: **every check passes**, scenarios 9 and 10 included.
+- **P38.** The same script on the current, unfixed jar: **exactly the six scenario-9/10 checks fail**, and the rest pass.
+- **P39.** Headless: **0 failures, 0 errors**, and 65 skipped; the count rises by the new headless methods.
+- **P40.** Frame: **0 failures, 0 errors**, 1 skipped (the focus test), across the same twelve classes.
+- **P41.** `tools/mutate-m68-1.py --frame`: baseline green; every mutation RED with a `<failure>` at its named test, and
+  every frame mutation's failure carries its expected message; C1 recognised; every restore green again.
+- **P42.** The six Q6 shapes, planted as harness mutations, each turn the guard **RED**.
+- **P43.** The `LogOpened` sample mutation now turns the sampled parity test **RED**.
+- **P44.** Five Follow appends write **0** session audit records, and the coverage claim then counts **605** records.

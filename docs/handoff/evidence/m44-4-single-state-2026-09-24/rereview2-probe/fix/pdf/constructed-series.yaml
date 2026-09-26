@@ -1,0 +1,6 @@
+eventLogRecord:
+  event: Tick
+  logTime: 1000
+  nodeLogs:
+    - rootNode: {v: 100, v+1: 7}
+---

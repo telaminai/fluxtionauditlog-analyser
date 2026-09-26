@@ -79,6 +79,9 @@ public final class GraphmlDiscovery {
                 out.put("loggedNodes", pairing.logged());
                 out.put("loggedButNotDeclared", loggedButNotDeclared.stream().sorted().toList());
                 out.put("verdict", pairing.reason());
+                // review O2: the same facts context and the graph-open echo carry, so appliesToOpenLog —
+                // a retention decision — is never read by an agent as proof of fit
+                out.putAll(pairing.facts());
             }
             return out;
         }
@@ -165,7 +168,7 @@ public final class GraphmlDiscovery {
         String modified = null;
         try { modified = Files.getLastModifiedTime(file).toInstant().toString(); }
         catch (IOException ignored) { /* unknown, rather than an invented timestamp */ }
-        copies.add(candidate(file, loaded, Set.of(), modified));
+        copies.add(candidate(file, loaded, Set.of(), modified, -1, -1));   // no log compared: no pairing, no scope
         return new Result(copies, scan.truncated(), scan.notes());
     }
 
@@ -176,6 +179,15 @@ public final class GraphmlDiscovery {
      *                   to fit and inventing an order would be a recommendation nobody earned
      */
     public static Result scan(List<String> roots, Set<String> loggedIds) {
+        return scan(roots, loggedIds, -1, -1);
+    }
+
+    /**
+     * As {@link #scan(List, Set)}, told how many records {@code loggedIds} were drawn from, so every
+     * candidate's pairing states its scope the way the frame's and the session's do (M68.1 re-review R2).
+     * {@code -1} means the caller did not say, and the pairing then says "scope not recorded".
+     */
+    public static Result scan(List<String> roots, Set<String> loggedIds, int recordsScanned, int recordsTotal) {
         List<Candidate> out = new ArrayList<>();
         List<String> notes = new ArrayList<>();
         Set<Path> seen = new LinkedHashSet<>();
@@ -201,7 +213,7 @@ public final class GraphmlDiscovery {
                         truncated = true;
                         break;
                     }
-                    out.add(judge(p, loggedIds, notes));
+                    out.add(judge(p, loggedIds, notes, recordsScanned, recordsTotal));
                 }
             } catch (IOException | RuntimeException e) {
                 notes.add("could not scan '" + root + "': " + e.getMessage());
@@ -215,7 +227,8 @@ public final class GraphmlDiscovery {
         return new Result(out, truncated, notes);
     }
 
-    private static Candidate judge(Path file, Set<String> loggedIds, List<String> notes) {
+    private static Candidate judge(Path file, Set<String> loggedIds, List<String> notes,
+                                   int recordsScanned, int recordsTotal) {
         try {
             if (Files.size(file) > MAX_BYTES) {
                 notes.add(file.getFileName() + ": larger than " + (MAX_BYTES / 1024 / 1024)
@@ -230,17 +243,19 @@ public final class GraphmlDiscovery {
                 notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
                 return new Candidate(file, 0, null);
             }
-            return candidate(file, topology, loggedIds, Files.getLastModifiedTime(file).toInstant().toString());
+            return candidate(file, topology, loggedIds, Files.getLastModifiedTime(file).toInstant().toString(),
+                    recordsScanned, recordsTotal);
         } catch (RuntimeException | IOException e) {
             notes.add(file.getFileName() + ": did not parse as a Fluxtion .graphml");
             return new Candidate(file, 0, null);
         }
     }
     private static Candidate candidate(Path file, ProcessorTopology topology, Set<String> loggedIds,
-                                       String modifiedTime) {
+                                       String modifiedTime, int recordsScanned, int recordsTotal) {
         Set<String> declared = GraphPairing.declaredNodeIds(topology);
         GraphPairing pairing = loggedIds == null || loggedIds.isEmpty()
                 ? null : GraphPairing.of(declared, loggedIds);
+        if (pairing != null && recordsScanned >= 0) pairing = pairing.withScope(recordsScanned, recordsTotal);
         Set<String> missing = new LinkedHashSet<>(loggedIds == null ? Set.of() : loggedIds);
         missing.removeAll(declared);
         var facts = topology.vocabulary().graphFacts();

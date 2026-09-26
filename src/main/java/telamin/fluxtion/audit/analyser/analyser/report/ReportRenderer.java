@@ -61,8 +61,18 @@ public final class ReportRenderer {
      * @param table     derived rows under a declared presentation (TABLE sections)
      */
     public record SectionContent(String heading, List<String> monoLines,
-                                 FindingReport.Picture picture, TableData table) {
+                                 FindingReport.Picture picture, TableData table, List<String> notes) {
         public static final SectionContent EMPTY = new SectionContent(null, null, null, null);
+
+        public SectionContent {
+            notes = notes == null ? List.of() : List.copyOf(notes);
+        }
+
+        /** A section with no notes — every caller before M68.1. */
+        public SectionContent(String heading, List<String> monoLines, FindingReport.Picture picture,
+                              TableData table) {
+            this(heading, monoLines, picture, table, List.of());
+        }
     }
 
     /**
@@ -145,7 +155,18 @@ public final class ReportRenderer {
                     mono(doc, c, "Record #" + f.recordIndex(), body.monoLines());
                 }
             }
-            case RECORD, SERIES -> {
+            case SERIES -> {
+                if (body.picture() != null) {
+                    picture(doc, c, body.picture());
+                } else {
+                    // Independent review (gap table, M68.2): a requested section that did not render says NOT RENDERED,
+                    // labelled like a chart or focus that failed — its reason used to print as ordinary text.
+                    callout(doc, c, "NOT RENDERED", "series section: " + (body.monoLines() == null
+                                    || body.monoLines().isEmpty() ? "the analyser produced no picture for this section"
+                                    : String.join(" ", body.monoLines())), WARN, WARN_BG);
+                }
+            }
+            case RECORD -> {
                 if (body.picture() != null) picture(doc, c, body.picture());
                 if (body.monoLines() != null) {
                     mono(doc, c, body.heading() != null ? body.heading()
@@ -154,7 +175,24 @@ public final class ReportRenderer {
                 }
             }
             case CHART, TOPOLOGY -> {
-                if (body.picture() != null) picture(doc, c, body.picture());
+                boolean drawn = body.picture() != null && body.picture().image() != null
+                        && body.picture().image().getWidth() > 0 && body.picture().image().getHeight() > 0;
+                if (drawn) {
+                    picture(doc, c, body.picture());
+                } else {
+                    // M68.2 (D-E8): a requested section renders or SAYS WHY NOT. Both used to vanish in silence: a
+                    // chart whose capture came back empty, and a topology section whose "recorded gap" line was
+                    // built as text that this case never printed — the G14 packet's missing illustration.
+                    // the NAME goes in the body, exactly: callout labels print upper-cased, and a chart name is
+                    // case-sensitive (set 8, P43 — "rootNode.price" would have reached the page as ROOTNODE.PRICE)
+                    callout(doc, c, "NOT RENDERED",
+                            (s.kind() == ReportSpec.Kind.CHART ? "chart '" : "focus '")
+                                    + (s.ref() == null ? "" : s.ref()) + "': "
+                                    + (body.monoLines() == null || body.monoLines().isEmpty()
+                                            ? "the analyser produced no picture for this section"
+                                            : String.join(" ", body.monoLines())),
+                            WARN, WARN_BG);
+                }
                 if (body.table() != null && !body.table().rows().isEmpty()) {
                     // M32.7: the chart's markers as DATA under the picture — glyphs show where,
                     // the table says what, and the record column keeps each row a signpost
@@ -164,6 +202,7 @@ public final class ReportRenderer {
             case TABLE -> {
                 if (body.table() != null) {
                     table(doc, c, body.heading() == null ? "Table" : body.heading(), body.table());
+                    tableNotes(doc, c, body.notes());
                 }
             }
         }
@@ -223,6 +262,26 @@ public final class ReportRenderer {
             c.y += 16;
         }
         c.y += 8;
+    }
+
+    /**
+     * M68.1 (D-E2): the notes the Reports tab shows under a table are shown under it on the page too. They
+     * used to travel only into the reply's warnings for an agent, so an exported coverage table could read
+     * "declared 3 · covered 3" with no sign that the log wrote an id the graph does not declare — while the
+     * on-screen tab, rendering the same report, said so. One report, two verdicts, is the defect.
+     */
+    private static void tableNotes(PdfDoc doc, Cursor c, List<String> notes) {
+        if (notes == null) return;
+        for (String note : notes) {
+            if (note == null || note.isBlank()) continue;
+            List<String> lines = PdfDoc.wrap(note, PdfDoc.Face.HELVETICA, 8f, CONTENT_W);
+            c.ensure(doc, lines.size() * 11 + 4);
+            for (String line : lines) {
+                doc.text(line, MARGIN, c.y + 9, PdfDoc.Face.HELVETICA, 8f, MUTED);
+                c.y += 11;
+            }
+            c.y += 4;
+        }
     }
 
     private static void tableHeader(PdfDoc doc, Cursor c, TableData t, float[] widths) {

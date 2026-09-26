@@ -1,0 +1,41 @@
+jar:  <scratch-path>
+log:  <scratch-path>
+home: /var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/verify-session-_55a3pcd/home  (isolated — the real configuration is never touched)
+
+[A] a log is open, then an EXPLICIT switch — the profile is the session boundary (M35.5)
+  PASS  precondition: a log was open   -> <scratch-path>
+  PASS  the switch succeeded
+  PASS  THE LOG ACTUALLY CLOSED   -> log now None
+  PASS  the new project is in force   -> projA
+  PASS  the echo REPORTS what closed, rather than predicting it   -> <scratch-path>
+
+[B] re-opening the ALREADY ACTIVE project — a no-op must not cost you the log
+  PASS  precondition: a log is open again   -> <scratch-path>
+  PASS  reported as already active   -> nothing replaced and nothing closed — this project is already in force, and its edits auto-save, so a reload w
+  PASS  THE LOG SURVIVED   -> before=<scratch-path> after=<scratch-path>
+  PASS  nothing was reported closed
+
+[C] switching to a DIFFERENT project closes again, and names the log
+  PASS  the new project is in force   -> projB
+  PASS  the log closed
+  PASS  the echo named it
+
+[D] a FAILED switch must close nothing and change nothing
+  PASS  precondition: a log is open under project projB
+  PASS  the switch was refused   -> project settings not found: /var/folders/s9/4cyctxf52cb1x715qb3qb59h0000gn/T/verify-session-_55a3pcd/does-not-
+  PASS  THE LOG SURVIVED A BAD PATH   -> before=<scratch-path> after=<scratch-path>
+  PASS  the active project is unchanged   -> projB -> projB
+
+[E] leaving the project restores your own settings and ends the session
+  PASS  precondition: a log is open   -> <scratch-path>
+  PASS  the close succeeded
+  PASS  no project is active
+  PASS  the log closed with it
+  PASS  the echo named it
+
+[F] the processor's audit log never reaches the console
+  PASS  no Fluxtion audit record on stdout, across every transition above
+
+ALL PASS — the session-boundary rules hold on the built jar.
+Still unverified here: ADOPT_FOR_OPEN_LOG, CREATE, FORK, STARTUP_ACTIVATION and the import
+dialog. They reach the same decision with a different kind; the wiring is read, not run.
