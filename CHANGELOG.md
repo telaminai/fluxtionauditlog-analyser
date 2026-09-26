@@ -74,9 +74,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   For a large log read directly from the file, an in-place rewrite could make those rows describe bytes that were no
   longer there. Such a rewrite now suspends those verbs until the log is reopened, and says why. A file replaced at
   its path is labelled superseded, because what is shown is still the file that was opened. `context.log.identity`
-  reports it, and so does the status line when you return to the window. **Not covered yet:** the log table on screen
-  is not suspended or marked, and a log opened through a plugin reader is not checked (it says `not assessed`)
-  (M68.5).
+  reports it, and so does the status line when you return to the window. The log table now shows the same warning
+  above its rows, saying they are the log as it was indexed. A log opened through a plugin reader is not checked (it
+  says `not assessed`) (M68.5).
 - **Follow now notices when the file it is following is replaced, not only when it shrinks.** A file rewritten at the
   same length used to count as "no growth" and was ignored. A rewrite in the middle combined with an append was
   indexed as an append, over records that had changed. Follow now compares every byte already read. If they changed,

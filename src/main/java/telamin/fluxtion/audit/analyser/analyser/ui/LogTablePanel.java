@@ -49,6 +49,36 @@ public final class LogTablePanel extends JPanel {
     private final List<TableColumn> baseColumns = new ArrayList<>();   // all columns, model order
     private int maxNodeLogs = 1;
 
+    /**
+     * Independent review, M68.5 (D-E6 "no view continues as current"): the table's statement that the file behind this
+     * log changed after it was read. The request verbs refuse or label; the table went on painting as though nothing
+     * had. It holds no verdict: the frame sets it from the session snapshot's file identity.
+     */
+    private final javax.swing.JLabel identityBanner = new javax.swing.JLabel();
+
+    /**
+     * What the table says for a file-identity verdict, or null for none. Only a CHANGE is stated: nothing observed, a
+     * verified file and a log reopened after a replacement are all current.
+     */
+    static String identityBannerText(String verdict, String reason) {
+        if (!"UNVERIFIED".equals(verdict) && !"REPLACEMENT".equals(verdict)) return null;
+        return "⚠ " + (reason == null ? "the file behind this log changed after it was read" : reason)
+                + " · the rows below are the log as it was indexed, not re-read from the file — reopen the log to read it again";
+    }
+
+    /** Show {@code note} above the rows, or hide the banner for null. Call on the EDT. */
+    public void setIdentityNote(String note) {
+        identityBanner.setText(note == null ? "" : note);
+        identityBanner.setToolTipText(note);
+        identityBanner.setVisible(note != null);
+        revalidate();
+    }
+
+    /** The banner's text, or null while it is hidden. */
+    String identityNote() {
+        return identityBanner.isVisible() ? identityBanner.getText() : null;
+    }
+
     public LogTablePanel() {
         super(new java.awt.BorderLayout());
         table = new JTable() {
@@ -100,6 +130,10 @@ public final class LogTablePanel extends JPanel {
             selectionListener.accept(modelRows);
         });
         add(new JScrollPane(table), java.awt.BorderLayout.CENTER);
+        identityBanner.setVisible(false);
+        identityBanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        identityBanner.setForeground(UiTheme.warnForeground());       // theme-aware, light and dark
+        add(identityBanner, java.awt.BorderLayout.NORTH);
         // the "Records" section header lives on the wrapping area (above the Search row) — see MainFrame
         javax.swing.ToolTipManager.sharedInstance().registerComponent(table);   // enable per-row note tooltips
 

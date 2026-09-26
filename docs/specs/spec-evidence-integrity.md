@@ -269,11 +269,13 @@ members' verdicts, naming the member, and suspends reads if any member does (rev
 `RolledLogStoreReadIdentityTest`). **A plugin reader's store is not assessed:** `LogStore.readThroughAssessed()` is
 false by default, and `context.log.identity` then says `not assessed` rather than nothing.
 
-**Not covered, stated (review, "M68.5 table not suspended").** The boundary above is the assistant's REQUEST path.
-The log table and the other views on screen are not suspended and not marked: after an in-place rewrite of a mapped
-log they go on painting from the store as it now reads (read, not driven). The status line announces the change when
-the window regains focus, or when a request observes it. "No view continues to present superseded content as
-current" is therefore NOT yet true of the table; shipping with that limit is an owner decision, recorded below.
+**The table, after the review ("M68.5 table not suspended", closed in set 13).** The boundary above is the assistant's
+REQUEST path. The log table now states the session's file-identity verdict in a banner above its rows —
+`UNVERIFIED` or `REPLACEMENT`, with the reason, and that the rows are the log as it was indexed — rendered from the
+session snapshot (`LogTablePanel.identityBannerText`, `LogTablePanelIdentityBannerTest`). It is observed when a
+request reads records or the window regains focus, as before. **Still true, stated:** the table's rows are MARKED, not
+suspended — a mapped log's cells still paint from the channel as it now reads; the detail pane and charts carry no
+banner of their own. Whether marking the table is enough is Q4's partial-delivery decision.
 ## D-E7 · A pointer that cannot resolve says why
 
 The root a project resolves against is recorded rather than inferred, and a pointer that fails reports the root it
@@ -546,8 +548,8 @@ responsibilities, and no further client trial: these are contract and acceptance
 
 ## As shipped after the independent review (2026-09-26) — the remaining gaps, precisely
 
-- **D-E6 / M68.5, the table.** On-screen views are not suspended after an in-place rewrite (see D-E6). Request
-  verbs are.
+- **D-E6 / M68.5, the table.** Marked with the verdict, not suspended; the detail pane and charts are not marked (see
+  D-E6). Request verbs are suspended or labelled.
 - **D-E6 / M68.5, plugin readers.** Not assessed; said so (`not assessed`).
 - **D-E7 / M68.5, pointers.** Runbook and glossary pointers name the root they tried. Environment and report
   destination pointers are not covered by that check.

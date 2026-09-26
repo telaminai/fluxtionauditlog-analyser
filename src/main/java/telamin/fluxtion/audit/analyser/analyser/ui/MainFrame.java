@@ -4400,6 +4400,8 @@ public final class MainFrame extends JFrame {
      */
     private void onSessionSnapshot(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
         publishPairing();
+        // M68.5, the review's "table not suspended": the table states the session's file-identity verdict, from here
+        tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
     }
 
 
