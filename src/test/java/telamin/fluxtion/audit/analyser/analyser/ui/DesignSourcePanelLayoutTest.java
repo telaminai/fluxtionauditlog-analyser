@@ -27,7 +27,10 @@ class DesignSourcePanelLayoutTest {
             SwingUtilities.invokeAndWait(() -> assertEquals(25, dragThenLayOut(true),
                     "a first drag after a theme switch keeps the person's width"));
         } finally {
-            UIManager.setLookAndFeel(before);
+            // restore on the EDT, where every other look-and-feel change in this JVM happens
+            SwingUtilities.invokeAndWait(() -> {
+                try { UIManager.setLookAndFeel(before); } catch (UnsupportedLookAndFeelException e) { throw new AssertionError(e); }
+            });
         }
     }
 
