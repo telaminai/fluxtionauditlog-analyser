@@ -225,4 +225,28 @@ class GraphNotesReplaceAndChartsDeleteTest {
         assertFalse(definitions.contains("closed-one"), "the stored definition was removed, not only reported");
         assertFalse(tabs.hasDefinition("closed-one"), "and the name is free again");
     }
+
+    /**
+     * PR #51 review. Under REPLACE a skipped note is not merely "not added" — the old pins are already gone. A re-send
+     * whose anchors do not resolve (a recordIndex past a shorter log) left the chart with none, and said nothing.
+     */
+    @Test
+    @DisplayName("A re-send that drops notes says so, and says what the chart now carries")
+    void droppedNotesAreNamed() {
+        GraphTabs tabs = new GraphTabs();
+        ActionExecutor ex = executor(tabs);
+        ex.render("graph", Map.of("newTab", true, "name", "g", "series", List.of("bidMakerOrder.price"), "notes", twoNotes()));
+        assertEquals(2, noteCount(tabs, "g"), "precondition");
+
+        var r = ex.render("graph", Map.of("name", "g",
+                "notes", List.of(Map.of("recordIndex", 99_999, "text", "A"), Map.of("text", "B"))));
+
+        assertTrue(r.ok());
+        assertEquals(0, noteCount(tabs, "g"), "the set was replaced — that is the rule, and it is not the defect");
+        assertEquals(0, r.payload().get("notes"), "the reply states what the chart carries now");
+        String warnings = String.valueOf(r.payload().get("warnings"));
+        assertTrue(warnings.contains("2 note(s) skipped") && warnings.contains("recordIndex")
+                        && warnings.contains("the 2 the chart had were replaced by 0"),
+                () -> "the loss must be stated, not silent: " + warnings);
+    }
 }

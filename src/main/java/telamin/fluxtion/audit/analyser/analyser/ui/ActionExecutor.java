@@ -642,7 +642,7 @@ public final class ActionExecutor implements RenderExecutor {
             for (Object[] pe : parsedExprs) panel.addExpr((String) pe[0], (String) pe[1], (SeriesExtractor.Resolve) pe[2]);
             if (style != null) panel.setStyleByName(style);
             if (rationale != null) panel.setCaption(rationale);   // caption the plot with the agent's reason
-            applyNotesAndAxes(panel, p, s);
+            List<String> noteIssues = applyNotesAndAxes(panel, p, s);
             List<String> annotationIssues = applyGuidesAndBands(panel, p);
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
             if (refresh) panel.onRecordsAppended();
@@ -659,6 +659,8 @@ public final class ActionExecutor implements RenderExecutor {
                 // NEXT call's echo — the counts here confirm what was ACCEPTED
             }
             if (p.containsKey("bands")) applied.put("bands", panel.bandSpecs().size());
+            // PR #51 review: notes REPLACE the set now (#47), so say what the chart carries afterwards
+            if (p.get("notes") instanceof List<?>) applied.put("notes", panel.notes().notes().size());
             if (extEcho != null) applied.put("external", extEcho);
             applied.put("name", name == null ? "(current)" : name);
             // the style the chart now HAS, so a caller can confirm a {style} it sent (or learn the one it did not)
@@ -681,6 +683,7 @@ public final class ActionExecutor implements RenderExecutor {
             }
             List<String> warnings = new ArrayList<>(externalWarnings);
             warnings.addAll(annotationIssues);
+            warnings.addAll(noteIssues);
             warnings.addAll(annotationWarnings(panel, p));
             if (!warnings.isEmpty()) applied.put("warnings", warnings);
             return ActionResult.ok("graph", "applied", applied);
@@ -1466,8 +1469,9 @@ public final class ActionExecutor implements RenderExecutor {
      * should not have to convert it. An index that does not resolve is dropped rather than pinned to
      * zero — a note at the wrong moment is worse than a missing one.
      */
-    private void applyNotesAndAxes(telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel panel,
-                                   Map<String, Object> p, LogStore store) {
+    private List<String> applyNotesAndAxes(telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel panel,
+                                           Map<String, Object> p, LogStore store) {
+        List<String> issues = new ArrayList<>();
         var notes = panel.notes();
         if (bool(p.get("clearNotes"))) {
             notes = notes.withoutNotes();
@@ -1476,6 +1480,8 @@ public final class ActionExecutor implements RenderExecutor {
         if (explanation != null) {
             notes = notes.withExplanation(explanation);
         }
+        int before = 0;
+        List<String> dropped = new ArrayList<>();
         if (p.get("notes") instanceof List<?> list) {
             // #47: notes REPLACE the set, like exprs, guides, bands, markers and external. They used
             // to append, so re-sending a chart definition to adjust one thing silently doubled every
@@ -1483,16 +1489,30 @@ public final class ActionExecutor implements RenderExecutor {
             // the echo stating neither. Re-sending a definition is the normal authoring loop; it has to
             // be idempotent. `clearNotes` still works, and is now only needed to drop pins WITHOUT
             // supplying new ones.
+            before = notes.notes().size();
             notes = notes.withoutNotes();
+            // PR #51 review: under REPLACE a skipped note is no longer "not added" — the old pins are already gone.
+            // Re-sending notes whose anchors do not resolve (a recordIndex past a shorter log) used to leave the chart
+            // with none, and the reply said nothing. Each skipped note is now named, with what the set became.
+            int n = 0;
             for (Object item : list) {
-                if (!(item instanceof Map<?, ?> m)) continue;
+                n++;
+                if (!(item instanceof Map<?, ?> m)) { dropped.add("note " + n + " is not an object"); continue; }
                 String text = str(m.get("text"));
-                if (text == null || text.isBlank()) continue;
+                if (text == null || text.isBlank()) { dropped.add("note " + n + " has no text"); continue; }
                 Long at = anchorMillis(m, store);
-                if (at == null) continue;
+                if (at == null) {
+                    dropped.add("note " + n + " has no usable anchor ('at' in epoch millis, or a 'recordIndex' within the "
+                            + "log's " + (store == null ? 0 : store.size()) + " records)");
+                    continue;
+                }
                 notes = notes.plus(new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
                         at, text, str(m.get("series"))));
             }
+        }
+        if (p.get("notes") instanceof List<?> && !dropped.isEmpty()) {
+            issues.add(dropped.size() + " note(s) skipped: " + String.join("; ", dropped) + ". notes REPLACE the set, so the "
+                    + before + " the chart had were replaced by " + notes.notes().size());
         }
         panel.setNotes(notes);
 
@@ -1500,6 +1520,7 @@ public final class ActionExecutor implements RenderExecutor {
             panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
                     strList(p.get("rightAxis"))));
         }
+        return issues;
     }
 
     /**
