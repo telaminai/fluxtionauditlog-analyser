@@ -1447,21 +1447,39 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
-## M69 · Spotlight walks — saved, stepped explanations on the overlay — ☐ SPEC DRAFTED 2026-09-27 (owner-directed)
+## M69 · Spotlight walks — saved, stepped explanations on the overlay — ◧ SPEC ACCEPTED r4 2026-09-27; building on `feat/m69-spotlight-walks`
 
-Spec: [`spec-spotlight-walks.md`](spec-spotlight-walks.md). **Owner, 2026-09-27:** forward/back arrows on the overlay,
-not a separate player; walks are stored like reports; they are useful outside an evidence bundle; a right-click on a
-live spotlight opens a save menu; and the walkthrough is needed regardless of the evidence-bundle proposal. It
-delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acceptance*).
+Spec: [`spec-spotlight-walks.md`](spec-spotlight-walks.md) (r4, consolidated). **Owner, 2026-09-27:**
+- forward/back arrows on the overlay, not a separate player;
+- walks stored like reports, and useful outside an evidence bundle;
+- a right-click on a live spotlight opens a save menu;
+- the walkthrough is needed regardless of the evidence-bundle proposal;
+- accept r3, consolidate, fold the R5 fix into M69, re-plan, and build it.
 
-- [M69.0] ☑ **Owner decisions, 2026-09-27:** O-1 a new `walk` verb; O-2 a press outside the strip ends the walk,
-  with *Play from step N*; O-3 playback is presentation state, ended by the snapshot's generation. O-4 (the
-  right-click save menu, v1) was decided earlier the same day.
-- [M69.1] ☐ **S1:** `WalkSpec` model, validation and profile storage (W-A1, W-A7, W-A9, W-A16).
-- [M69.2] ☐ **S2:** the `walk` verb and its contract (W-A10).
-- [M69.3] ☐ **S3:** the overlay's control strip, step showing, the chart check and the right-click save menu (W-A2 to
-  W-A6, W-A8, W-A12 to W-A15, W-A17 as frame tests).
-- [M69.4] ☐ **S4:** Reports tab and Project panel listing, `context`, docs, CHANGELOG, a capture (W-A11).
+It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acceptance*). Review:
+[`review_spec_m69_spotlight_walks_2026_09_27_codex.md`](../handoff/review_spec_m69_spotlight_walks_2026_09_27_codex.md)
+(R1–R9).
+
+- [M69.0] ☑ **Owner decisions, 2026-09-27:**
+  - O-1: a new `walk` verb;
+  - O-2: a press outside the strip ends the walk, with *Play from step N*;
+  - O-3: playback is presentation state, ended by the snapshot;
+  - O-4: the right-click save menu is in v1.
+
+  r3 accepted; r4 consolidated.
+- [M69.P] ☐ Predictions committed before code (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`).
+- [M69.S0] ☐ **R5:** the graph digest belongs to the current graph (cleared on `clearGraph` and `loadFromSource`) — a
+  transition regression test.
+- [M69.S1] ☐ `WalkSpec` model, validation, identity helpers, and storage in every tier and share path, plus the
+  machine-local bin (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
+- [M69.S2] ☐ `FilterState.setAll`; `ChartPanel`'s paint outcome; the walk controller — validate, apply, prepare,
+  resolve, light — with its ticket and lifecycle (W-A4, W-A5, W-A6, W-A8, W-A13–W-A15).
+- [M69.S3] ☐ The overlay strip; input classified before dismissal; keyboard focus; the right-click save menu (W-A2,
+  W-A3, W-A12).
+- [M69.S4] ☐ The `walk` verb and its contract; `context`; the Reports tab and Project panel; docs, CHANGELOG, a capture
+  (W-A10, W-A11, W-A17 UI half).
+- [M69.R] ☐ Gates: headless, frame suites, mutation controls, preflight, sweep, strict docs; RESULTS scored; a PR with
+  green CI. No merge or release without the owner's go.
 
 ## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.12 SHIPPED (.10–.12 in 1.15.0, 2026-09-18; archived); .13 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
@@ -2283,8 +2301,8 @@ the design-first first look); **1.23.0** (2026-09-26 — M68.7 and the reader's 
 starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/tracker.md`](completed/tracker.md) ▸
 *Tidy 2026-09-27*.
 
-0. ☐ **M69 spotlight walks — next** (owner, 2026-09-27: "starting with the walk now"; needed regardless of the
-   evidence-bundle proposal). Spec drafted and decided (O-1 to O-4); building S1 to S4.
+0. ◧ **M69 spotlight walks — in progress** (owner, 2026-09-27; needed regardless of the evidence-bundle proposal). Spec
+   r4 accepted; building S0 to S4 on `feat/m69-spotlight-walks` (▸ *M69*).
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).
