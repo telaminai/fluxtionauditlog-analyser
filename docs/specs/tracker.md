@@ -1454,8 +1454,9 @@ not a separate player; walks are stored like reports; they are useful outside an
 live spotlight opens a save menu; and the walkthrough is needed regardless of the evidence-bundle proposal. It
 delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acceptance*).
 
-- [M69.0] ☐ **The owner answers O-1 to O-3** (the authoring verb's shape, a press outside the strip, playback state)
-  and the spec is reviewed.
+- [M69.0] ☑ **Owner decisions, 2026-09-27:** O-1 a new `walk` verb; O-2 a press outside the strip ends the walk,
+  with *Play from step N*; O-3 playback is presentation state, ended by the snapshot's generation. O-4 (the
+  right-click save menu, v1) was decided earlier the same day.
 - [M69.1] ☐ **S1:** `WalkSpec` model, validation and profile storage (W-A1, W-A7, W-A9, W-A16).
 - [M69.2] ☐ **S2:** the `walk` verb and its contract (W-A10).
 - [M69.3] ☐ **S3:** the overlay's control strip, step showing, the chart check and the right-click save menu (W-A2 to
@@ -2283,7 +2284,7 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
 *Tidy 2026-09-27*.
 
 0. ☐ **M69 spotlight walks — next** (owner, 2026-09-27: "starting with the walk now"; needed regardless of the
-   evidence-bundle proposal). Spec drafted; O-1 to O-3 first, then S1 to S4.
+   evidence-bundle proposal). Spec drafted and decided (O-1 to O-4); building S1 to S4.
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).

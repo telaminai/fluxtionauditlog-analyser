@@ -1,6 +1,6 @@
 # M69 · Spotlight walks — saved, stepped explanations on the overlay
 
-**Status: DRAFT r1 (2026-09-27), for owner and review. Nothing built.**
+**Status: DRAFT r2 (2026-09-27). O-1 to O-4 decided by the owner; ready to build. Nothing built yet.**
 
 **Owner direction (2026-09-27), not open for review:**
 > Not a player — forward/back arrows on the overlay on the analyser's UI. Spotlight walkthroughs are stored like
@@ -239,10 +239,10 @@ Each check has a wrong-result witness and a registered mutation control (rule 8)
 
 ## 8. Open questions for the owner
 
-- **O-1.** Authoring verb: a new `walk` verb, mirroring `report` (recommended), or an extension of `spotlight`
-  (`spotlight {…, saveTo: "walk", step: n}`) with management through `report`?
-- **O-2.** A press outside the strip: end the walk, with **Play from step N** to resume (recommended), or pause it
-  with a small "resume" chip left on screen?
-- **O-3.** Playback state as presentation state, ended by the snapshot's generation (recommended, D-W9), or a session
-  node?
+- ~~**O-1.**~~ **Decided by the owner, 2026-09-27: a new `walk` verb**, mirroring `report` (D-W8). It is the
+  seventeenth verb, so its schema, the manifest, the prompt and the MCP tool list are updated together (W-A10).
+- ~~**O-2.**~~ **Decided by the owner, 2026-09-27:** a press outside the strip **ends** the walk, and its list
+  offers **Play from step N**, remembered only for the session (D-W5).
+- ~~**O-3.**~~ **Decided by the owner, 2026-09-27: presentation state**, held by the frame like the selected tab.
+  The published snapshot's log generation ends it; there is no session node and no regeneration (D-W9).
 - ~~**O-4.**~~ Settled by the owner: a right-click on a live spotlight opens the save menu, in v1 (D-W8).
