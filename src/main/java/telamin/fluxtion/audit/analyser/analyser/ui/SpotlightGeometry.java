@@ -85,7 +85,16 @@ public final class SpotlightGeometry {
      * {@link #captionBox} — and the first side that covers NO cut-out and NO callout already placed wins. A
      * callout that hides another thing being pointed at defeats the pointing, so that is what is avoided
      * first. When every side covers something, the side covering the LEAST wins: an overlapped callout can
-     * still be read, one off screen cannot. With one spotlight this is exactly {@link #captionBox}.
+     * still be read, one off screen cannot.
+     *
+     * <p><b>Each side is also offered SLID along itself</b>, by whole caption sizes ({@link #SLIDE_STEPS}),
+     * after all four centred positions have been tried. Four sides alone gave each callout five places to
+     * be, and callouts pointing at consecutive source lines share almost the same five — so the fourth was
+     * drawn across the second's text. Sliding costs nothing when nothing contends, because the centred
+     * positions come first and a zero-cost placement wins immediately.
+     *
+     * <p>With one spotlight this is exactly {@link #captionBox}: the centred sides are offered in the
+     * documented order, so an uncontended callout lands where it always did.
      */
     public static java.util.List<Rectangle> layout(java.util.List<Rectangle> cutOuts, java.util.List<Dimension> sizes,
                                                    Dimension frame) {
