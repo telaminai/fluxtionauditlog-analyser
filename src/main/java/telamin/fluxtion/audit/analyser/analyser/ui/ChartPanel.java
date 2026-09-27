@@ -550,10 +550,24 @@ public final class ChartPanel extends JPanel {
         super.paintComponent(g0);
         Graphics2D g2 = (Graphics2D) g0.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        // the ONE place a Graphics2D becomes a Surface. Everything below draws through the seam, so
-        // the same code serves the screen and a recording test — see render.Surface
-        telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g =
-                new telamin.fluxtion.audit.analyser.analyser.ui.render.Graphics2DSurface(g2);
+        // the ONE place a Graphics2D becomes a Surface
+        try {
+            renderTo(new telamin.fluxtion.audit.analyser.analyser.ui.render.Graphics2DSurface(g2),
+                    getWidth(), getHeight());
+        } finally {
+            g2.dispose();
+        }
+    }
+
+    /**
+     * The whole chart, onto any {@link telamin.fluxtion.audit.analyser.analyser.ui.render.Surface}.
+     *
+     * <p>Separated from {@link #paintComponent} so the surface is a parameter rather than something
+     * this method constructs. The screen passes a {@code Graphics2DSurface}, a test passes a
+     * recorder, and {@link #toSvg} passes an SVG writer — one implementation of the drawing, and
+     * whatever comes out is what the screen shows, because it is the same code.
+     */
+    void renderTo(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, int w, int h) {
         boolean dark = ThemeManager.isDark();
         // margins take the surrounding panel colour; the plot rect is a subtly distinct "canvas card"
         Color panelBg = javax.swing.UIManager.getColor("Panel.background");
@@ -562,7 +576,6 @@ public final class ChartPanel extends JPanel {
         Color axis = dark ? new Color(0x3D444D) : new Color(0xC2CAD3);
         Color grid = dark ? new Color(0x2C333C) : new Color(0xD5DBE3);
         Color text = dark ? new Color(0x9DA7B3) : new Color(0x57606A);
-        int w = getWidth(), h = getHeight();
         g.setFont(getFont().deriveFont(11f));
         g.setColor(panelBg);
         g.fillRect(0, 0, w, h);
@@ -589,7 +602,6 @@ public final class ChartPanel extends JPanel {
             lastEmptyMessage = emptyPlotMessage(series.isEmpty(), Double.isNaN(vx0), plotW, plotH);
             g.drawString(lastEmptyMessage, L, h / 2);
             paintExplanation(g, dark);
-            g2.dispose();
             return;
         }
 
@@ -663,7 +675,30 @@ public final class ChartPanel extends JPanel {
         paintExplanation(g, dark);
         // the legend is a Swing overlay component (GraphPanel), not painted here — so labels are readable,
         // untruncated, and support right-click actions
-        g2.dispose();
+    }
+
+    /**
+     * This chart as an SVG document — the same paint path, a different surface.
+     *
+     * <p>Not a second renderer: {@link #renderTo} is the only one, and SVG is a consumer of it. That
+     * is the property worth having, because a chart exported for someone else to read is exactly the
+     * one nobody checks against the screen.
+     *
+     * @param metrics text measurement for the declared font; the caller declares it because the
+     *                reader's browser, not this JVM, will do the actual rasterising
+     */
+    public String toSvg(int w, int h, telamin.fluxtion.audit.analyser.analyser.ui.render.SvgSurface.Metrics metrics) {
+        java.awt.Dimension was = getSize();
+        setSize(w, h);
+        doLayout();
+        try {
+            var svg = new telamin.fluxtion.audit.analyser.analyser.ui.render.SvgSurface(w, h, metrics);
+            renderTo(svg, w, h);
+            return svg.document();
+        } finally {
+            setSize(was);
+            doLayout();
+        }
     }
 
     private void drawSeries(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, Series s) {
