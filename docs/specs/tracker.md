@@ -105,6 +105,9 @@ are in the completed tracker. The release is not a claim that these optional iss
 
 ## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md), revision 9 (2026-09-21)
 
+_A second, older section for this proposal (its revision 4–6 reviews, AFMT-1…3) moved 2026-09-27 to the completed
+tracker ▸ *Tidy 2026-09-27*: AFMT-2 is AF-5 (released), and AFMT-3 is the [AFMT-3] entry below._
+
 Remove the export step between a Mongoose run and the analyser. Owner decisions taken 2026-09-21; the
 proposal carries the seven decisions, the repository order and the acceptance. Release 1 is text and
 touches no `fluxtion` code; release 2 is one runtime release carrying binary, the renderer and two live
@@ -196,7 +199,8 @@ still to do.
   listing-freeze fix** — both witnessed live, the second by reading the Chronicle queue back rather than a
   counter. **MA-5.7** (the every-backend contract) is open. **Core RELEASED as mongoose 1.0.30
   (2026-09-26)**, with the `attach` overload and the per-record WARNING in its release notes. The bundle's
-  mongoose pin is still 1.0.29, so nothing here reaches a developer until that pin moves. The
+  mongoose pin has since moved to 1.0.30 (▸ Spring-side block, G14 pass condition 3: pins live and
+  production-witnessed). The
   new `attach` default overload also **quietly drops fan-out** for any other capture-service
   implementation — a release note, not a defect.
   **Recurring intake 2026-09-25:** feedback 13 reports silent stdout on the bundle's older pins;
@@ -332,7 +336,7 @@ still to do.
   Chronicle deployment and waits for nothing here. A second defect behind it discards unflushed reads, so
   the test needs a sub-50 ms burst._
   **Implemented 2026-09-21** in `telaminai/mongoose-plugins`, branch `fix/audit-tail-thread-safety`,
-  commit `419f8d4`, pushed and **not yet reviewed or merged**. Both defects were in
+  commit `419f8d4` _(at the time not yet reviewed or merged; released later as 1.0.44 — below)_. Both defects were in
   `WebAdminService.java` as diagnosed: the tailer was created with `toEnd()` on the Jetty connect thread
   and read on a scheduled executor, so every tick threw `ThreadingIllegalStateException` and the catch
   logged it at debug — which is why the socket completed a real upgrade, reported healthy, and delivered
@@ -474,12 +478,12 @@ all others, an instrument that lies is worse than a slow loop.
 
 **Two analyser defects found in the same session, filed here because that is where they were seen.**
 
-- [WS-1] ☐ **Follow shows stale content after the log file is replaced.** A restart rewrites the audit log as a new inode
+- [WS-1] ☑ _(shipped as M68.5 in 1.21.0 — completed tracker ▸ M68)_ **Follow shows stale content after the log file is replaced.** A restart rewrites the audit log as a new inode
   and live-tail silently held the old content until the operator noticed through `context`. Same class as DX-02: the
   instrument reporting confidently and wrongly, rather than failing. The detection already exists — `context` computes the
   file identity and flags changed-on-disk inputs — so only the action is missing: reopen, or raise a banner that says the
   file underneath was replaced. Prioritise with DX-02/DX-03.
-- [WS-2] ☐ **A non-canonical profile resolves the project root as the settings directory.** The root came out as the
+- [WS-2] ☑ _(shipped as M68.5 in 1.21.0)_ **A non-canonical profile resolves the project root as the settings directory.** The root came out as the
   `.analyser/` directory rather than the repository, so every runbook and skill pointer resolved `exists: false`. That
   breaks the mechanism the whole authoring story depends on. Resolve the root from the settings file's parent's parent, or
   record it explicitly in the settings.
@@ -666,7 +670,8 @@ the record with noise; too little leaves the gap the observed trial found, where
 own decision. The decision belongs in the compiler's Spec 3 B-series alongside the other generated-member rules, and
 the implementing session records it there rather than here.
 
-**Not in this block:** the analyser's own instrument defects (DX-02 to DX-05, WS-1, WS-2). They are analyser work and
+**Not in this block:** the analyser's own instrument defects (DX-02 to DX-05, WS-1, WS-2) — **all shipped as M68 in
+1.21.0 (2026-09-26)**; the paragraph below records why they were run alongside. They are analyser work and
 they gate the beta's invite-the-attack step for a different reason — a tester must not be invited to find a hole we
 already know about. Run them alongside rather than after: they are small, they belong to different owners, and they
 are what makes the instrument argue against itself in front of a stranger.
@@ -688,83 +693,9 @@ are what makes the instrument argue against itself in front of a stranger.
 
 Closed 2026-09-26 as the explicit partial delivery chosen in Q4: every analyser slice (M68.1–M68.7) is released and protected by registered controls. **Open elsewhere:** D-E9's producer half (MA-2, MA-7's writer half, the starter). **Deferred:** M68.6's Q5 repair journey, until a first affected chart name is reported. G14 is its own gate, below.
 
-## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) (proposed 2026-09-21)
+## Tool agreement — [spec-tool-agreement.md](spec-tool-agreement.md) — ◧ TA-1…TA-8 SHIPPED in 1.17.0; TA-5b, TA-5c, TA-9, TA-B open
 
-### Released — 2026-09-21
-
-PR #4 landed on main by fast-forward at `d1bb7a1a` (no squash or rebase, so the `41b77650` pin stays an
-ancestor); CI 35619600124 and the docs deploy pass. **v1.17.0** released from it (Release run
-35620337212; changelog stamp `fdc9c042`; jar, versioned jar, SHA256SUMS). Playground re-vendored onto
-fluxtion-web main as `89366ff`, carrying `d917a7a` forward with provenance `local@41b77650` (git archive of
-`d1bb7a1a`; the unauthenticated GitHub API was rate-limited); 544 pass / 5 skip, build passes. A fresh
-public `analyser-bundle` download serves it: `run-mongoose-server` differs from the vendored bytes only by
-the three bundle substitutions, with no `TODO(bundle)` left. TA-5b/5c stay open.
-
-### Re-review intake — 2026-09-21
-
-[Independent re-review](../handoff/rereview_tool_agreement_2026_09_21_opus.md) at `51df9ebd`:
-mergeable after N1's mechanical gate correction. F1–F6 closed (F1/F2/F3 with follow-ups);
-F7 withdrawn. **Frozen N1 prediction before edit:** an exact-path `-whitespace` attribute makes
-merge-base-to-HEAD diff checking pass without changing one evidence byte; removing it restores
-seven failures. Ordinary source files must retain whitespace checking.
-**Frozen N3 prediction:** the already-present length assertion at playground `d917a7a` rejects a
-validly shaped mirror provenance longer than 300 characters; restore the manifest and it passes.
-
-- ☐ **N2:** Follow's snapshot-to-live reload clears flags/selection/filters. Add preservation by
-  verified record identity or notice at the point of use; the FAQ alone is insufficient. Owner:
-  analyser Follow UI. Acceptance: flag an ordinary export, start Follow and either retain the
-  verified flag or warn before it is cleared; exercise both affected and unaffected paths.
-- ☐ **F3 integration gate:** old recipe is valid only at end-marker `02fa62b3`. Regenerate against
-  the actual chosen head before combining branches; at `955b90ed`, preserve `statusText` and
-  member-nested `streamEndFacts` plus later framing corrections, then rerun combined gates.
-  Owner: branch integrator. Do not apply the old “take ours” recipe to newer heads.
-
-N1 prediction held: exact-path attribute passes the branch-range gate, removal restores seven
-failures, ordinary-file whitespace remains rejected, evidence hash unchanged. N3 prediction held:
-reviewed test already has the 300-character assertion; 381 characters fails it and restored input
-passes. [Response and witnesses](../handoff/response_tool_agreement_2026_09_21.md).
-The re-review's N3 omission claim is not supported by the reviewed source. No playground edit.
-Mechanical-response gates: Maven 1,767/0/0/49; strict docs, branch-range diff and sweep pass.
-
-### Review response — implementation and verification
-
-[Response to F1–F7](../handoff/response_tool_agreement_2026_09_21.md),
-[re-review brief](../handoff/brief_rereview_tool_agreement_2026_09_21.md), draft PR 4.
-F1 fixed with export-layout regression and 25→24 mutation; ordinary EOF records retained, live
-Follow stays pending-only. F3 agrees with corrected end-marker branch `02fa62b3`; disposable combined
-clean gate 1,806/0/0/49, resolution patch preserved. Main `ea865d2d` integrated, all skill bytes pinned
-at `41b77650` by `b6633048`; playground re-vendor `d917a7a` pushed, undeployed (543 pass / 5 skip; build passes). D12 corrected;
-D13 explicitly not reproduced later. F5 CI Linux/Xvfb 50/50, zero skips (run 35610006347).
-F6 exact mutation anchors added; F7's 49 headless skips were already recorded, now cross-linked.
-Response clean gate 1,767/0/0/49, Mac display 50/0/0/0. Counts remain analyser 1 / upstream 8.
-29 affected demo/conversation captures refreshed. Await independent re-review; no release claimed.
-
-### Review response — frozen predictions before fixes
-
-Review `cac590a3` (F1–F7), feature reviewed at `fcaf14ad`.
-- **F1/F3 prediction:** ordinary heap, mapped and rolled opens will expose every record in a
-  separator-between-records export, including its final EOF record. EOF without a separator is
-  disclosed, never treated as proof of damage or completion. Explicit Follow starts a fresh live
-  read when the ordinary snapshot included an EOF record; only the live read withholds its tail.
-  A quiet poll and partial separator cannot publish it; its completed separator publishes it once.
-  Reinstating strict ordinary-open framing must fail the export regression. Latest end-marker
-  branch `02fa62b3` has already withdrawn STOPPED_MID_WRITE; integration must preserve UNKNOWN.
-- **F2 prediction:** incorporating main's skill bytes plus the Mongoose correction, then pinning
-  to a commit containing all three, passes canonical hash tests. Re-vendoring must use that same pin.
-- **F4 prediction:** corrected D12 cause and qualified, unreproduced D13 remain identical in the
-  canonical skill and runbook, and parity/hash checks pass. No endpoint retest is claimed.
-- **F5:** seek a CI display run with zero skips; local focus success alone does not close it.
-- **F6/F7:** add exact mutation file/method anchors. The original final report already states
-  49 headless skips in both its Full-gate correction and Final handoff; retain and link that evidence.
-
-
-**Initial implementation pass (superseded by review response above):** `feat/tool-agreement`, source head `7df316c8`.
-[Author report](../handoff/report_tool_agreement_2026_09_21.md) and
-[review brief](../handoff/brief_review_tool_agreement_2026_09_21.md). Analyser **13 → 1 open** (D20
-producer-blocked); upstream **8 → 8 open**. TA-5b/5c remain open. Final clean gate 1,766 tests
-(49 display skips); separate display gate 50/50 with no skips. Packaged spotlight, tools smoke
-and strict docs pass. All 33 affected main/conversation/Spring captures refreshed and inspected.
-Concurrent main integration and independent review remain outstanding; not merged or released.
+_The 1.17.0 release record, its re-review intake and the review response moved 2026-09-27 to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-27*._
 
 Source: an uncoached session's report, [copied as evidence](../handoff/evidence/unguided-session-2026-09-21/session-report.md)
 with graphml fixtures. The runtime matched every prediction. The baseline records D1–D21, with D3 split into
@@ -787,54 +718,31 @@ after review:** the first version reversed the two fixture fingerprints (source 
   41–43", "Topology feedback 37"); proposed: raise "evidence correctness first" from P1 to P0 alongside
   TA-1–TA-4, since it is the same slice B gate._
   **Owner decision, 2026-09-21:** keep evidence correctness first at P1 for this pass; do not reorder it.
+- _Restored to the live list 2026-09-27 (they were inside the 1.17.0 review response, now archived):_
+- ☐ **N2:** Follow's snapshot-to-live reload clears flags/selection/filters. Add preservation by
+  verified record identity or notice at the point of use; the FAQ alone is insufficient. Owner:
+  analyser Follow UI. Acceptance: flag an ordinary export, start Follow and either retain the
+  verified flag or warn before it is cleared; exercise both affected and unaffected paths.
+- ☐ **F3 integration gate** _(possibly obsolete — the end-marker work shipped in 1.18.0, but `02fa62b3` and `955b90ed`
+  are not ancestors of main; UNVERIFIED either way)_: old recipe is valid only at end-marker `02fa62b3`. Regenerate against
+  the actual chosen head before combining branches; at `955b90ed`, preserve `statusText` and
+  member-nested `streamEndFacts` plus later framing corrections, then rerun combined gates.
+  Owner: branch integrator. Do not apply the old “take ours” recipe to newer heads.
 ---
-
-## Mongoose audit format — [proposal](../proposals/mongoose-audit-format/README.md) (2026-09-21)
-
-Remove the export step: Mongoose writes a file the analyser opens directly. Cross-repo; nothing is built.
-
-- **[AFMT-1] ◧ — proposal reviewed at revision 4 (`952a9555`) and again at revision 5 (`473b8db5`); now at revision 6 (`23560093`)** ·
-  _the direction (option B) survives; the review's findings are addressed or explicitly declined._ Findings,
-  OBSERVED on the shipped bundle's processor and a live server (evidence:
-  `.local-evidence/coldstart-v2-2026-09-20/audit-format-review-2026-09-21/`):
-  1. A live swap to binary is **not** equivalent to starting binary. Both `DataFlow` swap orders throw; the one
-     order that runs silently drops trace entries of nodes that do not log for themselves (`riskCheck` 15 → 0)
-     and leaves an unresolved id. `EventLogManager.updateLogRecord()` rebuilds only log-source loggers. So binary
-     needs a runtime fix or a build-time choice. Sink-only swap (text) works today.
-  2. The repository list omits this repo (`run-mongoose-server` says Mongoose does not write analyser-readable
-     YAML; re-pin + re-vendor) and the runtime (per 1), and the web admin's audit views are Chronicle-bound.
-  3. Recommend text first: its content is `asCharSequence()`, already produced and read on every hosted run.
-  4. `/ws/audit-tail` root cause (svc-admin-web 1.0.43): `ThreadingIllegalStateException` on every tick at
-     `WebAdminService.java:1022`, swallowed at DEBUG; plus unsent batches are discarded per tick. The route,
-     upgrade and unknown-processor error all work. The tail reads the Chronicle capture, so it is not
-     independent of the format change.
-  5. Acceptance must compare per-node entries, not record counts; `chronicle` + `binary` must be refused.
-  **Second review, revision 5 (`473b8db5`), 2026-09-21** — text-first confirmed (export is byte-identical to the
-  Chronicle excerpts joined by `---`), but: the framing requirement omits the `---` separator (records merge into one,
-  silently); an end marker is invisible to the analyser without a format-spec change and analyser code; any record
-  swap, not only a format swap, drops traced-only nodes; no shipped client opens `/ws/audit-tail`; twelve true items
-  were lost across revisions 2–5 and not restored in revision 6. Evidence: `…/audit-format-review-2026-09-21/rev5/`.
-- **[AFMT-2] ☐ — file the `/ws/audit-tail` defect upstream (mongoose-plugins)** · _tailer created and read on one
-  thread; tick failures reported, not swallowed; unsent records carried to the next tick; delivered count equals
-  exported count for the same window._
-- **[AFMT-3] ☐ — a per-node log level of NONE corrupts the whole text audit record (public runtime, live today)** ·
-  _after `EventLogControlEvent(sourceId, null, NONE)`, the next record keeps its values but loses its header, keys and
-  newlines, for every node. Observed on the bundle's processor (fluxtion-runtime 1.0.16); global levels and per-node
-  DEBUG are unaffected. Cause not diagnosed. Repro: `…/audit-format-review-2026-09-21/rev5/LevelTest3.java`._
-
 
 ## Spring authoring documentation — 2026-09-19
 
 - ➜ **Two ☑ items archived 2026-09-21** ▸ *Tidy 2026-09-21*: the guides themselves and the Mermaid syntax correction.
 - ☐ **Independent review of the two pages** — version correction is implemented; diagrams and overall claims
-  still need the owner-chosen review. The next analyser release carries the reviewed pages.
+  still need the owner-chosen review. _(The pages have shipped in every release since 1.16.0; the review itself is
+  still open.)_
 ## Spring authoring observed acceptance — 2026-09-19
 
 - ➜ **Seventeen ☑ items archived 2026-09-21** to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-21*: the
   journey implementation review and re-review, the stopped R3 battery, four reviewed implementation slices, the staged-feedback
   intake and its four review rounds, topology feedback 37, the report-export/four-use-case/vendor/session-audit reviews, the
   close/reopen diagnosis and the rehearsal launcher. The trial record stays, because DX-02–DX-05 hang off it.
-- ◧ **Starter journey implementation started — 2026-09-20** — owner authorized commits, pushes and
+- ☑ _(the journey shipped in 1.16.0, 2026-09-20)_ **Starter journey implementation started — 2026-09-20** — owner authorized commits, pushes and
   isolated branches through the full reviewed workflow. Preserve existing checkouts/staging. Planned
   branch in each owning repo: `feat/project-starter-journey`; analyser from current main, playground and
   compiler from their reviewed Spring-authoring heads with upstream integration checked explicitly.
@@ -846,7 +754,8 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   excluding prior solutions/retrospectives. Dependency identity 30/33 and audit scaffolding 6 stay open
   producer behaviour work; comment-contract hashing does not close either. Journey/onboarding specs now
   name these constraints; they were added after the final review and are not independently accepted evidence.
-- ☐ **Chart feedback 41–43 intake** — [ninth addendum](../handoff/review_staged_spring_feedback_2026_09_19.md)
+- ◧ _(41 and 42's axis contamination shipped in 1.17.0; 43 shipped as M68.6 in 1.21.0; **open: 42's MCP series
+  remove/replace semantics**)_ **Chart feedback 41–43 intake** — [ninth addendum](../handoff/review_staged_spring_feedback_2026_09_19.md)
   preserves the updated participant file. 41: pin/filter scope must explain an empty restored plot;
   42: independently reproduced windowing contaminating the left axis with right-axis values, plus MCP
   series removal/replace semantics (UI removal already exists); 43: colon-name targeting incompatibility
@@ -995,15 +904,15 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   all 14 scaffold-handler ZIPs load without rejected declarations; every runbook/source pointer resolves.
   A changed name reproduces the prior rejection. Runtime runbook validation, browser witness,
   independent review and deployment remain open; do not mark this released.
-- ◧ **Author-new-project entry** — the journey branch adds a StartPanel authoring entry using the same
+- ☑ _(shipped in 1.16.0: the start page's authoring action)_ **Author-new-project entry** — the journey branch adds a StartPanel authoring entry using the same
   catalogue/download controller as the File menu, with whole-catalogue explanations. No duplicate
   generator/configurator. A richer separate page and a plain-JSON headless request remain proposals;
   the existing documented headless template/token route is the implementation contract.
-- ◧ **Project-aware landing and explicit resume** — implemented on the journey branch through `7eceff5`:
+- ☑ _(shipped in 1.16.0: project landing and explicit session recovery)_ **Project-aware landing and explicit resume** — implemented on the journey branch through `7eceff5`:
   saved declarations, explicit Restore/Dismiss, actual completion and content checks. Five real-frame
   cases and inspected UI/context captures cover the adapter; 37 display tests and clean package with
-  1,707 tests pass. Independent review, OS-process restart and complete downloaded-project acceptance
-  remain open. [Journey spec](spec-project-starter-journey.md); [evidence](../handoff/evidence/project-session-recovery-2026-09-20/README.md).
+  1,707 tests pass. _(Since: the real OS-process restart was verified across three JVMs on 2026-09-21 — completed
+  tracker ▸ Release execution; complete downloaded-project acceptance is SG-2's hosted half.)_ [Journey spec](spec-project-starter-journey.md); [evidence](../handoff/evidence/project-session-recovery-2026-09-20/README.md).
 - ☐ **Journey starts before a project exists (owner clarification, 2026-09-20)** — provide one catalogue
   reached from the website, a local LLM or the analyser's existing template picker. The LLM can download
   a project without the analyser; it follows project runbooks to set up/build/run, then connects the
@@ -1017,7 +926,7 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   return a 22-entry ZIP with README, but no dedicated RUNBOOK/authoring-docs/bootstrap files. Download
   availability does not establish delivery of the branch's authoring workflow or publication readiness.
   No app execution moves into the analyser; no template/API implementation is claimed by this intake.
-- ◧ **Show the full template catalogue (owner accepted, 2026-09-20)** —
+- ☑ _(shipped in 1.16.0: the whole starter catalogue)_ **Show the full template catalogue (owner accepted, 2026-09-20)** —
   [template-picker spec D-1](spec-template-from-analyser.md#c--decisions) now replaces the onboarding-only
   rule: list every catalogue entry and mark onboarding-tagged entries as **Recommended starting points**.
   No tags means all entries without recommendations, not a Mongoose-only fallback. Implemented on the
@@ -1081,7 +990,7 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   overlapping F5/G13/F10), stable runtime control text (16), and documented nodeTypes scope (10).
   Cross-run note mapping must never silently equate unrelated record indices. Changeset targets (5)
   remain deferred pending a previous-text/revision contract. Full dispositions and acceptance are in the review.
-- ☐ **Report integrity — first correctness slice** — 24: every requested section must render or carry
+- ☑ _(shipped as M68.2 in 1.21.0)_ **Report integrity — first correctness slice** — 24: every requested section must render or carry
   an in-place reason and export warning. Cover resolved-but-unassembled topology, not only missing
   references. A full topology export must render the named saved focus without changing the user's
   current view. The series-section limitation (26b) also needs an honest export warning.
@@ -1169,21 +1078,21 @@ Remove the export step: Mongoose writes a file the analyser opens directly. Cros
   That upstream fix and playground G9 are now accepted by both pass-4 reviewers (`dbcfacc4`, `7a051224`):
   both upstream branches are READY WITH FOLLOW-UPS. The G review also confirms DX-02–05 and their proposed order.
   [Results, prediction scores, evidence and exact reproductions](../handoff/report_spring_authoring_acceptance_2026_09_19.md).
-- ☐ **DX-02 — compare graph membership against the complete graph.** A declared framework sink was reported
+- ☑ _(shipped as M68.1 in 1.21.0)_ **DX-02 — compare graph membership against the complete graph.** A declared framework sink was reported
   absent because authored coverage IDs were used as membership. Reproduced independently. Keep the correct
   coverage denominator; use all graph IDs for pairing/mismatch; retain real mismatch warnings across UI, actions
   and reports. First correctness priority arising from this trial, separate from M66/M67.
-- ☐ **DX-03 — rolled-log + graph open must honour or refuse the full request.** Current early return silently
+- ☑ _(shipped as M68.4 in 1.21.0)_ **DX-03 — rolled-log + graph open must honour or refuse the full request.** Current early return silently
   drops graph/processor; observer reproduced it. Acceptance includes load completion and honest pairing/echo.
-- ☐ **DX-04 — first topology record selection.** With loaded records and an unbound cursor, the manifest's
+- ☑ _(shipped as M68.4 in 1.21.0)_ **DX-04 — first topology record selection.** With loaded records and an unbound cursor, the manifest's
   `recordIndex` parameter does nothing. Observer reproduced; selecting via goto works. Bind or refuse clearly.
-- ☐ **DX-05 — graph names and spotlight addressability.** Colon-named charts are created but cannot be lit by
+- ☑ _(shipped as M68.6 in 1.21.0)_ **DX-05 — graph names and spotlight addressability.** Colon-named charts are created but cannot be lit by
   name. Observer reproduced. Resolve compatibility for saved names explicitly before changing the grammar.
 
 This trial predates the M66 merge and does not test M66 or M67. It supports prioritizing existing-surface correctness
 before adding new rendering primitives for this workflow. Browser preview and artifact publication remain
 unverified. The local-fixture fresh-client trial is complete, with failures preserved rather than called a clean
-pass. **G14 remains a release gate:** after artifact publication, repeat a fresh session from a real download
+pass. **G14** _(owner, 2026-09-26: run on demand by the owner, not tied to a release — ▸ Spring-side block)_: after artifact publication, repeat a fresh session from a real download
 through `setup.sh`, without a pre-provisioned tool/classpath. Upstream review acceptance does not close that gate.
 
 ## Archived obligations restored to the live order — 2026-09-24
@@ -1312,52 +1221,8 @@ correction (F1, legacy values were being quoted in the evidence views), fixed in
 
 ---
 
-### M50 · working directories and review briefs — for the reviewing LLM
 
-**START AT** [`docs/handoff/report_m50_INDEX.txt`](../handoff/report_m50_INDEX.txt) — four briefs, one
-per repo, each stating what was verified, what was **not**, and what to attack.
-
-**Work is in git worktrees, not in the primary checkouts.** The primary checkouts were left on their
-existing branches and are undisturbed (`fluxtion-core` on `feature/java_8_compatability`,
-`fluxtion-compiler` on `experiment/determination-placement`).
-
-| worktree | branch | base | brief |
-|---|---|---|---|
-| `~/IdeaProjects/telamin/worktrees/core-w2w3w8` | `perf/w2-w3-w8-runtime-internals` | `origin/main` @ `4b38aeb` | [core](../handoff/report_m50_core_w2w3w8.txt) |
-| `~/IdeaProjects/telamin/worktrees/compiler-w12` | `perf/w12-auditor-switch` | `origin/main` @ `9a16035` | [compiler](../handoff/report_m50_compiler_w12.txt) |
-| `~/IdeaProjects/telamin/worktrees/analyser-w10` | `perf/w10-conformance-bench` | **local** `main` @ `c0851b5` | [analyser](../handoff/report_m50_analyser_w9w10.txt) |
-| `~/IdeaProjects/telamin/worktrees/mavenplugin-w14` | `spec/w14-manifest-optimisation-metadata` | `origin/main` @ `d635950` | [plugin](../handoff/report_m50_mavenplugin_w14.txt) |
-
-**Gates, run in full:** core `fluxtion-runtime` **98/98** · compiler `fluxtion-generator-core` **21/21**,
-`fluxtion-builder` **230/230**, `fluxtion-integration-tests` **3518/3520** (the 2 are
-`RuntimeMetaBoundaryGateTest`, **environmental** — it finds a sibling repo at `~/IdeaProjects/fluxtion`
-but no `fluxtion-runtime` in a layout it knows, because the runtime is at
-`~/IdeaProjects/telamin/fluxtion/fluxtion-core/`) · analyser bench **11/11**.
-
-**The two pre-split goldens were updated deliberately** (W12 changes generated source on purpose). The
-`.java.txt` goldens moved; `.behaviour.txt` and `.dto.txt` are **byte-identical**, which is the evidence
-that the behaviour did not. An earlier report of "2 baseline failures" was wrong — there were 4, two of
-them these goldens, caused by W12.
-
-**Version lines, verified — do not assume:** `fluxtion-core` `origin/main` is **1.0.15-SNAPSHOT**, the
-line producing the `fluxtion-runtime` **1.0.14** that round 58 measured. The primary checkout's
-`feature/java_8_compatability` is **0.9.33-SNAPSHOT**, a different line. `fluxtion-compiler` pins
-`fluxtion.base.version=1.0.14`.
-
-**The analyser's local `main` is 33 commits AHEAD of `origin/main` and unpushed** — round 58, the
-performance spec and this tracker section are all in that history. A reviewer cloning from GitHub sees
-none of it; compare the analyser branch against **local** `main`.
-
-**`git fetch` was NOT run** for core or compiler; bases are the local remote-tracking refs as of
-2026-09-01, recorded by commit so the work can be rebased. It **was** run for the maven plugin, and
-doing so changed the answer to which repo that is.
-
-**Item → worktree:** W2/W3 → `core-w2w3w8` (W8 deferred, reason in the brief) · W12 → `compiler-w12` ·
-W9/W10 → `analyser-w10` · W14 → `mavenplugin-w14` (spec only).
-Land W10 first: until the harness exists, no performance claim on the other branches is reproducible —
-and note the brief's admission that **the bench has never been run against a real processor**.
-
----
+_The M50 working-directory brief that sat here (a 2026-09 review snapshot) moved 2026-09-27 ▸ *Tidy 2026-09-27*._
 
 ## M52 · Binary audit encoding + the reader that makes it usable — ◑ PART SHIPPED 2026-09-09, cross-repo
 
@@ -1774,7 +1639,8 @@ retrieval-dated evidence table, because those are live documents that can change
   states the real test — one derivation from several inputs, versus each event contributing different
   data — with the counter-case table. **The idiom was over-applicable as written, and only building
   against it showed that.**
-  ☐ **Idiom 2a not applied, and it is our own named smell.** `LogObserved(boolean open, …)` and
+  ☑ _(applied 2026-09-26 by M44.4a, released in 1.21.0: `LogObserved`/`GraphObserved` are replaced by the facts
+  `GraphOpened`, `GraphCleared`, `LogCleared` and `LogAppended`)_ **Idiom 2a not applied, and it is our own named smell.** `LogObserved(boolean open, …)` and
   `GraphObserved` are state snapshots pretending to be events — the exact shape the doc warns about,
   still in the app. Sequenced, not ignored: the honest events (`LogOpened`/`LogClosed`) come from the
   open path, which [M44.3](completed/spec-async-session-driver.md) unblocks.
@@ -1810,30 +1676,10 @@ retrieval-dated evidence table, because those are live documents that can change
   with its FQN and says the field initialiser still runs, which this repo measured independently before
   finding it already documented._
 
-## M45 · Consuming the GraphML vocabulary — ◧ .1/.2/.3/.5 SHIPPED 2026-08-31
+## M45 · Consuming the GraphML vocabulary — ☑ COMPLETE, moved to [the completed tracker](completed/tracker.md)
 
-**Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
-
-- [M45.4] ◧ **RESTORED TO THE LIVE ORDER 2026-09-24 — consume `fluxtion.framework`; now delivered as M68.1,
-  implemented on branch `feat/m68-1-coverage-pairing-scope`, unmerged.**
-  It was swept into the completed tracker with the shipped detail on 2026-09-03 and **should not have been**: the
-  entry carries a ☑ on the sentence recording that *our half* was verified and unparked on 2026-09-01 against the
-  real session graph at released 1.0.65, while the item as a whole is ◧ and the consumption was never built. A ☑ on
-  one clause made the whole item read as finished, so it left the delivery order and nobody saw it for three weeks.
-  **What it cost:** on 2026-09-24 a held-out client was told a declared node was absent from a graph that declares
-  it, because the package-prefix heuristic overrode the declared fact — the exact failure mode the archived entry
-  already names. See [`spec-evidence-integrity.md`](spec-evidence-integrity.md) ▸ M45.4 reconciliation, and D-E10.
-  The archived entry stays where it is and remains the authority and measurement basis; this line is the live
-  pointer to it. **Lesson for future sweeps:** an item marked ◧ never leaves the live tracker, whatever ☑ marks
-  appear inside its text.
-
-- [M45] ☐ **The vocabulary answers as DATA what we answer by HEURISTIC** — framework-generated nodes,
-- [M45.1c] ☐ **Original slice text, for the record — prove reachability, and measure the ceiling.** Install the branch, point `-Pregen` at it
-- [M45.2b] ☐ **Original slice text — read the vocabulary, change no behaviour.** `metaVersion` (1.x reader accepts every 1.y;
-- [M45.3a] ☐ **Original slice text — the audit trio is a DUO** — `auditCapable`/`auditCapableVia` are emitted, `eventAudit` is
-- [M45.5a] ☐ **Original slice text — parallel edges and dispatch rank.** Checked, not assumed: `ProcessorTopology.of` does no
-- [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
-  our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
+.1/.2/.3/.5 shipped 2026-08-31; M45.4 was delivered as M68.1 (PR #25, released in 1.21.0). Nothing is open. The
+M45.4 entry and its lesson ("an item marked ◧ never leaves the live tracker") moved verbatim ▸ *Tidy 2026-09-27*.
 
 ## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived) · M44.4 single-state model SHIPPED in 1.21.0 (§13 acceptance open) · **M44.5 SHIPPED in 1.24.0** (2026-09-27) · M44.6 owner decision
 
@@ -1845,14 +1691,11 @@ of the originals is in `057a069a`.)*
   analyser decisions moved into a Fluxtion processor. Slice 1 and M44.3 shipped. ☐ **Residue:** of the five
   dialog-only entrances (`ADOPT_FOR_OPEN_LOG`, `CREATE`, `FORK`, `STARTUP_ACTIVATION`, import-as-project), each
   call site's kind is verified by reading, not by running (§11).
-- [M44.2x] ☐ **Superseded by M44.4a.** The original next-slice list was `IgnoredParameters` and the F3 split,
-  both shipped, and then moving log and graph OPENING, which deletes `LogObserved`/`GraphObserved`. That last part
-  is now M44.4a.
-- [M44.3] ☑ **Licence decision: keep as is** (owner, 2026-09-24; spec D-S1.2 → D-S13.6).
+- **Finished items moved 2026-09-27** to [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-27*: M44.2x (superseded by M44.4a), M44.3 (licence), M44.4d, and **M44.5 — shipped in 1.24.0**.
 - [M44.4] ◧ **The single-state model: the processor owns every session verdict, and surfaces read one
-  snapshot** (spec §13, PROPOSED 2026-09-24; implementation started at the owner's direction, spec under review).
-  Motivated by M68.1, whose four review rounds were all synchronisation defects between copies of one pairing
-  verdict. Branch `feat/m44-single-state-session`.
+  snapshot** (spec §13, 2026-09-24). **Merged via PR #25 and released in 1.21.0; §13's acceptance is still open**
+  (below). Motivated by M68.1, whose four review rounds were all synchronisation defects between copies of one pairing
+  verdict.
   - [M44.4a] ☑ Facts (`GraphOpened`, `GraphCleared`, `LogCleared`, `LogAppended`) with a log-generation gate, and
     `post(fact)`. Deleted the observation funnel (`2fbfee04`).
   - [M44.4b] ☑ `SessionSnapshot` and its listener; Follow reports appends; coverage reads the snapshot. Deleted the
@@ -1860,13 +1703,13 @@ of the originals is in `057a069a`.)*
   - [M44.4c] ☑ `ViewFilterChanged`, `MembershipCompared` and the `PairingQualifier` node. "Pending" comes from the
     gate, on the snapshot. Deleted the frame's pairing and qualification fields; a static test forbids them.
     ~~Closed the scan-during-open race.~~ *Not alone — the independent review's R1 reopened it; see M44.4r.*
-  - [M44.4] ☐ **Open acceptance** (spec §13): the remaining `PairingDuringLoadFrameTest` journeys re-expressed as
-    headless event sequences; §13's four predictions scored; the reviewers' pass on §13.
-  - [M44.4d] ☑ Folded into M44.4b: re-scopes are held in a separate ring and tracing stays on. The DEBUG half was
-    not built (spec §13).
+  - [M44.4] ☐ **Open acceptance** (spec §13). **Done:** `SessionLifecycleJourneysTest` re-expresses five journeys
+    headless (session/discovery parity, open order, pending then judged, a Follow append goes stale, close retires the
+    qualifications). **Open:** the filter-change journey (the test posts no `ViewFilterChanged`) and close during a
+    pending open, as named in spec §13; scoring §13's four predictions as a set; the reviewers' pass on §13.
   - [M44.4r] ◧ **The independent review's findings (review `0bb01fa8` on `review/m44-4-m68-2026-09-26`, subject
-    `14a72acc`), and the gaps closed before one review.** **Implemented 2026-09-26; independent acceptance NOT given**
-    — a green suite is not closure. Evidence: sets 12–13 in `docs/handoff/evidence/m44-4-single-state-2026-09-24/`.
+    `14a72acc`), and the gaps closed before one review.** **Implemented 2026-09-26; accepted by the re-reviews below
+    except F1's reviewer-written correction** — see *Status at merge*. Evidence: sets 12–13 in `docs/handoff/evidence/m44-4-single-state-2026-09-24/`.
     - ☑ impl · R1 coverage inputs captured together on the EDT, scan off it on a filter copy and bound (`762e9853`)
     - ☑ impl · R2 the exported coverage table obeys the session's claim (`56463d99`)
     - ☑ impl · R3 rolled sets report member freshness; the SPI boundary stated (`b8afbe53`)
@@ -1898,112 +1741,12 @@ of the originals is in `057a069a`.)*
       - **Not independently accepted:** F1's correction, which its reviewer wrote.
       - **Merged to main via PR #25:** yes.
       - **Still open:**
-        - [M44.4] §13's open acceptance (below);
-        - the owner decisions Q4 (partial delivery), Q5 (saved names with `"`) and O2 (graph-content identity),
-          none decided by this merge;
+        - [M44.4] §13's open acceptance (above);
+        - the owner decisions: Q4 (partial delivery) and Q5 (saved names with `"`) were answered on 2026-09-26 (M68, in
+          the completed tracker); O2 (graph-content identity) is still open;
         - the optional follow-ups: the empty series picture's "widen the filter" advice (review O1) and the lone-point
           dot;
-        - the Mongoose integration, scheduled after this merge.
-
-- [M44.5] ☑ **The log's own derived state joins the session snapshot — producer findings first.** Scoped
-  2026-09-27 from the day's review rounds, owner-requested. **M44.4 held:** every surface that read the snapshot
-  stayed right, and no defect found on 2026-09-26 was two copies of a snapshot verdict disagreeing. The defects came
-  from state M44.4 did not cover, held as `MainFrame` fields, computed at several sites and pushed to surfaces by
-  hand-placed refresh calls:
-  - the frame's PDF passing `null` findings (PR #40, H1);
-  - the Reports tab not refreshing on load or on Follow (H2, H3);
-  - the Follow call site dropping the stream end (X4);
-  - the load site passing the wrong claim for a one-member set (X5);
-  - the Follow status line dropping the producer warning (MA-0.5).
-
-  Each was caught by review and fixed call site by call site; this item removes the class.
-
-  **Inventory of replicated derived state** (read from `main` at `11029c92`). The two new drifts were witnessed
-  on a real display with a throwaway probe that asserted each defect exists; both passed. They are not committed:
-  a committed test that asserts a defect would be a test to delete, so each becomes a wrong-result witness in
-  this item's acceptance instead.
-
-  | State (`MainFrame`) | Computed at | Read by | Drift found |
-  |---|---|---|---|
-  | `producerDiagnostics` | 3: close, load, Follow refresh | status bar, tooltip (2 sites), `context`, `report` reply, PDF, Reports tab (supplier + 3 refresh triggers) | **yes** — the five defects above, each fixed separately |
-  | `timeOrderReport` | 2: close, load (S3, reader and rolled-set loads) | status bar, `context.timeOrder`, the assistant's time-order note, a load dialog | **yes, WITNESSED 2026-09-27** — never recomputed on a Follow append. A log in order (1000, 2000), followed, then 1500 appended: the row is indexed and a cold open of the same bytes reports the violation, but the followed session gives `context.timeOrder = null` and nothing on the status bar |
-  | the status bar line | 4 composers: load, Follow start, two Follow ticks | the person | **yes, WITNESSED 2026-09-27** — load line: `… · prod-EU-7 (unordered.yml) · ⚠ time-order violations (1) …`; after one Follow tick: `Following unordered.yml · 3 records · …`. Both are gone from the line while `context` still reports `timeOrder` and `provenance=prod-EU-7` |
-  | `logProvenance` / `logProvenanceSource` | 3: close, load, project-environment match | `context`, Project panel, reports, status bar | **latent** — the session's `OpenLog.provenance` is set from the opener only and never hears the environment match. It has no reader today, so it is a dead duplicate, wrong the moment something reads it |
-  | `loggedNodeSample`, `loggedSampleScanned`, `observedLevel` | frame, then posted in `LogAppended` | the session (pairing) | none — the frame is the producer and the session the owner; the frame does not read its copy back |
-  | `flaggedRows` / `findings` | 7 paired sites | flags, reports | none — the invariant "a finding's row is flagged" is hand-kept at every site and holds today; low priority |
-  | `followStreamEnd`, `followPendingChars` | the Follow refresh | the refresh gate | not state — change detectors; they go when the findings are a fact |
-
-  **Owner direction, 2026-09-27: ONE way of handling dispatch and orchestration — no hand-placed dispatch, however
-  small.** The record supports it. The independent M44.4 review read the generated `SessionProcessor` against every
-  node and found no state-transition defect inside it; every defect was hand-written code around it:
-  - the driver's listener loop (O1, notification order);
-  - the snapshot's publication (R4, mutable qualifications);
-  - callers stamping wrong inputs (R1) or bypassing a decision (R2);
-  - a failed poll that never told the session (PR #34);
-  - the `MainFrame` pushes above.
-
-  An interim "quick surface fix" (an earlier draft of this item) would have added two more hand-placed calls, the
-  very pattern at fault, so there is none. W1 and W2 are this item's own wrong-result witnesses.
-
-  **Design — the processor decides WHAT and WHEN; adapters only execute effects and render snapshots:**
-  - **When to scan is the processor's decision.** On `LogOpened` and `LogAppended` (and on the facts that change
-    what a scan would find), the session requests effects through `SessionEffects`, the same mechanism as
-    `OpenLogEffect` and `ShowStatusEffect`:
-    - `ScanProducerFindingsEffect(generation)`;
-    - `ScanTimeOrderEffect(generation)`.
-
-    The adapter runs the scan (`ProducerDiagnostics.of`, `TimeOrderValidator`) off the processor, then posts the
-    result as a fact: `ProducerFindingsObserved(generation, findings)` or `TimeOrderObserved(generation, report)`.
-    The scan never runs inside dispatch.
-  - **Provenance is resolved by the session.** The environment match is a pure function of the profile's
-    environments and the log's location, so it runs in a node on `LogOpened`, and `OpenLog.provenance` becomes the
-    one copy every surface reads.
-  - **New state nodes** own findings, time order and provenance. They refuse a stale generation, clear on close,
-    and publish in `SessionSnapshot`, frozen like the qualifications (R4's lesson).
-  - **Every surface renders from the snapshot** on the one snapshot listener: the status line (ONE composer), the
-    tooltip, `context`, the `report` reply, the PDF and the Reports tab. The frame holds none of this state and
-    calls no refresh by hand. The driver's re-entrant notification order (O1) is fixed first, because more of the
-    UI will hang off the listener.
-  - **Regeneration is owner-run** under `-Pregen` (spec D-S1.1). The implementer drafts the graph source and the
-    nodes; review reads the committed generated source and the pinned GraphML.
-
-  **Call sites this retires:**
-  - the three `producerDiagnostics =` assignments, replaced by facts;
-  - the Reports tab's load refresh and Follow refresh;
-  - `setLogFindings`;
-  - the PDF's and the `report` reply's field reads;
-  - the two tooltip writers;
-  - the four status-line composers (to one);
-  - `timeOrderReport`'s two assignments;
-  - `logProvenance`'s three.
-
-  The p15/p16/p17 controls that target those call sites move to the snapshot nodes and the one composer.
-
-  **Acceptance:**
-  1. Every surface in the inventory renders its value from `SessionSnapshot`; a static check forbids a surface
-     reading the retired fields.
-  2. A Follow append that introduces a time-order violation is reported on every surface; the wrong-result witness
-     is the case today's code misses.
-  3. After a Follow tick, the status line still carries provenance and the time-order warning.
-  4. `context.provenance` and the session agree after an environment match.
-  5. The M44 shape test and the existing session suites pass on the regenerated processor.
-  6. Each new fact node has a stale-generation control.
-
-  **SHIPPED 2026-09-27, released in 1.24.0** — PR #43, merged locally as `b95ed357` after an independent review (F1 required, F2/F3
-  recommended; all fixed in `69dd2b7e`). CI run 36285335350: build 2530/0/0, ui-frame 130/0/0/0, 227 controls caught.
-  **Implemented 2026-09-27** on `feat/m44-5-derived-state-in-snapshot`. All six
-  acceptance items have tests and controls; results scored in
-  `docs/handoff/evidence/m44-5-derived-state-2026-09-27/RESULTS.md`. Deviations from the design above, each
-  deliberate:
-  - one effect, `ScanLogEvidenceEffect`, not two — the two scans read the same store at the same moment;
-  - the environment match runs in the adapter BEFORE `LogOpened`, which carries the result (it reads the profile's
-    root and the filesystem); the session's `OpenLog` is the one copy;
-  - the scan runs on the EDT turn after the effect, not a background thread;
-  - O1 was already fixed (`publishSnapshot`), so nothing was needed first.
-
-  Added beyond the design, each with a witness: `logEvidence` handles `LogAppended` and publishes an outstanding
-  scan, so the line never counts new rows beside old findings; scans coalesce; Follow is carried through a reload
-  only into a followable log; the audit sink keeps per-poll observations in their own ring.
+        - ~~the Mongoose integration, scheduled after this merge~~ — merged 2026-09-26 (PR #34, PR #36; released in 1.22.0).
 
 - [M44.6] ☐ **(owner decision) A superseded load's tail still installs its log.** Found 2026-09-27 by a real-frame
   probe during PR #43's review (RESULTS item 6); pre-existing on `main` 29a9ece4, not introduced by M44.5.
@@ -2017,19 +1760,6 @@ of the originals is in `057a069a`.)*
     rest of the tail when the generation moved (a guard, which rule 9 would want the processor to decide), making the
     project offer non-modal, or deferring it until the load completes.
   - Regression to write with the fix: this repro as a frame test.
-  7. No surface or adapter decides when to compute or refresh: a static check finds no write to the retired
-     fields and no hand-placed `reportsPanel.refresh()` / `setToolTipText` / status composition outside the one
-     snapshot listener.
-  8. The effects are requested by the processor: a control that stops `LogAppended` requesting the time-order
-     scan fails W1.
-  9. O1 is fixed: a listener that posts a fact while being notified never makes another listener see an older
-     snapshot last.
-
-  **Test rule it pairs with** (for what a snapshot cannot cover): a surface test goes through the real entry point
-  (the frame, the verb, what is on screen), and a control reverts the call site, not only the helper. That is the
-  lesson of M68.7's R1 and PR #40's H1–H3, X4 and X5.
-
-  **Not in scope:** the flag invariant (low, holds), and the log-sample fields (already owned by the session).
 
 ## M19 · Onboarding example — playground download → running Mongoose → analyser — ◧ IN PROGRESS
 _Design: **[spec-onboarding-example.md](spec-onboarding-example.md)**. The playground's Download button
@@ -2080,11 +1810,13 @@ analyser (reverse funnel)._
   finishes the task, and the gap is invisible. So the prompt's job is to make compensation VISIBLE, not to
   prevent it. Measurement is mostly external — the git history, the code and the audit log are evidence; the
   model's account is testimony (D-T3 applied to assessing the product).
-- [M19.23] ◧ **UP-PG-02 producer LANDED; analyser disclosure OPEN** _(corrected 2026-09-20)_ —
+- [M19.23] ◧ **UP-PG-02 producer LANDED; analyser disclosure SHIPPED in 1.16.0; producer default-on not deployed
+  (cross-repo)** _(corrected 2026-09-20; status 2026-09-27)_ —
   plan: [`plan_playground_agent_bootstrap.txt`](../handoff/completed/plan_playground_agent_bootstrap.txt).
   `agentBootstrap` exists on playground `origin/main` and in the live catalogue inspected on September 20.
   The journey branch now consumes/renders present, explicitly empty and absent declarations separately;
-  recommendations do not imply readiness. This analyser change is not yet reviewed or released.
+  recommendations do not imply readiness. This analyser change shipped in 1.16.0 (agent entry files disclosed;
+  missing and explicitly empty declarations kept distinct).
   **Evidence the ask did not have:** all fourteen templates were generated — `analyser-bundle` ships
   `CLAUDE.md` + `AGENTS.md`, the other **thirteen ship neither**. So the field carries real information.
   **The gap that matters more than the field:** the `onboarding` subset the picker lists is TWO
@@ -2092,8 +1824,8 @@ analyser (reverse funnel)._
   inside the analyser gets a project with no CLAUDE.md, no AGENTS.md and no skills — chosen from a list
   whose purpose is onboarding. The field DISCLOSES that; it does not fix it. **2026-09-20 owner decision:**
   spec-template-from-analyser D-1 now requires all entries, with `onboarding` a recommendation rather
-  than an exclusion rule or a guarantee of agent readiness; that picker change is implemented on the
-  journey branch and awaits its gate/review. Default-on producer support is implemented at playground
+  than an exclusion rule or a guarantee of agent readiness; that picker change shipped in 1.16.0 (the whole
+  starter catalogue). Default-on producer support is implemented at playground
   `0e7bd58` but not deployed. Producer field delivery is complete; re-run generated ZIP/metadata
   consistency checks when default-on support extends bootstrap output to the other project types.
 - [M19.22] ◐ **The generated processor's header claims CONFIDENTIALITY — filed as
@@ -2123,6 +1855,9 @@ analyser (reverse funnel)._
   stamping every user who regenerates. Still deliberately not hand-patched; it clears when #24 lands and
   the fixture is regenerated. **No second issue was filed:** #24 already carries the analyser demo as
   evidence item 2, and a duplicate would dilute the one that exists rather than add to it.
+  **Measured 2026-09-01 (from the former M36 follow-up, folded in here 2026-09-27):** a build against the deployed
+  1.0.65 backend still stamps the all-rights-reserved and confidentiality header, dated 2025, onto the user's
+  generated processor — a licensing decision for the owner, not an analyser change.
 
 - [M19.19] ◧ **Guided start — an install prompt, and an LLM tutor that drives the UI** _(owner idea,
   2026-08-30; **and the experiment's baseline**, D-G8)_. **Skill and docs page shipped; first real drive
@@ -2263,21 +1998,90 @@ analyser (reverse funnel)._
   that need a connected browser (live Download, terminal lifecycle, an Explain answer).
 ## M21 · Topology view + step-through — ◧ CORE SHIPPED (archived; 21.7–21.9 open)
 
+*(Restored 2026-09-27: the tidy `a5298fcf` of 2026-09-03 cut the open items of M21, M22, M31 and M33 to their first
+lines. Their full text is restored from `a5298fcf^`; it was never in the completed tracker.)*
+
 **Detail lives in [`completed/tracker.md`](completed/tracker.md).** Open slices only below.
 
-- [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needs M18.1).
+- [M21.7] ☐ _(later)_ server-sourced GraphML via `GET /api/processors/{group}/{name}/graphml` (needed M18.1; M18 is
+  CLOSED in favour of [`spec-agent-brokered-dev-loop.md`](spec-agent-brokered-dev-loop.md), so re-scope against it).
 - [M21.11] ☐ **Consume the declared trace flag** _(owner ask 2026-08-17; needs UP-FLX-11 upstream)_ —
+  when the record header carries `trace: true|false` (per record — the level is runtime-gated, one
+  file can hold both regimes), prefer the declaration over `AuditTrace.tracesEveryInvocation` and keep
+  the heuristic only for legacy logs. Classification language shifts from inference to declared fact:
+  `trace:true` → absence drawn as DID NOT RUN with certainty; `trace:false` → absence drawn as a
+  potentially missing step; the empty-cycle case (unclassifiable today) resolves. Small: parser reads
+  one header key; `AuditTrace` gains a declared-first path; topology legend wording updates.
 - [M21.9] ☐ **Use `ProcessorDescriptor` instead of inferring** _(found 2026-08-16 reading a generated
+  processor)_ — AOT processors carry a self-description: `inputs()` (name + FQN of every accepted event),
+  `sinks()`, `services()`, plus `graphmlResource()`, `sourceFingerprint()` and `toolchainVersion()`.
+  Two of those would replace guesswork outright:
+  **`graphmlResource()`** is "the classpath resource name of the graphml sidecar describing this
+  processor's topology" → auto-resolve the topology instead of *Open .graphml…*;
+  **`sourceFingerprint()`** is "a fingerprint of the source graph… the cache/staleness key" → exact build
+  pairing instead of `Match` inferring it from instanceIds.
+  **Blocked, not ready:** verified on two independently generated processors that `Meta` is emitted as
+  `(null, null, null, null)` — the contract exists, the values are unrecorded. `inputs()`/`services()`
+  *are* populated and could sharpen `EntryPointResolver`, though the graphml's EVENT/EXPORTSERVICE nodes
+  already carry equivalent information. **Next step is an ask upstream** (populate `Meta`), not code here.
 - [M21.8] ☐ _(later)_ **node → flag** — "flag every record where node X fired" needs an `instanceId`
+  lookup in `LogIndex`; flags are per-record and no such index exists, so M21.5 shipped filter-to-node
+  (existing free-text scan) instead. Index work, not wiring.
+- Open: **O1** GraphML attribute shape (read the visualiser's parser) · **O2** logRecord sink/transport
+  config — **does not gate M21**, only M21.6 and M18.2 · **O3** tab vs dockable split · **O4** very large
+  topologies (elision/clustering) — defer until a real graph hurts.
 
 ## M22 · Topology view usability — ◧ 36 of 41 SHIPPED (archived; 5 open)
 
 **Detail lives in [`completed/tracker.md`](completed/tracker.md).** Open slices only below.
 
 - [M22.3] ☐ **Export the view as PNG** — reuses the offscreen render already used to verify the canvas;
+  pairs with the existing graph/record exports.
 - [M22.6] ☐ **Alternative layouts** — the largest item. `LayeredLayout` is Sugiyama; candidates are
+  breadthfirst-from-entry and a compact/orthogonal variant. Keep `TopologyLayout` as the output contract
+  so the canvas is unchanged.
 - [M22.11] ☐ **Re-dispatch (`processReentrantEvent`) — show the cause.** A node can raise an event on its
-- [M22.20] ☐ **A DataFlow `.push()` target renders as an orphan.** *Measured 2026-08-17 against a probe
+  own graph. Measured against generated code and a real fixture: `afterEvent()` publishes the audit record
+  **before** `dispatchQueuedCallbacks()` runs, so a re-dispatch is **not** extra rows on the causing
+  cycle — it is a **separate `eventLogRecord`**, same thread, normal `eventTime` (an exported call is
+  stamped `-1`), carrying nothing that says it came from inside. The graphml is no help either: the raised
+  event is an ordinary EVENT node with no edge from the node that raises it. So linking effect to cause
+  needs the **processor source** (which node calls `processReentrantEvent`/`processAsNewEventCycle` with
+  which type) plus record adjacency. Without source, claim nothing. Fixture: `riskMonitor` →
+  `RiskBreachEvent` → `breachHandler` in `demo-quote-audit.yaml`, pinned by two tests.
+- [M22.20] ☐ _(id also used by the shipped M22.20 "Code type" in completed/ — this is the open one)_ **A DataFlow `.push()` target renders as an orphan.** *Measured 2026-08-17 against a probe
+  graph compiled for the GraphML investigation (`docs/proposals/upstream-asks.md` §2c), fixture
+  `src/test/resources/topology/push-probe.graphml`, current behaviour pinned by `PushChainTest`.*
+  A `.push(target::setter)` materialises as a chain of three framework nodes —
+  `rawFeed → nodeToFlowFunction_8 → mapRef2RefFlowFunction_9 → pushFlowFunction_10 → pushTarget` — all of
+  class `com.telamin.fluxtion.runtime.flowfunction.function.*`, which **matches `Scaffolding`'s framework
+  package prefix**. So with scaffolding hidden (**the default**) all four edges drop and `pushTarget`
+  survives as an authored node with **zero edges**: a disconnected box with no explanation, the
+  `rawFeed → pushTarget` relationship gone. With scaffolding shown it reads as four ordinary edges through
+  three plumbing nodes — implying a propagating chain, when `.push()` is *defined* by downstream not
+  seeing the effect (framework reference `docs/claude.txt`). Neither view is correct.
+  **The honest fix needs `UP-FLX-28` + `UP-FLX-29` together** (marking *and* identification — with only
+  the second, hiding the plumbing is what deletes the relationship).
+  **Available now, without upstream:** stop orphaning silently. The status line should say *N nodes are
+  connected only through hidden scaffolding* — the same move M27 already makes for a cycle that ran
+  through nodes the current context cannot show. Do that first.
+  **Deliberately NOT proposed:** synthesising a direct `rawFeed → pushTarget` edge by recognising
+  `PushFlowFunction` by class name. It would draw the right picture by exactly the name-matching
+  fragility `UP-FLX-29` exists to remove, and a wrong-but-confident edge is worse here than an honest
+  gap. Revisit only if the owner rules the upstream attributes out.
+
+## M20 · Project profiles — follow-up (the milestone is in [completed/tracker.md](completed/tracker.md); design [completed/spec-project-profiles.md](completed/spec-project-profiles.md))
+
+_Restored 2026-09-27: M20.5 is open but had lived only in the completed tracker, against rule 7._
+
+- [M20.5] ☐ **Project artifact pointers — offer, never act** (owner-requested 2026-08-17, revisits O3
+  with the surprise removed). The profile MAY carry optional `graphml=<relative>` and
+  `logDir=<relative>` / `logGlob=` entries; on open/switch the analyser **asks** — "Open this
+  project's topology (and latest log)?" — the same ask-don't-act gate as auto-detect. Missing files
+  ignored silently (never-fail rule); a stale graphml is caught by the existing build-mismatch check,
+  which is what makes pointing at build output safe. Rationale for the original exclusion stands for
+  *unasked* reopening; this is the offered middle path. Bundle synergy: M19's bundle names exactly
+  these artifacts — with M20.5 the bundle profile carries them natively instead of via README prose.
 
 ## M29 · External series — ◧ SHIPPED 2026-08-18 (archived; M29.5 optional embed open)
 _M29.1–.4 shipped, reviewed and merged — full record in **[completed/tracker.md](completed/tracker.md)**.
@@ -2290,26 +2094,18 @@ Design: **[completed/spec-external-series.md](completed/spec-external-series.md)
 **Detail lives in [`completed/tracker.md`](completed/tracker.md).** Open slices only below.
 
 - [M31.5] ☐ **NOT YET** _(owner, 2026-08-27)_ · **Separate `analyser-reader-spi` artifact** — needs a multi-module
+  build; deferred in review (D9). Plugin authors compile against the fatjar meanwhile.
 
 ## M33 · Investigation reports — ◧ CORE SHIPPED 2026-08-20 (archived; M33.5 gated)
 
 **Detail lives in [`completed/tracker.md`](completed/tracker.md).** Open slices only below.
 
 - [M33.5] ☐ **Fold M12.1's fix-brief onto the model** (D-I6) — after the closed-loop precondition
+  (journal ↔ audit-log pairing) resolves, not before. The brief inherits D-I3a for free when it lands.
 - [M33.6] ☐ **YES — build it** _(owner, 2026-08-27; support are non-agent users and the CSV source is
-
-## M36 · Start page — follow-up (.1–.5 SHIPPED 2026-08-25; the milestone is in completed/tracker.md, design **[completed/spec-start-page.md](completed/spec-start-page.md)**)
-### Rule 1 — owner decisions (raised M36, sharpened by the polish round; the two resolved ones are archived with M36)
-- ⚠ **ANSWERED 2026-09-01: YES, it still does — measured on a build against the deployed 1.0.65 backend.**
-  Every generated processor opens with:
-      Copyright: © 2025.  Gregory Higgins <…> - All Rights Reserved
-      This source code is protected under international copyright law…
-      This file is confidential and only available to authorized individuals…
-  Stamped onto the USER'S generated code — an artefact derived from their graph, which upstream's own
-  positioning calls the deliverable. Two problems, and neither is the analyser's to fix: it asserts
-  all-rights-reserved and CONFIDENTIALITY over a file the user generated and ships, and the year reads
-  2025. Raised with the owner as a licensing decision rather than changed unilaterally.
-  **Originally:** an upstream ask, not an analyser one.
+  otherwise verb-only)_ · **chooser dialog for external marker CSVs** —
+  markers are verb-first by design; *File ▸ Add series from CSV…* covers series only. Decide whether
+  markers deserve the same dialog before advertising the CSV source to non-agent users.
 
 ## M43 · The AI menu — follow-up (COMPLETE 2026-08-28; the milestone is in completed/tracker.md, design **[completed/spec-ai-menu.md](completed/spec-ai-menu.md)**)
 - ☐ **Owner question: the menu's name** — shipped as `AI` (proposed over *AI assistant*, since "assistant" names the
@@ -2460,77 +2256,59 @@ a series in the analyser until it's diagnostic, then promote it to production mo
 
 ## Suggested delivery order
 
-_Refreshed 2026-09-21; preamble updated 2026-09-23 for two further releases._ **Shipped since that refresh:**
-**1.18.0** (2026-09-23 — audit format 1.1 §1a, a log can say whether it is whole and an unclaimed one reads as
-`unknown`) and **1.19.0** (the same day — revision-bound Java source spotlights). Neither closes an item below, so the
-sequence is unchanged: 1.18.0 delivered the completeness half of the denominator claim, while the membership half
-remains open as DX-02. Shipped since the 2026-09-19 refresh: **1.16.0** (2026-09-20 — M66 design
-render; the project-starter journey with explicit session recovery, project landing and the full template catalogue) and
-**1.17.0** (2026-09-21 — the tool-agreement block TA-1…TA-8: pairing over every declared node, disagreeing graph copies
-announced, confirmation findings, window-edge stability, pending EOF records, Follow through `open {follow}`, and the
-chart/topology/report fixes). Both tags are on main with their release objects. Every item of the 2026-09-19 sequence is
-shipped, archived or rewritten below: its item 2 (M66) shipped and is archived ▸ *Tidy 2026-09-21*, and its item 3 (M67)
-is **no longer queued** — the gate the owner set was the Spring-authoring release and M66's merge, and both are met.
+_Refreshed 2026-09-27, after 1.24.0._ **Shipped since the 2026-09-21 refresh:** **1.20.0** (2026-09-24 — separate
+Project, Sources and Audit log menus); **1.21.0** (2026-09-26 — M44.4 the single-state session model, and M68 evidence
+integrity: DX-02…05, WS-1/2 and report integrity); **1.22.0 / 1.22.1** (2026-09-26 — the Mongoose audit reader half,
+the design-first first look); **1.23.0** (2026-09-26 — M68.7 and the reader's phase-1 completion); **1.24.0**
+(2026-09-27 — M44.5, PR #33's issues #20–#23, PR #24). The 2026-09-21 order's item 3 (M68) is done, BETA-B2 shipped in
+starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/tracker.md`](completed/tracker.md) ▸
+*Tidy 2026-09-27*.
 
-**The upstream picture changed on 2026-09-21, and it supersedes the 2026-09-19 line that read NOT READY.** The starter
-tool is published in **1.0.73**; the public standalone setup/validate and changed-graph generation/run pass; both pass-4
-reviewers judged the compiler and playground branches READY WITH FOLLOW-UPS. That closes the two gates those reviews held
-open — a version pin naming a release that did not contain the module, and an acceptance-13 run that had only ever happened
-on a provisioned local fixture. **Still open upstream:** SG-2's hosted **generation/run** clause only. The authoring files themselves shipped in
-playground 1.0.74 at `5d6a38a`, with public CI 35929392911 verifying acquisition, setup and validation on the real
-hosted archive, so this line's earlier NOT READY was stale for two revisions. It was then briefly recorded as fully
-closed on 2026-09-24, which over-read the same evidence: that run attempted no generation.
+1. ☐ **Owner decisions — they unblock the most.**
+   - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
+     not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).
+   - **Branch protection** requiring `mutation-gate` (▸ *Project / Sources / Audit log menus*).
+   - **M44.6** — what a superseded load's tail may still do.
+   - **BETA-B3** — the template decision, then a dry run of A1–A2 by someone other than the author.
+   - **M39**'s four questions (first: where a baseline lives); **M34.5**'s field name; **AF-8/AF-9** (decide
+     together) and **OD-5**; **O2** (graph-content identity, ▸ M44.4r).
+2. ☐ **Finish M44** (the owner's one-dispatch-model direction, CLAUDE.md rule 9).
+   - **M44.4 §13's remainder:** the filter-change and close-during-pending-open journeys headless, the four
+     predictions scored as a set, and the reviewers' pass.
+   - **A proposed follow-up, not yet an item:** make "this generation's store is installed" a fact, so the session
+     decides when a scan can run and the adapter's last timing precondition (`scanWhenInstalled`) goes.
+   - **M44.6** once decided.
+3. ☐ **Small correctness items, ready now:** N2 (Follow's reload clears flags, selection and filters) ▸ *Tool
+   agreement*; OBL-1 (load progress/cancel) and OBL-2 (autoscale rescans) ▸ *Archived obligations*; the restart
+   checker's path aliases ▸ *Release tooling*; feedback 36 (focus delete/rename over MCP) and chart feedback 42's MCP
+   series remove/replace ▸ *Spring authoring observed acceptance*.
+4. ☐ **The beta** (▸ *Beta*): B3 (item 1), B4's binary publication (cross-repo), BETA-8's A3 scoring gap; B1's key
+   acquisition is a future item by the owner's call.
+5. ☐ **Finish the tool agreement:** TA-5b (cross-repo, the Chronicle reader maintainers) then TA-5c's one session; TA-9
+   (producer-blocked); TA-B.
+6. ◧ **SG-2's hosted half** — changed-graph generation and run on the hosted archive; provisioning is closed.
+7. ☐ **M67 the extension tour** — M67.3–.5 (analyser side) are ready; M67.1/.2 are cross-repo; M67.6 waits for the
+   compiler's B0 check.
+8. ☐ **M33.6** (the owner said YES, 2026-08-27), then **M39** once its questions are answered.
+9. ☐ **The Mongoose audit format, phases 2–3** — the writer half (MA-2, MA-5.7, MA-4 …) is cross-repo; AF-6 waits on
+   AF-4, AF-7 on the NONE-corruption diagnosis (AFMT-3).
+10. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`) — anchor to
+    `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`.
+11. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — M34.5 needs the owner's field name).
+12. **M19:** M19.1a (Mongoose starter conformance bench — waits on D-02), M19.3 (tutorial captures, need a connected
+    browser), M19.15 (the step-2 seeding prompt), M19.22 (fluxtion#24, still open).
+13. **The small schedulable remnants**, any time: **M64.13**, **M65.5**, the person-at-the-screen leftovers, **M48.17**
+    (owner call), the golden-fixture taxonomy tranche, **M40.2c**, **M20.5**, **M29.5**, **M13.5**, **M21.7–.9/.11**,
+    the **M22** five, **M33.5** (gated), **ND-1**, and the independent review of the two Spring guide pages.
+14. **Cross-repo asks** ([upstream-asks.md](../proposals/upstream-asks.md)): UP-MNG-01, UP-PG-01 and UP-PG-03 have
+    landed; UP-MNG-03 is half landed; UP-PG-02's producer field landed on 2026-09-20 (M19.23), which that file does not
+    yet record; UP-MNG-02/04 are owner decisions; UP-RDR-01 is untouched. Refresh the file before filing anything.
+15. **M12** (diagnose → fix → prove) stays design; **M11** stays vision until a real Grafana consumer appears.
+16. **Not analyser-session work** — listed so nobody picks them up here: **M50**'s determinism spine (compiler),
+    **M52.6** (mongoose), **M57.4** (generator-http shading), **M51** (starter template).
 
-1. ☐ **The beta blockers** — the active push (▸ *Beta*, sixth draft). **Read with the *Spring-side work block* first:
-   B1 is already answered by the released starter, B2 is starter work rather than analyser work, B3's recommendation is no longer
-   forced by elimination, since SG-2's provisioning half closed on 2026-09-24, though its hosted generation/run
-   half is still open, and B4's jars are M67.1's jars. Items 1, 4 and 5 below share owners and artefacts, so they are
-   fewer efforts than the numbering implies.** BETA-B2 new-node stubs must audit before A2 measures
-   the product rather than the tester; BETA-B3 the template decision plus a dry run of A1–A2 by someone other than the
-   author; BETA-B4 the shared jars and spec-derived check, now implemented and source-reviewed (G18 closed; binary publication/integration remain open). BETA-B1's key journey passed with a
-   key present and the owner has settled acquisition for now; BETA-8's Haiku series says the routing line plus the fixer
-   block is what makes the fault workflow reproducible, and names the A3 scoring gap to close.
-2. ☐ **Finish the tool agreement** — TA-5b implement and vendor the chosen follow route, then TA-5c its one spot-check
-   session; TA-9 the analyser half of authoritative dispatch metadata, still blocked on the producer; TA-B category B of the
-   September feedback.
-3. ☐ **Evidence correctness before any new surface** — now specified as **M68** (`spec-evidence-integrity.md`), and
-   no longer optional: it is what a held-out client was told wrongly on 2026-09-24 and what holds G14 open. Formerly — DX-02 the false graph/log mismatch first, then DX-03/04/05, and the
-   report-integrity slice (every requested section renders or says why). This is the order the observed trial argued for and
-   two reviewers endorsed.
-4. ◧ **SG-2 — provisioning closed, hosted generation/run open.** The hosted download carries the authoring record
-   and local scripts without breaking the keyless bundle: playground 1.0.74 at `5d6a38a`, public CI 35929392911,
-   97 classpath entries, 36 originals unchanged. **What is not closed** is changed-graph generation and run on that
-   hosted archive: the cited run has two provisioning jobs and a customer-download job, no generation job, and
-   reports `generationAttempted: false`. Needs one acceptance naming the hosted template. This item was briefly
-   marked ☑ on 2026-09-24 on the strength of the provisioning evidence; round 4 read the CI log and corrected it.
-5. ☐ **M67 the extension tour** (`spec-extension-tour.md`) — **unblocked**: extend a running application with a jar you
-   already built, LLM-written Spring XML, the compiler's refusal and the audit log as proof, six spotlit beats. The owner's
-   four calls are made. M67.1 the vendor-jar catalogue and M67.2 the template are cross-repo and can start; M67.3/.4 the
-   skill, verify script and held-out record follow; beat 4 upgrades when the compiler's refusal names the bean.
-6. **M39 baselines** — spec'd since 2026-08-27 with four open owner questions (first: where a baseline lives). The next
-   model-level feature; the mixed-version hazard it depends on is built (M38.7, D-C10).
-7. **The Mongoose audit format proposal** (`docs/proposals/mongoose-audit-format/`) — binary first, with the format treated
-   as a deployment property rather than a build input; owner decisions still open.
-8. **The Mongoose bootstrap artefacts** (`docs/specs/mongoose-bootstrap-artefacts/`, reviewed with §10a A1–A4 written in) —
-   anchor to `spec-agent-brokered-dev-loop.md` and back its gates with `tools/bench/loop-bench.py`.
-9. **M34.4/.5** (first foreign adapter; per-cycle concurrency marker — needs the owner to name the field).
-10. **M19.1a** (Mongoose starter conformance bench: D-02 then the first typed slice; no bundle claim before its native audit
-    and conditional VAL-12 evidence), **M19.3/.4** (tutorial, publish-gated on the playground Download), **M19.8** (bench in CI).
-11. **The small schedulable remnants**, any time: **M64.13** (menu follow-ups), **M65.5** (the D-F5 extraction measurement),
-    the person-at-the-screen leftovers (*File ▸ Close log* as a physical click during a slow first load; *AI ▸ Place
-    mode-selector record…*), **M48.17** (the canvas-thesis brief — owner call), the golden-fixture taxonomy tranche,
-    **M40.2c**, **M20.5**, **M29.5**, **M13.5**, **M21.7–.9**, the **M22** five, **M33.5** (gated), **M33.6**, the M36 rule-1
-    upstream ask, and the independent review of the two Spring guide pages (diagrams at desktop and phone width;
-    expected-versus-observed labelling — the version wording is already corrected).
-12. **Cross-repo** — the §H gate is MET; **UP-MNG-01…04, UP-PG-01…02, UP-RDR-01** in [upstream-asks.md](../proposals/upstream-asks.md)
-    §5–§7 are drafted and still unfiled; **UP-MNG-03** has its analyser-side counterpart in M38.3.
-13. **M12** (diagnose → fix → prove) stays active design; **M11** stays vision until a real Grafana consumer appears.
-14. **Not analyser-session work** — cross-repo or gated, listed so nobody picks them up here: **M50**'s determinism spine
-    (compiler), **M52.6** (mongoose), **M57.4** (generator-http shading), **M51** (starter template), and the **M19** tutorial
-    (publish-gated on the playground Download).
-
-_Earlier refreshes (2026-09-17 and 2026-09-19) and their release detail are archived in
-[`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-21 ▸ Delivery-order history*._
+_Earlier refreshes are archived in [`completed/tracker.md`](completed/tracker.md) ▸ *Tidy 2026-09-21 ▸ Delivery-order
+history* and ▸ *Tidy 2026-09-27*._
 
 ## M46 · Authoring-toolchain repair — ◧ SPEC'D 2026-09-01; the analyser-side closure (A1–A5 + the `open {analysis}` regression) SHIPPED in 1.14.0 and archived; U1–U8, X1–X4, H1–H2 open (upstream / docs / harness)
 
@@ -2598,10 +2376,9 @@ with each entry's description, takes artifact/group/base-package, downloads the 
 and makes the generated project's profile the active project. That is .2, .3 and .4 — the templates are the playground's
 (14 in the versioned catalogue), not a directory in this repo.
 
-**Owner revision 2026-09-20, implemented on the journey branch:** D-1 requires the full catalogue, with
-onboarding entries marked **Recommended starting points** and declared prerequisites shown. The subset
-above describes released behaviour. Branch display verification uses all 14 producer entries; review,
-untagged end-to-end download acceptance and producer-first deployment remain open. See the live full-catalogue item above.
+**Owner revision 2026-09-20, shipped in 1.16.0:** D-1 requires the full catalogue, with onboarding entries marked
+**Recommended starting points** and declared prerequisites shown. **Still open:** untagged end-to-end download
+acceptance and producer-first deployment (cross-repo). See the live full-catalogue item above.
 
 **The idea.** The analyser offers a set of Fluxtion project templates. A user picks one; that is what
 their AI client starts from, rather than an empty directory plus prose.
@@ -2676,7 +2453,8 @@ the declared surface cannot decide, it reports the ambiguity and refuses to gues
 - [M48.6] ☐ **`generate-sources` rebind** — measured: in modes 0/1 nothing the author writes is a
       generator input, so a plain `mvn compile` works and the whole ordering workaround
       (`generated.dependents`, the `default-compile` exclusion, the second compiler execution) can go.
-      **The analyser ships the template, so this is ours.**
+      **The analyser ships the template, so this is ours.** _(2026-09-27: M47 records the templates as the
+      playground's, not a directory in this repo — confirm the owner of this change before starting it.)_
 - [M48.8] ☐ **cache accounting in the experiment harness** — Haiku 4.5 silently uncaches below 4,096
       tokens, so any prefix-size comparison without `cache_read_input_tokens` is meaningless (P3a)
 - [M48.12] ☐ **audit-log header fingerprint carrier** — narrowed twice. The contract is
@@ -2732,8 +2510,6 @@ name in different packages emit uncompilable code with no diagnostic; a componen
   provenance/freshness checks and shared presentation of externally produced results. A validation
   pack is portable documentation, test assets and evidence, not an analyser-run workflow. This narrows
   the fourth feedback addendum's invariant/validation proposals; it authorizes no new execution verb.
-- **1.15.0 shipped 2026-09-18** with M64.10/.11/.12 and the two review rounds' fixes; no patch releases between _(owner)_.
-- **1.14.0 shipped 2026-09-17 with the whole M46-closure block, M65 and M64.8/.9; no 1.13.3** _(owner)_.
 - **This block ships as 1.14.0, together — NO 1.13.3, NO cherry-pick** _(owner, 2026-09-17, after the re-review)_.
   The `open {analysis}` regression released in 1.13.0–1.13.2 (M46.10) is therefore **fixed in 1.14.0, not patched**:
   the second reader recommended cutting 1.13.3 from the fix commit first (A4); the owner declined, and A4 is closed
@@ -2868,16 +2644,8 @@ name in different packages emit uncompilable code with no diagnostic; a componen
   repos actually worked.
 
 
-- Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.)
+- Graph "last occurrence per record" vs "all occurrences" default. (spec: last; expose toggle.) _(2026-09-27: the
+  default is last, and it is documented — `docs/site/log-format.md`; the toggle was never built. Owner: record the
+  default as a decision, or make the toggle an item.)_
 
-_(spec-closed-loop O1–O4 all resolved — statuses recorded in the M18 block above; O5 in Decisions.)_
-
-### Tool-agreement final gate correction
-
-**Frozen prediction:** the complete display gate caught five recovery assertions because TA-7
-added Follow fields to an otherwise absent log map. Guard those fields with the loaded-store
-boundary; a closed log again has no `context.log`, while Follow remains exposed on open logs.
-`SessionRecoveryFrameTest` should then pass unchanged. This is a regression in this branch,
-not a new baseline row; analyser 1 / upstream 8 remain open.
-
-**Result:** held; all 50 display tests pass without skips. Clean headless gate 1,766 / 0 / 0 / 49 skips.
+_(spec-closed-loop O1–O4 all resolved — statuses recorded in [the completed tracker](completed/tracker.md) ▸ M18; O5 in Decisions.)_
