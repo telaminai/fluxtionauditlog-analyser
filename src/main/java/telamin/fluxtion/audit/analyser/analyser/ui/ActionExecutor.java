@@ -431,7 +431,6 @@ public final class ActionExecutor implements RenderExecutor {
         // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
-        // rename requires an explicit target {name, rename} — never selection-dependent
         if (bool(p.get("close"))) {
             // PR #51 review, on #50: the safe half of removal. Before this, delete was the only way to get
             // a chart off the screen over the socket — so "not recoverable" was not a warning a caller
@@ -495,6 +494,7 @@ public final class ActionExecutor implements RenderExecutor {
             });
         }
 
+        // rename requires an explicit target {name, rename} — never selection-dependent
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");

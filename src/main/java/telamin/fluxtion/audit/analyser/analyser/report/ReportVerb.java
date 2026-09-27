@@ -56,12 +56,13 @@ public final class ReportVerb {
          * {@code delete} uses. The confirmed path was reversible and the silent one was not.
          *
          * <p>{@code sections: []} still empties a report: that is a supplied value, and an explicit
-         * one. This only changes what SILENCE means.
+         * one. This only changes what SILENCE means — and an explicit {@code null} is silence too.
          *
          * <p>The authoring context travels with the sections. When they are carried over, so are the
          * fingerprint and the filter — those record the log and view the REFERENCES were written
          * against, and stamping old references with today's log would relabel evidence nobody
-         * re-checked. {@code createdAt} likewise stays: it says when the report was made.
+         * re-checked. {@code createdAt} goes with them the same way: kept with kept sections, and today's
+         * date when the sections are replaced (PR #51 review) — the report was re-authored then.
          */
         public ReportSpec onto(ReportSpec existing) {
             if (existing == null) {
