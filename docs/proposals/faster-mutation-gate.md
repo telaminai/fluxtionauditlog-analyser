@@ -21,8 +21,13 @@ reruns the named test green. No assertion, restoration check or control is dropp
 `tools/mutation_timings.json` records durations and provenance from the earlier CI artifact. Longest-first
 allocation distributes expensive controls across workers. Timing data is only a scheduling hint: the live
 `CASES` registry supplies the required set, and a new control without timing data receives the default
-weight. Old timing entries never create controls. Refresh timings from a complete CI artifact when the
-balance drifts; include the run URL and revision. Each worker prints its assigned controls' estimated time.
+weight. Old timing entries never create controls. Refresh timings when the balance drifts, from SEVERAL
+complete CI artifacts, not one: per-control times vary by roughly ±30 s per shard between runs of the same code,
+so weights fitted to a single run partly fit its noise. Take each control's median over the runs, set
+`defaultSeconds` to the mean of those medians, and record every run URL and revision (`sourceRuns`). Check the
+result leave-one-out — fit on all runs but one, allocate that run's own controls, score with its real times. The
+2026-09-27 refresh (seven runs) cut the mean shard spread from 46 s to 10 s that way. What allocation cannot
+balance: each shard's baseline (42–73 s, set by which suites it holds) and runner noise such as a slow checkout. Each worker prints its assigned controls' estimated time.
 
 The design-status-capped control runs first in its assigned shard, once. This preserves the early Linux
 regression check without a separate compile, baseline and duplicate execution. The engine self-test runs
