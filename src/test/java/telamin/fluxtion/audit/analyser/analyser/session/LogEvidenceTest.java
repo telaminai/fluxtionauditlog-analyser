@@ -49,6 +49,7 @@ class LogEvidenceTest {
         assertNull(d.snapshot().producerFindings(), "nothing is claimed before the scan lands");
         assertNull(d.snapshot().timeOrder());
         assertFalse(d.snapshot().pending(), "a scheduled scan is not an operation in flight");
+        assertTrue(d.snapshot().evidencePending(), "but it is outstanding, and the snapshot says so");
     }
 
     @Test
@@ -63,6 +64,7 @@ class LogEvidenceTest {
         assertEquals(EMPTY_LOG, d.snapshot().producerFindings());
         assertEquals(order, d.snapshot().timeOrder());
         assertFalse(d.snapshot().timeOrder().isClean(), "control: the report carries a violation");
+        assertFalse(d.snapshot().evidencePending(), "the scan has reported");
     }
 
     @Test
@@ -85,18 +87,24 @@ class LogEvidenceTest {
         SessionDriver d = opened(a, "/f.yaml");
         long g = d.snapshot().logGeneration();
         int afterOpen = scans(a).size();
-        d.post(new SessionEvents.LogContentObserved(g, 1, 100, 0, false));
+        d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 0, null));
         assertEquals(afterOpen + 1, scans(a).size(), "the first signature asks");
-        d.post(new SessionEvents.LogContentObserved(g, 1, 100, 0, false));
-        assertEquals(afterOpen + 1, scans(a).size(), "an unchanged signature asks nothing (the repeated-failure skip)");
-        d.post(new SessionEvents.LogContentObserved(g, 1, 100, 0, true));
-        assertEquals(afterOpen + 2, scans(a).size(), "a failed read moved it");
-        d.post(new SessionEvents.LogContentObserved(g, 1, 140, 40, true));
+        d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 0, null));
+        assertEquals(afterOpen + 1, scans(a).size(), "an unchanged signature asks nothing");
+        d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 1, "disk said no"));
+        assertEquals(afterOpen + 2, scans(a).size(), "a failed read with new damage moved it");
+        d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 1, "disk said no"));
+        assertEquals(afterOpen + 2, scans(a).size(), "the same failure again asks nothing (the repeated-failure skip)");
+        assertEquals("disk said no", d.snapshot().followReadFailure(), "why the read failed is published");
+        d.post(new SessionEvents.LogContentObserved(g, 1, 40, "UNKNOWN", 1, null));
         assertEquals(afterOpen + 3, scans(a).size(), "a growing pending frame moved it");
-        d.post(new SessionEvents.LogContentObserved(g, 2, 180, 0, false));
-        assertEquals(afterOpen + 4, scans(a).size(), "an appended record moved it (W1)");
-        d.post(new SessionEvents.LogContentObserved(g - 1, 9, 999, 0, false));
-        assertEquals(afterOpen + 4, scans(a).size(), "a signature for another generation is refused");
+        assertNull(d.snapshot().followReadFailure(), "a poll that read clears the failure");
+        d.post(new SessionEvents.LogContentObserved(g, 1, 40, "COMPLETE", 1, null));
+        assertEquals(afterOpen + 4, scans(a).size(), "a marker with no record moved it");
+        d.post(new SessionEvents.LogContentObserved(g, 2, 0, "COMPLETE", 1, null));
+        assertEquals(afterOpen + 5, scans(a).size(), "an appended record moved it (W1)");
+        d.post(new SessionEvents.LogContentObserved(g - 1, 9, 0, "UNKNOWN", 0, null));
+        assertEquals(afterOpen + 5, scans(a).size(), "a signature for another generation is refused");
     }
 
     @Test
@@ -117,6 +125,20 @@ class LogEvidenceTest {
         SessionFixtures.openLog(d, a, "/f.yaml", "DECLARED", Set.of("a"), 1, 1, "TRACE");
         assertEquals(before + 1, scans(a).size(), "a reopen asks for a scan of its own");
         assertEquals(d.snapshot().logGeneration(), scans(a).get(scans(a).size() - 1).generation());
+    }
+
+    @Test
+    @DisplayName("An identical rescan keeps the findings it holds, and publishes nothing")
+    void anIdenticalRescanChangesNothing() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a, "/f.yaml");
+        long g = d.snapshot().logGeneration();
+        d.post(new SessionEvents.ProducerFindingsObserved(g, EMPTY_LOG));
+        var held = d.snapshot();
+        d.post(new SessionEvents.ProducerFindingsObserved(g,
+                ProducerDiagnostics.of(new LogIndex(), i -> null, List.of(), List.of(), false)));
+        assertSame(held, d.snapshot(), "equal findings are not a change");
+        assertSame(EMPTY_LOG, d.snapshot().producerFindings(), "the object held is kept");
     }
 
     @Test
@@ -148,5 +170,45 @@ class LogEvidenceTest {
         assertTrue(d.snapshot().following(), "a stale toggle changes nothing");
         d.post(new SessionEvents.FollowToggled(g, false));
         assertFalse(d.snapshot().following());
+    }
+
+    private static void reopen(SessionDriver d, FakeSessionAdapter a, String path, boolean followable) {
+        a.pendingOpens = true;
+        long op = d.nextOpId();
+        d.submit(new SessionEvents.OpenLogRequested(op, path, null, null, false));
+        a.pendingOpens = false;
+        d.submit(new SessionEvents.LogOpened(op, path, null, Set.of("a"), 1, 1, "TRACE", null, followable));
+    }
+
+    @Test
+    @DisplayName("Follow continues through a reload of a followable log, and stops at one that cannot be followed")
+    void followSurvivesAReloadOnlyWhereItCanRun() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = new SessionDriver(a);
+        reopen(d, a, "/f.yaml", true);
+        assertFalse(d.snapshot().following(), "opening a log never turns Follow on");
+        d.post(new SessionEvents.FollowToggled(d.snapshot().logGeneration(), true));
+        reopen(d, a, "/f.yaml", true);                       // a rotation, or the live re-read
+        assertTrue(d.snapshot().following(), "a reload does not silently stop Follow");
+        reopen(d, a, "/set.zip", false);
+        assertFalse(d.snapshot().following(), "a log that cannot be followed is not reported as followed");
+        reopen(d, a, "/f.yaml", true);
+        assertFalse(d.snapshot().following(), "and Follow does not come back on by itself");
+    }
+
+    @Test
+    @DisplayName("A content change leaves the evidence pending until the rescan reports, even when it finds the same")
+    void aRescanThatFindsTheSameStillSettles() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a, "/f.yaml");
+        long g = d.snapshot().logGeneration();
+        TimeOrderReport clean = TimeOrderReport.clean();
+        d.post(new SessionEvents.ProducerFindingsObserved(g, EMPTY_LOG));
+        d.post(new SessionEvents.TimeOrderObserved(g, clean));
+        d.post(new SessionEvents.LogContentObserved(g, 2, 0, "UNKNOWN", 0, null));
+        assertTrue(d.snapshot().evidencePending(), "the held findings describe the earlier content");
+        d.post(new SessionEvents.ProducerFindingsObserved(g, EMPTY_LOG));
+        d.post(new SessionEvents.TimeOrderObserved(g, clean));
+        assertFalse(d.snapshot().evidencePending(), "an identical result still settles it — a surface may render");
     }
 }

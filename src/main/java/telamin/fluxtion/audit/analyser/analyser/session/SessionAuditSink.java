@@ -40,6 +40,12 @@ import java.util.List;
  * rings count what they dropped, and {@link #records()} and the export interleave them in arrival order, so the
  * record says what it omitted rather than silently omitting it.
  *
+ * <p>M44.5 adds the log's own evidence, which Follow re-derives as the content moves: a scan's results
+ * ({@code ProducerFindingsObserved}, {@code TimeOrderObserved}, {@code ScanScheduled}) arrive at the rate of the appends
+ * and are re-scopes too. The content observation itself ({@code LogContentObserved}) arrives on EVERY poll, idle ones
+ * included — at one a second it would evict the re-scopes in minutes — so it has a ring of its own
+ * ({@link #OBSERVATION_CAPACITY}). A person's Follow toggle is a transition, and stays one.
+ *
  * <p>Not thread-safe by design; the driver is synchronous and single-threaded.
  */
 public final class SessionAuditSink implements LogRecordListener {
@@ -53,9 +59,28 @@ public final class SessionAuditSink implements LogRecordListener {
     /** The event line a re-scope record carries — read from a real record, not assumed. */
     static final String RESCOPE_EVENT = "event: LogAppended";
 
+    /** M44.5: the log-evidence re-derivations, retained like a re-scope. */
+    static final java.util.List<String> RESCOPE_EVENTS = java.util.List.of(RESCOPE_EVENT,
+            "event: ProducerFindingsObserved", "event: TimeOrderObserved", "event: ScanScheduled");
+
+    /** M44.5: every Follow poll's content observation — kept apart, so an idle poll evicts nothing but its own kind. */
+    static final String OBSERVATION_EVENT = "event: LogContentObserved";
+
+    /**
+     * A batch end — where the processor performs the effects a cycle requested — belongs to the cycle that raised it,
+     * so it is kept with that cycle's kind: a Follow rescan's batch end is a re-scope, an open's is a transition.
+     */
+    static final String BATCH_END_EVENT = "event: LifecycleEvent";
+
+    /** Content observations kept: the last few minutes of polls. */
+    public static final int OBSERVATION_CAPACITY = 200;
+
     private final int capacity;
     private final Deque<Held> records = new ArrayDeque<>();
     private final Deque<Held> rescopes = new ArrayDeque<>();
+    private final Deque<Held> observations = new ArrayDeque<>();
+    private long droppedObservations;
+    private Deque<Held> lastKind;
     private long sequence;
     private long droppedRescopes;
 
@@ -88,7 +113,18 @@ public final class SessionAuditSink implements LogRecordListener {
             String text = logRecord.asCharSequence().toString();
             total++;
             Held held = new Held(sequence++, text);
-            if (text.contains(RESCOPE_EVENT)) {
+            Deque<Held> kind = text.contains(BATCH_END_EVENT) && lastKind != null ? lastKind
+                    : text.contains(OBSERVATION_EVENT) ? observations
+                    : RESCOPE_EVENTS.stream().anyMatch(text::contains) ? rescopes
+                    : records;
+            lastKind = kind;
+            if (kind == observations) {
+                observations.addLast(held);
+                while (observations.size() > OBSERVATION_CAPACITY) {
+                    observations.removeFirst();
+                    droppedObservations++;
+                }
+            } else if (kind == rescopes) {
                 rescopes.addLast(held);
                 while (rescopes.size() > RESCOPE_CAPACITY) {
                     rescopes.removeFirst();
@@ -111,16 +147,17 @@ public final class SessionAuditSink implements LogRecordListener {
 
     /** The records currently held, both rings interleaved, oldest first. */
     public List<String> records() {
-        List<Held> all = new ArrayList<>(records.size() + rescopes.size());
+        List<Held> all = new ArrayList<>(records.size() + rescopes.size() + observations.size());
         all.addAll(records);
         all.addAll(rescopes);
+        all.addAll(observations);
         all.sort(java.util.Comparator.comparingLong(Held::seq));
         List<String> out = new ArrayList<>(all.size());
         for (Held h : all) out.add(h.text());
         return out;
     }
 
-    /** The transition records only — everything except re-scopes. */
+    /** The transition records only — everything except re-scopes and content observations. */
     public List<String> transitions() {
         List<String> out = new ArrayList<>(records.size());
         for (Held h : records) out.add(h.text());
@@ -132,9 +169,9 @@ public final class SessionAuditSink implements LogRecordListener {
         return total;
     }
 
-    /** How many the rings discarded, both kinds — nonzero means {@link #records()} is not the whole session. */
+    /** How many the rings discarded, every kind — nonzero means {@link #records()} is not the whole session. */
     public long dropped() {
-        return dropped + droppedRescopes;
+        return dropped + droppedRescopes + droppedObservations;
     }
 
     /** How many TRANSITION records were discarded. Re-scopes cannot cause this. */
@@ -144,6 +181,10 @@ public final class SessionAuditSink implements LogRecordListener {
 
     public long droppedRescopes() {
         return droppedRescopes;
+    }
+
+    public long droppedObservations() {
+        return droppedObservations;
     }
 
     public long sinkFailures() {
@@ -162,6 +203,9 @@ public final class SessionAuditSink implements LogRecordListener {
     public void clear() {
         records.clear();
         rescopes.clear();
+        observations.clear();
+        droppedObservations = 0;
+        lastKind = null;
         total = 0;
         dropped = 0;
         droppedRescopes = 0;

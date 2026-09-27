@@ -92,8 +92,8 @@ class LogFindingsOnEverySurfaceFrameTest {
             Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n"
                     + "    - node: { value: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
 
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 Map<String, Object> report = render(f.ex, "report", REPORT);
                 assertAll("MA-0.5: a record arrived, and no surface still says the file is empty",
                         () -> assertFalse(status(f.frame).getText().contains("empty log"),
@@ -126,8 +126,8 @@ class LogFindingsOnEverySurfaceFrameTest {
 
             Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n",
                     java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 // review item 7: V2 on EVERY surface the first test covers, not two of them
                 assertFalse(reportsTab(f.frame).contains("No records"), "the Reports tab, read before any verb");
                 Map<String, Object> report = render(f.ex, "report", REPORT);
@@ -195,8 +195,8 @@ class LogFindingsOnEverySurfaceFrameTest {
                     "H1: the exported PDF carries the empty-log finding");
 
             appendRecord(log);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             String after = onEdtGet(() -> {
-                poll(f.frame);
                 return pdf(render(f.ex, "report", with(REPORT, "path", "one-record.pdf")));
             });
             assertFalse(after.contains("LOG FINDINGS"), "a record arrived: the next export has nothing to say");
@@ -223,9 +223,9 @@ class LogFindingsOnEverySurfaceFrameTest {
 
             Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n",
                     java.nio.file.StandardOpenOption.APPEND);   // no closing ---: pending, not a record
+            int rows = onEdtGet(() -> ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store")).size());
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                int rows = ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store")).size();
-                poll(f.frame);
                 assertEquals(rows, ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store"))
                         .size(), "precondition: this poll added no record, so nothing else re-renders the tab");
                 assertFalse(reportsTab(f.frame).contains("No records"),
@@ -233,8 +233,8 @@ class LogFindingsOnEverySurfaceFrameTest {
             });
 
             Files.writeString(log, "  nodeLogs:\n    - node: { value: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 assertFalse(reportsTab(f.frame).contains("No records"), "and once the record lands, still current");
             });
         }
@@ -258,8 +258,7 @@ class LogFindingsOnEverySurfaceFrameTest {
             }
             assertTrue(f.ex.render("open", Map.of("log", second.toString())).ok(), "the second log opens");
             long deadline = System.currentTimeMillis() + 20_000;
-            while (!onEdtGet(() -> ((telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics)
-                    field(f.frame, "producerDiagnostics")).findings().stream()
+            while (!onEdtGet(() -> findingsOf(f.frame) != null && findingsOf(f.frame).findings().stream()
                     .anyMatch(x -> x.kind().name().equals("NO_RECORD_KEY")))) {
                 assertTrue(System.currentTimeMillis() < deadline, "the second log's findings never published");
                 Thread.sleep(25);
@@ -288,7 +287,7 @@ class LogFindingsOnEverySurfaceFrameTest {
     }
 
     private static String frameFirstWarning(MainFrame frame) {
-        return ((telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(frame, "producerDiagnostics"))
+        return findingsOf(frame)
                 .firstWarning().orElseThrow(() -> new AssertionError("the frame reports nothing")).message();
     }
 
@@ -311,8 +310,8 @@ class LogFindingsOnEverySurfaceFrameTest {
             String cold = coldOpenFirstWarning(log);
             assertTrue(cold.startsWith(telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE_ENDED),
                     "precondition: a cold open of these bytes gives the ended sentence: " + cold);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 String tab = reportsTab(f.frame);            // read before any verb
                 String tip = String.valueOf(status(f.frame).getToolTipText());
                 assertAll("V2 at the Follow call site",
@@ -364,14 +363,14 @@ class LogFindingsOnEverySurfaceFrameTest {
                 f.frame.setSize(1300, 850);
                 f.frame.setVisible(true);
                 render(f.ex, "report", REPORT);   // builds the report AND selects it on the tab
-                return field(f.frame, "producerDiagnostics");
+                return findingsOf(f.frame);
             });
 
             assertTrue(f.ex.render("open", Map.of("logs", List.of(only.toString()))).ok(), "a set of one opens");
             long deadline = System.currentTimeMillis() + 20_000;
             while (!onEdtGet(() -> field(f.frame, "store")
                     instanceof telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore
-                    && field(f.frame, "producerDiagnostics") != before)) {
+                    && findingsOf(f.frame) != null && findingsOf(f.frame) != before)) {
                 assertTrue(System.currentTimeMillis() < deadline, "the set's findings never published");
                 Thread.sleep(25);
             }
@@ -411,5 +410,10 @@ class LogFindingsOnEverySurfaceFrameTest {
             method.setAccessible(true);
             method.invoke(frame);
         } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+    }
+
+    /** M44.5: the log's findings are the session's (logEvidence), published in the snapshot — null until the scan lands. */
+    static telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics findingsOf(MainFrame frame) {
+        return ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(frame, "session")).snapshot().producerFindings();
     }
 }

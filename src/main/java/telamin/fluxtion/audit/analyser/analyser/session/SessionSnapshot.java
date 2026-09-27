@@ -32,7 +32,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               String logIdentity, String logIdentityReason,
                               telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerFindings,
                               telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrder,
-                              String provenance, String provenanceSource, boolean following) {
+                              String provenance, String provenanceSource, boolean following,
+                              String contentSignature, String followReadFailure, boolean evidencePending) {
 
     /**
      * Independent review R4: immutable in fact, not only by the reference that publishes it. A volatile field cannot make
@@ -46,7 +47,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
     /** Before the first operation: nothing is open and nothing may be claimed. */
     public static final SessionSnapshot EMPTY =
             new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null, null, null,
-                    null, null, null, null, false);
+                    null, null, null, null, false, null, null, false);
 
     static SessionSnapshot of(SessionProcessor p) {
         return new SessionSnapshot(p.openLog.isOpen(), p.openLog.logPath(), p.openLog.generation(),
@@ -58,7 +59,9 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.openLog.identity(), p.openLog.identityReason(),
                 // M44.5: the log's own derived state, owned by logEvidence and openLog — every surface renders these
                 p.logEvidence.findings(), p.logEvidence.timeOrder(),
-                p.openLog.provenance(), p.openLog.provenanceSource(), p.openLog.following());
+                p.openLog.provenance(), p.openLog.provenanceSource(), p.openLog.following(),
+                p.logEvidence.signature(), p.logEvidence.readFailure(),
+                p.logEvidence.scanPending());
     }
 
     /** The verdict a surface may state as CURRENT: none while a log open is pending. */

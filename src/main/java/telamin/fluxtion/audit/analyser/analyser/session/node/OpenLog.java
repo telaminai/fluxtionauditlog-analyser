@@ -83,7 +83,9 @@ public class OpenLog implements EventLogSource {
         logPath = event.logPath();
         provenance = event.provenance();
         provenanceSource = event.provenanceSource();
-        following = false;                      // M44.5: a new log is not being followed until Follow says so
+        // M44.5: Follow is a mode of the session, so it continues through a reload (a rotation, a live re-read) and into
+        // the next log opened while it is on — but only into a log that CAN be followed. Nothing else turns it on.
+        following = following && event.followable();
         loggedNodeIds = event.loggedNodeIds();
         sampled = event.sampled();
         total = event.total();

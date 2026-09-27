@@ -40,6 +40,8 @@ public class LogEvidence implements EventLogSource {
     // Not final: node-local state (a final field is constructor-mapped by the generator).
     private long boundGeneration = -1;
     private String signature;
+    private String readFailure;
+    private boolean scanPending;
     private ProducerDiagnostics findings;
     private TimeOrderReport timeOrder;
 
@@ -61,6 +63,8 @@ public class LogEvidence implements EventLogSource {
             findings = null;
             timeOrder = null;
             signature = null;
+            readFailure = null;
+            scanPending = false;
             boundGeneration = -1;
             if (had) auditLog.info("logEvidence", "cleared").info("reason", "no log open");
             return had;
@@ -72,6 +76,7 @@ public class LogEvidence implements EventLogSource {
         findings = null;
         timeOrder = null;
         signature = null;
+        readFailure = null;
         boundGeneration = generation;
         requestScan(generation, "opened");
         return true;
@@ -81,31 +86,37 @@ public class LogEvidence implements EventLogSource {
     @OnEventHandler
     public boolean onLogContentObserved(SessionEvents.LogContentObserved event) {
         if (!current(event.generation(), "LogContentObserved")) return false;
-        String next = event.total() + "/" + event.bytes() + "/" + event.pendingChars() + "/" + event.readFailed();
+        boolean failureMoved = !java.util.Objects.equals(readFailure, event.readFailure());
+        readFailure = event.readFailure();
+        String next = event.total() + "/" + event.pendingChars() + "/" + event.streamEnd() + "/" + event.damage()
+                + "/" + (event.readFailure() != null);
         if (next.equals(signature)) {
-            return false;                                  // nothing moved: the evidence held still describes the log
+            return failureMoved;                           // nothing moved: the evidence held still describes the log
         }
         signature = next;
         requestScan(event.generation(), "content moved");
-        return false;                                      // the request is the effect; nothing published changed yet
+        return true;                                       // published: the status line re-reads the log's counts
     }
 
     @OnEventHandler
     public boolean onProducerFindingsObserved(SessionEvents.ProducerFindingsObserved event) {
         if (!current(event.generation(), "ProducerFindingsObserved")) return false;
-        boolean moved = !java.util.Objects.equals(findings, event.findings());
+        if (java.util.Objects.equals(findings, event.findings())) return false;   // the same findings: keep what is held
         findings = event.findings();
-        if (moved) auditLog.info("producerFindings", findings == null ? 0 : findings.findings().size());
-        return moved;
+        auditLog.info("producerFindings", findings == null ? 0 : findings.findings().size());
+        return true;
     }
 
     @OnEventHandler
     public boolean onTimeOrderObserved(SessionEvents.TimeOrderObserved event) {
         if (!current(event.generation(), "TimeOrderObserved")) return false;
-        boolean moved = !java.util.Objects.equals(timeOrder, event.report());
+        // the scan's LAST result: the evidence held now describes the content the last observation reported
+        boolean settled = scanPending;
+        scanPending = false;
+        if (java.util.Objects.equals(timeOrder, event.report())) return settled;
         timeOrder = event.report();
-        if (moved) auditLog.info("timeOrderViolations", timeOrder == null ? 0 : timeOrder.violations().size());
-        return moved;
+        auditLog.info("timeOrderViolations", timeOrder == null ? 0 : timeOrder.violations().size());
+        return true;
     }
 
     /** The adapter's acknowledgement that a scan is scheduled — recorded, and it changes nothing. */
@@ -116,6 +127,7 @@ public class LogEvidence implements EventLogSource {
     }
 
     private void requestScan(long generation, String why) {
+        scanPending = true;
         auditLog.info("decision", "scanLogEvidence").info("generation", generation).info("why", why);
         effects.request(new SessionEffects.ScanLogEvidenceEffect(0L, generation));
     }
@@ -130,6 +142,24 @@ public class LogEvidence implements EventLogSource {
             return false;
         }
         return true;
+    }
+
+    /** The last content signature a Follow poll reported, or null before the first — published so surfaces re-render. */
+    public String signature() {
+        return signature;
+    }
+
+    /**
+     * Whether a scan asked for has not yet reported. While it is outstanding the findings held describe the content
+     * BEFORE the last observation, so a surface stating them beside the new content's counts would mix two revisions.
+     */
+    public boolean scanPending() {
+        return scanPending;
+    }
+
+    /** Why the last Follow poll could not read the file, or null when it read. */
+    public String readFailure() {
+        return readFailure;
     }
 
     /** The open log's producer findings, or null before the first scan of this generation lands. */

@@ -123,9 +123,16 @@ public final class SessionEvents {
      *                      pairing; {@code sampled} of {@code total} records were scanned
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
-                            int sampled, int total, String mostVerboseLevel, String provenanceSource) implements Result {
+                            int sampled, int total, String mostVerboseLevel, String provenanceSource,
+                            boolean followable) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** M44.5 stage 1: no follow capability stated — the log is taken as one that cannot be followed. */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource, false);
         }
 
         /** Before M44.5: no provenance source. It is "declared by the opener" when a provenance was given. */
@@ -268,11 +275,14 @@ public final class SessionEvents {
     }
 
     /**
-     * M44.5: what a Follow poll found about the open log's CONTENT — records, bytes, the frame still being written, and
-     * whether the read failed. {@code LogEvidence} compares it with the last one and asks for a rescan only when it
-     * moved; the frame no longer decides when findings are stale.
+     * M44.5: what a Follow poll found about the open log's CONTENT — its records, the frame still being written, what
+     * the stream end reports (its state and runs: a marker can arrive with no record), how much damage the reader has
+     * recorded, and why the read failed ({@code readFailure}, null when it read). {@code LogEvidence} compares it with the last one and asks for a rescan
+     * only when it moved, so a repeated identical failure costs nothing; the frame no longer decides when findings are
+     * stale.
      */
-    public record LogContentObserved(long generation, int total, long bytes, int pendingChars, boolean readFailed) {
+    public record LogContentObserved(long generation, int total, int pendingChars, String streamEnd, int damage,
+                                     String readFailure) {
     }
 
     /** M44.5: the log's producer findings, computed by the adapter for the generation it names. */
