@@ -1,11 +1,11 @@
-# Evidence bundles — portable investigations and replayable responses
+# Evidence bundles — Codex delivery proposal
 
 **Status: DISCUSSION DRAFT v0.1, 2026-09-27. Implementation and acceptance not started.**
 Target: a usable first delivery in the next two working days, subject to the gates below, not a
-calendar-based release promise. This is the consolidated working proposal/specification for review
-by multiple authors and reviewers; it is not final, accepted or an instruction to implement. The
-[prototype account](../proposals/evidence-bundle/evidence-bundles.md) and
-[product positioning](../proposals/evidence-bundle/evidence-bundle-positioning.md) are background,
+calendar-based release promise. This is one proposed consolidation for discussion alongside the other
+authors' proposals; it is not final, accepted or an instruction to implement. The
+[prototype account](evidence-bundles.md) and
+[product positioning](evidence-bundle-positioning.md) are background,
 not additional requirements. Differences are resolved here provisionally and remain open to challenge
 in the decision register (§12); do not implement conflicting instructions from the three documents.
 

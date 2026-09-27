@@ -1,7 +1,7 @@
 # Proposal — evidence bundles
 
-> **Background input, retained for review.** The consolidated
-> [working proposal/specification](../../specs/spec-evidence-bundles.md) sets out the first-delivery
+> **Background input, retained for review.** The
+> [Codex delivery proposal](evidence-bundle-proposal-codex.md) suggests a first-delivery
 > scope, provisional contracts, acceptance and open decisions. It is a discussion draft, not final.
 > This account preserves the prototype's observations and original suggestions; claims about replay,
 > rendering and integrity below are not independent verification or extra implementation requirements.

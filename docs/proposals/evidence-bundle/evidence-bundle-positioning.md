@@ -1,7 +1,7 @@
 # Fluxtion Evidence Bundles / Experiment Bundles — Product Proposal
 
-> **Positioning input, retained for review.** The consolidated
-> [working proposal/specification](../../specs/spec-evidence-bundles.md) distinguishes the first
+> **Positioning input, retained for review.** The
+> [Codex delivery proposal](evidence-bundle-proposal-codex.md) distinguishes a proposed first
 > delivery from this longer-term vision. It is a discussion draft for multiple reviewers.
 > Capability, signing and commercial statements below are proposals or reported premises, not
 > release acceptance or settled packaging policy. Challenge them through its decision register.
