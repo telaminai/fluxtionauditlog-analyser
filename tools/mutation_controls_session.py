@@ -584,4 +584,16 @@ CONTROLS = [
      '        if (definitionRefusal != null) {\n            return "\'" + name.trim() + "\' is not saved',
      '        if (false) {\n            return "\'" + name.trim() + "\' is not saved',
      'ChartDeleteUnderDefinitionRefusalTest#aCloseUnderRefusalWouldDiscardSoItIsRefused'),
+
+    # Reviewer, on the response: the guidance an assistant reads. "Close its tab" named a gesture a socket
+    # caller cannot make, and "close ... for tidying up" sent probes into the profile — a closed chart keeps
+    # its definition, which is the accumulation #50 exists to stop.
+    ('p51r-50-guidance-names-the-verb', J + 'llm/VerbSchemas.java',
+     'to put a chart away without losing it, use close instead")',
+     'to put a chart away without losing it, close its tab instead")',
+     'ChartRemovalGuidanceTest#closeIsTheVerbNotATab'),
+    ('p51r-50-guidance-probes-are-deleted', J + 'llm/VerbSchemas.java',
+     '"definition — for a chart worth keeping; a closed probe still sits in the "\n                                + "profile, so delete those. Goes alone; refused for the last open chart"',
+     '"definition — the safe half of removal, and what to use when tidying up. "\n                                + "Goes alone; refused for the last open chart"',
+     'ChartRemovalGuidanceTest#closeIsNotHowProbesAreCleanedUp'),
 ]

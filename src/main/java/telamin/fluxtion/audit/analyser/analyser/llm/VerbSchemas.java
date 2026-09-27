@@ -122,9 +122,9 @@ public final class VerbSchemas {
                                 + "values with `series`; the chart is what lags"),
                         p("rename", string(), "with {name}, rename that graph to this"),
                         p("close", bool(), "with {name}, take that chart off the screen and KEEP its "
-                                + "definition — the safe half of removal, and what to use when tidying up. "
-                                + "Goes alone; refused for the last open chart"),
-                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, close its tab instead")),
+                                + "definition — for a chart worth keeping; a closed probe still sits in the "
+                                + "profile, so delete those. Goes alone; refused for the last open chart"),
+                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, use close instead")),
                 List.of()));
 
         s.put("goto", schema("Select the record containing an anchor in the table.",
