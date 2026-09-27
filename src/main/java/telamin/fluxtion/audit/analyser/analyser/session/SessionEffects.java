@@ -74,4 +74,14 @@ public sealed interface SessionEffects {
      */
     record ScanLogEvidenceEffect(long opId, long generation) implements SessionEffects {
     }
+
+    /**
+     * View-model spike: draw the log's status line. {@code view} is what it states, decided by the
+     * {@code statusLineView} node; the adapter hands it to every registered backend and answers
+     * {@link SessionEvents.ViewRendered}. A backend composes text or pixels from it and decides nothing.
+     */
+    record RenderStatusLineEffect(long opId,
+                                  telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView view)
+            implements SessionEffects {
+    }
 }

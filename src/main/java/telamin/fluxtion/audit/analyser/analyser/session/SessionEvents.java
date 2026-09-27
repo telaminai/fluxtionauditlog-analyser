@@ -285,6 +285,25 @@ public final class SessionEvents {
                                      String readFailure) {
     }
 
+    /**
+     * View-model spike: the SHAPE of the open log's store, observed by the scan that computes its evidence — what the
+     * status line states about the content that is not a finding: its range, its completeness claim and the frames
+     * still being written. Posted before {@link TimeOrderObserved}, so the scan's settling fact finds it in place.
+     */
+    public record LogShapeObserved(long generation, int records, Long firstLogTime, Long lastLogTime,
+                                   boolean knownComplete, int pendingRecords, int eofIncluded) {
+    }
+
+    /**
+     * View-model spike: the answer to a render effect — which element, and which registered backends drew it. Like
+     * {@link ScanScheduled} it carries no operation: a render belongs to the log's state, not to a person's request.
+     */
+    public record ViewRendered(long opId, String element, java.util.List<String> backends) implements Result {
+        public ViewRendered {
+            backends = backends == null ? java.util.List.of() : java.util.List.copyOf(backends);
+        }
+    }
+
     /** M44.5: the log's producer findings, computed by the adapter for the generation it names. */
     public record ProducerFindingsObserved(long generation,
                                            telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics findings) {

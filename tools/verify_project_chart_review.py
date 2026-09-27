@@ -25,10 +25,11 @@ import mutation_gate_fast as fast  # noqa: E402  (the fast engine and branch-sub
 import mutation_shards as sharding  # noqa: E402
 
 CASES = [('follow-hold',
-  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
-  # M44.5: an idle tick changes no snapshot, and a render sets the line only when what it says changed
-  '        if (!line.equals(renderedLogLine)) {',
-  '        if (true) {',
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/StatusLine.java',
+  # M44.5: an idle tick changes no snapshot, and a render sets the line only when what it says changed.
+  # View-model spike: that decision moved from the frame into the statusLineView node.
+  '        if (view.equals(emitted)) return false;',
+  '        if (false) return false;',
   'StatusExplanationSurvivesFrameTest#anExplanationSurvivesAnIdleFollowTick'),
  ('report-link-opens-closed',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',

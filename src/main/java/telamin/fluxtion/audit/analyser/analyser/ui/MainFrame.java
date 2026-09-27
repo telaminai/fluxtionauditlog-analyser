@@ -4555,6 +4555,10 @@ public final class MainFrame extends JFrame {
                 s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText(),
                 s.emptyLogClaim());
         var order = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator.validate(s);   // with its cross-file part
+        // view-model spike: the store's shape, as the status line states it — before the facts that settle the scan
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogShapeObserved(generation,
+                s.size(), s.minLogTime(), s.maxLogTime(), s.streamEnd().isKnownComplete(),
+                s.trailingRecordsPending(), s.trailingRecordsIncluded()));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved(generation, findings));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved(generation, order));
     }
@@ -4609,56 +4613,60 @@ public final class MainFrame extends JFrame {
         if (followMenuItem != null && followMenuItem.isSelected() != on) followMenuItem.setSelected(on);
     }
 
-    /** The log line last rendered, and for which generation — a line is set only when what it says changed. */
-    private String renderedLogLine;
-    private long renderedLogGeneration = -1;
     /** The snapshot the log's evidence was last rendered from — compared, never read as state. */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot renderedEvidence;
     /** The generation whose time-order report a PERSON asked to see at load (review F5: never a socket caller). */
     private long timeOrderDialogGeneration = -1;
 
     /**
-     * M44.5: the ONE composer of the log's status line, its tooltip and the Reports tab's findings, rendered from the
-     * snapshot. Before M44.5 the load and every Follow tick composed their own lines, and they drifted: the Follow line
-     * dropped provenance and the time-order warning (W2), and records appended under Follow were never validated (W1).
-     *
-     * <p>It renders only once logEvidence's scan of the open log has landed, and sets the line only when what the line
-     * says has changed — so an idle tick, or any snapshot about something else, never overwrites an explanation someone
-     * is still reading (R12-2).
+     * View-model spike: the backends the status line is drawn on. The Swing bar is the one registered here; a test's
+     * recorder and an HTML renderer are others. Each is handed a view the session has already judged current and new.
+     */
+    private final telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackends<
+            telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView> statusLineBackends =
+            new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackends<
+                    telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView>()
+                    .register(new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackend<>() {
+                        @Override public String name() { return "swing"; }
+                        @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView v) {
+                            status.setText(statusLineText(v));
+                        }
+                    });
+
+    /**
+     * The status line as TEXT — the one composer, a pure function of the view, shared by every text backend. The
+     * session decided what it states; this decides only the words and their order.
+     */
+    static String statusLineText(telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView v) {
+        String name = displayName(v.location() == null ? "" : v.location());
+        String line = statusLine(v.following(), v.records(), rangeOf(v.firstLogTime(), v.lastLogTime()),
+                v.provenance() != null ? v.provenance() + "  (" + name + ")" : name, v.knownComplete(),
+                orderWarning(v.timeOrderViolations()), producerWarning(v.producerWarning()),
+                pendingNote(v.pendingRecords(), v.eofIncluded()));
+        if (v.readFailure() != null) line += "  ·  ⚠ Follow read failed: " + v.readFailure();
+        // M68.5: a log reopened because its file was replaced says so on its line; the reason is the session's (OpenLog)
+        if (v.reopenedReason() != null) line += "  ·  ⚠ " + v.reopenedReason();
+        return line;
+    }
+
+    /**
+     * M44.5: the log's tooltip, the Reports tab's findings and the load's time-order report, rendered from the snapshot.
+     * View-model spike: the status LINE left this method — the {@code statusLineView} node decides when it is current
+     * and new, and {@link #statusLineBackends} draw it. What remains waits for the scan of THIS log to land.
      */
     private void renderLogEvidence(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
         var s = store;
         if (s == null) {
-            renderedLogLine = null;
             renderedEvidence = null;
             status.setToolTipText(null);
             return;
         }
         var findings = next.producerFindings();
         var order = next.timeOrder();
-        // Only evidence that describes the content the line counts: while a scan is outstanding, the findings held are
-        // the previous revision's, and the line waits one EDT turn for the scan rather than mix the two
+        // Only evidence that describes the open log's content: while a scan is outstanding the findings held are the
+        // previous revision's
         if (findings == null || order == null || next.evidencePending()
                 || next.logGeneration() != sessionLogGeneration) return;
-        // The line states the revision the SESSION knows. A Follow poll grows the store before it reports the append,
-        // and any snapshot published in between (its identity check, say) would otherwise pair the store's new rows
-        // with the session's previous evidence; the report that follows renders the line.
-        if (next.total() != s.size()) return;
-        if (next.logGeneration() != renderedLogGeneration) {
-            renderedLogGeneration = next.logGeneration();
-            renderedLogLine = null;
-        }
-        String name = displayName(logDisplayLocation);
-        String line = statusLine(next.following(), next.total(), rangeOf(s),
-                next.provenance() != null ? next.provenance() + "  (" + name + ")" : name,
-                s.streamEnd().isKnownComplete(), orderWarning(order), producerWarning(findings), trailingPendingNote());
-        if (next.followReadFailure() != null) line += "  ·  ⚠ Follow read failed: " + next.followReadFailure();
-        // M68.5: a log reopened because its file was replaced says so on its line; the reason is the session's (OpenLog)
-        if ("REOPENED".equals(next.logIdentity())) line += "  ·  ⚠ " + next.logIdentityReason();
-        if (!line.equals(renderedLogLine)) {
-            renderedLogLine = line;
-            status.setText(line);
-        }
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(findings.isClean() ? null : String.join("\n\n", findings.messages()));
         boolean findingsMoved = renderedEvidence == null || renderedEvidence.producerFindings() != findings;
@@ -4699,9 +4707,11 @@ public final class MainFrame extends JFrame {
     }
 
     private String trailingPendingNote() {
-        int pending = store == null ? 0 : store.trailingRecordsPending();
+        return store == null ? "" : pendingNote(store.trailingRecordsPending(), store.trailingRecordsIncluded());
+    }
+
+    static String pendingNote(int pending, int included) {
         if (pending > 0) return " · " + pending + " trailing record" + (pending == 1 ? "" : "s") + " pending";
-        int included = store == null ? 0 : store.trailingRecordsIncluded();
         return included > 0 ? " · EOF record included (no closing separator; completeness unknown)" : "";
     }
 
@@ -4786,15 +4796,18 @@ public final class MainFrame extends JFrame {
     }
 
     /** A log's time range as the status line states it, or the words for a log that carries no timestamps. */
-    private static String rangeOf(LogStore s) {
-        return s.minLogTime() == null ? "no timestamps"
-                : TimeFormat.utc(s.minLogTime()) + " → " + TimeFormat.utc(s.maxLogTime()) + " UTC";
+    private static String rangeOf(Long first, Long last) {
+        return first == null ? "no timestamps" : TimeFormat.utc(first) + " → " + TimeFormat.utc(last) + " UTC";
     }
 
     /** The time-order warning as the status line states it — empty for an ordered log. */
     static String orderWarning(telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport order) {
-        return order == null || order.isClean() ? ""
-                : "  ·  ⚠ time-order violations (" + order.violations().size() + ") — ask 'context' or see the load report";
+        return orderWarning(order == null || order.isClean() ? 0 : order.violations().size());
+    }
+
+    static String orderWarning(int violations) {
+        return violations == 0 ? ""
+                : "  ·  ⚠ time-order violations (" + violations + ") — ask 'context' or see the load report";
     }
 
     /** The producer warning as the status line states it. */
@@ -4803,13 +4816,17 @@ public final class MainFrame extends JFrame {
         // nothing about the set" — and must not wear a warning glyph. It still reaches the tooltip and
         // `context`; it simply is not a fault.
         if (findings == null) return "";
-        return findings.firstWarning()
-                // M68.3: a framing finding is a SUSPICION, and the label on the bar says so like the message does
-                .map(f -> "  ·  ⚠ " + (f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.UNSEPARATED
-                                ? "suspected missing record separators"
-                                : f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
-                        + " — ask 'context', or hover")
-                .orElse("");
+        return producerWarning(findings.firstWarning().map(f -> f.kind().name()).orElse(null));
+    }
+
+    /** The producer warning for the first warning's KIND name, or empty for none. */
+    static String producerWarning(String kind) {
+        if (kind == null) return "";
+        // M68.3: a framing finding is a SUSPICION, and the label on the bar says so like the message does
+        return "  ·  ⚠ " + (telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.UNSEPARATED.name().equals(kind)
+                ? "suspected missing record separators"
+                : kind.toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
+                + " — ask 'context', or hover";
     }
 
     /** Record-density buckets across the log-time range, for the slider histogram. */
@@ -5589,6 +5606,10 @@ public final class MainFrame extends JFrame {
                 scanWhenInstalled(e.generation());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled(opId, e.generation());
             }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RenderStatusLineEffect e ->
+                    // view-model spike: the session decided this view is current and new; every backend draws it
+                    new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewRendered(opId, "statusLine",
+                            statusLineBackends.render(e.view()));
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(

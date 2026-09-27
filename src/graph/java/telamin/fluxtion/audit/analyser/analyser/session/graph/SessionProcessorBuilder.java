@@ -94,6 +94,9 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         // M44.5: the log's own derived state — producer findings and time order — and the decision of when to rescan
         telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence logEvidence =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence(openLog, effects);
+        // view-model spike: the status line as a node — what it states, and when it is told, decided here
+        telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine statusLine =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine(openLog, logEvidence, effects);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -112,6 +115,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(ignoredParameters, "ignoredParameters");
         cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(logEvidence, "logEvidence");
+        cfg.addNode(statusLine, "statusLineView");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate), "designSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
 
