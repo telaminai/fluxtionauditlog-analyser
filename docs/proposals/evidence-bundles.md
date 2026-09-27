@@ -187,17 +187,42 @@ boundary is usually not allowed.
 > bundle" if they cannot. The analyser already distinguishes "source not found because no root" from
 > "not found because absent"; this is the third case and it deserves its own answer.
 
-### 5.5 Re-run is not reproduce — and the platform already has the fix
+### 5.5 Carry the replay record, not only the audit log
 
-This is the largest scientific weakness and the biggest opportunity. Today a bundle carries the
-*output* of a run. Fluxtion supports recording the event stream and replaying it through the same
-compiled classes with a data-driven clock — which is exact reproduction, not a same-shaped re-run.
-The bundle does not use it.
+This is the largest scientific weakness and the biggest opportunity. A bundle today carries the
+**output** of a run. Fluxtion already records the input event stream to YAML and replays it through
+the **same compiled classes** with a data-driven clock — which is exact reproduction, not a
+same-shaped re-run. The bundle does not use it.
 
-> **Needed:** bundles carry the recorded **input event stream**, not only the audit log. The receiver
-> then replays it against their own build and gets a genuine A/B: same inputs, two outputs, one
-> difference. That turns "here is a fixed bundle" from a claim into a comparison — and it is the
-> single change that would make the exchange workflow evidential rather than illustrative.
+The difference is not academic. Our prototype's own manifest has to say that four identical trade
+sequences produced four different figures, because a simulated feed moves. Everything downstream
+inherits that: the reply bundle cannot be compared to the original except by eye and by shape.
+
+> **Needed:** a `replay/` member holding the recorded event stream and the clock policy, and a load
+> option that replays it against the receiver's build rather than just opening the captured output.
+
+What that buys, in order of value:
+
+- **A genuine A/B.** Same inputs, two builds, one difference. "Here is a fixed bundle" stops being a
+  claim and becomes a comparison — which is the entire point of the reply direction.
+- **The receiver's build, not the sender's.** The interesting question is usually not "does it fail
+  for you" but "does it still fail on *my* branch". Replay answers that without the receiver
+  reconstructing the sender's environment.
+- **A regression test for free.** A replay record that reproduced a defect is a test case. Once the
+  fix lands, the same record is the thing that proves it stays fixed — so a bundle that arrives as a
+  bug report leaves as a test.
+- **It removes the caveat we had to write.** "Say re-run, never reproduce" is honest but it is a
+  limitation, and it is the one that most weakens a bundle as evidence.
+
+Two things to be careful about, both worth stating in the format rather than discovering later:
+
+- **Replay proves the processor, not the system.** It replays events through the graph; it does not
+  re-run the venue, the network or the clock of the world. A bundle should say which boundary its
+  replay record sits at.
+- **The record and the classes must match.** Replay through a *different* build is the whole point,
+  but a build whose graph has structurally changed may not accept the record at all. That is a
+  legitimate and informative failure — it should be reported as "this replay does not apply to your
+  build, here is what differs", not as a crash.
 
 ### 5.6 No way to compare two bundles
 
@@ -245,6 +270,39 @@ you only came to look — and until recently nothing on screen told you which pr
 > experiment" state. Evidence that quietly changes while being examined is the one failure this class
 > of tool may not have.
 
+### 5.11 The author's walk through the evidence cannot travel
+
+A bundle hands the receiver a log, a topology and some charts, and leaves them to work out where to
+look. The author already knew the route — "this node feeds that one; that one never logged; here is
+the record where it diverges" — and there is no way to record it.
+
+The analyser has exactly the right primitive and deliberately throws it away. `spotlight` lights up
+to six things at once, numbered, so a sentence can refer to them by number; it is explicitly
+transient, never saved, and goes out on any click or view change. That is correct for a live
+conversation and wrong for a bundle, where the author is not in the room.
+
+> **Needed:** a **saved walk** — an ordered sequence of spotlight sets with their captions, stored
+> in the profile beside charts, focuses and reports, and listed the same way. Plus a step-through
+> control: next / previous, with each step restoring the view it needs (tab, record, focus, chart
+> window) before lighting its targets.
+
+This is the highest-value addition for the exchange use case specifically, because it is the part
+that replaces the author being available to explain. A receiver opening a bundle cold gets an
+argument they can step through and check at each stop, rather than a folder of artefacts.
+
+It also lands cleanly on the evidence/testimony split (Part 7): **a walk is testimony** — it is the
+author's route and their words, exactly as a spotlight caption is already labelled today — while
+every stop on it points at evidence the receiver can check independently. Keeping the walk as a
+named, skippable layer means a sceptical reader can ignore the tour and go straight to the artefacts,
+which is the behaviour the tagline is asking for.
+
+Two smaller things fall out of it:
+
+- A walk subsumes §5.9. "Which focus was applied" stops being a lost scrap of session state and
+  becomes step 1 of the walk.
+- A walk is reviewable. An author can step their own walk before capture and see what a receiver
+  will see — which is how our prototype's two load paths were validated, done by hand.
+
 ---
 
 ## Part 6 — suggested shape
@@ -256,11 +314,73 @@ Roughly in dependency order; 1 and 2 unlock everything else.
 | 1 | bundle-relative path anchor (5.1) | without it a bundle cannot leave the machine |
 | 2 | bundle as an object: single file, versioned manifest, validate on open (5.2) | makes it attachable |
 | 3 | content hashes + consistency report (5.3) | makes a received bundle checkable |
-| 4 | platform excerpting with a recorded filter (5.7) | makes the excerpt self-describing |
-| 5 | read-only loaded bundles (5.10) | stops examination altering evidence |
-| 6 | recorded event stream + replay (5.5) | turns re-run into reproduce |
-| 7 | bundle comparison (5.6) | makes the *reply* evidential |
-| 8 | source coordinates (5.4), redaction (5.8), view state (5.9) | cross-boundary completeness |
+| 4 | **saved spotlight walks + step-through (5.11)** | replaces the author being in the room |
+| 5 | platform excerpting with a recorded filter (5.7) | makes the excerpt self-describing |
+| 6 | read-only loaded bundles (5.10) | stops examination altering evidence |
+| 7 | **replay record carried and replayable (5.5)** | turns re-run into reproduce |
+| 8 | bundle comparison (5.6) | makes the *reply* evidential |
+| 9 | source coordinates (5.4), redaction (5.8) | cross-boundary completeness |
+
+Items 1–3 are the shell: without them nothing leaves the machine intact. **4 is the one I would
+pull forward** if only one thing were built — it is cheap relative to replay and it is what makes a
+cold bundle legible. 7 and 8 are the pair that make the *reply* direction real, and they should be
+planned together: comparison is most of the value of replay.
+
+## Part 7 — evidence and testimony, kept apart
+
+A bundle already carries two different kinds of thing, and today they are mixed in one Markdown
+file:
+
+| | | trusted because |
+|---|---|---|
+| **Evidence** | log excerpt, topology, pairing verdict, hashes, replay record | it is checkable |
+| **Testimony** | hypothesis, outcome narrative, caveats, the author's walk | the author said so |
+
+The product's tagline is *trust the evidence, not the author*, and the analyser already draws this
+line in one place: a spotlight caption is documented as "shown as YOUR words (testimony), not as a
+fact the analyser established", and renders attributed.
+
+> **Proposal:** make the split structural in the bundle, and render it on load. A receiver should be
+> able to see at a glance which parts they are being asked to take on trust, skip them entirely, and
+> still have something they can check.
+
+That is a cheap change with an outsized effect on how the format is read: it turns the tagline from
+a claim about the product into a property of the artefact.
+
+**Naming, unresolved.** "Testimony bundle" was considered and set aside for this reason — testimony
+is precisely the author's account, the category that needs corroborating, and the word is already
+claimed in the codebase for the untrusted layer. *Evidence bundle* is plain and, in UK usage,
+already idiomatic. *Exhibit* is the closer legal analogue — the thing itself, admitted for
+examination — and reads well in the exchange (`attach the exhibit`, `reply with a second exhibit`).
+Left open.
+
+## Part 8 — on specifying the format
+
+Worth doing, worth doing **small**, and worth doing now rather than after the second implementation.
+
+The argument for waiting is real: we have one prototype, built for one application, by the people
+who designed it. A full specification written from that would encode this application's habits as
+requirements — the N=1 risk that applies to everything else here applies to the format too.
+
+The argument for not waiting is stronger in one narrow respect. The moment a bundle crosses a team
+boundary, a receiver needs to answer two questions mechanically: *is this intact*, and *can my
+version read it*. Both are unanswerable without a declared manifest and a version.
+
+> **Recommended:** specify the **manifest and the integrity rules** formally and leave the rest
+> loose.
+>
+> - A required core: format version, capture time, the members present with their content hashes,
+>   the pairing verdict as captured, and the excerpt's filter and counts.
+> - Everything else — reports, images, walks, rerun recipes — declared as optional members, so an
+>   older reader lists what it cannot render instead of refusing the bundle.
+> - Unknown keys preserved on rewrite. The analyser already does this for profiles: an older build
+>   rewrites only the families it owns and carries the rest byte for byte, so a newer bundle
+>   survives a round trip through an older tool. The same rule should apply here, and for the same
+>   reason.
+>
+> Not recommended yet: specifying directory names, the manifest's prose sections, or the walk
+> format. Those should stay conventions until a second, unrelated application has produced bundles
+> and we can see which parts were actually general.
 
 ## Non-goals
 
@@ -278,13 +398,31 @@ Fictional, with the shape and the level of detail that made the real one useful.
 
 ```
 evidence/2026-02-11-quote-gate/
-  MANIFEST.md
+  MANIFEST.md                           EVIDENCE section + TESTIMONY section (Part 7)
   log/quote-service-audit.yaml          148 KB · 34 of 9,210 records
+  replay/events.yaml                    the INPUT stream · replayable (5.5)
   topology/QuotePricer.graphml
-  analyser/bundle.fluxtion-settings     2 charts, 1 focus, 1 report
+  analyser/bundle.fluxtion-settings     2 charts, 1 focus, 1 report, 1 walk
+  walk/unmapped-to-reclaimed.walk       4 steps, author's route (5.11)
   report/unpriced-on-stale-reference.pdf
   images/phase-boundaries.png
   rerun/commands.sh
+```
+
+### The walk, as it would read
+
+Four steps, each restoring the view it needs before lighting its targets. Captions are the author's
+words and are labelled as such.
+
+```
+1  topology ▸ focus "settlement"      ① positionKeeper  ② referenceLookup
+   "① books the dealt side and asks ② for the contra. ② is where it fails."
+2  records ▸ record 11                ① the fill
+   "The unmapped fill. Note contraInstrument=NONE-FOUND and the NaN that follows it."
+3  graph "parked vs settled"          ① the step at 1770000085000
+   "The reclaim: parked falls to zero, settled moves by the same amount, one transfer id."
+4  graph "parked vs settled"          ① the tail after 1770000291000
+   "Phase D — the book still calculates. This is the step that shows a WORKING book."
 ```
 
 ### MANIFEST.md
