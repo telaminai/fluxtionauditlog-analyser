@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-09-27
+
 ### Added
 
 - **The window title names the profile, not just the project.** With several profiles in one project, the title
