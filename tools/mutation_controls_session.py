@@ -604,4 +604,10 @@ CONTROLS = [
      '"definition — for a chart worth keeping; a closed probe still sits in the "\n                                + "profile, so delete those. Goes alone; refused for the last open chart"',
      '"definition — the safe half of removal, and what to use when tidying up. "\n                                + "Goes alone; refused for the last open chart"',
      'ChartRemovalGuidanceTest#closeIsNotHowProbesAreCleanedUp'),
+
+    # PR #51 CI (run 36332664650): a source pane read from a test thread raced the EDT's replacement of its document,
+    # and getText() answered null. The test accessors read on the EDT; without that, the witness sees an instant answer.
+    ('p51ci-pane-text-read-on-edt', UI + 'SourcePanel.java',
+     'if (SwingUtilities.isEventDispatchThread()) return read.get();', 'if (true) return read.get();',
+     'SourcePanelPaneTextIsReadOnTheEdtTest#paneTextWaitsForTheEdt'),
 ]
