@@ -1,0 +1,354 @@
+# Proposal — evidence bundles
+
+**Status:** proposed 2026-09-27. Written from a working prototype built and used on 2026-09-25.
+
+## The proposition
+
+> An investigation should end with **evidence someone else can open**, not a description of evidence.
+
+A bundle is a directory holding one run: the audit log excerpt, the topology it pairs with, the
+analyser state that made sense of it, the reports produced, and enough configuration to run
+something like it again. One command inflates it onto a colleague's screen with no setup.
+
+The intended lifecycle is an exchange, not an archive:
+
+```
+team A hits a failure  ──►  capture bundle  ──►  attach to the ticket
+                                                      │
+team B opens it, sees exactly what A saw  ◄───────────┘
+                │
+                └──►  fixes it, captures a SECOND bundle  ──►  replies on the ticket
+                                                                      │
+                          team A opens both and compares  ◄───────────┘
+```
+
+Today the analyser supports the middle of that picture and none of the ends. This proposal says what
+was built, what held up under use, and what the platform would need for the bundle to survive leaving
+the machine that made it.
+
+---
+
+## Part 1 — what was built
+
+A prototype, in one application repository, as a directory convention plus two skills.
+
+### Layout
+
+```
+audit-experiments/
+  README.md                     the catalogue
+  LOADING.md                    how to open one, and how to get back
+  slice-audit-log.py            the excerpting tool
+  <YYYY-MM-DD-slug>/
+    EXPERIMENT.md               hypothesis, method, outcome, caveats, provenance, commits
+    log/                        the audit log EXCERPT
+    topology/                   the .graphml the log pairs with
+    analyser/PROFILE.md         a POINTER to the profile (see "the profile cannot travel")
+    report/                     rendered PDFs
+    images/                     screenshots
+    rerun/                      config + a commands.sh
+```
+
+### The two skills
+
+- **capture** — snapshot the current analyser state and the run into a new dated folder.
+- **load** — list what exists, or inflate one: profile, then topology, then log, then apply the
+  topology focus named in the manifest.
+
+Order matters and the skill enforces it. Opening a project is a session boundary that closes the log
+and graph, so doing it after loading the log throws the log away.
+
+### One trick worth keeping
+
+The analyser's **exchange directory** was pointed at the bundle folder. The assistant can only read
+and write inside it, so reports and screenshots land *in the experiment* as they are produced rather
+than being copied in afterwards. Capture becomes mostly a matter of writing the manifest.
+
+---
+
+## Part 2 — how it was used
+
+A single session produced a bundle for a three-phase investigation: a defect reproduced, a fix
+applied live, and the fix shown still working afterwards. The manifest recorded the hypothesis up
+front, the method as a table of phases with their time windows, and the outcome as the position
+figures at each phase boundary.
+
+It was then **loaded from cold twice**, by two different routes, and the endpoints compared field by
+field:
+
+| | from no project | from a dirty live session |
+|---|---|---|
+| graphs / focuses / reports | 3 / 7 / 1 | 3 / 7 / 1 |
+| log | 21 records | 21 records |
+| filter | none | **none** |
+| topology context | `All (77) ▸ <focus> (21)` | identical |
+
+The second run started deliberately dirty — a live multi-thousand-record log, a dimension filter and
+a different focus applied. Both the filter and the focus were discarded by the project switch, with
+no leakage into the experiment view. The return trip was validated too.
+
+That table is the reason to trust the format: the convergence was **measured, not assumed**.
+
+---
+
+## Part 3 — what worked well
+
+**Caveats travel with the evidence.** The manifest has a Caveats section listing what the run does
+*not* establish — in the real case: a component that exists but is called by nothing, a gate that may
+test the wrong symbol and was never exercised, and a harness artefact mistaken for product behaviour
+for twenty minutes. A reader who opens the bundle gets the limits at the same moment as the charts.
+This is the single most valuable part of the format and it costs nothing to carry.
+
+**Excerpt by CONTENT, not by time.** The obvious cut — a time window — kept 1,200 records of which
+~1,160 were noise, *and that noise shares an event type with the signal*, so no time or dimension
+filter separates them. Cutting on records mentioning the node under investigation took 6,543 records
+to 21, 99% dropped, with all three phases intact and the topology still pairing perfectly. The
+discriminator is content, and it is chosen per experiment.
+
+**The log and the topology are one artefact.** The `.graphml` is regenerated by the build and does
+change — one added edge changes it. A bundle holding the log but not the graph pairs against a
+drifted topology later, and the analyser reports that the graph declares fewer nodes than the log
+writes. Bundling both makes the pairing verdict meaningful, and the verdict is the receiver's first
+integrity check.
+
+**Declared provenance.** The load declares the log as a captured excerpt. It then rides the status
+bar, `context`, and every report header, so a reader cannot mistake it for a live run — which
+matters most precisely when the bundle has travelled and the reader was not there.
+
+**"Re-run", never "reproduce".** A simulated feed moves: four identical trade sequences gave four
+different position figures. The bundle says re-run gives the same *shape*, not the same numbers.
+Being honest about this in the format prevents a whole class of false confidence.
+
+---
+
+## Part 4 — what could be improved in the prototype
+
+These are ours to fix and need nothing from the platform.
+
+- **The catalogue is hand-maintained.** A table in a README that someone must remember to update.
+- **Images dominated the size.** 1.1 MB of a 1.4 MB bundle. Screenshots need pruning to the ones the
+  manifest actually references.
+- **The rerun script is application-specific.** `commands.sh` encodes one product's build and admin
+  surface; nothing about it generalises.
+- **Capture is a checklist, not a transaction.** A partial capture produces a bundle that looks
+  complete. Nothing validates that the manifest's claims match the files present.
+
+---
+
+## Part 5 — what the platform is missing
+
+This is the substance of the proposal. Each item below blocked something we wanted to do, or would
+block the exchange workflow the format exists for.
+
+### 5.1 The profile cannot travel — the blocker
+
+A profile resolves its stored paths relative to its own location. Inside `.analyser/` with a
+`project.*` name it anchors on the **project root**, so `workspaceRoot=..` and `../<repo>/src/main/java`
+resolve to real sibling checkouts. **Copied into the bundle it re-anchors to the bundle folder** and
+resolves to directories that do not exist — and a missing source root is not an error, so source
+navigation silently stops working.
+
+We found this by loading a copied bundle from cold, and worked around it by keeping the profile
+*outside* the bundle and shipping a pointer. That workaround is fatal to the whole idea: **the bundle
+is not self-contained, so it cannot be attached to a ticket.**
+
+> **Needed:** a bundle-relative path form — an anchor that resolves against the bundle root — so a
+> profile can be carried inside the bundle and still find its own charts, focuses and reports. This
+> is the one item without which the exchange use case does not exist.
+
+### 5.2 Nothing makes the bundle a first-class object
+
+It is a directory layout enforced by two skills in one repository. There is no `bundle` verb, no
+schema, no version field, no validation, and no way for a team that does not have those skills to
+consume one.
+
+> **Needed:** bundle as a platform concept — create, open, validate, with a versioned manifest the
+> analyser reads. Opening should be a single action on a single file, because that is what a ticket
+> attachment is. A zip with a declared extension, not a folder to unpack by hand.
+
+### 5.3 No integrity or identity
+
+Nothing hashes anything. A receiver cannot tell whether the log matches the topology, whether the
+report was rendered from *this* log, or whether a file was edited after capture. The analyser already
+computes log fingerprints and a pairing verdict — but it checks them at load, from whatever it was
+handed, rather than sealing them at capture.
+
+> **Needed:** content hashes in the manifest, and a load-time report of "this bundle is internally
+> consistent" or exactly which part is not. Cross-organisation exchange makes this non-optional.
+
+### 5.4 Source does not travel, and cannot honestly be made to
+
+Source roots point at the author's checkouts. A receiver without those repositories gets a log and a
+topology and no way to reach the code — and shipping source inside a bundle crossing an organisation
+boundary is usually not allowed.
+
+> **Needed:** a declared source *coordinate* rather than a path — remote plus revision — that the
+> receiver resolves locally if they can, and that degrades to a clear "source not available for this
+> bundle" if they cannot. The analyser already distinguishes "source not found because no root" from
+> "not found because absent"; this is the third case and it deserves its own answer.
+
+### 5.5 Re-run is not reproduce — and the platform already has the fix
+
+This is the largest scientific weakness and the biggest opportunity. Today a bundle carries the
+*output* of a run. Fluxtion supports recording the event stream and replaying it through the same
+compiled classes with a data-driven clock — which is exact reproduction, not a same-shaped re-run.
+The bundle does not use it.
+
+> **Needed:** bundles carry the recorded **input event stream**, not only the audit log. The receiver
+> then replays it against their own build and gets a genuine A/B: same inputs, two outputs, one
+> difference. That turns "here is a fixed bundle" from a claim into a comparison — and it is the
+> single change that would make the exchange workflow evidential rather than illustrative.
+
+### 5.6 No way to compare two bundles
+
+The whole point of the reply is that something changed. Nothing opens two bundles together, aligns
+their series, or reports what differs — in the pairing verdict, in a chart, in the records.
+
+> **Needed:** a comparison mode. Given the same event stream (5.5), "what changed between these two
+> runs" is answerable mechanically rather than by eye.
+
+### 5.7 Excerpting is a private script, and honesty about it is a discipline
+
+The rule we adopted — *an excerpt that says what it omitted is evidence; a truncated file is not* —
+is enforced by a human remembering to write a sentence. The tool that does the cutting is a Python
+script in one repository.
+
+> **Needed:** excerpting in the platform, writing the excerpt together with a machine-readable record
+> of the filter used, the counts before and after, and the window — so the omission is a property of
+> the artefact rather than a claim in prose beside it.
+
+### 5.8 No redaction
+
+An audit log leaving an organisation carries business data. There is no field-level redaction, and
+no equivalent of a pre-publication sweep. We hit the same class of problem with screenshots in a
+later session: a capture that looked clean carried identifying names in panes nobody was looking at.
+
+> **Needed:** a declared redaction pass at capture — drop or hash named keys — and a report of what
+> was redacted, so the receiver knows the evidence is partial *by policy* rather than by accident.
+
+### 5.9 The bundle restores artefacts but not the view
+
+A profile stores focus *definitions*; nothing records which one was applied. Both load paths landed
+on the unfocused topology until the focus was applied explicitly — which is why the manifest names it
+and the load skill applies it by hand. Found by testing, not by reading.
+
+> **Needed:** captured view state as part of the bundle — applied focus, selected record, chart
+> windows — so "what I was looking at" is part of what travels.
+
+### 5.10 Loading an experiment silently makes it your live project
+
+The analyser auto-saves project edits. While a bundle is loaded it *is* the active project, so adding
+or deleting a chart writes into the experiment. That is right if you meant to refine it and wrong if
+you only came to look — and until recently nothing on screen told you which profile was active.
+
+> **Needed:** a read-only mode for a loaded bundle, or at minimum an explicit "you are editing the
+> experiment" state. Evidence that quietly changes while being examined is the one failure this class
+> of tool may not have.
+
+---
+
+## Part 6 — suggested shape
+
+Roughly in dependency order; 1 and 2 unlock everything else.
+
+| | item | why now |
+|---|---|---|
+| 1 | bundle-relative path anchor (5.1) | without it a bundle cannot leave the machine |
+| 2 | bundle as an object: single file, versioned manifest, validate on open (5.2) | makes it attachable |
+| 3 | content hashes + consistency report (5.3) | makes a received bundle checkable |
+| 4 | platform excerpting with a recorded filter (5.7) | makes the excerpt self-describing |
+| 5 | read-only loaded bundles (5.10) | stops examination altering evidence |
+| 6 | recorded event stream + replay (5.5) | turns re-run into reproduce |
+| 7 | bundle comparison (5.6) | makes the *reply* evidential |
+| 8 | source coordinates (5.4), redaction (5.8), view state (5.9) | cross-boundary completeness |
+
+## Non-goals
+
+- A bundle is not a backup. It is one run, excerpted, with a stated question.
+- A bundle is not a test. A green re-run is not a passing test and must not be reported as one.
+- Bundles do not replace reports. A report is the argument; the bundle is what the argument cites.
+
+---
+
+## Appendix — a worked sample
+
+Fictional, with the shape and the level of detail that made the real one useful.
+
+### Layout
+
+```
+evidence/2026-02-11-quote-gate/
+  MANIFEST.md
+  log/quote-service-audit.yaml          148 KB · 34 of 9,210 records
+  topology/QuotePricer.graphml
+  analyser/bundle.fluxtion-settings     2 charts, 1 focus, 1 report
+  report/unpriced-on-stale-reference.pdf
+  images/phase-boundaries.png
+  rerun/commands.sh
+```
+
+### MANIFEST.md
+
+```markdown
+# Quote gate: a stale reference entry publishes a price it cannot settle
+
+**Captured** 2026-02-11 · localhost · quote-service `feature/quote-gate` · ticket PROJ-1234
+
+## Hypothesis
+Pricing is arithmetic and needs no reference data; settlement does. So the service can publish a
+price for an instrument whose fills it cannot book.
+
+Two claims:
+1. A fill on an unmapped instrument loses the settlement exposure entirely.
+2. That exposure can be kept unallocated and reclaimed later, with the book still usable.
+
+## Method
+One continuous run, simulated book, mock execution. The same six fills in each of phases A, B and D.
+
+| phase | change | window (epoch ms) |
+|---|---|---|
+| A unmapped | remove the reference entry before trading | 1770000058000 |
+| B mapped    | add it back, no restart                   | 1770000072000 |
+| C reclaim   | transfer the parked amount onto the real asset | 1770000085000 |
+| D after     | the same six fills again                  | 1770000291000 |
+
+Chart window: 1770000050000 → 1770000310000.
+
+## Outcome
+Both confirmed.
+
+    A  dealt=1500  parked=-1500  settled absent
+    B  dealt=3000  parked=-1500  settled=-1500
+    C              parked=0      settled=-3000
+    D  dealt=4500  parked=0      settled=-4500
+
+Phase D is the one that matters: it shows the reclaim left a WORKING book, not a tidy final state.
+
+## Caveats
+- Localhost, simulated feed, mock venue, one instrument, ~4 minutes. Says nothing about venue
+  behaviour or sustained running.
+- **No aggregator honours the quarantine yet.** The predicate exists and nothing calls it. A parked
+  entry is a real number under a key the limit checks do not know about. This makes exposure more
+  LEGIBLE, which is not the same as safer.
+- The gate may test the wrong identifier. This run removed both mappings, so the divergent case was
+  never exercised. UNRESOLVED.
+- The audit keys that make this plottable were added DURING the investigation. The evidence is partly
+  shaped by the investigator.
+
+## Provenance
+- **Log excerpt** 34 of 9,210 records (99.6% dropped), window 1770000053000..1770000299000.
+  Cut on records mentioning `positionKeeper`, not by time: a time window kept 1,400 records of which
+  1,366 were market-data noise sharing an event type with the fills, so no time or dimension filter
+  separates them. Full log 14.2 MB, not retained.
+  **What the cut removes:** every price record. Charts about PRICING will be empty against this
+  excerpt — correct, they belong to a different experiment.
+- **Topology** as regenerated for this build; includes the edge the gate added (188 → 189 edges).
+- **Build** working copies, not the pinned release versions — without that none of this code is in
+  the artefact and the run looks unchanged.
+- **Commits** `a1b2c3d`, `e4f5a6b` on `feature/quote-gate`.
+- **Pairing at capture** "declares 18 of the 18 nodes this log writes".
+
+## Re-run, not reproduce
+The simulated feed moves; four identical sequences gave four different figures. `rerun/commands.sh`
+gives a same-shaped run. Exact reproduction needs replay, which this bundle does not yet carry.
+```
