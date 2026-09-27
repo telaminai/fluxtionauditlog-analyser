@@ -1,6 +1,11 @@
 # M69 · Spotlight walks — saved, stepped explanations on the overlay
 
-**Status: DRAFT r2 (2026-09-27). O-1 to O-4 decided by the owner; ready to build. Nothing built yet.**
+**Status: DRAFT r3 (2026-09-27). O-1 to O-4 decided by the owner. Source-checked corrections below; implementation and acceptance remain unverified. Nothing built yet.**
+
+**r3 changes:** [Source review](../handoff/review_spec_m69_spotlight_walks_2026_09_27_codex.md)
+R1–R9 correct storage, playback side effects/readiness, identity, input handling and contract coverage.
+Section 9 supersedes the identified r2 clauses and acceptance assumptions. The original wording is retained
+for review history, not as a second implementation contract. Owner directions and O-1 to O-4 are unchanged.
 
 **Owner direction (2026-09-27), not open for review:**
 > Not a player — forward/back arrows on the overlay on the analyser's UI. Spotlight walkthroughs are stored like
@@ -70,6 +75,8 @@ It stands on its own. A walk is saved in the project like a report, so it is:
 
 ## 2. Decisions
 
+> **r3:** storage integration and acceptance are qualified by §9.1; automatic report parity is superseded.
+
 **D-W1 — a walk is a saved project artefact, beside reports.**
 - It is stored in the project profile under the REPORTS category, as a `walk.N.*` family, so share, import and
   project scoping behave exactly as they do for reports.
@@ -82,10 +89,14 @@ It stands on its own. A walk is saved in the project like a report, so it is:
 - *Alternative:* a new `WALKS` settings category. It gives separate share and import control, but adds a category to
   every import surface. Would change if the owner wants to share walks without reports.
 
+> **r3:** the portable meaning of attribution is qualified by §9.4; an imported author is not automatically “you”.
+
 **D-W2 — captions are testimony, attributed.**
 - The overlay's callouts already say "assistant" (D-SP2). A walk's callouts say *who authored the walk* ("assistant"
   or "you"), and the control strip names the walk.
 - A walk never presents a caption as a fact the analyser established.
+
+> **r3:** direct verb reuse and the filter allow-list are superseded by §9.2–§9.3.
 
 **D-W3 — a step restores its view from a fixed allow-list.** A step may set:
 - **`tab`**: one of the spotlight vocabulary's tabs;
@@ -98,11 +109,15 @@ Nothing else. In particular, never `open`, `report`, `screenshot`, `source_root`
 log switch. A walk shows; it never changes what is loaded, and never writes a file. That is also why no step ever
 waits for a load. The saved-analysis runner's busy-wait on `loadInFlight` is not repeated here.
 
+> **r3:** digest scope and mismatch handling are superseded by §9.4.
+
 **D-W4 — a walk knows what it was written against.**
 - At save, a walk records the log's fingerprint, the way a report does (`writtenAgainst`).
 - Each record target also carries a SHA-256 of that record's raw text.
 - Played against a different log, the strip says so. Any record target whose digest does not match is shown
   **unavailable**, never re-pointed at a nearby record.
+
+> **r3:** the current/historical/unresolved contract is qualified by §9.4–§9.5; “shown as what it was” does not promise a retained old rendering.
 
 **D-W4a — structural and observational steps are checked against different things** (P1).
 - **Observational targets** (`records:row`, `detail:node`, `graph:…`) are checked against the *run*: the record
@@ -113,8 +128,12 @@ waits for a load. The saved-analysis runner's busy-wait on `loadInFlight` is not
   it was, not as a current observation), or **unresolved** (the target cannot be found, with the reason). The policy
   is visible per step, never averaged across the walk.
 
+> **r3:** name-only reference tracking is superseded by §9.6.
+
 **D-W3a — a step that names a focus follows the focus's name.** A rename of that focus updates the walk's reference. Deleting the focus leaves the step **unresolved: focus deleted**. The
 walk is never deleted with it.
+
+> **r3:** input precedence and focus requirements are specified by §9.7.
 
 **D-W5 — the controls live on the overlay.**
 - The overlay gains a **control strip**: `◀ Back · <walk title> — step 2 of 5 · Next ▶ · ✕`. Keyboard: ← and → to
@@ -125,6 +144,8 @@ walk is never deleted with it.
   saved (O-2).
 - **A right-click is not a dismissing press** (owner direction). It opens the save menu (D-W8).
 
+> **r3:** synchronous execution and the ambiguous all-or-nothing claim are superseded by §9.2–§9.3.
+
 **D-W6 — showing a step is all-or-nothing, and never silent.**
 - To show a step, the frame: checks every target; applies the step's view through the same verb executor saved
   analyses use (synchronous view changes only, D-W3); then lights the targets.
@@ -132,12 +153,16 @@ walk is never deleted with it.
   the reason in the strip. Or, if nothing can be shown, the walk stops at the previous step and says why. A step is
   never skipped silently, and never reported as shown when it was not.
 
+> **r3:** the empty-message proof and complete independence from #56 are superseded by §9.3.
+
 **D-W7 — a chart step checks that the chart drew.**
 - Inside the analyser, the walk can ask the chart panel directly whether it drew (`ChartPanel`'s empty-plot message,
   the fact #56 proposes to publish). A chart target on a chart with no room is shown unavailable, with the size and
   "widen the window".
 - This removes the walk's dependency on #56 (L-24). When #56's `expand` and `view` land, the walk requests room
   through #56's single layout-override owner, not a mechanism of its own.
+
+> **r3:** authoring capture and verb integration are qualified by §9.2, §9.4 and §9.9.
 
 **D-W8 — authoring (O-1).**
 - **The assistant** creates, replaces, deletes, renames and restores walks through a verb, mirroring `report`:
@@ -153,6 +178,8 @@ walk is never deleted with it.
   The saved step is **what is on screen**: the lit targets and their captions, plus the current view, taken through
   D-W3's allow-list. Record targets get their digest (D-W4). Anything outside the allow-list is not saved, and the menu
   says which part was left out. The popup is not modal: Esc or a press elsewhere closes it, and the spotlight stays.
+
+> **r3:** lifecycle details are qualified by §9.8; O-3 remains unchanged.
 
 **D-W9 — playback is presentation state; ending it is the snapshot's decision (O-3).**
 - Which walk is showing, and which step, is view state, like which tab is selected. It is not session state. Nothing
@@ -246,3 +273,163 @@ Each check has a wrong-result witness and a registered mutation control (rule 8)
 - ~~**O-3.**~~ **Decided by the owner, 2026-09-27: presentation state**, held by the frame like the selected tab.
   The published snapshot's log generation ends it; there is no session node and no regeneration (D-W9).
 - ~~**O-4.**~~ Settled by the owner: a right-click on a live spotlight opens the save menu, in v1 (D-W8).
+
+
+## 9. r3 source-checked corrections and acceptance extensions
+
+These requirements supersede the marked r2 clauses above. The review records source evidence and delivery
+costs; it does not claim that a new walk implementation or its future controls have run.
+
+### 9.1 Storage: REPORTS is a category choice, not an existing walk serializer (R1)
+
+Retain REPORTS. A separate WALKS category offers independent selection but does not remove the need to change
+serialization, preview, application, project snapshots and machine-tier saves. Broaden the category's visible
+label/disclosure to include walks and commentary. Both export and preview recognise `walk.count` independently
+of `report.count`; a walk-only import must not remove reports. Replacement is by name within each family.
+
+Walk definitions participate in `ProjectProfile.Snapshot`, snapshot/restore/clear, and
+`ConfigStore.save(config, globalTier)` with the same tier choice as report definitions. The deleted-walk bin
+is machine-local even while a project is active, never exported or imported. Register live and deleted key
+families at their respective profile/config scopes, and remove obsolete indexed entries on save.
+W-A1/W-A9/W-A17 additionally cover project A → B → close, a machine save while A is active, walk-only sharing,
+category disclosure, and deletion down to an empty bin. Existing report tests remain regression gates;
+P-W3's no-test-change estimate is unconfirmed; existing tests may stay unchanged where new tests cover the additions.
+
+### 9.2 View replay is transient and complete (R2)
+
+Do not implement D-W3 by blindly issuing the current `graph` verb. Pinning a graph and reopening a saved closed
+graph currently request persistence. Walk playback must use shared validation and view operations with an
+explicit transient presentation mode: no saved-chart pin/open-state edits, no profile or machine-settings
+write caused by playback. Normal graph actions keep their current persistence semantics. Ending a walk clears
+its temporary chart overrides; it does not overwrite a later explicit edit by the person.
+
+Extend the filter allow-list with `groupMode` (`DIMENSION` or `RAW_EVENT`). Save all filter constraints explicitly,
+including cleared values; restore grouping before dimensions. Missing filter fields in a stored legacy step
+must have documented defaults, not mean “keep whatever was selected”. Bind searchable text to the current
+store; do not serialize a function or carry a previous store's text source. A right-click capture must either
+capture this complete allowed view or name the part it cannot reproduce.
+
+W-A4/W-A12 cover opposite grouping modes, a dirty dimension/text filter, a pinned chart and a saved closed chart.
+Compare saved definitions and both settings files before/after playback, after pending saves have settled.
+A control that routes playback through the persisting graph operation must fail the no-write assertion.
+This is additional presentation plumbing, not a claim that every field already has a suitable public verb.
+
+### 9.3 Preparation, availability and actual drawing (R3)
+
+Validate the entire view request before applying any of it; a refused view leaves the previous step/view intact.
+After an accepted view change, resolve targets against that view. Missing individual targets remain numbered
+and explicitly unavailable; partial target resolution is allowed and is not called all-or-nothing success.
+The strip states preparing, shown, partly available or unavailable truthfully. If no target is usable, report
+that state without claiming the previous screen depicts the requested step. This supersedes D-W6's ambiguous
+choice between showing a failed step and silently remaining on the previous view.
+
+No step opens a log or waits on `loadInFlight`. Chart extraction, debounced filter refresh and painting are
+nevertheless asynchronous. Use a bounded, cancellable completion condition for the requested view and current
+layout; never block the EDT or copy the saved-analysis busy-wait. A superseded completion cannot light targets,
+advance the step or overwrite the current reason. On expiry, publish unavailable with a reason.
+
+`ChartPanel.lastEmptyMessage() == null` is not proof of drawing: it can mean not painted yet, a previous paint,
+or a window with no samples. Use extraction completion and the chart's authoritative rendering/geometry result,
+bound to the current view and layout. Do not introduce a second plot-size formula. Check showing/visible bounds
+as well as the empty state. “Widen the window” applies only to insufficient room, not to missing samples.
+Coordinate this fact with #56's single layout owner; v1 need not implement its expand/view commands.
+
+W-A2/W-A4/W-A6 cover delayed extraction, immediate resize after a good paint, an unpainted chart, an empty window,
+and rapid Next → Back. Named controls must distinguish stale paint from current drawing and a late completion
+from the current step. A null-message-only control must fail. P-W4 is not sufficient as an acceptance premise.
+
+### 9.4 Identity states describe their actual basis (R4)
+
+A per-record digest binds only the indexed record's raw-text representation, not the chart population, build
+or entire run. Define it as SHA-256 over UTF-8 encoding of the exact unprojected `LogStore.rawText(index)` string,
+without trimming or inserted export framing. Record the representation/reader basis; a missing or incompatible
+basis is unknown, not equal. This is not a claim about original file bytes. Capture identities and view facts
+coherently for one store/session generation and bounded population, respecting the existing read-identity gate;
+if that changes during capture, refuse or retry the save without silently rebinding old captions to new data.
+
+For a chart, matching count/end times or one record is insufficient. “Current” requires an established identity
+for the data population the chart uses and its saved definition, including external-series dependencies where
+present. If such a basis is unavailable in v1, show unresolved with “chart population identity unknown”; do not
+invent a whole-log guarantee. Any new population digest must define ordering, boundaries and representation
+before it is used, and hashing must not block the EDT. The coarse report fingerprint remains a useful mismatch
+warning, never a substitute for this basis.
+
+Keep the three strip states, but retain each target's reason and availability. Known mismatch is historical;
+unknown identity or an absent/ambiguous target is unresolved. A historical caption can be displayed as prior
+commentary, but a mismatched record target stays unavailable (W-A5). No original chart/record is reconstructed
+by this feature. A mixed step must disclose its target states, never label the whole step current when one
+required basis is historical or unknown. UI and context expose the same qualification.
+
+W-A13/W-A16/W-A17 add a chart-only step on same-count/same-time logs with a changed middle value, absent identity,
+and a mixed structural/observational step. Historical attribution retains the declared author and capture time;
+sharing cannot turn another person's declaration into “you”. Graph identity establishes structure only, not the
+truth of code-level commentary: retain relevant declared code/build provenance when available and disclose its
+absence. W-A14 adds changed code with identical GraphML; do not certify unchanged behaviour from graph equality.
+
+### 9.5 A graph digest must belong to the current graph (R5)
+
+Do not consume `loadedGraphSha256()` without establishing its association with the displayed graph. At the
+reviewed source, `clearGraph` and `loadFromSource` leave that field unchanged. M69 implementation must invalidate
+or rebind the identity on those transitions. A source-supplied graph without an established content identity is
+unknown. W-A14/W-A17 include file graph A → clear → source graph B, and require that A's digest cannot qualify B.
+This is a dependency to close in implementation, not a claim that the source defect has been fixed by this spec.
+
+### 9.6 Names locate focuses; they do not establish unchanged definitions (R6)
+
+Bind a focus reference to its saved definition as well as its name. The existing save/import paths can replace
+that definition under the same name. A missing focus remains unresolved; deleting then recreating that name
+must not silently repair an old reference to different contents. An explicit supported rename may update
+references atomically, with collisions refused; do not infer a rename from absence plus a similar name. This
+contract does not require adding a new focus-rename UI to deliver walks.
+W-A9/W-A15/W-A17 add replace-by-name, delete/recreate, import collision and an explicit rename if supported.
+
+### 9.7 Input precedence must precede dismissal (R7)
+
+Classify strip actions and popup requests before the existing dismissal path. Its current `onPressed` hook
+runs after dismissal and receives only a point, so it cannot implement this contract unchanged. Preserve ordinary
+spotlight/menu activation behaviour outside the exceptions. Handle platform popup triggers on press/release
+without activating twice. While the save popup is open, its dismissal takes priority and keeps the spotlight;
+otherwise an outside-strip press ends the walk as O-2 requires.
+
+Provide an explicit keyboard-focus policy for the strip, restore prior focus when appropriate, and avoid arrow
+keys being consumed by a focused table/combo. W-A2/W-A3/W-A12 use real mouse/key events with an asserted focus
+owner, including a pre-focused combo, popup Escape and ordinary outside dismissal. Calling the bound action
+alone is not keyboard acceptance. P-W1 is feasible from the event API, but remains an unrun prediction.
+
+### 9.8 Presentation lifecycle consumes the snapshot (R8)
+
+Keep O-3: no new session node or regeneration. New log generation ends the walk through snapshot rendering.
+Do not assume generation changes on close or on an identity observation: current source does neither.
+An absent log or a changed published identity must therefore invalidate affected target availability/currentness
+from that same snapshot, even without a new generation. Do not recompute session verdicts in input listeners.
+
+Distinguish a walk's own view application from an external view-changing action; otherwise the existing
+`ActionExecutor.render` spotlight dismissal can end the walk at its own first step. Use a scoped presentation
+origin/ticket, not a global suppression of external dismissals. Pending preparation checks its ticket and captured
+generation before publishing. W-A8 extends to close, same-generation identity degradation and a late completion
+after a log switch; W-A3 proves own-step changes survive while an external successful view action ends playback.
+
+### 9.9 Verb integration and delivery checks (R9)
+
+W-A10 covers dispatcher/executor routing, operation-specific read-identity checks, `VerbSchemas`, MCP metadata,
+the in-process and REST prompt manifests, context projections, Project-panel facts, assistant docs/help and skills.
+Listing/editing stored walks can work without an open log; record-dependent playback/capture still honours the
+existing read boundary. Define accepted operation combinations and reject incompatible create/delete/rename/
+restore/play fields before mutating anything. Unknown nested view fields remain refusals under W-A7.
+
+Tests include `ManifestVerbContractTest`, `McpToolsTest`, `InProcessManifestNamesEveryVerbTest`,
+`VerbSchemasTest`, the explicit verb counts in `CloseVerbTest` and `ProjectVerbTest`, plus `ContextSectionsTest`,
+Project-model contracts and spotlight dismissal tests. Inventory affected security/disclosure tests too; adding
+a verb is not merely adding an option to an existing one. Register new frame suites in both CI lists and controls
+in the gate. S1 includes §9.1/§9.4–§9.6 acceptance, S2 includes this inventory, S3 includes §9.2–§9.3/§9.7–§9.8,
+and S4 includes cross-surface identity/attribution parity. These are future delivery gates, not completed checks.
+
+### Prediction disposition at r3
+
+| id | source-review disposition |
+|---|---|
+| P-W1 | READ: pre-dismiss classification is feasible, but requires changing the existing callback path. Keyboard/popup behaviour is not verified. |
+| P-W2 | READ: refuted as direct safe reuse; graph operations persist, and grouping restoration is missing from the filter verb. |
+| P-W3 | READ: not established; storage paths are report-specific. Additional share/tier regressions are necessary, but inspection does not prove existing report test bodies must change. |
+| P-W4 | READ: confirmed literally that the getter is accessible without a layout change; refuted as proof of the requested step's drawn state. |
+| P-W5 | READ: refuted as a complete inventory; routing, identity policy, context projection and additional count tests also participate. |
