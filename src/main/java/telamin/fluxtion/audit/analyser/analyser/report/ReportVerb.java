@@ -45,11 +45,6 @@ public final class ReportVerb {
             supplied = java.util.Set.copyOf(supplied == null ? java.util.Set.<String>of() : supplied);
         }
 
-        /** Pre-#46 shape, kept so existing callers compile: everything the spec holds counts as supplied. */
-        public Parsed(ReportSpec spec, List<String> warnings) {
-            this(spec, warnings, java.util.Set.of("title", "notes", "sections"));
-        }
-
         /**
          * #46 — what to STORE, given what is already stored under this name. <b>Absent means
          * unchanged.</b>
