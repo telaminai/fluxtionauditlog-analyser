@@ -84,4 +84,14 @@ public sealed interface SessionEffects {
                                   telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView view)
             implements SessionEffects {
     }
+
+    /**
+     * View-model spike, second element: draw the file-identity banner. Three surfaces state this verdict — the
+     * table, the charts and the record detail — and each composes its own sentence from the same view, so they can
+     * differ in words and never in what they claim about the file.
+     */
+    record RenderIdentityBannerEffect(long opId,
+                                      telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView view)
+            implements SessionEffects {
+    }
 }
