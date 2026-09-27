@@ -8,6 +8,32 @@ on:
     branches: [main]
 
 jobs:
+  changes:
+    # A docs-only change (Markdown outside src/ and docs/skills/, or a site image — see tools/ci_docs_only.py) skips the
+    # expensive jobs below. `build` always runs: documentation is an input to the headless tests (spec links, CLAUDE.md,
+    # the site pages, runbooks). Any doubt — a new branch, a failed diff, this job failing — runs everything.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: classify
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            python3 tools/ci_docs_only.py "$PR_BASE" "$PR_HEAD" --three-dot >> "$GITHUB_OUTPUT"
+          else
+            python3 tools/ci_docs_only.py "$PUSH_BEFORE" "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -38,12 +64,16 @@ jobs:
       # no model session and contact no network.
       - name: G14 harness tests (key-leak scan, group reaping, refusals)
         run: python3 tools/test_g14_runner.py
+      - name: Docs-only classifier tests (which changes may skip the expensive jobs)
+        run: python3 tools/test_ci_docs_only.py
       # UI classes are only constructed, never shown, so the headless ubuntu runner is fine.
       - run: mvn -B verify
 
   loop-bench:
     # M19.8: this one DOES launch Swing. xvfb supplies the display while the stub and isolated home
     # keep the cross-repo contract deterministic and independent of a live Mongoose installation.
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -70,6 +100,8 @@ jobs:
     # R2-F6 (1.13.1 review): PairingDuringLoadFrameTest constructs a real MainFrame and is SKIPPED under the
     # pom's forced headless run, so `build` alone never proves the pairing lifecycle. This job gives it a
     # display and fails if the suite skipped — a quiet skip is exactly the failure mode being closed.
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -104,6 +136,8 @@ jobs:
 
   mutation-selftest:
     # Independent required job: do not put this setup cost in every shard's critical path.
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -130,6 +164,8 @@ jobs:
   mutation-shards:
     # Separate runners mean separate workspaces, class trees and Xvfb displays. Controls within a
     # shard remain sequential: one baseline, then named failure / byte restore / restored green.
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -164,7 +200,7 @@ jobs:
   mutation-gate:
     # Preserve the existing required-check name. A failed/cancelled/skipped worker or self-test
     # fails this job; successful jobs must also prove complete, exactly-once control coverage.
-    needs: [mutation-selftest, mutation-shards]
+    needs: [changes, mutation-selftest, mutation-shards]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -172,22 +208,29 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - name: Docs-only change — no mutation control can be affected
+        if: needs.changes.outputs.docs_only == 'true'
+        run: echo "docs-only change; the mutation shards and self-test were skipped by design (tools/ci_docs_only.py)"
       - name: Require successful workers and engine self-test
+        if: needs.changes.outputs.docs_only != 'true'
         env:
           SELFTEST_RESULT: ${{ needs.mutation-selftest.result }}
           SHARDS_RESULT: ${{ needs.mutation-shards.result }}
         run: |
           test "$SELFTEST_RESULT" = success && test "$SHARDS_RESULT" = success
       - uses: actions/download-artifact@v4
+        if: needs.changes.outputs.docs_only != 'true'
         with:
           pattern: mutation-shard-*
           path: target/mutation-shards
           merge-multiple: true
       - name: Verify every current control exactly once against this revision
+        if: needs.changes.outputs.docs_only != 'true'
         run: >
           python3 tools/mutation_shards.py --artifacts target/mutation-shards --count 4
           --revision "$GITHUB_SHA" --output target/mutation-gate.json
       - name: Keep the combined evidence
+        if: needs.changes.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mutation-gate

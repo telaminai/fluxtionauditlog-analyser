@@ -62,7 +62,9 @@ architecture, conventions). This file is only the rules that must never be skipp
 3. **Branch**: `main` only (trunk-based, always releasable); `pull.rebase` is set — no merge bubbles.
    Never force-push; never resurrect `master`.
 4. **Tests gate everything**: `mvn test` green before commit. Pure logic runs headless; frame
-   tests need a display. CI runs the registered frame suites under Xvfb and rejects skips. Report
+   tests need a display. CI runs the registered frame suites under Xvfb and rejects skips. A docs-only change (Markdown outside `src/`
+   and `docs/skills/`, or a site image — `tools/ci_docs_only.py`) runs `build` only: docs are test inputs, so the
+   headless suite still runs, while the frame suites, loop bench and mutation shards are skipped. Report
    skips separately from passes; use the built jar for visual and action-socket acceptance.
 5. **Docs site** (`docs/site/`, root `mkdocs.yml`, MkDocs Material): `mkdocs build --strict` must pass
    before pushing site changes (CI link-checks). Local: `pip3 install -r docs-requirements.txt &&
