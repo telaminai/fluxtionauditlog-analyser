@@ -74,4 +74,31 @@ public sealed interface SessionEffects {
      */
     record ScanLogEvidenceEffect(long opId, long generation) implements SessionEffects {
     }
+
+    // ---- M69 spotlight walks: decided by the walkPlayback node, performed by the frame (spec §3.8) ----------
+
+    /**
+     * Apply step {@code step} of walk {@code walk}'s view, then prepare it: wait (non-blocking, bounded) for the charts
+     * it involves, and resolve its targets. Answered at once by {@link SessionEvents.WalkViewApplied}; the prepared
+     * step arrives later as {@link SessionEvents.WalkStepPrepared}, carrying {@code ticket} and {@code generation}.
+     */
+    record ApplyWalkViewEffect(long opId, long ticket, long generation, String walk, int step) implements SessionEffects {
+    }
+
+    /** Light these targets (the available ones, numbered in step order) on the overlay. */
+    record LightWalkTargetsEffect(long opId, long ticket, java.util.List<SessionEvents.WalkTargetState> targets)
+            implements SessionEffects {
+        public LightWalkTargetsEffect {
+            targets = java.util.List.copyOf(targets);
+        }
+    }
+
+    /** Re-resolve the showing step's targets without re-applying its view — the log's identity changed. */
+    record ResolveWalkTargetsEffect(long opId, long ticket, long generation, String walk, int step, String why)
+            implements SessionEffects {
+    }
+
+    /** The walk ended: put its lit targets and its strip away, restore keyboard focus. */
+    record EndWalkEffect(long opId, long ticket, String reason) implements SessionEffects {
+    }
 }

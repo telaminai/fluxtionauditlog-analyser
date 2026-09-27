@@ -2266,6 +2266,52 @@ public final class MainFrame extends JFrame {
      */
     private final SpotlightOverlay spotlight = new SpotlightOverlay(this::spotlightDismissed);
 
+    /** M69: true while the walk lights or clears its OWN spotlight, so that is not reported as the walk ending. */
+    private boolean walkOwnSpotlight;
+
+    /** M69: performs what walkPlayback asks; decides nothing (spec-spotlight-walks.md §3.8). */
+    private final WalkPresenter walkPresenter = new WalkPresenter(new WalkPresenter.Frame() {
+        @Override public telamin.fluxtion.audit.analyser.analyser.config.AppConfig config() { return config; }
+        @Override public LogStore store() { return store; }
+        @Override public telamin.fluxtion.audit.analyser.analyser.filter.FilterState filter() { return filter; }
+        @Override public GraphTabs graphs() { return graphTabs; }
+        @Override public TopologyPanel topology() { return topologyPanel; }
+        @Override public void selectTab(String tab) { selectSideTab(tab); if (sideTabs != null) sideTabs.validate(); }
+        @Override public boolean selectRecord(int modelRow) { return tablePanel.selectModelRow(modelRow); }
+        @Override public java.util.List<String> runBasisNow() {
+            return loadedLogIdentity.stream().map(i -> i.sha256()).toList();
+        }
+        @Override public SpotlightTarget.Resolution resolve(String target) {
+            return SpotlightTarget.resolve(target, spotlightSurface);
+        }
+        @Override public WalkPresenter.LitResult light(java.util.List<SpotlightTarget.Request> requests) {
+            java.util.List<Map<String, Object>> targets = new java.util.ArrayList<>();
+            for (SpotlightTarget.Request r : requests) {
+                Map<String, Object> one = new java.util.LinkedHashMap<>();
+                one.put("target", r.target());
+                if (r.caption() != null && !r.caption().isBlank()) one.put("caption", r.caption());
+                targets.add(one);
+            }
+            walkOwnSpotlight = true;
+            try {
+                var result = applySpotlight(Map.of("targets", targets));
+                return result.ok() ? new WalkPresenter.LitResult(spotlight.lit().size(), "")
+                        : new WalkPresenter.LitResult(0, result.error());
+            } finally {
+                walkOwnSpotlight = false;
+            }
+        }
+        @Override public void clearWalkSpotlight() {
+            walkOwnSpotlight = true;
+            try {
+                clearSpotlightHere();
+            } finally {
+                walkOwnSpotlight = false;
+            }
+        }
+        @Override public void post(Object fact) { if (session != null) session().post(fact); }
+    });
+
     private long javaSpotlightTicket;
     // Below McpBridge.CALL_TIMEOUT (60s). Package tests shorten this duration, never the transport.
     private java.time.Duration javaSourcePreparationTimeout = java.time.Duration.ofSeconds(10);
@@ -2282,6 +2328,13 @@ public final class MainFrame extends JFrame {
     private final Map<String, JavaBinding> javaSpotlightBindings = new java.util.LinkedHashMap<>();
 
     private void spotlightDismissed() {
+        // M69: a spotlight going out ends a showing walk — unless it is the walk's OWN light or clear (its presentation
+        // origin, §3.4). This reports; walkPlayback decides. Asked only while a walk shows, so an ordinary spotlight's
+        // dismissal writes nothing to the session.
+        if (!walkOwnSpotlight && session != null && sessionSnapshot().walkPlayback().showing()) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested(
+                    "the spotlight went out (a click, Escape, or a view change from outside the walk)"));
+        }
         if (!applyingJavaSpotlight) javaSpotlightTicket++;
         javaSpotlightBindings.clear();
         designSpotlightRevisions.clear();
@@ -5597,6 +5650,14 @@ public final class MainFrame extends JFrame {
                 sessionInteractive = !e.fromSocket();
                 yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
             }
+            // M69: walk playback — the node decided; the presenter performs and answers
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyWalkViewEffect e -> {
+                walkPresenter.clearOwnLightForNextStep();
+                yield walkPresenter.applyView(e);
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.LightWalkTargetsEffect e -> walkPresenter.light(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ResolveWalkTargetsEffect e -> walkPresenter.resolveAgain(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.EndWalkEffect e -> walkPresenter.end(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
                 // M44.5: the processor decided the log's evidence is stale. The scan never runs inside the dispatch, and
                 // only against the store of the generation it names: see scanWhenInstalled.

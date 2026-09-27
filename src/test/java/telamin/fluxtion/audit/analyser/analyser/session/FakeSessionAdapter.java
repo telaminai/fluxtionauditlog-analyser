@@ -22,6 +22,13 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     private final List<String> loadable = new ArrayList<>();
 
     final List<SessionEffects> performed = new ArrayList<>();
+    /** M69: what walkPlayback asked the adapter to do, in order. */
+    final List<SessionEffects.ApplyWalkViewEffect> walkViews = new ArrayList<>();
+    final List<SessionEffects.LightWalkTargetsEffect> walkLights = new ArrayList<>();
+    final List<SessionEffects.ResolveWalkTargetsEffect> walkResolves = new ArrayList<>();
+    final List<SessionEffects.EndWalkEffect> walkEnds = new ArrayList<>();
+    /** Set to have the fake refuse a walk step's view. */
+    boolean refuseWalkViews;
 
     boolean logClosed;
     boolean graphClosed;
@@ -48,6 +55,23 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
         performed.add(effect);
         return switch (effect) {
             case SessionEffects.ScanLogEvidenceEffect e -> new SessionEvents.ScanScheduled(e.opId(), e.generation());
+            // M69: the recording backend for walk playback — what the node ASKED, and a plain answer
+            case SessionEffects.ApplyWalkViewEffect e -> {
+                walkViews.add(e);
+                yield new SessionEvents.WalkViewApplied(e.opId(), e.ticket(), !refuseWalkViews, refuseWalkViews ? "refused by the fake" : "");
+            }
+            case SessionEffects.LightWalkTargetsEffect e -> {
+                walkLights.add(e);
+                yield new SessionEvents.WalkTargetsLit(e.opId(), e.ticket(), e.targets().size(), "");
+            }
+            case SessionEffects.ResolveWalkTargetsEffect e -> {
+                walkResolves.add(e);
+                yield new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "resolve");
+            }
+            case SessionEffects.EndWalkEffect e -> {
+                walkEnds.add(e);
+                yield new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "end");
+            }
             case SessionEffects.LoadProfileEffect e -> {
                 if (loadThrows) {
                     loadThrows = false;

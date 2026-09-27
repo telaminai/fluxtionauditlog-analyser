@@ -59,6 +59,20 @@ public final class FilterState {
         fireChanged();
     }
 
+    /**
+     * M69 §3.3 — set a COMPLETE filter as one change: grouping first (it resets the dimension selection), then the
+     * dimensions, the window and the text, and a single {@link #fireChanged()}. A walk step states every field, so
+     * nothing of the previous filter survives it, and listeners see one change rather than four.
+     */
+    public void setAll(Long from, Long to, GroupMode mode, Set<String> dims, String t) {
+        this.groupMode = mode == null ? GroupMode.DIMENSION : mode;
+        this.dimensions = dims == null ? null : new HashSet<>(dims);
+        this.fromMillis = from;
+        this.toMillis = to;
+        this.text = t == null ? "" : t.trim();
+        fireChanged();
+    }
+
     public void setGroupMode(GroupMode m) {
         this.groupMode = m;
         this.dimensions = null;   // grouping changed → reset the selection to "all"

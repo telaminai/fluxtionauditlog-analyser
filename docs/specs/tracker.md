@@ -1475,8 +1475,11 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
   and share path, plus the machine-local bin (`WalkBin`, `DeletedWalk`). `WalkPersistenceTest`, `WalkStepsTest` and
   `WalkIdentityTest`, 25 tests; 17 `m69-s1-*` controls. The D-SP4 guard is narrowed to the one phrase the owner
   allowed, "spotlight walk" (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
-- [M69.S2] ☐ `FilterState.setAll`; `ChartPanel`'s paint outcome; **the `walkPlayback` session node** (facts, effects,
-  `-Pregen`); the adapter's performers; the snapshot field (W-A4, W-A5, W-A6, W-A8, W-A13–W-A15).
+- [M69.S2] ☑ `FilterState.setAll`; `ChartPanel`'s paint outcome (`drawnFact`); **the `walkPlayback` session node**
+  (facts, effects, regenerated with `-Pregen`); `WalkResolver` and `WalkPresenter` (performers only); the snapshot's
+  `walkPlayback`. Tests: `WalkPlaybackTest` (12, on the real generated processor), `WalkResolverTest` (12),
+  `WalkPresenterTest` (7), and `ChartDrawnFactFrameTest` (2, display, in both CI frame lists). 21 `m69-s2-*` controls
+  (W-A4, W-A5, W-A6, W-A8, W-A13–W-A16).
 - [M69.S3] ☐ The overlay strip; input classified before dismissal; keyboard focus; the right-click save menu (W-A2,
   W-A3, W-A12).
 - [M69.S4] ☐ The `walk` verb and its contract; `context`; the Reports tab and Project panel; docs, CHANGELOG, a capture

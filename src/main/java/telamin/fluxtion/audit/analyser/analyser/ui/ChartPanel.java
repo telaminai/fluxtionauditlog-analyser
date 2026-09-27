@@ -242,6 +242,46 @@ public final class ChartPanel extends JPanel {
                 + " px) — the series has data; make the chart larger to see it.";
     }
 
+    /**
+     * M69 §3.6 — what the LAST paint established, and for which size, data and window. A walk asks
+     * {@link #drawnFact()} rather than reading {@link #lastEmptyMessage()}: a null message is also what an unpainted
+     * chart, a stale paint, or a window with no samples look like (review R3). One owner of the answer, computed from
+     * the paint itself — there is no second plot-size formula.
+     *
+     * @param noRoom true when the paint had series data but no room to draw them
+     */
+    record PaintOutcome(int width, int height, long dataRevision, double vx0, double vx1, String emptyMessage,
+                        String emptyReason, boolean noRoom) { }
+
+    /** Whether the chart drew, and if not why — the drawn fact a walk step lights a chart target on. */
+    public record DrawnFact(boolean drawn, boolean settled, String reason) { }
+
+    private PaintOutcome lastPaint;
+
+    /**
+     * Did the chart draw at the size, data and window it has NOW? {@code settled} is false while the last paint is
+     * stale (none yet, or the size, data or window moved since): the answer is not final, so a waiter keeps waiting.
+     */
+    public DrawnFact drawnFact() {
+        PaintOutcome o = lastPaint;
+        if (!isShowing()) return new DrawnFact(false, true, "the chart is not on screen");
+        if (o == null || o.width() != getWidth() || o.height() != getHeight() || o.dataRevision() != dataRevision
+                || !sameWindow(o.vx0(), vx0) || !sameWindow(o.vx1(), vx1)) {
+            return new DrawnFact(false, false, "the chart has not drawn at its current size and data yet");
+        }
+        if (o.noRoom()) {
+            return new DrawnFact(false, true, "no room at " + o.width() + "×" + o.height() + " px — widen the window");
+        }
+        if (o.emptyMessage() != null) return new DrawnFact(false, true, o.emptyMessage());
+        if ("window-outside-data".equals(o.emptyReason())) return new DrawnFact(false, true, "the window is outside the series data");
+        if ("no-series-samples-in-window".equals(o.emptyReason())) return new DrawnFact(false, true, "no samples in this window");
+        return new DrawnFact(true, true, "drawn");
+    }
+
+    private static boolean sameWindow(double a, double b) {
+        return Double.isNaN(a) ? Double.isNaN(b) : a == b;
+    }
+
     /** What the last paint said instead of a plot, or null when it drew one — so a test reads the claim, not pixels. */
     String lastEmptyMessage() {
         return lastEmptyMessage;
@@ -585,12 +625,16 @@ public final class ChartPanel extends JPanel {
             lastEmptyMessage = emptyPlotMessage(series.isEmpty(), Double.isNaN(vx0), plotW, plotH);
             g.drawString(lastEmptyMessage, L, h / 2);
             paintExplanation(g, dark);
+            // no room = emptyPlotMessage's third case: there ARE series and a window, the plot is too small
+            lastPaint = new PaintOutcome(w, h, dataRevision, vx0, vx1, lastEmptyMessage, null,
+                    !series.isEmpty() && !Double.isNaN(vx0));
             g.dispose();
             return;
         }
 
         lastEmptyMessage = null;
         String emptyReason = (String) windowScope().get("emptyReason");
+        lastPaint = new PaintOutcome(w, h, dataRevision, vx0, vx1, null, emptyReason, false);
         if ("window-outside-data".equals(emptyReason)) {
             g.setColor(text);
             g.drawString("Window is outside the series data. Check the pin and filters below.", plotX + 8, plotY + 18);
