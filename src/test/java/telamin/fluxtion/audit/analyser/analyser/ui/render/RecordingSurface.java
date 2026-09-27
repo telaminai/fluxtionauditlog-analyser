@@ -34,9 +34,14 @@ public final class RecordingSurface implements Surface {
     public record Line(int x1, int y1, int x2, int y2, Color colour) implements Mark {
         public boolean isHorizontal() { return y1 == y2; }
         public boolean isVertical() { return x1 == x2; }
+        /**
+         * The pixels a 1px line covers. PR #53 review: this used to be the zero-area box between the end points, and
+         * {@link Rectangle#intersects} is false whenever either rectangle has zero width or height — so no horizontal
+         * or vertical line could ever overlap anything, and an overlap assertion against one passed vacuously.
+         */
         @Override public Rectangle bounds() {
             return new Rectangle(Math.min(x1, x2), Math.min(y1, y2),
-                    Math.abs(x2 - x1), Math.abs(y2 - y1));
+                    Math.abs(x2 - x1) + 1, Math.abs(y2 - y1) + 1);
         }
     }
 
@@ -52,6 +57,8 @@ public final class RecordingSurface implements Surface {
     }
 
     private final List<Mark> marks = new ArrayList<>();
+    /** The clip in force when each mark was drawn, index for index — null where there was none. */
+    private final List<Rectangle> clips = new ArrayList<>();
     private final FontMetrics metrics;
     private Color colour = Color.BLACK;
     private Stroke stroke;
@@ -82,9 +89,25 @@ public final class RecordingSurface implements Surface {
         return marks.stream().filter(Filled.class::isInstance).map(Filled.class::cast).toList();
     }
 
-    /** The clip in force, or null — so a test can check a mark was not drawn outside the plot. */
+    /**
+     * The clip in force NOW, or null. PR #53 review: a render ends by clearing its clip, so after one this is always
+     * null — use {@link #clipOf} to ask about a mark.
+     */
     public Rectangle clip() {
         return clip == null ? null : new Rectangle(clip);
+    }
+
+    /** The clip that was in force when {@code mark} was drawn, or null — so a test can check where it could show. */
+    public Rectangle clipOf(Mark mark) {
+        for (int i = 0; i < marks.size(); i++) {
+            if (marks.get(i) == mark) return clips.get(i) == null ? null : new Rectangle(clips.get(i));
+        }
+        throw new IllegalArgumentException("not a mark on this surface: " + mark);
+    }
+
+    private void record(Mark mark) {
+        marks.add(mark);
+        clips.add(clip == null ? null : new Rectangle(clip));
     }
 
     @Override public void setColor(Color c) { this.colour = c; }
@@ -97,26 +120,26 @@ public final class RecordingSurface implements Surface {
     @Override public FontMetrics fontMetrics() { return metrics; }
 
     @Override public void drawLine(int x1, int y1, int x2, int y2) {
-        marks.add(new Line(x1, y1, x2, y2, colour));
+        record(new Line(x1, y1, x2, y2, colour));
     }
 
     @Override public void drawRect(int x, int y, int w, int h) {
-        marks.add(new Line(x, y, x + w, y, colour));
-        marks.add(new Line(x + w, y, x + w, y + h, colour));
-        marks.add(new Line(x + w, y + h, x, y + h, colour));
-        marks.add(new Line(x, y + h, x, y, colour));
+        record(new Line(x, y, x + w, y, colour));
+        record(new Line(x + w, y, x + w, y + h, colour));
+        record(new Line(x + w, y + h, x, y + h, colour));
+        record(new Line(x, y + h, x, y, colour));
     }
 
     @Override public void fillRect(int x, int y, int w, int h) {
-        marks.add(new Filled(x, y, w, h, colour));
+        record(new Filled(x, y, w, h, colour));
     }
 
     @Override public void fillRoundRect(int x, int y, int w, int h, int aw, int ah) {
-        marks.add(new Filled(x, y, w, h, colour));
+        record(new Filled(x, y, w, h, colour));
     }
 
     @Override public void fillOval(int x, int y, int w, int h) {
-        marks.add(new Filled(x, y, w, h, colour));
+        record(new Filled(x, y, w, h, colour));
     }
 
     @Override public void fillPolygon(int[] xs, int[] ys, int n) {
@@ -125,11 +148,11 @@ public final class RecordingSurface implements Surface {
             minX = Math.min(minX, xs[i]); maxX = Math.max(maxX, xs[i]);
             minY = Math.min(minY, ys[i]); maxY = Math.max(maxY, ys[i]);
         }
-        marks.add(new Filled(minX, minY, maxX - minX, maxY - minY, colour));
+        record(new Filled(minX, minY, maxX - minX, maxY - minY, colour));
     }
 
     @Override public void drawString(String text, int x, int y) {
-        marks.add(new Text(text, x, y, metrics.stringWidth(text),
+        record(new Text(text, x, y, metrics.stringWidth(text),
                 metrics.getAscent(), metrics.getDescent(), colour));
     }
 
