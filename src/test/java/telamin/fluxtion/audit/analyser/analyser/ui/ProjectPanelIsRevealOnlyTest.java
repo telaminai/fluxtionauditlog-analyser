@@ -68,8 +68,10 @@ class ProjectPanelIsRevealOnlyTest {
         String handoff = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/CanvasHandoff.java"));
         // The generated session graph owns recovery state; the panel renders its context echo.
         String recovery = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/SessionRecovery.java"));
+        // M69 S4: context.walks is assembled by WalkVerb.context, beside the verb that edits the walks
+        String walks = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/WalkVerb.java"));
         Set<String> put = new TreeSet<>();
-        Matcher m = Pattern.compile("put\\(\"([A-Za-z]+)\"").matcher(context + facts + handoff + recovery);
+        Matcher m = Pattern.compile("put\\(\"([A-Za-z]+)\"").matcher(context + facts + handoff + recovery + walks);
         while (m.find()) put.add(m.group(1));
         // Map.of literals inside context() — `Map.of("path", r, "tier", ...)` — put keys without put(
         Matcher lit = Pattern.compile("Map\\.of\\(\"([A-Za-z]+)\", [^,]+, \"([A-Za-z]+)\"").matcher(context);

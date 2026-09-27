@@ -1468,7 +1468,7 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
   - O-4: the right-click save menu is in v1.
 
   r3 accepted; r4 consolidated.
-- [M69.P] ☐ Predictions committed before code (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`).
+- [M69.P] ☑ Predictions committed before code (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`).
 - [M69.S0] ☑ **R5:** the graph digest belongs to the current graph (cleared on `clearGraph` and `loadFromSource`).
   `TopologyGraphDigestTest`, red before the fix; control `m69-s0-clear-drops-graph-digest`.
 - [M69.S1] ☑ `WalkSpec` model, validation (`WalkSteps`), identity helpers (`WalkIdentity`), and storage in every tier
@@ -1486,10 +1486,18 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
   path, with a capture-coherence refusal. Tests: `WalkPlaybackFrameTest` (2, real presses), `WalkArrowKeysFrameTest`
   (1, needs a focus owner — it skips on the owner's Mac and runs under CI's Xvfb), and `WalkAuthoringTest` (5).
   10 `m69-s3-*` controls (W-A2, W-A3, W-A12).
-- [M69.S4] ☐ The `walk` verb and its contract; `context`; the Reports tab and Project panel; docs, CHANGELOG, a capture
-  (W-A10, W-A11, W-A17 UI half).
-- [M69.R] ☐ Gates: headless, frame suites, mutation controls, preflight, sweep, strict docs; RESULTS scored; a PR with
-  green CI. No merge or release without the owner's go.
+- [M69.S4] ☑ The `walk` verb (the seventeenth; `WalkVerb`, one operation per call, refused whole) through
+  `VerbSchemas`, the dispatcher (read identity per operation: a save reads records, play and the bin do not), the
+  executor, both manifests, the MCP tool list (destructive) and `ContextSections`; `context.walks`; the Reports tab's
+  **Spotlight walks** list (`WalksPanel`, every button a `walk` operation) and the Project panel count; the user guide
+  (*Save it as a walk*), the FAQ security answer, CHANGELOG. Tests: `WalkVerbTest` (10) and `WalkVerbFrameTest` (1,
+  display, in both CI lists); 13 `m69-s4-*` controls (W-A10, W-A17 UI half, W-A9 from the tab). **Open:** the W-A11
+  capture — `tools/capture-docs.py --walk` drives it, but needs Screen Recording permission on the owner's machine;
+  and the skills mention, which waits for the next hash-pinned skills publication (RESULTS § *Not done in S4*).
+- [M69.R] ◧ Gates, run locally: headless 2,663 run, 0 failed; frame suites 137 run, 0 failed, 2 skipped (focus-bound,
+  CI runs them); mutation gate 311 of 311; preflight 28 suites and 311 anchors; the sweep; `mkdocs --strict`. RESULTS
+  scored (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/RESULTS.md`). Open: green CI on the PR, then the
+  owner's go. No merge or release without it.
 
 ## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.12 SHIPPED (.10–.12 in 1.15.0, 2026-09-18; archived); .13 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**

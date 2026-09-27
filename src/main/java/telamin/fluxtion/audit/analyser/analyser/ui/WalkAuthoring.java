@@ -67,6 +67,11 @@ final class WalkAuthoring {
         this.frame = frame;
     }
 
+    /** The log generation now: a caller binding steps reads it first, and hands it to {@link #save}. */
+    long generationNow() {
+        return frame.generation();
+    }
+
     // ---- capture: what is on screen ---------------------------------------------------------------------------
 
     Capture capture() {

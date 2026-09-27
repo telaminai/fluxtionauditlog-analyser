@@ -2279,7 +2279,7 @@ public final class MainFrame extends JFrame {
         @Override public void selectTab(String tab) { selectSideTab(tab); if (sideTabs != null) sideTabs.validate(); }
         @Override public boolean selectRecord(int modelRow) { return tablePanel.selectModelRow(modelRow); }
         @Override public java.util.List<String> runBasisNow() {
-            return loadedLogIdentity.stream().map(i -> i.sha256()).toList();
+            return walkRunBasisNow();
         }
         @Override public SpotlightTarget.Resolution resolve(String target) {
             return SpotlightTarget.resolve(target, spotlightSurface);
@@ -2373,7 +2373,7 @@ public final class MainFrame extends JFrame {
             return;
         }
         var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, state.walk());
-        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " " + walk.authorLabel());
+        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + walk.authorLabel());
         String phase = switch (state.phase()) {
             case "PREPARING" -> "preparing…";
             case "SHOWN" -> "shown";
@@ -2497,15 +2497,41 @@ public final class MainFrame extends JFrame {
             return rows.length == 1 ? rows[0] : -1;
         }
         @Override public java.util.List<SpotlightOverlay.Lit> lit() { return spotlight.lit(); }
-        @Override public java.util.List<String> runBasisNow() { return loadedLogIdentity.stream().map(i -> i.sha256()).toList(); }
+        @Override public java.util.List<String> runBasisNow() { return walkRunBasisNow(); }
         @Override public telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint fingerprint() {
             return store == null ? null : telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
                     store.index(), loadedLogName(), logProvenance(), logProvenanceSource());
         }
         @Override public long generation() { return session == null ? -1 : sessionSnapshot().logGeneration(); }
-        @Override public void persist() {
-            onGraphsEdited();                                     // the profile's edit funnel, as putReport uses
-            if (reportsPanel != null) reportsPanel.refresh();
+        @Override public void persist() { persistWalks(); }
+    });
+
+    /** M69: the walks were edited — store them through the profile's edit funnel, as putReport does. */
+    private void persistWalks() {
+        onGraphsEdited();
+        if (reportsPanel != null) reportsPanel.refresh();
+        if (walksPanel != null) walksPanel.refresh();
+    }
+
+    /** M69 S4: the Reports tab's walk list. */
+    WalksPanel walksPanel;
+
+    /** M69 §3.5: the run basis — the read identity's file digests for what is loaded now. */
+    private java.util.List<String> walkRunBasisNow() {
+        return loadedLogIdentity.stream().map(i -> i.sha256()).toList();
+    }
+
+    /** M69 S4: the {@code walk} verb, through the save path above and the session for play and end. */
+    private final WalkVerb walkVerb = new WalkVerb(new WalkVerb.Frame() {
+        @Override public telamin.fluxtion.audit.analyser.analyser.config.AppConfig config() { return config; }
+        @Override public WalkAuthoring authoring() { return walkAuthoring; }
+        @Override public boolean logOpen() { return store != null; }
+        @Override public java.util.List<String> runBasisNow() { return walkRunBasisNow(); }
+        @Override public void persist() { persistWalks(); }
+        @Override public void post(Object fact) { if (session != null) session().post(fact); }
+        @Override public telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState state() {
+            return session == null ? telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.IDLE
+                    : sessionSnapshot().walkPlayback();
         }
     });
 
@@ -3375,6 +3401,11 @@ public final class MainFrame extends JFrame {
                 this::renameReport);
         reportsPanel.setLogFindings(() -> store == null ? null : sessionSnapshot().producerFindings());   // D-MA0c
         reportsPanel.setRestore(this::restorableReports, this::restoreReport);   // PR #33: a delete is recoverable
+        walksPanel = new WalksPanel(() -> java.util.List.copyOf(config.walks),
+                params -> walkVerb.run(params, WalkVerb.ORIGIN_REPORTS_TAB),
+                () -> telamin.fluxtion.audit.analyser.analyser.config.WalkBin.restorable(config));
+        reportsPanel.addWalks(walksPanel);
+        walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);
@@ -4820,6 +4851,7 @@ public final class MainFrame extends JFrame {
         detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
         renderFollow(next);                      // M44.5: Follow's controls and its poll timer
         renderWalkStrip(next.walkPlayback());    // M69: the walk's strip, as walkPlayback decided it
+        if (walksPanel != null) walksPanel.render(next.walkPlayback());
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
     }
 
@@ -5256,6 +5288,7 @@ public final class MainFrame extends JFrame {
         topologyPanel.revalidateEmbeddedSource();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
         if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too
+        if (walksPanel != null) walksPanel.refresh();       // M69: and walks, stored like them
         rebuildRecentMenu();
         applyRestServer();   // honour a change to the REST toggle
         saveConfigQuietly();
@@ -6930,6 +6963,11 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult walk(java.util.Map<String, Object> params) {
+            return walkVerb.run(params);
+        }
+
+        @Override
 
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths) {
             return openLogs(paths, null);
@@ -7279,6 +7317,13 @@ public final class MainFrame extends JFrame {
                     reps.add(one);
                 }
                 if (!reps.isEmpty()) out.put("reports", reps);
+                // M69 S4: the walks, and the showing step's target states — the ones the strip shows
+                var walks = WalkVerb.context(config, session == null
+                                ? telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.IDLE
+                                : sessionSnapshot().walkPlayback(), store != null,
+                        walkRunBasisNow(),
+                        project.hasProject() ? "project" : "own settings");
+                if (walks != null) out.put("walks", walks);
             }
             if (store != null) {
                 if (pendingRolledSetOffer != null) {

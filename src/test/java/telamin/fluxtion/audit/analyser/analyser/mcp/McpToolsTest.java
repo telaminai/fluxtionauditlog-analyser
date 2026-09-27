@@ -37,7 +37,10 @@ class McpToolsTest {
                 .map(v -> "analyser_" + v).collect(Collectors.toSet());
         Set<String> actual = tools.stream().map(t -> (String) t.get("name")).collect(Collectors.toSet());
         assertEquals(expected, actual, "no more, no fewer — the adapter must not fork the schema set");
-        assertEquals(16, tools.size(), "M66 adds the read-only source glance; design and diagnostic intake extend open");
+        assertEquals(17, tools.size(), "M69 adds walk (saved spotlight walks); M66 the read-only source glance; "
+                + "design and diagnostic intake extend open");
+        assertEquals(true, annotations("walk").get("destructiveHint"),
+                "walk replaces a walk by name and deletes one: a client must be able to prompt before it");
         assertEquals(true, annotations("source").get("readOnlyHint"));
     }
 

@@ -78,6 +78,10 @@ Reports appear in the **Reports** tab: pick one and its sections render in order
 section clickable through to the thing it references — a finding selects its record, a chart opens
 that graph, a focus applies on the topology. A report is a navigation surface, not just an output.
 
+Beside the reports, the **Spotlight walks** list holds the walks saved in this project — step-by-step
+spotlights you replay with ◀ ▶ — with Play, Play from step…, Rename, Delete and Restore deleted…. They are stored
+and shared the way reports are; [Save it as a walk](assistant.md#save-it-as-a-walk) says how to make one.
+
 ## Building one
 
 Agents (or you, over REST) use the `report` verb:

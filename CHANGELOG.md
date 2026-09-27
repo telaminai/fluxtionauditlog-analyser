@@ -6,6 +6,22 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **Spotlight walks — an explanation you can replay.** A walk is a named sequence of spotlight steps, saved in the
+  project like a report, that you step through on the analyser itself with **◀ ▶** (or the ← → keys) on a strip on
+  the spotlight — later, by someone else, with no assistant connected. **Right-click** a spotlight to *Save as new
+  walk…*, *Add to walk*, or during a walk *Replace this step*; the right-click keeps the spotlight on. Or ask the
+  assistant: the new **`walk`** verb (the seventeenth) saves, plays, ends, renames, deletes and restores walks, one
+  operation per call. The Reports tab has a **Spotlight walks** list with Play, Play from step…, Rename, Delete and
+  Restore deleted…; the Project panel counts them; `context.walks` reports each walk and the showing step's targets.
+  Each step restores its tab, filter, record, open chart and saved focus without editing any of them, and every
+  record, chart and graph node it points at is bound to what it was saved against: played against another run, a
+  changed record is shown as not available instead of being lit somewhere else, and a callout is marked
+  *(historical)* or *(unresolved)* when it no longer describes what is under it. A click elsewhere, or a change of
+  view you make, ends a walk; *Play from step…* resumes it. Settings export now shares "Investigation reports and
+  spotlight walks".
+
 ### Fixed
 
 - **A cleared topology no longer leaves its file's digest behind.** The topology panel's graph digest survived *Close

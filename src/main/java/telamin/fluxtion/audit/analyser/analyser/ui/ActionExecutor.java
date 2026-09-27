@@ -181,6 +181,10 @@ public final class ActionExecutor implements RenderExecutor {
                 if (SpotlightTarget.hasJava(params)) return doJavaSpotlight(params);
                 return onEdt(() -> doSpotlight(params));
             }
+            case "walk" -> {
+                // M69: a walk of tabs, panels and graph nodes needs no log; one bound to records says so itself
+                return onEdt(() -> app == null ? ActionResult.error("'walk' is not enabled here") : app.walk(params));
+            }
             case "topology" -> {
                 return onEdt(() -> doTopology(params));
             }
