@@ -160,7 +160,7 @@ public final class ChartPanel extends JPanel {
      * band above the bottom axis. A pixel column denser than the legibility bound renders ONE glyph
      * with a count badge — the presence of hidden markers is always visible (D-M3).
      */
-    private void paintMarkers(Graphics2D g, boolean dark) {
+    private void paintMarkers(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, boolean dark) {
         if (markers.isEmpty()) return;
         int mi = 0;
         for (var ms : markers) {
@@ -184,8 +184,8 @@ public final class ChartPanel extends JPanel {
         }
     }
 
-    private void drawGlyph(Graphics2D g, String glyph, int x, int y) {
-        paintGlyph(g, glyph, x, y);   // one implementation, shared with the legend (M32.9)
+    private void drawGlyph(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, String glyph, int x, int y) {
+        telamin.fluxtion.audit.analyser.analyser.ui.render.Glyphs.paint(g, glyph, x, y);
     }
 
     public void setSeries(List<Series> s) {
@@ -548,8 +548,12 @@ public final class ChartPanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g0) {
         super.paintComponent(g0);
-        Graphics2D g = (Graphics2D) g0.create();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = (Graphics2D) g0.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // the ONE place a Graphics2D becomes a Surface. Everything below draws through the seam, so
+        // the same code serves the screen and a recording test — see render.Surface
+        telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g =
+                new telamin.fluxtion.audit.analyser.analyser.ui.render.Graphics2DSurface(g2);
         boolean dark = ThemeManager.isDark();
         // margins take the surrounding panel colour; the plot rect is a subtly distinct "canvas card"
         Color panelBg = javax.swing.UIManager.getColor("Panel.background");
@@ -565,10 +569,10 @@ public final class ChartPanel extends JPanel {
 
         plotX = L; plotW = w - L - rightMargin();
         notePins = ChartAnnotationLayout.pins(notes.byColumn(vx0, vx1, plotW), plotX, plotW, T,
-                g.getFontMetrics());
+                g.fontMetrics());
         plotY = T + (notePins.isEmpty() ? 0 : 24);
-        explanationLines = ChartAnnotationLayout.wrap(annotationLines(), g.getFontMetrics(), Math.max(30, plotW - 16));
-        int footer = explanationLines.isEmpty() ? 0 : Math.min(Math.max(42, h / 3), explanationLines.size() * g.getFontMetrics().getHeight() + 16);
+        explanationLines = ChartAnnotationLayout.wrap(annotationLines(), g.fontMetrics(), Math.max(30, plotW - 16));
+        int footer = explanationLines.isEmpty() ? 0 : Math.min(Math.max(42, h / 3), explanationLines.size() * g.fontMetrics().getHeight() + 16);
         plotH = h - plotY - B - footer;
         explanationBounds = new java.awt.Rectangle(plotX, plotY + plotH + B, Math.max(0, plotW), footer);
         if (plotW > 10 && plotH > 10) {
@@ -585,7 +589,7 @@ public final class ChartPanel extends JPanel {
             lastEmptyMessage = emptyPlotMessage(series.isEmpty(), Double.isNaN(vx0), plotW, plotH);
             g.drawString(lastEmptyMessage, L, h / 2);
             paintExplanation(g, dark);
-            g.dispose();
+            g2.dispose();
             return;
         }
 
@@ -607,7 +611,7 @@ public final class ChartPanel extends JPanel {
             g.drawLine(plotX, gy, plotX + plotW, gy);
             g.setColor(text);
             String lbl = formatY(vy0 + (double) i / yDivs * (vy1 - vy0));
-            g.drawString(lbl, plotX - 6 - g.getFontMetrics().stringWidth(lbl), gy + 4);
+            g.drawString(lbl, plotX - 6 - g.fontMetrics().stringWidth(lbl), gy + 4);
             if (axes.hasRightAxis()) {
                 // the second scale, read against the same gridlines — that shared grid is what lets the
                 // eye compare two series whose numbers have nothing in common
@@ -630,12 +634,10 @@ public final class ChartPanel extends JPanel {
         // TO A MOMENT IN TIME, so losing the axis to it defeats the feature: the numbered pins stayed
         // and the reader could no longer tell what moment they marked. B (44) is the band reserved for
         // exactly this, and it sits above the footer.
-        int labelBaseline = axisLabelBaseline(plotY, plotH);
-        g.drawString(TimeFormat.utc((long) vx0), plotX, labelBaseline);
-        String hiLabel = TimeFormat.utc((long) vx1);
-        g.drawString(hiLabel, plotX + plotW - g.getFontMetrics().stringWidth(hiLabel), labelBaseline);
+        telamin.fluxtion.audit.analyser.analyser.ui.render.PlotPainter.axisLabels(
+                g, geometry(), LABEL_DROP, TimeFormat::utc);   // #48
 
-        g.setClip(plotX, plotY, plotW, plotH);
+        g.clip(plotX, plotY, plotW, plotH);
         paintBands(g, dark);   // behind the series: bands are context, never occlusion
         int ci = 0;
         for (Series s : series) {
@@ -649,7 +651,7 @@ public final class ChartPanel extends JPanel {
         paintMarkers(g, dark);
         paintGuides(g, dark);
         paintNotes(g, dark);
-        g.setClip(null);
+        g.clearClip();
         paintNotePins(g, dark);
         if (externalStamp != null) {
             // bottom-left, inside the plot frame: visible on screen AND in every painted export
@@ -661,73 +663,30 @@ public final class ChartPanel extends JPanel {
         paintExplanation(g, dark);
         // the legend is a Swing overlay component (GraphPanel), not painted here — so labels are readable,
         // untruncated, and support right-click actions
-        g.dispose();
+        g2.dispose();
     }
 
-    private void drawSeries(Graphics2D g, Series s) {
+    private void drawSeries(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, Series s) {
         // decimate dense series to ~one column per pixel so paint stays O(plotW), not O(points) — this is
         // what keeps the EDT smooth while dragging the time window on a big log
         if (s.size() > 3 * plotW) {
             drawDecimated(g, s);
             return;
         }
-        int prevX = 0, prevY = 0;
-        boolean have = false;
+        // through the Surface seam: the application draws onto Graphics2D, a test draws onto a
+        // recorder, and both run THIS code. The closing hold is part of it (#49)
         boolean markers = s.size() <= 600;   // dots only when sparse enough to be legible/cheap
-        for (int i = 0; i < s.size(); i++) {
-            double v = s.y(i);
-            if (Double.isNaN(v) || Double.isInfinite(v)) { have = false; continue; }  // gap
-            int px = xToPx(s.x(i));
-            int py = yToPx(v);
-            if (have && style != Style.POINTS) {
-                if (style == Style.STEP) {
-                    g.drawLine(prevX, prevY, px, prevY);   // hold value…
-                    g.drawLine(px, prevY, px, py);         // …then step
-                } else {
-                    g.drawLine(prevX, prevY, px, py);
-                }
-            }
-            if (markers || style == Style.POINTS) g.fillOval(px - 2, py - 2, 4, 4);
-            prevX = px; prevY = py; have = true;
-        }
-        holdToWindowEdge(g, prevX, prevY, have);
+        telamin.fluxtion.audit.analyser.analyser.ui.render.PlotPainter.series(
+                g, geometry(), s, painterStyle(), markers);
     }
 
-    /**
-     * #49 — carry the LAST value to the right edge of the window, as a step.
-     *
-     * <p>Every other step in the series asserts "this value holds until the next one"; without this the
-     * final one asserted nothing and was drawn as a bare vertical stroke with no horizontal run. The
-     * value that ends a run is the one a reader most often wants — the closing position, the final
-     * spread — and it was the least visible thing on the chart. Pinning the window past the last record
-     * did not help: the axis grew and the line still stopped dead, leaving the pinned remainder blank,
-     * which reads identically to "no data".
-     *
-     * <p>STEP only. A LINE interpolates between points it has, and extending one flat past the last
-     * point would be asserting a hold that the style does not claim; POINTS plots nothing between
-     * points by definition.
-     */
-    private void holdToWindowEdge(Graphics2D g, int lastX, int lastY, boolean have) {
-        Integer edge = stepHoldEnd(style, have, lastX, plotX, plotW);
-        if (edge != null) g.drawLine(lastX, lastY, edge, lastY);
-    }
-
-    /**
-     * Where the closing hold ends, or null when none should be drawn — the decision in {@link
-     * #holdToWindowEdge}, separated so it is pinned by a test rather than by a paint method.
-     */
-    static Integer stepHoldEnd(Style style, boolean have, int lastX, int plotX, int plotW) {
-        if (!have || style != Style.STEP) return null;
-        int edge = plotX + plotW;
-        return lastX < edge ? edge : null;
-    }
-
-    /**
-     * Baseline for the x-axis labels: just under the plot frame, inside the {@code B} band (#48).
-     * Separated for the same reason as {@link #stepHoldEnd} — it is the arithmetic that was wrong.
-     */
-    static int axisLabelBaseline(int plotY, int plotH) {
-        return plotY + plotH + LABEL_DROP;
+    /** This panel's style as the painter's, so the two enums cannot drift apart silently. */
+    private telamin.fluxtion.audit.analyser.analyser.ui.render.PlotPainter.Style painterStyle() {
+        return switch (style) {
+            case STEP -> telamin.fluxtion.audit.analyser.analyser.ui.render.PlotPainter.Style.STEP;
+            case LINE -> telamin.fluxtion.audit.analyser.analyser.ui.render.PlotPainter.Style.LINE;
+            case POINTS -> telamin.fluxtion.audit.analyser.analyser.ui.render.PlotPainter.Style.POINTS;
+        };
     }
 
     /**
@@ -735,7 +694,7 @@ public final class ChartPanel extends JPanel {
      * STEP/LINE/POINTS logic as the exact path — so decimation stays O(plot width) without changing how a
      * style looks. A faint min/max envelope behind it preserves spikes lost between pixels.
      */
-    private void drawDecimated(Graphics2D g, Series s) {
+    private void drawDecimated(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, Series s) {
         int cols = Math.max(1, plotW);
         double[] rep = new double[cols], mn = new double[cols], mx = new double[cols];
         boolean[] has = new boolean[cols];
@@ -779,16 +738,28 @@ public final class ChartPanel extends JPanel {
             if (style == Style.POINTS) g.fillOval(px - 2, py - 2, 4, 4);
             prevX = px; prevY = py; have = true;
         }
-        holdToWindowEdge(g, prevX, prevY, have);   // #49, and the javadoc above says why it must match
+        telamin.fluxtion.audit.analyser.analyser.ui.render.PlotPainter.holdToWindowEdge(
+                g, geometry(), painterStyle(), prevX, prevY, have);   // #49, same rule as the exact path
     }
 
     private int xToPx(long x) { return plotX + (int) Math.round((x - vx0) / (vx1 - vx0) * plotW); }
 
     /**
+     * The plot rect and the window it shows, as a value — what {@code render.PlotPainter} takes
+     * instead of reaching into these fields. {@code drawingRight} selects the scale, exactly as
+     * {@link #yToPx} does, so a right-axis series maps identically through either route.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.ui.render.PlotGeometry geometry() {
+        return new telamin.fluxtion.audit.analyser.analyser.ui.render.PlotGeometry(
+                plotX, plotY, plotW, plotH, vx0, vx1,
+                drawingRight ? ry0 : vy0, drawingRight ? ry1 : vy1);
+    }
+
+    /**
      * Threshold guides (M28.5): a labelled dashed rule at a y value, on either scale — the line the
      * eye otherwise interpolates ("where is 0.004?"). Painted over the series but under the notes.
      */
-    private void paintGuides(Graphics2D g, boolean dark) {
+    private void paintGuides(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, boolean dark) {
         if (guides.isEmpty()) return;
         Color rule = dark ? new Color(0xD29922) : new Color(0x9A6700);
         java.awt.Stroke prev = g.getStroke();
@@ -803,7 +774,7 @@ public final class ChartPanel extends JPanel {
             g.drawLine(plotX, gy, plotX + plotW, gy);
             String label = (guide.label() == null || guide.label().isBlank()
                     ? formatY(guide.value()) : guide.label() + " (" + formatY(guide.value()) + ")");
-            int tx = plotX + plotW - 8 - g.getFontMetrics().stringWidth(label);
+            int tx = plotX + plotW - 8 - g.fontMetrics().stringWidth(label);
             g.drawString(label, tx, gy - 4);
         }
         g.setStroke(prev);
@@ -813,7 +784,7 @@ public final class ChartPanel extends JPanel {
      * Condition bands (M28.6): translucent spans over the intervals a condition held, labelled once
      * per band on its first visible span. Painted first — context sits behind data.
      */
-    private void paintBands(Graphics2D g, boolean dark) {
+    private void paintBands(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, boolean dark) {
         if (bands.isEmpty()) return;
         for (int bi = 0; bi < bands.size(); bi++) {
             Band band = bands.get(bi);
@@ -844,7 +815,7 @@ public final class ChartPanel extends JPanel {
      * enough to cover the data it is about. The number sits above the plot; the words sit under it, in the
      * same order.
      */
-    private void paintNotes(Graphics2D g, boolean dark) {
+    private void paintNotes(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, boolean dark) {
         if (notes.notes().isEmpty() || Double.isNaN(vx0)) {
             return;
         }
@@ -858,13 +829,13 @@ public final class ChartPanel extends JPanel {
         }
     }
 
-    private void paintNotePins(Graphics2D g, boolean dark) {
+    private void paintNotePins(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, boolean dark) {
         for (var pin : notePins) {
             var r = pin.bounds();
             g.setColor(dark ? new Color(0xE3B341) : new Color(0x9A6700));
             g.fillRoundRect(r.x, r.y, r.width, r.height, 8, 8);
             g.setColor(dark ? Color.BLACK : Color.WHITE);
-            g.drawString(pin.label(), r.x + (r.width - g.getFontMetrics().stringWidth(pin.label())) / 2,
+            g.drawString(pin.label(), r.x + (r.width - g.fontMetrics().stringWidth(pin.label())) / 2,
                     r.y + 13);
         }
     }
@@ -881,7 +852,7 @@ public final class ChartPanel extends JPanel {
      * says which point of that trend the finding is about, and the reader is left to infer it from the
      * timestamp in the header. Marking it turns two artefacts into one argument.
      */
-    private void paintRecordMarker(Graphics2D g, boolean dark) {
+    private void paintRecordMarker(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, boolean dark) {
         if (markerAt == null || Double.isNaN(vx0) || markerAt < vx0 || markerAt > vx1) {
             return;
         }
@@ -896,7 +867,7 @@ public final class ChartPanel extends JPanel {
         if (markerLabel == null || markerLabel.isBlank()) {
             return;
         }
-        java.awt.FontMetrics fm = g.getFontMetrics();
+        java.awt.FontMetrics fm = g.fontMetrics();
         int pad = 4;
         int w = fm.stringWidth(markerLabel) + pad * 2;
         int h = fm.getHeight() + 2;
@@ -934,10 +905,10 @@ public final class ChartPanel extends JPanel {
         return lines;
     }
 
-    private void paintExplanation(Graphics2D g, boolean dark) {
+    private void paintExplanation(telamin.fluxtion.audit.analyser.analyser.ui.render.Surface g, boolean dark) {
         if (explanationLines.isEmpty() || explanationBounds.width < 30) return;
         g.setFont(getFont().deriveFont(11f));
-        var fm = g.getFontMetrics();
+        var fm = g.fontMetrics();
         var box = explanationBounds;
         g.setColor(dark ? new Color(0x1B1F24) : Color.WHITE);
         g.fillRect(box.x, box.y, box.width, box.height);
@@ -1092,18 +1063,12 @@ public final class ChartPanel extends JPanel {
      * approximated the glyph would be a second implementation to keep in step, and the whole point of
      * D-M1 ("one meaning, one series, one glyph") is that the key and the plot agree.
      */
+    /**
+     * The legend's entry point (M32.9): a {@link Graphics2D} wrapped and handed to the one glyph
+     * implementation, so the swatch beside a label is the same shape the plot draws.
+     */
     public static void paintGlyph(Graphics2D g, String glyph, int x, int y) {
-        int r = 4;
-        switch (glyph) {
-            case "triangleUp" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y + r, y + r, y - r}, 3);
-            case "triangleDown" -> g.fillPolygon(new int[]{x - r, x + r, x}, new int[]{y - r, y - r, y + r}, 3);
-            case "square" -> g.fillRect(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
-            case "diamond" -> g.fillPolygon(new int[]{x, x + r, x, x - r}, new int[]{y - r, y, y + r, y}, 4);
-            case "x" -> {
-                g.drawLine(x - r + 1, y - r + 1, x + r - 1, y + r - 1);
-                g.drawLine(x - r + 1, y + r - 1, x + r - 1, y - r + 1);
-            }
-            default -> g.fillOval(x - r + 1, y - r + 1, 2 * r - 2, 2 * r - 2);
-        }
+        telamin.fluxtion.audit.analyser.analyser.ui.render.Glyphs.paint(
+                new telamin.fluxtion.audit.analyser.analyser.ui.render.Graphics2DSurface(g), glyph, x, y);
     }
 }
