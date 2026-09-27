@@ -432,6 +432,34 @@ public final class ActionExecutor implements RenderExecutor {
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
         // rename requires an explicit target {name, rename} — never selection-dependent
+        if (bool(p.get("delete"))) {
+            // #50: parity with report {name, delete}. Before the rename branch and before the build
+            // path, for the same reason the report verb puts its delete first — this call carries a
+            // name and no series, which the build path below would read as "replace with an empty
+            // chart" and quietly create the very thing being deleted.
+            String target = asText(p.get("name"));
+            if (target == null) return ActionResult.error("graph delete needs the target 'name'");
+            List<String> alsoAsked = new java.util.ArrayList<>(p.keySet());
+            alsoAsked.removeAll(List.of("name", "delete"));
+            if (!alsoAsked.isEmpty()) {
+                return ActionResult.error("a delete does only the delete — send " + alsoAsked
+                        + " as a separate graph call; nothing was changed");
+            }
+            return onEdt(() -> {
+                if (!graphTabs.deleteNamed(target)) {
+                    return ActionResult.error("no chart named '" + target + "' — charts: "
+                            + graphTabs.graphNames());
+                }
+                var echo = new java.util.LinkedHashMap<String, Object>();
+                echo.put("deleted", target);
+                echo.put("remaining", graphTabs.graphNames());
+                echo.put("note", "the chart DEFINITION is gone — its series, formulas, pinned notes and "
+                        + "explanation. The log is untouched, and any PNG already exported is a separate "
+                        + "file. This one is not recoverable; close a chart instead to put it away.");
+                return ActionResult.ok("graph", "deleted", echo);
+            });
+        }
+
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
             if (from == null) return ActionResult.error("graph rename needs the target 'name'");
@@ -1449,6 +1477,13 @@ public final class ActionExecutor implements RenderExecutor {
             notes = notes.withExplanation(explanation);
         }
         if (p.get("notes") instanceof List<?> list) {
+            // #47: notes REPLACE the set, like exprs, guides, bands, markers and external. They used
+            // to append, so re-sending a chart definition to adjust one thing silently doubled every
+            // pin — and once exprs were fixed to replace, one verb had two different re-send rules with
+            // the echo stating neither. Re-sending a definition is the normal authoring loop; it has to
+            // be idempotent. `clearNotes` still works, and is now only needed to drop pins WITHOUT
+            // supplying new ones.
+            notes = notes.withoutNotes();
             for (Object item : list) {
                 if (!(item instanceof Map<?, ?> m)) continue;
                 String text = str(m.get("text"));

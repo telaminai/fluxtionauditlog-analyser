@@ -41,7 +41,9 @@ public final class ChartPanel extends JPanel {
     private static final Color[] MARKER_PALETTE = {
             new Color(0xE8590C), new Color(0xD6409F), new Color(0x66A80F), new Color(0x7048E8)
     };
-    private static final int L = 56, R = 16, T = 14, B = 44;   // legend has a separately reserved right margin
+    static final int L = 56, R = 16, T = 14, B = 44;   // legend has a separately reserved right margin
+    /** Baseline of the x-axis labels below the plot frame, inside the {@code B} band (#48). */
+    static final int LABEL_DROP = 16;
 
     private final List<Series> series = new ArrayList<>();
     private java.util.function.LongConsumer onPlotClick = t -> { };   // click in the plot → time at cursor
@@ -622,9 +624,16 @@ public final class ChartPanel extends JPanel {
         g.drawLine(plotX, plotY, plotX, plotY + plotH);
         g.drawLine(plotX, plotY + plotH, plotX + plotW, plotY + plotH);
         g.setColor(text);
-        g.drawString(TimeFormat.utc((long) vx0), plotX, h - 6);
+        // #48: positioned under the PLOT, not at the component's bottom edge. These used to be drawn at
+        // h - 6, which is inside the explanation footer whenever one exists — and the footer fills its
+        // background, so pinning a single note silently erased the chart's time axis. A note is pinned
+        // TO A MOMENT IN TIME, so losing the axis to it defeats the feature: the numbered pins stayed
+        // and the reader could no longer tell what moment they marked. B (44) is the band reserved for
+        // exactly this, and it sits above the footer.
+        int labelBaseline = axisLabelBaseline(plotY, plotH);
+        g.drawString(TimeFormat.utc((long) vx0), plotX, labelBaseline);
         String hiLabel = TimeFormat.utc((long) vx1);
-        g.drawString(hiLabel, plotX + plotW - g.getFontMetrics().stringWidth(hiLabel), h - 6);
+        g.drawString(hiLabel, plotX + plotW - g.getFontMetrics().stringWidth(hiLabel), labelBaseline);
 
         g.setClip(plotX, plotY, plotW, plotH);
         paintBands(g, dark);   // behind the series: bands are context, never occlusion
@@ -681,6 +690,44 @@ public final class ChartPanel extends JPanel {
             if (markers || style == Style.POINTS) g.fillOval(px - 2, py - 2, 4, 4);
             prevX = px; prevY = py; have = true;
         }
+        holdToWindowEdge(g, prevX, prevY, have);
+    }
+
+    /**
+     * #49 — carry the LAST value to the right edge of the window, as a step.
+     *
+     * <p>Every other step in the series asserts "this value holds until the next one"; without this the
+     * final one asserted nothing and was drawn as a bare vertical stroke with no horizontal run. The
+     * value that ends a run is the one a reader most often wants — the closing position, the final
+     * spread — and it was the least visible thing on the chart. Pinning the window past the last record
+     * did not help: the axis grew and the line still stopped dead, leaving the pinned remainder blank,
+     * which reads identically to "no data".
+     *
+     * <p>STEP only. A LINE interpolates between points it has, and extending one flat past the last
+     * point would be asserting a hold that the style does not claim; POINTS plots nothing between
+     * points by definition.
+     */
+    private void holdToWindowEdge(Graphics2D g, int lastX, int lastY, boolean have) {
+        Integer edge = stepHoldEnd(style, have, lastX, plotX, plotW);
+        if (edge != null) g.drawLine(lastX, lastY, edge, lastY);
+    }
+
+    /**
+     * Where the closing hold ends, or null when none should be drawn — the decision in {@link
+     * #holdToWindowEdge}, separated so it is pinned by a test rather than by a paint method.
+     */
+    static Integer stepHoldEnd(Style style, boolean have, int lastX, int plotX, int plotW) {
+        if (!have || style != Style.STEP) return null;
+        int edge = plotX + plotW;
+        return lastX < edge ? edge : null;
+    }
+
+    /**
+     * Baseline for the x-axis labels: just under the plot frame, inside the {@code B} band (#48).
+     * Separated for the same reason as {@link #stepHoldEnd} — it is the arithmetic that was wrong.
+     */
+    static int axisLabelBaseline(int plotY, int plotH) {
+        return plotY + plotH + LABEL_DROP;
     }
 
     /**
@@ -732,6 +779,7 @@ public final class ChartPanel extends JPanel {
             if (style == Style.POINTS) g.fillOval(px - 2, py - 2, 4, 4);
             prevX = px; prevY = py; have = true;
         }
+        holdToWindowEdge(g, prevX, prevY, have);   // #49, and the javadoc above says why it must match
     }
 
     private int xToPx(long x) { return plotX + (int) Math.round((x - vx0) / (vx1 - vx0) * plotW); }

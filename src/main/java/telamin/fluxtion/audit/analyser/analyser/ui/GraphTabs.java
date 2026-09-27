@@ -677,6 +677,34 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
+     * #50 — delete a chart by NAME, with no dialog: the socket's caller has already decided.
+     *
+     * <p>Charts accumulate in a profile exactly the way reports did before #23. An investigation leaves
+     * throwaways behind — a probe to check an expression resolves, a variant to compare two window pins
+     * — and they persist, reopen with the project, and sit in the tab strip indistinguishable from the
+     * chart that carries the finding. Until this there was a Delete button and no verb, so an assistant
+     * could create a chart and never clear it up.
+     *
+     * <p>A CLOSED chart still holds a definition, and deleting one of those has to work too — otherwise
+     * "delete" would mean "delete only if you can see it", and the name would stay taken.
+     *
+     * @return false when no chart, open or saved, has that name
+     */
+    public boolean deleteNamed(String name) {
+        if (name == null || name.isBlank()) return false;
+        String target = name.trim();
+        GraphPanel open = graphNamed(target);
+        if (open != null) {
+            deleteConfirmed(indexOf(open));
+            return true;
+        }
+        if (!hasDefinition(target)) return false;
+        deleteListener.accept(target);   // the saved definition, which is all a closed chart is
+        fireChanged();
+        return true;
+    }
+
+    /**
      * The delete itself, once a person has confirmed it — separated from the modal dialog so a test can
      * reach it. f6e8d7e0: a {@code JOptionPane} cannot run headless, so leaving this inside
      * {@link #deleteCurrent()} left the one destructive path in the app untestable.

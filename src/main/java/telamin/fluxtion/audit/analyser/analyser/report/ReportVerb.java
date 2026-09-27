@@ -32,7 +32,56 @@ public final class ReportVerb {
     private ReportVerb() {
     }
 
-    public record Parsed(ReportSpec spec, List<String> warnings) {
+    /**
+     * @param spec     the report as the CALL describes it
+     * @param warnings what was skipped and why
+     * @param supplied which of {@code title}, {@code notes}, {@code sections} the call actually carried
+     *                 — absent is not the same as empty (#46); see {@link #onto}
+     */
+    public record Parsed(ReportSpec spec, List<String> warnings, java.util.Set<String> supplied) {
+
+        public Parsed {
+            warnings = List.copyOf(warnings == null ? List.of() : warnings);
+            supplied = java.util.Set.copyOf(supplied == null ? java.util.Set.<String>of() : supplied);
+        }
+
+        /** Pre-#46 shape, kept so existing callers compile: everything the spec holds counts as supplied. */
+        public Parsed(ReportSpec spec, List<String> warnings) {
+            this(spec, warnings, java.util.Set.of("title", "notes", "sections"));
+        }
+
+        /**
+         * #46 — what to STORE, given what is already stored under this name. <b>Absent means
+         * unchanged.</b>
+         *
+         * <p>It used to mean EMPTY. Adding a title, a note, or a {@code path} to render a PDF are all
+         * natural follow-up calls on a report that already exists, and every one of them silently
+         * destroyed its sections unless the whole array was resent — no prompt, no warning, and not
+         * recoverable, because a replace never entered the recently-deleted list that
+         * {@code delete} uses. The confirmed path was reversible and the silent one was not.
+         *
+         * <p>{@code sections: []} still empties a report: that is a supplied value, and an explicit
+         * one. This only changes what SILENCE means.
+         *
+         * <p>The authoring context travels with the sections. When they are carried over, so are the
+         * fingerprint and the filter — those record the log and view the REFERENCES were written
+         * against, and stamping old references with today's log would relabel evidence nobody
+         * re-checked. {@code createdAt} likewise stays: it says when the report was made.
+         */
+        public ReportSpec onto(ReportSpec existing) {
+            if (existing == null) {
+                return spec;
+            }
+            boolean keepSections = !supplied.contains("sections");
+            return new ReportSpec(
+                    spec.name(),
+                    supplied.contains("title") ? spec.title() : existing.title(),
+                    existing.createdAt(),
+                    supplied.contains("notes") ? spec.notes() : existing.notes(),
+                    keepSections ? existing.fingerprint() : spec.fingerprint(),
+                    keepSections ? existing.filter() : spec.filter(),
+                    keepSections ? existing.sections() : spec.sections());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -55,7 +104,12 @@ public final class ReportVerb {
                 str(params.get("name")), str(params.get("title")),
                 java.time.Instant.now().toString(), str(params.get("notes")),
                 fingerprint, filter, sections);
-        return new Parsed(spec, warnings);
+        // #46: which keys the CALL carried, so a later merge can tell absent from empty
+        var supplied = new java.util.LinkedHashSet<String>();
+        for (String key : new String[]{"title", "notes", "sections"}) {
+            if (params.containsKey(key)) supplied.add(key);
+        }
+        return new Parsed(spec, warnings, supplied);
     }
 
     private static ReportSpec.SectionSpec parseSection(int i, Map<String, Object> m,

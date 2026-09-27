@@ -86,7 +86,7 @@ public final class VerbSchemas {
                         p("text", string(), "free-text match (SLOW raw byte scan)")),
                 List.of()));
 
-        s.put("graph", schema("Create/append a named time-series graph, or rename one.",
+        s.put("graph", schema("Create/append a named time-series graph, or rename or DELETE one. CLEAN UP after yourself: a probe chart left behind reopens with the project and sits in the tab strip indistinguishable from the one carrying the finding.",
                 props(
                         p("name", string(), "target graph name (null = current tab)"),
                         p("series", arr(string()), "raw keys, each \"instanceId.key\""),
@@ -94,9 +94,9 @@ public final class VerbSchemas {
                         p("style", enumStr("step", "line", "points"), "plot style"),
                         p("explanation", string(), "multi-line write-up drawn ON the plot — what this "
                                 + "chart shows and why it matters. Survives an exported PNG."),
-                        p("notes", arr(noteObject()), "notes pinned to moments in time, numbered on the "
+                        p("notes", arr(noteObject()), "REPLACES the pinned set — notes pinned to moments in time, numbered on the "
                                 + "plot and listed beneath it"),
-                        p("clearNotes", bool(), "drop existing pins (keeps the explanation)"),
+                        p("clearNotes", bool(), "drop existing pins (keeps the explanation). Only needed to clear WITHOUT supplying a new set: supplying 'notes' already replaces"),
                         p("rightAxis", arr(string()), "series to measure against a SECOND vertical scale; "
                                 + "use when magnitudes differ enough that one scale flattens the smaller "
                                 + "series into the axis"),
@@ -120,7 +120,8 @@ public final class VerbSchemas {
                                 + "re-extracts nothing; this is the one word for 'do it anyway'. The echo says "
                                 + "refreshed: \"scheduled\" — the walk lands after the call returns, so read fresh "
                                 + "values with `series`; the chart is what lags"),
-                        p("rename", string(), "with {name}, rename that graph to this")),
+                        p("rename", string(), "with {name}, rename that graph to this"),
+                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, close its tab instead")),
                 List.of()));
 
         s.put("goto", schema("Select the record containing an anchor in the table.",

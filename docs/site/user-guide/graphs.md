@@ -2,6 +2,20 @@
 
 Plot any node value over time. Open the **Graph** tab; each graph is its own sub-tab (add several).
 
+## Re-sending a chart definition
+
+Every collection parameter on `graph` **replaces** what is there: `series`, `exprs`, `guides`,
+`bands`, `markers`, `external` and `notes`. Re-sending the same definition therefore leaves the same
+chart, which is what makes the normal authoring loop — send, look, adjust, send again — safe.
+
+`notes` appended until this was fixed, so re-sending a definition to change one thing silently
+doubled every pin, and the plot collapsed the duplicates into a single badge that hid the fact.
+`clearNotes: true` is still there, and is now only needed to drop pins *without* supplying new ones.
+
+**Removing a chart** is `graph {name, delete: true}`, or **Graph ▸ Delete chart**. It takes the
+definition — series, formulas, pinned notes and the explanation written on it — and unlike a deleted
+report it is **not** recoverable. To put a chart away without losing it, close its tab.
+
 ## Adding series
 
 - Click **Edit series** on the plot to open the series panel.
