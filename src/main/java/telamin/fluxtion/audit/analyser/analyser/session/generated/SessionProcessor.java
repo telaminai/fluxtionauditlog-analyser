@@ -380,7 +380,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "5c682cde81c918ab5472f164e8f02e8374b1924425a0ed63129b94d86058a0ca",
+              "5b60cfc40029e16859ba361cad9c0bcde163a16912c981d724024b0a3016e2a4",
               null));
 
   @Override
@@ -976,7 +976,24 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
     isDirty_openLog = openLog.onLogAppended(typedEvent);
-    commonDispatchTail_1(typedEvent);
+    if (guardCheck_logEvidence()) {
+      auditInvocation(logEvidence, "logEvidence", "onOpenLogChanged", typedEvent);
+      logEvidence.onOpenLogChanged();
+    }
+    auditInvocation(logEvidence, "logEvidence", "onLogAppended", typedEvent);
+    logEvidence.onLogAppended(typedEvent);
+    if (guardCheck_pairing()) {
+      auditInvocation(pairing, "pairing", "recomputeOnStateChange", typedEvent);
+      isDirty_pairing = pairing.recomputeOnStateChange();
+    }
+    if (guardCheck_coverageClaim()) {
+      auditInvocation(coverageClaim, "coverageClaim", "recomputeOnStateChange", typedEvent);
+      coverageClaim.recomputeOnStateChange();
+    }
+    if (guardCheck_pairingQualifier()) {
+      auditInvocation(pairingQualifier, "pairingQualifier", "onPairChanged", typedEvent);
+      pairingQualifier.onPairChanged();
+    }
     afterEvent();
   }
 
@@ -1455,6 +1472,8 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onLogAppended(typedEvent);
       auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
       isDirty_openLog = openLog.onLogAppended(typedEvent);
+      auditInvocation(logEvidence, "logEvidence", "onLogAppended", typedEvent);
+      logEvidence.onLogAppended(typedEvent);
     } else if (event instanceof LogCleared) {
       LogCleared typedEvent = (LogCleared) event;
       auditEvent(typedEvent);

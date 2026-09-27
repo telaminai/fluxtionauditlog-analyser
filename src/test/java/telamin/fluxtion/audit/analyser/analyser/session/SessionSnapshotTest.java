@@ -134,8 +134,9 @@ class SessionSnapshotTest {
         assertEquals(appends, sink.records().stream().filter(r -> r.contains(SessionAuditSink.RESCOPE_EVENT)).count(),
                 "and every re-scope");
         assertEquals(0, sink.droppedRescopes());
-        // the first poll moved the content signature, so its rescan's batch end is kept with it: 1,001 of that kind
-        assertEquals(1_001 - SessionAuditSink.OBSERVATION_CAPACITY, sink.droppedObservations());
+        // the append's scan is still outstanding (nothing reports it here), so every poll coalesces into it: no effect,
+        // no batch end, and exactly the thousand observations
+        assertEquals(1_000 - SessionAuditSink.OBSERVATION_CAPACITY, sink.droppedObservations());
     }
 
     @Test

@@ -4464,7 +4464,8 @@ public final class MainFrame extends JFrame {
     /** The log line last rendered, and for which generation — a line is set only when what it says changed. */
     private String renderedLogLine;
     private long renderedLogGeneration = -1;
-    private telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics renderedFindings;
+    /** The snapshot the log's evidence was last rendered from — compared, never read as state. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot renderedEvidence;
     /** The generation whose time-order report a PERSON asked to see at load (review F5: never a socket caller). */
     private long timeOrderDialogGeneration = -1;
 
@@ -4481,7 +4482,7 @@ public final class MainFrame extends JFrame {
         var s = store;
         if (s == null) {
             renderedLogLine = null;
-            renderedFindings = null;
+            renderedEvidence = null;
             status.setToolTipText(null);
             return;
         }
@@ -4491,12 +4492,16 @@ public final class MainFrame extends JFrame {
         // the previous revision's, and the line waits one EDT turn for the scan rather than mix the two
         if (findings == null || order == null || next.evidencePending()
                 || next.logGeneration() != sessionLogGeneration) return;
+        // The line states the revision the SESSION knows. A Follow poll grows the store before it reports the append,
+        // and any snapshot published in between (its identity check, say) would otherwise pair the store's new rows
+        // with the session's previous evidence; the report that follows renders the line.
+        if (next.total() != s.size()) return;
         if (next.logGeneration() != renderedLogGeneration) {
             renderedLogGeneration = next.logGeneration();
             renderedLogLine = null;
         }
         String name = displayName(logDisplayLocation);
-        String line = statusLine(next.following(), s.size(), rangeOf(s),
+        String line = statusLine(next.following(), next.total(), rangeOf(s),
                 next.provenance() != null ? next.provenance() + "  (" + name + ")" : name,
                 s.streamEnd().isKnownComplete(), orderWarning(order), producerWarning(findings), trailingPendingNote());
         if (next.followReadFailure() != null) line += "  ·  ⚠ Follow read failed: " + next.followReadFailure();
@@ -4508,10 +4513,9 @@ public final class MainFrame extends JFrame {
         }
         // the full sentence, where there is room for it — the status bar has none
         status.setToolTipText(findings.isClean() ? null : String.join("\n\n", findings.messages()));
-        if (findings != renderedFindings) {
-            renderedFindings = findings;
-            if (reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
-        }
+        boolean findingsMoved = renderedEvidence == null || renderedEvidence.producerFindings() != findings;
+        renderedEvidence = next;
+        if (findingsMoved && reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
         if (timeOrderDialogGeneration == next.logGeneration()) {
             timeOrderDialogGeneration = -1;
             // D-R3: the report is shown, never buried — once, at load, with the evidence lines, and only to a person

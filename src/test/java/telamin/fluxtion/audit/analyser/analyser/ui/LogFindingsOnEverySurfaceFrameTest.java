@@ -412,6 +412,99 @@ class LogFindingsOnEverySurfaceFrameTest {
         } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
     }
 
+    // ---- M44.5: the witnesses of 2026-09-27, kept as regression checks -----------------------------------------------
+
+    private static String rec(long logTime) {
+        return "eventLogRecord:\n  logTime: " + logTime + "\n  event: Tick\n  nodeLogs:\n    - node: { value: 1}\n---\n";
+    }
+
+    /** Opens {@code log} for the socket, follows it with the timer stopped, and lets the open's scan report. */
+    private static void followWithManualPolls(AsyncOpenInterleavingFrameTest.Frame f, Map<String, Object> open)
+            throws Exception {
+        assertTrue(f.ex.render("open", open).ok(), "the fixture opens: " + open);
+        AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+        assertTrue(f.ex.render("open", Map.of("follow", true)).ok(), "and is followed");
+        onEdt(() -> ((Timer) field(f.frame, "followTimer")).stop());   // the test drives each poll
+        onEdt(() -> { });                                                // the open's scan has reported
+    }
+
+    /**
+     * W1: a record appended under Follow that runs BACKWARDS in time was never reported — the time order was validated
+     * once, at load, by the loader. It is logEvidence's now, re-derived whenever the content moves.
+     */
+    @Test
+    void aTimeOrderViolationAppendedUnderFollowIsReported() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = Files.writeString(tmp.resolve("ordered.yaml"), "---\n" + rec(1000) + rec(2000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            followWithManualPolls(f, Map.of("log", log.toString()));
+            onEdt(() -> {
+                assertNull(find(render(f.ex, "context", Map.of()), "timeOrder"), "control: the file is ordered");
+                assertFalse(status(f.frame).getText().contains("time-order"), "control: " + status(f.frame).getText());
+            });
+
+            Files.writeString(log, rec(500), java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));
+            onEdt(() -> assertAll("W1: the appended violation is reported where a load's would be",
+                    () -> assertNotNull(find(render(f.ex, "context", Map.of()), "timeOrder"), "context.timeOrder"),
+                    () -> assertTrue(status(f.frame).getText().contains("time-order violations (1)"),
+                            "the Follow status line: " + status(f.frame).getText())));
+        }
+    }
+
+    /**
+     * W2: the Follow status line was a second assembly, and it dropped the provenance and the time-order warning that
+     * the load line carried. One composer now; Follow changes the head of the line, never the facts on it.
+     */
+    @Test
+    void theFollowLineKeepsTheProvenanceAndTheOrderWarning() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = Files.writeString(tmp.resolve("disordered.yaml"), "---\n" + rec(2000) + rec(1000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            followWithManualPolls(f, Map.of("log", log.toString(), "provenance", "DEMO"));
+            onEdt(() -> {
+                String line = status(f.frame).getText();
+                assertAll("W2: what the load line says, the Follow line says: " + line,
+                        () -> assertTrue(line.startsWith("Following DEMO  (disordered.yaml)"), "the provenance"),
+                        () -> assertTrue(line.contains("time-order violations (1)"), "the order warning"));
+            });
+            Files.writeString(log, rec(3000), java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));
+            onEdt(() -> {
+                String line = status(f.frame).getText();
+                assertAll("and after an append: " + line,
+                        () -> assertTrue(line.startsWith("Following DEMO  (disordered.yaml) · 3 records"), "the count"),
+                        () -> assertTrue(line.contains("time-order violations (1)"), "the order warning"));
+            });
+        }
+    }
+
+    /**
+     * M44.5, found while building it: between a poll and the scan it asks for, the line counted the NEW rows beside the
+     * PREVIOUS revision's findings — "1 records … ⚠ empty log". The snapshot says a scan is outstanding, and the line
+     * waits for it: read in the same EDT turn as the poll, it is still the previous revision's whole line.
+     */
+    @Test
+    void theLineNeverCountsNewRowsBesideTheOldFindings() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            Path log = emptyFollowedWithAReport(f);
+            String before = onEdtGet(() -> status(f.frame).getText());
+            assertTrue(before.contains("0 records") && before.contains("empty log"), "control: " + before);
+            appendRecord(log);
+            onEdt(() -> {
+                poll(f.frame);
+                String during = status(f.frame).getText();
+                assertFalse(during.contains("1 records") && during.contains("empty log"),
+                        "one revision per line, never two: " + during);
+            });
+            onEdt(() -> {
+                String after = status(f.frame).getText();
+                assertTrue(after.contains("1 records") && !after.contains("empty log"), "and then the new one: " + after);
+            });
+        }
+    }
+
     /** M44.5: the log's findings are the session's (logEvidence), published in the snapshot — null until the scan lands. */
     static telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics findingsOf(MainFrame frame) {
         return ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(frame, "session")).snapshot().producerFindings();

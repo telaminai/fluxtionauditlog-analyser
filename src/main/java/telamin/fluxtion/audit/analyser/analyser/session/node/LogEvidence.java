@@ -98,6 +98,19 @@ public class LogEvidence implements EventLogSource {
         return true;                                       // published: the status line re-reads the log's counts
     }
 
+    /**
+     * Records appended under Follow. Handled HERE, in the same cycle that moves the log's row count, so the snapshot
+     * that publishes the new count also says the evidence is being re-derived — a surface can never state the new
+     * count beside the previous revision's findings (found while building M44.5).
+     */
+    @OnEventHandler
+    public boolean onLogAppended(SessionEvents.LogAppended event) {
+        if (!current(event.generation(), "LogAppended")) return false;
+        boolean was = scanPending;
+        requestScan(event.generation(), "records appended");
+        return !was;
+    }
+
     @OnEventHandler
     public boolean onProducerFindingsObserved(SessionEvents.ProducerFindingsObserved event) {
         if (!current(event.generation(), "ProducerFindingsObserved")) return false;
@@ -127,6 +140,12 @@ public class LogEvidence implements EventLogSource {
     }
 
     private void requestScan(long generation, String why) {
+        if (scanPending) {
+            // Coalesced: the outstanding scan has not run yet, and it reads the log when it runs — so it describes
+            // this content too. A second one would only repeat it.
+            auditLog.info("scanCoalesced", why);
+            return;
+        }
         scanPending = true;
         auditLog.info("decision", "scanLogEvidence").info("generation", generation).info("why", why);
         effects.request(new SessionEffects.ScanLogEvidenceEffect(0L, generation));

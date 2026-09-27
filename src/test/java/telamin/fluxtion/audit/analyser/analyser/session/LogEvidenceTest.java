@@ -86,23 +86,29 @@ class LogEvidenceTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a, "/f.yaml");
         long g = d.snapshot().logGeneration();
+        settle(d, g);                                       // the open's own scan reports
         int afterOpen = scans(a).size();
         d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 0, null));
         assertEquals(afterOpen + 1, scans(a).size(), "the first signature asks");
+        settle(d, g);
         d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 0, null));
         assertEquals(afterOpen + 1, scans(a).size(), "an unchanged signature asks nothing");
         d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 1, "disk said no"));
         assertEquals(afterOpen + 2, scans(a).size(), "a failed read with new damage moved it");
+        settle(d, g);
         d.post(new SessionEvents.LogContentObserved(g, 1, 0, "UNKNOWN", 1, "disk said no"));
         assertEquals(afterOpen + 2, scans(a).size(), "the same failure again asks nothing (the repeated-failure skip)");
         assertEquals("disk said no", d.snapshot().followReadFailure(), "why the read failed is published");
         d.post(new SessionEvents.LogContentObserved(g, 1, 40, "UNKNOWN", 1, null));
         assertEquals(afterOpen + 3, scans(a).size(), "a growing pending frame moved it");
         assertNull(d.snapshot().followReadFailure(), "a poll that read clears the failure");
+        settle(d, g);
         d.post(new SessionEvents.LogContentObserved(g, 1, 40, "COMPLETE", 1, null));
         assertEquals(afterOpen + 4, scans(a).size(), "a marker with no record moved it");
+        settle(d, g);
         d.post(new SessionEvents.LogContentObserved(g, 2, 0, "COMPLETE", 1, null));
         assertEquals(afterOpen + 5, scans(a).size(), "an appended record moved it (W1)");
+        settle(d, g);
         d.post(new SessionEvents.LogContentObserved(g - 1, 9, 0, "UNKNOWN", 0, null));
         assertEquals(afterOpen + 5, scans(a).size(), "a signature for another generation is refused");
     }
@@ -210,5 +216,26 @@ class LogEvidenceTest {
         d.post(new SessionEvents.ProducerFindingsObserved(g, EMPTY_LOG));
         d.post(new SessionEvents.TimeOrderObserved(g, clean));
         assertFalse(d.snapshot().evidencePending(), "an identical result still settles it — a surface may render");
+    }
+
+    /** The adapter's side of a scan: both results, for the generation asked about. */
+    private static void settle(SessionDriver d, long g) {
+        d.post(new SessionEvents.ProducerFindingsObserved(g, EMPTY_LOG));
+        d.post(new SessionEvents.TimeOrderObserved(g, TimeOrderReport.clean()));
+    }
+
+    @Test
+    @DisplayName("An append marks the evidence outstanding in the SAME cycle as the count moves, and asks for one scan")
+    void anAppendIsOutstandingEvidenceAtOnce() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a, "/f.yaml");
+        long g = d.snapshot().logGeneration();
+        settle(d, g);
+        int before = scans(a).size();
+        d.post(new SessionEvents.LogAppended(g, Set.of("a"), 1, 2, "TRACE"));
+        assertEquals(2, d.snapshot().total(), "the count moved");
+        assertTrue(d.snapshot().evidencePending(), "and the same snapshot says the evidence is being re-derived");
+        d.post(new SessionEvents.LogContentObserved(g, 2, 0, "UNKNOWN", 0, null));
+        assertEquals(before + 1, scans(a).size(), "the poll's content report coalesces into the outstanding scan");
     }
 }
