@@ -4075,6 +4075,10 @@ public final class MainFrame extends JFrame {
         // rendered from the snapshot (renderLogEvidence) once logEvidence's scan of THIS log lands; this load only
         // records its audience, so the report is a dialog for a person and never for a socket caller (review F5).
         timeOrderDialogGeneration = loadFromSocket ? -1 : sessionLogGeneration;
+        // The store of this generation is installed and the load is complete: the scan the processor asked for at
+        // LogOpened runs now, in this task. A load that throws before here never gets a line saying it loaded.
+        installedEvidenceGeneration = sessionLogGeneration;
+        performRequestedScan();
 
         // follow/tail: track this file if it's local & followable; drop follow if it isn't
         followPath = followable ? location : null;   // Follow itself continued, or stopped, in the LogOpened above
@@ -4392,6 +4396,29 @@ public final class MainFrame extends JFrame {
      */
     private final java.util.Map<LogStore, telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport> setOrderReports =
             new java.util.WeakHashMap<>();
+
+    /** The generation whose store a completed load installed — the precondition for performing its scan. */
+    private long installedEvidenceGeneration = -1;
+    /** The generation of the scan the processor asked for and the adapter has not yet performed, or -1. */
+    private long requestedScanGeneration = -1;
+
+    /**
+     * M44.5: the effect's precondition, and nothing more. A scan is performed only against the store of the generation
+     * it names. Under Follow that store is installed, so the scan runs on the next EDT turn, after the poll; for a
+     * just-opened generation the store is installed at the END of onLoaded, which performs it there. Whether the
+     * evidence was stale was logEvidence's decision — this only waits until the effect can be carried out.
+     */
+    private void scanWhenInstalled(long generation) {
+        requestedScanGeneration = generation;
+        if (installedEvidenceGeneration == generation) javax.swing.SwingUtilities.invokeLater(this::performRequestedScan);
+    }
+
+    private void performRequestedScan() {
+        long generation = requestedScanGeneration;
+        if (generation < 0 || generation != installedEvidenceGeneration) return;
+        requestedScanGeneration = -1;
+        scanLogEvidence(generation);
+    }
 
     /**
      * M44.5: PERFORM the scan the processor asked for, and report the results as facts. It decides nothing: whether the
@@ -5436,11 +5463,10 @@ public final class MainFrame extends JFrame {
                 yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
-                // M44.5: the processor decided the log's evidence is stale. The scan runs AFTER this task, never inside
-                // the dispatch: for a just-opened generation the store is installed after LogOpened returns.
-                long generation = e.generation();
-                javax.swing.SwingUtilities.invokeLater(() -> scanLogEvidence(generation));
-                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled(opId, generation);
+                // M44.5: the processor decided the log's evidence is stale. The scan never runs inside the dispatch, and
+                // only against the store of the generation it names: see scanWhenInstalled.
+                scanWhenInstalled(e.generation());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled(opId, e.generation());
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());

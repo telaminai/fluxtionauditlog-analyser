@@ -57,6 +57,18 @@ then the controls (e4046c0a) and a merge of `main`.
 3. **A witness too weak for its control.** `m44-5-line-waits-for-the-session` survived its first run: the witness
    checked the count, and the count had become the session's. It now asserts the whole previous line holds.
 
+4. **CI found what the local run did not (PR #43, first run).** Two failures, one cause: the scan was queued at
+   `LogOpened` and ran on the next EDT turn, so
+   - a reader could see a finished load still saying "Loading b.yaml …" for one turn
+     (`AsyncOpenInterleavingFrameTest#b3_…`, a race that passed locally), and
+   - worse, the existing `global-preservation` control SURVIVED: its mutation makes `onLoaded` throw part-way,
+     and the queued scan then rendered a complete-looking line over a load that had crashed.
+
+   Fix: the adapter performs a requested scan only against the store of the generation it names
+   (`scanWhenInstalled`). At load that is the END of `onLoaded`, in the same task, so a load that throws before
+   then never gets a line. Under Follow the store is installed and nothing changed. `global-preservation` is caught
+   again, and it is the deterministic check for this; b3 is the racy one.
+
 ## Controls
 13 controls anchored on deleted code were re-anchored to the one site each behaviour now has, at their original
 witnesses — except `integration-repeat-failure-skip`, which is observable only as a scan count now (equal findings
@@ -71,4 +83,6 @@ said the remaining defects would move to the adapter boundary; item 1 is exactly
 processor level in minutes because the ordering was readable in the generated code and the audit record.
 
 ## Gates
-Recorded at the end of the work: see the PR description.
+Recorded at the end of the work: see the PR description. After finding 4 the local gates were re-run: headless
+2460/0 failures, all 23 frame suites 123/0 failures (1 skip, local keyboard focus), and 26 controls
+(`global-preservation` plus this work's 25) caught.
