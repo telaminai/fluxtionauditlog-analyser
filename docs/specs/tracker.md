@@ -8,8 +8,8 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ## Evidence bundles — consolidated discussion draft, 2026-09-27
 
-The [Codex delivery proposal](../proposals/evidence-bundle/versions/evidence-bundle-proposal-codex.md) is one
-discussion input consolidating the prototype and positioning. **No implementation or acceptance is claimed.** The owner wants portable
+The [combined proposal](../proposals/evidence-bundle/combined-proposal.md) consolidates five archived
+discussion inputs and keeps unresolved decisions explicit. **No implementation or acceptance is claimed.** The owner wants portable
 investigations and a bounded replay → fix → comparison → response journey in the first delivery;
 the browser viewer is optional. Two working days is a planning target, subject to the checks and
 the unresolved runner/dependency facts. Multiple reviewers will challenge the draft's decision
