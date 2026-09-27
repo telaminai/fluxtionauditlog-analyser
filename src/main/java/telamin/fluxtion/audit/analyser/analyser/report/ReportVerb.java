@@ -71,7 +71,11 @@ public final class ReportVerb {
             return new ReportSpec(
                     spec.name(),
                     supplied.contains("title") ? spec.title() : existing.title(),
-                    existing.createdAt(),
+                    // PR #51 review, and the reviewer is right: createdAt follows the SECTIONS, like the
+                    // fingerprint and the filter beside it. Keeping the old date on a full replace made the
+                    // PDF print CREATED 2026-01-01 next to WRITTEN AGAINST today's log — two rows describing
+                    // different reports. Nothing of the original survives a full replace except its name.
+                    keepSections ? existing.createdAt() : spec.createdAt(),
                     supplied.contains("notes") ? spec.notes() : existing.notes(),
                     keepSections ? existing.fingerprint() : spec.fingerprint(),
                     keepSections ? existing.filter() : spec.filter(),
@@ -102,7 +106,12 @@ public final class ReportVerb {
         // #46: which keys the CALL carried, so a later merge can tell absent from empty
         var supplied = new java.util.LinkedHashSet<String>();
         for (String key : new String[]{"title", "notes", "sections"}) {
-            if (params.containsKey(key)) supplied.add(key);
+            // PR #51 review: an explicit null is ABSENT, not supplied. A client filling an optional
+            // argument it has no value for — "sections": null — would otherwise wipe the report, which is
+            // the exact defect #46 exists to remove, reached by a different route. `report` documents its
+            // own way to empty a report deliberately, and it is `sections: []`. (`filter` is the verb where
+            // null CLEARS; that is documented per-verb and does not generalise to this one.)
+            if (params.get(key) != null) supplied.add(key);
         }
         return new Parsed(spec, warnings, supplied);
     }
