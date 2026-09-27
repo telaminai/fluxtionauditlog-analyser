@@ -1,7 +1,8 @@
 # Evidence bundles — combined product and delivery proposal
 
-**Status: DISCUSSION DRAFT r2, 2026-09-27. Not approved or implemented.** r2 adds EB-0 facts established by
-reading the code (§4), and records the reasoning behind each change in the [discussion log](discussion-log.md).
+**Status: DISCUSSION DRAFT r3, 2026-09-27. Not approved or implemented.** r3 challenges the capture and replay
+conclusions with source evidence, and narrows archive reuse. Reasons and unresolved choices are in the
+[discussion log](discussion-log.md), L-16–L-22. D-0 is unchanged.
 
 This consolidates all five [source versions](#15-source-versions-and-reconciliation). They remain
 unchanged in `versions/` as the record of the discussion. This is the working document to argue over,
@@ -136,23 +137,33 @@ capture state, raw-record export and flags. If they do not, choose and review th
 adapter that reuses the production services, or switch to native capture. Do not work around a missing
 interface by reconstructing a chart from a partial echo or reading a stale on-disk profile.
 
-**EB-0, already established by reading the code (r2).** These answer part of the question above. They are
-READ at `main` `d82f1487`, not RAN, so re-check them at the implementation head.
+**EB-0, inspected in r2 and rechecked/qualified in r3 (L-16).** These answer part of the question above. They are
+READ at `main` `d82f1487`, not socket reproductions, so re-check them at the implementation head.
 
 | Capture need | Available to a client today? | Evidence |
 |---|---|---|
-| Flags | **Yes.** `context.flags` lists each flag's `recordIndex`, `kind`, `note` and `fix`. The index is into the live store, so an excerpt must remap it through `record-map.json`. | `MainFrame` context builder, the `flags` loop |
-| Raw record text | **Yes, by index.** `read` returns `text` from the same `rawText(row)` the YAML exporter writes. It is anchored by record index, byte offset or time, at 25 records per call. A whole-log or explicit-index excerpt needs no second parser. | `ReadService` (`MAX_COUNT = 25`, `m.put("text", rawText.apply(row))`); `RecordExporter.toYaml` |
+| Flags | **Yes.** `context.flags` lists every flagged row's `recordIndex` and `kind`, plus `note` and `fix` when present. The index is into the live store, so an excerpt must remap it through `record-map.json`. | `MainFrame` context builder, the `flags` loop |
+| Raw record text | **Yes, by index.** `read` returns `text` from the same `rawText(row)` the YAML exporter writes. It is anchored by record index, byte offset or time, at 25 records per call. A whole-log or explicit-index excerpt needs no second parser; this is record text, not an exact original-file byte export. The exporter adds document separators and newlines. | `ReadService` (`MAX_COUNT = 25`, `m.put("text", rawText.apply(row))`); `RecordExporter.toYaml` |
 | The records the current filter shows | **No.** No verb lists the filtered record indices; `aggregate` returns counts and where the counted records begin and end. A filtered-view excerpt needs a native adapter, or the person must choose explicit indices. | the verb list in `VerbSchemas` |
-| Complete chart definitions | **No.** `context.savedGraphs` carries `name`, `open`, `series`, expression *strings* and `style` only. It lacks expression labels, guides, bands, markers, external series, notes, explanation, window and rationale. | `SessionFacts.savedGraphs` |
+| Complete chart definitions | **No.** `context.savedGraphs` carries `name`, `open`, `input`, `series`, expression *strings* and `style` only. It lacks expression labels, guides, bands, markers, external series, notes, explanation, window and rationale. | `SessionFacts.savedGraphs` |
 | The on-disk profile as a substitute | **Not safely.** Profile writes are coalesced (debounced), so the file can lag the live charts. | `ProjectSession` class javadoc, *Auto-persist, debounced*; `requestSave` |
-| The pairing verdict | **Yes.** `context.graphPairing`. | the `context` builder (REPORTED by a code-mapping pass) |
+| The pairing verdict | **Yes.** `context.graphPairing`. | `MainFrame.context`, reading the session pairing (READ again for r3) |
 
-**Consequence for D-1.** Every capture need except one is met by today's socket. The proved gap is **complete chart
-state**, plus the filtered-view index set if that selection mode is kept. The smallest adapter is therefore narrow: a
-read-only fact that publishes the charts through the production serializer (`ConfigStore`'s graph family), and
-optionally the filtered indices. It is not a capture verb. This decides between D-1's options on evidence rather than on
-preference; see D-1a in §14.
+**r3 correction to D-1/D-1a (L-16, L-17).** These are individual facts, not a coherent capture interface.
+`context` is assembled on the EDT; a subsequent `read` has its own snapshot/raw-text accessors and no expected-capture
+revision parameter. A person can change a chart or switch logs between calls, even with Follow off and no load pending
+at either observation. Adding chart fields does not close A-3. An external-only route is therefore **not established**.
+
+For the chart-definition fact alone, extending each existing `context.savedGraphs` entry is the smaller candidate:
+keep its summary fields and add a complete, versioned definition through the production serializer. This changes
+output assembly without a new input option; the existing `charts` projection includes it. A separate `graph` read-only
+option needs schema/prompt/routing changes and must bypass that verb's log guard, tab selection and reopen side effects.
+L-17 inventories the existing contract tests; these are review surfaces, not measured implementation times.
+
+Keep D-1a's fact export separate from a capture-validity contract. EB-0 must prove a stable snapshot/retained source,
+or add a session-owned capture operation with immutable state, source lifetime protection and revision-bound reads.
+Before/after polls or file hashes alone do not catch an intervening change that returns to the same visible state.
+The extra adapter work is a delivery dependency, not grounds to weaken §6.1.
 
 | Responsibility | Initial proposed owner | Durable home / invariant |
 |---|---|---|
@@ -243,6 +254,10 @@ algorithms, so the implementation must choose one before writing bundles. This d
 bytes for simplicity, not because a canonical scheme is inherently wrong. Golden cross-reader fixtures
 must pin the chosen rule.
 
+**r3, L-20:** keep D-2 open. Exact bytes deliberately distinguish a pretty-printed manifest from the received one.
+If canonical identity is chosen instead, name the canonicalisation standard and numeric/string constraints;
+“sort the keys” is not a cross-language contract. Duplicate-key rejection is required under either choice.
+
 Version 1 readers refuse unknown versions or unknown required capabilities/roles. Unknown optional
 members may be integrity-checked and listed without interpretation. Preserve opaque unknown metadata
 when making a derivative, but never execute or import unknown configuration into the recipient's machine.
@@ -267,6 +282,11 @@ reviewed extension specifies the signed bytes, key identity, trust source, revoc
 failure behaviour. “Signature valid under supplied key; signer not vouched for” differs from trusted
 organisational identity. Do not silently accept an unsupported signature and display a green signature
 badge. Signature files must have an explicit envelope rule so they do not create a digest cycle.
+
+**r3, L-21:** D-3 remains an owner choice. Unsigned verification detects a changed member against an unchanged
+manifest; it cannot detect replacement of both without a separately trusted original identity. A valid signature under a key supplied in the
+same bundle proves signature/key consistency, not that the ticket's claimed author signed it. If that author identity
+is a first-delivery acceptance requirement, explicit trusted-key distribution and its tests must enter the scope.
 
 An integrator, component supplier, customer CI and Telamin tooling may eventually attest different
 facts. No party becomes the sole authority on correctness. Runtime-emitted receipts can improve build
@@ -359,7 +379,10 @@ Treat every archive as untrusted. Reject absolute/rooted/drive paths, backslashe
 normalised or case-colliding paths, symlinks/special entries, unsupported encryption/compression and
 undeclared files. Enforce limits while streaming: initially 4,096 entries, 64 MiB/member and 512 MiB
 expanded total. These are exactly `template/TemplateArchive`'s `MAX_ENTRIES`, `MAX_ENTRY_BYTES` and
-`MAX_EXPANDED_BYTES` (READ), so its hardened extractor can be reused rather than rewritten. Nested executable/archive content is outside the initial member allow-list. Hashing a
+`MAX_EXPANDED_BYTES` (READ). **r3, L-19:** reuse those bounds and audited extraction mechanics, not
+`TemplateArchive.install` unchanged: it requires one top-level project directory, while this format has a root
+manifest and multiple roots. Its extractor is private and applies template-specific executable permissions. A shared
+extraction primitive needs a reviewed split, separate layout/permission policies and tests for both consumers. Nested executable/archive content is outside the initial member allow-list. Hashing a
 hostile file does not authorise executing it.
 
 Extraction may write regular files only into private staging, never outside it; no project is opened
@@ -423,11 +446,24 @@ is explicitly installed/selected locally, outside the analyser's action surface;
 select executable code. Opening or walking cannot launch it. A wrapper can pass validated input data
 to that runner, but never execute a recipe/script contained in the bundle.
 
-The initial feasibility check pins runner/version, input codec, reset procedure, supported runtime and
-dependencies. The source drafts disagree on whether the Mongoose/template route already supplies it.
-Inspect the actual implementation and framework reference, then run it; treat both claims as unresolved
-until then. If an adapter is needed, assign it to its application/tooling owner and report that as a
-delivery dependency. Do not replace it with playback or an uncontrolled feed while retaining “replay”.
+**r3 feasibility result (READ, L-18): replay primitives exist; a ready bundle experiment runner is not established.**
+The public framework reference and replay guide were read together with `YamlReplayRunner` at Fluxtion `3de39f55`.
+That runner accepts an already-created processor and decoded typed replay records, sets the processor clock before
+`onEvent`, and preserves input order. It does not select a build, reset an existing instance or capture a receipt.
+Its optional lifecycle calls happen before `runReplay` installs the clock, and its time bounds are exclusive.
+Those details must be covered by the chosen runner's lifecycle/clock and selection policy.
+
+Mongoose's `ReplayRecord` route supplies timestamped dispatch, but `EventToQueuePublisher.publishReplay` bypasses
+`dataMapper` (`publish` calls it). Feeding already-mapped events through that route cannot demonstrate a feed-mapper
+fix. The admin console's replay engine navigates recorded observations; it is playback. The template's generated
+hosting guidance explicitly supplies no generic feed reset or recorded-session replay command.
+
+The initial adapter therefore belongs to the application/tooling owner: select a locally approved build, start fresh
+isolated state, consume a finite input stream **before the component under test**, establish lifecycle and event clock
+policy, check consumed counts and emit the receipt below. Reuse existing dispatch/clock primitives at their actual
+boundary; do not substitute a second implementation of the faulty mapper. Pin released dependencies and codec before
+claiming a keyless route. This review ran no replay and established no released executable combination: EB-0's measured
+original-fails / corrected-passes experiment remains a delivery gate. It cannot be replaced with playback or a moving feed.
 
 For a faulty feed mapper, capture **before the mapper**, not after it. Include finite input order,
 initial state/reset, configuration, clock policy, seed/external responses where relevant, and a safe
@@ -602,7 +638,7 @@ Only D-0 is owner direction; all other rows are recommendations to contest befor
 |---|---|---|
 | D-0 | Portable investigation plus bounded replay/comparison required; browser optional | Already stated by owner. Scope changes require an explicit owner decision. |
 | D-1 | Internal evidence core with a thin client; external-only is an alternative if complete exports are proved | EB-0 proves complete state/export/fidelity and races; compare integration cost with native CLI-first delivery. |
-| D-1a | *r2:* the one proved client gap is complete chart state (§4). Add a **read-only fact** publishing full chart definitions through the production serializer, and optionally the filtered record indices, rather than a capture verb. | Whether a `context` extension, or a separate read-only verb option, is the smaller reviewed change; the contract tests decide the cost. |
+| D-1a | *r3:* extend existing `context.savedGraphs` for complete definitions; preserve summary fields. This closes a representation gap only. Coherent capture and any filtered-index export remain separate requirements. | L-17 favours the context extension on inspected contract surface. EB-0/A-3 must prove a capture-validity contract before choosing the overall architecture; L-16. |
 | D-2 | `.fexp`; integer format v1; exact manifest-byte identity outside manifest; timestamp included | Choose one algorithm and pin cross-reader fixtures. Canonical blanked-ID alternatives remain valid proposals, not simultaneous rules. |
 | D-3 | Unsigned first; optional signatures only with a separate reviewed envelope/trust rule | Owner weighs value versus delivery time; reviewer checks signer language and digest-cycle avoidance. |
 | D-4 | Fresh disposable working copy; immutable received evidence; no cached edited instance | Show source/destination hashes across edits and reopen; native overlay may later improve UX. |
@@ -617,7 +653,9 @@ Facts to recheck at the implementation head: complete chart/profile/flags API; c
 verdict shape; no-log/project-open semantics; raw export grammar/refusals; source/graph digest freshness;
 existing UI bugs; replay codec/runner/reset; shared renderer availability. **r2:** the chart/profile/flags API, raw
 export and renderer availability are answered by READ evidence in §4 (EB-0) and §10. They still need re-checking at
-the implementation head, but they are no longer unknowns. Replay, the codec, the runner and reset remain unknown. Earlier draft line numbers
+the implementation head, but they are no longer unknowns. **r3:** L-18 establishes dispatch/clock primitives and the missing mapper/reset/build-selection integration by READ;
+a released runner/codec and measured reset/reproduction are still unverified. Capture coherence remains unproved
+(L-16); L-19 narrows archive reuse. Earlier draft line numbers
 are review pointers, not proof that a later version behaves the same.
 
 During this consolidation, `ProjectProfile.baseDirFor` and `AnalysisSpec` were inspected: project-role
@@ -655,3 +693,8 @@ their own derivation and scope. Hash validation applies to both categories.
   filtered-view gap, and incomplete chart state. It adds D-1a, identifies the archive limits as `TemplateArchive`'s,
   links "no pending load" to M44.6, and states #53's and #55's status. Reasons for each change are in the
   [discussion log](discussion-log.md). Nothing was run.
+
+- r3 (Codex, also an author of r1) distinguishes per-call facts from coherent capture (L-16), inventories the
+  chart-export contract surface (L-17), and checks actual replay boundaries and missing integration (L-18). It narrows
+  archive reuse (L-19) and adds arguments without deciding identity or signing policy (L-20, L-21). L-22 records checks
+  and limits. Earlier discussion entries and all five source drafts are preserved; no implementation or replay trial.

@@ -198,14 +198,163 @@ Append; never rewrite an earlier entry. If a position changes, add a new entry t
   - #55 (the view-model spike) is a draft, green on all 12 checks, marked not for merge.
 - **Outcome:** neither is a delivery dependency, as the proposal already said. Their status is now stated as fact.
 
+## Review r3 (Codex, 2026-09-27)
+
+Codex contributed combined r1; this is not independent of that authorship. Earlier agreement is not evidence.
+Unless another revision is named, analyser READ evidence below is at `d82f1487`, as carried by proposal `9640780d`.
+All failure scenarios below are source-derived unless explicitly labelled RAN; none is a replay trial.
+
+### L-16 · Available facts do not establish coherent capture · open
+- **Raised by / date:** Codex, 2026-09-27.
+- **Proposal refs:** D-1, D-1a, EB-0, A-3, §4, §6.1. Supersedes L-12's conclusion that only one adapter gap is proved.
+- **Positions:** r2 concludes that full chart definitions, optionally filtered indices, complete the socket capture
+  surface. Codex disputes that conclusion while confirming most of L-11's individual observations.
+- **Evidence:** READ `MainFrame.context` iterates every `flaggedRows` entry, with optional note/fix, and publishes
+  session pairing. `ReadService.read` returns `rawText` without fields projection, capped at 25; `RecordExporter.toYaml`
+  adds separators/newlines around that same text. This is not an original-file byte export. `SessionFacts.savedGraphs`
+  also carries `input` but omits most `GraphSpec` components. `ProjectSession.requestSave/flush` confirms debounce.
+  `ReadService`, `VerbSchemas` and the filter reply do not supply a filtered-index listing. These are READ confirmations,
+  not socket reproductions. `ActionExecutor` assembles context on the EDT; `ActionDispatcher` independently obtains
+  the snapshot/raw accessor for a later read. Neither API accepts an expected capture revision binding the two calls.
+- **Failure / cost:** capture context for log A, open same-sized log B, then page records. Both calls can succeed while
+  chart/flag indices from A are combined with B. Or change a chart between the definition read and capture completion.
+  Follow off and idle observations do not prevent this; an A→B→A sequence defeats simple before/after equality checks.
+- **Replacement:** retain complete chart export as a useful fact, but require a session-owned snapshot/retained-source
+  or equivalent validated capture contract. Reuse canonical readers and serializers. No client-side inferred verdict.
+- **Outcome / delivery impact:** r3 removes “every capture need except one” and the assertion that architecture was
+  decided. EB-0 must cost and prove coherence, including A-3's competing-change refusal. API completeness alone is not
+  that proof. No runtime race was reproduced in this docs-only review.
+
+### L-17 · Context extension is smaller for the chart fact, not a capture transaction · open
+- **Raised by / date:** Codex, 2026-09-27.
+- **Proposal refs:** D-1a, §4; refines L-12.
+- **Positions:** compare a nested complete `definition` on existing `savedGraphs` entries with a new read-only option
+  on `graph`. A new verb would add still more contract surface; it is not needed merely to read chart definitions.
+- **Evidence:** READ `SessionFacts.savedGraphs` and its `MainFrame.context` call are **two existing assembly sites**.
+  `ContextSections.SECTIONS` already includes `savedGraphs` under `charts`; a nested field needs no new section or input
+  parameter. Preserve existing name/open/input/series/expressions/style meanings. `ConfigStore.writeGraphs/readGraphs`
+  are package-private: either route needs a reviewed serializer boundary, not copied property names.
+  `ActionExecutor.renderVerb/doGraph` currently requires a log, reveals Graph, and may reopen a saved definition via
+  `graphForAction`; a read-only option must bypass those effects. That route also touches `VerbSchemas` and the
+  hand-described `PromptBuilder` manifest. Merely invoking the current graph verb is not a read-only export.
+- **Contract inventory (READ, class counts, not claims that every file needs editing):**
+  - Context path: **3** directly relevant existing classes: `GraphSeriesShapeAndStyleEchoTest` (saved chart echo),
+    `ContextSectionsTest` (section membership/projection), `ContextSectionsVerbTest` (routing/full versus projected).
+  - A new graph input option: the first echo class plus **4** schema/description transport classes = **5**:
+    `VerbSchemasTest`, `ManifestVerbContractTest`, `McpToolsTest`, `InProcessManifestNamesEveryVerbTest`. The latter
+    checks every parameter appears in the hand-written manifest. New no-log/no-side-effect coverage is also required.
+  - Either route shares **3** persistence fidelity classes to extend/check: `GraphProfileMetadataTest`,
+    `GraphStylePersistenceTest`, `SettingsShareTest`. None currently proves complete exported-definition round trips.
+  These are a bounded inspection inventory, not an exhaustive dependency count or a test execution result.
+- **Failure / cost:** routing a “describe” call through `doGraph` can reveal/reopen a chart; extending default context
+  instead increases every full context reply. Project-panel consumers read selected summary fields (`ProjectModel`),
+  while REST, MCP and the in-process caller share the payload. Preserve summaries and measure response size.
+- **Outcome / delivery impact:** recommend the context extension for this fact alone; no second full-state serializer,
+  no new input contract. Approval still needs full/open/closed/unsaved-chart round trips, payload-size measurement and
+  the distinct capture solution in L-16. The overall native-versus-client decision remains open.
+
+### L-18 · Replay exists below the experiment boundary · open
+- **Raised by / date:** Codex, 2026-09-27.
+- **Proposal refs:** D-7, EB-0, §9, A-8/A-9; resolves primitive availability, not executable feasibility.
+- **Positions:** neither “no replay exists” nor “the existing replay route already implements this journey” is supported.
+- **Evidence:** READ public Fluxtion at `3de39f55`: the [framework reference](https://github.com/telaminai/fluxtion/blob/3de39f55/docs/claude.txt),
+  [replay guide](https://github.com/telaminai/fluxtion/blob/3de39f55/docs/how-to/replay-functionality.md), and
+  [YamlReplayRunner](https://github.com/telaminai/fluxtion/blob/3de39f55/fluxtion-builder-api/src/main/java/com/telamin/fluxtion/builder/replay/YamlReplayRunner.java).
+  RAN public `gh api` retrieval at that revision; read the retrieved source. The runner takes an existing processor,
+  iterates decoded `ReplayRecord`s in order, sets the clock then calls `onEvent`. Its bounds are strict inequalities;
+  `callInit/callStart` run immediately, before `runReplay` installs the clock. There is no reset/build-selection/receipt.
+  The guide describes fresh instances and calls this an AOT commercial feature; availability in a chosen released,
+  keyless toolchain was not established. The reference's broad determinism language is not evidence of captured inputs
+  or reset state; its stateful replay caveat explicitly requires reset between passes.
+- **Evidence:** READ public Mongoose core `2c4192ed`, `EventToQueuePublisher.publish/publishReplay`,
+  `EventQueueToEventProcessorAgent.doWork`, `AbstractEventToInvocationStrategy.processEvent(Object,long)`.
+  Normal publish invokes the mapper; replay publish queues its argument directly. The agent unwraps the event and
+  timestamp and the invocation strategy installs/updates a synthetic processor clock. READ public examples `27ad4fda`,
+  `ReplayExample.demonstrateReplayReproducibility`: it clears the sink, not the handler's `eventCount`; output includes
+  the incrementing count. That example's same-instance repetition is not a fresh-state proof.
+  READ public plugins `ee3fc12d`, admin `replay-engine.js`: record/node cursor playback, no application execution.
+  READ the template repository at `15afb92c`: emitted hosting guidance explicitly supplies no generic feed reset or
+  recorded-session replay command. No private source location or excerpt is reproduced here.
+- **Failure / cost:** a mapper converts a DEMO input wrongly; replaying its already-mapped event through `publishReplay`
+  never executes that mapper. Swapping the mapper can therefore leave the replay unchanged. Reusing a stateful processor
+  can also change the second result despite identical input/time. Lifecycle reads of time need their own policy.
+- **Replacement:** a locally selected application runner consumes the finite pre-mapper input, invokes the actual
+  component under test, starts fresh isolated state and controls clock/lifecycle/side effects. Reuse framework dispatch
+  at its documented boundary; do not rewrite the mapper in the harness. Verify consumed input counts and chosen build.
+- **Outcome / delivery impact:** primitive availability and the mapper bypass are settled by READ. An adapter and its
+  owner are real EB-0 dependencies; a released codec/runner combination, fresh-state control, original failure and fixed
+  pass remain unverified. No real-system replay, compilation or provider was run. Owner scope still requires the journey.
+
+### L-19 · Archive limits are reusable; the installer contract is not · resolved by READ
+- **Raised by / date:** Codex, 2026-09-27.
+- **Proposal refs:** §7, A-2. Supersedes L-13's unqualified “reuse its extractor” conclusion.
+- **Evidence:** READ `TemplateArchive.install`, private `extract`, `soleProjectRoot`, `setFixedPermissions`.
+  The three bounds match §7, but install requires exactly one top-level directory, applies template permissions and
+  checks template-profile roots before moving. The proposed archive instead contains root `manifest.json`, `.analyser/`
+  and other member directories. It cannot pass that install contract unchanged.
+- **Failure / cost:** feed the proposed archive layout to the existing installer → refusal before a bundle opens.
+  Making it a nested starter project would instead change the proposal's profile/manifest layout.
+- **Replacement:** factor/reuse bounded extraction mechanics with explicit bundle layout and permission policy; retain
+  template-specific validation in the template route. Add both consumers' regression checks and bundle manifest checks.
+- **Outcome / delivery impact:** r3 stops calling this a ready extractor. Reuse is plausible, not free; include this
+  small shared-code review in the delivery estimate. No archive was created or installed during this review.
+
+### L-20 · Exact bytes versus canonical identity remains a choice · open
+- **Raised by / date:** Codex, 2026-09-27.
+- **Proposal refs:** D-2, A-1, §5.2; adds to L-6 without deciding it.
+- **Positions:** Codex recommends retaining exact-byte identity for immutable received manifests. Canonical identity
+  is preferable if independently formatted manifests must intentionally name the same capture. Neither property is
+  established as an owner requirement; both avoid self-reference when the identity is kept outside the hashed object.
+- **Evidence:** READ [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html), §§3.1–3.2: canonical JSON specifies numbers,
+  Unicode preservation and property ordering, not just whitespace removal or sorted keys. It rejects duplicate names
+  and constrains numeric representation. This is a standards inspection, not a cross-language verifier test.
+- **Failure / cost:** exact-byte readers deliberately assign different IDs after pretty-printing; canonical readers
+  using different numeric serialisers can disagree despite key sorting. A manifest with duplicate keys can be hashed
+  successfully yet interpreted differently by two readers: reject it under either identity policy.
+- **Replacement:** choose one explicit identity contract; require formatting, numeric, Unicode and duplicate-key golden
+  fixtures. Do not support two silent identity algorithms. Canonical JSON is a viable alternative, not intrinsically unsafe.
+- **Outcome / delivery impact:** r3 records these costs and keeps D-2 open for the owner/review discussion. Exact bytes
+  is still the recommendation, not a unilateral decision. No bundle identity implementation was tested.
+
+### L-21 · Unsigned first needs an explicit substitution limit · open
+- **Raised by / date:** Codex, 2026-09-27.
+- **Proposal refs:** D-3, A-11/A-12, §5.3; adds to L-5.
+- **Positions:** Codex supports unsigned first for the controlled DEMO journey; optional signing remains a scope choice,
+  not a prerequisite established by the portable investigation requirement.
+- **Evidence:** READ §5.2–§5.3's hash and trust contract. Inference from that contract: replacing both a data member and
+  its manifest hash produces another internally consistent unsigned bundle. A separately trusted original identity
+  detects the substitution. A signature verified only against a key supplied in the same substituted archive does not
+  establish the claimed person's identity either. No cryptographic implementation or signing experiment was run.
+- **Failure / cost:** presenting “hashes match” as “this came from the ticket author” overstates what was checked.
+  Optional signing without a trust source changes the mechanism but does not establish that missing attribution.
+- **Replacement:** label unsigned provenance honestly. If authenticated ticket authorship is required now, approve a
+  pinned/trusted key source and explicit signature-envelope acceptance; do not quietly substitute a self-declared key.
+- **Outcome / delivery impact:** D-3 remains open, with unsigned first recommended. This adds no implementation scope
+  unless the owner chooses authenticated authorship for this delivery. D-0 is unchanged.
+
+### L-22 · Review checks and limits · resolved (RAN/READ, limited scope)
+- **Raised by / date:** Codex, 2026-09-27.
+- **Proposal refs:** EB-0; evidence labelling across r3.
+- **Evidence:** READ source and contracts as pinned above. The new conclusions are source inspections, not product
+  acceptance, replay or socket reproductions. The archived drafts and prior L-entry bodies were not edited.
+- **Evidence:** RAN JDK 21 `mvn -q test`: **2583 total / 0 failures / 0 errors / 131 skips**, 344 source-mapped
+  Surefire reports, no orphans. Skips are not passes. The first sandboxed attempt was **2583 / 0 / 29 / 131**: all
+  29 errors were denied localhost socket operations. Its reports/log were preserved locally; the authorised retry
+  passed. RAN `mkdocs build --strict`, `git diff --check`, the documented `git ls-files` rule-one sweep (no output),
+  added-line sweep and private-path/address check: clean. RAN preservation checks: previous discussion prefix is
+  byte-identical; `git diff` reports no changes under `versions/`, and no product-source changes against `d82f1487`.
+- **Outcome:** these tests establish the existing docs/headless baseline, not bundle acceptance. No implementation, bundle creation, replay,
+  model session, hosted provider or participant access. Renderer PR status remains L-15's REPORTED result for this
+  reviewer; it is not needed for these changes. Choosing the two demo bugs still needs the owner's issue references.
+
 ---
 
 ## Open disputes, at a glance
 
 | log | question | what settles it |
 |---|---|---|
-| L-5 | Sign in the first delivery? | owner: demo value versus delivery time |
-| L-6 | Exact manifest bytes, or canonical JSON? | choose one; pin it with golden fixtures |
-| L-12 | Where the one native adapter goes (D-1a) | the cheaper reviewed change, measured by the contract tests it touches |
-| — | Replay route: does the Mongoose/template path already run recorded inputs? (§9) | read Fluxtion's replay guide and the runner's code, then run it (EB-0). **Still unknown.** |
-| — | Which "two bugs" the demo discussion meant (EB-0) | the owner names them, by issue and failing check |
+| L-5, L-21 | Sign in the first delivery? | owner: whether authenticated author identity is required; otherwise unsigned with explicit limits |
+| L-6, L-20 | Exact manifest bytes, or canonical JSON? | choose the intended identity semantics; pin one algorithm with cross-reader fixtures |
+| L-12, L-16, L-17 | Chart fact placement and coherent capture (D-1a) | context is the smaller fact-export candidate by READ; a separate snapshot/revision contract still needs proof and costing |
+| L-18 | Complete replay route (§9) | dispatch/clock primitives and mapper bypass established by READ; pin and run a released pre-mapper runner with reset/build identity/oracle (EB-0) |
+| — | Which “two bugs” the demo discussion meant (EB-0) | the owner names them, by issue and failing check |
