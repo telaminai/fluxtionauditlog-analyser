@@ -1,6 +1,7 @@
 # Evidence bundles — combined product and delivery proposal
 
-**Status: DISCUSSION DRAFT r1, 2026-09-27. Not approved or implemented.**
+**Status: DISCUSSION DRAFT r2, 2026-09-27. Not approved or implemented.** r2 adds EB-0 facts established by
+reading the code (§4), and records the reasoning behind each change in the [discussion log](discussion-log.md).
 
 This consolidates all five [source versions](#15-source-versions-and-reconciliation). They remain
 unchanged in `versions/` as the record of the discussion. This is the working document to argue over,
@@ -135,6 +136,24 @@ capture state, raw-record export and flags. If they do not, choose and review th
 adapter that reuses the production services, or switch to native capture. Do not work around a missing
 interface by reconstructing a chart from a partial echo or reading a stale on-disk profile.
 
+**EB-0, already established by reading the code (r2).** These answer part of the question above. They are
+READ at `main` `d82f1487`, not RAN, so re-check them at the implementation head.
+
+| Capture need | Available to a client today? | Evidence |
+|---|---|---|
+| Flags | **Yes.** `context.flags` lists each flag's `recordIndex`, `kind`, `note` and `fix`. The index is into the live store, so an excerpt must remap it through `record-map.json`. | `MainFrame` context builder, the `flags` loop |
+| Raw record text | **Yes, by index.** `read` returns `text` from the same `rawText(row)` the YAML exporter writes. It is anchored by record index, byte offset or time, at 25 records per call. A whole-log or explicit-index excerpt needs no second parser. | `ReadService` (`MAX_COUNT = 25`, `m.put("text", rawText.apply(row))`); `RecordExporter.toYaml` |
+| The records the current filter shows | **No.** No verb lists the filtered record indices; `aggregate` returns counts and where the counted records begin and end. A filtered-view excerpt needs a native adapter, or the person must choose explicit indices. | the verb list in `VerbSchemas` |
+| Complete chart definitions | **No.** `context.savedGraphs` carries `name`, `open`, `series`, expression *strings* and `style` only. It lacks expression labels, guides, bands, markers, external series, notes, explanation, window and rationale. | `SessionFacts.savedGraphs` |
+| The on-disk profile as a substitute | **Not safely.** Profile writes are coalesced (debounced), so the file can lag the live charts. | `ProjectSession` class javadoc, *Auto-persist, debounced*; `requestSave` |
+| The pairing verdict | **Yes.** `context.graphPairing`. | the `context` builder (REPORTED by a code-mapping pass) |
+
+**Consequence for D-1.** Every capture need except one is met by today's socket. The proved gap is **complete chart
+state**, plus the filtered-view index set if that selection mode is kept. The smallest adapter is therefore narrow: a
+read-only fact that publishes the charts through the production serializer (`ConfigStore`'s graph family), and
+optionally the filtered indices. It is not a capture verb. This decides between D-1's options on evidence rather than on
+preference; see D-1a in §14.
+
 | Responsibility | Initial proposed owner | Durable home / invariant |
 |---|---|---|
 | Manifest, archive, hashing, verification, parent relationship | Shared library/headless command; client invokes it | One contract and golden fixtures; do not maintain competing verifiers. |
@@ -258,7 +277,10 @@ provenance; a capturer-authored receipt is useful but labelled declared.
 ### 6.1 A coherent transaction
 
 First delivery requires a stable supported text log, Follow explicitly paused, no pending load or
-evidence refresh, and no changed/unverified file identity. An unclaimed stream end may remain UNKNOWN;
+evidence refresh, and no changed/unverified file identity. "No pending load" matters beyond tidiness: tracker item
+**M44.6** (an owner decision, still open) is a real case where a superseded load's tail installs its table over a newer
+log. Capture and open must not run while a load is pending, and a client-led open must await completion before
+reading state. An unclaimed stream end may remain UNKNOWN;
 incomplete evidence is not automatically corrupt evidence. Record its qualifications.
 
 Capture definitions, store identity, session snapshot, filter, flags, view, scan bound and relevant
@@ -320,8 +342,9 @@ grants, machine settings, recovery state and deleted-report bins. Do not carry a
 saved analyses. Explicitly selected source coordinates are inert metadata; missing source reads “source
 not included”, with no implicit grant or download. Ordinary user-profile anchoring remains unchanged.
 
-Flags and the applied focus travel separately because definitions alone do not preserve them. Store
-flag text as attributed testimony with stable record references. Restore it before resolving a report
+Flags and the applied focus travel separately because definitions alone do not preserve them. Flags are
+readable today through `context.flags` (§4, EB-0); their `recordIndex` is a live-store index and must be remapped to
+the bundled index. Store flag text as attributed testimony with stable record references. Restore it before resolving a report
 FINDING section; an unresolved finding is shown as unavailable, not silently omitted. The first walk
 step carries the initial view/filter/focus/record. Do not use the recipient's recovery store as transport.
 
@@ -335,7 +358,8 @@ passed. Report these separately, including unsigned status and semantic correctn
 Treat every archive as untrusted. Reject absolute/rooted/drive paths, backslashes, traversal, duplicate
 normalised or case-colliding paths, symlinks/special entries, unsupported encryption/compression and
 undeclared files. Enforce limits while streaming: initially 4,096 entries, 64 MiB/member and 512 MiB
-expanded total. Nested executable/archive content is outside the initial member allow-list. Hashing a
+expanded total. These are exactly `template/TemplateArchive`'s `MAX_ENTRIES`, `MAX_ENTRY_BYTES` and
+`MAX_EXPANDED_BYTES` (READ), so its hardened extractor can be reused rather than rewritten. Nested executable/archive content is outside the initial member allow-list. Hashing a
 hostile file does not authorise executing it.
 
 Extraction may write regular files only into private staging, never outside it; no project is opened
@@ -464,8 +488,10 @@ terminators and render untrusted records as text. The full artefacts remain cano
 
 First implementation may use captured PNGs with record tables. SVG from a shared drawing surface is
 preferable when available and tested, but does not automatically prove equal rendering or safe output.
-The drafts reference PR #53 and a view-model spike #55; their current status is not established by this
-consolidation and neither is made a delivery dependency. Native chart data and a browser chart engine
+The drafts reference PR #53 and a view-model spike #55. At `main` `d82f1487` **neither is merged**: #53 (the
+`Surface`/SVG drawing layer) is an open proposal, retargeted to `main`, whose full CI has not run since; #55 is a draft
+spike, green on all 12 checks and marked not for merge. The proposal is therefore right not to make either a delivery
+dependency. Native chart data and a browser chart engine
 must not become two independent calculation implementations.
 
 The page names its viewer version, shown subset and limitations: no general full-log query, source
@@ -576,6 +602,7 @@ Only D-0 is owner direction; all other rows are recommendations to contest befor
 |---|---|---|
 | D-0 | Portable investigation plus bounded replay/comparison required; browser optional | Already stated by owner. Scope changes require an explicit owner decision. |
 | D-1 | Internal evidence core with a thin client; external-only is an alternative if complete exports are proved | EB-0 proves complete state/export/fidelity and races; compare integration cost with native CLI-first delivery. |
+| D-1a | *r2:* the one proved client gap is complete chart state (§4). Add a **read-only fact** publishing full chart definitions through the production serializer, and optionally the filtered record indices, rather than a capture verb. | Whether a `context` extension, or a separate read-only verb option, is the smaller reviewed change; the contract tests decide the cost. |
 | D-2 | `.fexp`; integer format v1; exact manifest-byte identity outside manifest; timestamp included | Choose one algorithm and pin cross-reader fixtures. Canonical blanked-ID alternatives remain valid proposals, not simultaneous rules. |
 | D-3 | Unsigned first; optional signatures only with a separate reviewed envelope/trust rule | Owner weighs value versus delivery time; reviewer checks signer language and digest-cycle avoidance. |
 | D-4 | Fresh disposable working copy; immutable received evidence; no cached edited instance | Show source/destination hashes across edits and reopen; native overlay may later improve UX. |
@@ -588,7 +615,9 @@ Only D-0 is owner direction; all other rows are recommendations to contest befor
 
 Facts to recheck at the implementation head: complete chart/profile/flags API; current `context`
 verdict shape; no-log/project-open semantics; raw export grammar/refusals; source/graph digest freshness;
-existing UI bugs; replay codec/runner/reset; shared renderer availability. Earlier draft line numbers
+existing UI bugs; replay codec/runner/reset; shared renderer availability. **r2:** the chart/profile/flags API, raw
+export and renderer availability are answered by READ evidence in §4 (EB-0) and §10. They still need re-checking at
+the implementation head, but they are no longer unknowns. Replay, the codec, the runner and reset remain unknown. Earlier draft line numbers
 are review pointers, not proof that a later version behaves the same.
 
 During this consolidation, `ProjectProfile.baseDirFor` and `AnalysisSpec` were inspected: project-role
@@ -618,6 +647,11 @@ keeps those disagreements visible in the relevant sections and decision register
 as attributed argument containers; separately emitted measured tables/results may be evidence with
 their own derivation and scope. Hash validation applies to both categories.
 
-**Revision record:** r1 consolidates the five archived versions, preserves the owner's first-delivery
-scope, and proposes one staged route with explicit alternatives. No bundle implementation, replay,
-provider trial or independent acceptance was performed as part of this document consolidation.
+**Revision record:**
+- r1 consolidates the five archived versions, preserves the owner's first-delivery scope, and proposes one staged
+  route with explicit alternatives. No bundle implementation, replay, provider trial or independent acceptance was
+  performed as part of this document consolidation.
+- r2 (Claude, analyser session) answers four of EB-0's checks by reading the code: flags, raw record text, the
+  filtered-view gap, and incomplete chart state. It adds D-1a, identifies the archive limits as `TemplateArchive`'s,
+  links "no pending load" to M44.6, and states #53's and #55's status. Reasons for each change are in the
+  [discussion log](discussion-log.md). Nothing was run.
