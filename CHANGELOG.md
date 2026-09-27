@@ -20,6 +20,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Reports can be deleted, renamed and restored.** Delete… and Rename… sit in the Reports tab, and the assistant
   can do the same. A delete is recoverable: **Restore deleted…** brings the report back into its project. The last
   20 deletions are kept on this machine, never in the project profile.
+- **Report actions remain visible in a narrow sidebar.** Delete and Restore no longer wrap out of sight at the
+  default window size. Restore accepts any report name, including `true`, and refuses a request that mixes
+  restoration with another operation. Boolean `true` lists deleted reports.
+- **Exchange paths cannot escape through nested links.** Reads and exports check the actual destination inside
+  the exchange directory, including linked subdirectories, rather than only the configured directory itself.
 
 ## [1.23.0] - 2026-09-26
 

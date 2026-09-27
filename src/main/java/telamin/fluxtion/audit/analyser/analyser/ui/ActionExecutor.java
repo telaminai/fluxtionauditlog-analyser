@@ -222,6 +222,12 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.screenshot(out.path().toString(), str(params.get("scope"))));
             }
             case "report" -> {
+                if (params.containsKey("restore")) {
+                    if (params.size() != 1) return ActionResult.error("report 'restore' must be used alone");
+                    Object restore = params.get("restore");
+                    if (!Boolean.TRUE.equals(restore) && !(restore instanceof String name && !name.isBlank()))
+                        return ActionResult.error("report 'restore' needs true to list or a nonblank report name");
+                }
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
                 // PR #33 review: 'restore' needs no name, and must not fall through to the single-record export

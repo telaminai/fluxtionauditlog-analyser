@@ -32,10 +32,10 @@ class ExportGuardTest {
     }
 
     @Test
-    void relativePathLandsInsideTheExportDir() {
+    void relativePathLandsInsideTheExportDir() throws Exception {
         var r = ExportGuard.resolve("sub/finding.pdf", true, dir.toString());
         assertTrue(r.ok());
-        assertEquals(dir.resolve("sub/finding.pdf").toAbsolutePath().normalize(), r.path());
+        assertEquals(dir.toRealPath().resolve("sub/finding.pdf"), r.path(), "the output uses the checked directory");
     }
 
     @Test
@@ -100,5 +100,43 @@ class ExportGuardTest {
         var sibling = ExportGuard.resolveRead(dir.resolve("other.csv").toString(), false, "",
                 java.util.Set.of(granted));
         assertNotNull(sibling.error(), "the grant is the FILE, never its directory");
+    }
+
+    @Test
+    void aNestedLinkCannotWidenReadsOrWrites() throws Exception {
+        Path exchange = Files.createDirectory(dir.resolve("exchange"));
+        Path outside = Files.createDirectory(dir.resolve("outside"));
+        Files.writeString(outside.resolve("existing.csv"), "DEMO");
+        Files.createSymbolicLink(exchange.resolve("nested"), outside);
+        assertFalse(ExportGuard.resolve("nested/new.pdf", true, exchange.toString()).ok(),
+                "a nested outside link must not grant a write outside the exchange directory");
+        assertFalse(ExportGuard.resolveRead("nested/existing.csv", true, exchange.toString(), java.util.Set.of()).ok(),
+                "a nested outside link must not grant a read outside the exchange directory");
+    }
+
+    @Test
+    void aFileLinkCannotWidenReads() throws Exception {
+        Path exchange = Files.createDirectory(dir.resolve("exchange"));
+        Path outside = Files.writeString(dir.resolve("outside.csv"), "DEMO");
+        Files.createSymbolicLink(exchange.resolve("linked.csv"), outside);
+        assertFalse(ExportGuard.resolveRead("linked.csv", true, exchange.toString(), java.util.Set.of()).ok(),
+                "the read target itself must be contained, not just its parent");
+    }
+
+    @Test
+    void anInternalLinkAllowsNewDescendantsAndReturnsTheCheckedLocation() throws Exception {
+        Path real = Files.createDirectory(dir.resolve("real"));
+        Path alias = Files.createSymbolicLink(dir.resolve("alias"), real);
+        var target = ExportGuard.resolve("new/sub/output.pdf", true, alias.toString());
+        assertTrue(target.ok(), "new descendant directories remain usable: " + target.error());
+        assertEquals(real.toRealPath().resolve("new/sub/output.pdf"), target.path(),
+                "return the checked location, not an alias that could be swapped");
+        Files.delete(alias);
+        Path elsewhere = Files.createDirectory(dir.resolve("elsewhere"));
+        Files.createSymbolicLink(alias, elsewhere);
+        Files.createDirectories(target.path().getParent());
+        Files.writeString(target.path(), "DEMO");
+        assertFalse(Files.exists(elsewhere.resolve("new/sub/output.pdf")),
+                "swapping the original exchange alias must not redirect an already resolved output");
     }
 }

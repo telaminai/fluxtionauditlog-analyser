@@ -113,4 +113,34 @@ class ReportBinTest {
         reloaded.activeProjectPath = c.activeProjectPath;
         assertEquals(List.of("doomed"), ReportBin.restorable(reloaded), "a restart does not empty the bin");
     }
+
+    @Test
+    void theGlobalTierSaveKeepsTheBinAndAnEmptySaveClearsItsKeys(@TempDir Path tmp) {
+        ConfigStore store = new ConfigStore(tmp.resolve("config"));
+        AppConfig c = projectConfig("/work/demo/project.fluxtion-settings", "doomed");
+        var global = ProjectProfile.snapshot(new AppConfig());
+        ReportBin.delete(c, "doomed", "now");
+        store.save(c, global);
+        AppConfig reloaded = store.load();
+        reloaded.activeProjectPath = c.activeProjectPath;
+        assertEquals(List.of("doomed"), ReportBin.restorable(reloaded),
+                "the active project's save must keep the bin despite restoring the global tier");
+        assertNull(ReportBin.restore(reloaded, "doomed"), "the saved report can be restored");
+        store.save(reloaded, global);
+        assertTrue(store.load().deletedReports.isEmpty(), "owned deletedReport keys must not resurrect an emptied bin");
+    }
+
+    @Test
+    void everyShareCategoryStillExcludesTheBinAndImportIgnoresIt() {
+        AppConfig c = projectConfig("/work/demo/project.fluxtion-settings", "doomed");
+        ReportBin.delete(c, "doomed", "now");
+        var all = java.util.EnumSet.allOf(SettingsShare.Category.class);
+        SettingsShare share = new SettingsShare("/home/demo");
+        String text = share.export(c, all);
+        assertFalse(text.contains("deletedReport"), "an all-category export must contain no bin keys");
+        assertFalse(text.contains("doomed"), "an all-category export must contain no deleted report content");
+        AppConfig imported = new AppConfig();
+        share.apply(share.preview(text + "\ndeletedReport.count=1\ndeletedReport.0.name=injected\n", imported), all, imported);
+        assertTrue(imported.deletedReports.isEmpty(), "an import must not populate the machine's bin");
+    }
 }

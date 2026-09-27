@@ -10,6 +10,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class VerbSchemasTest {
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void reportRestorePublishesBothNamesAndTheBooleanListRequest() {
+        var properties = (Map<String, Object>) schema("report").get("properties");
+        var restore = (Map<String, Object>) properties.get("restore");
+        assertEquals(List.of(Map.of("type", "string"), Map.of("type", "boolean", "enum", List.of(true))),
+                restore.get("anyOf"), "the manifest must accept a report name or boolean true, not reserve a string name");
+    }
+
     private final Map<String, Object> schemas = VerbSchemas.all();
 
     @SuppressWarnings("unchecked")

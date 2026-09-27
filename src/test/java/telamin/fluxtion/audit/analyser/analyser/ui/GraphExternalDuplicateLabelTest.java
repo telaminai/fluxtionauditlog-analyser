@@ -57,7 +57,7 @@ class GraphExternalDuplicateLabelTest {
         GraphPanel g = tabs.graphNamed("dup");
         assertNotNull(g);
         assertEquals(1, g.externalSpecs().size(), "a label names ONE series");
-        assertEquals(second.toString(), g.externalSpecs().get(0).path(), "the later entry applied");
+        assertEquals(second.toRealPath().toString(), g.externalSpecs().get(0).path(), "the later entry applied at its checked location");
 
         String echo = String.valueOf(r.toMap());
         assertTrue(echo.contains("given twice"), "the echo says what happened: " + echo);
@@ -82,7 +82,7 @@ class GraphExternalDuplicateLabelTest {
         assertTrue(r.ok(), r::toString);
         GraphPanel g = tabs.graphNamed("xyx");
         assertEquals(List.of("x", "y"), g.externalSpecs().stream().map(s -> s.label()).toList(), "specs (the legend's order): x keeps its first slot");
-        assertEquals(x2.toString(), g.externalSpecs().get(0).path(), "and x is the LATER file");
+        assertEquals(x2.toRealPath().toString(), g.externalSpecs().get(0).path(), "and x is the LATER file at its checked location");
         assertEquals(List.of("x: 3 rows", "y: 2 rows"), g.externalNotes(), "one note per label, the replaced one gone");
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> echo = (List<Map<String, Object>>) ((Map<String, Object>) r.toMap().get("applied")).get("external");

@@ -135,7 +135,9 @@ public final class ReportsPanel extends JPanel {
 
         // the agent exports with report {path}; the human gets the same door as a button — the two
         // surfaces must stay in parity, or one side's report is not quite the other's
-        JPanel bar = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 2));
+        // FlowLayout wraps at a narrow sidebar but reports only one row's preferred height, clipping
+        // Delete and Restore below the toolbar. Each action gets a visible row at the default width.
+        JPanel bar = new JPanel(new java.awt.GridLayout(0, 1, 0, 4));
         JButton export = new JButton("Export PDF…");
         export.addActionListener(e -> {
             String name = list.getSelectedValue();
@@ -263,7 +265,7 @@ public final class ReportsPanel extends JPanel {
                 : "It cites " + spec.fingerprint().describe() + ".";
         return "Delete the report \"" + spec.name() + "\"?\n\n"
                 + cites + " Its " + n + " section" + (n == 1 ? "" : "s")
-                + " and the notes on them are lost.\n"
+                + " and the notes on them move to the recently-deleted list.\n"
                 + "The log, the charts and any PDF already exported are NOT touched.\n\n"
                 + "It can be brought back with Restore deleted… — the last "
                 + telamin.fluxtion.audit.analyser.analyser.config.ReportBin.CAPACITY

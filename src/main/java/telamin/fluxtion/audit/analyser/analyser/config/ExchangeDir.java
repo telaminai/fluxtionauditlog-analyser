@@ -94,11 +94,12 @@ public record ExchangeDir(String dir, String source, String refusal) {
                 return new ExchangeDir(machine, MACHINE, LABEL + ": '" + wanted + "' is a link that leaves the "
                         + "project (it resolves to " + real + ") — using the machine setting instead");
             }
+            // Keep the checked location, not the alias that could be redirected before the write.
+            return new ExchangeDir(real.toString(), PROJECT, null);
         } catch (java.io.IOException e) {
             return new ExchangeDir(machine, MACHINE, LABEL + ": '" + wanted + "' could not be resolved ("
                     + e.getMessage() + ") — using the machine setting instead");
         }
-        return new ExchangeDir(resolved.toString(), PROJECT, null);
     }
 
     /**

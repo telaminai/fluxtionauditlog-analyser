@@ -83,7 +83,8 @@ drive the same verbs:
   as narrative. `report {name, delete: true}` removes one — recoverably: it can be brought back with
   `report {restore: "<name>"}` or the Reports tab's **Restore deleted…** — and `report {name, rename}` renames one,
   so an assistant can clear away the diagnostics it built along the way. See
-  [Investigation reports](reports.md).
+  [Investigation reports](reports.md). Use `restore` alone: boolean `true` lists deleted reports;
+  a string names the report to restore, including the name `"true"`.
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a
   graphml, and answers the question nobody can answer by eye on a large graph: what did this run never
   exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
@@ -385,6 +386,9 @@ your own settings, and opening someone's project can never turn the exchange on.
 absolute, home-relative, escapes the project, or names a directory that is not there is **refused with
 its reason** and the machine setting is used — nothing is created on your disk by opening a profile.
 `context` reports which tier answered under `exports.source`.
+Read and export paths also resolve links beneath that directory; a link cannot grant access outside
+it. These checks use the filesystem as it stands when the request is resolved. They do not lock
+directories against a concurrent local process changing them during an operation.
 
 ### Does my client launch the analyser?
 

@@ -165,8 +165,9 @@ public final class VerbSchemas {
                         p("delete", bool(), "true removes the report named by 'name', RECOVERABLY: it moves to "
                                 + "a recently-deleted list on this machine (restore it with 'restore'). The log, "
                                 + "the charts it cited and any PDF already rendered are untouched"),
-                        p("restore", string(), "the name of a deleted report to bring back into this project; "
-                                + "'true' lists what can be restored. Refused if a report of that name exists"),
+                        p("restore", new java.util.LinkedHashMap<>(Map.of("anyOf", List.of(string(), Map.of("type", "boolean", "enum", List.of(true))))),
+                                "Use alone. Boolean true lists what can be restored; a string is the deleted report's "
+                                + "name (including the name 'true'). Restores into this profile only, and refuses a taken name"),
                         p("rename", string(), "the new name for the report named by 'name'. Refused if "
                                 + "that name is taken — renaming onto an existing report would destroy it"),
                         p("title", string(), "the headline"),

@@ -1,0 +1,414 @@
+{
+  "seconds": 40.9,
+  "controls": [
+    {
+      "name": "p33-exchange-link-escape",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ExchangeDir.java",
+      "sha256": "923b6bfca81e509690dcb772b4042ac1edcda2fca1b49ec36a2df60fefb496fc",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 1.2,
+      "mutatedSuites": [
+        {
+          "name": "ProjectSuppliedExchangeDirTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aLinkOutOfTheProjectIsRefused"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ProjectSuppliedExchangeDirTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aLinkOutOfTheProjectIsRefused"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-delete-skips-the-bin",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ReportBin.java",
+      "sha256": "b5d8b566561ffaae444c44083d9634371648ac7e15fcccf0183bb59bdd60f452",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 1.1,
+      "mutatedSuites": [
+        {
+          "name": "ReportBinTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "deleteThenRestoreRoundTripsThroughPersistence"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportBinTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "deleteThenRestoreRoundTripsThroughPersistence"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-bin-not-saved",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ConfigStore.java",
+      "sha256": "9dd64ffc919924a00d3e64134cc8a7854732d3b7d8c05e819dad53c5ae55cf5e",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 1.2,
+      "mutatedSuites": [
+        {
+          "name": "ReportBinTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theMachineSettingsSaveKeepsTheBin"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportBinTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theMachineSettingsSaveKeepsTheBin"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-restore-ignores-project",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ReportBin.java",
+      "sha256": "b5d8b566561ffaae444c44083d9634371648ac7e15fcccf0183bb59bdd60f452",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 1.0,
+      "mutatedSuites": [
+        {
+          "name": "ReportBinTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "restoreIsScopedToTheProject"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportBinTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "restoreIsScopedToTheProject"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-restore-not-routed",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java",
+      "sha256": "e2398c14cd682130fa9665a19209add6ac38cef80d2067183ad9d57c29dbf7c5",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 4.2,
+      "mutatedSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theAssistantsDeleteCanBeUndone"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theAssistantsDeleteCanBeUndone"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-nested-link-containment",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/ExportGuard.java",
+      "sha256": "ba3284c5e92712515d2205193e1ce41f90e24c2cc4e9d0366d7cecf90d3a8657",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 3.9,
+      "mutatedSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aProjectExchangeCannotExportThroughANestedOutsideLink"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aProjectExchangeCannotExportThroughANestedOutsideLink"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-canonical-exchange-location",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/config/ExchangeDir.java",
+      "sha256": "923b6bfca81e509690dcb772b4042ac1edcda2fca1b49ec36a2df60fefb496fc",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 1.1,
+      "mutatedSuites": [
+        {
+          "name": "ProjectSuppliedExchangeDirTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anAcceptedAliasReturnsItsCheckedLocation"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ProjectSuppliedExchangeDirTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anAcceptedAliasReturnsItsCheckedLocation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-canonical-export-target",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/ExportGuard.java",
+      "sha256": "ba3284c5e92712515d2205193e1ce41f90e24c2cc4e9d0366d7cecf90d3a8657",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 0.9,
+      "mutatedSuites": [
+        {
+          "name": "ExportGuardTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anInternalLinkAllowsNewDescendantsAndReturnsTheCheckedLocation"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ExportGuardTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "anInternalLinkAllowsNewDescendantsAndReturnsTheCheckedLocation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-restore-string-true",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java",
+      "sha256": "fef563dda91310c8de7d48e39708fc15967bed0280a737231a573d9d14cf7101",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 4.8,
+      "mutatedSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aReportNamedTrueIsRestoredRatherThanListed"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "aReportNamedTrueIsRestoredRatherThanListed"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-restore-mixed-operations",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ActionExecutor.java",
+      "sha256": "e2398c14cd682130fa9665a19209add6ac38cef80d2067183ad9d57c29dbf7c5",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 4.0,
+      "mutatedSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "restoreRefusesMixedOperationsWithoutChangingAnything"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "restoreRefusesMixedOperationsWithoutChangingAnything"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-visible-report-actions",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ReportsPanel.java",
+      "sha256": "76ba2cc0e976b7231613c83327e891257f4f9324fde419aa101cf05ace2f7268",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 5.9,
+      "mutatedSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theVisibleButtonsDeleteRestoreAndExplainAnEmptyBin"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "ReportRecoverableDeleteFrameTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "theVisibleButtonsDeleteRestoreAndExplainAnEmptyBin"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p33-restore-schema",
+      "site": "src/main/java/telamin/fluxtion/audit/analyser/analyser/llm/VerbSchemas.java",
+      "sha256": "089a159794ca265ed014b12426c9c8b2144eb2013e6781361de8e13e71a3db87",
+      "baselineGreen": true,
+      "restoredByteIdentical": true,
+      "classesRestoredByteIdentical": true,
+      "verdict": "caught",
+      "seconds": 1.1,
+      "mutatedSuites": [
+        {
+          "name": "VerbSchemasTest",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "reportRestorePublishesBothNamesAndTheBooleanListRequest"
+          ]
+        }
+      ],
+      "restoredSuites": [
+        {
+          "name": "VerbSchemasTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testNames": [
+            "reportRestorePublishesBothNamesAndTheBooleanListRequest"
+          ]
+        }
+      ]
+    }
+  ],
+  "all_source_sha256_identical": true
+}

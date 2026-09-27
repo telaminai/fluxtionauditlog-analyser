@@ -63,16 +63,14 @@ public final class ExportGuard {
         Path dir = Path.of(exportDir).toAbsolutePath().normalize();
         Path resolved = (Path.of(requested).isAbsolute() ? candidate : dir.resolve(requested))
                 .toAbsolutePath().normalize();
-        // containment is TEXTUAL (normalize + startsWith) by choice, matching the write side — a
-        // symlink inside the directory pointing out would pass, but creating one needs local
-        // filesystem access, which has easier options; switch both sides to toRealPath() if that
-        // trust model ever changes (review N1)
+        // The project may supply this directory and may contain versioned links. Check the actual
+        // target as well as the spelling, on both read and write paths.
         if (!resolved.startsWith(dir)) {
             return new Resolved(null, "path is outside the exchange directory (" + dir + ") — external "
                     + "reads are confined to it (or to files the user picked in a chooser this session); "
                     + "place the file inside it or have the user open it by hand");
         }
-        return new Resolved(resolved, null);
+        return containedTarget(dir, resolved);
     }
 
     public static Resolved resolve(String requested, boolean exportsEnabled, String exportDir) {
@@ -93,10 +91,38 @@ public final class ExportGuard {
             return new Resolved(null, "path is outside the exchange directory (" + dir + ") — exports are "
                     + "confined to it; pass a relative name to write inside it");
         }
-        if (Files.exists(resolved)) {
+        Resolved target = containedTarget(dir, resolved);
+        if (!target.ok()) return target;
+        if (Files.exists(target.path())) {
             return new Resolved(null, "file already exists: " + resolved + " — exports never overwrite; "
                     + "pick a new name");
         }
-        return new Resolved(resolved, null);
+        return target;
+    }
+
+    private static Resolved containedTarget(Path dir, Path resolved) {
+        try {
+            Path realDir = canonicalPath(dir);
+            Path realTarget = canonicalPath(resolved);
+            if (!realTarget.startsWith(realDir)) {
+                return new Resolved(null, "path resolves outside the exchange directory (" + realDir
+                        + ") — links cannot widen assistant file exchange");
+            }
+            return new Resolved(realTarget, null);
+        } catch (java.io.IOException e) {
+            return new Resolved(null, "cannot resolve the exchange path: " + e.getMessage());
+        }
+    }
+
+    /** Resolve links in every existing ancestor, retaining a missing descendant for a new output.
+     * Returning the canonical target avoids a later swap of an alias already traversed here. This
+     * does not lock directories against concurrent local filesystem changes after the check. */
+    private static Path canonicalPath(Path path) throws java.io.IOException {
+        Path ancestor = path;
+        while (!Files.exists(ancestor, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            ancestor = ancestor.getParent();
+            if (ancestor == null) throw new java.io.IOException("no existing ancestor");
+        }
+        return ancestor.toRealPath().resolve(ancestor.relativize(path)).normalize();
     }
 }

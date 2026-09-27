@@ -1,0 +1,13 @@
+p33-exchange-link-escape : green / named assertion red / restored green, bytes identical
+p33-delete-skips-the-bin : green / named assertion red / restored green, bytes identical
+p33-bin-not-saved : green / named assertion red / restored green, bytes identical
+p33-restore-ignores-project : green / named assertion red / restored green, bytes identical
+p33-restore-not-routed : green / named assertion red / restored green, bytes identical
+p33-nested-link-containment : green / named assertion red / restored green, bytes identical
+p33-canonical-exchange-location : green / named assertion red / restored green, bytes identical
+p33-canonical-export-target : green / named assertion red / restored green, bytes identical
+p33-restore-string-true : green / named assertion red / restored green, bytes identical
+p33-restore-mixed-operations : green / named assertion red / restored green, bytes identical
+p33-visible-report-actions : green / named assertion red / restored green, bytes identical
+p33-restore-schema : green / named assertion red / restored green, bytes identical
+mutations: 12 controls caught with the fast engine in 40.9 s

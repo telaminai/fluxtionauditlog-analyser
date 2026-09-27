@@ -19,6 +19,16 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ProjectSuppliedExchangeDirTest {
 
+    @Test
+    void anAcceptedAliasReturnsItsCheckedLocation(@TempDir Path root) throws IOException {
+        AppConfig c = projectAt(root);
+        Path inside = Files.createDirectory(root.resolve("inside"));
+        Files.createSymbolicLink(root.resolve("exchange"), inside);
+        c.projectExchangeDir = "exchange";
+        assertEquals(inside.toRealPath().toString(), ExchangeDir.of(c).dir(),
+                "keep the verified location instead of an alias that may later be redirected");
+    }
+
     /** A project at {@code root} with a profile at {@code root/.analyser/project.fluxtion-settings}. */
     private static AppConfig projectAt(Path root) throws IOException {
         Files.createDirectories(root.resolve(".analyser"));
@@ -40,7 +50,7 @@ class ProjectSuppliedExchangeDirTest {
 
         ExchangeDir resolved = ExchangeDir.of(c);
 
-        assertEquals(root.resolve("src/report/shared").toString(), resolved.dir());
+        assertEquals(root.resolve("src/report/shared").toRealPath().toString(), resolved.dir(), "use the canonical project directory");
         assertEquals(ExchangeDir.PROJECT, resolved.source());
         assertTrue(resolved.fromProject());
         assertNull(resolved.refusal());

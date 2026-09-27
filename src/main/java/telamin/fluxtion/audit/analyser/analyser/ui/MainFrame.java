@@ -1328,7 +1328,7 @@ public final class MainFrame extends JFrame {
         Object restore = params.get("restore");
         if (restore != null) {
             // PR #33 review (owner, 2026-09-27): a delete is recoverable; `restore: true` lists, a name restores
-            if (Boolean.TRUE.equals(restore) || "true".equals(String.valueOf(restore))) {
+            if (Boolean.TRUE.equals(restore)) {
                 var echo = new java.util.LinkedHashMap<String, Object>();
                 echo.put("restorable", restorableReports());
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "restorable", echo);
