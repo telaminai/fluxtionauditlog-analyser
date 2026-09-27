@@ -469,6 +469,15 @@ public final class TopologyPanel extends JPanel {
         return null;
     }
 
+    /**
+     * M69: the label of the focus context applied now (a recalled named focus carries its name), or null at the full
+     * graph. A walk capture checks it against the saved focuses before recording it.
+     */
+    public String appliedFocusLabel() {
+        java.util.List<FocusStack.Context> contexts = focusStack.contextsOldestFirst();
+        return contexts.isEmpty() ? null : contexts.get(contexts.size() - 1).label();
+    }
+
     /** The mismatch note from the last {@link #recallFocus}, or "" — for the verb echo. */
     public String lastRecallNote() {
         return lastRecallNote;

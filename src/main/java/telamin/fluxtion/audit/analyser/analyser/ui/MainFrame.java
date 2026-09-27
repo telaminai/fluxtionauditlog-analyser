@@ -2339,6 +2339,176 @@ public final class MainFrame extends JFrame {
         javaSpotlightBindings.clear();
         designSpotlightRevisions.clear();
     }
+    // ---- M69 spotlight walks: the strip and the save menu are surfaces; walkPlayback decides ------------------
+
+    /** A strip press, reported as the fact it is. "Open chart" is the person's own act, then the step re-prepares. */
+    private void walkStripPressed(SpotlightOverlay.StripControl control) {
+        if (session == null) return;
+        switch (control) {
+            case BACK -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(-1));
+            case NEXT -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(1));
+            case END -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested("closed from the strip"));
+            case ACTION -> {
+                String chart = closedChartOfShowingStep();
+                var spec = chart == null ? null : config.savedGraphs.stream().filter(g -> g.name().equals(chart)).findFirst().orElse(null);
+                if (spec != null && graphTabs.openSaved(spec)) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(0));
+            }
+        }
+    }
+
+    /** The chart the showing step selects when it is saved but closed — the strip offers to open it. */
+    private String closedChartOfShowingStep() {
+        var state = sessionSnapshot().walkPlayback();
+        if (!state.showing()) return null;
+        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, state.walk());
+        if (walk == null || state.step() >= walk.steps().size()) return null;
+        String chart = walk.steps().get(state.step()).view().graph();
+        return chart != null && graphTabs.graphNamed(chart) == null && graphTabs.hasDefinition(chart) ? chart : null;
+    }
+
+    /** Render the strip from the snapshot: a surface, deciding nothing. */
+    private void renderWalkStrip(telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState state) {
+        if (!state.showing()) {
+            spotlight.setStrip(null);
+            return;
+        }
+        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, state.walk());
+        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " " + walk.authorLabel());
+        String phase = switch (state.phase()) {
+            case "PREPARING" -> "preparing…";
+            case "SHOWN" -> "shown";
+            case "PARTLY_SHOWN" -> "partly shown (" + state.targets().stream().filter(t -> t.available()).count()
+                    + " of " + state.targets().size() + ")";
+            case "NOT_SHOWN" -> "not shown";
+            default -> state.phase().toLowerCase(java.util.Locale.ROOT);
+        };
+        java.util.List<String> reasons = new java.util.ArrayList<>();
+        for (var t : state.targets()) {
+            if (!t.available()) reasons.add(t.n() + ": " + t.reason());
+            else if (!"CURRENT".equals(t.state())) reasons.add(t.n() + ": " + t.state().toLowerCase(java.util.Locale.ROOT) + " — " + t.reason());
+        }
+        if (!state.reason().isBlank()) reasons.add(0, state.reason());
+        String action = closedChartOfShowingStep() == null ? null : "Open chart";
+        spotlight.setStrip(new SpotlightOverlay.Strip(title, "step " + (state.step() + 1) + " of " + state.count(), phase,
+                reasons, state.step() > 0, state.step() < state.count() - 1, action));
+    }
+
+    /** The right-click save menu (owner: "right click while in spotlight gives a popup menu for save"). */
+    private void showWalkSaveMenu(java.awt.event.MouseEvent e) {
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        boolean lit = spotlight.isLit();
+        javax.swing.JMenuItem saveNew = new javax.swing.JMenuItem("Save as new walk…");
+        saveNew.setEnabled(lit);
+        saveNew.addActionListener(a -> saveWalkFromSpotlight(null, -1));
+        menu.add(saveNew);
+        javax.swing.JMenu addTo = new javax.swing.JMenu("Add to walk");
+        for (var w : config.walks) {
+            javax.swing.JMenuItem item = new javax.swing.JMenuItem(w.displayTitle());
+            item.addActionListener(a -> saveWalkFromSpotlight(w.name(), -1));
+            addTo.add(item);
+        }
+        addTo.setEnabled(lit && !config.walks.isEmpty());
+        menu.add(addTo);
+        var state = session == null ? null : sessionSnapshot().walkPlayback();
+        if (state != null && state.showing()) {
+            javax.swing.JMenuItem replace = new javax.swing.JMenuItem("Replace this step");
+            replace.setEnabled(lit);
+            replace.addActionListener(a -> saveWalkFromSpotlight(state.walk(), state.step()));
+            menu.add(replace);
+        }
+        menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent ev) { }
+            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent ev) {
+                // its own dismissal wins: the press that closed it must not also end the walk or put the spotlight out
+                spotlight.swallowPressesUntil(java.awt.EventQueue.getMostRecentEventTime());
+            }
+            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent ev) { }
+        });
+        lastWalkMenu = menu;
+        menu.show(spotlight, e.getX(), e.getY());
+    }
+
+    /** For tests: the save menu last shown. */
+    javax.swing.JPopupMenu lastWalkMenu;
+
+    /**
+     * Asks the person for a new walk's name (null = cancelled). Replaceable so a test can answer it: the real one is a
+     * modal input dialog, which cannot be driven from a test, as GraphTabs' delete confirmation already found.
+     */
+    java.util.function.Function<String, String> walkNamePrompt = note -> {
+        Object name = JOptionPane.showInputDialog(this, "Name for the new walk:" + note, "Save as new walk",
+                JOptionPane.PLAIN_MESSAGE, null, null, "");
+        return name == null ? null : name.toString();
+    };
+
+    /**
+     * Play a saved walk from {@code step} (0-based; -1 = where it was last left). The entrance the Reports tab and the
+     * {@code walk} verb share: it reports the request, with the step count read from config, and walkPlayback decides.
+     * Returns null, or why the request could not be made.
+     */
+    String playWalk(String name, int step, String origin) {
+        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, name);
+        if (walk == null) return "no walk called '" + name + "' — walks: " + config.walks.stream().map(w -> w.name()).toList();
+        if (session == null) return "the session is not running";
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(walk.name(), step, walk.steps().size(), origin));
+        return null;
+    }
+
+    /**
+     * Save what the spotlight shows now: as a new walk ({@code walk} null), appended to {@code walk}, or replacing its
+     * step {@code replaceStep}. What cannot be saved is named before anything is stored.
+     */
+    private void saveWalkFromSpotlight(String walk, int replaceStep) {
+        WalkAuthoring.Capture capture = walkAuthoring.capture();
+        String note = capture.notSaved().isEmpty() ? "" : "\n\nNot saved in this step: " + String.join("; ", capture.notSaved());
+        String error;
+        if (walk == null) {
+            String name = walkNamePrompt.apply(note);
+            if (name == null) return;
+            error = walkAuthoring.save(name.toString(), "", java.util.List.of(capture.step()),
+                    telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.AUTHOR_PERSON, capture.generation());
+        } else if (replaceStep >= 0) {
+            error = walkAuthoring.replace(walk, replaceStep, capture);
+        } else {
+            error = walkAuthoring.append(walk, capture);
+        }
+        if (error != null) {
+            JOptionPane.showMessageDialog(this, error, "Walk not saved", JOptionPane.WARNING_MESSAGE);
+        } else if (!note.isEmpty() && walk != null) {
+            JOptionPane.showMessageDialog(this, "Saved." + note, "Walk saved", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    /** M69: the one save path — the menu here and the {@code walk} verb both use it. */
+    private final WalkAuthoring walkAuthoring = new WalkAuthoring(new WalkAuthoring.Frame() {
+        @Override public telamin.fluxtion.audit.analyser.analyser.config.AppConfig config() { return config; }
+        @Override public LogStore store() { return store; }
+        @Override public telamin.fluxtion.audit.analyser.analyser.filter.FilterState filter() { return filter; }
+        @Override public GraphTabs graphs() { return graphTabs; }
+        @Override public TopologyPanel topology() { return topologyPanel; }
+        @Override public String selectedTabWord() {
+            if (sideTabs == null || sideTabs.getSelectedIndex() < 0) return null;
+            String title = sideTabs.getTitleAt(sideTabs.getSelectedIndex());
+            for (String word : SpotlightTarget.TABS) if (sideTabTitle(word).equals(title)) return word;
+            return null;
+        }
+        @Override public int selectedRecord() {
+            int[] rows = tablePanel.selectedModelRows();
+            return rows.length == 1 ? rows[0] : -1;
+        }
+        @Override public java.util.List<SpotlightOverlay.Lit> lit() { return spotlight.lit(); }
+        @Override public java.util.List<String> runBasisNow() { return loadedLogIdentity.stream().map(i -> i.sha256()).toList(); }
+        @Override public telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint fingerprint() {
+            return store == null ? null : telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
+                    store.index(), loadedLogName(), logProvenance(), logProvenanceSource());
+        }
+        @Override public long generation() { return session == null ? -1 : sessionSnapshot().logGeneration(); }
+        @Override public void persist() {
+            onGraphsEdited();                                     // the profile's edit funnel, as putReport uses
+            if (reportsPanel != null) reportsPanel.refresh();
+        }
+    });
+
     private void sourceViewportChanged() {
         if (applyingJavaSpotlight) return;
         if (sourceRemeasureQueued) return;
@@ -2446,6 +2616,9 @@ public final class MainFrame extends JFrame {
             }
         });
         spotlight.setOnPressed(this::spotlightPressed);   // M64.11: a press on a lit menu item chooses it
+        // M69: the strip's presses and a right-click are REPORTED; walkPlayback decides what they mean
+        spotlight.setOnStrip(this::walkStripPressed);
+        spotlight.setOnPopup(this::showWalkSaveMenu);
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent e) {
                 if (!applyingJavaSpotlight) relightSpotlight();
@@ -4646,6 +4819,7 @@ public final class MainFrame extends JFrame {
         graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
         detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
         renderFollow(next);                      // M44.5: Follow's controls and its poll timer
+        renderWalkStrip(next.walkPlayback());    // M69: the walk's strip, as walkPlayback decided it
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
     }
 

@@ -1,0 +1,215 @@
+package telamin.fluxtion.audit.analyser.analyser.ui;
+
+import telamin.fluxtion.audit.analyser.analyser.config.AppConfig;
+import telamin.fluxtion.audit.analyser.analyser.config.ChartNames;
+import telamin.fluxtion.audit.analyser.analyser.config.ConfigStore;
+import telamin.fluxtion.audit.analyser.analyser.config.FocusSpec;
+import telamin.fluxtion.audit.analyser.analyser.config.GraphSpec;
+import telamin.fluxtion.audit.analyser.analyser.config.WalkBin;
+import telamin.fluxtion.audit.analyser.analyser.filter.FilterState;
+import telamin.fluxtion.audit.analyser.analyser.parse.LogStore;
+import telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint;
+import telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity;
+import telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec;
+import telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * M69 — the ONE way a walk is written (spec-spotlight-walks.md §3.5, §3.7, §3.9): the right-click save menu and the
+ * {@code walk} verb both come through here, so a walk saved by a person and one saved by the assistant are bound to
+ * their evidence the same way.
+ *
+ * <p>It captures what is on screen (the lit targets, their captions, and the allow-listed view), or binds steps a
+ * client supplied, computing every basis from what is loaded NOW — a client points, the analyser digests. A save is
+ * coherent: the log generation read at capture must still be current when the walk is stored, or the save is refused
+ * rather than binding old captions to new data.
+ */
+final class WalkAuthoring {
+
+    interface Frame {
+        AppConfig config();
+
+        LogStore store();
+
+        FilterState filter();
+
+        GraphTabs graphs();
+
+        TopologyPanel topology();
+
+        /** The side tab showing now, as a spotlight tab word. */
+        String selectedTabWord();
+
+        /** The selected record, when exactly one is selected; else -1. */
+        int selectedRecord();
+
+        List<SpotlightOverlay.Lit> lit();
+
+        List<String> runBasisNow();
+
+        LogFingerprint fingerprint();
+
+        long generation();
+
+        /** Store the edited walks the way reports are stored: through the profile's edit funnel. */
+        void persist();
+    }
+
+    /** A captured step, what could not be saved in it, and the generation it was read under. */
+    record Capture(WalkSpec.Step step, List<String> notSaved, long generation) { }
+
+    private final Frame frame;
+
+    WalkAuthoring(Frame frame) {
+        this.frame = frame;
+    }
+
+    // ---- capture: what is on screen ---------------------------------------------------------------------------
+
+    Capture capture() {
+        List<String> notSaved = new ArrayList<>();
+        List<WalkSpec.Target> targets = new ArrayList<>();
+        for (SpotlightOverlay.Lit l : frame.lit()) {
+            SpotlightTarget.Parsed p = SpotlightTarget.parse(l.target());
+            if (!p.ok() || !isWalkable(p.target().family())) {
+                notSaved.add("'" + l.target() + "' (a walk cannot point at source, toolbar or menu targets yet)");
+                continue;
+            }
+            targets.add(new WalkSpec.Target(l.target(), l.caption() == null ? "" : l.caption(), null));
+        }
+        String tab = frame.selectedTabWord();
+        FilterState f = frame.filter();
+        WalkSpec.Filter filter = f == null ? null : new WalkSpec.Filter(f.fromMillis(), f.toMillis(), f.groupMode().name(),
+                f.dimensions() == null ? null : new ArrayList<>(f.dimensions()), f.text());
+        int selected = frame.selectedRecord();
+        boolean chartTargeted = targets.stream().anyMatch(t -> "chart".equals(WalkSteps.basisKind(t.target())));
+        String graph = "graph".equals(tab) || chartTargeted ? frame.graphs().selectedGraphName() : null;
+        if (graph != null) {
+            GraphPanel g = frame.graphs().graphNamed(graph);
+            if (g != null && g.isPinned()) notSaved.add("chart '" + graph + "''s pinned window (a walk does not restore a chart's window)");
+        }
+        WalkSpec.FocusRef focus = null;
+        String applied = frame.topology().appliedFocusLabel();
+        if (applied != null) {
+            FocusSpec spec = frame.config().namedFocuses.stream().filter(x -> x.name().equals(applied)).findFirst().orElse(null);
+            if (spec != null) focus = new WalkSpec.FocusRef(applied, ConfigStore.focusDefinitionDigest(spec));
+            else notSaved.add("the topology's current focus (it is not a saved focus)");
+        }
+        // the selected record is part of the view the author saw — the detail pane shows it
+        Integer record = selected >= 0 ? selected : null;
+        WalkSpec.View view = new WalkSpec.View(tab, filter, record, graph, focus);
+        return new Capture(bind(new WalkSpec.Step("", view, targets)), List.copyOf(notSaved), frame.generation());
+    }
+
+    private static boolean isWalkable(SpotlightTarget.Family f) {
+        return switch (f) {
+            case DESIGN, DESIGN_BEAN, DESIGN_LINE, JAVA, JAVA_LINE, TOOLBAR, MENU, MENU_ITEM -> false;
+            default -> true;
+        };
+    }
+
+    // ---- bind: compute every basis from what is loaded now (§3.5) --------------------------------------------
+
+    /** The step with each target's basis, and its focus's digest, computed now. A client can never supply these. */
+    WalkSpec.Step bind(WalkSpec.Step step) {
+        LogStore store = frame.store();
+        List<WalkSpec.Target> bound = new ArrayList<>();
+        for (WalkSpec.Target t : step.targets()) bound.add(new WalkSpec.Target(t.target(), t.caption(), basis(t, step.view(), store)));
+        final WalkSpec.FocusRef asked = step.view().focus();
+        WalkSpec.FocusRef focus = asked;
+        if (asked != null && asked.digest().isBlank()) {
+            FocusSpec spec = frame.config().namedFocuses.stream().filter(x -> x.name().equals(asked.name())).findFirst().orElse(null);
+            focus = new WalkSpec.FocusRef(asked.name(), spec == null ? "" : ConfigStore.focusDefinitionDigest(spec));
+        }
+        WalkSpec.View v = step.view();
+        return new WalkSpec.Step(step.caption(), new WalkSpec.View(v.tab(), v.filter(), v.record(), v.graph(), focus), bound);
+    }
+
+    private WalkSpec.Basis basis(WalkSpec.Target t, WalkSpec.View view, LogStore store) {
+        SpotlightTarget.Parsed p = SpotlightTarget.parse(t.target());
+        if (!p.ok()) return WalkSpec.Basis.NONE;
+        return switch (WalkSteps.basisKind(t.target())) {
+            case "record" -> {
+                int index = p.target().family() == SpotlightTarget.Family.RECORDS_ROW ? p.target().number()
+                        : view.record() == null ? -1 : view.record();
+                String digest = store == null || index < 0 || index >= store.size() ? ""
+                        : WalkIdentity.recordDigest(store.rawText(index));
+                yield new WalkSpec.Basis("record", digest, store == null ? "" : store.getClass().getSimpleName());
+            }
+            case "chart" -> {
+                String chart = p.target().graph() != null ? p.target().graph() : view.graph();
+                GraphSpec spec = specOf(chart);
+                yield new WalkSpec.Basis("chart", spec == null ? "" : ConfigStore.chartDefinitionDigest(spec), "");
+            }
+            case "graph" -> {
+                String digest = frame.topology().loadedGraphSha256();
+                yield new WalkSpec.Basis("graph", digest == null ? "" : digest, "");
+            }
+            default -> WalkSpec.Basis.NONE;
+        };
+    }
+
+    private GraphSpec specOf(String chart) {
+        if (chart == null) return null;
+        for (GraphSpec s : frame.graphs().specs()) if (s.name().equals(chart)) return s;
+        for (GraphSpec s : frame.config().savedGraphs) if (s.name().equals(chart)) return s;
+        return null;
+    }
+
+    // ---- save ---------------------------------------------------------------------------------------------------
+
+    /** Save {@code steps} as walk {@code name} — create, or replace by name. Returns null, or why it was refused. */
+    String save(String name, String title, List<WalkSpec.Step> steps, String author, long capturedGeneration) {
+        String refused = nameProblem(name);
+        if (refused != null) return refused;
+        if (steps.isEmpty()) return "a walk needs at least one step";
+        if (steps.size() > WalkSpec.MAX_STEPS) return "at most " + WalkSpec.MAX_STEPS + " steps";
+        for (int i = 0; i < steps.size(); i++) {
+            String p = WalkSteps.problem(steps.get(i));
+            if (p != null) return "step " + (i + 1) + ": " + p;
+        }
+        if (capturedGeneration != frame.generation()) {
+            return "another log was opened while this walk was being saved — nothing was saved, because its steps "
+                    + "were read against the previous log";
+        }
+        String now = java.time.Instant.now().toString();
+        WalkSpec existing = WalkBin.find(frame.config().walks, name.trim());
+        List<String> run = WalkIdentity.runBasis(frame.runBasisNow());
+        WalkSpec walk = existing == null
+                ? new WalkSpec(name.trim(), title, author, now, now, frame.fingerprint(), run, steps, Map.of())
+                : new WalkSpec(name.trim(), title == null || title.isBlank() ? existing.title() : title, existing.author(),
+                        existing.createdAt(), now, frame.fingerprint(), run, steps, existing.extras());
+        frame.config().walks.removeIf(w -> w.name().equals(walk.name()));
+        frame.config().walks.add(walk);
+        frame.persist();
+        return null;
+    }
+
+    /** Append a captured step to an existing walk. */
+    String append(String name, Capture c) {
+        WalkSpec w = WalkBin.find(frame.config().walks, name);
+        if (w == null) return "no walk called '" + name + "'";
+        List<WalkSpec.Step> steps = new ArrayList<>(w.steps());
+        steps.add(c.step());
+        return save(name, w.title(), steps, w.author(), c.generation());
+    }
+
+    /** Replace step {@code index} (0-based) of an existing walk with a captured one. */
+    String replace(String name, int index, Capture c) {
+        WalkSpec w = WalkBin.find(frame.config().walks, name);
+        if (w == null) return "no walk called '" + name + "'";
+        if (index < 0 || index >= w.steps().size()) return "walk '" + name + "' has no step " + (index + 1);
+        List<WalkSpec.Step> steps = new ArrayList<>(w.steps());
+        steps.set(index, c.step());
+        return save(name, w.title(), steps, w.author(), c.generation());
+    }
+
+    static String nameProblem(String name) {
+        if (name == null || name.isBlank()) return "a walk needs a name";
+        String p = ChartNames.problem(name);
+        return p == null ? null : p.replace("a chart name", "a walk name").replace("chart's", "walk's");
+    }
+}

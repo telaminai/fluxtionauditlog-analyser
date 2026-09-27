@@ -1480,8 +1480,12 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
   `walkPlayback`. Tests: `WalkPlaybackTest` (12, on the real generated processor), `WalkResolverTest` (12),
   `WalkPresenterTest` (7), and `ChartDrawnFactFrameTest` (2, display, in both CI frame lists). 21 `m69-s2-*` controls
   (W-A4, W-A5, W-A6, W-A8, W-A13–W-A16).
-- [M69.S3] ☐ The overlay strip; input classified before dismissal; keyboard focus; the right-click save menu (W-A2,
-  W-A3, W-A12).
+- [M69.S3] ☑ The overlay strip (`SpotlightOverlay.Strip`, ◀ ▶ ✕ and Open chart); input classified before dismissal
+  (a popup trigger never dismisses, and the press that closes the menu is swallowed); keyboard focus taken and
+  restored; the right-click save menu (Save as new walk, Add to walk, Replace this step); `WalkAuthoring`, the one save
+  path, with a capture-coherence refusal. Tests: `WalkPlaybackFrameTest` (2, real presses), `WalkArrowKeysFrameTest`
+  (1, needs a focus owner — it skips on the owner's Mac and runs under CI's Xvfb), and `WalkAuthoringTest` (5).
+  10 `m69-s3-*` controls (W-A2, W-A3, W-A12).
 - [M69.S4] ☐ The `walk` verb and its contract; `context`; the Reports tab and Project panel; docs, CHANGELOG, a capture
   (W-A10, W-A11, W-A17 UI half).
 - [M69.R] ☐ Gates: headless, frame suites, mutation controls, preflight, sweep, strict docs; RESULTS scored; a PR with

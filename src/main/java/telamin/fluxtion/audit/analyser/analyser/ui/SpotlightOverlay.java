@@ -66,19 +66,115 @@ public final class SpotlightOverlay extends JComponent {
     private final Runnable onDismissed;
     private java.util.function.BiConsumer<Point, List<Lit>> onPressed = (p, l) -> { };
 
+    // ---- M69: a walk's control strip, and the right-click save menu (spec-spotlight-walks.md §3.7) ------------
+    //
+    // The overlay stays dumb: it DRAWS the strip it is given (rendered by the frame from the session snapshot) and
+    // REPORTS presses on it and right-clicks; the session decides what a press means. Input is classified BEFORE the
+    // dismissal below, because the M64.11 hook runs after the spotlight has already gone (review R7).
+
+    /** What the strip shows: every field a rendering of the session's walkPlayback state. */
+    public record Strip(String title, String position, String state, List<String> reasons,
+                        boolean canBack, boolean canNext, String action) {
+        public Strip {
+            reasons = List.copyOf(reasons == null ? List.of() : reasons);
+        }
+    }
+
+    /** The strip's controls, as they are reported. */
+    public enum StripControl { BACK, NEXT, END, ACTION }
+
+    private Strip strip;
+    private java.util.function.Consumer<StripControl> onStrip = c -> { };
+    private java.util.function.Consumer<java.awt.event.MouseEvent> onPopup = e -> { };
+    /** Presses up to this event time are swallowed: they closed the save menu, and must not also end the walk. */
+    private long swallowPressesUntil = Long.MIN_VALUE;
+    private long popupShownAt = Long.MIN_VALUE;
+    private java.awt.Component focusBeforeStrip;
+
     public SpotlightOverlay(Runnable onDismissed) {
         this.onDismissed = onDismissed == null ? () -> { } : onDismissed;
         setOpaque(false);
         setVisible(false);
         addMouseListener(new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) {
+                // M69 R7: classify first. A popup request never dismisses — on platforms whose trigger is the
+                // RELEASE, the right button's press must not dismiss either, or the spotlight is gone before it.
+                if (e.isPopupTrigger() || javax.swing.SwingUtilities.isRightMouseButton(e)) {
+                    if (e.isPopupTrigger()) popup(e);
+                    return;
+                }
+                if (e.getWhen() <= swallowPressesUntil) return;      // it closed the save menu
+                StripControl hit = stripControlAt(e.getPoint());
+                if (hit != null) {
+                    onStrip.accept(hit);
+                    return;
+                }
+                if (strip != null && stripBounds(getSize()).contains(e.getPoint())) return;   // the strip's own face
                 List<Lit> was = lit();
                 dismiss();
                 onPressed.accept(e.getPoint(), was);   // M64.11: the frame may choose a lit menu item under the press
             }
+
+            @Override public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) popup(e);                    // the release-trigger platforms
+            }
         });
         registerKeyboardAction(e -> dismiss(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_IN_FOCUSED_WINDOW);
+        // M69: the strip's arrows are bound on the OVERLAY, which takes focus while a walk shows — so a focused table
+        // or combo underneath cannot consume them first (R7)
+        registerKeyboardAction(e -> { if (strip != null && strip.canBack()) onStrip.accept(StripControl.BACK); },
+                KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), JComponent.WHEN_FOCUSED);
+        registerKeyboardAction(e -> { if (strip != null && strip.canNext()) onStrip.accept(StripControl.NEXT); },
+                KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), JComponent.WHEN_FOCUSED);
+    }
+
+    /** M69: where strip presses are reported. */
+    public void setOnStrip(java.util.function.Consumer<StripControl> listener) {
+        this.onStrip = listener == null ? c -> { } : listener;
+    }
+
+    /** M69: where a right-click on the overlay is reported, with the event (the frame shows the save menu). */
+    public void setOnPopup(java.util.function.Consumer<java.awt.event.MouseEvent> listener) {
+        this.onPopup = listener == null ? e -> { } : listener;
+    }
+
+    /** M69: the save menu closed at {@code when}; a press delivered with that timestamp closed it, and is swallowed. */
+    public void swallowPressesUntil(long when) {
+        this.swallowPressesUntil = when;
+    }
+
+    private void popup(MouseEvent e) {
+        if (e.getWhen() == popupShownAt) return;                  // press AND release both report the trigger: act once
+        popupShownAt = e.getWhen();
+        onPopup.accept(e);
+    }
+
+    /**
+     * M69: show (non-null) or remove (null) the walk's control strip. While it shows, the overlay is visible even with
+     * nothing lit — a step can be NOT_SHOWN and still have to say why — and it holds keyboard focus, restoring the
+     * previous focus owner when the strip goes.
+     */
+    public void setStrip(Strip next) {
+        boolean was = strip != null;
+        strip = next;
+        if (next != null && !was) {
+            focusBeforeStrip = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+            setFocusable(true);
+            setVisible(true);
+            requestFocusInWindow();
+        } else if (next == null && was) {
+            setFocusable(false);
+            if (!isLit()) setVisible(false);
+            if (focusBeforeStrip != null && focusBeforeStrip.isShowing()) focusBeforeStrip.requestFocusInWindow();
+            focusBeforeStrip = null;
+        }
+        if (next != null) setVisible(true);
+        repaint();
+    }
+
+    public Strip strip() {
+        return strip;
     }
 
     /** The dismissing press, with what was lit at that moment and where it was pressed (overlay coordinates). */
@@ -163,11 +259,11 @@ public final class SpotlightOverlay extends JComponent {
     /** Nothing is lit: stop swallowing clicks, and let the numbers start again — nobody is referring to them. */
     private void wentDark() {
         nextNumber = 1;
-        setVisible(false);
+        setVisible(strip != null);   // M69: a walk's strip keeps the overlay up, to say why nothing is lit
     }
 
     private void dismiss() {
-        if (!isLit()) return;
+        if (!isLit() && strip == null) return;
         clearSpotlight();
         onDismissed.run();
     }
@@ -204,13 +300,111 @@ public final class SpotlightOverlay extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        if (!isLit()) return;
+        if (!isLit() && strip == null) return;
         Graphics2D g2 = (Graphics2D) g.create();
         try {
-            paintSpotlight(g2, getSize());
+            if (isLit()) paintSpotlight(g2, getSize());
+            if (strip != null) paintStrip(g2, getSize());
         } finally {
             g2.dispose();
         }
+    }
+
+    // ---- M69: the strip's layout, shared by paint and hit-testing so a press lands where the eye sees ----------
+
+    private static final int STRIP_H = 34, STRIP_BTN = 30, STRIP_MARGIN = 16, STRIP_MAX_W = 760;
+
+    /** Where the strip sits: bottom centre, above the frame's bottom edge; grows a line per reason. */
+    Rectangle stripBounds(Dimension size) {
+        int reasons = strip == null ? 0 : Math.min(3, strip.reasons().size());
+        int w = Math.min(STRIP_MAX_W, Math.max(360, size.width - 2 * STRIP_MARGIN));
+        int h = STRIP_H + reasons * 16 + (reasons > 0 ? 6 : 0);
+        return new Rectangle((size.width - w) / 2, size.height - h - STRIP_MARGIN, w, h);
+    }
+
+    private Rectangle stripControl(StripControl c, Dimension size) {
+        Rectangle b = stripBounds(size);
+        int y = b.y + (STRIP_H - 24) / 2;
+        return switch (c) {
+            case BACK -> new Rectangle(b.x + 6, y, STRIP_BTN, 24);
+            case NEXT -> new Rectangle(b.x + b.width - 2 * STRIP_BTN - 12, y, STRIP_BTN, 24);
+            case END -> new Rectangle(b.x + b.width - STRIP_BTN - 6, y, STRIP_BTN, 24);
+            case ACTION -> strip == null || strip.action() == null ? null
+                    : new Rectangle(b.x + b.width - 2 * STRIP_BTN - 132, y, 114, 24);
+        };
+    }
+
+    /** Which control is under {@code p}, or null — disabled controls answer null. */
+    StripControl stripControlAt(Point p) {
+        if (strip == null) return null;
+        Dimension size = getSize();
+        for (StripControl c : StripControl.values()) {
+            Rectangle r = stripControl(c, size);
+            if (r == null || !r.contains(p)) continue;
+            if (c == StripControl.BACK && !strip.canBack()) return null;
+            if (c == StripControl.NEXT && !strip.canNext()) return null;
+            return c;
+        }
+        return null;
+    }
+
+    /** A control's centre in overlay coordinates, for tests that press it for real; null when absent. */
+    Point stripControlCentre(StripControl c) {
+        Rectangle r = strip == null ? null : stripControl(c, getSize());
+        return r == null ? null : new Point((int) r.getCenterX(), (int) r.getCenterY());
+    }
+
+    private void paintStrip(Graphics2D g, Dimension size) {
+        boolean dark = ThemeManager.isDark();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setFont(getFont() == null ? g.getFont() : getFont().deriveFont(13f));
+        FontMetrics fm = g.getFontMetrics();
+        Rectangle b = stripBounds(size);
+        Color fill = dark ? new Color(0x1B1F24) : new Color(0xFFFFFF);
+        g.setColor(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 248));
+        g.fillRoundRect(b.x, b.y, b.width, b.height, 10, 10);
+        g.setColor(UiTheme.accent());
+        g.setStroke(new BasicStroke(1.5f));
+        g.drawRoundRect(b.x, b.y, b.width, b.height, 10, 10);
+        Color text = dark ? new Color(0xC9D1D9) : new Color(0x24292F);
+        for (StripControl c : StripControl.values()) {
+            Rectangle r = stripControl(c, size);
+            if (r == null) continue;
+            boolean enabled = c != StripControl.BACK && c != StripControl.NEXT
+                    || (c == StripControl.BACK ? strip.canBack() : strip.canNext());
+            g.setColor(enabled ? UiTheme.accent() : UiTheme.mutedForeground());
+            g.drawRoundRect(r.x, r.y, r.width, r.height, 6, 6);
+            String label = switch (c) {
+                case BACK -> "◀";
+                case NEXT -> "▶";
+                case END -> "✕";
+                case ACTION -> strip.action();
+            };
+            g.setColor(enabled ? text : UiTheme.mutedForeground());
+            g.drawString(clip(fm, label, r.width - 8), r.x + (r.width - Math.min(fm.stringWidth(label), r.width - 8)) / 2,
+                    r.y + (r.height - fm.getHeight()) / 2 + fm.getAscent());
+        }
+        int left = b.x + 6 + STRIP_BTN + 10;
+        Rectangle action = stripControl(StripControl.ACTION, size);
+        int right = (action != null ? action.x : stripControl(StripControl.NEXT, size).x) - 10;
+        String head = strip.title() + " — " + strip.position() + " · " + strip.state();
+        g.setColor(text);
+        g.drawString(clip(fm, head, right - left), left, b.y + (STRIP_H - fm.getHeight()) / 2 + fm.getAscent());
+        g.setColor(UiTheme.mutedForeground());
+        int y = b.y + STRIP_H + fm.getAscent() - 4;
+        for (int i = 0; i < Math.min(3, strip.reasons().size()); i++) {
+            g.drawString(clip(fm, strip.reasons().get(i), b.width - 20), b.x + 10, y);
+            y += 16;
+        }
+    }
+
+    private static String clip(FontMetrics fm, String s, int width) {
+        if (s == null) return "";
+        if (fm.stringWidth(s) <= width) return s;
+        String out = s;
+        while (out.length() > 1 && fm.stringWidth(out + "…") > width) out = out.substring(0, out.length() - 1);
+        return out + "…";
     }
 
     /**
@@ -220,12 +414,13 @@ public final class SpotlightOverlay extends JComponent {
      * translated so each cut-out lands on the same pixels it covers on screen.
      */
     public void paintOnto(Graphics2D g, Component painted) {
-        if (!isLit() || painted == null) return;
+        if ((!isLit() && strip == null) || painted == null) return;
         Point origin = javax.swing.SwingUtilities.convertPoint(this, 0, 0, painted);
         Graphics2D g2 = (Graphics2D) g.create();
         try {
             g2.translate(origin.x, origin.y);
-            paintSpotlight(g2, getSize());
+            if (isLit()) paintSpotlight(g2, getSize());
+            if (strip != null) paintStrip(g2, getSize());   // M69: a screenshot shows the walk's strip too
         } finally {
             g2.dispose();
         }
