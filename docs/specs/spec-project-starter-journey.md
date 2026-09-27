@@ -1,5 +1,7 @@
 # Project starter journey
 
+**Status (2026-09-27):** the analyser half shipped in 1.16.0 — the whole starter catalogue, project landing and explicit session recovery; open are default-on producer support, the untagged end-to-end download acceptance and producer-first deployment (cross-repo; tracker ▸ M47 and M19.23).
+
 Status: **owner requirements recorded 2026-09-20; implementation pending**. This is a cross-repo
 contract for playground generation and analyser discovery. The proposed authoring page and a simpler
 headless configuration API remain design proposals. Companion: [template picker](spec-template-from-analyser.md),

@@ -147,19 +147,21 @@ Also merged: **M19.6/.7** (`tools/bench/` — the dev loop's conformance bench, 
 against a stub; `analyser --rest` for an agent-driven fresh start) and **M36.1–.5** (the start page: the
 no-log STATE, four sections each ending in an action against a demo set that ships in the jar; the
 first-run dialog is gone for everyone). Open analyser-side:
-**M19.3/.4** (tutorial, publish-gated on the playground Download), **M19.8** (bench in CI), **M34.4/.5** (first foreign adapter;
-per-cycle concurrency marker); M22 remnants — PNG export (22.3), alternative layouts
-(22.6), re-dispatch cause (22.11, needs `UP-FLX-10` in
+the tracker's *Suggested delivery order* (refreshed 2026-09-27) has the order; open analyser-side are
+**M44.4**'s §13 acceptance and **M44.6** (an owner decision), **M19.3** (tutorial captures), **M19.1a** and
+**M19.15**, **M34.4/.5** (first foreign adapter; per-cycle concurrency marker); M22 remnants — PNG export (22.3),
+alternative layouts (22.6), re-dispatch cause (22.11, needs `UP-FLX-10` in
 [`docs/proposals/upstream-asks.md`](docs/proposals/upstream-asks.md) — the holding pen for anything
 belonging to another repo); **M20.5** (project artifact pointers); **M29.5** (optional embed);
-**M33.5** (fix-brief fold, gated on journal↔log pairing) and **M33.6** (marker-CSV chooser dialog,
-owner call); the golden-fixture corpus follow-ups (N1 + the clamp fixture); the un-started **polish
-round** (`docs/handoff/completed/handoff_17_aug_2026_1.txt`). **M18 is CLOSED** in favour of
+**M33.5** (fix-brief fold, gated on journal↔log pairing) and **M33.6** (marker-CSV chooser dialog — the owner
+said YES, 2026-08-27); the golden-fixture taxonomy tranche. (M19.4, M19.8, the polish round and the N1/clamp
+fixtures are done and archived.) **M18 is CLOSED** in favour of
 [`spec-agent-brokered-dev-loop.md`](docs/specs/spec-agent-brokered-dev-loop.md) (ACCEPTED v2) —
 its cross-repo asks (Mongoose MCP + `~/.mongoose/servers/`, two playground catalogue fields, the
 Chronicle reader) **were** gated on that spec's §H conformance harness having a home — **that gate is
-met** (M19.6, `tools/bench/loop-bench.py`, merged 2026-08-25), so they are ready to file and are not
-yet filed. Cross-repo tracks:
+met** (M19.6, `tools/bench/loop-bench.py`, merged 2026-08-25). Several have since landed (UP-MNG-01, UP-PG-01,
+UP-PG-03; half of UP-MNG-03; UP-PG-02's producer field); refresh `upstream-asks.md` before filing the rest.
+Cross-repo tracks:
 the **M31.4r** example reader (playground) and the **M19.1** playground bundle contract
 (`docs/specs/spec-onboarding-example.md`). Two standing design decisions (tracker ▸ Decisions), both intact after M18's closure: server verbs
 never appear on **the analyser's** action socket — the adopted design *strengthens* this by moving

@@ -5,7 +5,7 @@ its claims decides the order of the work, and getting that order wrong would shi
 worse than the defect it replaces.
 
 **What to read:** [`docs/specs/spec-mongoose-audit-production.md`](../specs/spec-mongoose-audit-production.md).
-Background if needed: [`spec-audit-stream-end.md`](../specs/spec-audit-stream-end.md) §1a is the contract
+Background if needed: [`spec-audit-stream-end.md`](../specs/completed/spec-audit-stream-end.md) §1a is the contract
 both halves obey; `UP-MON-01` and `UP-MON-02` in
 [`docs/proposals/upstream-asks.md`](../proposals/upstream-asks.md); tracker AF-4 and AF-7.
 

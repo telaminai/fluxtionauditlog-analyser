@@ -769,7 +769,7 @@ regression names, all twelve seen-red mutation witnesses and boundaries. [Review
 ## AF · Mongoose audit format, release 1 analyser half — ☑ SHIPPED in 1.18.0 — 2026-09-23
 
 The contract, the format amendment and the analyser's reporting. Spec
-**[spec-audit-stream-end.md](../spec-audit-stream-end.md)**; format revision 1.1 §1a is published.
+**[spec-audit-stream-end.md](spec-audit-stream-end.md)**; format revision 1.1 §1a is published.
 **Seven independent review rounds**, three of which rejected the branch outright. The entries below are
 kept verbatim because the corrections are the useful part: a rule that made every real export look
 damaged, a record that could be deleted by its own `toString`, a set of whole files certifying itself,
@@ -777,7 +777,7 @@ one defect about number scoping that recurred five times until a single renderer
 duplication, and two occasions on which the author wrote "verified" without verifying. The writer half
 (AF-4) and the coupled documents (AF-6) remain open in [the live tracker](../tracker.md).
 
-- **[AF-1] ☑ — the stream-end contract** · _[spec-audit-stream-end.md](../spec-audit-stream-end.md), written
+- **[AF-1] ☑ — the stream-end contract** · _[spec-audit-stream-end.md](spec-audit-stream-end.md), written
   2026-09-21, reviewed and revised the same day._ Step 1 of release 1 and the blocker for everything after it: the writer and
   the reader implement the same contract, so it exists first. **Why it is not trivial:** the proposal's
   original "write an end marker" was measured unworkable — as its own document it becomes a phantom record,

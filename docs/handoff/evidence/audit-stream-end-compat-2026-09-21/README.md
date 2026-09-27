@@ -1,6 +1,6 @@
 # Forward-compatibility check — stream-end marker vs released 1.16.0
 
-Acceptance 6 of [`spec-audit-stream-end.md`](../../../specs/spec-audit-stream-end.md): a file carrying a
+Acceptance 6 of [`spec-audit-stream-end.md`](../../../specs/completed/spec-audit-stream-end.md): a file carrying a
 marker must be readable by an analyser that predates the feature. **Run, not reasoned about** — and it
 found something the spec had understated.
 

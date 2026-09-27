@@ -2,6 +2,8 @@
 
 Status: DRAFT v1.2 · Owner: greg.higgins · Last updated: 2026-08-15
 
+**Status (2026-09-27):** M13.1–13.4 shipped and are archived; M13.5 is open (tracker ▸ M13).
+
 > **v1.1 — reconciled to shipped code.** Written before the assistant-vocabulary round landed; now
 > updated: **six verbs** (the `read` verb shipped, AV.1), current `graph`/`goto` params (`exprs`,
 > `from/to`, `rationale` — AV.2; `reveal` — AV.4), and the schema single-source-of-truth **already

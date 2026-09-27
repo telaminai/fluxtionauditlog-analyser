@@ -1,6 +1,6 @@
 # Design render — the Spring XML on the canvas (Design Spec)
 
-**Status:** IMPLEMENTED ON MAIN, UNRELEASED, **revision 2** (2026-09-19) — revised after the independent review
+**Status:** SHIPPED in 1.16.0 (2026-09-20) _(corrected 2026-09-27; it read "implemented on main, unreleased")_, **revision 2** (2026-09-19) — revised after the independent review
 [`review_spec_design_render_71e50ee5.md`](../../handoff/review_spec_design_render_71e50ee5.md) (NOT READY, R1–R4;
 all accepted). Revision 2 author-checked, then independently re-reviewed in
 [`review_spec_design_render_232c846a.md`](../../handoff/review_spec_design_render_232c846a.md). Implementation

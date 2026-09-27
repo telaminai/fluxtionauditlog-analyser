@@ -2,6 +2,8 @@
 
 Status: DRAFT v1 · Owner: greg.higgins · Last updated: 2026-08-25 (aligned with the agent-brokered dev loop; M18 closed)
 
+**Status (2026-09-27):** M19 is in progress — most slices shipped and are archived (completed tracker ▸ M19); open are M19.1a, M19.3, M19.15, M19.19's person-watching check, M19.22 (fluxtion#24) and M19.23's producer deploy (tracker ▸ M19).
+
 Companion to **[tracker.md](tracker.md)** (milestone **M19**) and
 **[../admin/docs-site.md](../admin/docs-site.md)** (the site this lands on). Touches the
 **playground** (<https://fluxtion-playground.dev/playground>) — its Download feature is the

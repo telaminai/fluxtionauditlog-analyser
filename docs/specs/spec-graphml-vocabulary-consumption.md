@@ -1,6 +1,6 @@
 # Spec — consuming the GraphML vocabulary, and why it is a second path forever
 
-**Status:** PROPOSED 2026-08-31. **Tracker:** [tracker.md](tracker.md) ▸ M45.
+**Status:** PROPOSED 2026-08-31. **COMPLETE 2026-09-27:** .1/.2/.3/.5 shipped 2026-08-31; M45.4 delivered as M68.1 (PR #25, 1.21.0). A candidate to move to `completed/`. **Tracker:** [tracker.md](tracker.md) ▸ M45.
 **Upstream:** `fluxtion-builder` `feature/compiler_diagnostics` — the vocabulary, `GraphMlOptions`,
 and the model-projection exporter.
 **Related:** [`upstream-asks.md`](../proposals/upstream-asks.md) §2c (the asks this answers),

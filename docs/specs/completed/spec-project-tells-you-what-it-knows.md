@@ -1,6 +1,6 @@
 # Spec — the project tells you what it knows
 
-**Status:** implemented 2026-09-26. Closes #20, #21, #22, #23.
+**Status:** SHIPPED in 1.24.0 (2026-09-27; PR #33). Closed #20, #21, #22, #23. Moved to `completed/` 2026-09-27.
 
 ## The proposition
 

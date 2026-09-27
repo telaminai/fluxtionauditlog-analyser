@@ -1,6 +1,6 @@
 # Spec — evidence integrity: the instrument never says more than it established
 
-**Status:** PROPOSED v3 2026-09-24, corrected after three review rounds · **Milestone:** M68 · **Tracker:** [tracker.md](tracker.md) ▸ M68.
+**Status:** PROPOSED v3 2026-09-24, corrected after three review rounds · **SHIPPED as an explicit partial delivery (1.21.0; M68.7 in 1.23.0) — the producer half, D-E9, is open under MA-2/MA-7** _(2026-09-27; whether this spec moves to `completed/` is an owner call, as `spec-design-render.md` did with an open producer boundary)_ · **Milestone:** M68 · **Tracker:** [tracker.md](tracker.md) ▸ M68.
 **Sibling of** [`spec-tool-agreement.md`](spec-tool-agreement.md): that spec says tools describing one application
 must not contradict each other; this one says a single tool must not state a verdict it has not established.
 **Distinct from** [the Mongoose audit format proposal](../proposals/mongoose-audit-format/README.md), which is about

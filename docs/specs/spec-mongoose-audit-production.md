@@ -1,5 +1,7 @@
 # Mongoose produces an audit log the analyser can trust (Design Spec)
 
+**Status (2026-09-27): phase 1 — the reader half — SHIPPED in 1.22.0 (PR #36) and completed in 1.23.0 (PR #40; MA-0, MA-8, MA-6.3); phases 2–3, the writer half, are open and cross-repo (tracker ▸ Mongoose audit format).** The original status line follows.
+
 _Status: **PROPOSED 2026-09-23, not started.** Five reviews, all CHANGES REQUIRED, all answered; review
 files and evidence are in [`docs/handoff/`](../handoff/). Rewritten at rounds 3 and 4 rather than patched
 — this document shipped **six** add-without-remove defects, so each revision replaces the text it
@@ -14,7 +16,7 @@ carry the READER's trimmed separator predicate, not an exact match**. **Moot:** 
 _Replaces the scattered record: tracker AF-4, `UP-MON-02` in [upstream asks](../proposals/upstream-asks.md),
 [mongoose-plugins#38](https://github.com/telaminai/mongoose-plugins/issues/38). The reader half shipped in
 analyser **1.18.0**, the exporter half in `mongoose-plugins` **1.0.44**. Implements the producer side of
-[audit stream end](spec-audit-stream-end.md) §1a. Related: D-T8 in
+[audit stream end](completed/spec-audit-stream-end.md) §1a. Related: D-T8 in
 [trust structure](spec-trust-structure.md) — never conceal a gap._
 
 ## The problem

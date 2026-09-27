@@ -1,6 +1,6 @@
 # Tool agreement — the tools that describe an application must not contradict it, or each other
 
-**Status:** implementation in progress 2026-09-21 · **Builds:** the analyser work items TA-1…TA-9 · **Counts:** the open
+**Status:** TA-1…TA-8 SHIPPED in 1.17.0 (2026-09-21); TA-5b, TA-5c, TA-9 and TA-B open _(2026-09-27)_ · was: implementation in progress 2026-09-21 · **Builds:** the analyser work items TA-1…TA-9 · **Counts:** the open
 category B items of the 2026-09-19/20 feedback (D14–D20), which are built under their existing tracker
 items · **Also records:** the upstream asks the same evidence raised, so they are owned rather than lost,
 and the subsequent starter comment-emission finding D21. Baseline: 21 rows; D21 is upstream-owned.

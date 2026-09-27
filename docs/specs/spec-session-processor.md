@@ -5,6 +5,7 @@
 *architecture accepted, specification requires changes before implementation*) · **§13 the single-state
 model PROPOSED 2026-09-24**, implementation started at the owner's direction and the section is under review.
 **Tracker:** [tracker.md](tracker.md) ▸ M44.
+**Status (2026-09-27):** slice 1 shipped 2026-08-31; M44.3 in 1.14.0; **§13 (M44.4) merged via PR #25 and released in 1.21.0, its acceptance still open** (tracker ▸ M44.4); **M44.5 — the log's own derived state (producer findings, time order, provenance, Follow) owned by a `logEvidence` node and published in the snapshot — shipped in 1.24.0** (PR #43; design, deviations and results in [completed/tracker.md](completed/tracker.md) ▸ *Tidy 2026-09-27* and `docs/handoff/evidence/m44-5-derived-state-2026-09-27/RESULTS.md`; this spec has no M44.5 section of its own); M44.6 awaits an owner decision.
 **Related:** [spec-authoring-experience.md](spec-authoring-experience.md) (the loop this feeds),
 [spec-trust-structure.md](spec-trust-structure.md) (why an auditable decision layer is on-thesis),
 [spec-evidence-integrity.md](spec-evidence-integrity.md) (M68, whose D-E2 §13 exists to make structural).

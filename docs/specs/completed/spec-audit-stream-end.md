@@ -1,11 +1,13 @@
 # Audit stream end — saying whether a text audit file is whole (Design Spec)
 
+**Status (2026-09-27): SHIPPED — the analyser half in 1.18.0 (2026-09-23: format 1.1 §1a, `context.log.streamEnd`); the writer half moved to [spec-mongoose-audit-production.md](../spec-mongoose-audit-production.md) (MA-*). Moved to `completed/` 2026-09-27; the original status line follows.**
+
 _Status: **PROPOSED 2026-09-21; analyser half IMPLEMENTED on `feat/audit-format-end-marker`, REVIEWED, and revised in response.** The review rejected the branch and was right to: the reader reported every real Mongoose export as damaged, the three stores disagreed about the same file, follow mode leaked the marker, and a record could be deleted by its own contents. One state is withdrawn as unsound, two are added, recognition is inverted, and the corrections are recorded inline rather than only in the tracker. Step 1 of release 1 in the
-[Mongoose audit format proposal](../proposals/mongoose-audit-format/README.md): the contract both the
+[Mongoose audit format proposal](../../proposals/mongoose-audit-format/README.md): the contract both the
 writer and the reader implement, so it comes before either. Owner decision 1, taken 2026-09-21: the
 analyser learns to report incompleteness. Amends the published
-[format specification](../site/format-spec.md) additively. Related: D-T8 and D-T9 in
-[trust structure](spec-trust-structure.md), [source adapters](spec-source-adapters.md) D-A6._
+[format specification](../../site/format-spec.md) additively. Related: D-T8 and D-T9 in
+[trust structure](../spec-trust-structure.md), [source adapters](../spec-source-adapters.md) D-A6._
 
 ## The problem, and why the obvious answer fails
 
@@ -195,7 +197,7 @@ writer **cannot satisfy rule 1 on its own**: under today's exporter its marker i
 unterminated document, the analyser reports `unterminated_marker`, and the completeness claim is ignored.
 The feature would ship and do nothing.
 
-The ask is one line, filed as **UP-MON-01** in [upstream asks](../proposals/upstream-asks.md), and AF-4
+The ask is one line, filed as **UP-MON-01** in [upstream asks](../../proposals/upstream-asks.md), and AF-4
 now carries it as a second, separately-owned change. The old AF-4 acceptance — "byte-identical to a
 known-good export modulo the marker" — was made impossible by rule 1 and is withdrawn: the known-good
 export has no trailing separator.

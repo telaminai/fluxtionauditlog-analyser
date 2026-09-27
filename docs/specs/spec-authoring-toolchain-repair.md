@@ -1,6 +1,7 @@
 # Spec — repairing the authoring toolchain, from four measured rounds
 
 **Status:** PROPOSED 2026-09-01. **Tracker:** [tracker.md](tracker.md) ▸ M46.
+**Status (2026-09-27):** the analyser-side closure (A1–A5 and the `open {analysis}` regression) shipped in 1.14.0 and is archived; U1–U8, X1–X4 and H1–H2 are open (upstream, docs, harness).
 **Evidence:** `docs/experience/runs/round-07` … `round-10` — 23 fresh-context agent runs, two model tiers,
 predictions committed before each round, every finding scored against the artefact rather than the
 agent's report.
