@@ -314,17 +314,65 @@ Roughly in dependency order; 1 and 2 unlock everything else.
 | 1 | bundle-relative path anchor (5.1) | without it a bundle cannot leave the machine |
 | 2 | bundle as an object: single file, versioned manifest, validate on open (5.2) | makes it attachable |
 | 3 | content hashes + consistency report (5.3) | makes a received bundle checkable |
-| 4 | **saved spotlight walks + step-through (5.11)** | replaces the author being in the room |
-| 5 | platform excerpting with a recorded filter (5.7) | makes the excerpt self-describing |
-| 6 | read-only loaded bundles (5.10) | stops examination altering evidence |
-| 7 | **replay record carried and replayable (5.5)** | turns re-run into reproduce |
-| 8 | bundle comparison (5.6) | makes the *reply* evidential |
-| 9 | source coordinates (5.4), redaction (5.8) | cross-boundary completeness |
+| 4 | **SVG charts in the bundle (5.12)** | removes the install barrier at the FIRST step |
+| 5 | **saved spotlight walks + step-through (5.11)** | replaces the author being in the room |
+| 6 | platform excerpting with a recorded filter (5.7) | makes the excerpt self-describing |
+| 7 | read-only loaded bundles (5.10) | stops examination altering evidence |
+| 8 | **replay record carried and replayable (5.5)** | turns re-run into reproduce |
+| 9 | bundle comparison (5.6) | makes the *reply* evidential |
+| 10 | source coordinates (5.4), redaction (5.8) | cross-boundary completeness |
 
-Items 1–3 are the shell: without them nothing leaves the machine intact. **4 is the one I would
-pull forward** if only one thing were built — it is cheap relative to replay and it is what makes a
+Items 1–3 are the shell: without them nothing leaves the machine intact. 4 is nearly free given
+where chart drawing now sits, and it is the difference between a receiver opening the attachment and
+not bothering. **5 is the one I would pull forward** if only one thing were built — it is cheap relative to replay and it is what makes a
 cold bundle legible. 7 and 8 are the pair that make the *reply* direction real, and they should be
 planned together: comparison is most of the value of replay.
+
+### 5.12 A bundle should be readable without installing anything
+
+Every gap above assumes the receiver has the analyser. For a team inside the project that is fine.
+For the exchange this format exists for it is the adoption barrier, and it sits at the very first
+step: someone opens a ticket, sees an attachment, and has to install a desktop application before
+they can find out whether it is worth their afternoon.
+
+> **Needed: two tiers of consumption from one bundle.**
+>
+> | | **lightweight** | **heavyweight** |
+> |---|---|---|
+> | what | SVG charts, the manifest, the rendered report | the analyser |
+> | needs | a browser | analyser + the processor's build |
+> | gives | read the argument, see the charts, search the text | filter, re-query, navigate to source, step the walk, replay |
+> | for | triage, review, the person deciding whether to care | the person fixing it |
+>
+> The lightweight tier is the front door. It costs the receiver nothing and is enough to decide
+> whether to open the heavyweight one.
+
+**This is close to free, because of where the chart's drawing now sits.** A chart is painted through
+a surface abstraction rather than straight onto the window, so the same paint path that draws the
+screen can write SVG — one renderer, two consumers. A prototype does this today in 3.9 KB and 51
+elements for a chart with a series, a threshold rule, a pinned note and an explanation footer,
+headless, with no display and no font installed.
+
+Why SVG rather than the PNG screenshots the prototype bundled:
+
+- **A PNG is a picture of evidence.** It cannot be zoomed, its text cannot be selected or searched,
+  and a reader cannot inspect any of it. An SVG is the marks themselves.
+- **The text travels as text.** A reader can search a bundle for a value or a label, and a screen
+  reader can read the axis.
+- **It is small.** Images were 1.1 MB of the prototype's 1.4 MB; these are kilobytes.
+- **It cannot diverge from the screen**, because it is not a second renderer — which matters most
+  precisely here, since an exported chart is the one nobody checks: it goes into a ticket and is
+  read by someone who was not there.
+
+**What this deliberately is NOT.** It is not the analyser in a browser. The socket already serves
+`context`, `read`, `aggregate`, `filter` and the rest as JSON, so a web client of a RUNNING analyser
+is a plausible separate project — but it needs a verb that returns a chart's data points, which does
+not exist today (`series` returns statistics, `graph` returns an echo), and it reintroduces exactly
+the divergence the surface abstraction removes, because the browser would lay the chart out itself.
+A bundle is a snapshot; nobody needs to zoom a chart from a run that finished last Tuesday. Static
+SVG is the right answer for this use case and the cheap one.
+
+---
 
 ## Part 7 — evidence and testimony, kept apart
 
@@ -404,6 +452,7 @@ evidence/2026-02-11-quote-gate/
   topology/QuotePricer.graphml
   analyser/bundle.fluxtion-settings     2 charts, 1 focus, 1 report, 1 walk
   walk/unmapped-to-reclaimed.walk       4 steps, author's route (5.11)
+  charts/parked-vs-settled.svg            readable in a browser, no install (5.12)
   report/unpriced-on-stale-reference.pdf
   images/phase-boundaries.png
   rerun/commands.sh
