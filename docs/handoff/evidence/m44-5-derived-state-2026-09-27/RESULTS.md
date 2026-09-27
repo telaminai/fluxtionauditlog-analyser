@@ -86,3 +86,74 @@ processor level in minutes because the ordering was readable in the generated co
 Recorded at the end of the work: see the PR description. After finding 4 the local gates were re-run: headless
 2460/0 failures, all 23 frame suites 123/0 failures (1 skip, local keyboard focus), and 26 controls
 (`global-preservation` plus this work's 25) caught.
+
+## Found in review (PR #43, independent review of 66c16959)
+Appended 2026-09-27; the entries above are not rewritten. Fixed in 69dd2b7e, then `main` (PR #33) was merged
+(704b096a).
+
+5. **F1 (required): a scan that never reports swallowed every later generation's scan.** On a new generation
+   `logEvidence` cleared its evidence but not `scanPending`, so the new request coalesced into the old one. When the
+   adapter legitimately dropped that old scan (its load threw after `LogOpened`), no scan was ever asked for again
+   and the evidence stayed pending for every later open and append. Coalescing is sound only within a generation.
+   - **Fix (in the node):** `scanPending = false` on a new generation, before `requestScan`. No regeneration: the
+     handler set is unchanged.
+   - `LogEvidenceTest#aDroppedScanDoesNotSwallowTheNextGenerationsScan` failed on the unfixed node (scans `[1]`)
+     and passes fixed.
+   - `LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence` makes a later load
+     step fail after `LogOpened`. Under the mutation it reproduces the review's frame repro: pending true, the line
+     stuck at "Loading …/good.yml …", `context.timeOrder` absent. Fixed, the next log reaches its composed line.
+     This also confirms by test that gen 2's scan is performed at the end of gen 2's `onLoaded`.
+   - **Scored against the owner's-question data point above, which this corrects:** F1 is a wrong rule INSIDE a
+     node — my modelling error, not hand-written code around the processor. Prediction 2 named "node decisions, a
+     wrong rule in a node" as one of the two places defects would move to, and said they would be cheaper to find.
+     This one was found by an independent reviewer and reproduced headless in one test.
+6. **The second trigger (maybeOfferProject's modal), checked by a throwaway real-frame probe, not committed.**
+   - A person's load of a log inside an unopened project shows the modal inside `onLoaded`. A socket `open` issued
+     meanwhile runs in the modal's nested event loop (`ActionExecutor.onEdt` → `invokeAndWait`), and its
+     `LogOpened` DOES land there: the other log loads completely, as gen 2.
+   - On this branch its evidence is not swallowed: pending false, the right line, `context.timeOrder` present.
+   - **A separate defect, pre-existing on `main` (29a9ece4), was found.** When the modal returns, the rest of gen 1's
+     `onLoaded` installs gen 1's table (3 rows) over gen 2's store (2 records). The table then shows one log while
+     the session, the store, the line and `context` name the other.
+   - On `main` the status line is ALSO wrong there: "3 records · … in.yaml · ⚠ time-order violations (1)" pairs the
+     ordered log with the other log's violation.
+   - Not fixed here — deciding what a superseded load's tail may still do is a load-path design call, beyond F1.
+     Reported to the owner.
+7. **F2: the rolled set's cross-file order report no longer passes through the frame.**
+   - It is `LogStore.crossFileOrder()`, a final field that `RolledLogStore.open` sets on the load thread, and
+     `TimeOrderValidator.validate(LogStore)` merges it. The unsynchronized `WeakHashMap` is gone.
+   - No earlier test proved the merge reached a surface; `RollSetResolverTest` only proves the report is computed.
+     New: `TimeOrderValidatorTest#aRolledSetsCrossFileOverlapIsPartOfItsTimeOrder` (headless) and
+     `LogFindingsOnEverySurfaceFrameTest#aRolledSetsFileOverlapReachesContextAndTheLine`.
+8. **F3: OneDispatchModelTest's gaps.** It now also catches:
+   - evidence types in generic and array field types;
+   - method references (`::of`, `::validate`);
+   - `followTimer.stop` outside `renderFollow` / `finishExit`;
+   - in the log's lifecycle methods, a status write that is not one of their named explanations;
+   - a `"Following "` line assembled outside `statusLine`.
+
+   The widened copy rule immediately flagged `ReportsPanel`'s `Supplier<ProducerDiagnostics>`. A supplier is a read
+   on demand, not a copy, so it is exempt, with the reason in the test.
+9. **Correction.** "Predictions" row 3 above says `LogEvidenceTest` "now has 12 tests". At 66c16959 it had 11. It has
+   12 with the F1 test.
+
+### Controls (review round)
+Eight new, one per fix and rule: `m44-5-f1-new-generation-resets-outstanding`, `m44-5-f1-frame-next-log-is-scanned`,
+`m44-5-f2-set-carries-its-cross-file-order`, `m44-5-f2-validation-merges-the-cross-file-part`,
+`m44-5-f3-generic-copy`, `m44-5-f3-follow-line-in-poll`, `m44-5-f3-method-reference`,
+`m44-5-f3-timer-stopped-outside-render`.
+
+Run on the merged tree with `global-preservation`, `m44-5-append-is-outstanding-at-once` and
+`m44-5-w1-follow-validates-time-order` (its anchor moved with F2). All 11 met the same standard:
+- green;
+- the named test fails with kind `failure`, and 0 errors and 0 skips;
+- source and compiled classes restored byte-identical;
+- green again.
+
+### Gates (merged tree 704b096a, JDK 21.0.9)
+| Gate | Result |
+|---|---|
+| `mvn -o clean test` | 2530 run, 0 failures, 0 errors, 130 skipped (display-only suites); 336 reports, no orphans |
+| The CI frame-suite list, now 24 suites (PR #33 added one), on a real display | 130 run, 0 failures, 0 errors, 1 skipped — `PersonAtTheScreenFrameTest#escapeWithTheSearchHistoryPopupFocused…`, which this display cannot give keyboard focus; it runs under CI's Xvfb |
+| Preflight | 24 suites, 227 anchors |
+| `tools/test_mutation_shards.py` | 21 tests, OK |
