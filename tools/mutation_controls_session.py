@@ -573,6 +573,14 @@ CONTROLS = [
 
     # A delete under a definition refusal must not write to the profile. The UI disables Delete
     # wholesale; the socket refuses only withheld names, and this is what makes that safe.
+    # Second review: the old assertion here was a liveness check. `definitions::remove` cannot fail for a
+    # name that was never in the list, so "the saved list survived" held however the delete behaved. The
+    # witness is now WHICH name reached the profile's removal channel, and this control is what proves it.
+    ('p51r-50-delete-names-the-right-chart', UI + 'GraphTabs.java',
+     'deleteListener.accept(name);\n        if (tabs.getTabCount() == 0) {',
+     'deleteListener.accept(name + "-WRONG");\n        if (tabs.getTabCount() == 0) {',
+     'ChartDeleteUnderDefinitionRefusalTest#aChartWithNoSavedDefinitionMayGo'),
+
     ('p51r-50-refusal-guard', UI + 'ActionExecutor.java',
      'boolean withheld = target == null || onEdt(() -> graphTabs.isWithheldDefinition(target));',
      'boolean withheld = false;',

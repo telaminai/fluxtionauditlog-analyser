@@ -37,18 +37,27 @@ class ChartDeleteUnderDefinitionRefusalTest {
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), "step", true);
     }
 
-    /** A GraphTabs wired to a mutable definition list, so a stray write to the profile is visible. */
-    private record Rig(GraphTabs tabs, ActionExecutor verb, List<GraphSpec> saved) { }
+    /**
+     * A GraphTabs wired to a mutable definition list, and to a record of every name that reached the
+     * profile's removal channel.
+     *
+     * <p>PR #51 second review: asserting only that the list survived is a liveness check, not a
+     * witness — {@code definitions::remove} cannot fail for a name that was never in it, so the
+     * assertion held whether or not the delete behaved. {@code removed} is what can actually go
+     * wrong: the wrong name reaching the listener, or a saved one.
+     */
+    private record Rig(GraphTabs tabs, ActionExecutor verb, List<GraphSpec> saved, List<String> removed) { }
 
     private Rig rig() {
         GraphTabs tabs = new GraphTabs();
         List<GraphSpec> saved = new ArrayList<>(List.of(chart("kept-A"), chart("kept-B")));
+        List<String> removed = new ArrayList<>();
         tabs.setSavedDefinitions(() -> saved);
-        tabs.setDeleteListener(n -> saved.removeIf(g -> g.name().equals(n)));
+        tabs.setDeleteListener(n -> { removed.add(n); saved.removeIf(g -> g.name().equals(n)); });
         tabs.bind(store, new FilterState());
         FilterState filter = new FilterState();
         return new Rig(tabs, new ActionExecutor(() -> store, () -> filter, tabs, new LogTablePanel(),
-                (r, n, f, k) -> { }), saved);
+                (r, n, f, k) -> { }), saved, removed);
     }
 
     @Test
@@ -77,9 +86,12 @@ class ChartDeleteUnderDefinitionRefusalTest {
         var r = rig.verb().render("graph", Map.of("name", "scratch", "delete", true));
 
         assertTrue(r.ok(), () -> "a chart with no saved definition cannot be the wrong one: " + r.error());
+        assertEquals(List.of("scratch"), rig.removed(),
+                "the witness: EXACTLY the chart asked for reached the profile's removal channel. The "
+                        + "survival of the saved list cannot show this on its own — removing a name that "
+                        + "was never in it is a no-op, so that assertion holds however the delete behaves.");
         assertEquals(List.of("kept-A", "kept-B"), rig.saved().stream().map(GraphSpec::name).toList(),
-                "THE claim: a delete under refusal must not write to the profile. If this list has "
-                        + "changed, the socket is doing what the UI's blanket disable exists to prevent.");
+                "and neither withheld definition went with it");
     }
 
     /**
