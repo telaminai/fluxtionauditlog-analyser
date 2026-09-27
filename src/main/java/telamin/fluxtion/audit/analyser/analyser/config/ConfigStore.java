@@ -91,6 +91,8 @@ public final class ConfigStore {
         readFocuses(p, c.namedFocuses);
         readReports(p, c.reports);
         readDeletedReports(p, c.deletedReports);   // PR #33: machine-local, never in a profile or an export
+        readWalks(p, c.walks);                     // M69: beside reports, same tier
+        readDeletedWalks(p, c.deletedWalks);       // M69: machine-local, like the report bin
         readRunbooks(p, c.runbooks);
         c.vocabularyPath = readVocabulary(p).orElse("");
         readEnvironments(p, c.environments);
@@ -175,6 +177,8 @@ public final class ConfigStore {
         writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
         writeReports(p, globalTier == null ? c.reports : globalTier.reports());
         writeDeletedReports(p, c.deletedReports);   // always the machine's: the bin is not project state
+        writeWalks(p, globalTier == null ? c.walks : globalTier.walks());   // M69: the reports' tier choice
+        writeDeletedWalks(p, c.deletedWalks);       // M69: always the machine's
         writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
         writeVocabulary(p, globalTier == null ? c.vocabularyPath : globalTier.vocabularyPath());
         writeEnvironments(p, globalTier == null ? c.environments : globalTier.environments(),
@@ -422,6 +426,214 @@ public final class ConfigStore {
                     name, p.getProperty(base + ".title"), p.getProperty(base + ".created", ""),
                     p.getProperty(base + ".notes", ""), fp, filter, sections));
         }
+    }
+
+    // ---- M69 spotlight walks -----------------------------------------------------------------------------------
+    //
+    // walk.count / walk.N.* in the REPORTS category, beside report.*, and a machine-local deletedWalk.* bin like
+    // deletedReport.* (the M69 walk spec, §3.1). Keys under a walk that this version does not recognise are
+    // collected into WalkSpec.extras and written back, so a newer analyser's walk survives an older one's save.
+
+    static void writeWalks(Properties p, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks) {
+        writeWalks(p, "walk", walks);
+    }
+
+    static void readWalks(Properties p, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out) {
+        readWalks(p, "walk", out, null);
+    }
+
+    static void writeWalks(Properties p, String prefix, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks) {
+        p.setProperty(prefix + ".count", Integer.toString(walks.size()));
+        for (int i = 0; i < walks.size(); i++) {
+            var w = walks.get(i);
+            String base = prefix + "." + i;
+            put(p, base + ".name", w.name());
+            put(p, base + ".title", w.title().isBlank() ? null : w.title());
+            put(p, base + ".author", w.author());
+            put(p, base + ".created", w.createdAt().isBlank() ? null : w.createdAt());
+            put(p, base + ".updated", w.updatedAt().isBlank() ? null : w.updatedAt());
+            if (w.fingerprint() != null) {
+                put(p, base + ".fp.log", w.fingerprint().logName());
+                put(p, base + ".fp.prov", w.fingerprint().provenance());
+                put(p, base + ".fp.provSource", w.fingerprint().provenanceSource());
+                p.setProperty(base + ".fp.records", Integer.toString(w.fingerprint().records()));
+                if (w.fingerprint().firstTime() != null) p.setProperty(base + ".fp.first", Long.toString(w.fingerprint().firstTime()));
+                if (w.fingerprint().lastTime() != null) p.setProperty(base + ".fp.last", Long.toString(w.fingerprint().lastTime()));
+            }
+            if (!w.runBasis().isEmpty()) writeList(p, base + ".run", w.runBasis());   // absent = unknown
+            p.setProperty(base + ".s.count", Integer.toString(w.steps().size()));
+            for (int j = 0; j < w.steps().size(); j++) {
+                var st = w.steps().get(j);
+                String k = base + ".s." + j;
+                put(p, k + ".caption", st.caption().isBlank() ? null : st.caption());
+                var v = st.view();
+                put(p, k + ".view.tab", v.tab());
+                if (v.record() != null) p.setProperty(k + ".view.record", Integer.toString(v.record()));
+                put(p, k + ".view.graph", v.graph());
+                if (v.focus() != null) {
+                    put(p, k + ".view.focus", v.focus().name());
+                    put(p, k + ".view.focus.digest", v.focus().digest().isBlank() ? null : v.focus().digest());
+                }
+                if (v.filter() != null) {
+                    var f = v.filter();
+                    p.setProperty(k + ".view.filter", "1");   // a stated filter, even when every field is its default
+                    if (f.from() != null) p.setProperty(k + ".view.filter.from", Long.toString(f.from()));
+                    if (f.to() != null) p.setProperty(k + ".view.filter.to", Long.toString(f.to()));
+                    put(p, k + ".view.filter.mode", f.groupMode());
+                    put(p, k + ".view.filter.text", f.text().isEmpty() ? null : f.text());
+                    if (f.dimensions() != null) writeList(p, k + ".view.filter.dim", f.dimensions());   // absent = all
+                }
+                p.setProperty(k + ".t.count", Integer.toString(st.targets().size()));
+                for (int m = 0; m < st.targets().size(); m++) {
+                    var t = st.targets().get(m);
+                    String tk = k + ".t." + m;
+                    put(p, tk + ".target", t.target());
+                    put(p, tk + ".caption", t.caption().isBlank() ? null : t.caption());
+                    put(p, tk + ".basis", t.basis().kind());
+                    put(p, tk + ".basis.digest", t.basis().digest().isBlank() ? null : t.basis().digest());
+                    put(p, tk + ".basis.rep", t.basis().representation().isBlank() ? null : t.basis().representation());
+                }
+            }
+            for (var e : new java.util.TreeMap<>(w.extras()).entrySet()) {
+                if (p.getProperty(base + "." + e.getKey()) == null) p.setProperty(base + "." + e.getKey(), e.getValue());
+            }
+        }
+    }
+
+    static void readWalks(Properties p, String prefix, List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> out,
+                          List<Integer> kept) {
+        out.clear();
+        int n = parseInt(p.getProperty(prefix + ".count"), 0);
+        for (int i = 0; i < n; i++) {
+            String base = prefix + "." + i;
+            String name = p.getProperty(base + ".name");
+            if (name == null || name.isBlank()) continue;
+            if (kept != null) kept.add(i);
+            java.util.Set<String> used = new java.util.HashSet<>();
+            java.util.function.Function<String, String> get = key -> {
+                used.add(key);
+                return p.getProperty(base + "." + key);
+            };
+            get.apply("name");
+            telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint fp = null;
+            if (get.apply("fp.records") != null) {
+                fp = new telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint(
+                        java.util.Objects.requireNonNullElse(get.apply("fp.log"), ""), parseInt(get.apply("fp.records"), 0),
+                        longOrNull(get.apply("fp.first")), longOrNull(get.apply("fp.last")),
+                        get.apply("fp.prov"), get.apply("fp.provSource"));
+            }
+            List<String> run = new java.util.ArrayList<>();
+            if (get.apply("run.count") != null) {
+                int rc = parseInt(p.getProperty(base + ".run.count"), 0);
+                for (int r = 0; r < rc; r++) run.add(java.util.Objects.requireNonNullElse(get.apply("run." + r), ""));
+            }
+            List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step> steps = new java.util.ArrayList<>();
+            int sc = parseInt(get.apply("s.count"), 0);
+            for (int j = 0; j < sc; j++) {
+                String k = "s." + j;
+                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Filter filter = null;
+                if (get.apply(k + ".view.filter") != null) {
+                    List<String> dims = null;
+                    if (get.apply(k + ".view.filter.dim.count") != null) {
+                        dims = new java.util.ArrayList<>();
+                        int dc = parseInt(p.getProperty(base + "." + k + ".view.filter.dim.count"), 0);
+                        for (int d = 0; d < dc; d++) {
+                            String dim = get.apply(k + ".view.filter.dim." + d);
+                            if (dim != null) dims.add(dim);
+                        }
+                    }
+                    filter = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Filter(
+                            longOrNull(get.apply(k + ".view.filter.from")), longOrNull(get.apply(k + ".view.filter.to")),
+                            get.apply(k + ".view.filter.mode"), dims, get.apply(k + ".view.filter.text"));
+                }
+                String rec = get.apply(k + ".view.record");
+                String focusName = get.apply(k + ".view.focus");
+                String focusDigest = get.apply(k + ".view.focus.digest");
+                var view = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.View(get.apply(k + ".view.tab"), filter,
+                        rec == null ? null : parseInt(rec, 0), get.apply(k + ".view.graph"),
+                        focusName == null ? null : new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.FocusRef(focusName, focusDigest));
+                List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Target> targets = new java.util.ArrayList<>();
+                int tc = parseInt(get.apply(k + ".t.count"), 0);
+                for (int m = 0; m < tc; m++) {
+                    String tk = k + ".t." + m;
+                    String target = get.apply(tk + ".target");
+                    var basis = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Basis(get.apply(tk + ".basis"),
+                            get.apply(tk + ".basis.digest"), get.apply(tk + ".basis.rep"));
+                    String caption = get.apply(tk + ".caption");
+                    if (target != null) targets.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Target(target, caption, basis));
+                }
+                steps.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step(get.apply(k + ".caption"), view, targets));
+            }
+            String title = get.apply("title");
+            String author = get.apply("author");
+            String created = get.apply("created");
+            String updated = get.apply("updated");
+            // whatever else sits under this walk is a newer version's: carried over, never dropped
+            java.util.Map<String, String> extras = new java.util.TreeMap<>();
+            String head = base + ".";
+            for (String key : p.stringPropertyNames()) {
+                if (!key.startsWith(head)) continue;
+                String rest = key.substring(head.length());
+                if (!used.contains(rest)) extras.put(rest, p.getProperty(key));
+            }
+            out.add(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, title, author, created, updated, fp,
+                    run, steps, extras));
+        }
+    }
+
+    /** The walk bin: machine-local, never in a profile or an export (§3.1). */
+    static void writeDeletedWalks(Properties p, List<DeletedWalk> bin) {
+        List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> specs = new java.util.ArrayList<>();
+        for (DeletedWalk d : bin) specs.add(d.walk());
+        writeWalks(p, "deletedWalk", specs);
+        for (int i = 0; i < bin.size(); i++) {
+            put(p, "deletedWalk." + i + ".project", bin.get(i).project());
+            put(p, "deletedWalk." + i + ".deletedAt", bin.get(i).deletedAt());
+        }
+    }
+
+    static void readDeletedWalks(Properties p, List<DeletedWalk> out) {
+        out.clear();
+        List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> specs = new java.util.ArrayList<>();
+        List<Integer> kept = new java.util.ArrayList<>();
+        // the bin's own per-index fields are not walk extras: strip them before the walk reader sees them
+        Properties walksOnly = new Properties();
+        for (String key : p.stringPropertyNames()) {
+            if (key.startsWith("deletedWalk.") && (key.endsWith(".project") || key.endsWith(".deletedAt"))
+                    && key.split("\\.").length == 3) continue;
+            walksOnly.setProperty(key, p.getProperty(key));
+        }
+        readWalks(walksOnly, "deletedWalk", specs, kept);
+        for (int k = 0; k < specs.size(); k++) {
+            int i = kept.get(k);
+            out.add(new DeletedWalk(p.getProperty("deletedWalk." + i + ".project", ""),
+                    p.getProperty("deletedWalk." + i + ".deletedAt", ""), specs.get(k)));
+        }
+    }
+
+    /**
+     * M69 §3.5: a digest of one chart's saved DEFINITION, through the production serializer so it cannot drift from
+     * what is stored. Open/closed is presentation, not definition, and is excluded.
+     */
+    public static String chartDefinitionDigest(GraphSpec g) {
+        Properties p = new Properties();
+        writeGraphs(p, List.of(g));
+        return digestOf(p, key -> !key.endsWith(".open"));
+    }
+
+    /** M69 §3.5: a digest of one topology focus's saved definition (its nodes and rationale), through its serializer. */
+    public static String focusDefinitionDigest(FocusSpec f) {
+        Properties p = new Properties();
+        writeFocuses(p, List.of(f));
+        return digestOf(p, key -> true);
+    }
+
+    private static String digestOf(Properties p, java.util.function.Predicate<String> keep) {
+        StringBuilder sb = new StringBuilder();
+        for (String key : new java.util.TreeSet<>(p.stringPropertyNames())) {
+            if (keep.test(key)) sb.append(key).append('=').append(p.getProperty(key)).append('\n');
+        }
+        return telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity.sha256(sb.toString());
     }
 
     /**

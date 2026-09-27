@@ -135,6 +135,10 @@ public final class AppConfig {
      * lists: never written to a project profile or an export, so a deleted report is never committed or shared.
      */
     public final List<DeletedReport> deletedReports = new ArrayList<>();
+    /** M69: saved spotlight walks — project-tier, beside reports in the REPORTS category (the M69 walk spec, §3.1). */
+    public final List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks = new ArrayList<>();
+    /** M69: walks deleted from any project, restorable (see {@link WalkBin}). MACHINE tier, like the report bin. */
+    public final List<DeletedWalk> deletedWalks = new ArrayList<>();
     /** M38.1: runbook POINTERS — name → project-relative path (never contents). Project-scoped; see {@link Runbooks}. */
     /** M38.1/M43.2: name → pointer (path + optional description). ONE map, because a parallel
      *  description map is two things that can disagree about which runbooks exist. */

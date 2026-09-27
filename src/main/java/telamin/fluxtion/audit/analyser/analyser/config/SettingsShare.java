@@ -53,7 +53,9 @@ public final class SettingsShare {
         // reports get their OWN category (M33.4 D-I4), never a passenger on Graphs: a shared report
         // carries PROSE an agent wrote about your data — a different kind of cargo from key names
         // and formulas, deserving its own consent checkbox. The F1 lesson, applied in advance.
-        REPORTS("Investigation reports (definitions + narrative text — never log data)", true),
+        // M69: spotlight walks ride this category — they are the same cargo, commentary about your data — and the
+        // label names them, because ticking the box is consenting to what leaves the machine
+        REPORTS("Investigation reports and spotlight walks (definitions + commentary — never log data)", true),
         VIEW("View (hidden columns)", true),
         ASSISTANT("Assistant", true),
         LLM("LLM provider/model/base-URL (never the API key)", false),
@@ -192,6 +194,8 @@ public final class SettingsShare {
         }
         if (categories.contains(Category.REPORTS)) {
             ConfigStore.writeReports(p, c.reports);
+            // M69: walks beside reports; each family is recognised on its own (§3.1). The bins never leave.
+            if (!c.walks.isEmpty()) ConfigStore.writeWalks(p, c.walks);
         }
         if (categories.contains(Category.RUNBOOKS) && !c.runbooks.isEmpty()) {
             ConfigStore.writeRunbooks(p, c.runbooks);      // D-C2: pointers only; refused values never leave
@@ -393,6 +397,16 @@ public final class SettingsShare {
                     + (withNarrative == 0 ? "" : " · " + withNarrative + " carrying narrative text"));
         }
 
+        // M69: walks are recognised on their OWN count, so a walk-only share file is still the REPORTS category
+        List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks = null;
+        if (p.getProperty("walk.count") != null) {
+            present.add(Category.REPORTS);
+            walks = new ArrayList<>();
+            ConfigStore.readWalks(p, walks);
+            String walkSummary = walks.size() + " spotlight walk(s) — the author's commentary, attributed as declared";
+            summary.merge(Category.REPORTS, walkSummary, (a, b) -> a + " · " + b);
+        }
+
         Map<String, Runbooks.Pointer> runbooks = null;
         if (p.getProperty("runbook.count") != null) {
             present.add(Category.RUNBOOKS);
@@ -491,7 +505,7 @@ public final class SettingsShare {
         }
 
         return new ImportPlan(version, present, sourceRoots, mavenRepos, mavenRepoSearch,
-                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, reports, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
+                eventProcessorFqns, selectedEventProcessor, processorDeclarations, graphs, focuses, reports, walks, hiddenColumns, runbooks, vocabulary, environments, defaultEnvironment, analyses, destinations, workspaceRoot, exchangeDir,
                 assistantInProcess, assistantRest, maxRounds, maxActionsPerReply,
                 llmProvider, llmModel, llmBaseUrl, Map.copyOf(summary));
     }
@@ -541,6 +555,12 @@ public final class SettingsShare {
             for (var r : plan.reports()) {
                 target.reports.removeIf(existing -> existing.name().equals(r.name()));
                 target.reports.add(r);   // replace-by-name, like graphs and focuses
+            }
+        }
+        if (selected.contains(Category.REPORTS) && plan.walks() != null) {
+            for (var w : plan.walks()) {
+                target.walks.removeIf(existing -> existing.name().equals(w.name()));
+                target.walks.add(w);   // M69: replace-by-name within the walk family; reports are untouched
             }
         }
         if (selected.contains(Category.RUNBOOKS) && plan.runbooks() != null) {
@@ -615,6 +635,8 @@ public final class SettingsShare {
             List<GraphSpec> graphs,
             List<FocusSpec> focuses,
             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
+            /** M69: walks in the share file, or null when it carried none (a report-only file leaves walks alone). */
+            List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks,
             List<String> hiddenColumns,
             Map<String, Runbooks.Pointer> runbooks,
             String vocabulary,

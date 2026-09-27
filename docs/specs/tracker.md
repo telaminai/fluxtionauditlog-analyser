@@ -1471,8 +1471,10 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
 - [M69.P] ☐ Predictions committed before code (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`).
 - [M69.S0] ☑ **R5:** the graph digest belongs to the current graph (cleared on `clearGraph` and `loadFromSource`).
   `TopologyGraphDigestTest`, red before the fix; control `m69-s0-clear-drops-graph-digest`.
-- [M69.S1] ☐ `WalkSpec` model, validation, identity helpers, and storage in every tier and share path, plus the
-  machine-local bin (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
+- [M69.S1] ☑ `WalkSpec` model, validation (`WalkSteps`), identity helpers (`WalkIdentity`), and storage in every tier
+  and share path, plus the machine-local bin (`WalkBin`, `DeletedWalk`). `WalkPersistenceTest`, `WalkStepsTest` and
+  `WalkIdentityTest`, 25 tests; 17 `m69-s1-*` controls. The D-SP4 guard is narrowed to the one phrase the owner
+  allowed, "spotlight walk" (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
 - [M69.S2] ☐ `FilterState.setAll`; `ChartPanel`'s paint outcome; **the `walkPlayback` session node** (facts, effects,
   `-Pregen`); the adapter's performers; the snapshot field (W-A4, W-A5, W-A6, W-A8, W-A13–W-A15).
 - [M69.S3] ☐ The overlay strip; input classified before dismissal; keyboard focus; the right-click save menu (W-A2,

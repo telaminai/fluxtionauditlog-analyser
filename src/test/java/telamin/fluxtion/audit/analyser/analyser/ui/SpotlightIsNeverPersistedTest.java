@@ -22,6 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>"By construction" is a claim about the code, so it is checked against the code: the packages that
  * PERSIST anything may not know the word. That is stronger than saving a config and grepping the output,
  * which would only prove that today's save path happens not to write one.
+ *
+ * <p><b>M69, the one exception, by owner decision (2026-09-27):</b> a saved <i>spotlight walk</i> is a durable artefact,
+ * stored like a report. It holds target ADDRESSES and the author's captions, never live spotlight state: the overlay
+ * stays dumb, and a walk re-creates its spotlights from its steps. So a persisting package may say "spotlight walk",
+ * and nothing else about spotlights. Any other mention is still an offender (spec-spotlight-walks.md §8).
  */
 class SpotlightIsNeverPersistedTest {
 
@@ -38,7 +43,9 @@ class SpotlightIsNeverPersistedTest {
             assertTrue(Files.isDirectory(dir), "the package list has rotted — no such package: " + dir);
             try (Stream<Path> files = Files.walk(dir)) {
                 for (Path file : files.filter(p -> p.toString().endsWith(".java")).toList()) {
-                    if (Files.readString(file).toLowerCase(Locale.ROOT).contains("spotlight")) {
+                    // the M69 exception is the exact phrase, removed before the word is looked for
+                    String text = Files.readString(file).toLowerCase(Locale.ROOT).replace("spotlight walk", "");
+                    if (text.contains("spotlight")) {
                         offenders.add(MAIN.relativize(file).toString());
                     }
                 }
