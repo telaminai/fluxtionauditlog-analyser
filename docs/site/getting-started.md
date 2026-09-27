@@ -154,7 +154,9 @@ To watch a log as it grows, turn on **Follow** (the toolbar toggle or **Audit lo
 the open **local, heap-loaded** file, appends newly-completed records and auto-scrolls to the newest —
 preserving your flags, filters and selection. Open graphs re-extract as records arrive, and the view moves only
 to reveal a point that would otherwise be hidden: a chart showing the whole log grows with it, one at the live
-edge slides, one zoomed into the middle holds. (Follow isn't available for S3 or memory-mapped files.)
+edge slides, one zoomed into the middle holds. While following, the status line says what it said at load — the
+log's provenance, its record count and its warnings, including a time-order violation that arrives with the new
+records — and if a read fails it says so on the same line. (Follow isn't available for S3 or memory-mapped files.)
 
 ---
 

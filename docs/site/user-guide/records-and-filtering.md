@@ -117,7 +117,8 @@ as **one log**: opening any member offers the whole set. The load order comes fr
 ambiguous (logrotate's `.1` is the newest rolled file; an incrementing writer's `.1` is the oldest).
 
 On load the analyser **validates time order** — within each file, and across the boundaries — and
-reports what it finds ("`maker.log.2` overlaps `maker.log.1` by 3.2s", "17 records out of order,
+checks it again whenever **Follow** appends records, so a record that arrives out of order is reported like one
+that was there at load. It reports what it finds ("`maker.log.2` overlaps `maker.log.1` by 3.2s", "17 records out of order,
 first at record 3,412"). Violations are **reported, never repaired**: a backwards timestamp is a
 finding (a clock step, a mis-merge), and re-sorting records would destroy the evidence. While a
 violation exists, time-anchored answers (`at`, rolling windows, buckets) carry a caveat note; record
