@@ -1,3 +1,17 @@
+## PR #51 — chart and report lifecycle, merged 2026-09-27 (for 1.25.0)
+
+Six defects found by regression-testing 1.24.0 through the socket, filed as GitHub issues #46–#50 plus a spotlight
+overlap. Merged as `adc9ebd8` after two review rounds; the CHANGELOG lines were added after the merge because the
+first commit carried none.
+
+- [#46] ☑ `report {name}` without `sections` keeps them, with their log and view; `null` is absent; `createdAt` follows the sections.
+- [#47] ☑ `graph` notes replace on re-send; dropped notes are named in the reply.
+- [#48] ☑ The x-axis labels are drawn above the explanation footer.
+- [#49] ☑ A step chart's closing value holds to the window edge.
+- [#50] ☑ `graph {delete}` and `graph {close}`. The last chart's placeholder is not saved. A close under a definition refusal is refused.
+- ☑ Spotlight callouts slide along their side instead of overlapping.
+- ☑ CI: the source panes' test accessors read on the EDT (a mutation-shard baseline lost a race to a null pane text).
+
 ## Tidy 2026-09-27 — shipped and superseded entries moved from the live tracker
 
 Moved verbatim (links re-based for this directory) after the 2026-09-27 audit of both trackers against the CHANGELOG and git history. Open items found inside moved text were put back into the live tracker and are marked _live_ here. The same tidy restored ten open items in M21, M22, M31 and M33 that the 2026-09-03 tidy (`a5298fcf`) had cut to their first lines, and brought M20.5 back to the live tracker.

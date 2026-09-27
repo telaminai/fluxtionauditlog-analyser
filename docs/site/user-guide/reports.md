@@ -93,7 +93,11 @@ Agents (or you, over REST) use the `report` verb:
  ]}
 ```
 
-Re-issuing with the same `name` **replaces** the report. Add `path` to render the PDF, or
+Re-issuing with the same `name` updates the report, and **only what the call names changes**. With
+`sections` it replaces them, along with the log and view they were written against and the created date.
+Without them, or with `sections: null`, the sections are kept, so a call that only retitles a report or
+adds a `path` cannot empty it. `sections: []` empties a report deliberately; the reply's
+`sectionsKept` says when sections were carried over. Add `path` to render the PDF, or
 `csv: 2, path: "rows.csv"` to export that table's rows — both write inside the exchange directory
 under the same *Allow assistant file exchange* opt-in as every other file the assistant writes.
 The Reports tab has the same door for you: **Export PDF…** renders the selected report to a file you

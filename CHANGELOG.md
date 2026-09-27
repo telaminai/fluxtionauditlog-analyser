@@ -8,6 +8,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
+- **`graph {name, delete: true}`** — remove a chart's definition over the socket, the way **Graph ▸ Delete chart**
+  does on the desktop. An investigation's probe charts used to persist, reopen with the project and sit in the tab
+  strip looking like findings, and an assistant had no way to clear them up. Unlike a report delete it is not
+  recoverable. Deleting the last chart no longer saves or reports a blank placeholder as a chart that remains.
 - **`graph {name, close: true}`** — take a chart off the screen and keep its definition, the way
   *Close graph* has always worked on the desktop. Over the socket, `delete` used to be the only way
   to get a chart out of the way, and it is not recoverable; the safe half of removal is now
@@ -16,6 +20,22 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Fixed
 
+- **Updating a report no longer empties it.** `report {name}` without `sections` meant *empty*, so retitling a
+  report, adding a note or adding a `path` to render its PDF silently destroyed every section. That was not
+  recoverable, because a replace never entered the recently-deleted list. Now a call changes only what it names.
+  The sections are kept, together with the log and view they were written against, and the reply says so
+  (`sectionsKept`, `writtenAgainst`). `sections: []` still empties a report deliberately.
+- **Re-sent chart notes replace, instead of doubling.** `notes` on `graph` appended, so re-sending a definition to
+  adjust one thing doubled every pinned note, and the plot collapsed the duplicates into one badge that hid it.
+  Notes now replace like every other collection parameter. A re-send that drops notes names them in the reply.
+- **Pinning a note no longer erases the chart's time axis.** The x-axis labels were drawn at the component's bottom
+  edge, inside the explanation footer, whose background covered them.
+- **A step chart's closing value holds to the edge of the window.** The last step stopped dead at its own point, so
+  a window pinned past the last record looked half empty, which reads the same as no data. A line chart still
+  stops at its last point, because it interpolates only between points it has.
+- **Spotlight callouts on neighbouring lines no longer cover each other.** Callouts pointing at consecutive source
+  lines could run out of places and draw one box across another's text. They may now slide along their side; a
+  single spotlight lands exactly where it always did.
 - **An explicit `null` no longer wipes a report.** `report {name, sections: null}` — what a client
   sends for an optional argument it has no value for — read as "replace with nothing". Absent and
   `null` now both mean *unchanged*; `sections: []` is still how a report is emptied deliberately.
