@@ -101,6 +101,8 @@ class ReportRecoverableDeleteFrameTest {
             }
             for (Object invalid : List.of(false, 42, " ")) {
                 assertFalse(f.ex.render("report", Map.of("restore", invalid)).ok(), "invalid restore value is refused: " + invalid);
+                assertTrue(onEdtGet(() -> c.reports.isEmpty()), "invalid restore leaves live reports unchanged: " + invalid);
+                assertEquals(before, onEdtGet(() -> List.copyOf(c.deletedReports)), "invalid restore leaves the bin unchanged: " + invalid);
             }
         }
     }
@@ -129,7 +131,7 @@ class ReportRecoverableDeleteFrameTest {
                     for (String label : List.of("Export PDF…", "Rename…", "Delete…", "Restore deleted…")) {
                         var b = button(reports, label);
                         assertTrue(b.isShowing() && b.getVisibleRect().width == b.getWidth()
-                                        && b.getVisibleRect().height == b.getHeight() && b.getHeight() > 0,
+                                        && b.getVisibleRect().height == b.getHeight() && b.getHeight() > 0 && b.getWidth() > 0,
                                 "every report action must be fully visible at the default size: " + label);
                     }
                 });
@@ -169,6 +171,10 @@ class ReportRecoverableDeleteFrameTest {
                 c.projectExchangeDir = "exchange"; c.assistantExports = true;
                 f.frame.setSize(1200, 800); f.frame.setVisible(true);
             });
+            var inside = f.ex.render("screenshot", Map.of("path", "inside.png"));
+            assertTrue(inside.ok(), "positive control: an inside screenshot succeeds: " + inside.toMap());
+            assertTrue(java.nio.file.Files.isRegularFile(exchange.resolve("inside.png")),
+                    "positive control: the screenshot was written inside the exchange directory");
             var result = f.ex.render("screenshot", Map.of("path", "nested/out.png"));
             assertFalse(result.ok(), "the actual screenshot action must refuse a nested outside link");
             assertFalse(java.nio.file.Files.exists(outside.resolve("out.png")), "no screenshot escaped the project");

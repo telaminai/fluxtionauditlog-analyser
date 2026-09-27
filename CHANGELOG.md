@@ -25,6 +25,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   restoration with another operation. Boolean `true` lists deleted reports.
 - **Exchange paths cannot escape through nested links.** Reads and exports check the actual destination inside
   the exchange directory, including linked subdirectories, rather than only the configured directory itself.
+  Absolute paths through an alias of that same directory remain usable; unresolved symbolic links are refused
+  with an explanation.
 - **`aggregate` says where its counted records begin and end.** With the total it now returns
   `firstRecordIndex` and `lastRecordIndex`, so "when did the application first log X?" is one filtered count. In
   virgin runs a smaller model counted breaches from a window it had read, and named the first value over the limit

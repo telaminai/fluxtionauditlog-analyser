@@ -388,7 +388,7 @@ your own settings, and opening someone's project can never turn the exchange on.
 absolute, home-relative, escapes the project, or names a directory that is not there is **refused with
 its reason** and the machine setting is used — nothing is created on your disk by opening a profile.
 `context` reports which tier answered under `exports.source`.
-Read and export paths also resolve links beneath that directory; a link cannot grant access outside
+Read and export paths also resolve symbolic links beneath that directory; a symbolic link cannot grant access outside
 it. These checks use the filesystem as it stands when the request is resolved. They do not lock
 directories against a concurrent local process changing them during an operation.
 

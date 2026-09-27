@@ -403,6 +403,11 @@ CONTROLS = [
      '            return new ExchangeDir(real.toString(), PROJECT, null);',
      '            return new ExchangeDir(resolved.toString(), PROJECT, null);',
      'ProjectSuppliedExchangeDirTest#anAcceptedAliasReturnsItsCheckedLocation'),
+    ('p33-absolute-alias-paths', J + 'llm/ExportGuard.java',
+     '    private static Resolved containedTarget(Path dir, Path resolved) {\n',
+     '    private static Resolved containedTarget(Path dir, Path resolved) {\n'
+     '        if (!resolved.startsWith(dir)) return new Resolved(null, "path is outside the exchange directory");\n',
+     'ExportGuardTest#absoluteAliasRequestsUseTheCanonicalExchangeLocation'),
     ('p33-canonical-export-target', J + 'llm/ExportGuard.java',
      '            return new Resolved(realTarget, null);', '            return new Resolved(resolved, null);',
      'ExportGuardTest#anInternalLinkAllowsNewDescendantsAndReturnsTheCheckedLocation'),

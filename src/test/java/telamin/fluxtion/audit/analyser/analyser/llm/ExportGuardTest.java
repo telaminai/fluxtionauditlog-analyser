@@ -85,10 +85,10 @@ class ExportGuardTest {
     }
 
     @Test
-    void escapeAttemptsAreRefusedNamingTheDirectory() {
+    void escapeAttemptsAreRefusedNamingTheDirectory() throws Exception {
         var r = ExportGuard.resolveRead("../../etc/passwd", true, dir.toString(), java.util.Set.of());
         assertNotNull(r.error());
-        assertTrue(r.error().contains(dir.toAbsolutePath().normalize().toString()),
+        assertTrue(r.error().contains(dir.toRealPath().toString()),
                 "the refusal names the confined directory: " + r.error());
     }
 
@@ -139,4 +139,70 @@ class ExportGuardTest {
         assertFalse(Files.exists(elsewhere.resolve("new/sub/output.pdf")),
                 "swapping the original exchange alias must not redirect an already resolved output");
     }
+    @Test
+    void absoluteAliasRequestsUseTheCanonicalExchangeLocation() throws Exception {
+        Path real = Files.createDirectory(dir.resolve("exchange"));
+        Path alias = Files.createSymbolicLink(dir.resolve("alias"), real);
+        assertAbsoluteExchangePaths(alias, real.toRealPath(), real.toRealPath());
+        // macOS also exposes temporary directories through the system's directory alias.
+        Path canonical = real.toRealPath();
+        Path privateVar = Path.of("/private/var");
+        if (Files.isDirectory(privateVar) && canonical.startsWith(privateVar)) {
+            assertAbsoluteExchangePaths(Path.of("/var").resolve(privateVar.relativize(canonical)),
+                    canonical, canonical);
+        }
+    }
+
+    @Test
+    void absoluteRequestsThroughALinkedProjectRootAreAccepted() throws Exception {
+        Path root = Files.createDirectory(dir.resolve("project"));
+        Files.createDirectories(root.resolve(".analyser"));
+        Path exchange = Files.createDirectory(root.resolve("exchange"));
+        Path alias = Files.createSymbolicLink(dir.resolve("project-alias"), root);
+        var config = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        config.activeProjectPath = alias.resolve(".analyser/project.fluxtion-settings").toString();
+        config.assistantExports = true;
+        config.projectExchangeDir = "exchange";
+        var effective = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
+        assertTrue(effective.fromProject(), "the linked project supplies its exchange directory");
+        assertAbsoluteExchangePaths(alias.resolve("exchange"), Path.of(effective.dir()), exchange.toRealPath());
+    }
+
+    @Test
+    void machineExchangeAliasAcceptsCanonicalRequests() throws Exception {
+        Path real = Files.createDirectory(dir.resolve("exchange"));
+        Path alias = Files.createSymbolicLink(dir.resolve("alias"), real);
+        var config = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        config.assistantExports = true;
+        config.assistantExportDir = alias.toString();
+        var effective = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(config);
+        assertFalse(effective.fromProject(), "fixture uses the machine tier");
+        assertAbsoluteExchangePaths(real.toRealPath(), Path.of(effective.dir()), real.toRealPath());
+    }
+
+    private static void assertAbsoluteExchangePaths(Path requestedDir, Path configuredDir, Path canonical) throws Exception {
+        Files.writeString(canonical.resolve("input.csv"), "DEMO");
+        var write = ExportGuard.resolve(requestedDir.resolve("new/output.pdf").toString(), true, configuredDir.toString());
+        var read = ExportGuard.resolveRead(requestedDir.resolve("input.csv").toString(), true,
+                configuredDir.toString(), java.util.Set.of());
+        org.junit.jupiter.api.Assertions.assertAll(
+                () -> assertTrue(write.ok(), "absolute alias write must be accepted: " + write.error()),
+                () -> assertEquals(canonical.resolve("new/output.pdf"), write.path(), "write returns the canonical target"),
+                () -> assertTrue(read.ok(), "absolute alias read must be accepted: " + read.error()),
+                () -> assertEquals(canonical.resolve("input.csv"), read.path(), "read returns the canonical target"));
+    }
+
+    @Test
+    void danglingFileAndDirectoryLinksAreRefused() throws Exception {
+        Path exchange = Files.createDirectory(dir.resolve("exchange"));
+        Files.createSymbolicLink(exchange.resolve("file.pdf"), dir.resolve("missing.pdf"));
+        Files.createSymbolicLink(exchange.resolve("directory"), dir.resolve("missing-directory"));
+        for (String requested : java.util.List.of("file.pdf", "directory/new/output.pdf")) {
+            var result = ExportGuard.resolve(requested, true, exchange.toString());
+            assertFalse(result.ok(), "a dangling symbolic link cannot grant a write: " + requested);
+            assertTrue(result.error().contains("symbolic link does not resolve"),
+                    "the refusal explains the unresolved link: " + result.error());
+        }
+    }
+
 }

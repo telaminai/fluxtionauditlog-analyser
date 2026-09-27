@@ -63,13 +63,7 @@ public final class ExportGuard {
         Path dir = Path.of(exportDir).toAbsolutePath().normalize();
         Path resolved = (Path.of(requested).isAbsolute() ? candidate : dir.resolve(requested))
                 .toAbsolutePath().normalize();
-        // The project may supply this directory and may contain versioned links. Check the actual
-        // target as well as the spelling, on both read and write paths.
-        if (!resolved.startsWith(dir)) {
-            return new Resolved(null, "path is outside the exchange directory (" + dir + ") — external "
-                    + "reads are confined to it (or to files the user picked in a chooser this session); "
-                    + "place the file inside it or have the user open it by hand");
-        }
+        // Compare actual locations: an absolute request may spell the same directory through an alias.
         return containedTarget(dir, resolved);
     }
 
@@ -87,10 +81,6 @@ public final class ExportGuard {
         Path dir = Path.of(exportDir).toAbsolutePath().normalize();
         Path candidate = Path.of(requested);
         Path resolved = (candidate.isAbsolute() ? candidate : dir.resolve(candidate)).toAbsolutePath().normalize();
-        if (!resolved.startsWith(dir)) {
-            return new Resolved(null, "path is outside the exchange directory (" + dir + ") — exports are "
-                    + "confined to it; pass a relative name to write inside it");
-        }
         Resolved target = containedTarget(dir, resolved);
         if (!target.ok()) return target;
         if (Files.exists(target.path())) {
@@ -123,6 +113,13 @@ public final class ExportGuard {
             ancestor = ancestor.getParent();
             if (ancestor == null) throw new java.io.IOException("no existing ancestor");
         }
-        return ancestor.toRealPath().resolve(ancestor.relativize(path)).normalize();
+        try {
+            return ancestor.toRealPath().resolve(ancestor.relativize(path)).normalize();
+        } catch (java.io.IOException e) {
+            if (Files.isSymbolicLink(ancestor)) {
+                throw new java.io.IOException("symbolic link does not resolve: " + ancestor, e);
+            }
+            throw e;
+        }
     }
 }
