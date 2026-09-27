@@ -398,6 +398,12 @@ Three consequences worth stating:
   the bundle.
 - **The viewer is versioned and stamped in.** The bundle records which viewer built it, so an
   improvement is a re-capture rather than a silent difference between two bundles that look alike.
+- **Capture is OFFLINE, and must stay so.** Generating the page needs no network and no service.
+  That is not a convenience: the page inlines records, so anything that generated it elsewhere would
+  have to receive the customer's audit data. A bundle is often produced precisely because something
+  went wrong in an environment where that is not permitted, and evidence whose readability depends
+  on a third party being reachable is weaker evidence. If a hosted service ever attaches to bundles,
+  the boundary to keep is the one the compiler already draws — hashes may cross, content may not.
 - **The artefacts stay canonical.** The heavyweight tier reads them, never the HTML, so the page
   cannot become the source of truth by accident — and the content hashes (§5.3) are over the
   artefacts, so a reader can check the page against what it claims to render.
