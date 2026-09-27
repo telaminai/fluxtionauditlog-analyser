@@ -949,6 +949,9 @@ after review:** the first version reversed the two fixture fingerprints (source 
   with `DesignSpotlightFrameTest` and its viewport mutation. Compiler/starter owner: repeat EndOfDayReporter
   audit-scaffolding case/new-owned-node policy now shipped under BETA-B2 in starter 1.0.74, with
   `CallbackAuditTest` and browser callback controls. Absence of values is not absence of execution.
+- ➜ **Delivered by M69** (owner, 2026-09-27): saved spotlight walks, stored like reports, stepped with ◀ ▶ on the
+  overlay, saved by a right-click on a live spotlight — [`spec-spotlight-walks.md`](spec-spotlight-walks.md) §0 records
+  what it keeps from this item and what the owner's direction changes.
 - ☐ **Feature request 40 (intake alias P1) — saved focus captions** — assess explicit ordered commentary associated with a focus,
   preserving transient spotlight defaults. Attribute text; bind structural claims to model/code identity where
   available and observational steps to original run/record or existing report references. Current report
@@ -1444,6 +1447,21 @@ Sequence AFTER W4/W5/W11/W13: this is the optimisation of the optimisation, not 
 `fluxtion.sourceFingerprint`? If yes, W13 is a graph change, fails gate 11.5, and needs its own release.
 
 ---
+## M69 · Spotlight walks — saved, stepped explanations on the overlay — ☐ SPEC DRAFTED 2026-09-27 (owner-directed)
+
+Spec: [`spec-spotlight-walks.md`](spec-spotlight-walks.md). **Owner, 2026-09-27:** forward/back arrows on the overlay,
+not a separate player; walks are stored like reports; they are useful outside an evidence bundle; a right-click on a
+live spotlight opens a save menu; and the walkthrough is needed regardless of the evidence-bundle proposal. It
+delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acceptance*).
+
+- [M69.0] ☐ **The owner answers O-1 to O-3** (the authoring verb's shape, a press outside the strip, playback state)
+  and the spec is reviewed.
+- [M69.1] ☐ **S1:** `WalkSpec` model, validation and profile storage (W-A1, W-A7, W-A9, W-A16).
+- [M69.2] ☐ **S2:** the `walk` verb and its contract (W-A10).
+- [M69.3] ☐ **S3:** the overlay's control strip, step showing, the chart check and the right-click save menu (W-A2 to
+  W-A6, W-A8, W-A12 to W-A15, W-A17 as frame tests).
+- [M69.4] ☐ **S4:** Reports tab and Project panel listing, `context`, docs, CHANGELOG, a capture (W-A11).
+
 ## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.12 SHIPPED (.10–.12 in 1.15.0, 2026-09-18; archived); .13 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
 the `screenshot` verb paints the content pane, which the glass pane is not part of, so the tutor's own verification
@@ -2264,6 +2282,8 @@ the design-first first look); **1.23.0** (2026-09-26 — M68.7 and the reader's 
 starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/tracker.md`](completed/tracker.md) ▸
 *Tidy 2026-09-27*.
 
+0. ☐ **M69 spotlight walks — next** (owner, 2026-09-27: "starting with the walk now"; needed regardless of the
+   evidence-bundle proposal). Spec drafted; O-1 to O-3 first, then S1 to S4.
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).
