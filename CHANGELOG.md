@@ -6,6 +6,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- **A cleared topology no longer leaves its file's digest behind.** The topology panel's graph digest survived *Close
+  graph* and a graph supplied by the log's source, so session recovery could record the previous graph's digest
+  beside a different graph. The digest now belongs to the graph on screen, and is absent when none has an established
+  identity.
+
 ## [1.25.0] - 2026-09-27
 
 ### Added

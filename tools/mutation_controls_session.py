@@ -610,4 +610,11 @@ CONTROLS = [
     ('p51ci-pane-text-read-on-edt', UI + 'SourcePanel.java',
      'if (SwingUtilities.isEventDispatchThread()) return read.get();', 'if (true) return read.get();',
      'SourcePanelPaneTextIsReadOnTheEdtTest#paneTextWaitsForTheEdt'),
+
+    # --- M69 spotlight walks -------------------------------------------------------------------------------------
+    # S0 (review R5): the graph digest belongs to the graph shown. Without the reset, clearing a file graph leaves its
+    # digest behind to describe whatever is shown next.
+    ('m69-s0-clear-drops-graph-digest', UI + 'TopologyPanel.java',
+     '        forgetGraphIdentity();   // M69 S0 (R5): no graph is shown, so no digest may describe one\n', '',
+     'TopologyGraphDigestTest#clearDropsTheDigest'),
 ]

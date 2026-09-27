@@ -1469,8 +1469,8 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
 
   r3 accepted; r4 consolidated.
 - [M69.P] ☐ Predictions committed before code (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/PREDICTIONS.md`).
-- [M69.S0] ☐ **R5:** the graph digest belongs to the current graph (cleared on `clearGraph` and `loadFromSource`) — a
-  transition regression test.
+- [M69.S0] ☑ **R5:** the graph digest belongs to the current graph (cleared on `clearGraph` and `loadFromSource`).
+  `TopologyGraphDigestTest`, red before the fix; control `m69-s0-clear-drops-graph-digest`.
 - [M69.S1] ☐ `WalkSpec` model, validation, identity helpers, and storage in every tier and share path, plus the
   machine-local bin (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
 - [M69.S2] ☐ `FilterState.setAll`; `ChartPanel`'s paint outcome; **the `walkPlayback` session node** (facts, effects,
