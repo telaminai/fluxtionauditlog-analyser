@@ -550,4 +550,31 @@ CONTROLS = [
     ('p51-spotlight-slides', UI + 'SpotlightGeometry.java',
      'private static final int[] SLIDE_STEPS = {1, -1, 2, -2};', 'private static final int[] SLIDE_STEPS = {};',
      'SpotlightCalloutsDoNotCollideTest#fourAdjacentLinesDoNotCollide'),
+
+    # --- PR #51 review response -------------------------------------------------------------------
+    # An explicit null must read as ABSENT. containsKey made "sections": null wipe the report — #46's
+    # own defect, reached by the route a JSON client takes when an optional has no value.
+    ('p51r-46-null-is-absent', J + 'report/ReportVerb.java',
+     'if (params.get(key) != null) supplied.add(key);', 'if (params.containsKey(key)) supplied.add(key);',
+     'AbsentMeansAbsentTest#nullSectionsIsAbsent'),
+
+    # createdAt follows the SECTIONS, like the fingerprint and filter beside it. Keeping the old date
+    # on a full replace printed CREATED and WRITTEN AGAINST describing two different reports.
+    ('p51r-46-createdat-follows-sections', J + 'report/ReportVerb.java',
+     'keepSections ? existing.createdAt() : spec.createdAt(),', 'existing.createdAt(),',
+     'AbsentMeansAbsentTest#replacedSectionsTakeTodaysDate'),
+
+    # close is the safe half of removal. Without it, delete was the only way to get a chart off the
+    # screen over the socket, so "not recoverable" was not advice a caller could act on.
+    ('p51r-50-close-keeps-definition', UI + 'GraphTabs.java',
+     'gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        fireChanged();\n        return null;',
+     'deleteListener.accept(name.trim());\n        gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        fireChanged();\n        return null;',
+     'GraphNotesReplaceAndChartsDeleteTest#closeKeepsWhatDeleteRemoves'),
+
+    # A delete under a definition refusal must not write to the profile. The UI disables Delete
+    # wholesale; the socket refuses only withheld names, and this is what makes that safe.
+    ('p51r-50-refusal-guard', UI + 'ActionExecutor.java',
+     'boolean withheld = target == null || onEdt(() -> graphTabs.isWithheldDefinition(target));',
+     'boolean withheld = false;',
+     'ChartDeleteUnderDefinitionRefusalTest#aWithheldChartIsRefused'),
 ]
