@@ -442,14 +442,102 @@ bundle implementation or a replay trial.
 
 ---
 
+## Review r5 (Claude, analyser session, 2026-09-27)
+
+This author wrote draft B and review r2 (L-11 to L-15). r3 corrects two of those entries, and this review starts by
+saying so. READ evidence is at `main` `d82f1487`, the same revision r2 and r3 used.
+
+### L-27 · r2's L-12 and L-13 were overstated · resolved (conceded)
+- **Raised by / date:** the author of r2, 2026-09-27.
+- **Proposal refs:** D-1, D-1a, §4, §7. Accepts L-16 and L-19.
+- **Positions:**
+  - r2's L-12 said "every capture need except one is met by today's socket". L-16 is right: those are individual
+    facts, and nothing binds one call's answer to the next. A capture assembled from them can mix two logs, or two
+    chart states, with every call succeeding.
+  - r2's L-13 said "reuse its extractor". L-19 is right: `TemplateArchive`'s extraction is private, its installer
+    requires one top-level directory, and it applies template permissions. The limits are reusable; the installer is not.
+- **Evidence:** L-16's and L-19's READ entries. This author did not re-derive them, and does not dispute them.
+- **Outcome:** L-12's conclusion and L-13's unqualified reuse are superseded by L-16 and L-19. The proposal already
+  carries r3's corrections.
+
+### L-28 · The log half of a capture-validity contract already exists in the session · open
+- **Raised by / date:** Claude, analyser session, 2026-09-27.
+- **Proposal refs:** L-16, D-1a, EB-0, A-3, §4, §6.1.
+- **Positions:** L-16 asks for a session-owned binding between capture calls, and notes that an A→B→A log switch
+  defeats a before/after equality check. This entry says the **log** half of that binding already exists; it is simply
+  not published.
+- **Evidence:** READ.
+  - `session/node/OpenLog`: `generation++` on every accepted `LogOpened`. Every log fact already names the generation
+    it describes, and a stale one is refused (`current(...)`, `staleFact`).
+  - `SessionSnapshot` publishes `openLog.generation()`.
+  - A→B→A therefore gives generations 1, 2 and 3. A capture bound to generation 1 detects both switches, which is
+    exactly what an equality check on the log's name or size cannot do.
+  - Neither `context` nor `read` puts a generation in its reply (grep of the `MainFrame` context builder and
+    `ReadService`).
+  - `GraphTabs` has no chart revision counter.
+- **Replacement (proposed, not costed by a build):**
+  - **The log half:** publish `logGeneration` and the record `total` in `context` and in every `read` reply. Add an
+    optional `expectGeneration` to `read` that refuses on a mismatch, rather than answering from another log. The
+    generation is session-owned (rule 9), so this reads a published fact; it adds no dispatch. Under Follow the
+    generation holds while `total` grows, which is why §6.1 already requires Follow paused. `total` is published so
+    that a violation is visible.
+  - **The chart half:** no counter exists. Either add a revision that increments on every chart-definition change and
+    is published beside the chart fact D-1a proposes (the client re-reads it at the end, and refuses if it moved), or
+    capture charts natively. A revision counter is a change to one class plus its fact; native capture is L-16's
+    session-owned operation.
+- **Failure / cost:** `read` gains a parameter, so the four schema and transport classes L-17 lists for a graph option
+  apply to `read` too (`VerbSchemas`, `ManifestVerbContractTest`, `McpToolsTest`,
+  `InProcessManifestNamesEveryVerbTest`), plus a refusal witness. A→B→A without `expectGeneration` must be shown to
+  produce a mixed capture, then shown refused with it.
+- **Outcome / delivery impact:** this does not by itself close L-16. The chart half, and the proof under A-3, remain
+  open. It turns the log half from "requires a session-owned capture operation" into "publish a counter the session
+  already keeps". That is smaller than either option L-16 names, and it is a candidate for EB-0 to cost first.
+
+### L-29 · L-25's refusal cannot rely on the audit log for every channel · open
+- **Raised by / date:** Claude, analyser session, 2026-09-27.
+- **Proposal refs:** L-25, §9, A-8.
+- **Positions:** L-25 proposes that the runner refuse (INCOMPATIBLE) "a run whose audit log shows a state change from a
+  channel the captured inputs do not cover". This entry agrees with the declaration, and disputes the detection.
+- **Evidence:** inference from L-25's own evidence. It is labelled as inference: no run was made for this entry.
+  - L-25 READs that `AdminCommandInvoker` calls `executeCommand()` **without an event cycle**. An audit record is
+    written per event cycle, so a state change made there has no record of its own.
+  - L-25 RAN the consequence: the callback's node-log line landed *between* records, and the analyser reported a
+    producer finding. The change was visible only as corruption. A fix that stops the corruption without routing the
+    command through an event cycle would leave it not visible at all. This author has not read what Mongoose PR #45
+    changes, so whether it does that is unknown.
+  - A node's `publishSignal` does run `onEvent`, so it produces an audited cycle whose event is a `Signal`. That
+    channel is detectable from the log.
+- **Failure / cost:** a clean-looking source log, in which an admin command changed state outside any cycle, passes the
+  "log shows an uncovered state change" test. The runner then replays inputs that cannot reproduce the incident, which
+  is the exact failure L-25 set out to stop.
+- **Replacement:** the channel set is **declared by the host that produced the source run**, not inferred from the
+  audit log. The log check stays as a second guard, for the channels that produce audited cycles.
+  - For the first delivery, make the declaration checkable by construction: produce the source run with admin
+    commands disabled, or routed through a `Signal`, as the sample's workaround already does (L-25).
+  - A-8 gains the invisible case: an admin command that changes state and leaves no record. The runner must refuse on
+    the host declaration, because the log cannot show it.
+- **Outcome / delivery impact:** one declaration field, now required rather than advisory, and one witness. L-25's
+  replacement is kept and made stricter.
+
+### L-30 · D-2 and D-3 are ready for the owner · open (owner)
+- **Raised by / date:** Claude, analyser session, 2026-09-27.
+- **Proposal refs:** D-2, D-3; L-5, L-6, L-20, L-21, L-23.
+- **Positions:** after L-23, no draft argues for canonical identity or first-delivery signing. The combined proposal,
+  Codex (L-20, L-21) and both draft authors all now recommend **exact manifest bytes** and **unsigned first**.
+- **Evidence:** the entries cited. Agreement is not evidence of correctness; it means the arguments have been made and
+  nobody is maintaining the alternative.
+- **Outcome:** nothing more for reviewers to add. The owner decides, and golden fixtures pin the choice. The one live
+  question from L-21: is authenticated ticket authorship a first-delivery requirement? If not, unsigned with its
+  stated limits is the whole of D-3 for now.
+
 ## Open disputes, at a glance
 
 | log | question | what settles it |
 |---|---|---|
-| L-5, L-21 | Sign in the first delivery? | owner: whether authenticated author identity is required; otherwise unsigned with explicit limits |
-| L-6, L-20 | Exact manifest bytes, or canonical JSON? | choose the intended identity semantics; pin one algorithm with cross-reader fixtures |
-| L-12, L-16, L-17 | Chart fact placement and coherent capture (D-1a) | context is the smaller fact-export candidate by READ; a separate snapshot/revision contract still needs proof and costing |
+| L-5, L-21, L-30 | Sign in the first delivery? | **owner:** is authenticated ticket authorship required now? If not, unsigned with its limits (all drafts now agree, L-30) |
+| L-6, L-20, L-30 | Exact manifest bytes, or canonical JSON? | **owner:** all drafts now recommend exact bytes (L-30); pin it with cross-reader fixtures |
+| L-16, L-17, L-28 | Chart fact placement and coherent capture (D-1a) | context is the smaller chart-fact candidate (L-17). The log half of capture validity is a published generation plus `expectGeneration` (L-28); the chart half needs a revision counter or native capture, then an A-3 proof |
 | L-18 | Complete replay route (§9) | dispatch/clock primitives and mapper bypass established by READ; pin and run a released pre-mapper runner with reset/build identity/oracle (EB-0) |
-| L-25 | Which input channels a replay must cover (§9) | the runner adapter declares its channels; a witness shows an uncovered admin reset → INCOMPATIBLE |
+| L-25, L-29 | Which input channels a replay must cover (§9) | the host declares its channels, and the log is a second guard only (L-29); witnesses for an uncovered admin reset (INCOMPATIBLE) and for an invisible one, refused on the declaration |
 | L-24 | Walk honesty for an undrawn chart (§8, A-7) | #56's `drawn` fact lands first, or the walk pins its size and confirms by screenshot |
 | L-26 | Which “two bugs” the demo discussion meant (EB-0) | owner confirms or rejects the lead: #46 (closed, 1.25.0) and #56 (open) |

@@ -1,9 +1,10 @@
 # Evidence bundles — combined product and delivery proposal
 
-**Status: DISCUSSION DRAFT r4, 2026-09-27. Not approved or implemented.** r3 challenges the capture and replay
+**Status: DISCUSSION DRAFT r5, 2026-09-27. Not approved or implemented.** r3 challenges the capture and replay
 conclusions with source evidence, and narrows archive reuse. r4 adds the walk's dependency on an honest "not drawn"
-fact and the replay's input channels. Reasons and unresolved choices are in the
-[discussion log](discussion-log.md), L-16–L-26. D-0 is unchanged.
+fact and the replay's input channels. r5 finds that the log half of a capture-validity binding already exists in the
+session, and makes the replay's channel declaration host-supplied. Reasons and unresolved choices are in the
+[discussion log](discussion-log.md), L-16–L-30. D-0 is unchanged.
 
 This consolidates all five [source versions](#15-source-versions-and-reconciliation). They remain
 unchanged in `versions/` as the record of the discussion. This is the working document to argue over,
@@ -165,6 +166,14 @@ Keep D-1a's fact export separate from a capture-validity contract. EB-0 must pro
 or add a session-owned capture operation with immutable state, source lifetime protection and revision-bound reads.
 Before/after polls or file hashes alone do not catch an intervening change that returns to the same visible state.
 The extra adapter work is a delivery dependency, not grounds to weaken §6.1.
+
+**r5 (L-28): the log half of that contract already exists; it is not published.** The session's `OpenLog`
+increments `generation` on every accepted open (A→B→A gives 1, 2, 3), and every log fact already names the generation
+it describes. `SessionSnapshot` carries it; neither `context` nor `read` does. Publishing `logGeneration` and `total`
+in both, with an optional `expectGeneration` on `read` that refuses on a mismatch, binds a capture's reads to one log.
+That reads a session-owned fact, so it adds no dispatch (rule 9). Charts have no revision counter. Their half needs one,
+published beside the D-1a chart fact and re-read at the end of capture, or native capture. This does not close A-3 on
+its own; it makes the log half the cheapest part for EB-0 to cost.
 
 | Responsibility | Initial proposed owner | Durable home / invariant |
 |---|---|---|
@@ -479,6 +488,13 @@ processor's `onEvent` directly, bypassing the feed publisher. Either can change 
 cover. It refuses (INCOMPATIBLE) a source run whose log shows a state change from a channel it does not cover. For the
 rejected-row alarm candidate, keep operator resets out of the incident, or carry them as feed control records.
 
+**r5 (L-29): the host declares the channels; the log is only a second guard.** An admin command runs outside an event
+cycle, so it writes no audit record of its own. On the sample it was visible only as corruption between records. A
+clean log therefore cannot prove that no uncovered channel acted. The source run's channel set is declared by the host
+that produced it. For the first delivery, make that declaration true by construction: produce the source run with
+admin commands disabled, or routed through a `Signal`, as the sample's workaround does. The log check still catches
+channels that do produce audited cycles, such as `publishSignal`.
+
 For a faulty feed mapper, capture **before the mapper**, not after it. Include finite input order,
 initial state/reset, configuration, clock policy, seed/external responses where relevant, and a safe
 treatment of side effects. The first runner uses isolated local processes and no live external system.
@@ -599,7 +615,7 @@ afterwards. Targeted development controls use green → named assertion failure 
 | A-5 Excerpt scope | Separated records, duplicate times and hostile delimiter/content payloads round-trip by identity/value; counts, omissions and completeness truthful | Use an incorrect cut that preserves count, or reuse whole-source completeness. |
 | A-6 Working copy | Original archive/evidence unchanged after chart/report edits; reopening starts from original; changed working evidence loses original claim | Reuse a modified cached copy or save into verified members. |
 | A-7 Walk/display | Actual forward/back interaction lights correct records/chart/topology at default size; dirty starting view does not leak; invalid step stops honestly | Detach target/banner, omit view restore or allow arbitrary step fields. Run a chart step at 900×620 and report success over an undrawn plot. |
-| A-8 Replay | Original incident reproduced, corrected assertion passes, independent control holds, actual input boundary/count/reset checked | Supply post-mapper input or drop an event. Include an admin reset the captured inputs do not cover, and report FAIL instead of INCOMPATIBLE. |
+| A-8 Replay | Original incident reproduced, corrected assertion passes, independent control holds, actual input boundary/count/reset checked | Supply post-mapper input or drop an event. Include an admin reset the captured inputs do not cover, and report FAIL instead of INCOMPATIBLE. *r5:* include an admin reset that leaves no audit record; a runner that checks only the log, and ignores the host's declaration, accepts it. |
 | A-9 Comparison | Wrong parent/input/state/oracle, zero assertions, missing correlation or failed runner cannot produce controlled pass | Bypass the input identity check. |
 | A-10 Response | Sender opens B and traces each result to A/B records, changed build and limitations; absent parent remains declared | Replace scoped result with unconditional success or hide absent parent. |
 | A-11 Trust wording | Integrity, declared receipt, unsigned/authenticated state and semantic NOT ASSERTED remain distinct; testimony never becomes a computed finding | Promote a prose claim or declared build association to verified execution. |
@@ -716,3 +732,7 @@ their own derivation and scope. Hash validation applies to both categories.
   dependency on #56 or a pinned size (L-24), and the replay's input channels, with A-7 and A-8 controls (L-25). It
   offers a lead on the two demo bugs for the owner to confirm (L-26). Evidence is READ, RAN earlier on the Spring
   sample, or `gh` status. No bundle, replay or product change.
+- r5 (Claude, analyser session; author of draft B and r2) concedes L-12 and L-13 to r3 (L-27). It finds the session's
+  monotonic log generation to be the log half of L-16's capture binding, unpublished today (L-28). It makes the replay
+  channel set host-declared, because an admin command leaves no audit record (L-29, adding an A-8 witness). It records
+  D-2 and D-3 as ready for the owner (L-30). READ at `d82f1487`; nothing run beyond the doc checks.
