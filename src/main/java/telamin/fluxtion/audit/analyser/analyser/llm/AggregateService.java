@@ -64,6 +64,9 @@ public final class AggregateService {
         Map<String, long[]> counts = new LinkedHashMap<>();   // key -> [count]
         int population = 0;
         long minT = Long.MAX_VALUE, maxT = Long.MIN_VALUE;
+        // PR #24: a count cannot answer "when did it first happen?", and models named the first value over a limit
+        // instead of the application's own event. The scan already visits every counted record: say where they begin.
+        int firstMatch = -1, lastMatch = -1;
 
         for (int i = 0; i < snap.size(); i++) {
             if (!filter.matches(snap, i, rawText)) continue;
@@ -76,6 +79,8 @@ public final class AggregateService {
             if (!metricMatches(metric, snap, i)) continue;    // nan_count / breach_count narrow the tally
             String key = groupKey(groupBy, snap, i, timeBucket);
             if (key == null) continue;                        // time grouping skips untimed rows
+            if (firstMatch < 0) firstMatch = i;               // first/last COUNTED record, on read/goto's index
+            lastMatch = i;
             counts.computeIfAbsent(key, k -> new long[1])[0]++;
         }
 
@@ -105,6 +110,10 @@ public final class AggregateService {
         result.put("metric", metric);
         result.put("groupBy", groupBy);
         result.put("total", total);
+        if (firstMatch >= 0) {
+            result.put("firstRecordIndex", firstMatch);
+            result.put("lastRecordIndex", lastMatch);
+        }
         if (rate && spanMin > 0) result.put("rate_per_min", round(total / spanMin));
         if (ordered.size() > limit) result.put("truncated", ordered.size() - limit);
         result.put("buckets", buckets);
