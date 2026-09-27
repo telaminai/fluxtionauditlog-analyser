@@ -45,7 +45,9 @@ From a reply the assistant runs bounded **actions** (within the round / per-repl
 feeds the results back. An optional localhost **REST transport** (off by default) lets an external agent
 drive the same verbs:
 
-- **aggregate** — counts / rates over the index (the expensive parse is done once and shared).
+- **aggregate** — counts / rates over the index (the expensive parse is done once and shared), with
+  `firstRecordIndex` and `lastRecordIndex`: the first and last record it counted. Filter to an event to learn when
+  the application first logged it.
 - **read** — N records around an anchor, so an agent can seek the log through the socket without its
   own file access. The anchor can be a record index, a byte offset, or `at` (epoch millis — the record
   at-or-before that moment). By default each record is raw text; `fields: ["instanceId.key"]` projects

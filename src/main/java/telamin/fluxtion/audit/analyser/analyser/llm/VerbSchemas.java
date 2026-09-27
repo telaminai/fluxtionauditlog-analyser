@@ -16,9 +16,17 @@ public final class VerbSchemas {
     public static Map<String, Object> all() {
         Map<String, Object> s = new LinkedHashMap<>();
 
-        s.put("aggregate", schema("Read-only counts/rates over the log; never mutates the UI.",
+        s.put("aggregate", schema("Read-only counts/rates over the whole log; never mutates the UI. Answer "
+                        + "'how many' here: records you happened to read are only a sample. With the total it "
+                        + "returns firstRecordIndex and lastRecordIndex, the first and last record it counted: "
+                        + "filter to the event an application logs to learn when it first logged it. Example: "
+                        + "{metric: count, filter: {dimensions: [\"<EventName>\"]}} returns how often the application "
+                        + "logged that event and, as firstRecordIndex, the record where it first did.",
                 props(
-                        p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute"),
+                        p("metric", enumStr("count", "rate_per_min", "nan_count", "breach_count"), "what to compute. "
+                                + "breach_count counts records where the application itself logged a breach flag "
+                                + "(a key ending in Breach, set true); a value exceeding a limit is not the same "
+                                + "thing"),
                         p("groupBy", enumStr("dimension", "thread", "hour", "minute", "day", "none"), "bucketing"),
                         p("filter", filterObject(), "optional scope for the aggregation"),
                         p("limit", integer(), "max buckets returned (default 500)")),
@@ -45,7 +53,8 @@ public final class VerbSchemas {
 
         s.put("read", schema("Read-only: the raw text of N records around an anchor, so you can seek the "
                         + "log through this socket without filesystem access. Max " + ReadService.MAX_COUNT
-                        + " records/call.",
+                        + " records/call. A window of records is a sample: do not count events from it; "
+                        + "aggregate counts the whole log.",
                 props(
                         p("recordIndex", integer(), "anchor by record index (0-based)"),
                         p("byteOffset", integer(), "anchor by byte offset (resolves to the containing "
@@ -366,11 +375,13 @@ public final class VerbSchemas {
                         + "Java line partial means a clipped logical line; source/run relationship is unverified. "
                         + "Menus: context.menus lists every menu and its items, exactly as menu:<Menu>:<item> names "
                         + "them, and context.menuChanges says what was renamed or retired; a miss says where the item "
-                        + "is if it moved or was renamed. "
+                        + "is if it moved or was renamed. To show where a command is, light its ITEM, "
+                        + "menu:<Menu>:<item> — not the menu alone, the status bar, or a toolbar button that is not "
+                        + "that command. "
                         + "Targets: " + SpotlightVocabulary.TEXT,
                 props(
                         p("target", string(), "one of the targets above, e.g. tab:topology, records:row:12, "
-                                + "topology:node:priceListener, graph:note:2, project:log, toolbar:flag, status. "
+                                + "topology:node:priceListener, graph:note:2, menu:Audit log:Follow (tail). "
                                 + "With {clear: true} it names the ONE spotlight to put out"),
                         p("caption", string(), "ONE short line (at most " + SpotlightVocabulary.MAX_CAPTION
                                 + " characters) saying why to look here. It is shown as YOUR words (testimony), "

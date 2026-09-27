@@ -79,3 +79,16 @@ The demo inputs were staged under neutral names. The image was opened and read: 
 actions are visible; no private names or paths appear. It is 3360 × 2100 pixels. No other screenshot was changed.
 
 Final focused docs tests (SpecLinksResolveTest and MenuDocumentationTest): 5 / 0 / 0 / 0. Strict site build and diff check passed after the screenshot refresh.
+
+## Integration after owner authorisation
+
+The owner authorised bringing current main into the PR. Main at `29a9ece4` was merged locally.
+The only textual conflict was CHANGELOG.md: both Unreleased blocks were retained once, and all
+released sections were verified byte-identical to main. The automatic source merge retains the
+report restore schema/test alongside main's aggregate/spotlight guidance and position tests.
+
+Checks on the combined tree: clean package **2502 / 0 / 0 / 124**, **334 reports, no orphans**;
+ReportRecoverableDeleteFrameTest on a real display **5 / 0 / 0 / 0**; preflight **24 suites / 206 anchors**;
+strict MkDocs, whitespace and public-data sweep clean. The earlier 12-control and full display runs
+belong to the pre-merge fix tree; they were not relabelled as merge-tree runs. Full new-head CI is
+left to the PR checks and the author's review. Nothing was merged into main or released.

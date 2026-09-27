@@ -66,3 +66,16 @@ See [probe and control evidence](evidence/pr33-fixes-review-2026-09-27/PREDICTIO
 - No policy change was made to the global 20-entry cap, path-based profile scope or no-project key. A stronger identity/migration scheme remains an owner choice; the current limits are now stated.
 
 **Not verified:** Windows filesystem behaviour, directory hard links, adversarial concurrent directory replacement, arbitrary modal/project-switch interleavings, or the full mutation gate on the new code. Only the 12 relevant controls ran locally. No key, provider, client session, participant project, merge or release was used. The original author should review the new fixes and their CI before deciding to merge.
+
+## Integration after owner authorisation
+
+The owner authorised bringing current main into the PR. Main at `29a9ece4` was merged locally.
+The only textual conflict was CHANGELOG.md: both Unreleased blocks were retained once, and all
+released sections were verified byte-identical to main. The automatic source merge retains the
+report restore schema/test alongside main's aggregate/spotlight guidance and position tests.
+
+Checks on the combined tree: clean package **2502 / 0 / 0 / 124**, **334 reports, no orphans**;
+ReportRecoverableDeleteFrameTest on a real display **5 / 0 / 0 / 0**; preflight **24 suites / 206 anchors**;
+strict MkDocs, whitespace and public-data sweep clean. The earlier 12-control and full display runs
+belong to the pre-merge fix tree; they were not relabelled as merge-tree runs. Full new-head CI is
+left to the PR checks and the author's review. Nothing was merged into main or released.

@@ -105,6 +105,74 @@ class AggregateServiceTest {
         assertEquals(expectedBreach, agg(Map.of("metric", "breach_count", "groupBy", "none")).get("total"));
     }
 
+    /**
+     * PR #24: "when was the limit first breached?" was answered with the first value over the limit, but the
+     * application logged its breach as an event. aggregate now says where its counted records begin and end, on the
+     * same 0-based index read and goto take: on the demo log the first RiskBreachEvent is record 16.
+     */
+    @Test
+    void aggregateSaysWhereItsCountedRecordsBeginAndEnd() throws Exception {
+        var demo = HeapLogStore.fromFile(java.nio.file.Path.of("src/main/resources/demo/demo-quote-series.yaml"));
+        var demoSnap = demo.index().snapshot();
+        Map<String, Object> breaches = AggregateService.aggregate(demoSnap, Map.of("metric", "count", "groupBy", "none",
+                "filter", Map.of("dimensions", List.of("RiskBreachEvent"))), demo::rawText);
+        assertEquals(160L, breaches.get("total"), "control: the demo log's RiskBreachEvent count: " + breaches);
+        assertEquals(16, breaches.get("firstRecordIndex"), "the first counted RiskBreachEvent: " + breaches);
+        assertTrue(demo.rawText(16).contains("RiskBreachEvent"), "record 16 is the application's own breach event");
+        int last = (Integer) breaches.get("lastRecordIndex");
+        assertTrue(demo.rawText(last).contains("RiskBreachEvent") && last > 16, "and the last one: " + last);
+        assertEquals(722, last, "the last counted RiskBreachEvent, as the PR states it: " + breaches);
+        // "the same index read and goto take" — asked of read itself, not of rawText: the record read returns at
+        // firstRecordIndex is the application's breach event.
+        Map<String, Object> read = ReadService.read(demoSnap, Map.of("recordIndex", 16, "count", 1), demo::rawText);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> records = (List<Map<String, Object>>) read.get("records");
+        assertEquals(16, records.get(0).get("recordIndex"), "read anchors on the same index: " + read);
+        assertTrue(String.valueOf(records.get(0).get("text")).contains("event: RiskBreachEvent"),
+                "and returns the breach event there: " + records.get(0));
+        Map<String, Object> all = AggregateService.aggregate(demoSnap, Map.of("metric", "count", "groupBy", "none"), demo::rawText);
+        assertEquals(0, all.get("firstRecordIndex"));
+        assertEquals(demoSnap.size() - 1, all.get("lastRecordIndex"));
+        Map<String, Object> none = AggregateService.aggregate(demoSnap, Map.of("metric", "breach_count", "groupBy", "none"), demo::rawText);
+        assertEquals(0L, none.get("total"), "control: this log logs no breach flag");
+        assertFalse(none.containsKey("firstRecordIndex"), "nothing counted, no position: " + none);
+    }
+
+    private static String rec(Long logTime, String nodeLog) {
+        return "eventLogRecord:\n" + (logTime == null ? "" : "  logTime: " + logTime + "\n")
+                + "  groupingId: null\n  event: Quote\n  nodeLogs:\n    - " + nodeLog + "\n---\n";
+    }
+
+    /**
+     * PR #24 review: the positions are of COUNTED records — not of every record the filter admits. Two rows the
+     * scan visits are not counted: a row the metric does not match (breach_count on a record with no breach flag),
+     * and an untimed row under a time grouping. Neither may become the first or last position.
+     */
+    @Test
+    void thePositionsAreOfCountedRecordsNotOfEveryRecordVisited() {
+        HeapLogStore s = new HeapLogStore(
+                rec(null, "riskMonitor: { limitBreach: false}")        // 0: untimed, no breach
+                + rec(1000L, "riskMonitor: { limitBreach: true}")      // 1: timed, breach
+                + rec(2000L, "riskMonitor: { limitBreach: false}")     // 2: timed, no breach
+                + rec(null, "riskMonitor: { limitBreach: true}"));     // 3: untimed, breach
+        LogIndex.Snapshot sn = s.index().snapshot();
+        assertEquals(4, sn.size(), "precondition: four records");
+
+        Map<String, Object> all = AggregateService.aggregate(sn, Map.of("metric", "count", "groupBy", "none"), s::rawText);
+        assertEquals(0, all.get("firstRecordIndex"), "control: groupBy none counts the untimed rows: " + all);
+        assertEquals(3, all.get("lastRecordIndex"), "control: " + all);
+
+        Map<String, Object> hourly = AggregateService.aggregate(sn, Map.of("metric", "count", "groupBy", "hour"), s::rawText);
+        assertEquals(2L, hourly.get("total"), "precondition: a time grouping skips the untimed rows: " + hourly);
+        assertEquals(1, hourly.get("firstRecordIndex"), "an untimed row skipped by the time grouping is not first: " + hourly);
+        assertEquals(2, hourly.get("lastRecordIndex"), "nor last: " + hourly);
+
+        Map<String, Object> breach = AggregateService.aggregate(sn, Map.of("metric", "breach_count", "groupBy", "none"), s::rawText);
+        assertEquals(2L, breach.get("total"), "precondition: two records flag a breach: " + breach);
+        assertEquals(1, breach.get("firstRecordIndex"), "the first FLAGGED record, not the first visited: " + breach);
+        assertEquals(3, breach.get("lastRecordIndex"), breach.toString());
+    }
+
     @Test
     void ratePerMinExposesARate() {
         Map<String, Object> r = agg(Map.of("metric", "rate_per_min", "groupBy", "none"));
