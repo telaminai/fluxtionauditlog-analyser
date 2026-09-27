@@ -347,6 +347,99 @@ All failure scenarios below are source-derived unless explicitly labelled RAN; n
   model session, hosted provider or participant access. Renderer PR status remains L-15's REPORTED result for this
   reviewer; it is not needed for these changes. Choosing the two demo bugs still needs the owner's issue references.
 
+
+---
+
+## Review r4 (Claude, Spring design session, 2026-09-27)
+
+This author wrote draft A (`versions/evidence-bundle-spec.md`) and drove the Spring rejected-row alarm sample on
+Mongoose and analyser 1.24.0/1.25.0 earlier in this session. The evidence below comes from that work. None of it is a
+bundle implementation or a replay trial.
+
+### L-23 · Draft A withdraws four positions · resolved (for draft A only)
+- **Raised by / date:** the author of draft A, 2026-09-27.
+- **Proposal refs:** D-1, D-2, D-3, §7; L-5, L-6, L-9, L-12, L-16, L-20, L-21.
+- **Positions withdrawn, each for the reason given:**
+  - **Signing (L-5, L-21):** draft A no longer asks for optional Ed25519 in the first delivery. L-21's point stands: a
+    key carried inside the same archive authenticates nothing. Unsigned first, labelled honestly.
+  - **Identity (L-6, L-20):** draft A's canonical-JSON rule is withdrawn in favour of exact manifest bytes. Its only
+    advantage was surviving reformatting, and no step in the journey reformats a received manifest. L-20's numeric and
+    Unicode costs fall on the canonical option only.
+  - **`--force` (L-9):** withdrawn, as already recorded.
+  - **"No analyser changes" (L-12, L-16, L-17):** withdrawn. The chart-state gap (L-11) and the capture-coherence gap
+    (L-16) are READ facts; a client-only route cannot close either.
+- **Evidence:** argument, and the READ entries it cites. Agreement between authors is not evidence, so this settles
+  what draft A argues, not the decisions themselves.
+- **Outcome:** D-2 and D-3 lose their only dissenting draft. They stay open until the owner or the implementer chooses
+  and golden fixtures pin the choice. The proposal is unchanged by this entry.
+
+### L-24 · An honest walk needs #56's `drawn` fact, or a pinned size · open
+- **Raised by / date:** Claude, Spring design session, 2026-09-27.
+- **Proposal refs:** §8, D-6, EB-2, A-7.
+- **Evidence:**
+  - RAN, on released analyser 1.25.0 (jar sha256 matching SHA256SUMS), over REST, recorded in the retest comment on
+    #56. At 1200×800 the sample's chart draws. At 900×620 it does not, yet `graph` replies `ok: true` with 26 points in
+    the window, and full `context` has no drawn or no-room fact. A `graph:` spotlight is refused with
+    "'graph:Alarm lifecycle' is not on graph 'Alarm lifecycle'", which names no reason. On 1.24.0 the same spotlight
+    returned bounds for a chart that was not drawn.
+  - RAN `gh issue view 56`, 2026-09-27: **open**. It carries the owner's resolution: one delivery of a `drawn` fact with
+    its reason, `spotlight {expand}` and `view {focus, size}`, behind a single layout-override owner.
+- **Failure / cost:** §8 says a clipped chart is unavailable. Today no reply lets a walk client tell an undrawn chart
+  from a present one, and the refusal cannot be told apart from a missing target. A receiver on a laptop-sized window
+  sees a step that "succeeds" over an empty plot, which is A-7's failure exactly. Testing only at 1200×800 hides it.
+- **Replacement:** either EB-2 builds on #56's delivery (use `drawn` to report a step unavailable, and `view` to
+  prepare room), or the client pins the frame to at least 1200×800 and confirms each chart step by inspecting a
+  screenshot. Walk view restoration must request room through #56's layout-override owner, not a second layout
+  mechanism (rule 9: one owner).
+- **Outcome / delivery impact:** A-7 also runs at a size below 1200×800, where the step must report the chart as
+  unavailable. If #56 is not delivered first, the pinned-size route is cheaper but brittle, and must be named as a
+  limitation in the walk's reply.
+
+### L-25 · Control-plane actions bypass the replay input boundary · open
+- **Raised by / date:** Claude, Spring design session, 2026-09-27.
+- **Proposal refs:** §9, D-7, A-8, A-9, A-5; extends L-18.
+- **Evidence:**
+  - READ Mongoose `AdminCommandInvoker.dispatchEvent` at `2c4192ed`. RAN `git diff 2c4192ed origin/main` over the admin
+    package: no changes, so `ab44617` is the same. It calls `adminCommand.executeCommand()` and never
+    `eventProcessor.onEvent`. An admin command therefore runs without an event cycle and without an input record.
+  - RAN, earlier in this session, on the Spring sample (Mongoose 1.0.29, invoked by `POST /api/commands/alarm.reset`).
+    An admin callback that changed node state and logged corrupted the audit export: a node-log line landed between
+    records. The analyser reported the producer finding "Record 37 does not open with the 'eventLogRecord:' key". The
+    workaround publishes `Signal("resetAlarm", "admin")` from the callback, and the next run's log was clean, with the
+    reset as an audited cycle. Mongoose PR #45 proposes the framework fix; RAN `gh pr view`: **open**.
+  - READ Fluxtion `DataFlow.publishSignal(String, T)` at `96885a8`: it calls `onEvent(new Signal<>(filter, value))`
+    directly on the processor. It does not pass through Mongoose's `EventToQueuePublisher`, so capture at the feed
+    boundary (L-18) does not see it. That the signal is missing from any particular recorder's input set is an
+    inference from this path, not a RAN result.
+- **Failure / cost:** the incident's state includes an operator reset. Its audit record is an *observation*. The replay
+  input set, taken at the feed boundary, has no reset. Replaying the original build does not reproduce the incident,
+  or the "fix" appears to change behaviour it did not touch. A-8's "drop an event" witness covers a missing feed row,
+  not a missing input channel.
+- **Replacement:** the replay input declaration lists every channel that can change state: feeds, signals published
+  from nodes, admin commands and service callbacks. The runner refuses (INCOMPATIBLE) a run whose audit log shows a
+  state change from a channel the captured inputs do not cover. For the rejected-row alarm candidate: keep operator
+  resets out of the incident window, or deliver the reset as a feed control record. The sample did the latter before
+  the admin route was added.
+- **Also (A-5):** the corrupted run is a real producer-malformed log from DEMO data. It is a candidate fixture for the
+  excerpt checks: producer findings must survive capture as findings, not be repaired or dropped. It is held locally,
+  outside any repository, and is offered, not committed.
+- **Outcome / delivery impact:** no new component. It adds one declaration and one refusal to the runner adapter L-18
+  already requires, plus one witness: an admin reset in the source run with no covering input → INCOMPATIBLE, not
+  FAIL.
+
+### L-26 · A lead on "the two bugs" · open (owner confirms)
+- **Raised by / date:** Claude, Spring design session, 2026-09-27.
+- **Proposal refs:** EB-0, §11.
+- **Evidence:**
+  - REPORTED: in this session's Spring design run, which preceded the owner's demo discussion ("trust the evidence,
+    not the author"), the owner asked for exactly two analyser bugs to be lodged. They were a report export that wiped
+    the report's content (added to #46) and a chart with no room reported as drawn (#56).
+  - RAN `gh issue view`, 2026-09-27: #46 **closed**, fixed in 1.25.0 and retested by this author on the same sample;
+    #56 **open** (L-24).
+- **Outcome:** a lead, not an identification. Only the owner can say whether these are the two bugs the Codex draft
+  meant. If they are, #46 needs only a regression witness at the release under test (1.25.0 or later), and #56 is
+  L-24's dependency.
+
 ---
 
 ## Open disputes, at a glance
@@ -357,4 +450,6 @@ All failure scenarios below are source-derived unless explicitly labelled RAN; n
 | L-6, L-20 | Exact manifest bytes, or canonical JSON? | choose the intended identity semantics; pin one algorithm with cross-reader fixtures |
 | L-12, L-16, L-17 | Chart fact placement and coherent capture (D-1a) | context is the smaller fact-export candidate by READ; a separate snapshot/revision contract still needs proof and costing |
 | L-18 | Complete replay route (§9) | dispatch/clock primitives and mapper bypass established by READ; pin and run a released pre-mapper runner with reset/build identity/oracle (EB-0) |
-| — | Which “two bugs” the demo discussion meant (EB-0) | the owner names them, by issue and failing check |
+| L-25 | Which input channels a replay must cover (§9) | the runner adapter declares its channels; a witness shows an uncovered admin reset → INCOMPATIBLE |
+| L-24 | Walk honesty for an undrawn chart (§8, A-7) | #56's `drawn` fact lands first, or the walk pins its size and confirms by screenshot |
+| L-26 | Which “two bugs” the demo discussion meant (EB-0) | owner confirms or rejects the lead: #46 (closed, 1.25.0) and #56 (open) |

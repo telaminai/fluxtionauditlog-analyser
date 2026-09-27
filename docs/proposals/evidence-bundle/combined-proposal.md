@@ -1,8 +1,9 @@
 # Evidence bundles — combined product and delivery proposal
 
-**Status: DISCUSSION DRAFT r3, 2026-09-27. Not approved or implemented.** r3 challenges the capture and replay
-conclusions with source evidence, and narrows archive reuse. Reasons and unresolved choices are in the
-[discussion log](discussion-log.md), L-16–L-22. D-0 is unchanged.
+**Status: DISCUSSION DRAFT r4, 2026-09-27. Not approved or implemented.** r3 challenges the capture and replay
+conclusions with source evidence, and narrows archive reuse. r4 adds the walk's dependency on an honest "not drawn"
+fact and the replay's input channels. Reasons and unresolved choices are in the
+[discussion log](discussion-log.md), L-16–L-26. D-0 is unchanged.
 
 This consolidates all five [source versions](#15-source-versions-and-reconciliation). They remain
 unchanged in `versions/` as the record of the discussion. This is the working document to argue over,
@@ -427,6 +428,12 @@ stop, report the partial state and restore the last complete step before continu
 skip a failed step and call the tour complete. A missing record/node or clipped chart is unavailable;
 never substitute a nearby one.
 
+**r4 (L-24):** today no reply says a chart is open but not drawn. On analyser 1.25.0 at 900×620, `graph` answers
+`ok: true` and `context` is silent while the plot is empty. The spotlight is refused, but its message does not say why.
+Issue #56 (open, with the owner's one-delivery resolution) adds a `drawn` fact and a `view` size request. The walk
+either builds on it, or pins its frame to at least 1200×800 and confirms chart steps by screenshot, stating that limit.
+Walk view changes go through #56's single layout-override owner, not a second layout mechanism.
+
 Test actual painted/visible bounds and the real Next/Previous interaction, not just `spotlight.ok`.
 The receiver may leave the walk and inspect freely, then explicitly resume. The walk's caption is not
 an analyser-established causal verdict. “This record isolates the mapper output” needs a stronger
@@ -464,6 +471,13 @@ policy, check consumed counts and emit the receipt below. Reuse existing dispatc
 boundary; do not substitute a second implementation of the faulty mapper. Pin released dependencies and codec before
 claiming a keyless route. This review ran no replay and established no released executable combination: EB-0's measured
 original-fails / corrected-passes experiment remains a delivery gate. It cannot be replaced with playback or a moving feed.
+
+**r4 (L-25): every state-changing input channel, not only the feed.** Mongoose runs an admin command through
+`AdminCommandInvoker`, which calls `executeCommand()` without an event cycle. A node's `publishSignal` calls the
+processor's `onEvent` directly, bypassing the feed publisher. Either can change state that the audit log then
+*observes* but a feed-boundary capture does not *contain*. The runner declares the channels its captured inputs
+cover. It refuses (INCOMPATIBLE) a source run whose log shows a state change from a channel it does not cover. For the
+rejected-row alarm candidate, keep operator resets out of the incident, or carry them as feed control records.
 
 For a faulty feed mapper, capture **before the mapper**, not after it. Include finite input order,
 initial state/reset, configuration, clock policy, seed/external responses where relevant, and a safe
@@ -544,7 +558,7 @@ the replay route or complete-state capture is still assumed.
 |---|---|---|
 | EB-0 | First work block: verify runner/input boundary/reset/oracle; test profile, export, full chart/flags/view access and coherent capture; choose client or narrow native adapter | Measured original replay; a portable-state probe; recorded gaps/owners. Identify the “two bugs” from the demo discussion by issue and failing check. |
 | EB-1 | Day 1: settle manifest rule; capture/verify, archive guards, portable profile, immutable original and working copy | Member mutation refused; cold open from another path/home; source project unchanged. |
-| EB-2 | Day 1/2: walk, restored flags/view, reader-visible scope; avoid a new UI where the client suffices | Real record/chart/topology targets visible at 1200×800; missing target honestly unavailable. |
+| EB-2 | Day 1/2: walk, restored flags/view, reader-visible scope; avoid a new UI where the client suffices | Real record/chart/topology targets visible at 1200×800; missing target honestly unavailable; below that size an undrawn chart is reported unavailable (L-24). |
 | EB-3 | Day 2: original and changed build replay, oracle comparison, response capture | Old failure, new pass, stable controls; sender checks the returned bundle. |
 | EB-4 | Day 2: regression witnesses, full relevant gates, independent recipient rehearsal and documentation | Reviewer opens A/B; all mandatory checks pass, measured timings and remaining limits recorded. |
 | EB-X | Stretch: browser viewer / optional signing only after explicit contract review | Separate acceptance; no substitution for EB-0…4. |
@@ -584,8 +598,8 @@ afterwards. Targeted development controls use green → named assertion failure 
 | A-4 Portable fidelity | Different home/path, sender checkout absent: same supported charts/styles/data, focuses, flags, reports and initial view; no machine/secret families | Omit chart style or flags, or restore the sender's anchor. |
 | A-5 Excerpt scope | Separated records, duplicate times and hostile delimiter/content payloads round-trip by identity/value; counts, omissions and completeness truthful | Use an incorrect cut that preserves count, or reuse whole-source completeness. |
 | A-6 Working copy | Original archive/evidence unchanged after chart/report edits; reopening starts from original; changed working evidence loses original claim | Reuse a modified cached copy or save into verified members. |
-| A-7 Walk/display | Actual forward/back interaction lights correct records/chart/topology at default size; dirty starting view does not leak; invalid step stops honestly | Detach target/banner, omit view restore or allow arbitrary step fields. |
-| A-8 Replay | Original incident reproduced, corrected assertion passes, independent control holds, actual input boundary/count/reset checked | Supply post-mapper input or drop an event. |
+| A-7 Walk/display | Actual forward/back interaction lights correct records/chart/topology at default size; dirty starting view does not leak; invalid step stops honestly | Detach target/banner, omit view restore or allow arbitrary step fields. Run a chart step at 900×620 and report success over an undrawn plot. |
+| A-8 Replay | Original incident reproduced, corrected assertion passes, independent control holds, actual input boundary/count/reset checked | Supply post-mapper input or drop an event. Include an admin reset the captured inputs do not cover, and report FAIL instead of INCOMPATIBLE. |
 | A-9 Comparison | Wrong parent/input/state/oracle, zero assertions, missing correlation or failed runner cannot produce controlled pass | Bypass the input identity check. |
 | A-10 Response | Sender opens B and traces each result to A/B records, changed build and limitations; absent parent remains declared | Replace scoped result with unconditional success or hide absent parent. |
 | A-11 Trust wording | Integrity, declared receipt, unsigned/authenticated state and semantic NOT ASSERTED remain distinct; testimony never becomes a computed finding | Promote a prose claim or declared build association to verified execution. |
@@ -698,3 +712,7 @@ their own derivation and scope. Hash validation applies to both categories.
   chart-export contract surface (L-17), and checks actual replay boundaries and missing integration (L-18). It narrows
   archive reuse (L-19) and adds arguments without deciding identity or signing policy (L-20, L-21). L-22 records checks
   and limits. Earlier discussion entries and all five source drafts are preserved; no implementation or replay trial.
+- r4 (Claude, Spring design session; author of draft A) withdraws four draft A positions (L-23). It adds the walk's
+  dependency on #56 or a pinned size (L-24), and the replay's input channels, with A-7 and A-8 controls (L-25). It
+  offers a lead on the two demo bugs for the owner to confirm (L-26). Evidence is READ, RAN earlier on the Spring
+  sample, or `gh` status. No bundle, replay or product change.
