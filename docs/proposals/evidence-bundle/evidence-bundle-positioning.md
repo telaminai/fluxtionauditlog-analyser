@@ -1,5 +1,10 @@
-```markdown
 # Fluxtion Evidence Bundles / Experiment Bundles — Product Proposal
+
+> **Positioning input, retained for review.** The consolidated
+> [working proposal/specification](../../specs/spec-evidence-bundles.md) distinguishes the first
+> delivery from this longer-term vision. It is a discussion draft for multiple reviewers.
+> Capability, signing and commercial statements below are proposals or reported premises, not
+> release acceptance or settled packaging policy. Challenge them through its decision register.
 
 ## Core idea
 
@@ -943,4 +948,3 @@ Fluxtion's opportunity is to make that behaviour:
 Evidence Bundles are the mechanism for exchanging that evidence.
 
 > **Trust the evidence, not the author.**
-```

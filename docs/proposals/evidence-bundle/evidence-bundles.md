@@ -1,5 +1,11 @@
 # Proposal — evidence bundles
 
+> **Background input, retained for review.** The consolidated
+> [working proposal/specification](../../specs/spec-evidence-bundles.md) sets out the first-delivery
+> scope, provisional contracts, acceptance and open decisions. It is a discussion draft, not final.
+> This account preserves the prototype's observations and original suggestions; claims about replay,
+> rendering and integrity below are not independent verification or extra implementation requirements.
+
 **Status:** proposed 2026-09-27. Written from a working prototype built and used on 2026-09-25.
 
 ## The proposition

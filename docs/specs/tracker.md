@@ -6,6 +6,27 @@ Legend for each item: **[id] status — title** · _acceptance_.
 
 ---
 
+## Evidence bundles — consolidated discussion draft, 2026-09-27
+
+The [working proposal/specification](spec-evidence-bundles.md) consolidates the prototype and
+positioning inputs. **No implementation or acceptance is claimed.** The owner wants portable
+investigations and a bounded replay → fix → comparison → response journey in the first delivery;
+the browser viewer is optional. Two working days is a planning target, subject to the checks and
+the unresolved runner/dependency facts. Multiple reviewers will challenge the draft's decision
+register before implementation; no milestone number is allocated by this intake.
+
+- ☐ **EB-0:** verify one keyless replay route, pre-mapper input boundary, initial conditions and
+  independent incident oracle; identify the named demo bugs and their actual current status.
+- ☐ **EB-1:** portable manifest/archive, member identity, transactional capture and isolated opening.
+- ☐ **EB-2:** read-only evidence with private working state, desktop bundle view and attributed walk.
+- ☐ **EB-3:** original/changed build runs, explicit comparison and linked response bundle.
+- ☐ **EB-4:** negative fixtures, targeted witnesses, cold-recipient acceptance, gates and review.
+- ☐ **EB-X, optional:** offline browser viewer; not a substitute for the required replay journey.
+
+All contracts remain proposed except the stated owner scope. Signatures, registry, general replay,
+customer-data redaction and commercial packaging are deferred; see the spec for the first-delivery
+cut line. Existing work and status marks below are unchanged by this proposal.
+
 ## Spring authoring edit loop — session intake 2026-09-25
 
 **Intake 2026-09-25; slices shipped in analyser 1.21.0 and the template deployment of 2026-09-26, as marked
