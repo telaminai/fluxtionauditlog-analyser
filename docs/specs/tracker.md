@@ -1835,7 +1835,7 @@ retrieval-dated evidence table, because those are live documents that can change
 - [M45] ☐ **Backwards compatibility, assessed — and the risk is not in the GraphML.** At `OFF` the only
   our parser against before/after at `dd36bc5` and found adjacency and node facts identical. ☐ **That
 
-## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived) · M44.4 single-state model IN PROGRESS
+## M44 · Session transitions as a Fluxtion processor — ◧ SLICE 1 SHIPPED 2026-08-31 · M44.3/.3a/.3b SHIPPED in 1.14.0 (archived) · M44.4 single-state model SHIPPED in 1.21.0 (§13 acceptance open) · **M44.5 SHIPPED in 1.24.0** (2026-09-27) · M44.6 owner decision
 
 **Shipped detail archived to [`completed/tracker.md`](completed/tracker.md) on 2026-09-03.** Open slices only below.
 *(Restored 2026-09-24: the three entries below had been cut to their first lines by an earlier edit. The full text
@@ -1989,7 +1989,7 @@ of the originals is in `057a069a`.)*
   5. The M44 shape test and the existing session suites pass on the regenerated processor.
   6. Each new fact node has a stale-generation control.
 
-  **SHIPPED 2026-09-27** — PR #43, merged locally as `b95ed357` after an independent review (F1 required, F2/F3
+  **SHIPPED 2026-09-27, released in 1.24.0** — PR #43, merged locally as `b95ed357` after an independent review (F1 required, F2/F3
   recommended; all fixed in `69dd2b7e`). CI run 36285335350: build 2530/0/0, ui-frame 130/0/0/0, 227 controls caught.
   **Implemented 2026-09-27** on `feat/m44-5-derived-state-in-snapshot`. All six
   acceptance items have tests and controls; results scored in

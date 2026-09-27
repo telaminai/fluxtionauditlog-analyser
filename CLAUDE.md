@@ -96,7 +96,14 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.23.0 released 2026-09-26**: M68.7 — the charts and the record
+`docs/specs/completed/tracker.md`. **Latest: 1.24.0 released 2026-09-27**: M44.5 — the log's own derived state
+(producer findings, time order, provenance, Follow) is the session processor's, rendered from the snapshot, so a
+record appended under Follow is time-order checked and the Follow status line keeps the load line's facts; CLAUDE.md
+rule 9 (one dispatch model) and `OneDispatchModelTest`. With it, PR #33 (issues #20–#23): a workspace anchor from
+Settings, a project-relative exchange directory, the profile in the window title, reports deleted, renamed and
+restored; and PR #24: `aggregate` returns where its counted records begin and end. M44.6 (a superseded load's tail)
+awaits an owner decision.
+**1.23.0 (2026-09-26)**: M68.7 — the charts and the record
 detail pane state the file-identity verdict the table already states (the G14 chart-mark condition) — and the
 phase-1 completion of the Mongoose audit reader: a report, the Reports tab and the `report` reply carry the log's own
 findings; one empty-file wording chosen from what was read, the same on a cold open and under Follow; a report's
