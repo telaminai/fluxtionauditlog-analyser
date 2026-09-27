@@ -82,6 +82,31 @@ class ChartDeleteUnderDefinitionRefusalTest {
                         + "changed, the socket is doing what the UI's blanket disable exists to prevent.");
     }
 
+    /**
+     * Review of the review response: {@code close} replies "the DEFINITION is kept", and under a refusal that
+     * is false. {@code syncOpenGraphsIntoConfig} returns early while definitions are refused, so a chart made
+     * since the refusal exists only as a tab — closing it discards it, exactly as a delete would, while the
+     * reply tells the caller the opposite. An assistant closing the chart that carries its finding, to tidy
+     * up, would lose it believing it was kept. Refusing (and saying why) keeps "close is the safe half" true.
+     */
+    @Test
+    @DisplayName("A close under refusal is refused: nothing is saved, so it would discard what it claims to keep")
+    void aCloseUnderRefusalWouldDiscardSoItIsRefused() {
+        Rig rig = rig();
+        rig.tabs().refuseDefinitions("two saved charts are called 'kept-A'");
+        rig.verb().render("graph", Map.of("newTab", true, "name", "finding",
+                "series", List.of("bidMakerOrder.price")));
+        rig.verb().render("graph", Map.of("newTab", true, "name", "probe",
+                "series", List.of("bidMakerOrder.price")));
+
+        var r = rig.verb().render("graph", Map.of("name", "finding", "close", true));
+
+        assertFalse(r.ok(), "a close that cannot keep the definition must not report that it did");
+        assertTrue(r.error().contains("two saved charts are called 'kept-A'"),
+                () -> "the refusal's own words, so the caller knows why and what to repair: " + r.error());
+        assertTrue(rig.tabs().graphNames().contains("finding"), "refused means nothing changed");
+    }
+
     @Test
     @DisplayName("A refusal clears the strip, which is why only new charts are reachable")
     void theRefusalClearsTheStrip() {

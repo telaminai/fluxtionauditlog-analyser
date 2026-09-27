@@ -577,4 +577,11 @@ CONTROLS = [
      'boolean withheld = target == null || onEdt(() -> graphTabs.isWithheldDefinition(target));',
      'boolean withheld = false;',
      'ChartDeleteUnderDefinitionRefusalTest#aWithheldChartIsRefused'),
+
+    # Reviewer, on the response: close promises "kept", and under a definition refusal nothing is saved —
+    # so a close there discarded the chart while saying it had kept it. The refusal keeps the promise true.
+    ('p51r-50-close-refused-under-refusal', UI + 'GraphTabs.java',
+     '        if (definitionRefusal != null) {\n            return "\'" + name.trim() + "\' is not saved',
+     '        if (false) {\n            return "\'" + name.trim() + "\' is not saved',
+     'ChartDeleteUnderDefinitionRefusalTest#aCloseUnderRefusalWouldDiscardSoItIsRefused'),
 ]

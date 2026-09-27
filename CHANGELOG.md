@@ -11,7 +11,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **`graph {name, close: true}`** — take a chart off the screen and keep its definition, the way
   *Close graph* has always worked on the desktop. Over the socket, `delete` used to be the only way
   to get a chart out of the way, and it is not recoverable; the safe half of removal is now
-  available to an assistant tidying up after itself.
+  available to an assistant tidying up after itself. It is refused while chart definitions are
+  withheld as ambiguous, because nothing is saved then and a close would discard the chart.
 
 ### Fixed
 

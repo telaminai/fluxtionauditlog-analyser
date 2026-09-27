@@ -612,12 +612,23 @@ public final class GraphTabs extends JPanel {
      * <p>The tab strip keeps at least one tab, so closing the last chart is refused rather than
      * silently leaving a blank placeholder in its place.
      *
+     * <p>Refused, too, while definitions are refused: nothing is saved then, so a close could not keep
+     * anything. The desktop's Close stays enabled under a refusal (owner, 2026-09-24) and says nothing;
+     * this verb promises "kept", so it must not be able to break the promise.
+     *
      * @return null on success, otherwise why it was refused
      */
     public String closeNamed(String name) {
         if (name == null || name.isBlank()) return "close needs a chart name";
         GraphPanel gp = graphNamed(name.trim());
         if (gp == null) return "no open chart named '" + name.trim() + "' — open charts: " + graphNames();
+        // PR #51 review: nothing is saved while a refusal stands (MainFrame.syncOpenGraphsIntoConfig returns
+        // early), so every chart open now was made since the refusal and lives only as its tab. Closing one
+        // would discard it — the reply would call that "kept". Refuse, in the refusal's own words.
+        if (definitionRefusal != null) {
+            return "'" + name.trim() + "' is not saved — no chart is while this stands: " + definitionRefusal
+                    + " Closing it would discard it; repair the names first, or delete it if discarding is meant.";
+        }
         if (tabs.getTabCount() <= 1) {
             return "'" + name.trim() + "' is the only open chart and the strip keeps one; its definition is "
                     + "already saved, so there is nothing to close it FOR";
