@@ -95,6 +95,68 @@ class GraphNotesReplaceAndChartsDeleteTest {
         assertEquals(1, noteCount(tabs, "g"));
     }
 
+    // ---- #50, review: close is the safe half of removal -----------------------------------------
+
+    /**
+     * Close and delete, side by side against the SAME definition store — because the difference
+     * between them is the only reason close exists, and it is invisible unless both are shown.
+     * {@code deleteListener} is the profile's one removal channel, so a definition surviving it is
+     * the whole claim.
+     */
+    @org.junit.jupiter.api.Test
+    @DisplayName("close keeps the definition; delete removes it")
+    void closeKeepsWhatDeleteRemoves() {
+        GraphTabs tabs = new GraphTabs();
+        java.util.List<String> definitions = new java.util.ArrayList<>(List.of("putAway", "discard"));
+        tabs.setDeleteListener(definitions::remove);
+        ActionExecutor ex = executor(tabs);
+        ex.render("graph", Map.of("newTab", true, "name", "putAway", "series", List.of("bidMakerOrder.price")));
+        ex.render("graph", Map.of("newTab", true, "name", "discard", "series", List.of("bidMakerOrder.price")));
+
+        var closed = ex.render("graph", Map.of("name", "putAway", "close", true));
+
+        assertTrue(closed.ok(), () -> "close failed: " + closed);
+        assertEquals("putAway", closed.payload().get("closed"));
+        assertFalse(tabs.graphNames().contains("putAway"), "off the screen");
+        assertEquals(List.of("putAway", "discard"), definitions,
+                "close must NOT reach the profile's removal channel — that is the whole difference from "
+                        + "delete, and what makes the delete reply's advice actionable over the socket");
+
+        ex.render("graph", Map.of("name", "discard", "delete", true));
+
+        assertEquals(List.of("putAway"), definitions, "delete does reach it");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Closing the last chart is refused rather than leaving a blank in its place")
+    void theLastChartCannotBeClosed() {
+        GraphTabs tabs = new GraphTabs();
+        ActionExecutor ex = executor(tabs);
+        ex.render("graph", Map.of("newTab", true, "name", "only", "series", List.of("bidMakerOrder.price")));
+        while (tabs.graphNames().size() > 1) {
+            ex.render("graph", Map.of("name", tabs.graphNames().get(0), "delete", true));
+        }
+
+        var r = ex.render("graph", Map.of("name", "only", "close", true));
+
+        assertFalse(r.ok(), "the strip keeps one tab; closing the last would just swap it for a blank");
+        assertTrue(tabs.hasDefinition("only"));
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("A close does only the close")
+    void closeRefusesToDoAnythingElse() {
+        GraphTabs tabs = new GraphTabs();
+        ActionExecutor ex = executor(tabs);
+        ex.render("graph", Map.of("newTab", true, "name", "a", "series", List.of("bidMakerOrder.price")));
+        ex.render("graph", Map.of("newTab", true, "name", "b", "series", List.of("bidMakerOrder.price")));
+
+        var r = ex.render("graph", Map.of("name", "b", "close", true, "style", "line"));
+
+        assertFalse(r.ok(), "same rule as rename and delete: refuse the whole call, change nothing");
+        assertTrue(tabs.graphNames().contains("b"));
+    }
+
     // ---- #50: a chart can be deleted ------------------------------------------------------------
 
     @Test

@@ -432,6 +432,31 @@ public final class ActionExecutor implements RenderExecutor {
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
         // rename requires an explicit target {name, rename} — never selection-dependent
+        if (bool(p.get("close"))) {
+            // PR #51 review, on #50: the safe half of removal. Before this, delete was the only way to get
+            // a chart off the screen over the socket — so "not recoverable" was not a warning a caller
+            // could act on. Closing keeps the definition (ClosingAChartKeepsItsDefinitionTest), so the
+            // socket now has the same two acts the desktop has: Close to put away, Delete to discard.
+            String target = asText(p.get("name"));
+            if (target == null) return ActionResult.error("graph close needs the target 'name'");
+            List<String> alsoAsked = new java.util.ArrayList<>(p.keySet());
+            alsoAsked.removeAll(List.of("name", "close"));
+            if (!alsoAsked.isEmpty()) {
+                return ActionResult.error("a close does only the close — send " + alsoAsked
+                        + " as a separate graph call; nothing was changed");
+            }
+            return onEdt(() -> {
+                String refused = graphTabs.closeNamed(target);
+                if (refused != null) return ActionResult.error(refused);
+                var echo = new java.util.LinkedHashMap<String, Object>();
+                echo.put("closed", target);
+                echo.put("open", graphTabs.chartsThatRemain());
+                echo.put("note", "the DEFINITION is kept — reopen it by name, or from the Project panel. "
+                        + "Use delete to discard it instead.");
+                return ActionResult.ok("graph", "closed", echo);
+            });
+        }
+
         if (bool(p.get("delete"))) {
             // #50: parity with report {name, delete}. Before the rename branch and before the build
             // path, for the same reason the report verb puts its delete first — this call carries a
@@ -439,6 +464,15 @@ public final class ActionExecutor implements RenderExecutor {
             // chart" and quietly create the very thing being deleted.
             String target = asText(p.get("name"));
             if (target == null) return ActionResult.error("graph delete needs the target 'name'");
+            // PR #51 review asked whether this should match the UI, which disables Delete for EVERY chart
+            // while definitions are ambiguous (owner, 2026-09-24). It deliberately does not, and the
+            // difference is narrower than it looks. The refusal exists to stop an ambiguous NAME resolving
+            // to the wrong saved definition; the guard above this branch already refuses exactly those
+            // names. A refusal also CLEARS the tab strip, so the only charts that can then exist are ones
+            // created after it — which have no saved definition, so a delete cannot reach the wrong one and
+            // the profile is not touched. The UI is blunt because it cannot say that to a person per chart;
+            // the socket can, and does, by name and with the reason. Pinned by
+            // ChartDeleteUnderDefinitionRefusalTest.
             List<String> alsoAsked = new java.util.ArrayList<>(p.keySet());
             alsoAsked.removeAll(List.of("name", "delete"));
             if (!alsoAsked.isEmpty()) {
@@ -455,7 +489,8 @@ public final class ActionExecutor implements RenderExecutor {
                 echo.put("remaining", graphTabs.chartsThatRemain());   // PR #51 review: not the blank tab a last delete opens
                 echo.put("note", "the chart DEFINITION is gone — its series, formulas, pinned notes and "
                         + "explanation. The log is untouched, and any PNG already exported is a separate "
-                        + "file. This one is not recoverable; close a chart instead to put it away.");
+                        + "file. This one is NOT recoverable — unlike report {delete}. To put a chart away "
+                        + "without losing it use graph {name, close: true}.");
                 return ActionResult.ok("graph", "deleted", echo);
             });
         }

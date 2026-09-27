@@ -600,6 +600,34 @@ public final class GraphTabs extends JPanel {
         fireChanged();
     }
 
+    /**
+     * Close a chart by NAME, keeping its definition — the non-destructive neighbour of
+     * {@link #deleteNamed}, which the desktop has had all along as "Close graph".
+     *
+     * <p>PR #51 review, on #50: over the socket, delete was the ONLY way to get a chart off the
+     * screen, and it is irreversible. That is what made the irreversibility bite — not that delete
+     * exists, but that an assistant tidying up had no gentler option and the reply's own advice
+     * ("close a chart instead to put it away") named something it could not do.
+     *
+     * <p>The tab strip keeps at least one tab, so closing the last chart is refused rather than
+     * silently leaving a blank placeholder in its place.
+     *
+     * @return null on success, otherwise why it was refused
+     */
+    public String closeNamed(String name) {
+        if (name == null || name.isBlank()) return "close needs a chart name";
+        GraphPanel gp = graphNamed(name.trim());
+        if (gp == null) return "no open chart named '" + name.trim() + "' — open charts: " + graphNames();
+        if (tabs.getTabCount() <= 1) {
+            return "'" + name.trim() + "' is the only open chart and the strip keeps one; its definition is "
+                    + "already saved, so there is nothing to close it FOR";
+        }
+        gp.unbind();
+        tabs.removeTabAt(indexOf(gp));
+        fireChanged();
+        return null;
+    }
+
     /** Told the NAME of a chart the person deleted, so the owner of the config can drop its definition. */
     private java.util.function.Consumer<String> deleteListener = name -> { };
 
