@@ -61,7 +61,9 @@ public final class SessionAuditSink implements LogRecordListener {
 
     /** M44.5: the log-evidence re-derivations, retained like a re-scope. */
     static final java.util.List<String> RESCOPE_EVENTS = java.util.List.of(RESCOPE_EVENT,
-            "event: ProducerFindingsObserved", "event: TimeOrderObserved", "event: ScanScheduled");
+            "event: ProducerFindingsObserved", "event: TimeOrderObserved", "event: ScanScheduled",
+            // view-model spike: the store's shape rides each scan, and a render answers each changed view
+            "event: LogShapeObserved", "event: ViewRendered");
 
     /** M44.5: every Follow poll's content observation — kept apart, so an idle poll evicts nothing but its own kind. */
     static final String OBSERVATION_EVENT = "event: LogContentObserved";

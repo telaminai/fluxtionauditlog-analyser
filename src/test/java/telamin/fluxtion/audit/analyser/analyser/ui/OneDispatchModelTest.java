@@ -59,9 +59,10 @@ class OneDispatchModelTest {
             new OnlyIn("the log's time order is validated",
                     Pattern.compile("TimeOrderValidator\\s*(\\.\\s*validate\\s*\\(|::\\s*validate\\b)"),
                     "private void scanLogEvidence("),
-            // witness: compose the Follow line in pollFollow again (the W2 defect: a second assembly)
+            // witness: compose the Follow line in pollFollow again (the W2 defect: a second assembly). View-model spike:
+            // the composer is now a pure function of the session's StatusLineView, called by the backends
             new OnlyIn("the log's status line is composed", Pattern.compile("(?<!String )\\bstatusLine\\("),
-                    "private void renderLogEvidence("),
+                    "static String statusLineText("),
             // witness: restore the tooltip set in the load path
             new OnlyIn("the log's findings tooltip is set",
                     Pattern.compile("(?<![A-Za-z])status\\.setToolTipText\\("), "private void renderLogEvidence(", true),

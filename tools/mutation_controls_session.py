@@ -286,9 +286,10 @@ CONTROLS = [
      '        if (findings != null && !findings.isClean()) {',
      '        if (findings != null && !findings.isClean() && false) {',
      'LogFindingsOnEverySurfaceFrameTest#anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives'),
+    # view-model spike: the words moved to statusLineText, a pure function of the session's view
     ('p15-follow-line-keeps-warning', UI + 'MainFrame.java',
-     'orderWarning(order), producerWarning(findings), trailingPendingNote());',
-     'orderWarning(order), "", trailingPendingNote());',
+     'orderWarning(v.timeOrderViolations()), producerWarning(v.producerWarning()),',
+     'orderWarning(v.timeOrderViolations()), "",',
      'LogFindingsOnEverySurfaceFrameTest#anEmptyFollowedFileSaysSoEverywhere_andEverySurfaceClearsWhenARecordArrives'),
     ('p15-ledger-level-change', J + 'topology/CoverageService.java',
      'if (note != null && "uncovered".equals(row.get("status"))) row.put("levelChange", note);',
@@ -401,16 +402,23 @@ CONTROLS = [
      'TimeOrderValidator.validate(s);', 'TimeOrderReport.clean();',
      'LogFindingsOnEverySurfaceFrameTest#aTimeOrderViolationAppendedUnderFollowIsReported'),
     # W2: the Follow line drops the provenance again, as its second assembly did
-    ('m44-5-w2-follow-line-keeps-provenance', UI + 'MainFrame.java',
-     '                next.provenance() != null ? next.provenance()',
-     '                next.provenance() != null && !next.following() ? next.provenance()',
+    # view-model spike: the view is built in the statusLineView node; the frame witness still sees it drawn
+    ('m44-5-w2-follow-line-keeps-provenance', NODE + 'StatusLine.java',
+     'openLog.provenance(), openLog.total(), shape.firstLogTime()',
+     '(openLog.following() ? null : openLog.provenance()), openLog.total(), shape.firstLogTime()',
      'LogFindingsOnEverySurfaceFrameTest#theFollowLineKeepsTheProvenanceAndTheOrderWarning'),
-    ('m44-5-line-waits-for-the-session', UI + 'MainFrame.java',
-     '        if (next.total() != s.size()) return;', '',
-     'LogFindingsOnEverySurfaceFrameTest#theLineNeverCountsNewRowsBesideTheOldFindings'),
-    ('m44-5-line-waits-for-the-scan', UI + 'MainFrame.java',
-     'next.evidencePending()', 'false',
-     'LogFindingsOnEverySurfaceFrameTest#theLineNeverCountsNewRowsBesideTheOldFindings'),
+    # view-model spike: the frame's gate became the node's shape-matches-the-count rule. Its frame witness no longer
+    # reaches it — the shape comes from a scan that runs in a later EDT task than the poll that reported the append,
+    # so in the frame the two always agree; the race is constructed directly, and only headless (measured 2026-09-27)
+    ('m44-5-line-waits-for-the-session', NODE + 'StatusLine.java',
+     'if (shape == null || shape.records() != openLog.total()) {', 'if (shape == null) {',
+     'StatusLineViewTest#aShapeOfAnotherRevisionWaits'),
+    # view-model spike: the line's scan gate is the node's. A half-landed scan's view would be drawn and replaced inside
+    # one EDT task, so no frame test sees it — but the audit would record it as told; the witness is headless
+    ('m44-5-line-waits-for-the-scan', NODE + 'StatusLine.java',
+     'if (findings == null || logEvidence.timeOrder() == null || logEvidence.scanPending()) {',
+     'if (findings == null || logEvidence.timeOrder() == null) {',
+     'StatusLineViewTest#aHalfLandedScanIsNotDrawn'),
     # acceptance 4: the environment's provenance is resolved BEFORE the log is reported open, into the one copy
     ('m44-5-environment-before-open', UI + 'MainFrame.java',
      '                provenance = match.environment().provenance();\n', '',
@@ -610,4 +618,34 @@ CONTROLS = [
     ('p51ci-pane-text-read-on-edt', UI + 'SourcePanel.java',
      'if (SwingUtilities.isEventDispatchThread()) return read.get();', 'if (true) return read.get();',
      'SourcePanelPaneTextIsReadOnTheEdtTest#paneTextWaitsForTheEdt'),
+
+    # --- View-model spike (2026-09-27): the status line as a node --------------------------------------------------
+    # W2, headless: the Follow line dropped the provenance. A view that loses it under Follow must turn a test red
+    # with no display — that is the utility claim.
+    ('vm-w2-provenance-under-follow', NODE + 'StatusLine.java',
+     'openLog.provenance(), openLog.total(), shape.firstLogTime()',
+     '(openLog.following() ? null : openLog.provenance()), openLog.total(), shape.firstLogTime()',
+     'StatusLineViewTest#followKeepsProvenanceAndOrderWarning'),
+    # R12-2's rule, now the node's: an unchanged view is not drawn, so an idle poll overwrites nothing.
+    ('vm-unchanged-view-not-drawn', NODE + 'StatusLine.java',
+     'if (view.equals(emitted)) return false;', '',
+     'StatusLineViewTest#anIdlePollDrawsNothing'),
+    # A new log's first view is always drawn: closing the generation forgets the last one.
+    ('vm-new-generation-drawn', NODE + 'StatusLine.java',
+     'StatusLineView view = new StatusLineView(generation,',
+     'StatusLineView view = new StatusLineView(0L,',
+     'StatusLineViewTest#aNewGenerationIsAlwaysDrawn'),
+    # The audit records what CHANGED, not the whole view.
+    ('vm-audit-records-the-diff', NODE + 'StatusLine.java',
+     'Map<String, Object> changed = view.changedFrom(emitted);', 'Map<String, Object> changed = view.fields();',
+     'StatusLineViewTest#theAuditSaysWhatTheLineWasTold'),
+    # The one text composer: the Follow line is the load line with Follow on (W2 at the words).
+    ('vm-w2-text-composer', UI + 'MainFrame.java',
+     'v.provenance() != null ? v.provenance() + "  (" + name + ")" : name, v.knownComplete(),',
+     'v.provenance() != null && !v.following() ? v.provenance() + "  (" + name + ")" : name, v.knownComplete(),',
+     'StatusLineBackendsTest#theFollowLineIsTheLoadLineWithFollowOn'),
+    # The Swing backend is the frame's status bar: without it the person sees no line at all.
+    ('vm-swing-backend-draws', UI + 'MainFrame.java',
+     '                            status.setText(statusLineText(v));\n', '',
+     'LogFindingsOnEverySurfaceFrameTest#theFollowLineKeepsTheProvenanceAndTheOrderWarning'),
 ]
