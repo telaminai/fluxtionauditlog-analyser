@@ -1,4 +1,3 @@
-```markdown
 # Fluxtion Evidence Bundles / Experiment Bundles — Product Proposal
 
 ## Core idea
@@ -943,4 +942,3 @@ Fluxtion's opportunity is to make that behaviour:
 Evidence Bundles are the mechanism for exchanging that evidence.
 
 > **Trust the evidence, not the author.**
-```
