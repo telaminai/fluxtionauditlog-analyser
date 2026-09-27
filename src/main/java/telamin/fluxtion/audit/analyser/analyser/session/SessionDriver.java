@@ -298,6 +298,7 @@ public final class SessionDriver {
             case SessionEffects.ShowStatusEffect ignored -> "showStatus";
             case SessionEffects.ShowWarningEffect ignored -> "showWarning";
             case SessionEffects.OpenLogEffect ignored -> "openLog";
+            case SessionEffects.ScanLogEvidenceEffect ignored -> "scanLogEvidence";
         };
     }
 

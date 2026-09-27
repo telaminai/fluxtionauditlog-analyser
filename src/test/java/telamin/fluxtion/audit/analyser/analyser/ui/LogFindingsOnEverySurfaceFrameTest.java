@@ -92,8 +92,8 @@ class LogFindingsOnEverySurfaceFrameTest {
             Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n"
                     + "    - node: { value: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
 
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 Map<String, Object> report = render(f.ex, "report", REPORT);
                 assertAll("MA-0.5: a record arrived, and no surface still says the file is empty",
                         () -> assertFalse(status(f.frame).getText().contains("empty log"),
@@ -126,8 +126,8 @@ class LogFindingsOnEverySurfaceFrameTest {
 
             Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n",
                     java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 // review item 7: V2 on EVERY surface the first test covers, not two of them
                 assertFalse(reportsTab(f.frame).contains("No records"), "the Reports tab, read before any verb");
                 Map<String, Object> report = render(f.ex, "report", REPORT);
@@ -195,8 +195,8 @@ class LogFindingsOnEverySurfaceFrameTest {
                     "H1: the exported PDF carries the empty-log finding");
 
             appendRecord(log);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             String after = onEdtGet(() -> {
-                poll(f.frame);
                 return pdf(render(f.ex, "report", with(REPORT, "path", "one-record.pdf")));
             });
             assertFalse(after.contains("LOG FINDINGS"), "a record arrived: the next export has nothing to say");
@@ -223,9 +223,9 @@ class LogFindingsOnEverySurfaceFrameTest {
 
             Files.writeString(log, "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n",
                     java.nio.file.StandardOpenOption.APPEND);   // no closing ---: pending, not a record
+            int rows = onEdtGet(() -> ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store")).size());
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                int rows = ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store")).size();
-                poll(f.frame);
                 assertEquals(rows, ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store"))
                         .size(), "precondition: this poll added no record, so nothing else re-renders the tab");
                 assertFalse(reportsTab(f.frame).contains("No records"),
@@ -233,8 +233,8 @@ class LogFindingsOnEverySurfaceFrameTest {
             });
 
             Files.writeString(log, "  nodeLogs:\n    - node: { value: 1}\n---\n", java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 assertFalse(reportsTab(f.frame).contains("No records"), "and once the record lands, still current");
             });
         }
@@ -258,8 +258,7 @@ class LogFindingsOnEverySurfaceFrameTest {
             }
             assertTrue(f.ex.render("open", Map.of("log", second.toString())).ok(), "the second log opens");
             long deadline = System.currentTimeMillis() + 20_000;
-            while (!onEdtGet(() -> ((telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics)
-                    field(f.frame, "producerDiagnostics")).findings().stream()
+            while (!onEdtGet(() -> findingsOf(f.frame) != null && findingsOf(f.frame).findings().stream()
                     .anyMatch(x -> x.kind().name().equals("NO_RECORD_KEY")))) {
                 assertTrue(System.currentTimeMillis() < deadline, "the second log's findings never published");
                 Thread.sleep(25);
@@ -288,7 +287,7 @@ class LogFindingsOnEverySurfaceFrameTest {
     }
 
     private static String frameFirstWarning(MainFrame frame) {
-        return ((telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(frame, "producerDiagnostics"))
+        return findingsOf(frame)
                 .firstWarning().orElseThrow(() -> new AssertionError("the frame reports nothing")).message();
     }
 
@@ -311,8 +310,8 @@ class LogFindingsOnEverySurfaceFrameTest {
             String cold = coldOpenFirstWarning(log);
             assertTrue(cold.startsWith(telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.EMPTY_FILE_ENDED),
                     "precondition: a cold open of these bytes gives the ended sentence: " + cold);
+            onEdt(() -> poll(f.frame));   // M44.5: the scan it asks for reports on the next EDT turn
             onEdt(() -> {
-                poll(f.frame);
                 String tab = reportsTab(f.frame);            // read before any verb
                 String tip = String.valueOf(status(f.frame).getToolTipText());
                 assertAll("V2 at the Follow call site",
@@ -364,14 +363,14 @@ class LogFindingsOnEverySurfaceFrameTest {
                 f.frame.setSize(1300, 850);
                 f.frame.setVisible(true);
                 render(f.ex, "report", REPORT);   // builds the report AND selects it on the tab
-                return field(f.frame, "producerDiagnostics");
+                return findingsOf(f.frame);
             });
 
             assertTrue(f.ex.render("open", Map.of("logs", List.of(only.toString()))).ok(), "a set of one opens");
             long deadline = System.currentTimeMillis() + 20_000;
             while (!onEdtGet(() -> field(f.frame, "store")
                     instanceof telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore
-                    && field(f.frame, "producerDiagnostics") != before)) {
+                    && findingsOf(f.frame) != null && findingsOf(f.frame) != before)) {
                 assertTrue(System.currentTimeMillis() < deadline, "the set's findings never published");
                 Thread.sleep(25);
             }
@@ -411,5 +410,199 @@ class LogFindingsOnEverySurfaceFrameTest {
             method.setAccessible(true);
             method.invoke(frame);
         } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+    }
+
+    // ---- M44.5: the witnesses of 2026-09-27, kept as regression checks -----------------------------------------------
+
+    private static String rec(long logTime) {
+        return "eventLogRecord:\n  logTime: " + logTime + "\n  event: Tick\n  nodeLogs:\n    - node: { value: 1}\n---\n";
+    }
+
+    /** Opens {@code log} for the socket, follows it with the timer stopped, and lets the open's scan report. */
+    private static void followWithManualPolls(AsyncOpenInterleavingFrameTest.Frame f, Map<String, Object> open)
+            throws Exception {
+        assertTrue(f.ex.render("open", open).ok(), "the fixture opens: " + open);
+        AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+        assertTrue(f.ex.render("open", Map.of("follow", true)).ok(), "and is followed");
+        onEdt(() -> ((Timer) field(f.frame, "followTimer")).stop());   // the test drives each poll
+        onEdt(() -> { });                                                // the open's scan has reported
+    }
+
+    /**
+     * W1: a record appended under Follow that runs BACKWARDS in time was never reported — the time order was validated
+     * once, at load, by the loader. It is logEvidence's now, re-derived whenever the content moves.
+     */
+    @Test
+    void aTimeOrderViolationAppendedUnderFollowIsReported() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = Files.writeString(tmp.resolve("ordered.yaml"), "---\n" + rec(1000) + rec(2000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            followWithManualPolls(f, Map.of("log", log.toString()));
+            onEdt(() -> {
+                assertNull(find(render(f.ex, "context", Map.of()), "timeOrder"), "control: the file is ordered");
+                assertFalse(status(f.frame).getText().contains("time-order"), "control: " + status(f.frame).getText());
+            });
+
+            Files.writeString(log, rec(500), java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));
+            onEdt(() -> assertAll("W1: the appended violation is reported where a load's would be",
+                    () -> assertNotNull(find(render(f.ex, "context", Map.of()), "timeOrder"), "context.timeOrder"),
+                    () -> assertTrue(status(f.frame).getText().contains("time-order violations (1)"),
+                            "the Follow status line: " + status(f.frame).getText())));
+        }
+    }
+
+    /**
+     * W2: the Follow status line was a second assembly, and it dropped the provenance and the time-order warning that
+     * the load line carried. One composer now; Follow changes the head of the line, never the facts on it.
+     */
+    @Test
+    void theFollowLineKeepsTheProvenanceAndTheOrderWarning() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = Files.writeString(tmp.resolve("disordered.yaml"), "---\n" + rec(2000) + rec(1000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            followWithManualPolls(f, Map.of("log", log.toString(), "provenance", "DEMO"));
+            onEdt(() -> {
+                String line = status(f.frame).getText();
+                assertAll("W2: what the load line says, the Follow line says: " + line,
+                        () -> assertTrue(line.startsWith("Following DEMO  (disordered.yaml)"), "the provenance"),
+                        () -> assertTrue(line.contains("time-order violations (1)"), "the order warning"));
+            });
+            Files.writeString(log, rec(3000), java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));
+            onEdt(() -> {
+                String line = status(f.frame).getText();
+                assertAll("and after an append: " + line,
+                        () -> assertTrue(line.startsWith("Following DEMO  (disordered.yaml) · 3 records"), "the count"),
+                        () -> assertTrue(line.contains("time-order violations (1)"), "the order warning"));
+            });
+        }
+    }
+
+    /**
+     * M44.5 acceptance 4: a project environment supplies the provenance, and the session's copy is the only copy. It
+     * is resolved before the log is reported open, so `context`, the snapshot and the Follow line state the same thing.
+     */
+    @Test
+    void anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path project = Files.createDirectories(tmp.resolve("project"));
+        Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(project);
+        var seed = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        seed.environments.add(new telamin.fluxtion.audit.analyser.analyser.config.Environment("prod", "DEMO", "logs/prod"));
+        telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, seed,
+                new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+        Path log = Files.writeString(Files.createDirectories(project.resolve("logs/prod")).resolve("run.yaml"),
+                "---\n" + rec(1000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("project", profile.toString())).ok(), "the project opens");
+            followWithManualPolls(f, Map.of("log", log.toString()));
+            onEdt(() -> {
+                var snap = ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session")).snapshot();
+                Map<String, Object> ctx = render(f.ex, "context", Map.of());
+                assertAll("one provenance, from the environment, everywhere",
+                        () -> assertEquals("DEMO", snap.provenance(), "the session's copy"),
+                        () -> assertTrue(String.valueOf(snap.provenanceSource()).contains("prod"),
+                                "and who supplied it: " + snap.provenanceSource()),
+                        () -> assertEquals(snap.provenance(), find(ctx, "provenance"), "context"),
+                        () -> assertEquals(snap.provenanceSource(), find(ctx, "provenanceSource"), "context's source"),
+                        () -> assertTrue(status(f.frame).getText().startsWith("Following DEMO  (run.yaml)"),
+                                "the Follow line: " + status(f.frame).getText()));
+            });
+        }
+    }
+
+    /**
+     * Review F2 (PR #43), through the frame: a rolled set's cross-file finding — its files overlap — reaches the session's
+     * time order through the scan, from the store it was loaded with. Nothing in the frame keeps it.
+     */
+    @Test
+    void aRolledSetsFileOverlapReachesContextAndTheLine() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path first = Files.writeString(tmp.resolve("m.log.1"), "---\n" + rec(100) + rec(250));
+        Path second = Files.writeString(tmp.resolve("m.log.2"), "---\n" + rec(200) + rec(300));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("logs", List.of(first.toString(), second.toString()))).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            onEdt(() -> {
+                Object order = find(render(f.ex, "context", Map.of()), "timeOrder");
+                String line = status(f.frame).getText();
+                assertAll("F2: the set's overlap is part of its time order",
+                        () -> assertTrue(String.valueOf(order).contains("overlap"), "context.timeOrder: " + order),
+                        () -> assertTrue(line.contains("time-order violations"), "the line: " + line));
+            });
+        }
+    }
+
+    /**
+     * Review F1 (PR #43), through the frame: a load that throws inside onLoaded AFTER LogOpened never performs its
+     * scan, and must not stop the next log's. The fault is a later load step failing — here the summary panel is
+     * absent while the first log loads — and it is put back before the second open.
+     */
+    @Test
+    void aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path broken = Files.writeString(tmp.resolve("broken.yml"), "---\n" + rec(1000));
+        Path good = Files.writeString(tmp.resolve("good.yml"), "---\n" + rec(2000) + rec(1000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            java.lang.reflect.Field panel = MainFrame.class.getDeclaredField("summaryPanel");
+            panel.setAccessible(true);
+            Object original = onEdtGet(() -> panel.get(f.frame));
+            onEdt(() -> { try { panel.set(f.frame, null); } catch (IllegalAccessException e) { throw new AssertionError(e); } });
+            assertTrue(f.ex.render("open", Map.of("log", broken.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            onEdt(() -> {
+                try { panel.set(f.frame, original); } catch (IllegalAccessException e) { throw new AssertionError(e); }
+                assertTrue(status(f.frame).getText().startsWith("Loading "),
+                        "control: the broken load threw after LogOpened, so nothing claims it loaded: "
+                                + status(f.frame).getText());
+            });
+
+            assertTrue(f.ex.render("open", Map.of("log", good.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            onEdt(() -> {
+                var snap = ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session")).snapshot();
+                String line = status(f.frame).getText();
+                assertAll("F1: the next log's evidence is scanned and rendered",
+                        () -> assertFalse(snap.evidencePending(), "no scan is left outstanding"),
+                        () -> assertTrue(line.startsWith("2 records") && line.contains("time-order violations (1)"),
+                                "the composed line: " + line),
+                        () -> assertNotNull(find(render(f.ex, "context", Map.of()), "timeOrder"), "context.timeOrder"));
+            });
+        }
+    }
+
+    /**
+     * M44.5, found while building it: between a poll and the scan it asks for, the line counted the NEW rows beside the
+     * PREVIOUS revision's findings — "1 records … ⚠ empty log". The snapshot says a scan is outstanding, and the line
+     * waits for it: read in the same EDT turn as the poll, it is still the previous revision's whole line.
+     */
+    @Test
+    void theLineNeverCountsNewRowsBesideTheOldFindings() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            Path log = emptyFollowedWithAReport(f);
+            String before = onEdtGet(() -> status(f.frame).getText());
+            assertTrue(before.contains("0 records") && before.contains("empty log"), "control: " + before);
+            appendRecord(log);
+            onEdt(() -> {
+                poll(f.frame);
+                String during = status(f.frame).getText();
+                assertFalse(during.contains("1 records") && during.contains("empty log"),
+                        "one revision per line, never two: " + during);
+                // not only the count: the range and the pending note are the previous revision's too, so the whole
+                // line is unchanged until the session has the new revision and its evidence
+                assertEquals(before, during, "the previous revision's whole line");
+            });
+            onEdt(() -> {
+                String after = status(f.frame).getText();
+                assertTrue(after.contains("1 records") && !after.contains("empty log"), "and then the new one: " + after);
+            });
+        }
+    }
+
+    /** M44.5: the log's findings are the session's (logEvidence), published in the snapshot — null until the scan lands. */
+    static telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics findingsOf(MainFrame frame) {
+        return ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(frame, "session")).snapshot().producerFindings();
     }
 }

@@ -100,6 +100,8 @@ class SessionSnapshotTest {
         d.submit(SessionFixtures.graph("/g.graphml", "OPENED", DECLARED, List.of("EventLogManager")));
         List<String> transitions = sink.transitions();
         long g = d.snapshot().logGeneration();
+        // M44.5: the open's scan acknowledgement is a re-scope too, so count what the ring held before the appends
+        int heldBefore = sink.records().size() - transitions.size();
 
         for (int n = 1; n <= 1_000; n++) {
             d.post(new SessionEvents.LogAppended(g, DECLARED, 10, 10 + n, "TRACE"));
@@ -107,8 +109,34 @@ class SessionSnapshotTest {
 
         assertEquals(transitions, sink.transitions(), "every transition is still held");
         assertEquals(0, sink.droppedTransitions());
-        assertEquals(1_000 - SessionAuditSink.RESCOPE_CAPACITY, sink.droppedRescopes());
+        assertEquals(heldBefore + 1_000 - SessionAuditSink.RESCOPE_CAPACITY, sink.droppedRescopes());
         assertFalse(sink.isComplete(), "and the record does not claim to be whole");
+    }
+
+    @Test
+    @DisplayName("M44.5: a thousand idle Follow polls evict no re-scope and no transition")
+    void idlePollsEvictNothingButTheirOwnKind() {
+        // witness: route LogContentObserved into the re-scope ring in SessionAuditSink
+        FakeSessionAdapter adapter = new FakeSessionAdapter();
+        SessionAuditSink sink = new SessionAuditSink(50);
+        SessionDriver d = new SessionDriver(adapter, sink);
+        SessionFixtures.openLog(d, adapter, "/l.yaml", "DECLARED", DECLARED, 10, 10, "TRACE");
+        long g = d.snapshot().logGeneration();
+        d.post(new SessionEvents.LogAppended(g, DECLARED, 10, 11, "TRACE"));
+        List<String> transitions = sink.transitions();
+        long appends = sink.records().stream().filter(r -> r.contains(SessionAuditSink.RESCOPE_EVENT)).count();
+
+        for (int n = 1; n <= 1_000; n++) {
+            d.post(new SessionEvents.LogContentObserved(g, 11, 0, "UNKNOWN", 0, null));
+        }
+
+        assertEquals(transitions, sink.transitions(), "every transition is still held");
+        assertEquals(appends, sink.records().stream().filter(r -> r.contains(SessionAuditSink.RESCOPE_EVENT)).count(),
+                "and every re-scope");
+        assertEquals(0, sink.droppedRescopes());
+        // the append's scan is still outstanding (nothing reports it here), so every poll coalesces into it: no effect,
+        // no batch end, and exactly the thousand observations
+        assertEquals(1_000 - SessionAuditSink.OBSERVATION_CAPACITY, sink.droppedObservations());
     }
 
     @Test

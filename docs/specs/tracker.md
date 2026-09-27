@@ -1905,7 +1905,7 @@ of the originals is in `057a069a`.)*
           dot;
         - the Mongoose integration, scheduled after this merge.
 
-- [M44.5] ☐ **The log's own derived state joins the session snapshot — producer findings first.** Scoped
+- [M44.5] ☑ **The log's own derived state joins the session snapshot — producer findings first.** Scoped
   2026-09-27 from the day's review rounds, owner-requested. **M44.4 held:** every surface that read the snapshot
   stayed right, and no defect found on 2026-09-26 was two copies of a snapshot verdict disagreeing. The defects came
   from state M44.4 did not cover, held as `MainFrame` fields, computed at several sites and pushed to surfaces by
@@ -1988,6 +1988,35 @@ of the originals is in `057a069a`.)*
   4. `context.provenance` and the session agree after an environment match.
   5. The M44 shape test and the existing session suites pass on the regenerated processor.
   6. Each new fact node has a stale-generation control.
+
+  **SHIPPED 2026-09-27** — PR #43, merged locally as `b95ed357` after an independent review (F1 required, F2/F3
+  recommended; all fixed in `69dd2b7e`). CI run 36285335350: build 2530/0/0, ui-frame 130/0/0/0, 227 controls caught.
+  **Implemented 2026-09-27** on `feat/m44-5-derived-state-in-snapshot`. All six
+  acceptance items have tests and controls; results scored in
+  `docs/handoff/evidence/m44-5-derived-state-2026-09-27/RESULTS.md`. Deviations from the design above, each
+  deliberate:
+  - one effect, `ScanLogEvidenceEffect`, not two — the two scans read the same store at the same moment;
+  - the environment match runs in the adapter BEFORE `LogOpened`, which carries the result (it reads the profile's
+    root and the filesystem); the session's `OpenLog` is the one copy;
+  - the scan runs on the EDT turn after the effect, not a background thread;
+  - O1 was already fixed (`publishSnapshot`), so nothing was needed first.
+
+  Added beyond the design, each with a witness: `logEvidence` handles `LogAppended` and publishes an outstanding
+  scan, so the line never counts new rows beside old findings; scans coalesce; Follow is carried through a reload
+  only into a followable log; the audit sink keeps per-poll observations in their own ring.
+
+- [M44.6] ☐ **(owner decision) A superseded load's tail still installs its log.** Found 2026-09-27 by a real-frame
+  probe during PR #43's review (RESULTS item 6); pre-existing on `main` 29a9ece4, not introduced by M44.5.
+  - **Repro:** a person opens a log that sits inside an unopened project, so `maybeOfferProject`'s modal shows inside
+    `onLoaded`. An agent's `open` of another log meanwhile runs in the modal's nested event loop and loads completely
+    (gen 2). When the modal returns, the rest of gen 1's `onLoaded` installs gen 1's table (3 rows) over gen 2's store
+    (2 records).
+  - **What each surface shows:** on `main` the status line is wrong as well — it pairs the ordered log with the other
+    log's violation. After M44.5 the line and `context` are right, but the table shows the wrong log.
+  - **The decision:** what a load's tail may still do once a later generation has opened. Options include refusing the
+    rest of the tail when the generation moved (a guard, which rule 9 would want the processor to decide), making the
+    project offer non-modal, or deferring it until the load completes.
+  - Regression to write with the fix: this repro as a frame test.
   7. No surface or adapter decides when to compute or refresh: a static check finds no write to the retired
      fields and no hand-placed `reportsPanel.refresh()` / `setToolTipText` / status composition outside the one
      snapshot listener.

@@ -6,6 +6,27 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **The window title names the profile, not just the project.** With several profiles in one project, the title
+  now says which one is active (`project — profile`), so you can see which profile your edits are saving into.
+- **A project can say where the assistant's exchange directory is.** A project-relative
+  `assistant.exchangeDir` places exported reports and screenshots beside the evidence they are about. It can only
+  choose WHERE — turning the exchange on stays a setting on your machine — and it must be a directory inside the
+  project: an absolute path, `..`, or a link that leads out of the project is refused, and the machine setting is
+  used instead.
+- **A workspace anchor can be declared from Settings ▸ Source roots.** The Project panel told you to declare one
+  and there was no control to do it. Each choice says where it lands and how many of your roots it makes portable.
+- **Reports can be deleted, renamed and restored.** Delete… and Rename… sit in the Reports tab, and the assistant
+  can do the same. A delete is recoverable: **Restore deleted…** brings the report back into its project. The last
+  20 deletions are kept on this machine, never in the project profile.
+- **Report actions remain visible in a narrow sidebar.** Delete and Restore no longer wrap out of sight at the
+  default window size. Restore accepts any report name, including `true`, and refuses a request that mixes
+  restoration with another operation. Boolean `true` lists deleted reports.
+- **Exchange paths cannot escape through nested links.** Reads and exports check the actual destination inside
+  the exchange directory, including linked subdirectories, rather than only the configured directory itself.
+  Absolute paths through an alias of that same directory remain usable; unresolved symbolic links are refused
+  with an explanation.
 - **`aggregate` says where its counted records begin and end.** With the total it now returns
   `firstRecordIndex` and `lastRecordIndex`, so "when did the application first log X?" is one filtered count. In
   virgin runs a smaller model counted breaches from a window it had read, and named the first value over the limit
@@ -18,6 +39,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **Spotlight guidance points menu answers at the item.** The `spotlight` description asks for the item
   (`menu:<Menu>:<item>`), not the menu alone, the status bar or an unrelated toolbar button. Its example targets
   no longer suggest the status bar or the Flag button, the two a model lit for menu answers.
+
+### Fixed
+
+- **Follow reports a time-order violation it appends.** A record that arrives out of order while a log is followed
+  now reaches `context.timeOrder`, the status line and the time-order caveat on time-anchored answers. Until now the
+  order was checked once, when the log opened.
+- **The Follow status line says what the load line says.** It keeps the log's provenance and the time-order warning
+  instead of dropping both on the first tick, and a failed Follow read is added to the line rather than replacing it.
+- **The status line never mixes two revisions of a followed log.** Its record count and its findings always describe
+  the same content; between a poll and the rescan it asks for, the line keeps the previous revision's whole line.
 
 ## [1.23.0] - 2026-09-26
 

@@ -123,9 +123,23 @@ public final class SessionEvents {
      *                      pairing; {@code sampled} of {@code total} records were scanned
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
-                            int sampled, int total, String mostVerboseLevel) implements Result {
+                            int sampled, int total, String mostVerboseLevel, String provenanceSource,
+                            boolean followable) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /** M44.5 stage 1: no follow capability stated — the log is taken as one that cannot be followed. */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource, false);
+        }
+
+        /** Before M44.5: no provenance source. It is "declared by the opener" when a provenance was given. */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel,
+                    provenance == null ? null : "declared by the opener");
         }
     }
     /** The load did not land. The previously open log, if any, is still the open one. */
@@ -248,5 +262,40 @@ public final class SessionEvents {
      * survives it; this fact is what lets the reopened log say WHY it was reopened.
      */
     public record LogIdentityObserved(long generation, String verdict, String reason) {
+    }
+
+    // ---------------------------------------------------------------- M44.5: the log's own derived state
+
+    /**
+     * M44.5: the adapter has SCHEDULED a {@code ScanLogEvidenceEffect}; the findings and the time order arrive later as
+     * facts. Deliberately not {@link Pending}: a scan is not an operation, so the gate must not see it in flight, and
+     * the published pairing must not be withdrawn while a scan runs.
+     */
+    public record ScanScheduled(long opId, long generation) implements Result {
+    }
+
+    /**
+     * M44.5: what a Follow poll found about the open log's CONTENT — its records, the frame still being written, what
+     * the stream end reports (its state and runs: a marker can arrive with no record), how much damage the reader has
+     * recorded, and why the read failed ({@code readFailure}, null when it read). {@code LogEvidence} compares it with the last one and asks for a rescan
+     * only when it moved, so a repeated identical failure costs nothing; the frame no longer decides when findings are
+     * stale.
+     */
+    public record LogContentObserved(long generation, int total, int pendingChars, String streamEnd, int damage,
+                                     String readFailure) {
+    }
+
+    /** M44.5: the log's producer findings, computed by the adapter for the generation it names. */
+    public record ProducerFindingsObserved(long generation,
+                                           telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics findings) {
+    }
+
+    /** M44.5: the log's time-order report, computed by the adapter for the generation it names. */
+    public record TimeOrderObserved(long generation,
+                                    telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport report) {
+    }
+
+    /** M44.5: Follow was switched on or off for the open log — state the status line is composed from. */
+    public record FollowToggled(long generation, boolean on) {
     }
 }

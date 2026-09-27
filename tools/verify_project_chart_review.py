@@ -26,8 +26,9 @@ import mutation_shards as sharding  # noqa: E402
 
 CASES = [('follow-hold',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
-  'if (System.currentTimeMillis() - sayAtMillis >= SAY_HOLD_MILLIS) {',
-  'if (true) {',
+  # M44.5: an idle tick changes no snapshot, and a render sets the line only when what it says changed
+  '        if (!line.equals(renderedLogLine)) {',
+  '        if (true) {',
   'StatusExplanationSurvivesFrameTest#anExplanationSurvivesAnIdleFollowTick'),
  ('report-link-opens-closed',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
@@ -475,20 +476,23 @@ CASES += [('integration-failed-identity',
   'CoveragePerNodeLevelTest#annotationsRespectTheCapturedRowsAndTerminalBoundary'),
  ('integration-pending-refresh',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
-  ' && pendingChars == followPendingChars',
-  '',
+  # M44.5: pending growth reaches logEvidence through the content signature
+  'pending == null ? 0 : pending.length(), streamEndKey(end)',
+  '0, streamEndKey(end)',
   'StatusExplanationSurvivesFrameTest#pendingGrowthRefreshesFindingsWithoutAddingAnyRows'),
  ('integration-failure-refresh',
   'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
-  'if (!readFailed && !followNeedsDiagnosticRefresh',
-  'if (!followNeedsDiagnosticRefresh',
+  # M44.5: a failed poll reports what it found; logEvidence decides it is news
+  '            reportContentToSession(rootMessage(ex));',
+  '',
   'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce'),
  ('integration-repeat-failure-skip',
-  'src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java',
-  '            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) '
-  'return;',
-  '            if (false) return;',
-  'StatusExplanationSurvivesFrameTest#aFailedFollowPollPublishesIdentityAndDamageOnce')]
+  # M44.5: the skip is logEvidence's signature now. The frame keeps equal findings by identity, so only the scan
+  # count shows a rebuild — named at the processor test that counts scans.
+  'src/main/java/telamin/fluxtion/audit/analyser/analyser/session/node/LogEvidence.java',
+  '        if (next.equals(signature)) {',
+  '        if (false) {',
+  'LogEvidenceTest#theContentSignatureDecidesARescan')]
 
 def display_classes(root=Path('.')):
     ci = (root / '.github/workflows/ci.yml').read_text()

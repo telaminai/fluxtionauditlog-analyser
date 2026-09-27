@@ -29,8 +29,11 @@ public final class RolledLogStore implements LogStore {
     private final List<Path> paths;
     private final int[] firstRow;      // global row of each member's first record
     private final LogIndex merged;
+    private final TimeOrderReport crossFileOrder;   // the resolver's cross-file findings, or null
 
-    private RolledLogStore(List<LogStore> members, List<Path> paths, int[] firstRow, LogIndex merged) {
+    private RolledLogStore(List<LogStore> members, List<Path> paths, int[] firstRow, LogIndex merged,
+                           TimeOrderReport crossFileOrder) {
+        this.crossFileOrder = crossFileOrder;
         this.members = members;
         this.paths = paths;
         this.firstRow = firstRow;
@@ -39,6 +42,15 @@ public final class RolledLogStore implements LogStore {
 
     /** Open {@code orderedFiles} (content order — the resolver's output) as one logical log. */
     public static RolledLogStore open(List<Path> orderedFiles, int thresholdMb) throws IOException {
+        return open(orderedFiles, thresholdMb, null);
+    }
+
+    /**
+     * As {@link #open(List, int)}, carrying the resolver's cross-file time-order findings with the store
+     * ({@link #crossFileOrder()}).
+     */
+    public static RolledLogStore open(List<Path> orderedFiles, int thresholdMb, TimeOrderReport crossFileOrder)
+            throws IOException {
         long total = 0;
         for (Path f : orderedFiles) total += Files.size(f);
         long thresholdBytes = (long) Math.max(0, thresholdMb) * 1024 * 1024;
@@ -60,7 +72,11 @@ public final class RolledLogStore implements LogStore {
             }
             global += src.size();
         }
-        return new RolledLogStore(members, List.copyOf(orderedFiles), firstRow, merged);
+        return new RolledLogStore(members, List.copyOf(orderedFiles), firstRow, merged, crossFileOrder);
+    }
+
+    @Override public TimeOrderReport crossFileOrder() {
+        return crossFileOrder;
     }
 
     @Override public int trailingRecordsIncluded() {

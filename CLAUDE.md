@@ -85,6 +85,13 @@ architecture, conventions). This file is only the rules that must never be skipp
    witness. Name the cheap check beside the disposition; a successful client trial alone is not
    regression protection. Starter verification uses static, published-bundle preflight and routing-change
    acquisition spot-check tiers; the cold-start battery is retired, not a release gate.
+9. **One dispatch model** (owner, 2026-09-27). Session state, and the decision of WHEN it is stale, belong to the
+   generated Fluxtion session processor. An adapter only performs the effects it requests (`SessionEffects`) and
+   reports results as facts; a surface only renders the published `SessionSnapshot`. **No hand-placed dispatch,
+   however small**: no refresh call, no value recomputed at a second call site, no status line composed where an
+   event happens. Every defect of 2026-09-26/27 was one of those and none was inside the generated processor
+   (tracker M44.5). Route new state through a node plus an effect plus a fact, and regenerate
+   (`mvn -Pregen process-classes`) — that is expected, not avoided. `OneDispatchModelTest` holds the UI side.
 
 ## Current work
 

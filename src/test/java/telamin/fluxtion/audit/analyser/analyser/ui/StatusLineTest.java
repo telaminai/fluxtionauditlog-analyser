@@ -15,21 +15,21 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p><b>These assertions are on the ASSEMBLED string, deliberately.</b> A test of the decision alone
  * ("should the note appear?") passes with the note dropped on the floor, which is the defect that
- * actually happened. {@link MainFrame#statusText} touches no Swing, so it runs headless like any other
+ * actually happened. {@link MainFrame#statusLine} touches no Swing, so it runs headless like any other
  * pure function.
  */
 class StatusLineTest {
 
     @Test
     void aLogThatClaimsCompletenessSaysSoInTheLine() {
-        String line = MainFrame.statusText(25, "10:00 → 10:05 UTC", "demo.yaml", true, "", "", "");
+        String line = MainFrame.statusLine(false, 25, "10:00 → 10:05 UTC", "demo.yaml", true, "", "", "");
         assertTrue(line.contains("complete"),
                 "a file that says it is whole must say so to a person, not only to `context`: " + line);
     }
 
     @Test
     void aLogThatClaimsNothingSaysNothing() {
-        String line = MainFrame.statusText(25, "10:00 → 10:05 UTC", "demo.yaml", false, "", "", "");
+        String line = MainFrame.statusLine(false, 25, "10:00 → 10:05 UTC", "demo.yaml", false, "", "", "");
         assertFalse(line.contains("complete"),
                 "silence is the ordinary case and must not be dressed as a claim: " + line);
     }
@@ -149,33 +149,40 @@ class StatusLineTest {
                 new StreamEnd.Run(1, 0, 2, StreamEnd.State.MISSING_RECORDS, 5, 3)));
 
         assertEquals(before.state(), after.state(), "the state is identical — that was the trap");
-        assertTrue(MainFrame.followNeedsDiagnosticRefresh(before, after, 0),
+        assertNotEquals(MainFrame.streamEndKey(before), MainFrame.streamEndKey(after),
                 "a proven loss arrived and nobody was told");
     }
 
     @Test
     void anUnchangedVerdictWithNoNewRecordsRefreshesNothing() {
-        var same = StreamEnd.unknown(3);
-        assertFalse(MainFrame.followNeedsDiagnosticRefresh(same, same, 0),
+        assertEquals(MainFrame.streamEndKey(StreamEnd.unknown(3)), MainFrame.streamEndKey(StreamEnd.unknown(3)),
                 "a quiet tick must not rebuild diagnostics on every poll");
     }
 
     @Test
-    void newRecordsAlwaysRefresh() {
-        assertTrue(MainFrame.followNeedsDiagnosticRefresh(
-                StreamEnd.unknown(3), StreamEnd.unknown(4), 1));
+    void theArrivalOfAMarkerRefreshes() {
+        assertNotEquals(MainFrame.streamEndKey(StreamEnd.unknown(3)), MainFrame.streamEndKey(StreamEnd.declared(3, 3)),
+                "the last thing a writer does is emit its marker, and it adds no records");
     }
 
+    /**
+     * M44.5 W2, witnessed 2026-09-27: the Follow line was a second assembly and dropped the provenance and the
+     * time-order warning the load line carried. There is one composer now; Follow changes the head, never the facts.
+     */
     @Test
-    void theArrivalOfAMarkerRefreshes() {
-        assertTrue(MainFrame.followNeedsDiagnosticRefresh(
-                StreamEnd.unknown(3), StreamEnd.declared(3, 3), 0),
-                "the last thing a writer does is emit its marker, and it adds no records");
+    void theFollowLineCarriesWhatTheLoadLineCarries() {
+        String order = MainFrame.orderWarning(null) + "  ·  ⚠ time-order violations (2) — ask 'context' or see the load report";
+        String load = MainFrame.statusLine(false, 25, "10:00 → 10:05 UTC", "DEMO  (demo.yaml)", true, order, "", "");
+        String follow = MainFrame.statusLine(true, 25, "10:00 → 10:05 UTC", "DEMO  (demo.yaml)", true, order, "", "");
+        assertTrue(follow.startsWith("Following DEMO  (demo.yaml) · 25 records"), follow);
+        for (String fact : java.util.List.of("DEMO", "complete", "time-order violations (2)")) {
+            assertTrue(load.contains(fact) && follow.contains(fact), fact + " on both: " + load + " / " + follow);
+        }
     }
 
     @Test
     void theNoteNeverDisplacesWhatWasAlreadyThere() {
-        String line = MainFrame.statusText(25, "10:00 → 10:05 UTC", "DEMO  (demo.yaml)", true,
+        String line = MainFrame.statusLine(false, 25, "10:00 → 10:05 UTC", "DEMO  (demo.yaml)", true,
                 "  ·  ⚠ time-order violations (3) — ask 'context' or see the load report",
                 "  ·  ⚠ clock skew — ask 'context', or hover", "");
         assertTrue(line.startsWith("25 records · 10:00 → 10:05 UTC · DEMO  (demo.yaml)"), line);
