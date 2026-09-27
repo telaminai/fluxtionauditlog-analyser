@@ -107,4 +107,68 @@ class ChartExportsToSvgTest {
 
         assertTrue(Files.size(out) > 500, "wrote " + Files.size(out) + " bytes to " + out.toAbsolutePath());
     }
+
+    // ---- PR #53 review: what the export claims, asserted -----------------------------------------------------------
+
+    private static ChartPanel annotated(String noteText) {
+        ChartPanel panel = chart();
+        long t = 1_767_258_000_090L;
+        panel.setNotes(new ChartNotes("explained", List.of(new ChartNotes.Note(t + 150_000L, noteText, null))));
+        panel.setBands(List.of(new ChartPanel.Band("a band", List.<long[]>of(new long[]{t + 20_000L, t + 80_000L}))));
+        return panel;
+    }
+
+    @Test
+    @DisplayName("The size a panel had before the export is the size it has after")
+    void theExportRestoresThePanelsSize() {
+        ChartPanel panel = chart();
+        panel.setSize(310, 205);
+        panel.toSvg(900, 420, SvgSurface.Metrics.monospace11());
+        assertEquals(new java.awt.Dimension(310, 205), panel.getSize(),
+                "toSvg lays the panel out at the export size; not restoring it leaves the on-screen chart wrong");
+    }
+
+    @Test
+    @DisplayName("The series is clipped to the plot, as on screen")
+    void theSeriesIsClipped() {
+        String svg = svg();
+        assertTrue(svg.contains("<clipPath "), "no clip is declared");
+        assertTrue(svg.lines().anyMatch(l -> l.contains("<line ") && l.contains("clip-path=\"url(#clip")),
+                "no line is clipped — the export would draw series outside the plot");
+    }
+
+    @Test
+    @DisplayName("Translucency survives: a band is shaded, not painted solid over the data")
+    void translucencySurvives() {
+        String svg = annotated("n").toSvg(900, 420, SvgSurface.Metrics.monospace11());
+        assertTrue(svg.contains(" opacity=\""), "the band's alpha was lost");
+    }
+
+    @Test
+    @DisplayName("Chart text cannot break the document — markup and control characters in a note")
+    void hostileTextStillParses() throws Exception {
+        String svg = annotated("a & b < c > d \u0001 end").toSvg(900, 420, SvgSurface.Metrics.monospace11());
+        assertTrue(svg.contains("a &amp; b &lt; c &gt; d"), "markup is escaped");
+        var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        assertDoesNotThrow(() -> factory.newDocumentBuilder().parse(
+                        new java.io.ByteArrayInputStream(svg.getBytes(java.nio.charset.StandardCharsets.UTF_8))),
+                "a control character in a note made the exported document unparseable");
+    }
+
+    /** theChartIsActuallyDrawn's name promises the closing hold; this is the assertion it did not make. */
+    @Test
+    @DisplayName("The closing hold is in the export, reaching the plot's right edge")
+    void theClosingHoldIsExported() {
+        ChartPanel panel = chart();
+        panel.setSize(900, 420);
+        panel.doLayout();
+        String svg = panel.toSvg(900, 420, SvgSurface.Metrics.monospace11());
+        java.awt.Rectangle plot = panel.plotBounds();
+        String right = String.valueOf(plot.x + plot.width);
+        assertTrue(svg.lines().anyMatch(l -> {
+            var m = java.util.regex.Pattern.compile("<line x1=\"(\\d+)\" y1=\"(\\d+)\" x2=\"" + right + "\" y2=\"(\\d+)\"").matcher(l);
+            return m.find() && m.group(2).equals(m.group(3)) && Integer.parseInt(m.group(1)) < plot.x + plot.width - 20;
+        }), "no horizontal line runs to x=" + right);
+    }
 }

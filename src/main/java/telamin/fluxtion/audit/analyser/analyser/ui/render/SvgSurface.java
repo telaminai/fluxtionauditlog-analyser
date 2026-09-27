@@ -198,7 +198,15 @@ public final class SvgSurface implements Surface {
 
     private static String escape(String s) {
         if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        // PR #53 review: characters XML 1.0 forbids (controls other than tab/newline/return, unpaired surrogates,
+        // U+FFFE/FFFF) make the whole document unparseable, and chart text is not ours to vouch for — note and
+        // explanation text comes from assistants, series labels from the log. They are replaced, not dropped, so a
+        // reader can see that something was there.
+        StringBuilder clean = new StringBuilder(s.length());
+        s.codePoints().forEach(cp -> clean.appendCodePoint(
+                cp == 0x9 || cp == 0xA || cp == 0xD || (cp >= 0x20 && cp <= 0xD7FF)
+                        || (cp >= 0xE000 && cp <= 0xFFFD) || (cp >= 0x10000 && cp <= 0x10FFFF) ? cp : 0xFFFD));
+        return clean.toString().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;");
     }
 
