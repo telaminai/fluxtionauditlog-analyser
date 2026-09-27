@@ -21,7 +21,11 @@ miss.
   (the known limit that posted keys are dropped without a focus owner), and any skip is reported as a skip.
 - **P-9 (S4).** Apart from the contract tests the spec names, only `CloseVerbTest` and `ProjectVerbTest` assert the
   verb count.
-- **P-10.** The session processor is not regenerated: no node, fact or effect changes (O-3).
+- ~~**P-10.** The session processor is not regenerated: no node, fact or effect changes (O-3).~~ **Withdrawn before any
+  code** (2026-09-27): the owner superseded O-3, so playback is a session node and the processor *is* regenerated.
+  Replaced by **P-10b**: the `walkPlayback` node needs only `openLog` and the operation gate as parents. Its facts and
+  effects fit the existing `SessionEffects` / `SessionEvents` shapes without changing any other node, and
+  `SessionGraphShapeTest` needs one new expectation.
 
 **Size and cost:**
 - **P-11.** 2,500–4,000 lines, including tests.

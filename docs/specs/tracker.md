@@ -1463,7 +1463,8 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
 - [M69.0] ☑ **Owner decisions, 2026-09-27:**
   - O-1: a new `walk` verb;
   - O-2: a press outside the strip ends the walk, with *Play from step N*;
-  - O-3: playback is presentation state, ended by the snapshot;
+  - O-3: ~~playback is presentation state~~ **superseded by the owner before any code: playback is a session node**
+    ("the logic, transitions and state mutation in the orchestrator in a single place");
   - O-4: the right-click save menu is in v1.
 
   r3 accepted; r4 consolidated.
@@ -1472,8 +1473,8 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
   transition regression test.
 - [M69.S1] ☐ `WalkSpec` model, validation, identity helpers, and storage in every tier and share path, plus the
   machine-local bin (W-A1 headless, W-A7, W-A9, W-A16, W-A17 storage half).
-- [M69.S2] ☐ `FilterState.setAll`; `ChartPanel`'s paint outcome; the walk controller — validate, apply, prepare,
-  resolve, light — with its ticket and lifecycle (W-A4, W-A5, W-A6, W-A8, W-A13–W-A15).
+- [M69.S2] ☐ `FilterState.setAll`; `ChartPanel`'s paint outcome; **the `walkPlayback` session node** (facts, effects,
+  `-Pregen`); the adapter's performers; the snapshot field (W-A4, W-A5, W-A6, W-A8, W-A13–W-A15).
 - [M69.S3] ☐ The overlay strip; input classified before dismissal; keyboard focus; the right-click save menu (W-A2,
   W-A3, W-A12).
 - [M69.S4] ☐ The `walk` verb and its contract; `context`; the Reports tab and Project panel; docs, CHANGELOG, a capture

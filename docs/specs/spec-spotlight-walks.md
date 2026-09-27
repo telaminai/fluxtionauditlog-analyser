@@ -15,7 +15,10 @@ r1–r3 reached it, and what each review changed. The r3 wording that r4 folds i
 **Owner decisions:**
 - **O-1:** a new `walk` verb, mirroring `report`.
 - **O-2:** a press outside the control strip ends the walk, and its list offers *Play from step N*.
-- **O-3:** playback is presentation state, ended by the published snapshot; no session node.
+- ~~**O-3:** playback is presentation state, ended by the published snapshot; no session node.~~ **Superseded by the
+  owner, 2026-09-27, before any code:** *"if we have to use events and regenerate the event dispatcher do that, we want
+  the logic, transitions and state mutation in the orchestrator in a single place."* Walk playback is therefore a
+  **session node** (§3.8).
 - **O-4:** the right-click save menu is in v1.
 
 ---
@@ -189,20 +192,35 @@ room.
   with digests computed then (§3.5). Anything outside the allow-list is named as not saved, starting with a chart's
   window. The menu is not modal.
 
-### 3.8 Lifecycle: the snapshot decides (O-3; review R8)
+### 3.8 Playback lives in the session processor (owner, superseding O-3; CLAUDE.md rule 9; review R8)
 
-A walk's playback state (which walk, which step, the ticket) is **presentation state** in the frame. No session node
-is added.
+All of a walk's playback state, its transitions and the decisions about them are in one generated node,
+**`walkPlayback`**. That covers which walk is showing, which step, the phase and the ticket. Nothing else holds or
+decides them.
 
-What ends it, or changes it, is rendered from the published `SessionSnapshot`, in `onSessionSnapshot`:
-- **A new log generation ends the walk.**
-- **No log open** (a close) ends the walk. A close does not advance the generation (R8).
-- **A changed published log identity** (for example Follow's verdict that the file was replaced) re-resolves the
-  showing step's targets. Observational targets become unresolved, with the verdict as the reason. This happens
-  without a new generation.
-
-Input listeners never recompute session verdicts. *Play from step N* remembers the last step shown per walk, in
-memory, for the session.
+- **Facts in** (posted by adapters and input; each names the ticket or generation it is about):
+  - `WalkPlayRequested(walk, step, origin)`: carries the saved walk's definition, read from config by the adapter;
+  - `WalkNavigated(delta)`: from ◀ ▶ or ← →;
+  - `WalkEndRequested(reason)`: Esc, ✕, an outside press, or an external view change;
+  - `WalkViewApplied(ticket, ok, reason)`;
+  - `WalkStepPrepared(ticket, generation, targetStates)`.
+- **Its parents:** `openLog` (generation, open state and identity) and the operation gate.
+- **Decisions, all in the node:**
+  - **Which step next.** Out-of-range navigation is refused.
+  - **When to request the view.** `ApplyWalkViewEffect(ticket, generation, step)`.
+  - **When to light.** `LightWalkTargetsEffect(ticket, targets, states)`. Only for the current ticket and the current
+    generation; a stale fact is refused and logged, like `LogEvidence`'s generation check.
+  - **When to end.** Any `WalkEndRequested`, a new generation, or no log open ends the walk, requesting
+    `EndWalkEffect`. The last step shown is remembered for *Play from step N*.
+  - **When to re-resolve.** A changed published log identity requests `ResolveWalkTargetsEffect(ticket)` with the new
+    verdict. Observational targets become unresolved.
+- **Adapters only perform.** The frame applies the view through the transient primitives (§3.3), waits for readiness
+  on a non-blocking timer (§3.4), resolves targets against the view on screen, lights them, and posts each result as a
+  fact. It never decides what the walk does next.
+- **Surfaces only render.** The strip and the Reports tab render `SessionSnapshot.walkPlayback()`: the walk, step,
+  count, phase, states and reasons. `context.walks` reads the same snapshot.
+- **The audit record** of the session now includes walk transitions, so "why did the walk end?" is answerable from the
+  session audit log.
 
 ### 3.9 The `walk` verb (O-1; review R9)
 
@@ -275,7 +293,7 @@ and are scored in `RESULTS.md` beside it.
 |---|---|---|
 | **S0** | **R5 fix.** The topology panel's graph digest belongs to the current graph: cleared on `clearGraph` and `loadFromSource`, and unknown for a source-supplied graph. It is used by session recovery today, where a path check happens to guard it. | a transition regression test; W-A14's first half |
 | **S1** | `WalkSpec` model and validation (§3.3); identity helpers (§3.5); storage in every path in §3.1 | W-A1 (headless), W-A7, W-A9, W-A16 (digests), W-A17 (storage half) |
-| **S2** | `FilterState.setAll`, a single change; `ChartPanel`'s paint outcome (§3.6); the walk controller (validate, apply, prepare, resolve, light), with its ticket and lifecycle | W-A4, W-A5, W-A6, W-A8, W-A13 to W-A15 |
+| **S2** | `FilterState.setAll`, a single change; `ChartPanel`'s paint outcome (§3.6); **the `walkPlayback` session node**, its facts and effects, regenerated with `-Pregen`; the adapter's effect performers (apply, prepare, resolve, light, end); the snapshot field | W-A4, W-A5, W-A6, W-A8, W-A13 to W-A15; node-level tests driving facts headless |
 | **S3** | the overlay strip; input classification before dismissal; keyboard focus; the right-click save menu | W-A2, W-A3, W-A12 |
 | **S4** | the `walk` verb and its contract; `context`; the Reports tab and Project panel; docs, CHANGELOG, a capture | W-A10, W-A11, W-A17 (UI half) |
 
@@ -308,4 +326,5 @@ slices.
 | r1 | 2026-09-27 | Claude (analyser session) | First draft from the owner's direction: overlay arrows, stored like reports, standalone. |
 | r2 | 2026-09-27 | the same | Right-click save (owner). Feature request 40 / P1 absorbed. O-1 to O-3 answered by the owner. |
 | r3 | 2026-09-27 | Codex | [Source review](../handoff/review_spec_m69_spotlight_walks_2026_09_27_codex.md), R1–R9. Storage needs every tier and share path (R1). View verbs persist, and grouping was missing (R2). A completed action is not a drawn chart (R3). A record digest does not bind a chart; attribution is never "you" (R4). The graph digest can belong to the previous graph (R5). Focus names do not bind definitions (R6). The press hook runs after dismissal; focus needs a policy (R7). Generation alone is not the whole lifecycle (R8). The verb inventory was incomplete (R9). |
+| r4a | 2026-09-27 | the owner, recorded by Claude | Before any code: playback moves into the session processor (§3.8), superseding O-3. |
 | r4 | 2026-09-27 | Claude (analyser session) | The owner accepted r3. This revision consolidates it into one contract, with these v1 choices made explicit: charts selected, never opened or edited, with an *Open chart* affordance; the chart window out of v1; the run basis from the read identity's file digests; a paint outcome as the drawn fact; a presentation ticket for own-step changes; the R5 fix as slice S0. It re-plans the work as S0–S4. |
