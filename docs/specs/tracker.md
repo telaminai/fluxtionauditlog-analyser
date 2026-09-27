@@ -1496,8 +1496,8 @@ It delivers feature request 40 / proposal P1 (▸ *Spring authoring observed acc
   and the skills mention, which waits for the next hash-pinned skills publication (RESULTS § *Not done in S4*).
 - [M69.R] ◧ Gates, run locally: headless 2,663 run, 0 failed; frame suites 137 run, 0 failed, 2 skipped (focus-bound,
   CI runs them); mutation gate 311 of 311; preflight 28 suites and 311 anchors; the sweep; `mkdocs --strict`. RESULTS
-  scored (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/RESULTS.md`). Open: green CI on the PR, then the
-  owner's go. No merge or release without it.
+  scored (`docs/handoff/evidence/m69-spotlight-walks-2026-09-27/RESULTS.md`). PR #57: CI green on every job,
+  including `ui-frame` (no skips). Open: the owner's go. No merge or release without it.
 
 ## M64 · Spotlight — the tutor points at the thing on screen — ◧ .1–.12 SHIPPED (.10–.12 in 1.15.0, 2026-09-18; archived); .13 open
 _Report: `docs/handoff/completed/report_m64_spotlight.txt`. **One of the spec's assumptions was wrong and is corrected in it:**
