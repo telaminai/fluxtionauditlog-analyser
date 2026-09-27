@@ -82,4 +82,47 @@ class PaintersNeverNameGraphics2DTest {
                         + "is the only one a layout decision may branch on, and a test supplies it. A new "
                         + "getter here is a new way for the screen and the recorder to disagree.");
     }
+
+    /**
+     * PR #53 review. The class-file check above covers PlotPainter, Glyphs and PlotGeometry — three small classes —
+     * while most of the chart's painting (markers, bands, guides, notes, pins, the record marker, the explanation,
+     * the decimated series) lives in ChartPanel, which legitimately names Graphics2D and so cannot be checked that
+     * way. This pins it at the source: Graphics2D / Graphics may appear in ChartPanel only at its four boundaries —
+     * the import, toImage, paintComponent, and the legend's paintGlyph bridge. A paint method that took a Graphics2D
+     * again would be drawing around the seam, and nothing else would notice.
+     */
+    @Test
+    @DisplayName("ChartPanel names Graphics2D only at its four boundaries")
+    void chartPanelNamesGraphicsOnlyAtItsBoundaries() throws IOException {
+        String src = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/ChartPanel.java"));
+        // comments blanked to spaces, so every offset still points at the same place in the source
+        String code = java.util.regex.Pattern.compile("(?s)/\\*.*?\\*/").matcher(src)
+                .replaceAll(r -> " ".repeat(r.group().length()));
+        code = java.util.regex.Pattern.compile("//[^\n]*").matcher(code)
+                .replaceAll(r -> " ".repeat(r.group().length()));
+        List<int[]> allowed = new java.util.ArrayList<>();
+        for (String signature : List.of("public java.awt.image.BufferedImage toImage(int w, int h)",
+                "protected void paintComponent(Graphics g0)", "public static void paintGlyph(Graphics2D g")) {
+            int at = code.indexOf(signature);
+            assertTrue(at >= 0, "boundary method not found: " + signature + " — update this guard with it");
+            int open = code.indexOf('{', at), depth = 0, end = open;
+            for (int k = open; k < code.length(); k++) {
+                if (code.charAt(k) == '{') depth++;
+                else if (code.charAt(k) == '}' && --depth == 0) { end = k; break; }
+            }
+            allowed.add(new int[]{at, end});
+        }
+        var m = java.util.regex.Pattern.compile("\\bGraphics(2D)?\\b").matcher(code);
+        List<String> outside = new java.util.ArrayList<>();
+        while (m.find()) {
+            int pos = m.start();
+            int lineStart = code.lastIndexOf('\n', pos) + 1;
+            String line = code.substring(lineStart, code.indexOf('\n', pos)).trim();
+            if (line.startsWith("import ")) continue;
+            if (allowed.stream().anyMatch(r -> pos >= r[0] && pos <= r[1])) continue;
+            outside.add(line);
+        }
+        assertEquals(List.of(), outside, "ChartPanel names a Graphics outside its boundaries — paint onto a Surface");
+    }
 }

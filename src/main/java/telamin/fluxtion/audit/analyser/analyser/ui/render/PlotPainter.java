@@ -8,8 +8,10 @@ import java.util.function.LongFunction;
  * The drawing that carried defects, moved onto {@link Surface} so it can be asserted.
  *
  * <p>A deliberate slice, not a rewrite: the series line and the x-axis labels, because those are the
- * two paths whose defects needed a display list to see. The rest of the chart still paints straight
- * onto {@code Graphics2D}. Converting it is worthwhile and is not what this proves.
+ * two paths whose defects needed a display list to see. The rest of the chart paints onto a
+ * {@code Surface} too, but from {@code ChartPanel}, which still names {@code Graphics2D} at its
+ * boundaries — so the guard that pins "a painter never reaches past the surface" covers this class and
+ * ChartPanel's paint methods by different means (see PaintersNeverNameGraphics2DTest).
  */
 public final class PlotPainter {
 
