@@ -59,6 +59,44 @@ class ReportRecoverableDeleteFrameTest {
         }
     }
 
+    /**
+     * PR #51 review, #46 through the REAL verb. AbsentSectionsMeanUnchangedTest pins ReportVerb.Parsed.onto(), and
+     * MainFrame going back to {@code parsed.spec()} — the original defect — left it and every other test green.
+     * This goes through the frame's report verb, and also checks what the reply says the report was written against
+     * once a different log is open: the carried fingerprint, not today's log.
+     */
+    @Test
+    void aRetitleThroughTheVerbKeepsTheSectionsAndSaysWhichLogTheyWereWrittenAgainst() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path first = java.nio.file.Files.writeString(tmp.resolve("first.yml"),
+                "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n    - node: { value: 1}\n---\n");
+        Path second = java.nio.file.Files.writeString(tmp.resolve("second.yml"),
+                "---\neventLogRecord:\n  logTime: 5000\n  event: Tock\n  nodeLogs:\n    - node: { value: 2}\n---\n"
+                        + "eventLogRecord:\n  logTime: 6000\n  event: Tock\n  nodeLogs:\n    - node: { value: 3}\n---\n");
+        try (var f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("log", first.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            var built = f.ex.render("report", REPORT);
+            assertTrue(built.ok(), "control: " + built.toMap());
+            String writtenAgainst = String.valueOf(built.payload().get("writtenAgainst"));
+
+            var retitled = f.ex.render("report", Map.of("name", "finding", "title", "Retitled"));
+            assertTrue(retitled.ok(), "the retitle is applied: " + retitled.toMap());
+            AppConfig config = (AppConfig) onEdtGet(() -> field(f.frame, "config"));
+            var stored = onEdtGet(() -> config.reports.stream().filter(r -> r.name().equals("finding")).findFirst().orElseThrow());
+            assertEquals("Retitled", stored.title());
+            assertEquals(1, stored.sections().size(), "#46: a retitle through the verb keeps the sections");
+
+            assertTrue(f.ex.render("open", Map.of("log", second.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            var again = f.ex.render("report", Map.of("name", "finding", "title", "Retitled again"));
+            assertTrue(again.ok(), "control: " + again.toMap());
+            assertEquals(writtenAgainst, String.valueOf(again.payload().get("writtenAgainst")),
+                    "the sections were kept, so they are still written against the FIRST log — the reply must not "
+                            + "name the log that happens to be open now: " + again.toMap());
+        }
+    }
+
     private void openLog(AsyncOpenInterleavingFrameTest.Frame f) throws Exception {
         Path log = java.nio.file.Files.writeString(tmp.resolve("demo.yml"),
                 "---\neventLogRecord:\n  logTime: 1000\n  event: Tick\n  nodeLogs:\n    - node: { value: 1}\n---\n");
