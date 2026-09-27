@@ -16,6 +16,15 @@ portable investigations **and a bounded replay → fix → comparison → respon
 viewer is optional. An inspection-only release can be an intermediate checkpoint, but is not completion
 of that requested delivery. Two days is a planning target, not grounds for waiving an acceptance check.
 
+**Owner direction, 2026-09-27: the spotlight walkthrough is needed regardless of this proposal.** It is built as its
+own analyser feature, **M69** ([`docs/specs/spec-spotlight-walks.md`](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-spotlight-walks.md) on `main`):
+- forward/back arrows on the spotlight overlay, not a separate player;
+- walks stored in the project like reports;
+- a right-click on a live spotlight opens a save menu.
+
+Nothing here decides whether that feature is built; the owner has decided it is. For this proposal, a bundle carries
+walks because it carries the profile, and §8 describes only what the bundle needs of them (D-0b, L-31).
+
 ## 1. The proposition
 
 **Trust the evidence, not the author.**
@@ -421,6 +430,11 @@ native surface is required. Terminal text alone is not evidence that a chart is 
 
 ## 8. The saved walk
 
+**r6: owner scope (D-0b).** The walk is M69, a standalone analyser feature, needed whether or not bundles ship. This
+section therefore states only what a **bundle** needs from walks. The walk's own design, including its per-step
+current/historical/unresolved states and the right-click save, is M69's spec. Where this section and M69 differ, M69
+governs the feature, and this section governs only how a bundle carries it.
+
 A walk is the author's argument, labelled testimony. It restores the view needed for each step and
 points at checkable artefacts; it requires no new model interpretation to play. Next/Previous/Pause
 may initially be client controls while the analyser shows real targets and captions.
@@ -662,11 +676,12 @@ external use and measured support outcomes are evidence of demand; a successful 
 
 ## 14. Open decisions and factual checks
 
-Only D-0 is owner direction; all other rows are recommendations to contest before implementation.
+Only D-0 and D-0b are owner direction; all other rows are recommendations to contest before implementation.
 
 | ID | Recommendation / open choice | What settles it |
 |---|---|---|
 | D-0 | Portable investigation plus bounded replay/comparison required; browser optional | Already stated by owner. Scope changes require an explicit owner decision. |
+| D-0b | The spotlight walkthrough is needed **regardless of this proposal**: M69, native, overlay arrows, stored like reports, right-click save | Stated by the owner, 2026-09-27. Not open to review here; M69's own spec carries its open questions. |
 | D-1 | Internal evidence core with a thin client; external-only is an alternative if complete exports are proved | EB-0 proves complete state/export/fidelity and races; compare integration cost with native CLI-first delivery. |
 | D-1a | *r3:* extend existing `context.savedGraphs` for complete definitions; preserve summary fields. This closes a representation gap only. Coherent capture and any filtered-index export remain separate requirements. | L-17 favours the context extension on inspected contract surface. EB-0/A-3 must prove a capture-validity contract before choosing the overall architecture; L-16. |
 | D-2 | `.fexp`; integer format v1; exact manifest-byte identity outside manifest; timestamp included | Choose one algorithm and pin cross-reader fixtures. Canonical blanked-ID alternatives remain valid proposals, not simultaneous rules. |
@@ -736,3 +751,5 @@ their own derivation and scope. Hash validation applies to both categories.
   monotonic log generation to be the log half of L-16's capture binding, unpublished today (L-28). It makes the replay
   channel set host-declared, because an admin command leaves no audit record (L-29, adding an A-8 witness). It records
   D-2 and D-3 as ready for the owner (L-30). READ at `d82f1487`; nothing run beyond the doc checks.
+- r6 (Claude, analyser session) records the owner's direction that the spotlight walkthrough is needed regardless of
+  this proposal (D-0b). It is M69, a standalone analyser feature; §8 now scopes only what a bundle needs of it (L-31).

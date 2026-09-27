@@ -530,6 +530,24 @@ saying so. READ evidence is at `main` `d82f1487`, the same revision r2 and r3 us
   question from L-21: is authenticated ticket authorship a first-delivery requirement? If not, unsigned with its
   stated limits is the whole of D-3 for now.
 
+### L-31 · The spotlight walkthrough is needed regardless of this proposal · resolved (OWNER)
+- **Raised by / date:** the owner, 2026-09-27.
+- **Proposal refs:** D-0b, §8, D-6, EB-2, A-7; M69.
+- **Evidence:** OWNER, in four statements the same day:
+  - "starting with the walk now would be good";
+  - "not a player — forward back arrows on the overlay on the analyser's UI; spotlight walkthroughs are stored like
+    reports; they are useful when not in an evidence bundle";
+  - "right click while in spotlight gives a popup menu for save";
+  - "regardless of proposal we will need the spotlight walkthrough".
+- **Outcome:**
+  - The walk is **M69**, a standalone analyser feature: [`docs/specs/spec-spotlight-walks.md`](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-spotlight-walks.md)
+    on `main`, `5bccb6c5`.
+  - This proposal no longer decides whether walks are built, or how they look. D-6's client-controls option, and
+    L-24's "client pins its size" route, are superseded for the feature itself. M69 checks a chart's drawn state from
+    inside the analyser instead.
+  - A bundle carries walks because it carries the profile.
+  - M69 also delivers feature request 40 / proposal P1 (2026-09-20), and adopts P1's constraints (M69 §0).
+
 ## Open disputes, at a glance
 
 | log | question | what settles it |
@@ -539,5 +557,5 @@ saying so. READ evidence is at `main` `d82f1487`, the same revision r2 and r3 us
 | L-16, L-17, L-28 | Chart fact placement and coherent capture (D-1a) | context is the smaller chart-fact candidate (L-17). The log half of capture validity is a published generation plus `expectGeneration` (L-28); the chart half needs a revision counter or native capture, then an A-3 proof |
 | L-18 | Complete replay route (§9) | dispatch/clock primitives and mapper bypass established by READ; pin and run a released pre-mapper runner with reset/build identity/oracle (EB-0) |
 | L-25, L-29 | Which input channels a replay must cover (§9) | the host declares its channels, and the log is a second guard only (L-29); witnesses for an uncovered admin reset (INCOMPATIBLE) and for an invisible one, refused on the declaration |
-| L-24 | Walk honesty for an undrawn chart (§8, A-7) | #56's `drawn` fact lands first, or the walk pins its size and confirms by screenshot |
+| L-24, L-31 | Walk honesty for an undrawn chart (§8, A-7) | **owner (L-31):** the walk is M69, native; it reads the chart's drawn state from the chart panel, and uses #56's layout owner when that lands |
 | L-26 | Which “two bugs” the demo discussion meant (EB-0) | owner confirms or rejects the lead: #46 (closed, 1.25.0) and #56 (open) |
