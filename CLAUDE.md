@@ -33,10 +33,12 @@ architecture, conventions). This file is only the rules that must never be skipp
    and then read every visible string — title bar, status bar, paths — before committing. **The same rule
    covers transcripts**: `docs/site/sample-conversations.md` is written by `tools/capture-conversations.py` from a
    real run under the same isolated home; a hand-typed transcript is a screenshot the sweep cannot read either.
-   **The sweep cannot see git metadata either.** **225** commits carry an employer-domain author
-   email into the public history — 132 on the third sweep term's domain, 93 on the fourth's. Rewriting
+   **The sweep cannot see git metadata either.** **226** commits carry an employer-domain author
+   email into the public history — 132 on the third sweep term's domain, 94 on the fourth's. Rewriting
    is ruled out by rule 3, so that history is accepted and recorded here.
-   **Counted again 2026-09-26:** the fourth rose from 82 to 93, and all eleven new commits are pull-request
+   **Counted again 2026-09-27** (1.25.0 release check): the fourth is 94. The new one is `29a9ece4`, PR #24's
+   merge made through GitHub on 2026-09-27, already inside 1.24.0; nothing since carries an employer domain.
+   **Counted 2026-09-26:** the fourth rose from 82 to 93, and all eleven new commits are pull-request
    merges made through GitHub (PRs between #7 and #26, merged 2026-09-24 to 2026-09-26). **A merge made
    through GitHub — the web button or `gh pr merge` — is authored with the GitHub account's primary email, not
    the repo-local `user.email`**, so the pinned config cannot protect it. The account's commit email was
@@ -98,7 +100,12 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.24.0 released 2026-09-27**: M44.5 — the log's own derived state
+`docs/specs/completed/tracker.md`. **Latest: 1.25.0 released 2026-09-27**: PR #51, six defects found by testing
+1.24.0 through the socket (issues #46–#50 and a spotlight overlap). Updating a report no longer empties it (a call
+changes only what it names); re-sent chart notes replace; a pinned note no longer erases the time axis; a step
+chart's closing value holds to the window edge; neighbouring spotlight callouts slide apart; and `graph {delete}` /
+`graph {close}`, with close refused while chart definitions are withheld, because nothing is saved then.
+**1.24.0 (the same day)**: M44.5 — the log's own derived state
 (producer findings, time order, provenance, Follow) is the session processor's, rendered from the snapshot, so a
 record appended under Follow is time-order checked and the Follow status line keeps the load line's facts; CLAUDE.md
 rule 9 (one dispatch model) and `OneDispatchModelTest`. With it, PR #33 (issues #20–#23): a workspace anchor from
