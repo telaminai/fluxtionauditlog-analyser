@@ -1,0 +1,17 @@
+PASS direct outside link refused
+PASS chain of outside links refused
+PASS internal link accepted
+PASS project root reached through link accepted
+PASS COUNTEREXAMPLE nested outside link accepted by write guard
+PASS COUNTEREXAMPLE accepted path writes outside project
+PASS COUNTEREXAMPLE nested outside link also accepted by read guard
+PASS a later request rechecks a swapped directory
+PASS COUNTEREXAMPLE already-resolved lexical path follows later swap
+PASS case-insensitive alias accepted on this filesystem
+PASS global-tier save preserves machine bin
+PASS all-category export excludes deleted report
+PASS profile save excludes bin
+PASS import ignores deletedReport family
+PASS empty bin save clears old keys
+PASS two profiles in same root have separate bins
+PASS no-project empty key has its own bin

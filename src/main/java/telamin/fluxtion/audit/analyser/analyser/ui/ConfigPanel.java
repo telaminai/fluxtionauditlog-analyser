@@ -54,6 +54,11 @@ public final class ConfigPanel extends JDialog {
     private final JCheckBox actionsRest = new JCheckBox("Allow the assistant to drive the UI over localhost (REST)");
     private final JCheckBox exportsToggle = new JCheckBox("Allow assistant file exchange (screenshot/report writes, external-series reads)");
     private final JTextField exportDirField = new JTextField(28);
+    /** #20 — the project's workspace anchor, offered as the handful of depths PathForm accepts. */
+    private final JComboBox<telamin.fluxtion.audit.analyser.analyser.config.WorkspaceAnchorChoices.Choice>
+            anchorCombo = new JComboBox<>();
+    /** #21 — the open PROJECT's preferred exchange directory, project-relative. */
+    private final JTextField projectExchangeField = new JTextField(28);
     private final JSpinner maxRoundsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 20, 1));
     private final JSpinner maxActionsSpinner = new JSpinner(new SpinnerNumberModel(20, 1, 200, 1));
 
@@ -251,9 +256,78 @@ public final class ConfigPanel extends JDialog {
                 + "find its <code>src/main/java</code> (incl. sub-modules). Drag folders in, or use Add…. "
                 + "Roots that don't look like Java sources are shown in red.");
         help.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
-        panel.add(help, BorderLayout.NORTH);
-        panel.setPreferredSize(new Dimension(640, 300));
+
+        JPanel north = new JPanel(new BorderLayout(0, 6));
+        north.add(help, BorderLayout.NORTH);
+        north.add(buildAnchorRow(), BorderLayout.SOUTH);
+        panel.add(north, BorderLayout.NORTH);
+        panel.setPreferredSize(new Dimension(640, 340));
         return panel;
+    }
+
+    /**
+     * #20 — the workspace anchor, declared where the roots are.
+     *
+     * <p>It belongs on this tab and nowhere else: the anchor exists ONLY to make these roots
+     * portable, the Project panel's warn rows already send people here, and until now the remedy
+     * those rows named had no control anywhere in the app — the value could be set by hand-editing a
+     * profile, which is not a remedy.
+     *
+     * <p>A combo, not a chooser, because the value is a DEPTH. Each entry states the directory it
+     * resolves to and how many of the roots above it would become portable, so the choice is made by
+     * comparison rather than by understanding what "{@code ../..}" means for this layout.
+     */
+    private JPanel buildAnchorRow() {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        JLabel label = new JLabel("Workspace anchor:");
+        anchorCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override public java.awt.Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean selected, boolean focused) {
+                var c = (JLabel) super.getListCellRendererComponent(list, value, index, selected, focused);
+                if (value instanceof telamin.fluxtion.audit.analyser.analyser.config
+                        .WorkspaceAnchorChoices.Choice choice) {
+                    c.setText(choice.label());
+                    c.setToolTipText(choice.dir() == null ? null : choice.dir().toString());
+                }
+                return c;
+            }
+        });
+        row.add(label, BorderLayout.WEST);
+        row.add(anchorCombo, BorderLayout.CENTER);
+        JLabel note = mutedNote("A root in a <b>sibling checkout</b> is outside this project, so it is stored as "
+                + "an absolute or <code>~/…</code> path — correct on your machine and wrong on a colleague's. "
+                + "Declaring how far above the project your checkouts live lets those roots be stored relative "
+                + "to the project instead. It is a <b>depth</b>, not a location: nothing above the anchor can "
+                + "ever be written into the profile.");
+        note.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+        JPanel wrap = new JPanel(new BorderLayout(0, 0));
+        wrap.add(row, BorderLayout.NORTH);
+        wrap.add(note, BorderLayout.CENTER);
+        return wrap;
+    }
+
+    /** Fill the anchor combo from the live config; called whenever the roots list is loaded. */
+    private void loadAnchorChoices() {
+        var projectRoot = telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.projectRoot(config);
+        var roots = new ArrayList<String>();
+        for (int i = 0; i < rootsModel.size(); i++) roots.add(rootsModel.get(i));
+        var choices = telamin.fluxtion.audit.analyser.analyser.config.WorkspaceAnchorChoices.withCurrent(
+                projectRoot, roots, System.getProperty("user.home"), config.workspaceRoot);
+        anchorCombo.setModel(new DefaultComboBoxModel<>(choices.toArray(
+                new telamin.fluxtion.audit.analyser.analyser.config.WorkspaceAnchorChoices.Choice[0])));
+        String current = config.workspaceRoot == null ? "" : config.workspaceRoot.trim();
+        for (var choice : choices) {
+            if (choice.anchor().equals(current)) {
+                anchorCombo.setSelectedItem(choice);
+                break;
+            }
+        }
+        // with no project open the anchor has nothing to be relative TO, and storing one would be
+        // storing it in the machine's own settings, where it means nothing
+        boolean hasProject = projectRoot != null;
+        anchorCombo.setEnabled(hasProject);
+        anchorCombo.setToolTipText(hasProject ? null
+                : "Open a project first — an anchor is declared by a project, relative to its root");
     }
 
     /** Adds a chosen folder, expanding a project dir to its detected Java source root(s). */
@@ -506,14 +580,24 @@ public final class ConfigPanel extends JDialog {
         });
         dirRow.add(browseExport, BorderLayout.EAST);
         p.add(dirRow, c);
+
+        // #21: the project's own preference, typed rather than browsed — it is a path INSIDE the
+        // repository, and a file chooser would invite the absolute machine path the gate refuses.
+        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END;
+        p.add(new JLabel("This project's directory:"), c);
+        c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START;
+        projectExchangeField.setToolTipText("Relative to the project root, e.g. src/report/shared — "
+                + "no '..', no absolute path. Blank means use the export directory above.");
+        p.add(projectExchangeField, c);
+
         c.fill = GridBagConstraints.NONE;
-        c.gridy = 5; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
+        c.gridy = 6; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max action rounds:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxRoundsSpinner), c);
-        c.gridy = 6; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
+        c.gridy = 7; c.gridx = 0; c.weightx = 0; c.anchor = GridBagConstraints.LINE_END; p.add(new JLabel("Max actions per reply:"), c);
         c.gridx = 1; c.weightx = 1; c.anchor = GridBagConstraints.LINE_START; p.add(leftWrap(maxActionsSpinner), c);
         c.weightx = 0;
 
-        c.gridx = 0; c.gridy = 7; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridx = 0; c.gridy = 8; c.gridwidth = 2; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(14, 0, 4, 0);
         p.add(mutedNote("The assistant can <b>compute over the index</b> and <b>build curation</b> (filter / "
                 + "graph / goto / flag) as it answers. <b>In-process</b> opens no port. <b>REST</b> exposes a "
@@ -584,6 +668,7 @@ public final class ConfigPanel extends JDialog {
     private void loadFromConfig() {
         rootsModel.clear();
         for (String r : config.sourceRoots) rootsModel.addElement(r);
+        loadAnchorChoices();      // #20: the counts are computed FROM the roots, so this follows them
         epModel.clear();
         for (String fqn : config.eventProcessorFqns) if (!epModel.contains(fqn)) epModel.addElement(fqn);
         activeEp = config.selectedEventProcessor;
@@ -602,6 +687,7 @@ public final class ConfigPanel extends JDialog {
         actionsRest.setSelected(config.assistantActionsRest);
         exportsToggle.setSelected(config.assistantExports);
         exportDirField.setText(config.assistantExportDir == null ? "" : config.assistantExportDir);
+        projectExchangeField.setText(config.projectExchangeDir == null ? "" : config.projectExchangeDir);
         maxRoundsSpinner.setValue(config.maxActionRounds);
         maxActionsSpinner.setValue(config.maxActionsPerReply);
     }
@@ -609,6 +695,21 @@ public final class ConfigPanel extends JDialog {
     private void saveToConfig() {
         config.sourceRoots.clear();
         for (int i = 0; i < rootsModel.size(); i++) config.sourceRoots.add(rootsModel.get(i));
+        // #20: refuseWorkspaceRoot is the authority and its text is shown verbatim. The combo can only
+        // offer values that pass, so this fires for a hand-edited profile whose value was carried into
+        // the list by withCurrent — the one path by which an unacceptable value can be selected.
+        if (anchorCombo.isEnabled()
+                && anchorCombo.getSelectedItem() instanceof telamin.fluxtion.audit.analyser.analyser.config
+                        .WorkspaceAnchorChoices.Choice chosen) {
+            var refused = telamin.fluxtion.audit.analyser.analyser.config.PathForm
+                    .refuseWorkspaceRoot(chosen.anchor());
+            if (refused.isPresent()) {
+                JOptionPane.showMessageDialog(this, refused.get(), "Workspace anchor",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                config.workspaceRoot = chosen.isNone() ? "" : chosen.anchor();
+            }
+        }
         config.eventProcessorFqns.clear();
         for (int i = 0; i < epModel.size(); i++) config.eventProcessorFqns.add(epModel.get(i));
         config.selectedEventProcessor = activeEp != null ? activeEp
@@ -627,6 +728,21 @@ public final class ConfigPanel extends JDialog {
         config.assistantActionsRest = actionsRest.isSelected();
         config.assistantExports = exportsToggle.isSelected();
         config.assistantExportDir = exportDirField.getText().trim();
+        // #21: refuse at the door, with the reason — a stored value that can never be honoured is
+        // worse than none, because nothing later says why the exports went elsewhere
+        String wantedExchange = projectExchangeField.getText().trim();
+        if (wantedExchange.isEmpty()) {
+            config.projectExchangeDir = "";
+        } else {
+            var refused = telamin.fluxtion.audit.analyser.analyser.config.Runbooks
+                    .refusePointer("assistant.exchangeDir", wantedExchange);
+            if (refused.isPresent()) {
+                javax.swing.JOptionPane.showMessageDialog(this, refused.get(),
+                        "Exchange directory", javax.swing.JOptionPane.WARNING_MESSAGE);
+            } else {
+                config.projectExchangeDir = wantedExchange;
+            }
+        }
         config.maxActionRounds = (Integer) maxRoundsSpinner.getValue();
         config.maxActionsPerReply = (Integer) maxActionsSpinner.getValue();
         if (onSaved != null) onSaved.run();

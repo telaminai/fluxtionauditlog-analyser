@@ -34,7 +34,8 @@ class FindingPresentationTest {
         SwingUtilities.invokeAndWait(() -> {
             var panel = new ReportsPanel(() -> List.of(spec), s -> ReportResolver.resolve(s,
                     store.index(), Map.of(0, f), Set.of(), Set.of(), new FilterState()), s -> null,
-                    r -> { }, g -> { }, focus -> { }, filter -> { }, path -> { });
+                    r -> { }, g -> { }, focus -> { }, filter -> { }, path -> { },
+                    delete -> { }, (from, to) -> null);
             panel.refresh();
             String text = componentText(panel);
             assertTrue(text.contains("Observation — record #0"), text);

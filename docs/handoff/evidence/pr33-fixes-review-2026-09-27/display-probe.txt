@@ -1,0 +1,22 @@
+PASS fixture log opens
+PASS fixture report created
+PASS visible button enabled: Delete…
+PASS visible button enabled: OK
+PASS real Delete button and confirmation move report into bin
+PASS visible button enabled: Restore deleted…
+PASS restore dialog offers deleted report
+PASS visible button enabled: OK
+PASS real restore dialog restores report
+PASS visible button enabled: Restore deleted…
+PASS empty-bin message visible
+PASS visible button enabled: OK
+PASS report named true created
+PASS report named true deleted
+restore-name-true={ok=true, action=report, restorable={restorable=[true]}}
+PASS COUNTEREXAMPLE restoring name true lists instead of restoring
+PASS combined fixture created
+PASS combined fixture deleted
+restore-with-sections={ok=true, action=report, restored={restored=combined, reports=[DEMO report, combined]}}
+PASS COUNTEREXAMPLE combined restore silently ignores sections
+screenshot-nested-link-ok=true
+PASS COUNTEREXAMPLE real screenshot verb writes outside project through nested link

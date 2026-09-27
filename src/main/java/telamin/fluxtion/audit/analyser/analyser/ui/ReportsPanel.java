@@ -92,6 +92,10 @@ public final class ReportsPanel extends JPanel {
     private final Consumer<String> openFocus;
     private final Consumer<FilterSnapshot> applyFilter;
     private final Consumer<String> exportPdf;
+    /** #23 — remove by name. */
+    private final Consumer<String> deleteReport;
+    /** #23 — rename by name; returns null on success, otherwise why it was refused. */
+    private final java.util.function.BinaryOperator<String> renameReport;
 
     private final DefaultListModel<String> names = new DefaultListModel<>();
     private final JList<String> list = new JList<>(names);
@@ -114,7 +118,9 @@ public final class ReportsPanel extends JPanel {
                         Function<ReportSpec.SectionSpec, ReportVerb.AssembledTable> assembleTable,
                         IntConsumer gotoRecord, Consumer<String> openGraph,
                         Consumer<String> openFocus, Consumer<FilterSnapshot> applyFilter,
-                        Consumer<String> exportPdf) {
+                        Consumer<String> exportPdf,
+                        Consumer<String> deleteReport,
+                        java.util.function.BinaryOperator<String> renameReport) {
         super(new BorderLayout());
         this.reports = reports;
         this.resolve = resolve;
@@ -124,16 +130,32 @@ public final class ReportsPanel extends JPanel {
         this.openFocus = openFocus;
         this.applyFilter = applyFilter;
         this.exportPdf = exportPdf;
+        this.deleteReport = deleteReport;
+        this.renameReport = renameReport;
 
         // the agent exports with report {path}; the human gets the same door as a button — the two
         // surfaces must stay in parity, or one side's report is not quite the other's
-        JPanel bar = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 2));
+        // FlowLayout wraps at a narrow sidebar but reports only one row's preferred height, clipping
+        // Delete and Restore below the toolbar. Each action gets a visible row at the default width.
+        JPanel bar = new JPanel(new java.awt.GridLayout(0, 1, 0, 4));
         JButton export = new JButton("Export PDF…");
         export.addActionListener(e -> {
             String name = list.getSelectedValue();
             if (name != null) exportPdf.accept(name);
         });
         bar.add(export);
+        // #23: the way out. Until this, a report could be created and replaced by name and never
+        // removed — the Reports tab only grew. Both act on the SELECTION, like Export.
+        JButton rename = new JButton("Rename…");
+        rename.addActionListener(e -> renameSelected());
+        bar.add(rename);
+        JButton delete = new JButton("Delete…");
+        delete.addActionListener(e -> deleteSelected());
+        bar.add(delete);
+        JButton restoreButton = new JButton("Restore deleted…");
+        restoreButton.setToolTipText("Bring back a report deleted from this project on this machine");
+        restoreButton.addActionListener(e -> restoreDeleted());
+        bar.add(restoreButton);
         add(bar, BorderLayout.NORTH);
 
         detail.setLayout(new BoxLayout(detail, BoxLayout.Y_AXIS));
@@ -189,6 +211,90 @@ public final class ReportsPanel extends JPanel {
     public void select(String name) {
         categories.setSelectedIndex(0);
         if (names.contains(name)) list.setSelectedValue(name, true);
+    }
+
+    // ---- #23: delete and rename ------------------------------------------------------------------
+
+    /** The selected report, or null when the list is empty or its selection has gone stale. */
+    private ReportSpec selectedSpec() {
+        String name = list.getSelectedValue();
+        if (name == null) return null;
+        for (ReportSpec r : reports.get()) if (r.name().equals(name)) return r;
+        return null;
+    }
+
+    /**
+     * What is lost, in the confirmation, in the person's terms.
+     *
+     * <p>A report is a set of REFERENCES into one log, so "delete report" is ambiguous unless the
+     * dialog says which log and how many references — the charts and the log itself survive; only the
+     * assembly of them goes. A report authored against a log that is no longer open is exactly the one
+     * a person is most likely to delete by mistake, so the log is named even when it is not loaded.
+     */
+    /** PR #33: what can be restored, and how. Unset, the button says there is nothing to restore. */
+    private Supplier<List<String>> restorable = List::of;
+    private Function<String, String> restoreReport = n -> "restore is not available here";
+
+    public void setRestore(Supplier<List<String>> restorable, Function<String, String> restoreReport) {
+        this.restorable = restorable == null ? List::of : restorable;
+        this.restoreReport = restoreReport == null ? n -> "restore is not available here" : restoreReport;
+    }
+
+    private void restoreDeleted() {
+        List<String> names = restorable.get();
+        if (names.isEmpty()) {
+            javax.swing.JOptionPane.showMessageDialog(this, "No deleted reports to restore in this project.",
+                    "Restore deleted report", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        Object choice = javax.swing.JOptionPane.showInputDialog(this, "Restore which report?",
+                "Restore deleted report", javax.swing.JOptionPane.QUESTION_MESSAGE, null,
+                names.toArray(), names.get(0));
+        if (choice == null) return;
+        String refused = restoreReport.apply(choice.toString());
+        if (refused != null) {
+            javax.swing.JOptionPane.showMessageDialog(this, refused, "Restore deleted report",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    public static String deleteWarning(ReportSpec spec) {
+        int n = spec.sections().size();
+        String cites = spec.fingerprint() == null
+                ? "It cites no particular log."
+                : "It cites " + spec.fingerprint().describe() + ".";
+        return "Delete the report \"" + spec.name() + "\"?\n\n"
+                + cites + " Its " + n + " section" + (n == 1 ? "" : "s")
+                + " and the notes on them move to the recently-deleted list.\n"
+                + "The log, the charts and any PDF already exported are NOT touched.\n\n"
+                + "It can be brought back with Restore deleted… — the last "
+                + telamin.fluxtion.audit.analyser.analyser.config.ReportBin.CAPACITY
+                + " deletions are kept on this machine.";
+    }
+
+    private void deleteSelected() {
+        ReportSpec spec = selectedSpec();
+        if (spec == null) return;
+        int choice = javax.swing.JOptionPane.showConfirmDialog(this, deleteWarning(spec),
+                "Delete report", javax.swing.JOptionPane.OK_CANCEL_OPTION,
+                javax.swing.JOptionPane.WARNING_MESSAGE);
+        if (choice == javax.swing.JOptionPane.OK_OPTION) deleteReport.accept(spec.name());
+    }
+
+    private void renameSelected() {
+        ReportSpec spec = selectedSpec();
+        if (spec == null) return;
+        Object typed = javax.swing.JOptionPane.showInputDialog(this,
+                "Rename the report \"" + spec.name() + "\" to:", "Rename report",
+                javax.swing.JOptionPane.PLAIN_MESSAGE, null, null, spec.name());
+        if (typed == null) return;
+        String refused = renameReport.apply(spec.name(), typed.toString());
+        if (refused != null) {
+            javax.swing.JOptionPane.showMessageDialog(this, refused, "Rename report",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        select(typed.toString().trim());
     }
 
     private void renderSelected() {
