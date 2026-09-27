@@ -60,8 +60,13 @@ public final class LogTablePanel extends JPanel {
      * What the table says for a file-identity verdict, or null for none. Only a CHANGE is stated: nothing observed, a
      * verified file and a log reopened after a replacement are all current.
      */
+    /** View-model spike: the words for a view the session has already decided to show. */
+    static String identityBannerText(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView view) {
+        return view.shown() ? identityBannerText(view.verdict(), view.reason()) : null;
+    }
+
     static String identityBannerText(String verdict, String reason) {
-        if (!"UNVERIFIED".equals(verdict) && !"REPLACEMENT".equals(verdict)) return null;
+        if (!telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.warns(verdict)) return null;
         return "⚠ " + (reason == null ? "the file behind this log changed after it was read" : reason)
                 + " · the rows below are the log as it was indexed, not re-read from the file — reopen the log to read it again";
     }

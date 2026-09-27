@@ -300,6 +300,7 @@ public final class SessionDriver {
             case SessionEffects.OpenLogEffect ignored -> "openLog";
             case SessionEffects.ScanLogEvidenceEffect ignored -> "scanLogEvidence";
             case SessionEffects.RenderStatusLineEffect ignored -> "renderStatusLine";
+            case SessionEffects.RenderIdentityBannerEffect ignored -> "renderIdentityBanner";
         };
     }
 

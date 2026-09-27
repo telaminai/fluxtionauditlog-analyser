@@ -49,10 +49,12 @@ class LogTablePanelIdentityBannerTest {
     @Test
     @DisplayName("A: the frame renders the banner from the session snapshot, where it renders everything else")
     void theFrameRendersItFromTheSnapshot() throws Exception {
+        // PR #55 second element, RE-ANCHORED — see IdentityMarkSurfacesTest for why.
         String frame = Files.readString(Path.of("src/main/java/telamin/fluxtion/audit/analyser/analyser/ui/MainFrame.java"));
-        int at = frame.indexOf("private void onSessionSnapshot(");
-        String body = frame.substring(at, frame.indexOf("\n    }\n", at));
-        assertTrue(body.contains("tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()))"),
-                "the table's banner comes from the snapshot: " + body);
+        int at = frame.indexOf("identityBannerBackends =");
+        assertTrue(at > 0, "the identity banner's backends are registered in MainFrame");
+        String registration = frame.substring(at, frame.indexOf("\n\n", at));
+        assertTrue(registration.contains("tablePanel.setIdentityNote(LogTablePanel.identityBannerText("),
+                "the table's backend composes its own words: " + registration);
     }
 }

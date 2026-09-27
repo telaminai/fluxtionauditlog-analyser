@@ -4591,11 +4591,8 @@ public final class MainFrame extends JFrame {
      */
     private void onSessionSnapshot(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
         publishPairing();
-        // M68.5, the review's "table not suspended": the table states the session's file-identity verdict, from here
-        tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
-        // M68.7 (owner, Q4): the charts and the detail pane state the same verdict, from the same snapshot
-        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
-        detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        // M68.5/M68.7 were three hand-fed call sites here. The identityBannerView node decides WHEN the verdict
+        // has changed and RenderIdentityBannerEffect draws it on all three — see identityBannerBackends.
         renderFollow(next);                      // M44.5: Follow's controls and its poll timer
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
     }
@@ -4644,6 +4641,35 @@ public final class MainFrame extends JFrame {
                         @Override public String name() { return "swing"; }
                         @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView v) {
                             status.setText(statusLineText(v));
+                        }
+                    });
+
+    /**
+     * View-model spike, second element: the three surfaces that state the file-identity verdict.
+     *
+     * <p>They used to be hand-fed from {@code onSessionSnapshot}, and two of them asked the third whether to draw
+     * at all — {@code GraphTabs} and {@code DetailPanel} each began by calling
+     * {@code LogTablePanel.identityBannerText(...)} and returning null when it did. The decision is now
+     * {@code view.shown()}, made once in the node; each backend only chooses its own words.
+     */
+    private final telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackends<telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView> identityBannerBackends =
+            new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackends<telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView>()
+                    .register(new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackend<>() {
+                        @Override public String name() { return "table"; }
+                        @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView v) {
+                            tablePanel.setIdentityNote(LogTablePanel.identityBannerText(v));
+                        }
+                    })
+                    .register(new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackend<>() {
+                        @Override public String name() { return "charts"; }
+                        @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView v) {
+                            graphTabs.setIdentityNote(GraphTabs.identityBannerText(v));
+                        }
+                    })
+                    .register(new telamin.fluxtion.audit.analyser.analyser.session.view.ViewBackend<>() {
+                        @Override public String name() { return "detail"; }
+                        @Override public void render(telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView v) {
+                            detailPanel.setIdentityNote(DetailPanel.identityBannerText(v));
                         }
                     });
 
@@ -5624,6 +5650,10 @@ public final class MainFrame extends JFrame {
                     // view-model spike: the session decided this view is current and new; every backend draws it
                     new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewRendered(opId, "statusLine",
                             statusLineBackends.render(e.view()));
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.RenderIdentityBannerEffect e ->
+                    // second element: three surfaces, one verdict — each composes its own sentence
+                    new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewRendered(opId,
+                            "identityBanner", identityBannerBackends.render(e.view()));
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(

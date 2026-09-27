@@ -24,6 +24,8 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects> performed = new ArrayList<>();
     /** View-model spike: every status-line view the session emitted, as a recording backend received it. */
     final List<telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView> statusLines = new ArrayList<>();
+    /** View-model spike, second element: what the identity banner was told, in order. */
+    final List<telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView> identityBanners = new ArrayList<>();
 
     boolean logClosed;
     boolean graphClosed;
@@ -53,6 +55,10 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.RenderStatusLineEffect e -> {
                 statusLines.add(e.view());   // the recording backend: what the line was told, in order
                 yield new SessionEvents.ViewRendered(e.opId(), "statusLine", java.util.List.of("recorder"));
+            }
+            case SessionEffects.RenderIdentityBannerEffect e -> {
+                identityBanners.add(e.view());
+                yield new SessionEvents.ViewRendered(e.opId(), "identityBanner", java.util.List.of("recorder"));
             }
             case SessionEffects.LoadProfileEffect e -> {
                 if (loadThrows) {
