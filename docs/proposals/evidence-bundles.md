@@ -314,7 +314,7 @@ Roughly in dependency order; 1 and 2 unlock everything else.
 | 1 | bundle-relative path anchor (5.1) | without it a bundle cannot leave the machine |
 | 2 | bundle as an object: single file, versioned manifest, validate on open (5.2) | makes it attachable |
 | 3 | content hashes + consistency report (5.3) | makes a received bundle checkable |
-| 4 | **SVG charts in the bundle (5.12)** | removes the install barrier at the FIRST step |
+| 4 | **bundle opens as a static page (5.12)** | removes the install barrier at the FIRST step |
 | 5 | **saved spotlight walks + step-through (5.11)** | replaces the author being in the room |
 | 6 | platform excerpting with a recorded filter (5.7) | makes the excerpt self-describing |
 | 7 | read-only loaded bundles (5.10) | stops examination altering evidence |
@@ -330,47 +330,68 @@ planned together: comparison is most of the value of replay.
 
 ### 5.12 A bundle should be readable without installing anything
 
-Every gap above assumes the receiver has the analyser. For a team inside the project that is fine.
-For the exchange this format exists for it is the adoption barrier, and it sits at the very first
-step: someone opens a ticket, sees an attachment, and has to install a desktop application before
-they can find out whether it is worth their afternoon.
+Every gap above assumes the receiver has the analyser. Inside one project that is fine. For the
+exchange this format exists for it is THE adoption barrier, and it sits at the very first step:
+someone opens a ticket, sees an attachment, and has to install a desktop application before finding
+out whether it is worth their afternoon.
 
-> **Needed: two tiers of consumption from one bundle.**
->
-> | | **lightweight** | **heavyweight** |
-> |---|---|---|
-> | what | SVG charts, the manifest, the rendered report | the analyser |
-> | needs | a browser | analyser + the processor's build |
-> | gives | read the argument, see the charts, search the text | filter, re-query, navigate to source, step the walk, replay |
-> | for | triage, review, the person deciding whether to care | the person fixing it |
->
-> The lightweight tier is the front door. It costs the receiver nothing and is enough to decide
-> whether to open the heavyweight one.
+> **Needed: a bundle opens as a static, self-contained page.** One `index.html` at the root,
+> generated at capture, that works from the filesystem with no server, no build and no install.
 
-**This is close to free, because of where the chart's drawing now sits.** A chart is painted through
-a surface abstraction rather than straight onto the window, so the same paint path that draws the
-screen can write SVG — one renderer, two consumers. A prototype does this today in 3.9 KB and 51
-elements for a chart with a series, a threshold rule, a pinned note and an explanation footer,
-headless, with no display and no font installed.
+**And it has to be more than the charts.** A chart on its own is unfalsifiable — a reader who cannot
+reach the records behind it is being asked to take the author's word, which is the thing this whole
+format exists to avoid. The tier is only worth having if the sceptical reader can check something.
 
-Why SVG rather than the PNG screenshots the prototype bundled:
+What the page carries, and why each one earns its place:
 
-- **A PNG is a picture of evidence.** It cannot be zoomed, its text cannot be selected or searched,
-  and a reader cannot inspect any of it. An SVG is the marks themselves.
-- **The text travels as text.** A reader can search a bundle for a value or a label, and a screen
-  reader can read the axis.
-- **It is small.** Images were 1.1 MB of the prototype's 1.4 MB; these are kilobytes.
-- **It cannot diverge from the screen**, because it is not a second renderer — which matters most
-  precisely here, since an exported chart is the one nobody checks: it goes into a ticket and is
-  read by someone who was not there.
+| | | why a reader needs it |
+|---|---|---|
+| the **manifest** | rendered | the claim, the method, and the caveats |
+| the **charts** | inlined SVG | the shape of the finding |
+| the **records** | a table of the excerpt | so a chart is checkable, not just viewable |
+| the **findings** | what `flag` wrote, against their records | the durable claims, at their anchors |
+| the **topology** | SVG, with the captured focus applied | which part of the system this is about |
+| the **walk** | the author's steps (§5.11) | the route, which is what replaces the author |
+| **provenance** | counts, window, excerpt filter, hashes | what was cut, and whether it is intact |
 
-**What this deliberately is NOT.** It is not the analyser in a browser. The socket already serves
-`context`, `read`, `aggregate`, `filter` and the rest as JSON, so a web client of a RUNNING analyser
-is a plausible separate project — but it needs a verb that returns a chart's data points, which does
-not exist today (`series` returns statistics, `graph` returns an echo), and it reintroduces exactly
-the divergence the surface abstraction removes, because the browser would lay the chart out itself.
-A bundle is a snapshot; nobody needs to zoom a chart from a run that finished last Tuesday. Static
-SVG is the right answer for this use case and the cheap one.
+The walk is the one that changes the character of the page. Steps that highlight a region of a
+chart and scroll to a record are natural in a browser and need very little script; the reader gets
+the argument as a sequence they can step and check, rather than a folder of artefacts.
+
+**Why this is cheap.** Chart drawing goes through a surface abstraction rather than straight onto
+the window, so the same paint path that draws the screen writes SVG — one renderer, two consumers. A
+prototype does a chart with a series, a threshold rule, a pinned note and an explanation footer in
+3.9 KB and 51 elements, headless, with no display and no font installed. Topology needs the same
+treatment and does not have it yet; that is the main new work.
+
+**Why SVG rather than the PNG screenshots the prototype bundled:** a PNG is a *picture of* evidence —
+unzoomable, unsearchable, uninspectable. An SVG is the marks. The text travels as text, so a reader
+can search the bundle for a value and a screen reader can read the axis. Images were 1.1 MB of the
+prototype's 1.4 MB; these are kilobytes. And it cannot diverge from the screen, because it is not a
+second renderer — which matters most here, since an exported chart is the one nobody checks: it goes
+into a ticket and is read by someone who was not there.
+
+**Generated by the analyser, from the artefacts.** Not hand-written, and not a second definition of
+what a bundle is. The page is a *rendering* of the same members the heavyweight tier loads, so the
+two cannot disagree — and the heavyweight tier reads the artefacts, never the HTML, so the page can
+never become the source of truth by accident.
+
+**What the page deliberately cannot do**, and should say so rather than degrade quietly:
+
+- no source navigation — that needs the repositories (§5.4);
+- no new queries — filtering on an arbitrary expression needs the index and the evaluator;
+- no aggregates over the full log — it has the excerpt, and the excerpt says what it omitted;
+- no replay — that needs the build (§5.5).
+
+That list is the boundary between the tiers, and it is what keeps the lightweight one honest. It is
+a front door, not a cut-down analyser.
+
+**What this is NOT.** It is not the analyser in a browser. The socket already serves `context`,
+`read`, `aggregate` and `filter` as JSON, so a web client of a RUNNING analyser is a plausible
+separate project — but it has no verb returning a chart's data points today (`series` returns
+statistics, `graph` returns an echo), and a browser laying charts out itself reintroduces exactly
+the divergence the surface abstraction removes. A bundle is a snapshot; nobody needs to zoom a chart
+from a run that finished last Tuesday. Static is both the right answer here and the cheap one.
 
 ---
 
@@ -452,7 +473,8 @@ evidence/2026-02-11-quote-gate/
   topology/QuotePricer.graphml
   analyser/bundle.fluxtion-settings     2 charts, 1 focus, 1 report, 1 walk
   walk/unmapped-to-reclaimed.walk       4 steps, author's route (5.11)
-  charts/parked-vs-settled.svg            readable in a browser, no install (5.12)
+  index.html                             the whole argument, no install (5.12)
+  charts/parked-vs-settled.svg           inlined into index.html; also standalone
   report/unpriced-on-stale-reference.pdf
   images/phase-boundaries.png
   rerun/commands.sh
