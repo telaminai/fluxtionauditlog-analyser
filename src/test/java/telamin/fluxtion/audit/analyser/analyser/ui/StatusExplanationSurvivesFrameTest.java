@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.field;
 import static telamin.fluxtion.audit.analyser.analyser.ui.AsyncOpenInterleavingFrameTest.onEdt;
+import static telamin.fluxtion.audit.analyser.analyser.ui.LogFindingsOnEverySurfaceFrameTest.findingsOf;
 
 /**
  * R12-6: the two fixes that shipped without one. My commit claimed every fix had a regression test; two
@@ -143,33 +144,33 @@ class StatusExplanationSurvivesFrameTest {
         Path log = writeLog();
         try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
             prepareManualFollow(f, log);
-            onEdt(() -> {
-                poll(f.frame);
-                var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session");
+            // M44.5: each poll reports to the session; the scan it may ask for runs on the next EDT turn, so every
+            // assertion reads in an onEdt AFTER the poll's own
+            onEdt(() -> poll(f.frame));
+            var session = (telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) onEdtGet(() -> field(f.frame, "session"));
+            var before = onEdtGet(() -> {
                 assertEquals("VERIFIED", session.snapshot().logIdentity(), "control: the idle poll verified the file");
-                var before = field(f.frame, "producerDiagnostics");
-                byte[] bytes;
-                try {
-                    bytes = Files.readAllBytes(log);
-                    bytes[10] = (byte) 0xff;
-                    Files.write(log, bytes);
-                } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
-                poll(f.frame);
-                var findings = (telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(f.frame, "producerDiagnostics");
-                assertAll("a failed poll publishes both kinds of evidence",
-                        () -> assertEquals("UNVERIFIED", session.snapshot().logIdentity(),
-                                "the failing poll must publish its identity to the session immediately"),
-                        () -> assertNotSame(before, findings, "new damage refreshes findings even when completeness was already UNKNOWN"),
-                        () -> assertTrue(findings.messages().stream().anyMatch(m -> m.contains("not valid UTF-8")),
-                                "the producer findings must contain the new decode damage"),
-                        () -> assertTrue(String.valueOf(status(f.frame).getToolTipText()).contains("not valid UTF-8"),
-                                "the same damage must reach the visible status tooltip"));
-                try { Files.write(log, new byte[]{(byte) 0xff}, java.nio.file.StandardOpenOption.APPEND); }
-                catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
-                poll(f.frame);
-                assertSame(findings, field(f.frame, "producerDiagnostics"),
-                        "a repeated failed poll with identical damage must not rebuild findings");
+                return findingsOf(f.frame);
             });
+            byte[] bytes = Files.readAllBytes(log);
+            bytes[10] = (byte) 0xff;
+            Files.write(log, bytes);
+            onEdt(() -> poll(f.frame));
+            var findings = onEdtGet(() -> findingsOf(f.frame));
+            onEdt(() -> assertAll("a failed poll publishes both kinds of evidence",
+                    () -> assertEquals("UNVERIFIED", session.snapshot().logIdentity(),
+                            "the failing poll must publish its identity to the session immediately"),
+                    () -> assertNotSame(before, findings, "new damage refreshes findings even when completeness was already UNKNOWN"),
+                    () -> assertTrue(findings.messages().stream().anyMatch(m -> m.contains("not valid UTF-8")),
+                            "the producer findings must contain the new decode damage"),
+                    () -> assertTrue(String.valueOf(status(f.frame).getToolTipText()).contains("not valid UTF-8"),
+                            "the same damage must reach the visible status tooltip"),
+                    () -> assertTrue(status(f.frame).getText().contains("Follow read failed"),
+                            "the line says the read failed: " + status(f.frame).getText())));
+            Files.write(log, new byte[]{(byte) 0xff}, java.nio.file.StandardOpenOption.APPEND);
+            onEdt(() -> poll(f.frame));
+            onEdt(() -> assertSame(findings, findingsOf(f.frame),
+                    "a repeated failed poll with identical damage must not replace the findings"));
         }
     }
 
@@ -179,17 +180,19 @@ class StatusExplanationSurvivesFrameTest {
         Path log = writeLog();
         try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
             prepareManualFollow(f, log);
-            onEdt(() -> {
-                append(log, "eventLogRecord:\n  logTime: 2000\n");
-                poll(f.frame);
-                var initial = (telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(f.frame, "producerDiagnostics");
+            append(log, "eventLogRecord:\n  logTime: 2000\n");
+            onEdt(() -> poll(f.frame));
+            int rows = onEdtGet(() -> {
+                var initial = findingsOf(f.frame);
                 assertFalse(initial.findings().stream().anyMatch(x -> x.kind().name().equals("UNSEPARATED")),
                         "control: a single pending header is not collapsed framing");
+                return ((telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store")).size();
+            });
+            append(log, "eventLogRecord:\n  logTime: 3000\n");
+            onEdt(() -> poll(f.frame));
+            onEdt(() -> {
+                var findings = findingsOf(f.frame);
                 var store = (telamin.fluxtion.audit.analyser.analyser.parse.LogStore) field(f.frame, "store");
-                int rows = store.size();
-                append(log, "eventLogRecord:\n  logTime: 3000\n");
-                poll(f.frame);
-                var findings = (telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics) field(f.frame, "producerDiagnostics");
                 assertEquals(rows, store.size(), "neither pending header is indexed");
                 assertTrue(findings.findings().stream().anyMatch(x -> x.kind().name().equals("UNSEPARATED")),
                         "pending growth must refresh the collapsed-framing finding without an indexed row");
@@ -232,5 +235,14 @@ class StatusExplanationSurvivesFrameTest {
             m.setAccessible(true);
             m.invoke(frame, name);
         } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+    }
+
+    private static <T> T onEdtGet(java.util.concurrent.Callable<T> c) throws Exception {
+        Object[] out = new Object[1];
+        onEdt(() -> {
+            try { out[0] = c.call(); } catch (Exception e) { throw new RuntimeException(e); }
+        });
+        @SuppressWarnings("unchecked") T value = (T) out[0];
+        return value;
     }
 }

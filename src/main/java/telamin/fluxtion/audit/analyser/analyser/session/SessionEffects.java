@@ -65,4 +65,13 @@ public sealed interface SessionEffects {
     /** Warn — the louder surface, for a transition that did not do what was asked. */
     record ShowWarningEffect(long opId, String text) implements SessionEffects {
     }
+
+    /**
+     * M44.5: compute the open log's producer findings and time order for {@code generation}. The adapter answers
+     * {@link SessionEvents.ScanScheduled} at once and runs the scan after the current task — never inside this dispatch,
+     * because the store for a just-opened generation is installed after {@code LogOpened} returns — then posts
+     * {@link SessionEvents.ProducerFindingsObserved} and {@link SessionEvents.TimeOrderObserved}.
+     */
+    record ScanLogEvidenceEffect(long opId, long generation) implements SessionEffects {
+    }
 }

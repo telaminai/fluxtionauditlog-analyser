@@ -22,6 +22,10 @@ public class OpenLog implements EventLogSource {
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     private String logPath;
     private String provenance;
+    /** M44.5: who supplied the provenance — "declared by the opener", or the project environment that matched. */
+    private String provenanceSource;
+    /** M44.5: whether Follow is on for this log. */
+    private boolean following;
 
     /**
      * The evidence a derived node needs, held HERE rather than re-observed there.
@@ -58,6 +62,8 @@ public class OpenLog implements EventLogSource {
         boolean wasOpen = logPath != null;
         logPath = null;
         provenance = null;
+        provenanceSource = null;
+        following = false;
         loggedNodeIds = java.util.Set.of();
         sampled = 0;
         total = 0;
@@ -76,6 +82,10 @@ public class OpenLog implements EventLogSource {
         String previousPath = logPath;          // M68.5: read BEFORE it is overwritten (set 5, P25: it was not)
         logPath = event.logPath();
         provenance = event.provenance();
+        provenanceSource = event.provenanceSource();
+        // M44.5: Follow is a mode of the session, so it continues through a reload (a rotation, a live re-read) and into
+        // the next log opened while it is on — but only into a log that CAN be followed. Nothing else turns it on.
+        following = following && event.followable();
         loggedNodeIds = event.loggedNodeIds();
         sampled = event.sampled();
         total = event.total();
@@ -103,6 +113,8 @@ public class OpenLog implements EventLogSource {
         if (!current(event.generation(), "LogCleared")) return false;
         logPath = null;
         provenance = null;
+        provenanceSource = null;
+        following = false;
         loggedNodeIds = java.util.Set.of();
         sampled = 0;
         total = 0;
@@ -148,6 +160,16 @@ public class OpenLog implements EventLogSource {
         return moved;
     }
 
+    /** M44.5: Follow switched on or off. Dirty only when it changed. */
+    @OnEventHandler
+    public boolean onFollowToggled(SessionEvents.FollowToggled event) {
+        if (!current(event.generation(), "FollowToggled")) return false;
+        boolean moved = following != event.on();
+        following = event.on();
+        auditLog.info("following", following);
+        return moved;
+    }
+
     public String identity() {
         return identity;
     }
@@ -187,6 +209,16 @@ public class OpenLog implements EventLogSource {
 
     public String provenance() {
         return provenance;
+    }
+
+    /** M44.5: who supplied {@link #provenance()}, or null when nobody did. */
+    public String provenanceSource() {
+        return provenanceSource;
+    }
+
+    /** M44.5: whether Follow is on. */
+    public boolean following() {
+        return following;
     }
 
     /** Distinct instanceIds seen in the sample — the raw evidence a pairing needs. */

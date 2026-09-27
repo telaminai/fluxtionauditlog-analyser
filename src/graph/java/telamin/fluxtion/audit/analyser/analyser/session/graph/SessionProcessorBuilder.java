@@ -91,6 +91,9 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         IgnoredParameters ignoredParameters = new IgnoredParameters();
         // M44.4c: what wider comparisons say about the pairing, bound to the pair by generation and revision
         PairingQualifier pairingQualifier = new PairingQualifier(openLog, openGraph, pairing);
+        // M44.5: the log's own derived state — producer findings and time order — and the decision of when to rescan
+        telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence logEvidence =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence(openLog, effects);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -108,6 +111,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(coverageClaim, "coverageClaim");
         cfg.addNode(ignoredParameters, "ignoredParameters");
         cfg.addNode(pairingQualifier, "pairingQualifier");
+        cfg.addNode(logEvidence, "logEvidence");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession(gate), "designSession");
         cfg.addNode(new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(gate), "sessionRecovery");
 

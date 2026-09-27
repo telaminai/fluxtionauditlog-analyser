@@ -53,6 +53,16 @@ public interface LogStore extends AutoCloseable {
      * plain statements. Empty for a whole source. These are about the SOURCE, shown beside the
      * evidence, never inside it.
      */
+    /**
+     * Review F2 (PR #43): the part of this log's time order that validating its index cannot recover — a rolled set's
+     * cross-file findings (files that overlap, a file with no timestamps), established when the set was resolved.
+     * It travels WITH the store, so the scan that derives the time order reads it from the log it is scanning, and no
+     * surface keeps a copy keyed by store. Null for a single file.
+     */
+    default TimeOrderReport crossFileOrder() {
+        return null;
+    }
+
     default java.util.List<String> sourceDiagnostics() {
         return java.util.List.of();
     }

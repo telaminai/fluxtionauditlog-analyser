@@ -94,4 +94,27 @@ class TimeOrderValidatorTest {
         String last = report.summarise().get(report.summarise().size() - 1);
         assertTrue(last.contains("2 further file(s) not examined"), last);
     }
+
+    /**
+     * Review F2 (PR #43): a rolled set's cross-file findings travel with its store, and the store-level validation —
+     * the one the session's evidence scan runs — includes them. Validating the merged index alone cannot see that two
+     * files overlap; that finding comes from the resolver, and is carried by {@link LogStore#crossFileOrder()}.
+     */
+    @Test
+    void aRolledSetsCrossFileOverlapIsPartOfItsTimeOrder() throws IOException {
+        Files.writeString(dir.resolve("m.log.1"), records(100, 250));
+        Files.writeString(dir.resolve("m.log.2"), records(200, 300));   // starts 50 ms before m.log.1 ends
+        var set = RollSetResolver.resolve(List.of(dir.resolve("m.log.1"), dir.resolve("m.log.2")));
+        var files = set.ordered().stream().map(RollSetResolver.Sibling::file).toList();
+        try (var carried = RolledLogStore.open(files, 64, set.report());
+             var bare = RolledLogStore.open(files, 64)) {
+            assertTrue(TimeOrderValidator.validate(bare).violations().stream()
+                            .noneMatch(v -> v.kind() == TimeOrderReport.Kind.FILE_OVERLAP),
+                    "control: the merged index alone cannot see the overlap");
+            var order = TimeOrderValidator.validate(carried);
+            assertTrue(order.violations().stream().anyMatch(v -> v.kind() == TimeOrderReport.Kind.FILE_OVERLAP),
+                    "the store carries the set's overlap into its time order: " + order.summarise());
+            assertSame(set.report(), carried.crossFileOrder(), "the resolver's own report, not a copy");
+        }
+    }
 }

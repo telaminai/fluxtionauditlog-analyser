@@ -47,6 +47,7 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     public SessionEvents.Result perform(SessionEffects effect) throws Exception {
         performed.add(effect);
         return switch (effect) {
+            case SessionEffects.ScanLogEvidenceEffect e -> new SessionEvents.ScanScheduled(e.opId(), e.generation());
             case SessionEffects.LoadProfileEffect e -> {
                 if (loadThrows) {
                     loadThrows = false;

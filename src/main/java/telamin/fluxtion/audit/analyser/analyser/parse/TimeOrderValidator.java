@@ -17,6 +17,16 @@ public final class TimeOrderValidator {
     private TimeOrderValidator() {
     }
 
+    /**
+     * A log's whole time order: its index validated, with the cross-file findings the store carries
+     * ({@link LogStore#crossFileOrder()}) first, as the rolled-set load reported them.
+     */
+    public static TimeOrderReport validate(LogStore store) {
+        TimeOrderReport order = validate(store.index());
+        TimeOrderReport crossFile = store.crossFileOrder();
+        return crossFile == null ? order : crossFile.merged(order);
+    }
+
     public static TimeOrderReport validate(LogIndex idx) {
         return validate(idx, TimeOrderReport.MAX_VIOLATIONS);
     }

@@ -145,7 +145,6 @@ public final class MainFrame extends JFrame {
     // follow / tail mode (H8.7): poll a growing local file and append new records live
     private static final int FOLLOW_POLL_MS = 1000;
     private Timer followTimer;
-    private volatile boolean following;       // M68.5: read off the EDT by the request-time identity check
     private String followPath;                       // local path being tailed, or null
     private JToggleButton followButton;              // toolbar toggle (kept in sync)
     private JCheckBoxMenuItem followMenuItem;        // Audit-log-menu toggle (kept in sync)
@@ -252,7 +251,8 @@ public final class MainFrame extends JFrame {
         actionExecutor.setReadGrants(this::sessionFileGrants);   // M29 D-F4: the chooser is the grant
         readerRegistry.loadPlugins(java.nio.file.Path.of(
                 System.getProperty("user.home"), ".fluxtion-analyser", "plugins"));
-        actionExecutor.setTimeOrderNote(() -> timeOrderReport.isClean() ? null
+        actionExecutor.setTimeOrderNote(() -> sessionSnapshot().timeOrder() == null
+                || sessionSnapshot().timeOrder().isClean() ? null
                 : "time order is violated in this log — time-anchored answers may be approximate; "
                         + "see 'context'.timeOrder");   // M30 D-R4
         llmPanel.bind(() -> config, () -> selectedRecords, sourceService::selectedFqn,
@@ -1059,11 +1059,17 @@ public final class MainFrame extends JFrame {
     /**
      * WHERE the open log came from, as declared by whoever opened it (§E). Free text, null when
      * nobody said, and NEVER inferred from the path — a guessed system name is worse than none.
-     * Set by {@code open {provenance}} and cleared with the log.
+     * Set by {@code open {provenance}} and cleared with the log — M44.5: the session's (OpenLog), resolved before the
+     * log is reported open, so no surface can read a frame copy that a close or a reload has not reached yet.
      */
-    private String logProvenance;
-    /** M38.3: WHERE logProvenance came from — "declared by the opener", or the project environment that supplied it. */
-    private String logProvenanceSource;
+    private String logProvenance() {
+        return sessionSnapshot().provenance();
+    }
+
+    /** M38.3: WHERE the provenance came from — "declared by the opener", or the project environment that supplied it. */
+    private String logProvenanceSource() {
+        return sessionSnapshot().provenanceSource();
+    }
 
     /**
      * M36 — show the start page exactly when there is no log, and the table exactly when there is.
@@ -1317,7 +1323,7 @@ public final class MainFrame extends JFrame {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("no log is loaded");
         }
         var fp = telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
-                store.index(), loadedLogName(), logProvenance, logProvenanceSource);   // M38.3 F1: how it was obtained
+                store.index(), loadedLogName(), logProvenance(), logProvenanceSource());   // M38.3 F1: how it was obtained
         String name = params.get("name") == null ? null : params.get("name").toString();
 
         // ---- delete / rename an existing report (#23) -------------------------------------------------
@@ -1439,7 +1445,7 @@ public final class MainFrame extends JFrame {
         }
 
         var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                spec, store.index(), loadedLogName(), logProvenance, findings,
+                spec, store.index(), loadedLogName(), logProvenance(), findings,
                 new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter);
 
         java.util.List<String> warnings = new java.util.ArrayList<>(parsed.warnings());
@@ -1475,8 +1481,9 @@ public final class MainFrame extends JFrame {
         }
         if (!warnings.isEmpty()) echo.put("warnings", warnings);
         // D-MA0c: the reply carries the log's producer findings under the key `context` already uses
-        if (store != null && producerDiagnostics != null && !producerDiagnostics.isClean()) {
-            echo.put("producer", producerDiagnostics.messages());
+        var producer = sessionSnapshot().producerFindings();
+        if (store != null && producer != null && !producer.isClean()) {
+            echo.put("producer", producer.messages());
         }
         return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "applied", echo);
     }
@@ -1563,7 +1570,7 @@ public final class MainFrame extends JFrame {
                 spec, resolution, content,
                 (logDisplayLocation == null ? "No log" : new File(logDisplayLocation).getName()) + " — " + snapshotNote(),
                 TimeFormat.utc(System.currentTimeMillis()),
-                store == null ? null : producerDiagnostics);   // D-MA0c: the log's findings are on the page
+                store == null ? null : sessionSnapshot().producerFindings());   // D-MA0c: the log's findings are on the page
     }
 
     /** One record as evidence lines: the numbered node log, the same shape the finding report uses. */
@@ -1591,7 +1598,7 @@ public final class MainFrame extends JFrame {
         fc.setSelectedFile(new File(name + ".pdf"));
         if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
         var resolution = telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                spec, store.index(), loadedLogName(), logProvenance, findings,
+                spec, store.index(), loadedLogName(), logProvenance(), findings,
                 new java.util.HashSet<>(graphTabs.graphNames()), focusNames(), filter);
         java.util.List<String> warnings = new java.util.ArrayList<>();
         byte[] pdf = renderReportPdf(spec, resolution, warnings);
@@ -3108,7 +3115,7 @@ public final class MainFrame extends JFrame {
         reportsPanel = new ReportsPanel(
                 () -> java.util.List.copyOf(config.reports),
                 spec -> telamin.fluxtion.audit.analyser.analyser.report.ReportResolver.resolve(
-                        spec, store == null ? null : store.index(), loadedLogName(), logProvenance,
+                        spec, store == null ? null : store.index(), loadedLogName(), logProvenance(),
                         findings, new java.util.HashSet<>(graphTabs.graphNames()), focusNames(),
                         filter),
                 sec -> store == null
@@ -3126,7 +3133,7 @@ public final class MainFrame extends JFrame {
                 name -> exportReportPdfWithChooser(name),
                 this::removeReport,
                 this::renameReport);
-        reportsPanel.setLogFindings(() -> store == null ? null : producerDiagnostics);   // D-MA0c
+        reportsPanel.setLogFindings(() -> store == null ? null : sessionSnapshot().producerFindings());   // D-MA0c
         reportsPanel.setRestore(this::restorableReports, this::restoreReport);   // PR #33: a delete is recoverable
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
@@ -3659,16 +3666,12 @@ public final class MainFrame extends JFrame {
                 () -> {
                     try {
                         Path tmp = S3Source.fetchToFile(uri, config.awsProfile, config.awsRegion);
-                        LogStore s3Store = LogStores.open(tmp, config.memoryThresholdMb);
-                        var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
-                                .validate(s3Store.index());
-                        return new Object[]{s3Store, report};
+                        return LogStores.open(tmp, config.memoryThresholdMb);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
-                out -> onLoaded((LogStore) out[0], uri,
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId),
+                loaded -> onLoaded(loaded, uri, request, opId),
                 err -> onLoadFailed(opId, uri, request, err));
     }
 
@@ -3690,21 +3693,6 @@ public final class MainFrame extends JFrame {
     /** Log-source readers: the built-in YAML reader + explicitly-installed plugin jars (M31 D-P3). */
     private final telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry readerRegistry =
             new telamin.fluxtion.audit.analyser.analyser.spi.ReaderRegistry();
-
-    /** The active log's time-order validation (M30 D-R3) — clean until a load says otherwise. */
-    /**
-     * What the loaded log says about the producer that wrote it. Reported like the time-order report —
-     * status bar and {@code context}, never a dialog: opens arrive from the socket as often as from a
-     * human, and a modal in the load path is the defect M35.7 closed.
-     */
-    /** The completeness state the follow tick last told a person about (round five A-2). */
-    private telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd followStreamEnd =
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd.unknown(0);
-    private telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerDiagnostics =
-            telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.clean();
-
-    private telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrderReport =
-            telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
 
     /** Loads a log file on the background executor and swaps in the new model on the EDT, for a person. */
     public void openFile(Path path) {
@@ -3844,7 +3832,7 @@ public final class MainFrame extends JFrame {
      * opened during the load was judged against the previous log.
      */
     private void loadFile(Path path, String format, OpenRequest request, long opId) {
-        final boolean liveRead = following;
+        final boolean liveRead = following();
         status.setText("Loading " + path + " …");
         setBusy(true);
         Background.run(
@@ -3866,29 +3854,26 @@ public final class MainFrame extends JFrame {
                         LogStore s = readerRegistry.open(reader, path, config.memoryThresholdMb);
                         if (liveRead && s instanceof telamin.fluxtion.audit.analyser.analyser.parse.HeapLogStore heap)
                             s = heap.forFollow();
-                        var report = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
-                                .validate(s.index());
                         var identities = nativeRead ? readIdentities(s)
                                 : telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.matchingRead(List.of(before),
                                     List.of(telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("log", path.toString())));
                         if (nativeRead && request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
                             identities = verifyRestoringRead(identities);
-                        return new Object[]{s, report, reader.formatId(), identities, observation};
+                        return new Object[]{s, reader.formatId(), identities, observation};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
                 out -> {
-                    @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[3];
+                    @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
                     if (!acceptRecoveryRead(opId, (LogStore)out[0], readIdentity)) return;
-                    onLoaded((LogStore) out[0], path.toString(),
-                            (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId);
+                    onLoaded((LogStore) out[0], path.toString(), request, opId);
                     if (store == out[0]) {
-                        loadedLogFormat = (String) out[2];
+                        loadedLogFormat = (String) out[1];
                         observedLogStore = store;
-                        logObservations = List.of((Map<String,Object>)out[4]);
+                        logObservations = List.of((Map<String,Object>)out[3]);
                         refreshProjectPanel();
-                        @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[3];
+                        @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
                         loadedLogIdentity = identity;
                     }
                 },
@@ -3922,30 +3907,28 @@ public final class MainFrame extends JFrame {
                 () -> {
                     try {
                         var observations = files.stream().map(telamin.fluxtion.audit.analyser.analyser.core.FileObservation::capture).toList();
+                        // review F2: the set's cross-file findings travel with the store (crossFileOrder)
                         var s = telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore.open(
-                                files, config.memoryThresholdMb);
-                        var report = set.report().merged(
-                                telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator
-                                        .validate(s.index()));
+                                files, config.memoryThresholdMb, set.report());
                         var identities = readIdentities(s);
                         if (request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
                             identities = verifyRestoringRead(identities);
-                        return new Object[]{s, report, identities, observations};
+                        return new Object[]{s, identities, observations};
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 },
                 out -> {
-                    @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
+                    @SuppressWarnings("unchecked") var readIdentity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[1];
                     if (!acceptRecoveryRead(opId, (LogStore)out[0], readIdentity)) return;
                     onLoaded((LogStore) out[0],
                         files.get(files.size() - 1).getFileName() + " (+" + (files.size() - 1) + " rolled)",
-                        (telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport) out[1], request, opId);
+                        request, opId);
                     if (store == out[0]) {
-                        @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[2];
+                        @SuppressWarnings("unchecked") var identity = (java.util.List<telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.Identity>)out[1];
                         loadedLogIdentity = identity;
                         observedLogStore = store;
-                        logObservations = (List<Map<String,Object>>)out[3];
+                        logObservations = (List<Map<String,Object>>)out[2];
                         refreshProjectPanel();
                     }
                 },
@@ -3983,14 +3966,10 @@ public final class MainFrame extends JFrame {
         logLocalPath = null;
         loadedLogFormat = null;
         loadedLogIdentity = List.of();
-        logProvenance = null;          // §E: it described THAT log, not the next one
         loggedNodeSample = java.util.Set.of();   // the sample described THAT log too
         loggedSampleScanned = 0;
         observedLevel = null;
-        logProvenanceSource = null;
         declinedSourceGraph = null;    // review N1: that offer came with the log that just closed
-        timeOrderReport = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean();
-        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.clean();
         flaggedRows.clear();
         findings.clear();
         flaggedOnly = false;
@@ -4076,9 +4055,7 @@ public final class MainFrame extends JFrame {
      *                load-time side effect below takes its answer from this one immutable value, so
      *                no step can find it spent and no concurrent load can cross it.
      */
-    private void onLoaded(LogStore loaded, String location,
-                          telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport report,
-                          OpenRequest request, long opId) {
+    private void onLoaded(LogStore loaded, String location, OpenRequest request, long opId) {
         // M44.3: the arrival is a RESULT of an operation the processor asked for. Report it first: the
         // gate refuses a result for a superseded request (D-A3) and this load is then discarded rather
         // than shown over the one that replaced it. LogArrival judges an open graph inside this submit
@@ -4092,8 +4069,26 @@ public final class MainFrame extends JFrame {
         // loop, and nothing noticed when it drifted, because the observation that follows overwrote it
         LoggedSample arrival = sampleLoggedIds(loaded);
         String level = telamin.fluxtion.audit.analyser.analyser.topology.AuditLevel.of(arrival.levels()).mostVerbose();
-        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, request.provenance(),
-                arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString()));
+        // §E / M38.3 D-C4: WHERE the log came from is resolved BEFORE the session is told it is open (M44.5), so the
+        // session's copy is the only one. A declared value (the opener, or UP-MNG-03's server) always wins; a project's
+        // environments are consulted only when nobody declared, and the source says which answered.
+        String provenance = request.provenance();
+        String provenanceSource = provenance == null ? null : "declared by the opener";
+        if (provenance == null && project.hasProject()) {
+            Path root = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile());
+            Path local = loaded.localFile() == null ? null : Path.of(loaded.localFile());
+            var match = telamin.fluxtion.audit.analyser.analyser.config.Environment
+                    .match(config.environments, config.defaultEnvironment, root, local).orElse(null);
+            if (match != null) {
+                provenance = match.environment().provenance();
+                provenanceSource = match.reason();
+            }
+        }
+        // Follow continues into this log only if it can be followed — the session decides (OpenLog)
+        boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
+        driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, provenance,
+                arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString(),
+                provenanceSource, followable));
         if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
@@ -4114,25 +4109,12 @@ public final class MainFrame extends JFrame {
                 projectDesignChanged();
             }
         }
-        this.timeOrderReport = report == null
-                ? telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport.clean() : report;
         if (store != null && store != loaded) store.close();   // release the previous file's channel
         this.store = loaded;
         this.logDisplayLocation = location;
         loadedLogFormat = null;
         loadedLogIdentity = List.of();
         this.logLocalPath = loaded.localFile();                 // real local file (temp file for S3)
-        logProvenance = request.provenance();                   // §E: what THIS request declared
-        logProvenanceSource = logProvenance == null ? null : "declared by the opener";
-        // M38.3 D-C4: a project may declare environments. Consulted ONLY when nobody declared — a declared
-        // value (the opener, or UP-MNG-03's server) always wins, and context says which answered.
-        if (logProvenance == null && project.hasProject()) {
-            Path root = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.baseDirFor(project.activeFile());
-            Path local = loaded.localFile() == null ? null : Path.of(loaded.localFile());
-            telamin.fluxtion.audit.analyser.analyser.config.Environment
-                    .match(config.environments, config.defaultEnvironment, root, local)
-                    .ifPresent(m -> { logProvenance = m.environment().provenance(); logProvenanceSource = m.reason(); });
-        }
         // M35.9: every load-time side effect reads the request, not a field. The field version failed
         // four times — the last when maybeOfferProject consumed the socket flag 59 lines before the
         // time-order gate read it, so a modal the socket path "suppressed" fired on every agent open.
@@ -4219,52 +4201,17 @@ public final class MainFrame extends JFrame {
         rebuildRecentMenu();
         saveConfigQuietly();
         setBusy(false);
-        String range = loaded.minLogTime() == null ? "no timestamps"
-                : TimeFormat.utc(loaded.minLogTime()) + " → " + TimeFormat.utc(loaded.maxLogTime()) + " UTC";
-        String orderWarning = timeOrderReport.isClean() ? ""
-                : "  ·  ⚠ time-order violations (" + timeOrderReport.violations().size()
-                        + ") — ask 'context' or see the load report";
-        // What the log says about its EMITTER. Computed here, after the index is built, because two of
-        // the three checks read the index and the third reads a record's text.
-        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                .of(loaded.index(), loaded::rawText, loaded.sourceDiagnostics(),
-                        loaded.completenessDiagnostics(), loaded.completenessIsNote(), loaded.pendingFrameText(),
-                        loaded.emptyLogClaim());
-        if (reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
-        String producerWarning = producerWarning();
-        status.setText(statusText(loaded.size(), range,
-                logProvenance != null ? logProvenance + "  (" + displayName(location) + ")"
-                        : displayName(location),
-                loaded.streamEnd().isKnownComplete(), orderWarning, producerWarning,
-                trailingPendingNote()));
-        // M68.5: a log reopened because its file was replaced says so on the line that follows the load, not only on the
-        // line the load has just overwritten. The reason is the session's (OpenLog), so it is not a frame copy.
-        var reopened = sessionSnapshot();
-        if ("REOPENED".equals(reopened.logIdentity())) {
-            status.setText(status.getText() + "  ·  ⚠ " + reopened.logIdentityReason());
-        }
-        // the full sentence, where there is room for it — the status bar has none
-        status.setToolTipText(producerDiagnostics.isClean() ? null
-                : String.join("\n\n", producerDiagnostics.messages()));
-        if (!timeOrderReport.isClean() && !loadFromSocket) {
-            // D-R3: the report is shown, never buried — once, at load, with the evidence lines.
-            // Review F5 (M35.7's species, seen live by the owner): on a socket-driven open nobody at the
-            // screen asked for this log, so a modal here waits for an answer that cannot come and greets
-            // whoever walks past later with a verdict about a log that may already be closed. That
-            // audience gets the report where it reads: the status bar (above), 'context'.timeOrder and
-            // the timeOrderNote caveat on every time-anchored verb (D-R4). Both this gate and the
-            // project offer read the SAME local, captured once at the top of the load — the field
-            // they used to share was already consumed by the time this line ran.
-            JOptionPane.showMessageDialog(this,
-                    String.join("\n", timeOrderReport.summarise()),
-                    "Time-order report", JOptionPane.WARNING_MESSAGE);
-        }
+        // M44.5: the status line, its tooltip, the Reports tab and the time-order report are NOT composed here. They are
+        // rendered from the snapshot (renderLogEvidence) once logEvidence's scan of THIS log lands; this load only
+        // records its audience, so the report is a dialog for a person and never for a socket caller (review F5).
+        timeOrderDialogGeneration = loadFromSocket ? -1 : sessionLogGeneration;
+        // The store of this generation is installed and the load is complete: the scan the processor asked for at
+        // LogOpened runs now, in this task. A load that throws before here never gets a line saying it loaded.
+        installedEvidenceGeneration = sessionLogGeneration;
+        performRequestedScan();
 
         // follow/tail: track this file if it's local & followable; drop follow if it isn't
-        boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
-        followPath = followable ? location : null;
-        if (following && !followable) setFollowing(false);
-        else if (following && followTimer != null) followTimer.restart();   // resume after a rotation reload
+        followPath = followable ? location : null;   // Follow itself continued, or stopped, in the LogOpened above
         if (followMenuItem != null) {
             followMenuItem.setEnabled(followable);
             followMenuItem.setToolTipText(followable
@@ -4557,7 +4504,7 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.parse.ReadThroughIdentity observeReadIdentity() {
         var s = store;
-        if (s == null || following) return null;
+        if (s == null || following()) return null;
         var identity = s.readThroughIdentity();
         if (identity != null) {
             long generation = sessionLogGeneration;
@@ -4571,6 +4518,45 @@ public final class MainFrame extends JFrame {
             });
         }
         return identity;
+    }
+
+    /** The generation whose store a completed load installed — the precondition for performing its scan. */
+    private long installedEvidenceGeneration = -1;
+    /** The generation of the scan the processor asked for and the adapter has not yet performed, or -1. */
+    private long requestedScanGeneration = -1;
+
+    /**
+     * M44.5: the effect's precondition, and nothing more. A scan is performed only against the store of the generation
+     * it names. Under Follow that store is installed, so the scan runs on the next EDT turn, after the poll; for a
+     * just-opened generation the store is installed at the END of onLoaded, which performs it there. Whether the
+     * evidence was stale was logEvidence's decision — this only waits until the effect can be carried out.
+     */
+    private void scanWhenInstalled(long generation) {
+        requestedScanGeneration = generation;
+        if (installedEvidenceGeneration == generation) javax.swing.SwingUtilities.invokeLater(this::performRequestedScan);
+    }
+
+    private void performRequestedScan() {
+        long generation = requestedScanGeneration;
+        if (generation < 0 || generation != installedEvidenceGeneration) return;
+        requestedScanGeneration = -1;
+        scanLogEvidence(generation);
+    }
+
+    /**
+     * M44.5: PERFORM the scan the processor asked for, and report the results as facts. It decides nothing: whether the
+     * evidence was stale was logEvidence's decision, and a result for a generation that is no longer open is refused
+     * there. Here it is only skipped when the log it was asked about is already gone.
+     */
+    private void scanLogEvidence(long generation) {
+        var s = store;
+        if (session == null || s == null || sessionSnapshot().logGeneration() != generation) return;
+        var findings = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.of(s.index(), s::rawText,
+                s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText(),
+                s.emptyLogClaim());
+        var order = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator.validate(s);   // with its cross-file part
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved(generation, findings));
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved(generation, order));
     }
 
     private void reportAppendToSession() {
@@ -4592,35 +4578,123 @@ public final class MainFrame extends JFrame {
         // M68.7 (owner, Q4): the charts and the detail pane state the same verdict, from the same snapshot
         graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
         detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
+        renderFollow(next);                      // M44.5: Follow's controls and its poll timer
+        renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
+    }
+
+    /** M44.5: Follow is the session's state (OpenLog). Read off the EDT too, which the volatile snapshot allows. */
+    private boolean following() {
+        return sessionSnapshot().following();
+    }
+
+    /** Whether the poll timer was last rendered running — its edge, so a test's hand-stopped timer is left alone. */
+    private boolean followTimerRendered;
+
+    /**
+     * M44.5: render Follow from the snapshot. The toggles show the session's state, and the timer polls while Follow is
+     * on and no operation is in flight — so a rotation's or a live re-read's reopen pauses it and its landing resumes
+     * it, which three hand-placed stop/restart calls used to do.
+     */
+    private void renderFollow(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        renderFollowControls(next.following());
+        boolean run = next.following() && !next.pending();
+        if (run == followTimerRendered) return;
+        followTimerRendered = run;
+        if (followTimer == null) followTimer = new Timer(FOLLOW_POLL_MS, e -> pollFollow());
+        if (run) followTimer.restart(); else followTimer.stop();
+    }
+
+    private void renderFollowControls(boolean on) {
+        if (followButton != null && followButton.isSelected() != on) followButton.setSelected(on);
+        if (followMenuItem != null && followMenuItem.isSelected() != on) followMenuItem.setSelected(on);
+    }
+
+    /** The log line last rendered, and for which generation — a line is set only when what it says changed. */
+    private String renderedLogLine;
+    private long renderedLogGeneration = -1;
+    /** The snapshot the log's evidence was last rendered from — compared, never read as state. */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot renderedEvidence;
+    /** The generation whose time-order report a PERSON asked to see at load (review F5: never a socket caller). */
+    private long timeOrderDialogGeneration = -1;
+
+    /**
+     * M44.5: the ONE composer of the log's status line, its tooltip and the Reports tab's findings, rendered from the
+     * snapshot. Before M44.5 the load and every Follow tick composed their own lines, and they drifted: the Follow line
+     * dropped provenance and the time-order warning (W2), and records appended under Follow were never validated (W1).
+     *
+     * <p>It renders only once logEvidence's scan of the open log has landed, and sets the line only when what the line
+     * says has changed — so an idle tick, or any snapshot about something else, never overwrites an explanation someone
+     * is still reading (R12-2).
+     */
+    private void renderLogEvidence(telamin.fluxtion.audit.analyser.analyser.session.SessionSnapshot next) {
+        var s = store;
+        if (s == null) {
+            renderedLogLine = null;
+            renderedEvidence = null;
+            status.setToolTipText(null);
+            return;
+        }
+        var findings = next.producerFindings();
+        var order = next.timeOrder();
+        // Only evidence that describes the content the line counts: while a scan is outstanding, the findings held are
+        // the previous revision's, and the line waits one EDT turn for the scan rather than mix the two
+        if (findings == null || order == null || next.evidencePending()
+                || next.logGeneration() != sessionLogGeneration) return;
+        // The line states the revision the SESSION knows. A Follow poll grows the store before it reports the append,
+        // and any snapshot published in between (its identity check, say) would otherwise pair the store's new rows
+        // with the session's previous evidence; the report that follows renders the line.
+        if (next.total() != s.size()) return;
+        if (next.logGeneration() != renderedLogGeneration) {
+            renderedLogGeneration = next.logGeneration();
+            renderedLogLine = null;
+        }
+        String name = displayName(logDisplayLocation);
+        String line = statusLine(next.following(), next.total(), rangeOf(s),
+                next.provenance() != null ? next.provenance() + "  (" + name + ")" : name,
+                s.streamEnd().isKnownComplete(), orderWarning(order), producerWarning(findings), trailingPendingNote());
+        if (next.followReadFailure() != null) line += "  ·  ⚠ Follow read failed: " + next.followReadFailure();
+        // M68.5: a log reopened because its file was replaced says so on its line; the reason is the session's (OpenLog)
+        if ("REOPENED".equals(next.logIdentity())) line += "  ·  ⚠ " + next.logIdentityReason();
+        if (!line.equals(renderedLogLine)) {
+            renderedLogLine = line;
+            status.setText(line);
+        }
+        // the full sentence, where there is room for it — the status bar has none
+        status.setToolTipText(findings.isClean() ? null : String.join("\n\n", findings.messages()));
+        boolean findingsMoved = renderedEvidence == null || renderedEvidence.producerFindings() != findings;
+        renderedEvidence = next;
+        if (findingsMoved && reportsPanel != null) reportsPanel.refresh();   // D-MA0c: the tab states THIS log's findings
+        if (timeOrderDialogGeneration == next.logGeneration()) {
+            timeOrderDialogGeneration = -1;
+            // D-R3: the report is shown, never buried — once, at load, with the evidence lines, and only to a person
+            // who asked for this log. Queued, so the modal never runs inside the snapshot's publication.
+            if (!order.isClean()) {
+                java.util.List<String> lines = order.summarise();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this, String.join("\n", lines),
+                        "Time-order report", JOptionPane.WARNING_MESSAGE));
+            }
+        }
     }
 
 
-    /** Turn follow/tail mode on or off (idempotent; keeps the toolbar + menu toggles in sync). */
+    /**
+     * Turn follow/tail mode on or off. M44.5: Follow is the session's state — this reports the toggle, and the snapshot
+     * listener renders the toggles and the timer. A refused toggle re-renders the controls from the state in force.
+     */
     private void setFollowing(boolean on) {
         if (on && (store == null || !store.supportsFollow() || followPath == null)) {
             status.setText("Follow is available for heap-loaded local files (below the memory threshold).");
             on = false;
         }
-        boolean entering = on && !following;
-        following = on;
-        if (followButton != null && followButton.isSelected() != on) followButton.setSelected(on);
-        if (followMenuItem != null && followMenuItem.isSelected() != on) followMenuItem.setSelected(on);
-        if (followTimer == null) {
-            followTimer = new Timer(FOLLOW_POLL_MS, e -> pollFollow());
+        boolean entering = on && !following();
+        if (session != null) {
+            session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled(sessionLogGeneration, on));
         }
+        renderFollowControls(following());
         if (entering && store.trailingRecordsIncluded() > 0) {
-            // A live read has different framing from a snapshot. Reopen through the session gate,
-            // so old async work and record-bound views cannot leak into the new live index.
-            followTimer.stop();
+            // A live read has different framing from a snapshot. Reopen through the session gate, so old async work
+            // and record-bound views cannot leak into the new live index. Follow continues into the reopened log.
             openFile(Path.of(followPath), OpenRequest.reload(currentRequest, currentRequest.provenance()));
-        } else if (on) {
-            followTimer.start();
-            // MA-0.5: the line Follow starts with keeps the log's warning. It used to drop it, so an empty file being
-            // followed read "watching for new records…" and nothing else until its first record arrived.
-            status.setText("Following " + displayName(followPath) + " — watching for new records…"
-                    + producerWarning() + trailingPendingNote());
-        } else {
-            followTimer.stop();
         }
     }
 
@@ -4633,7 +4707,7 @@ public final class MainFrame extends JFrame {
 
     /** One tail poll: append any newly-completed records, or reload if the file was rotated/truncated. */
     private void pollFollow() {
-        if (!following || store == null || followPath == null) return;
+        if (!following() || store == null || followPath == null) return;
         int before = store.size();
         int added;
         try {
@@ -4643,18 +4717,13 @@ public final class MainFrame extends JFrame {
             reportIdentityToSession(store.followIdentity());   // M68.5: before anything the poll adds is published
         } catch (java.io.IOException ex) {
             reportIdentityToSession(store.followIdentity());   // a failed poll also retires the session's earlier verification
-            status.setText("Follow read failed: " + rootMessage(ex));
-            // Second re-review O2: the store has already retired its verdict and recorded the damage, but this
-            // used to return before any surface heard of it. A file that keeps growing past a bad byte throws on
-            // EVERY tick, so the fault never reached context's producer list or the tooltip — only this one
-            // status line. Refresh them here too — but only when the current findings do not already carry the
-            // damage (third re-review O-B; wording corrected in the fourth, O-2), because after the first failure
-            // nothing moves and a rebuild every second is pure cost.
-            refreshFollowDiagnostics(store.streamEnd(), 0, true);
+            // Second re-review O2: the store has already retired its verdict and recorded the damage, and every
+            // surface must hear of it. M44.5: the session is told what the read found, and logEvidence decides whether
+            // that is news — a repeated identical failure is not (third re-review O-B), so it costs no rescan.
+            reportContentToSession(rootMessage(ex));
             return;
         }
-        if (added < 0) {                 // shrank / rotated → reload from scratch (resumes on load)
-            followTimer.stop();          // avoid re-entrant reloads while the async load runs
+        if (added < 0) {                 // shrank / rotated → reload; the open in flight pauses the timer (renderFollow)
             var identity = store.followIdentity();
             if (identity != null && identity.verdict()
                     == telamin.fluxtion.audit.analyser.analyser.parse.FollowIdentity.Verdict.REPLACEMENT) {
@@ -4674,17 +4743,11 @@ public final class MainFrame extends JFrame {
         // so `context.streamEnd` said "missing_records" to an agent while the person watching the file
         // was shown nothing at all. The completeness state is re-read on every tick and the human
         // surfaces are refreshed when it moves, whether or not any record came with it.
-        // Integration: MA's refresh rule (only when the stream end or the rows moved, and a repeated failure skipped)
-        // with M68.3's (also when the pending frame grows) — both live in refreshFollowDiagnostics.
-        refreshFollowDiagnostics(store.streamEnd(), added, false);
+        // M44.5: MA's refresh rule (the stream end or the rows moved, a repeated failure skipped) and M68.3's (the
+        // pending frame grew) are logEvidence's now, applied to what this tick reports. R12-2: an idle tick reports an
+        // unchanged content, so nothing is re-rendered and an explanation someone is reading stays on the bar.
         if (added == 0) {
-            // R12-2: a tick with nothing new used to overwrite whatever the status bar was saying, so an
-            // explanation of why an action did nothing vanished about a second later while Follow was on.
-            // Idle ticks carry no news; they must not erase news someone is still reading.
-            if (System.currentTimeMillis() - sayAtMillis >= SAY_HOLD_MILLIS) {
-                status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
-                        store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
-            }
+            reportContentToSession(null);
             return;
         }
         if (tableModel != null) tableModel.rowsAppended(before);
@@ -4698,98 +4761,55 @@ public final class MainFrame extends JFrame {
         onFilterChanged();
         graphTabs.onRecordsAppended();   // M65 D-F1: open charts re-extract; the echo above no longer moves them (D-F8)
         tablePanel.scrollToLast();
-        status.setText(followStatusText(displayName(followPath), store.size(), followRange(),
-                store.streamEnd().isKnownComplete(), producerWarning(), trailingPendingNote()));
+        reportContentToSession(null);              // W1: appended records are validated and scanned like a load's
     }
 
     /**
-     * Recompute the producer findings and the status tooltip when the follow state moved — on a tick that
-     * read, and (second re-review O2) on a tick whose read FAILED, because that is the tick the fault appears.
+     * M44.5: tell the session what this Follow tick found about the log's CONTENT. It decides nothing: whether that
+     * moved, and so whether the findings and the time order are stale, is logEvidence's decision.
      */
-    private void refreshFollowDiagnostics(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end, int added,
-                                          boolean readFailed) {
-        java.util.List<String> damage = store.sourceDiagnostics();
-        if (readFailed) {
-            // Third re-review O-B: a failed tick adds no rows and leaves the state UNKNOWN, so the only thing that
-            // can have changed is the damage itself. The first failure is new; every later one on the same bytes
-            // is identical, and rebuilding the findings each second cost 73–201 ms on the EDT on a 1M-record log.
-            // Keyed on what the CURRENT findings carry, not on a remembered copy: the findings are also rebuilt on
-            // load, and a reloaded store failing at the same row would otherwise match a stale copy and be skipped.
-            if (producerDiagnostics != null && producerDiagnostics.messages().containsAll(damage)) return;
-        }
-        // M68.3: the pending frame is re-scanned when it GROWS. A live log with no separators at all never adds a
-        // record, so without this its collapsed framing would never be suspected while it was being followed.
+    private void reportContentToSession(String readFailure) {
+        if (session == null || store == null) return;
         String pending = store.pendingFrameText();
-        int pendingChars = pending == null ? 0 : pending.length();
-        if (!readFailed && !followNeedsDiagnosticRefresh(followStreamEnd, end, added) && pendingChars == followPendingChars) {
-            return;
-        }
-        followStreamEnd = end;
-        followPendingChars = pendingChars;
-        var before = producerDiagnostics == null ? List.<String>of() : producerDiagnostics.messages();
-        producerDiagnostics = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics
-                .of(store.index(), store::rawText, damage,
-                        store.completenessDiagnostics(), store.completenessIsNote(), pending, store.emptyLogClaim());
-        status.setToolTipText(producerDiagnostics.isClean() ? null
-                : String.join("\n\n", producerDiagnostics.messages()));
-        // D-MA0c: the Reports tab states the log's findings, so a followed log that changes them re-renders it
-        if (reportsPanel != null && !before.equals(producerDiagnostics.messages())) reportsPanel.refresh();
+        var end = store.streamEnd();
+        session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogContentObserved(sessionLogGeneration, store.size(),
+                pending == null ? 0 : pending.length(), streamEndKey(end), store.sourceDiagnostics().size(), readFailure));
     }
 
-    /** The follow line's time range, or the words for a log that carries no timestamps. */
-    private String followRange() {
-        return store == null || store.minLogTime() == null ? "no timestamps"
-                : TimeFormat.utc(store.minLogTime()) + " → " + TimeFormat.utc(store.maxLogTime()) + " UTC";
+    /**
+     * What a stream end REPORTS, as the content signature compares it. Round six S-2: comparing only the state missed a
+     * verdict that gained a failing run while staying UNKNOWN, so the runs are part of it. Round five A-2: a marker adds
+     * no record, so the state is too. Kept pure so it is testable headless.
+     */
+    static String streamEndKey(telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd end) {
+        return end.state() + ":" + end.runs();
     }
 
-    /** M68.3: the pending frame's size at the last diagnostic rebuild under Follow. */
-    private int followPendingChars;
+    /** A log's time range as the status line states it, or the words for a log that carries no timestamps. */
+    private static String rangeOf(LogStore s) {
+        return s.minLogTime() == null ? "no timestamps"
+                : TimeFormat.utc(s.minLogTime()) + " → " + TimeFormat.utc(s.maxLogTime()) + " UTC";
+    }
 
-    /** The producer warning as the status bar renders it, shared by the load and follow lines. */
-    private String producerWarning() {
+    /** The time-order warning as the status line states it — empty for an ordered log. */
+    static String orderWarning(telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport order) {
+        return order == null || order.isClean() ? ""
+                : "  ·  ⚠ time-order violations (" + order.violations().size() + ") — ask 'context' or see the load report";
+    }
+
+    /** The producer warning as the status line states it. */
+    static String producerWarning(telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics findings) {
         // Round five A-5: a COMPLETENESS_NOTE states a limit — "each file says it is whole, and that says
         // nothing about the set" — and must not wear a warning glyph. It still reaches the tooltip and
         // `context`; it simply is not a fault.
-        return producerDiagnostics.firstWarning()
+        if (findings == null) return "";
+        return findings.firstWarning()
                 // M68.3: a framing finding is a SUSPICION, and the label on the bar says so like the message does
                 .map(f -> "  ·  ⚠ " + (f.kind() == telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.Kind.UNSEPARATED
                                 ? "suspected missing record separators"
                                 : f.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
                         + " — ask 'context', or hover")
                 .orElse("");
-    }
-
-    /**
-     * Whether a follow tick must rebuild the producer diagnostics and the tooltip.
-     *
-     * <p>Round five A-2. Records arriving is the obvious trigger. The one that was missing is a change
-     * of completeness STATE with no records at all: the last thing a writer does is emit its marker, so
-     * the tick that learns a file is complete — or that it declared more records than it holds — is
-     * exactly the tick that appends nothing. Returning early on {@code added == 0} left the agent's
-     * surface saying one thing and the person's saying nothing.
-     *
-     * <p>Kept pure so it is testable: rule 4 keeps the tick itself out of the headless suite.
-     */
-    static boolean followNeedsDiagnosticRefresh(
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd before,
-            telamin.fluxtion.audit.analyser.analyser.parse.StreamEnd after, int added) {
-        // Round six S-2: comparing only the STATE missed a verdict that gained a failing run while
-        // staying UNKNOWN — a live read learning that an earlier run lost records. The store reported
-        // it, `context` listed it, and the tooltip stayed empty. Compare what is reported, not a label.
-        return added > 0
-                || before.state() != after.state()
-                || !before.runs().equals(after.runs());
-    }
-
-    /**
-     * The status line while following — assembled where a test can read it, for the same reason
-     * {@link #statusText} is.
-     */
-    static String followStatusText(String location, int records, String range, boolean knownComplete,
-                                   String producerWarning, String pendingNote) {
-        String wholeNote = knownComplete ? "  ·  complete" : "";
-        return "Following " + location + " · " + records + " records · " + range
-                + wholeNote + producerWarning + pendingNote;
     }
 
     /** Record-density buckets across the log-time range, for the slider histogram. */
@@ -4876,12 +4896,16 @@ public final class MainFrame extends JFrame {
      * "should the note appear?" would still pass with the note dropped on the floor again, which is
      * precisely the defect that happened. This method touches no Swing, so it costs the suite nothing.
      */
-    static String statusText(int records, String range, String location, boolean knownComplete,
+    static String statusLine(boolean following, int records, String range, String location, boolean knownComplete,
                              String orderWarning, String producerWarning, String pendingNote) {
         // D-E3: a positive claim is worth showing; silence is not, because every existing file is silent.
         String wholeNote = knownComplete ? "  ·  complete" : "";
-        return records + " records · " + range + " · " + location
-                + wholeNote + orderWarning + producerWarning + pendingNote;
+        // M44.5 (W2): one composer, so the Follow line carries what the load line does — the provenance in the
+        // location, the time-order warning — instead of a second assembly that silently dropped both
+        String head = following
+                ? "Following " + location + " · " + records + " records · " + range
+                : records + " records · " + range + " · " + location;
+        return head + wholeNote + orderWarning + producerWarning + pendingNote;
     }
 
     private static String displayName(String location) {
@@ -5559,6 +5583,12 @@ public final class MainFrame extends JFrame {
                 sessionInteractive = !e.fromSocket();
                 yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
             }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
+                // M44.5: the processor decided the log's evidence is stale. The scan never runs inside the dispatch, and
+                // only against the store of the generation it names: see scanWhenInstalled.
+                scanWhenInstalled(e.generation());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ScanScheduled(opId, e.generation());
+            }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ShowStatusEffect e -> {
                 status.setText(e.text());
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShown(
@@ -5665,13 +5695,11 @@ public final class MainFrame extends JFrame {
         sayToStatus("No chart called \"" + gname + "\" is open, and the project has no saved definition for it.");
     }
 
-    /** How long an explanation holds the status bar against idle follow ticks (R12-2). */
-    private static final long SAY_HOLD_MILLIS = 12_000;
-    private long sayAtMillis = Long.MIN_VALUE / 4;
-
-    /** Put an explanation on the status bar and protect it briefly from idle overwrites. */
+    /**
+     * Put an explanation on the status bar. R12-2: it is not overwritten by an idle Follow tick, because an idle tick
+     * changes nothing the log line says (renderLogEvidence) — no hold timer is needed for that.
+     */
     void sayToStatus(String message) {
-        sayAtMillis = System.currentTimeMillis();
         status.setText(message);
     }
 
@@ -5949,7 +5977,7 @@ public final class MainFrame extends JFrame {
             if (on && (store == null || !store.supportsFollow() || followPath == null))
                 return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("Not following: this reader cannot follow. Open a heap-loaded local file; the Follow toolbar control shows availability.");
             setFollowing(on);
-            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", Map.of("following", following));
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("open", "opened", Map.of("following", following()));
         }
 
 
@@ -6720,7 +6748,7 @@ public final class MainFrame extends JFrame {
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
             if (store != null) {
                 log.put("freshness", logFreshness());
-                log.put("following", following);
+                log.put("following", following());
                 log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
                 // M68.5 (D-E6): what Follow established about the FILE, from the session; absent before the first poll
                 var identitySnap = sessionSnapshot();
@@ -6760,8 +6788,8 @@ public final class MainFrame extends JFrame {
             }
             if (!log.isEmpty()) out.put("log", log);
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
-            if (logProvenance != null) out.put("provenance", logProvenance);
-            if (logProvenanceSource != null) out.put("provenanceSource", logProvenanceSource);   // M38.3: declared, never inferred — and by whom
+            if (logProvenance() != null) out.put("provenance", logProvenance());
+            if (logProvenanceSource() != null) out.put("provenanceSource", logProvenanceSource());   // M38.3: declared, never inferred — and by whom
             // M35.8: which settings are in force. Outside the store block — a project is open (or
             // not) whether or not a log is, and "which settings am I using" must never be a guess.
             Map<String, Object> proj = new java.util.LinkedHashMap<>();
@@ -7119,14 +7147,16 @@ public final class MainFrame extends JFrame {
             if (store != null && store.index().fileCount() > 1) {
                 out.put("files", store.index().files());   // rolled set: offsets are file-local (M30)
             }
-            if (!timeOrderReport.isClean()) {
-                out.put("timeOrder", timeOrderReport.summarise());   // D-R3: agents must not discover
+            var order = sessionSnapshot().timeOrder();       // M44.5: logEvidence's, for the log open now
+            var producer = sessionSnapshot().producerFindings();
+            if (order != null && !order.isClean()) {
+                out.put("timeOrder", order.summarise());   // D-R3: agents must not discover
                 // disorder by getting wrong answers from 'at'
             }
-            if (!producerDiagnostics.isClean()) {
+            if (producer != null && !producer.isClean()) {
                 // an agent reads the count and believes it; these are the cases where the count is a
                 // lie about the file rather than a fact about the run
-                out.put("producer", producerDiagnostics.messages());
+                out.put("producer", producer.messages());
             }
 
 
@@ -7226,7 +7256,7 @@ public final class MainFrame extends JFrame {
         view.put("selectedGraph", graphTabs.selectedGraphName());
         view.put("loadedLogHashes", loadedLogIdentity.stream().map(i -> Map.of("path", i.path(), "sha256", i.sha256())).toList());
         view.put("loadedGraphHash", topologyPanel.loadedGraphSha256());
-        view.put("provenance", logProvenance);
+        view.put("provenance", logProvenance());
         view.put("format", loadedLogFormat);
         // §E: the capturing profile's identity is taken here, with the inputs, not when the queued save runs
         return new SessionRecoveryController.Capture(project.activeFile(), project.activeNonce(), inputs, view);

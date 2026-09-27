@@ -1988,6 +1988,20 @@ of the originals is in `057a069a`.)*
   4. `context.provenance` and the session agree after an environment match.
   5. The M44 shape test and the existing session suites pass on the regenerated processor.
   6. Each new fact node has a stale-generation control.
+
+  **Implemented 2026-09-27** on `feat/m44-5-derived-state-in-snapshot` (awaiting review; ☑ on merge). All six
+  acceptance items have tests and controls; results scored in
+  `docs/handoff/evidence/m44-5-derived-state-2026-09-27/RESULTS.md`. Deviations from the design above, each
+  deliberate:
+  - one effect, `ScanLogEvidenceEffect`, not two — the two scans read the same store at the same moment;
+  - the environment match runs in the adapter BEFORE `LogOpened`, which carries the result (it reads the profile's
+    root and the filesystem); the session's `OpenLog` is the one copy;
+  - the scan runs on the EDT turn after the effect, not a background thread;
+  - O1 was already fixed (`publishSnapshot`), so nothing was needed first.
+
+  Added beyond the design, each with a witness: `logEvidence` handles `LogAppended` and publishes an outstanding
+  scan, so the line never counts new rows beside old findings; scans coalesce; Follow is carried through a reload
+  only into a followable log; the audit sink keeps per-poll observations in their own ring.
   7. No surface or adapter decides when to compute or refresh: a static check finds no write to the retired
      fields and no hand-placed `reportsPanel.refresh()` / `setToolTipText` / status composition outside the one
      snapshot listener.
