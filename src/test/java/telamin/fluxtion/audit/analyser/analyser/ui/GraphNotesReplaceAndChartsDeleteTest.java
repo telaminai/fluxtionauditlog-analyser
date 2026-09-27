@@ -157,4 +157,72 @@ class GraphNotesReplaceAndChartsDeleteTest {
         assertFalse(r.ok(), "same rule rename already follows: refuse the whole call, change nothing");
         assertTrue(tabs.hasDefinition("g"), "and nothing was changed");
     }
+
+    // ---- PR #51 review: the last chart, and a closed one ---------------------------------------------
+
+    private static List<String> saved(GraphTabs tabs) {
+        return tabs.specs().stream().map(s -> s.name()).toList();
+    }
+
+    /**
+     * The decided behaviour for deleting the LAST chart: it is gone, and nothing takes its place in the profile.
+     * The tab strip keeps one tab, so a blank one opens — but that tab is not a chart until something is put on
+     * it: it is not saved, and a delete does not report it as remaining. Before, each "last" delete answered
+     * with a fresh "Graph N" and saved it, so an assistant clearing up could never reach zero.
+     */
+    @Test
+    @DisplayName("Deleting the last chart leaves none behind — in the reply or the profile")
+    void deletingTheLastChartLeavesNoneBehind() {
+        GraphTabs tabs = new GraphTabs();
+        ActionExecutor ex = executor(tabs);
+        ex.render("graph", Map.of("newTab", true, "name", "probe", "series", List.of("bidMakerOrder.price")));
+        for (String name : List.copyOf(tabs.graphNames())) {
+            if (!name.equals("probe")) ex.render("graph", Map.of("name", name, "delete", true));
+        }
+        assertEquals(List.of("probe"), tabs.graphNames(), "precondition: the probe is the only chart");
+
+        var r = ex.render("graph", Map.of("name", "probe", "delete", true));
+
+        assertTrue(r.ok(), () -> "delete failed: " + r);
+        assertEquals(List.of(), r.payload().get("remaining"), "no chart remains — the blank tab is not one");
+        assertEquals(List.of(), saved(tabs), "and nothing is saved in its place");
+        assertEquals(1, tabs.graphNames().size(), "the strip still keeps one (blank) tab to work in");
+    }
+
+    @Test
+    @DisplayName("…and that blank tab becomes a chart the moment something is put on it")
+    void aUsedPlaceholderIsSaved() {
+        GraphTabs tabs = new GraphTabs();
+        ActionExecutor ex = executor(tabs);
+        ex.render("graph", Map.of("newTab", true, "name", "only", "series", List.of("bidMakerOrder.price")));
+        for (String name : List.copyOf(tabs.graphNames())) ex.render("graph", Map.of("name", name, "delete", true));
+        String blank = tabs.graphNames().get(0);
+        assertEquals(List.of(), saved(tabs), "precondition: an unused blank tab is not saved");
+
+        ex.render("graph", Map.of("name", blank, "series", List.of("bidMakerOrder.price")));
+
+        assertEquals(List.of(blank), saved(tabs), "given a series, it is a chart like any other");
+    }
+
+    /**
+     * A CLOSED chart is only a definition. The PR's own javadoc says deleting one must work, and nothing tested
+     * it: making the closed-chart branch return true without removing the definition left every test green.
+     */
+    @Test
+    @DisplayName("A closed chart can be deleted — its definition goes")
+    void aClosedChartCanBeDeleted() {
+        GraphTabs tabs = new GraphTabs();
+        java.util.List<String> definitions = new java.util.ArrayList<>(List.of("closed-one"));
+        tabs.setKnownNames(() -> new java.util.LinkedHashSet<>(definitions));
+        tabs.setDeleteListener(definitions::remove);
+        ActionExecutor ex = executor(tabs);
+        assertFalse(tabs.graphNames().contains("closed-one"), "precondition: it is not open");
+        assertTrue(tabs.hasDefinition("closed-one"), "precondition: but it is defined");
+
+        var r = ex.render("graph", Map.of("name", "closed-one", "delete", true));
+
+        assertTrue(r.ok(), () -> "delete failed: " + r);
+        assertFalse(definitions.contains("closed-one"), "the stored definition was removed, not only reported");
+        assertFalse(tabs.hasDefinition("closed-one"), "and the name is free again");
+    }
 }

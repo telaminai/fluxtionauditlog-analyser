@@ -452,7 +452,7 @@ public final class ActionExecutor implements RenderExecutor {
                 }
                 var echo = new java.util.LinkedHashMap<String, Object>();
                 echo.put("deleted", target);
-                echo.put("remaining", graphTabs.graphNames());
+                echo.put("remaining", graphTabs.chartsThatRemain());   // PR #51 review: not the blank tab a last delete opens
                 echo.put("note", "the chart DEFINITION is gone — its series, formulas, pinned notes and "
                         + "explanation. The log is untouched, and any PNG already exported is a separate "
                         + "file. This one is not recoverable; close a chart instead to put it away.");

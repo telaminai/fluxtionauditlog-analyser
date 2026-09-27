@@ -426,6 +426,7 @@ public final class GraphTabs extends JPanel {
         if (to.equals(from)) return true;                 // nothing to do, and not a collision with itself
         if (takenNames().contains(to)) return false;
         gp.setGraphName(to);
+        placeholders.remove(gp);   // a placeholder someone named is a chart they meant to keep
         refreshTabTitle(gp);
         renameListener.accept(from, to);   // move the stored definition BEFORE the list is persisted
         fireChanged();
@@ -453,6 +454,7 @@ public final class GraphTabs extends JPanel {
         List<GraphSpec> out = new ArrayList<>();
         for (int i = 0; i < tabs.getTabCount(); i++) {
             if (tabs.getComponentAt(i) instanceof GraphPanel gp) {
+                if (isEmptyPlaceholder(gp)) continue;   // PR #51 review: see deleteConfirmed
                 var notes = gp.notes();
                 List<GraphSpec.NoteSpec> noteSpecs = new ArrayList<>();
                 for (var n : notes.notes()) {
@@ -721,7 +723,39 @@ public final class GraphTabs extends JPanel {
         // a different one the dialog never named. The comment that used to sit here claimed this ordering
         // while the code did the opposite.
         deleteListener.accept(name);
-        if (tabs.getTabCount() == 0) addGraph();   // safe now: the name is free and the definition is gone
+        if (tabs.getTabCount() == 0) {
+            // safe now: the name is free and the definition is gone. PR #51 review: the tab strip keeps one tab, so
+            // deleting the LAST chart opens a blank one — and that blank tab used to be saved and reported as a chart
+            // that "remains". Over the socket, an assistant clearing its probe charts deleted "probe" and was told
+            // "remaining: [Graph 2]", deleted that and got "[Graph 3]", and each one landed in the profile: the
+            // accumulation #50 exists to stop. A placeholder is not a chart until someone puts something on it.
+            GraphPanel placeholder = addGraph();
+            if (placeholder != null) placeholders.add(placeholder);
+        }
         fireChanged();
+    }
+
+    /**
+     * Blank tabs opened only because the last chart was deleted. Held by identity; one leaves this set's meaning
+     * the moment it is renamed or given anything to show (see {@link #isEmptyPlaceholder}).
+     */
+    private final java.util.Set<GraphPanel> placeholders =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    /** A placeholder nobody has used: not saved, and not a chart that "remains" after a delete. */
+    boolean isEmptyPlaceholder(GraphPanel gp) {
+        return placeholders.contains(gp)
+                && gp.seriesSpecs().isEmpty() && gp.exprSpecs().isEmpty() && gp.externalSpecs().isEmpty()
+                && gp.markerSpecs().isEmpty() && gp.guides().isEmpty() && gp.bandSpecs().isEmpty()
+                && gp.notes().isEmpty();
+    }
+
+    /** The charts a delete leaves behind: every open chart except an unused placeholder. */
+    public List<String> chartsThatRemain() {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getComponentAt(i) instanceof GraphPanel gp && !isEmptyPlaceholder(gp)) out.add(gp.graphName());
+        }
+        return out;
     }
 }
