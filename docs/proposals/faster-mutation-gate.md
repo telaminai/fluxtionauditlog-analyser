@@ -26,7 +26,8 @@ complete CI artifacts, not one: per-control times vary by roughly ±30 s per sha
 so weights fitted to a single run partly fit its noise. Take each control's median over the runs, set
 `defaultSeconds` to the mean of those medians, and record every run URL and revision (`sourceRuns`). Check the
 result leave-one-out — fit on all runs but one, allocate that run's own controls, score with its real times. The
-2026-09-27 refresh (seven runs) cut the mean shard spread from 46 s to 10 s that way. What allocation cannot
+2026-09-27 refresh (eight runs) gave a mean shard spread of 9 s that way, against 46 s for the previous
+single-run weights. What allocation cannot
 balance: each shard's baseline (42–73 s, set by which suites it holds) and runner noise such as a slow checkout. Each worker prints its assigned controls' estimated time.
 
 The design-status-capped control runs first in its assigned shard, once. This preserves the early Linux
