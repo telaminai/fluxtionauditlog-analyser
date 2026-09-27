@@ -426,6 +426,7 @@ public final class GraphTabs extends JPanel {
         if (to.equals(from)) return true;                 // nothing to do, and not a collision with itself
         if (takenNames().contains(to)) return false;
         gp.setGraphName(to);
+        placeholders.remove(gp);   // a placeholder someone named is a chart they meant to keep
         refreshTabTitle(gp);
         renameListener.accept(from, to);   // move the stored definition BEFORE the list is persisted
         fireChanged();
@@ -453,6 +454,7 @@ public final class GraphTabs extends JPanel {
         List<GraphSpec> out = new ArrayList<>();
         for (int i = 0; i < tabs.getTabCount(); i++) {
             if (tabs.getComponentAt(i) instanceof GraphPanel gp) {
+                if (isEmptyPlaceholder(gp)) continue;   // PR #51 review: see deleteConfirmed
                 var notes = gp.notes();
                 List<GraphSpec.NoteSpec> noteSpecs = new ArrayList<>();
                 for (var n : notes.notes()) {
@@ -598,6 +600,45 @@ public final class GraphTabs extends JPanel {
         fireChanged();
     }
 
+    /**
+     * Close a chart by NAME, keeping its definition — the non-destructive neighbour of
+     * {@link #deleteNamed}, which the desktop has had all along as "Close graph".
+     *
+     * <p>PR #51 review, on #50: over the socket, delete was the ONLY way to get a chart off the
+     * screen, and it is irreversible. That is what made the irreversibility bite — not that delete
+     * exists, but that an assistant tidying up had no gentler option and the reply's own advice
+     * ("close a chart instead to put it away") named something it could not do.
+     *
+     * <p>The tab strip keeps at least one tab, so closing the last chart is refused rather than
+     * silently leaving a blank placeholder in its place.
+     *
+     * <p>Refused, too, while definitions are refused: nothing is saved then, so a close could not keep
+     * anything. The desktop's Close stays enabled under a refusal (owner, 2026-09-24) and says nothing;
+     * this verb promises "kept", so it must not be able to break the promise.
+     *
+     * @return null on success, otherwise why it was refused
+     */
+    public String closeNamed(String name) {
+        if (name == null || name.isBlank()) return "close needs a chart name";
+        GraphPanel gp = graphNamed(name.trim());
+        if (gp == null) return "no open chart named '" + name.trim() + "' — open charts: " + graphNames();
+        // PR #51 review: nothing is saved while a refusal stands (MainFrame.syncOpenGraphsIntoConfig returns
+        // early), so every chart open now was made since the refusal and lives only as its tab. Closing one
+        // would discard it — the reply would call that "kept". Refuse, in the refusal's own words.
+        if (definitionRefusal != null) {
+            return "'" + name.trim() + "' is not saved — no chart is while this stands: " + definitionRefusal
+                    + " Closing it would discard it; repair the names first, or delete it if discarding is meant.";
+        }
+        if (tabs.getTabCount() <= 1) {
+            return "'" + name.trim() + "' is the only open chart and the strip keeps one; its definition is "
+                    + "already saved, so there is nothing to close it FOR";
+        }
+        gp.unbind();
+        tabs.removeTabAt(indexOf(gp));
+        fireChanged();
+        return null;
+    }
+
     /** Told the NAME of a chart the person deleted, so the owner of the config can drop its definition. */
     private java.util.function.Consumer<String> deleteListener = name -> { };
 
@@ -677,6 +718,34 @@ public final class GraphTabs extends JPanel {
     }
 
     /**
+     * #50 — delete a chart by NAME, with no dialog: the socket's caller has already decided.
+     *
+     * <p>Charts accumulate in a profile exactly the way reports did before #23. An investigation leaves
+     * throwaways behind — a probe to check an expression resolves, a variant to compare two window pins
+     * — and they persist, reopen with the project, and sit in the tab strip indistinguishable from the
+     * chart that carries the finding. Until this there was a Delete button and no verb, so an assistant
+     * could create a chart and never clear it up.
+     *
+     * <p>A CLOSED chart still holds a definition, and deleting one of those has to work too — otherwise
+     * "delete" would mean "delete only if you can see it", and the name would stay taken.
+     *
+     * @return false when no chart, open or saved, has that name
+     */
+    public boolean deleteNamed(String name) {
+        if (name == null || name.isBlank()) return false;
+        String target = name.trim();
+        GraphPanel open = graphNamed(target);
+        if (open != null) {
+            deleteConfirmed(indexOf(open));
+            return true;
+        }
+        if (!hasDefinition(target)) return false;
+        deleteListener.accept(target);   // the saved definition, which is all a closed chart is
+        fireChanged();
+        return true;
+    }
+
+    /**
      * The delete itself, once a person has confirmed it — separated from the modal dialog so a test can
      * reach it. f6e8d7e0: a {@code JOptionPane} cannot run headless, so leaving this inside
      * {@link #deleteCurrent()} left the one destructive path in the app untestable.
@@ -693,7 +762,39 @@ public final class GraphTabs extends JPanel {
         // a different one the dialog never named. The comment that used to sit here claimed this ordering
         // while the code did the opposite.
         deleteListener.accept(name);
-        if (tabs.getTabCount() == 0) addGraph();   // safe now: the name is free and the definition is gone
+        if (tabs.getTabCount() == 0) {
+            // safe now: the name is free and the definition is gone. PR #51 review: the tab strip keeps one tab, so
+            // deleting the LAST chart opens a blank one — and that blank tab used to be saved and reported as a chart
+            // that "remains". Over the socket, an assistant clearing its probe charts deleted "probe" and was told
+            // "remaining: [Graph 2]", deleted that and got "[Graph 3]", and each one landed in the profile: the
+            // accumulation #50 exists to stop. A placeholder is not a chart until someone puts something on it.
+            GraphPanel placeholder = addGraph();
+            if (placeholder != null) placeholders.add(placeholder);
+        }
         fireChanged();
+    }
+
+    /**
+     * Blank tabs opened only because the last chart was deleted. Held by identity; one leaves this set's meaning
+     * the moment it is renamed or given anything to show (see {@link #isEmptyPlaceholder}).
+     */
+    private final java.util.Set<GraphPanel> placeholders =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+
+    /** A placeholder nobody has used: not saved, and not a chart that "remains" after a delete. */
+    boolean isEmptyPlaceholder(GraphPanel gp) {
+        return placeholders.contains(gp)
+                && gp.seriesSpecs().isEmpty() && gp.exprSpecs().isEmpty() && gp.externalSpecs().isEmpty()
+                && gp.markerSpecs().isEmpty() && gp.guides().isEmpty() && gp.bandSpecs().isEmpty()
+                && gp.notes().isEmpty();
+    }
+
+    /** The charts a delete leaves behind: every open chart except an unused placeholder. */
+    public List<String> chartsThatRemain() {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < tabs.getTabCount(); i++) {
+            if (tabs.getComponentAt(i) instanceof GraphPanel gp && !isEmptyPlaceholder(gp)) out.add(gp.graphName());
+        }
+        return out;
     }
 }

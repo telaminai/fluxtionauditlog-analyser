@@ -1434,8 +1434,11 @@ public final class MainFrame extends JFrame {
         // ---- build/replace the named report ---------------------------------------------------------
         var parsed = telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.parse(params, fp,
                 telamin.fluxtion.audit.analyser.analyser.report.FilterSnapshot.of(filter));
-        var spec = parsed.spec();
-        boolean replaced = reportByName(spec.name()) != null;
+        var existing = reportByName(parsed.spec().name());
+        // #46: absent means UNCHANGED, not empty. Retitling a report, or adding a path to render its
+        // PDF, used to wipe every section it had.
+        var spec = parsed.onto(existing);
+        boolean replaced = existing != null;
         putReport(spec);
         // reveal what was just built, exactly as the graph verb reveals the Graph tab: the report is
         // a navigation surface and the human should see what the agent assembled
@@ -1459,7 +1462,18 @@ public final class MainFrame extends JFrame {
         echo.put("title", spec.title());
         echo.put(replaced ? "replaced" : "created", true);
         echo.put("sections", spec.sections().size());
-        echo.put("writtenAgainst", fp.describe());
+        if (replaced && !parsed.supplied().contains("sections")) {
+            // #46: state the merge. A reply that said only "replaced" over an unchanged section count
+            // is indistinguishable from one that quietly dropped them all.
+            echo.put("sectionsKept", "no 'sections' in this call, so the existing " + spec.sections().size()
+                    + " were kept along with the log and view they were written against — send "
+                    + "'sections: []' to empty it deliberately");
+        }
+        // PR #51 review: the log the SECTIONS were written against. With #46 a call that sends no sections keeps them
+        // and their fingerprint, so this used to name the log that happened to be open — while the line above said the
+        // sections were kept with the log they were written against. The PDF's WRITTEN AGAINST row already read spec.
+        echo.put("writtenAgainst", (spec.fingerprint() != null ? spec.fingerprint() : fp).describe());
+        if (resolution.fingerprintMismatch() != null) echo.put("loadedLog", fp.describe());   // and what is open now
         if (resolution.summary() != null) echo.put("unresolved", resolution.summary());
         if (resolution.filterDifference() != null) echo.put("view", resolution.filterDifference());
 
