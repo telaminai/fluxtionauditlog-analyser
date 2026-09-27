@@ -1469,7 +1469,11 @@ public final class MainFrame extends JFrame {
                     + " were kept along with the log and view they were written against — send "
                     + "'sections: []' to empty it deliberately");
         }
-        echo.put("writtenAgainst", fp.describe());
+        // PR #51 review: the log the SECTIONS were written against. With #46 a call that sends no sections keeps them
+        // and their fingerprint, so this used to name the log that happened to be open — while the line above said the
+        // sections were kept with the log they were written against. The PDF's WRITTEN AGAINST row already read spec.
+        echo.put("writtenAgainst", (spec.fingerprint() != null ? spec.fingerprint() : fp).describe());
+        if (resolution.fingerprintMismatch() != null) echo.put("loadedLog", fp.describe());   // and what is open now
         if (resolution.summary() != null) echo.put("unresolved", resolution.summary());
         if (resolution.filterDifference() != null) echo.put("view", resolution.filterDifference());
 

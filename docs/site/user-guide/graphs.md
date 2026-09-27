@@ -14,7 +14,9 @@ doubled every pin, and the plot collapsed the duplicates into a single badge tha
 
 **Removing a chart** is `graph {name, delete: true}`, or **Graph ▸ Delete chart**. It takes the
 definition — series, formulas, pinned notes and the explanation written on it — and unlike a deleted
-report it is **not** recoverable. To put a chart away without losing it, close its tab.
+report it is **not** recoverable. To put a chart away without losing it, close its tab — or, over the
+socket, `graph {name, close: true}`; a closed chart keeps its definition and reopens from the Project
+panel or by name.
 
 ## Adding series
 

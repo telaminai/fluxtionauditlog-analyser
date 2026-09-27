@@ -93,4 +93,102 @@ class ChartDrawsItsClosingValueTest {
         assertTrue(ChartPanel.LABEL_DROP < ChartPanel.B,
                 "LABEL_DROP must sit inside B, or the labels land in the footer again");
     }
+
+    // ---- PR #51 review: the same decisions, through the paint that uses them ---------------------
+    //
+    // Every test above pins an extracted helper. Removing the CALL to it (`holdToWindowEdge`, either path) or
+    // putting the labels back at `h - 6` left all of them green — the fix could be deleted and nothing noticed.
+    // These paint the real component offscreen (headless: toImage needs no display) and read the pixels.
+
+    private static final int W = 900, H = 420;
+
+    private static telamin.fluxtion.audit.analyser.analyser.graph.Series steps(int points, int trailingGap) {
+        var s = new telamin.fluxtion.audit.analyser.analyser.graph.Series("v");
+        for (int i = 0; i < points; i++) s.add(1_000L * i, i < points - trailingGap ? (i % 7 == 0 ? 5 : 3) : Double.NaN);
+        return s;
+    }
+
+    private static ChartPanel chart(telamin.fluxtion.audit.analyser.analyser.graph.Series s,
+                                    telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes notes) {
+        ChartPanel c = new ChartPanel();
+        c.setStyle(ChartPanel.Style.STEP);
+        c.setSeries(java.util.List.of(s));
+        if (notes != null) c.setNotes(notes);
+        c.setSize(W, H);
+        c.doLayout();
+        return c;
+    }
+
+    /**
+     * #49's reported case: the window PINNED past the last record, so the last point sits well short of the right
+     * edge. Unpinned, the window ends at the last point and the series reaches the edge without any hold — a test
+     * of that case passes with the hold deleted.
+     */
+    private static ChartPanel pinnedPastTheData(telamin.fluxtion.audit.analyser.analyser.graph.Series s) {
+        ChartPanel c = chart(s, null);
+        long first = s.minX(), last = s.maxX();
+        c.setViewWindow(first, last + (last - first) / 4);
+        return c;
+    }
+
+    /** Series-coloured pixels in the plot's last few columns — where only the closing hold can be. */
+    private static int seriesPixelsAtTheRightEdge(ChartPanel c) {
+        java.awt.image.BufferedImage img = c.toImage(W, H);
+        java.awt.Rectangle plot = c.plotBounds();
+        java.awt.Color want = ChartPanel.paletteColor(0);
+        int hits = 0;
+        for (int x = plot.x + plot.width - 8; x < plot.x + plot.width; x++) {
+            for (int y = plot.y; y < plot.y + plot.height; y++) {
+                java.awt.Color p = new java.awt.Color(img.getRGB(x, y));
+                if (Math.abs(p.getRed() - want.getRed()) < 40 && Math.abs(p.getGreen() - want.getGreen()) < 40
+                        && Math.abs(p.getBlue() - want.getBlue()) < 40) hits++;
+            }
+        }
+        return hits;
+    }
+
+    @Test
+    @DisplayName("PAINTED: the closing step reaches the right edge — on the exact path and the decimated one")
+    void theHoldIsPainted() {
+        assertTrue(seriesPixelsAtTheRightEdge(pinnedPastTheData(steps(200, 0))) > 0, "exact path (few points)");
+        assertTrue(seriesPixelsAtTheRightEdge(pinnedPastTheData(steps(20_000, 0))) > 0,
+                "decimated path (more than three points per pixel column)");
+    }
+
+    @Test
+    @DisplayName("PAINTED: a series ending in a gap holds nothing, however dense it is")
+    void aTrailingGapIsNotHeld() {
+        assertEquals(0, seriesPixelsAtTheRightEdge(pinnedPastTheData(steps(200, 20))), "exact path");
+        assertEquals(0, seriesPixelsAtTheRightEdge(pinnedPastTheData(steps(20_000, 2_000))),
+                "decimated path — it used to hold the last finite value straight through the gap");
+    }
+
+    /** Non-background pixels in the band just under the plot's left corner, where the first time label is drawn. */
+    private static int inkUnderThePlot(ChartPanel c) {
+        java.awt.image.BufferedImage img = c.toImage(W, H);
+        java.awt.Rectangle plot = c.plotBounds();
+        int top = plot.y + plot.height + 2, bottom = plot.y + plot.height + ChartPanel.LABEL_DROP + 3;
+        java.awt.Color bg = new java.awt.Color(img.getRGB(plot.x + plot.width / 2, (top + bottom) / 2));
+        int ink = 0;
+        for (int x = plot.x; x < plot.x + 150; x++) {
+            for (int y = top; y < bottom; y++) {
+                java.awt.Color p = new java.awt.Color(img.getRGB(x, y));
+                if (Math.abs(p.getRed() - bg.getRed()) + Math.abs(p.getGreen() - bg.getGreen())
+                        + Math.abs(p.getBlue() - bg.getBlue()) > 90) ink++;
+            }
+        }
+        return ink;
+    }
+
+    @Test
+    @DisplayName("PAINTED: the time labels are drawn under the plot with a note and its footer present")
+    void theAxisLabelsArePaintedWithANote() {
+        var notes = telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.EMPTY
+                .withExplanation("why this chart exists")
+                .plus(new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(50_000L, "a moment", null));
+        assertTrue(inkUnderThePlot(chart(steps(200, 0), null)) > 0,
+                "the time labels belong just under the plot frame, with or without a note");
+        assertTrue(inkUnderThePlot(chart(steps(200, 0), notes)) > 0,
+                "with a note and its footer the labels must still be there — #48 was that they were not");
+    }
 }

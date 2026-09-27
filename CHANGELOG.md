@@ -6,6 +6,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **`graph {name, close: true}`** — take a chart off the screen and keep its definition, the way
+  *Close graph* has always worked on the desktop. Over the socket, `delete` used to be the only way
+  to get a chart out of the way, and it is not recoverable; the safe half of removal is now
+  available to an assistant putting away a chart worth keeping. It is refused while chart definitions are
+  withheld as ambiguous, because nothing is saved then and a close would discard the chart.
+
+### Fixed
+
+- **An explicit `null` no longer wipes a report.** `report {name, sections: null}` — what a client
+  sends for an optional argument it has no value for — read as "replace with nothing". Absent and
+  `null` now both mean *unchanged*; `sections: []` is still how a report is emptied deliberately.
+- **A replaced report is dated when it was replaced.** Rebuilding a report's sections kept the
+  original created date, so an exported PDF showed CREATED and WRITTEN AGAINST describing two
+  different reports. The date now travels with the sections, as the log fingerprint already did.
+
 ## [1.24.0] - 2026-09-27
 
 ### Added

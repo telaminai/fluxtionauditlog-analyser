@@ -86,7 +86,7 @@ public final class VerbSchemas {
                         p("text", string(), "free-text match (SLOW raw byte scan)")),
                 List.of()));
 
-        s.put("graph", schema("Create/append a named time-series graph, or rename or DELETE one. CLEAN UP after yourself: a probe chart left behind reopens with the project and sits in the tab strip indistinguishable from the one carrying the finding.",
+        s.put("graph", schema("Create/append a named time-series graph, or rename, close or DELETE one. CLEAN UP after yourself: a probe chart left behind reopens with the project and sits in the tab strip indistinguishable from the one carrying the finding.",
                 props(
                         p("name", string(), "target graph name (null = current tab)"),
                         p("series", arr(string()), "raw keys, each \"instanceId.key\""),
@@ -121,7 +121,10 @@ public final class VerbSchemas {
                                 + "refreshed: \"scheduled\" — the walk lands after the call returns, so read fresh "
                                 + "values with `series`; the chart is what lags"),
                         p("rename", string(), "with {name}, rename that graph to this"),
-                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, close its tab instead")),
+                        p("close", bool(), "with {name}, take that chart off the screen and KEEP its "
+                                + "definition — for a chart worth keeping; a closed probe still sits in the "
+                                + "profile, so delete those. Goes alone; refused for the last open chart"),
+                        p("delete", bool(), "with {name}, remove that chart's DEFINITION — series, formulas, pinned notes and explanation. Goes ALONE, like rename. NOT recoverable (unlike a report delete); to put a chart away without losing it, use close instead")),
                 List.of()));
 
         s.put("goto", schema("Select the record containing an anchor in the table.",

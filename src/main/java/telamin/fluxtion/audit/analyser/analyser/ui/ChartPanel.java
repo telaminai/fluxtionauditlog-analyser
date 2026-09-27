@@ -779,6 +779,10 @@ public final class ChartPanel extends JPanel {
             if (style == Style.POINTS) g.fillOval(px - 2, py - 2, 4, 4);
             prevX = px; prevY = py; have = true;
         }
+        // PR #51 review: the exact path resets `have` on a gap, so a series whose LAST sample is a gap holds nothing.
+        // This loop skips gaps instead, so without this it held the last finite value straight through a trailing
+        // gap — the same chart said "no value here" or "the value holds here" depending only on how dense it was.
+        if (s.size() > 0 && !Double.isFinite(s.y(s.size() - 1))) have = false;
         holdToWindowEdge(g, prevX, prevY, have);   // #49, and the javadoc above says why it must match
     }
 

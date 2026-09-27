@@ -45,11 +45,6 @@ public final class ReportVerb {
             supplied = java.util.Set.copyOf(supplied == null ? java.util.Set.<String>of() : supplied);
         }
 
-        /** Pre-#46 shape, kept so existing callers compile: everything the spec holds counts as supplied. */
-        public Parsed(ReportSpec spec, List<String> warnings) {
-            this(spec, warnings, java.util.Set.of("title", "notes", "sections"));
-        }
-
         /**
          * #46 — what to STORE, given what is already stored under this name. <b>Absent means
          * unchanged.</b>
@@ -61,12 +56,13 @@ public final class ReportVerb {
          * {@code delete} uses. The confirmed path was reversible and the silent one was not.
          *
          * <p>{@code sections: []} still empties a report: that is a supplied value, and an explicit
-         * one. This only changes what SILENCE means.
+         * one. This only changes what SILENCE means — and an explicit {@code null} is silence too.
          *
          * <p>The authoring context travels with the sections. When they are carried over, so are the
          * fingerprint and the filter — those record the log and view the REFERENCES were written
          * against, and stamping old references with today's log would relabel evidence nobody
-         * re-checked. {@code createdAt} likewise stays: it says when the report was made.
+         * re-checked. {@code createdAt} goes with them the same way: kept with kept sections, and today's
+         * date when the sections are replaced (PR #51 review) — the report was re-authored then.
          */
         public ReportSpec onto(ReportSpec existing) {
             if (existing == null) {
@@ -76,7 +72,11 @@ public final class ReportVerb {
             return new ReportSpec(
                     spec.name(),
                     supplied.contains("title") ? spec.title() : existing.title(),
-                    existing.createdAt(),
+                    // PR #51 review, and the reviewer is right: createdAt follows the SECTIONS, like the
+                    // fingerprint and the filter beside it. Keeping the old date on a full replace made the
+                    // PDF print CREATED 2026-01-01 next to WRITTEN AGAINST today's log — two rows describing
+                    // different reports. Nothing of the original survives a full replace except its name.
+                    keepSections ? existing.createdAt() : spec.createdAt(),
                     supplied.contains("notes") ? spec.notes() : existing.notes(),
                     keepSections ? existing.fingerprint() : spec.fingerprint(),
                     keepSections ? existing.filter() : spec.filter(),
@@ -107,7 +107,12 @@ public final class ReportVerb {
         // #46: which keys the CALL carried, so a later merge can tell absent from empty
         var supplied = new java.util.LinkedHashSet<String>();
         for (String key : new String[]{"title", "notes", "sections"}) {
-            if (params.containsKey(key)) supplied.add(key);
+            // PR #51 review: an explicit null is ABSENT, not supplied. A client filling an optional
+            // argument it has no value for — "sections": null — would otherwise wipe the report, which is
+            // the exact defect #46 exists to remove, reached by a different route. `report` documents its
+            // own way to empty a report deliberately, and it is `sections: []`. (`filter` is the verb where
+            // null CLEARS; that is documented per-verb and does not generalise to this one.)
+            if (params.get(key) != null) supplied.add(key);
         }
         return new Parsed(spec, warnings, supplied);
     }
