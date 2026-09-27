@@ -99,6 +99,32 @@ under the same *Allow assistant file exchange* opt-in as every other file the as
 The Reports tab has the same door for you: **Export PDF…** renders the selected report to a file you
 choose — your chooser is the consent, so it is not confined to the exchange directory.
 
+## Removing and renaming one
+
+Replacing by name is how you *update* a report. Getting rid of one is separate, because an
+investigation leaves diagnostics behind — the two-section report built to check whether a topology
+picture renders should not still be in the profile you hand to a colleague, sitting in the list
+looking exactly like a real finding.
+
+**Delete…** and **Rename…** sit beside Export PDF… in the Reports tab and act on the selected
+report. Delete confirms first, naming the report, the log it cites and how many sections go; the log,
+the charts it referenced and any PDF you already exported are untouched — a report is an assembly of
+references, and deleting the assembly is not deleting the evidence. Rename refuses a name that is
+already taken rather than quietly replacing that report.
+
+**A delete can be undone.** A deleted report moves to a recently-deleted list; **Restore deleted…**
+brings it back into the project it came from. The list is kept on this machine, not in the project
+profile — a deleted report is never committed or shared — and holds the last 20 deletions. Restoring
+onto a name that has since been taken is refused, so nothing is replaced. The limit is shared across
+all profiles on this machine. Entries are associated with the profile's path: two profiles in one
+project have separate lists; moving or renaming the profile does not migrate its deleted reports.
+
+Assistants get the same: `report {name, delete: true}`, `report {name, rename: "…"}`, and
+`report {restore: "<name>"}` (boolean `restore: true` lists what can be restored), so one that built a
+diagnostic can clear it away when it is done — and anything it deletes can be brought back.
+Use `restore` alone; combining it with sections, a path or another operation is refused without
+changing the report or bin. A string always names a report, including `restore: "true"`.
+
 Reports persist with your profile, travel with projects, and share under their **own category** —
 because a shared report carries narrative written about your data, which deserves its own consent
 checkbox. See [Sharing setups](sharing-setups.md).

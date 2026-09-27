@@ -43,7 +43,8 @@ class ReportsPanelLogFindingsTest {
         AtomicReference<Colours> out = new AtomicReference<>();
         SwingUtilities.invokeAndWait(() -> {
             var panel = new ReportsPanel(() -> List.of(spec), s -> ReportResolver.resolve(s, STORE.index(), Map.of(),
-                    Set.of(), Set.of(), new FilterState()), s -> null, r -> { }, g -> { }, f -> { }, f -> { }, p -> { });
+                    Set.of(), Set.of(), new FilterState()), s -> null, r -> { }, g -> { }, f -> { }, f -> { }, p -> { },
+                    n -> { }, (from, to) -> null);   // PR #33's delete and rename hooks, unused here
             panel.setLogFindings(() -> findings);
             panel.refresh();
             out.set(new Colours(foreground(panel, t -> t.equals(ReportRenderer.LOG_FINDINGS_LABEL)),

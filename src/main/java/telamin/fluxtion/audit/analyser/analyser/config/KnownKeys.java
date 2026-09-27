@@ -39,11 +39,12 @@ public final class KnownKeys {
 
     static {
         Set<String> all = new java.util.HashSet<>(PROFILE_FAMILIES);
-        all.addAll(Set.of("activeProjectPath", "apiKey", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
+        all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
                 "lastRunVersion", "logFile", "memoryThresholdMb", "projectPanelCollapsed", "recentFile", "recentGraphml",
                 "recentProject", "searchHistory", "theme", "mcp", "topologyOrientation", "topologyPanX", "topologyPanY",
                 "topologySpacing", "topologySyncSource", "topologyTextSize", "topologyZoom", "westDivider", "westWidth",
                 "windowH", "windowW", "windowX", "windowY"));
+        // "deletedReport" (PR #33): the machine-local bin — CONFIG only, never a profile family, so it is never shared
         CONFIG_FAMILIES = Set.copyOf(all);
     }
 

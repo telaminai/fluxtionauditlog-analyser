@@ -90,6 +90,7 @@ public final class ConfigStore {
         readGraphs(p, c.savedGraphs);
         readFocuses(p, c.namedFocuses);
         readReports(p, c.reports);
+        readDeletedReports(p, c.deletedReports);   // PR #33: machine-local, never in a profile or an export
         readRunbooks(p, c.runbooks);
         c.vocabularyPath = readVocabulary(p).orElse("");
         readEnvironments(p, c.environments);
@@ -173,6 +174,7 @@ public final class ConfigStore {
         writeGraphs(p, globalTier == null ? c.savedGraphs : globalTier.savedGraphs());
         writeFocuses(p, globalTier == null ? c.namedFocuses : globalTier.namedFocuses());
         writeReports(p, globalTier == null ? c.reports : globalTier.reports());
+        writeDeletedReports(p, c.deletedReports);   // always the machine's: the bin is not project state
         writeRunbooks(p, globalTier == null ? c.runbooks : globalTier.runbooks());
         writeVocabulary(p, globalTier == null ? c.vocabularyPath : globalTier.vocabularyPath());
         writeEnvironments(p, globalTier == null ? c.environments : globalTier.environments(),
@@ -249,10 +251,16 @@ public final class ConfigStore {
 
     static void writeReports(Properties p,
                              List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports) {
-        p.setProperty("report.count", Integer.toString(reports.size()));
+        writeReports(p, "report", reports);
+    }
+
+    /** Reports under {@code <prefix>.count} / {@code <prefix>.<i>.…} — "report", or "deletedReport" for the bin. */
+    static void writeReports(Properties p, String prefix,
+                             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports) {
+        p.setProperty(prefix + ".count", Integer.toString(reports.size()));
         for (int i = 0; i < reports.size(); i++) {
             var r = reports.get(i);
-            String base = "report." + i;
+            String base = prefix + "." + i;
             put(p, base + ".name", r.name());
             put(p, base + ".title", r.title());
             put(p, base + ".created", r.createdAt().isBlank() ? null : r.createdAt());
@@ -312,12 +320,46 @@ public final class ConfigStore {
 
     static void readReports(Properties p,
                             List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> out) {
+        readReports(p, "report", out, null);
+    }
+
+    /** The recently-deleted reports (PR #33, owner decision 2026-09-27): each report plus the project and time. */
+    static void writeDeletedReports(Properties p, List<DeletedReport> bin) {
+        List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> specs = new java.util.ArrayList<>();
+        for (DeletedReport d : bin) specs.add(d.report());
+        writeReports(p, "deletedReport", specs);
+        for (int i = 0; i < bin.size(); i++) {
+            put(p, "deletedReport." + i + ".project", bin.get(i).project());
+            put(p, "deletedReport." + i + ".deletedAt", bin.get(i).deletedAt());
+        }
+    }
+
+    static void readDeletedReports(Properties p, List<DeletedReport> out) {
         out.clear();
-        int n = parseInt(p.getProperty("report.count"), 0);
+        List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> specs = new java.util.ArrayList<>();
+        List<Integer> kept = new java.util.ArrayList<>();
+        readReports(p, "deletedReport", specs, kept);
+        for (int k = 0; k < specs.size(); k++) {
+            int i = kept.get(k);
+            out.add(new DeletedReport(p.getProperty("deletedReport." + i + ".project", ""),
+                    p.getProperty("deletedReport." + i + ".deletedAt", ""), specs.get(k)));
+        }
+    }
+
+    /**
+     * Reports under {@code prefix}. {@code kept}, when given, receives the index of each report read, because an
+     * entry with no name is skipped — and the bin keeps per-index fields (project, when) that must stay aligned.
+     */
+    static void readReports(Properties p, String prefix,
+                            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> out,
+                            List<Integer> kept) {
+        out.clear();
+        int n = parseInt(p.getProperty(prefix + ".count"), 0);
         for (int i = 0; i < n; i++) {
-            String base = "report." + i;
+            String base = prefix + "." + i;
             String name = p.getProperty(base + ".name");
             if (name == null || name.isBlank()) continue;
+            if (kept != null) kept.add(i);
             telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint fp = null;
             if (p.getProperty(base + ".fp.records") != null) {
                 fp = new telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint(

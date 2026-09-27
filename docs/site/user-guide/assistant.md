@@ -82,7 +82,11 @@ drive the same verbs:
   *account* of an investigation, not just its evidence. It appears in the **Reports** tab, renders to
   PDF with `path`, and exports a table's rows to CSV with `csv`. A finding section renders what
   `flag` wrote and the verb **cannot** set or change that text; narrative is always visibly labelled
-  as narrative. See [Investigation reports](reports.md).
+  as narrative. `report {name, delete: true}` removes one — recoverably: it can be brought back with
+  `report {restore: "<name>"}` or the Reports tab's **Restore deleted…** — and `report {name, rename}` renames one,
+  so an assistant can clear away the diagnostics it built along the way. See
+  [Investigation reports](reports.md). Use `restore` alone: boolean `true` lists deleted reports;
+  a string names the report to restore, including the name `"true"`.
 - **coverage** — which of the processor's nodes never wrote audit output in this run. Needs a log *and* a
   graphml, and answers the question nobody can answer by eye on a large graph: what did this run never
   exercise? A gap means "never logged", not proven "never ran" — a node with no `auditLog` call, or one
@@ -375,6 +379,18 @@ write **only inside the exchange directory you choose**, and they never overwrit
 second export under the same name is refused rather than silently replacing the first. Exports you drive
 yourself, through a menu chooser, are unaffected: picking a location in a dialog *is* the
 authorisation.
+
+**A project may say where that directory is — never whether.** A repository knows something your machine
+does not: that its exports belong in `src/report/shared` beside the evidence they are about. So a profile
+can carry *This project's directory* (Settings ▸ Assistant), a path **relative to the project root** with
+no `..`, and the assistant writes there instead. The permission is untouched: it is yours, it stays in
+your own settings, and opening someone's project can never turn the exchange on. A value that is
+absolute, home-relative, escapes the project, or names a directory that is not there is **refused with
+its reason** and the machine setting is used — nothing is created on your disk by opening a profile.
+`context` reports which tier answered under `exports.source`.
+Read and export paths also resolve symbolic links beneath that directory; a symbolic link cannot grant access outside
+it. These checks use the filesystem as it stands when the request is resolved. They do not lock
+directories against a concurrent local process changing them during an operation.
 
 ### Does my client launch the analyser?
 

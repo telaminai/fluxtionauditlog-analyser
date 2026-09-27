@@ -123,7 +123,7 @@ public final class ActionExecutor implements RenderExecutor {
         return telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolve(
                 requested == null ? null : requested.toString(),
                 cfg != null && cfg.assistantExports,
-                cfg == null ? "" : cfg.assistantExportDir);
+                telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir());
     }
 
     @Override
@@ -222,10 +222,17 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.screenshot(out.path().toString(), str(params.get("scope"))));
             }
             case "report" -> {
+                if (params.containsKey("restore")) {
+                    if (params.size() != 1) return ActionResult.error("report 'restore' must be used alone");
+                    Object restore = params.get("restore");
+                    if (!Boolean.TRUE.equals(restore) && !(restore instanceof String name && !name.isBlank()))
+                        return ActionResult.error("report 'restore' needs true to list or a nonblank report name");
+                }
                 // M33.3: the sections form builds/replaces a NAMED report (path optional — render or
                 // CSV when given); the shipped single-record form stays below as sugar
+                // PR #33 review: 'restore' needs no name, and must not fall through to the single-record export
                 if (params.containsKey("sections") || params.containsKey("name")
-                        || params.containsKey("csv")) {
+                        || params.containsKey("csv") || params.containsKey("restore")) {
                     String resolved = null;
                     if (params.get("path") != null) {
                         var out = guardedPath(params.get("path"));   // B1: same guard, same directory
@@ -524,7 +531,7 @@ public final class ActionExecutor implements RenderExecutor {
                 }
                 var resolved = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolveRead(
                         path, cfg != null && cfg.assistantExports,
-                        cfg == null ? "" : cfg.assistantExportDir, readGrants.get());
+                        telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir(), readGrants.get());
                 if (resolved.error() != null) {
                     externalWarnings.add("external '" + label + "': " + resolved.error());
                     continue;
@@ -1504,7 +1511,7 @@ public final class ActionExecutor implements RenderExecutor {
                     String path = asText(ext.get("path"));
                     var resolved = telamin.fluxtion.audit.analyser.analyser.llm.ExportGuard.resolveRead(
                             path, cfg != null && cfg.assistantExports,
-                            cfg == null ? "" : cfg.assistantExportDir, readGrants.get());
+                            telamin.fluxtion.audit.analyser.analyser.config.ExchangeDir.of(cfg).dir(), readGrants.get());
                     if (resolved.error() != null) {
                         warnings.add("marker '" + label + "': " + resolved.error());
                         continue;
