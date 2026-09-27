@@ -32,7 +32,56 @@ public final class ReportVerb {
     private ReportVerb() {
     }
 
-    public record Parsed(ReportSpec spec, List<String> warnings) {
+    /**
+     * @param spec     the report as the CALL describes it
+     * @param warnings what was skipped and why
+     * @param supplied which of {@code title}, {@code notes}, {@code sections} the call actually carried
+     *                 — absent is not the same as empty (#46); see {@link #onto}
+     */
+    public record Parsed(ReportSpec spec, List<String> warnings, java.util.Set<String> supplied) {
+
+        public Parsed {
+            warnings = List.copyOf(warnings == null ? List.of() : warnings);
+            supplied = java.util.Set.copyOf(supplied == null ? java.util.Set.<String>of() : supplied);
+        }
+
+        /**
+         * #46 — what to STORE, given what is already stored under this name. <b>Absent means
+         * unchanged.</b>
+         *
+         * <p>It used to mean EMPTY. Adding a title, a note, or a {@code path} to render a PDF are all
+         * natural follow-up calls on a report that already exists, and every one of them silently
+         * destroyed its sections unless the whole array was resent — no prompt, no warning, and not
+         * recoverable, because a replace never entered the recently-deleted list that
+         * {@code delete} uses. The confirmed path was reversible and the silent one was not.
+         *
+         * <p>{@code sections: []} still empties a report: that is a supplied value, and an explicit
+         * one. This only changes what SILENCE means — and an explicit {@code null} is silence too.
+         *
+         * <p>The authoring context travels with the sections. When they are carried over, so are the
+         * fingerprint and the filter — those record the log and view the REFERENCES were written
+         * against, and stamping old references with today's log would relabel evidence nobody
+         * re-checked. {@code createdAt} goes with them the same way: kept with kept sections, and today's
+         * date when the sections are replaced (PR #51 review) — the report was re-authored then.
+         */
+        public ReportSpec onto(ReportSpec existing) {
+            if (existing == null) {
+                return spec;
+            }
+            boolean keepSections = !supplied.contains("sections");
+            return new ReportSpec(
+                    spec.name(),
+                    supplied.contains("title") ? spec.title() : existing.title(),
+                    // PR #51 review, and the reviewer is right: createdAt follows the SECTIONS, like the
+                    // fingerprint and the filter beside it. Keeping the old date on a full replace made the
+                    // PDF print CREATED 2026-01-01 next to WRITTEN AGAINST today's log — two rows describing
+                    // different reports. Nothing of the original survives a full replace except its name.
+                    keepSections ? existing.createdAt() : spec.createdAt(),
+                    supplied.contains("notes") ? spec.notes() : existing.notes(),
+                    keepSections ? existing.fingerprint() : spec.fingerprint(),
+                    keepSections ? existing.filter() : spec.filter(),
+                    keepSections ? existing.sections() : spec.sections());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -55,7 +104,17 @@ public final class ReportVerb {
                 str(params.get("name")), str(params.get("title")),
                 java.time.Instant.now().toString(), str(params.get("notes")),
                 fingerprint, filter, sections);
-        return new Parsed(spec, warnings);
+        // #46: which keys the CALL carried, so a later merge can tell absent from empty
+        var supplied = new java.util.LinkedHashSet<String>();
+        for (String key : new String[]{"title", "notes", "sections"}) {
+            // PR #51 review: an explicit null is ABSENT, not supplied. A client filling an optional
+            // argument it has no value for — "sections": null — would otherwise wipe the report, which is
+            // the exact defect #46 exists to remove, reached by a different route. `report` documents its
+            // own way to empty a report deliberately, and it is `sections: []`. (`filter` is the verb where
+            // null CLEARS; that is documented per-verb and does not generalise to this one.)
+            if (params.get(key) != null) supplied.add(key);
+        }
+        return new Parsed(spec, warnings, supplied);
     }
 
     private static ReportSpec.SectionSpec parseSection(int i, Map<String, Object> m,

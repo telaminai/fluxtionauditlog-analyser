@@ -85,7 +85,16 @@ public final class SpotlightGeometry {
      * {@link #captionBox} — and the first side that covers NO cut-out and NO callout already placed wins. A
      * callout that hides another thing being pointed at defeats the pointing, so that is what is avoided
      * first. When every side covers something, the side covering the LEAST wins: an overlapped callout can
-     * still be read, one off screen cannot. With one spotlight this is exactly {@link #captionBox}.
+     * still be read, one off screen cannot.
+     *
+     * <p><b>Each side is also offered SLID along itself</b>, by whole caption sizes ({@link #SLIDE_STEPS}),
+     * after all four centred positions have been tried. Four sides alone gave each callout five places to
+     * be, and callouts pointing at consecutive source lines share almost the same five — so the fourth was
+     * drawn across the second's text. Sliding costs nothing when nothing contends, because the centred
+     * positions come first and a zero-cost placement wins immediately.
+     *
+     * <p>With one spotlight this is exactly {@link #captionBox}: the centred sides are offered in the
+     * documented order, so an uncontended callout lands where it always did.
      */
     public static java.util.List<Rectangle> layout(java.util.List<Rectangle> cutOuts, java.util.List<Dimension> sizes,
                                                    Dimension frame) {
@@ -113,7 +122,26 @@ public final class SpotlightGeometry {
         return placed;
     }
 
-    /** The sides with room, in {@link #captionBox}'s order, each clamped into the frame; INSIDE always last. */
+    /**
+     * How far a callout may SLIDE along its side to find a free slot, in steps of its own size.
+     *
+     * <p>Four positions and a centre: enough to clear three or four neighbours stacked on consecutive
+     * lines, which is the case this exists for. More would not help — with six callouts round one
+     * point the honest answer is that they do not fit, and the least-cost fallback still applies.
+     */
+    private static final int[] SLIDE_STEPS = {1, -1, 2, -2};
+
+    /**
+     * The sides with room, in {@link #captionBox}'s order, each clamped into the frame; INSIDE always last.
+     *
+     * <p>Every side is offered CENTRED first, then slid along itself by whole caption-heights (beside) or
+     * caption-widths (above/below). Without the slid variants each callout had exactly five places to be,
+     * and four callouts pointing at four consecutive lines of source share almost the same five: by the
+     * fourth, every candidate collided with something and {@link #layout} could only choose the least-bad
+     * — which is a callout drawn across another callout's text, with the lower one's caption unreadable.
+     * Sliding costs nothing when there is no contention, because the centred position is tried first and
+     * a zero-cost placement wins immediately.
+     */
     private static java.util.List<Rectangle> candidates(Rectangle cutOut, Dimension size, Dimension frame) {
         int centredX = cutOut.x + (cutOut.width - size.width) / 2;
         int centredY = cutOut.y + (cutOut.height - size.height) / 2;
@@ -121,14 +149,46 @@ public final class SpotlightGeometry {
         Rectangle above = new Rectangle(centredX, cutOut.y - GAP - size.height, size.width, size.height);
         Rectangle right = new Rectangle(cutOut.x + cutOut.width + GAP, centredY, size.width, size.height);
         Rectangle left = new Rectangle(cutOut.x - GAP - size.width, centredY, size.width, size.height);
+
+        boolean belowFits = below.y + below.height + MARGIN <= frame.height;
+        boolean aboveFits = above.y >= MARGIN;
+        boolean rightFits = right.x + right.width + MARGIN <= frame.width;
+        boolean leftFits = left.x >= MARGIN;
+
         java.util.List<Rectangle> out = new java.util.ArrayList<>();
-        if (below.y + below.height + MARGIN <= frame.height) out.add(clampX(below, frame));
-        if (above.y >= MARGIN) out.add(clampX(above, frame));
-        if (right.x + right.width + MARGIN <= frame.width) out.add(clampY(right, frame));
-        if (left.x >= MARGIN) out.add(clampY(left, frame));
+        // the centred positions first, in the documented order, so ONE spotlight lands exactly where
+        // captionBox would put it — the equivalence the layout javadoc promises
+        if (belowFits) out.add(clampX(below, frame));
+        if (aboveFits) out.add(clampX(above, frame));
+        if (rightFits) out.add(clampY(right, frame));
+        if (leftFits) out.add(clampY(left, frame));
+        // then the same sides, slid along themselves
+        int dx = size.width + GAP / 2, dy = size.height + GAP / 2;
+        for (int step : SLIDE_STEPS) {
+            if (belowFits) addIfInFrame(out, shift(below, step * dx, 0), frame);
+            if (aboveFits) addIfInFrame(out, shift(above, step * dx, 0), frame);
+            if (rightFits) addIfInFrame(out, shift(right, 0, step * dy), frame);
+            if (leftFits) addIfInFrame(out, shift(left, 0, step * dy), frame);
+        }
         Rectangle inside = new Rectangle(centredX, cutOut.y + cutOut.height - size.height - MARGIN, size.width, size.height);
         out.add(clampY(clampX(inside, frame), frame));
         return out;
+    }
+
+    private static Rectangle shift(Rectangle r, int dx, int dy) {
+        return new Rectangle(r.x + dx, r.y + dy, r.width, r.height);
+    }
+
+    /**
+     * Keep a slid candidate only if it is WHOLLY on screen. Clamping it back into the frame instead would
+     * quietly undo the slide and re-propose a position already offered.
+     */
+    private static void addIfInFrame(java.util.List<Rectangle> out, Rectangle r, Dimension frame) {
+        if (r.x >= MARGIN && r.y >= MARGIN
+                && r.x + r.width + MARGIN <= frame.width
+                && r.y + r.height + MARGIN <= frame.height) {
+            out.add(r);
+        }
     }
 
     private static long overlap(Rectangle a, Rectangle b) {

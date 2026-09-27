@@ -514,6 +514,110 @@ CONTROLS = [
     ('p33-restore-schema', J + 'llm/VerbSchemas.java',
      'new java.util.LinkedHashMap<>(Map.of("anyOf", List.of(string(), Map.of("type", "boolean", "enum", List.of(true)))))',
      'string()', 'VerbSchemasTest#reportRestorePublishesBothNamesAndTheBooleanListRequest'),
+    # ---- PR #51 (chart and report lifecycle, #46–#50 + spotlight) and its review: each fix at its CALL SITE, not only
+    # its helper — the review found every call-site removal left the PR's own tests green
+    ('p51-46-verb-merges', UI + 'MainFrame.java',
+     'var spec = parsed.onto(existing);', 'var spec = parsed.spec();',
+     'ReportRecoverableDeleteFrameTest#aRetitleThroughTheVerbKeepsTheSectionsAndSaysWhichLogTheyWereWrittenAgainst'),
+    ('p51-46-written-against', UI + 'MainFrame.java',
+     'echo.put("writtenAgainst", (spec.fingerprint() != null ? spec.fingerprint() : fp).describe());',
+     'echo.put("writtenAgainst", fp.describe());',
+     'ReportRecoverableDeleteFrameTest#aRetitleThroughTheVerbKeepsTheSectionsAndSaysWhichLogTheyWereWrittenAgainst'),
+    ('p51-46-absent-keeps', J + 'report/ReportVerb.java',
+     'boolean keepSections = !supplied.contains("sections");', 'boolean keepSections = false;',
+     'AbsentSectionsMeanUnchangedTest#retitleKeepsSections'),
+    ('p51-47-notes-replace', UI + 'ActionExecutor.java',
+     '            before = notes.notes().size();\n            notes = notes.withoutNotes();',
+     '            before = notes.notes().size();',
+     'GraphNotesReplaceAndChartsDeleteTest#notesReplaceOnResend'),
+    ('p51-47-dropped-notes-named', UI + 'ActionExecutor.java',
+     '        if (p.get("notes") instanceof List<?> && !dropped.isEmpty()) {', '        if (false) {',
+     'GraphNotesReplaceAndChartsDeleteTest#droppedNotesAreNamed'),
+    ('p51-48-labels-painted', UI + 'ChartPanel.java',
+     'int labelBaseline = axisLabelBaseline(plotY, plotH);', 'int labelBaseline = h - 6;',
+     'ChartDrawsItsClosingValueTest#theAxisLabelsArePaintedWithANote'),
+    ('p51-49-hold-exact-path', UI + 'ChartPanel.java',
+     '        holdToWindowEdge(g, prevX, prevY, have);\n    }\n\n    /**\n     * #49', '    }\n\n    /**\n     * #49',
+     'ChartDrawsItsClosingValueTest#theHoldIsPainted'),
+    ('p51-49-hold-decimated-path', UI + 'ChartPanel.java',
+     '        holdToWindowEdge(g, prevX, prevY, have);   // #49, and the javadoc above says why it must match\n', '',
+     'ChartDrawsItsClosingValueTest#theHoldIsPainted'),
+    ('p51-49-trailing-gap', UI + 'ChartPanel.java',
+     '        if (s.size() > 0 && !Double.isFinite(s.y(s.size() - 1))) have = false;\n', '',
+     'ChartDrawsItsClosingValueTest#aTrailingGapIsNotHeld'),
+    ('p51-50-delete-first', UI + 'ActionExecutor.java',
+     '        if (bool(p.get("delete"))) {\n            // #50', '        if (false) {\n            // #50',
+     'GraphNotesReplaceAndChartsDeleteTest#deleteDoesNotFallThroughToTheBuildPath'),
+    ('p51-50-closed-chart', UI + 'GraphTabs.java',
+     '        if (!hasDefinition(target)) return false;\n        deleteListener.accept(target);',
+     '        if (!hasDefinition(target)) return false;\n        if (true) return true;\n        deleteListener.accept(target);',
+     'GraphNotesReplaceAndChartsDeleteTest#aClosedChartCanBeDeleted'),
+    ('p51-50-last-chart-leaves-none', UI + 'GraphTabs.java',
+     '            if (placeholder != null) placeholders.add(placeholder);\n', '',
+     'GraphNotesReplaceAndChartsDeleteTest#deletingTheLastChartLeavesNoneBehind'),
+    ('p51-spotlight-slides', UI + 'SpotlightGeometry.java',
+     'private static final int[] SLIDE_STEPS = {1, -1, 2, -2};', 'private static final int[] SLIDE_STEPS = {};',
+     'SpotlightCalloutsDoNotCollideTest#fourAdjacentLinesDoNotCollide'),
+
+    # --- PR #51 review response -------------------------------------------------------------------
+    # An explicit null must read as ABSENT. containsKey made "sections": null wipe the report — #46's
+    # own defect, reached by the route a JSON client takes when an optional has no value.
+    ('p51r-46-null-is-absent', J + 'report/ReportVerb.java',
+     'if (params.get(key) != null) supplied.add(key);', 'if (params.containsKey(key)) supplied.add(key);',
+     'AbsentMeansAbsentTest#nullSectionsIsAbsent'),
+
+    # createdAt follows the SECTIONS, like the fingerprint and filter beside it. Keeping the old date
+    # on a full replace printed CREATED and WRITTEN AGAINST describing two different reports.
+    ('p51r-46-createdat-follows-sections', J + 'report/ReportVerb.java',
+     'keepSections ? existing.createdAt() : spec.createdAt(),', 'existing.createdAt(),',
+     'AbsentMeansAbsentTest#replacedSectionsTakeTodaysDate'),
+
+    # close is the safe half of removal. Without it, delete was the only way to get a chart off the
+    # screen over the socket, so "not recoverable" was not advice a caller could act on.
+    ('p51r-50-close-keeps-definition', UI + 'GraphTabs.java',
+     'gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        fireChanged();\n        return null;',
+     'deleteListener.accept(name.trim());\n        gp.unbind();\n        tabs.removeTabAt(indexOf(gp));\n        fireChanged();\n        return null;',
+     'GraphNotesReplaceAndChartsDeleteTest#closeKeepsWhatDeleteRemoves'),
+
+    # A delete under a definition refusal must not write to the profile. The UI disables Delete
+    # wholesale; the socket refuses only withheld names, and this is what makes that safe.
+    # Second review: the old assertion here was a liveness check. `definitions::remove` cannot fail for a
+    # name that was never in the list, so "the saved list survived" held however the delete behaved. The
+    # witness is now WHICH name reached the profile's removal channel, and this control is what proves it.
+    ('p51r-50-delete-names-the-right-chart', UI + 'GraphTabs.java',
+     'deleteListener.accept(name);\n        if (tabs.getTabCount() == 0) {',
+     'deleteListener.accept(name + "-WRONG");\n        if (tabs.getTabCount() == 0) {',
+     'ChartDeleteUnderDefinitionRefusalTest#aChartWithNoSavedDefinitionMayGo'),
+
+    ('p51r-50-refusal-guard', UI + 'ActionExecutor.java',
+     'boolean withheld = target == null || onEdt(() -> graphTabs.isWithheldDefinition(target));',
+     'boolean withheld = false;',
+     'ChartDeleteUnderDefinitionRefusalTest#aWithheldChartIsRefused'),
+
+    # Reviewer, on the response: close promises "kept", and under a definition refusal nothing is saved —
+    # so a close there discarded the chart while saying it had kept it. The refusal keeps the promise true.
+    ('p51r-50-close-refused-under-refusal', UI + 'GraphTabs.java',
+     '        if (definitionRefusal != null) {\n            return "\'" + name.trim() + "\' is not saved',
+     '        if (false) {\n            return "\'" + name.trim() + "\' is not saved',
+     'ChartDeleteUnderDefinitionRefusalTest#aCloseUnderRefusalWouldDiscardSoItIsRefused'),
+
+    # Reviewer, on the response: the guidance an assistant reads. "Close its tab" named a gesture a socket
+    # caller cannot make, and "close ... for tidying up" sent probes into the profile — a closed chart keeps
+    # its definition, which is the accumulation #50 exists to stop.
+    ('p51r-50-guidance-names-the-verb', J + 'llm/VerbSchemas.java',
+     'to put a chart away without losing it, use close instead")',
+     'to put a chart away without losing it, close its tab instead")',
+     'ChartRemovalGuidanceTest#closeIsTheVerbNotATab'),
+    ('p51r-50-guidance-probes-are-deleted', J + 'llm/VerbSchemas.java',
+     '"definition — for a chart worth keeping; a closed probe still sits in the "\n                                + "profile, so delete those. Goes alone; refused for the last open chart"',
+     '"definition — the safe half of removal, and what to use when tidying up. "\n                                + "Goes alone; refused for the last open chart"',
+     'ChartRemovalGuidanceTest#closeIsNotHowProbesAreCleanedUp'),
+
+    # PR #51 CI (run 36332664650): a source pane read from a test thread raced the EDT's replacement of its document,
+    # and getText() answered null. The test accessors read on the EDT; without that, the witness sees an instant answer.
+    ('p51ci-pane-text-read-on-edt', UI + 'SourcePanel.java',
+     'if (SwingUtilities.isEventDispatchThread()) return read.get();', 'if (true) return read.get();',
+     'SourcePanelPaneTextIsReadOnTheEdtTest#paneTextWaitsForTheEdt'),
 
     # --- View-model spike (2026-09-27): the status line as a node --------------------------------------------------
     # W2, headless: the Follow line dropped the provenance. A view that loses it under Follow must turn a test red

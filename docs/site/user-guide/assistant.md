@@ -64,6 +64,11 @@ drive the same verbs:
   directory, and the chart is stamped so a foreign line can never pass as audit evidence; `markers`
   plots discrete events as glyphs (buys ▲ / sells ▼ on a price line) with a payload — an order id —
   on hover, and clicking a marker selects its record.
+- **graph {name, delete: true}** — remove a chart's definition. Charts accumulate the way reports
+  used to: a probe built to check an expression resolves is still in the profile a week later. Not
+  recoverable.
+- **graph {name, close: true}** — take a chart off the screen and keep its definition, the way *Close
+  graph* does. For a chart worth keeping; a closed probe still sits in the profile, so delete those.
 - **goto** — select a record (by index, byte offset or `at` time); `reveal:true` un-hides one the current filter is hiding.
 - **flag** — bookmark records with a `note` and an optional `fix`. Use `kind: "confirmation"` for
   correct behavior, labelled Observation / Assessment; otherwise new findings default to `fault`. This is the **one** place

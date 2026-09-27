@@ -431,6 +431,69 @@ public final class ActionExecutor implements RenderExecutor {
         // reveal what you changed: `topology` brings its tab forward, and a plot the caller cannot see is
         // indistinguishable from one that was never drawn
         if (app != null) app.showTab("Graph");
+        if (bool(p.get("close"))) {
+            // PR #51 review, on #50: the safe half of removal. Before this, delete was the only way to get
+            // a chart off the screen over the socket — so "not recoverable" was not a warning a caller
+            // could act on. Closing keeps the definition (ClosingAChartKeepsItsDefinitionTest), so the
+            // socket now has the same two acts the desktop has: Close to put away, Delete to discard.
+            String target = asText(p.get("name"));
+            if (target == null) return ActionResult.error("graph close needs the target 'name'");
+            List<String> alsoAsked = new java.util.ArrayList<>(p.keySet());
+            alsoAsked.removeAll(List.of("name", "close"));
+            if (!alsoAsked.isEmpty()) {
+                return ActionResult.error("a close does only the close — send " + alsoAsked
+                        + " as a separate graph call; nothing was changed");
+            }
+            return onEdt(() -> {
+                String refused = graphTabs.closeNamed(target);
+                if (refused != null) return ActionResult.error(refused);
+                var echo = new java.util.LinkedHashMap<String, Object>();
+                echo.put("closed", target);
+                echo.put("open", graphTabs.chartsThatRemain());
+                echo.put("note", "the DEFINITION is kept — reopen it by name, or from the Project panel. "
+                        + "Use delete to discard it instead.");
+                return ActionResult.ok("graph", "closed", echo);
+            });
+        }
+
+        if (bool(p.get("delete"))) {
+            // #50: parity with report {name, delete}. Before the rename branch and before the build
+            // path, for the same reason the report verb puts its delete first — this call carries a
+            // name and no series, which the build path below would read as "replace with an empty
+            // chart" and quietly create the very thing being deleted.
+            String target = asText(p.get("name"));
+            if (target == null) return ActionResult.error("graph delete needs the target 'name'");
+            // PR #51 review asked whether this should match the UI, which disables Delete for EVERY chart
+            // while definitions are ambiguous (owner, 2026-09-24). It deliberately does not, and the
+            // difference is narrower than it looks. The refusal exists to stop an ambiguous NAME resolving
+            // to the wrong saved definition; the guard above this branch already refuses exactly those
+            // names. A refusal also CLEARS the tab strip, so the only charts that can then exist are ones
+            // created after it — which have no saved definition, so a delete cannot reach the wrong one and
+            // the profile is not touched. The UI is blunt because it cannot say that to a person per chart;
+            // the socket can, and does, by name and with the reason. Pinned by
+            // ChartDeleteUnderDefinitionRefusalTest.
+            List<String> alsoAsked = new java.util.ArrayList<>(p.keySet());
+            alsoAsked.removeAll(List.of("name", "delete"));
+            if (!alsoAsked.isEmpty()) {
+                return ActionResult.error("a delete does only the delete — send " + alsoAsked
+                        + " as a separate graph call; nothing was changed");
+            }
+            return onEdt(() -> {
+                if (!graphTabs.deleteNamed(target)) {
+                    return ActionResult.error("no chart named '" + target + "' — charts: "
+                            + graphTabs.graphNames());
+                }
+                var echo = new java.util.LinkedHashMap<String, Object>();
+                echo.put("deleted", target);
+                echo.put("remaining", graphTabs.chartsThatRemain());   // PR #51 review: not the blank tab a last delete opens
+                echo.put("note", "the chart DEFINITION is gone — its series, formulas, pinned notes and "
+                        + "explanation. The log is untouched, and any PNG already exported is a separate "
+                        + "file. This one is NOT recoverable — unlike report {delete}. To put a chart away "
+                        + "without losing it use graph {name, close: true}.");
+                return ActionResult.ok("graph", "deleted", echo);
+            });
+        }
+
         // rename requires an explicit target {name, rename} — never selection-dependent
         if (p.containsKey("rename")) {
             String from = asText(p.get("name")), to = asText(p.get("rename"));
@@ -614,7 +677,7 @@ public final class ActionExecutor implements RenderExecutor {
             for (Object[] pe : parsedExprs) panel.addExpr((String) pe[0], (String) pe[1], (SeriesExtractor.Resolve) pe[2]);
             if (style != null) panel.setStyleByName(style);
             if (rationale != null) panel.setCaption(rationale);   // caption the plot with the agent's reason
-            applyNotesAndAxes(panel, p, s);
+            List<String> noteIssues = applyNotesAndAxes(panel, p, s);
             List<String> annotationIssues = applyGuidesAndBands(panel, p);
             if (pinRequested) panel.pin(from, to);   // explicit range → pin (evidence artifact); else follows
             if (refresh) panel.onRecordsAppended();
@@ -631,6 +694,8 @@ public final class ActionExecutor implements RenderExecutor {
                 // NEXT call's echo — the counts here confirm what was ACCEPTED
             }
             if (p.containsKey("bands")) applied.put("bands", panel.bandSpecs().size());
+            // PR #51 review: notes REPLACE the set now (#47), so say what the chart carries afterwards
+            if (p.get("notes") instanceof List<?>) applied.put("notes", panel.notes().notes().size());
             if (extEcho != null) applied.put("external", extEcho);
             applied.put("name", name == null ? "(current)" : name);
             // the style the chart now HAS, so a caller can confirm a {style} it sent (or learn the one it did not)
@@ -653,6 +718,7 @@ public final class ActionExecutor implements RenderExecutor {
             }
             List<String> warnings = new ArrayList<>(externalWarnings);
             warnings.addAll(annotationIssues);
+            warnings.addAll(noteIssues);
             warnings.addAll(annotationWarnings(panel, p));
             if (!warnings.isEmpty()) applied.put("warnings", warnings);
             return ActionResult.ok("graph", "applied", applied);
@@ -1438,8 +1504,9 @@ public final class ActionExecutor implements RenderExecutor {
      * should not have to convert it. An index that does not resolve is dropped rather than pinned to
      * zero — a note at the wrong moment is worse than a missing one.
      */
-    private void applyNotesAndAxes(telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel panel,
-                                   Map<String, Object> p, LogStore store) {
+    private List<String> applyNotesAndAxes(telamin.fluxtion.audit.analyser.analyser.ui.GraphPanel panel,
+                                           Map<String, Object> p, LogStore store) {
+        List<String> issues = new ArrayList<>();
         var notes = panel.notes();
         if (bool(p.get("clearNotes"))) {
             notes = notes.withoutNotes();
@@ -1448,16 +1515,39 @@ public final class ActionExecutor implements RenderExecutor {
         if (explanation != null) {
             notes = notes.withExplanation(explanation);
         }
+        int before = 0;
+        List<String> dropped = new ArrayList<>();
         if (p.get("notes") instanceof List<?> list) {
+            // #47: notes REPLACE the set, like exprs, guides, bands, markers and external. They used
+            // to append, so re-sending a chart definition to adjust one thing silently doubled every
+            // pin — and once exprs were fixed to replace, one verb had two different re-send rules with
+            // the echo stating neither. Re-sending a definition is the normal authoring loop; it has to
+            // be idempotent. `clearNotes` still works, and is now only needed to drop pins WITHOUT
+            // supplying new ones.
+            before = notes.notes().size();
+            notes = notes.withoutNotes();
+            // PR #51 review: under REPLACE a skipped note is no longer "not added" — the old pins are already gone.
+            // Re-sending notes whose anchors do not resolve (a recordIndex past a shorter log) used to leave the chart
+            // with none, and the reply said nothing. Each skipped note is now named, with what the set became.
+            int n = 0;
             for (Object item : list) {
-                if (!(item instanceof Map<?, ?> m)) continue;
+                n++;
+                if (!(item instanceof Map<?, ?> m)) { dropped.add("note " + n + " is not an object"); continue; }
                 String text = str(m.get("text"));
-                if (text == null || text.isBlank()) continue;
+                if (text == null || text.isBlank()) { dropped.add("note " + n + " has no text"); continue; }
                 Long at = anchorMillis(m, store);
-                if (at == null) continue;
+                if (at == null) {
+                    dropped.add("note " + n + " has no usable anchor ('at' in epoch millis, or a 'recordIndex' within the "
+                            + "log's " + (store == null ? 0 : store.size()) + " records)");
+                    continue;
+                }
                 notes = notes.plus(new telamin.fluxtion.audit.analyser.analyser.graph.ChartNotes.Note(
                         at, text, str(m.get("series"))));
             }
+        }
+        if (p.get("notes") instanceof List<?> && !dropped.isEmpty()) {
+            issues.add(dropped.size() + " note(s) skipped: " + String.join("; ", dropped) + ". notes REPLACE the set, so the "
+                    + before + " the chart had were replaced by " + notes.notes().size());
         }
         panel.setNotes(notes);
 
@@ -1465,6 +1555,7 @@ public final class ActionExecutor implements RenderExecutor {
             panel.setAxes(new telamin.fluxtion.audit.analyser.analyser.graph.AxisAssignment(
                     strList(p.get("rightAxis"))));
         }
+        return issues;
     }
 
     /**

@@ -530,12 +530,30 @@ public final class SourcePanel extends JPanel {
 
     /** The processor pane's visible text (source or placeholder) — for tests. */
     String processorPaneText() {
-        return processorPane.text.getText();
+        return readOnEdt(() -> processorPane.text.getText());
     }
 
     /** The node pane's visible text (source or placeholder) — for tests. */
     String nodePaneText() {
-        return nodePane.text.getText();
+        return readOnEdt(() -> nodePane.text.getText());
+    }
+
+    /**
+     * PR #51 CI: tests poll these from their own thread while the EDT replaces the document, and
+     * {@code JTextComponent.getText()} answers a read that loses that race with null. Read where Swing is written.
+     */
+    private static String readOnEdt(java.util.function.Supplier<String> read) {
+        if (SwingUtilities.isEventDispatchThread()) return read.get();
+        String[] text = new String[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> text[0] = read.get());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted reading a source pane", e);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            throw new IllegalStateException(e.getCause());
+        }
+        return text[0];
     }
 
     /**
