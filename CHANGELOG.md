@@ -6,6 +6,16 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- **Follow reports a time-order violation it appends.** A record that arrives out of order while a log is followed
+  now reaches `context.timeOrder`, the status line and the time-order caveat on time-anchored answers. Until now the
+  order was checked once, when the log opened.
+- **The Follow status line says what the load line says.** It keeps the log's provenance and the time-order warning
+  instead of dropping both on the first tick, and a failed Follow read is added to the line rather than replacing it.
+- **The status line never mixes two revisions of a followed log.** Its record count and its findings always describe
+  the same content; between a poll and the rescan it asks for, the line keeps the previous revision's whole line.
+
 ## [1.23.0] - 2026-09-26
 
 ### Added

@@ -480,6 +480,39 @@ class LogFindingsOnEverySurfaceFrameTest {
     }
 
     /**
+     * M44.5 acceptance 4: a project environment supplies the provenance, and the session's copy is the only copy. It
+     * is resolved before the log is reported open, so `context`, the snapshot and the Follow line state the same thing.
+     */
+    @Test
+    void anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path project = Files.createDirectories(tmp.resolve("project"));
+        Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(project);
+        var seed = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        seed.environments.add(new telamin.fluxtion.audit.analyser.analyser.config.Environment("prod", "DEMO", "logs/prod"));
+        telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile, seed,
+                new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+        Path log = Files.writeString(Files.createDirectories(project.resolve("logs/prod")).resolve("run.yaml"),
+                "---\n" + rec(1000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("project", profile.toString())).ok(), "the project opens");
+            followWithManualPolls(f, Map.of("log", log.toString()));
+            onEdt(() -> {
+                var snap = ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session")).snapshot();
+                Map<String, Object> ctx = render(f.ex, "context", Map.of());
+                assertAll("one provenance, from the environment, everywhere",
+                        () -> assertEquals("DEMO", snap.provenance(), "the session's copy"),
+                        () -> assertTrue(String.valueOf(snap.provenanceSource()).contains("prod"),
+                                "and who supplied it: " + snap.provenanceSource()),
+                        () -> assertEquals(snap.provenance(), find(ctx, "provenance"), "context"),
+                        () -> assertEquals(snap.provenanceSource(), find(ctx, "provenanceSource"), "context's source"),
+                        () -> assertTrue(status(f.frame).getText().startsWith("Following DEMO  (run.yaml)"),
+                                "the Follow line: " + status(f.frame).getText()));
+            });
+        }
+    }
+
+    /**
      * M44.5, found while building it: between a poll and the scan it asks for, the line counted the NEW rows beside the
      * PREVIOUS revision's findings — "1 records … ⚠ empty log". The snapshot says a scan is outstanding, and the line
      * waits for it: read in the same EDT turn as the poll, it is still the previous revision's whole line.
@@ -497,6 +530,9 @@ class LogFindingsOnEverySurfaceFrameTest {
                 String during = status(f.frame).getText();
                 assertFalse(during.contains("1 records") && during.contains("empty log"),
                         "one revision per line, never two: " + during);
+                // not only the count: the range and the pending note are the previous revision's too, so the whole
+                // line is unchanged until the session has the new revision and its evidence
+                assertEquals(before, during, "the previous revision's whole line");
             });
             onEdt(() -> {
                 String after = status(f.frame).getText();
