@@ -3777,9 +3777,9 @@ public final class MainFrame extends JFrame {
                 () -> {
                     try {
                         var observations = files.stream().map(telamin.fluxtion.audit.analyser.analyser.core.FileObservation::capture).toList();
+                        // review F2: the set's cross-file findings travel with the store (crossFileOrder)
                         var s = telamin.fluxtion.audit.analyser.analyser.parse.RolledLogStore.open(
-                                files, config.memoryThresholdMb);
-                        setOrderReports.put(s, set.report());   // M44.5: logEvidence's scan merges this in
+                                files, config.memoryThresholdMb, set.report());
                         var identities = readIdentities(s);
                         if (request.launch() == OpenRequest.Launch.EXPLICIT_RESTORE)
                             identities = verifyRestoringRead(identities);
@@ -4390,13 +4390,6 @@ public final class MainFrame extends JFrame {
         return identity;
     }
 
-    /**
-     * M44.5: a rolled set's cross-file ordering report, from its load — the part of its time order that validating its
-     * merged index cannot recover. Keyed by the store itself, so it can only ever describe the store it came with.
-     */
-    private final java.util.Map<LogStore, telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport> setOrderReports =
-            new java.util.WeakHashMap<>();
-
     /** The generation whose store a completed load installed — the precondition for performing its scan. */
     private long installedEvidenceGeneration = -1;
     /** The generation of the scan the processor asked for and the adapter has not yet performed, or -1. */
@@ -4431,9 +4424,7 @@ public final class MainFrame extends JFrame {
         var findings = telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics.of(s.index(), s::rawText,
                 s.sourceDiagnostics(), s.completenessDiagnostics(), s.completenessIsNote(), s.pendingFrameText(),
                 s.emptyLogClaim());
-        var order = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator.validate(s.index());
-        var setPart = setOrderReports.get(s);
-        if (setPart != null) order = setPart.merged(order);
+        var order = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator.validate(s);   // with its cross-file part
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProducerFindingsObserved(generation, findings));
         session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved(generation, order));
     }

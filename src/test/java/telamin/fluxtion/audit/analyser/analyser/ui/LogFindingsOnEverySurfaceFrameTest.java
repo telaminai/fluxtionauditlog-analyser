@@ -513,6 +513,66 @@ class LogFindingsOnEverySurfaceFrameTest {
     }
 
     /**
+     * Review F2 (PR #43), through the frame: a rolled set's cross-file finding — its files overlap — reaches the session's
+     * time order through the scan, from the store it was loaded with. Nothing in the frame keeps it.
+     */
+    @Test
+    void aRolledSetsFileOverlapReachesContextAndTheLine() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path first = Files.writeString(tmp.resolve("m.log.1"), "---\n" + rec(100) + rec(250));
+        Path second = Files.writeString(tmp.resolve("m.log.2"), "---\n" + rec(200) + rec(300));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            assertTrue(f.ex.render("open", Map.of("logs", List.of(first.toString(), second.toString()))).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            onEdt(() -> {
+                Object order = find(render(f.ex, "context", Map.of()), "timeOrder");
+                String line = status(f.frame).getText();
+                assertAll("F2: the set's overlap is part of its time order",
+                        () -> assertTrue(String.valueOf(order).contains("overlap"), "context.timeOrder: " + order),
+                        () -> assertTrue(line.contains("time-order violations"), "the line: " + line));
+            });
+        }
+    }
+
+    /**
+     * Review F1 (PR #43), through the frame: a load that throws inside onLoaded AFTER LogOpened never performs its
+     * scan, and must not stop the next log's. The fault is a later load step failing — here the summary panel is
+     * absent while the first log loads — and it is put back before the second open.
+     */
+    @Test
+    void aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path broken = Files.writeString(tmp.resolve("broken.yml"), "---\n" + rec(1000));
+        Path good = Files.writeString(tmp.resolve("good.yml"), "---\n" + rec(2000) + rec(1000));
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            java.lang.reflect.Field panel = MainFrame.class.getDeclaredField("summaryPanel");
+            panel.setAccessible(true);
+            Object original = onEdtGet(() -> panel.get(f.frame));
+            onEdt(() -> { try { panel.set(f.frame, null); } catch (IllegalAccessException e) { throw new AssertionError(e); } });
+            assertTrue(f.ex.render("open", Map.of("log", broken.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            onEdt(() -> {
+                try { panel.set(f.frame, original); } catch (IllegalAccessException e) { throw new AssertionError(e); }
+                assertTrue(status(f.frame).getText().startsWith("Loading "),
+                        "control: the broken load threw after LogOpened, so nothing claims it loaded: "
+                                + status(f.frame).getText());
+            });
+
+            assertTrue(f.ex.render("open", Map.of("log", good.toString())).ok());
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            onEdt(() -> {
+                var snap = ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session")).snapshot();
+                String line = status(f.frame).getText();
+                assertAll("F1: the next log's evidence is scanned and rendered",
+                        () -> assertFalse(snap.evidencePending(), "no scan is left outstanding"),
+                        () -> assertTrue(line.startsWith("2 records") && line.contains("time-order violations (1)"),
+                                "the composed line: " + line),
+                        () -> assertNotNull(find(render(f.ex, "context", Map.of()), "timeOrder"), "context.timeOrder"));
+            });
+        }
+    }
+
+    /**
      * M44.5, found while building it: between a poll and the scan it asks for, the line counted the NEW rows beside the
      * PREVIOUS revision's findings — "1 records … ⚠ empty log". The snapshot says a scan is outstanding, and the line
      * waits for it: read in the same EDT turn as the poll, it is still the previous revision's whole line.

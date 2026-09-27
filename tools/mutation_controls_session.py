@@ -398,7 +398,7 @@ CONTROLS = [
      'SessionSnapshotTest#idlePollsEvictNothingButTheirOwnKind'),
     # W1: the frame test sees the time order the scan derives — a scan that validates nothing leaves it unreported
     ('m44-5-w1-follow-validates-time-order', UI + 'MainFrame.java',
-     'TimeOrderValidator.validate(s.index());', 'TimeOrderReport.clean();',
+     'TimeOrderValidator.validate(s);', 'TimeOrderReport.clean();',
      'LogFindingsOnEverySurfaceFrameTest#aTimeOrderViolationAppendedUnderFollowIsReported'),
     # W2: the Follow line drops the provenance again, as its second assembly did
     ('m44-5-w2-follow-line-keeps-provenance', UI + 'MainFrame.java',
@@ -415,6 +415,40 @@ CONTROLS = [
     ('m44-5-environment-before-open', UI + 'MainFrame.java',
      '                provenance = match.environment().provenance();\n', '',
      'LogFindingsOnEverySurfaceFrameTest#anEnvironmentsProvenanceIsTheSessionsAndEverySurfaceStatesIt'),
+    # ---- PR #43 review: F1 (a dropped scan swallowed every later generation's), F2 (the set's cross-file order rides
+    # with its store), F3 (the static check's text-matching gaps)
+    ('m44-5-f1-new-generation-resets-outstanding', NODE + 'LogEvidence.java',
+     '        scanPending = false;\n        boundGeneration = generation;', '        boundGeneration = generation;',
+     'LogEvidenceTest#aDroppedScanDoesNotSwallowTheNextGenerationsScan'),
+    ('m44-5-f1-frame-next-log-is-scanned', NODE + 'LogEvidence.java',
+     '        scanPending = false;\n        boundGeneration = generation;', '        boundGeneration = generation;',
+     'LogFindingsOnEverySurfaceFrameTest#aLoadThatThrowsPartWayDoesNotStopTheNextLogsEvidence'),
+    ('m44-5-f2-set-carries-its-cross-file-order', UI + 'MainFrame.java',
+     'files, config.memoryThresholdMb, set.report());', 'files, config.memoryThresholdMb, null);',
+     'LogFindingsOnEverySurfaceFrameTest#aRolledSetsFileOverlapReachesContextAndTheLine'),
+    ('m44-5-f2-validation-merges-the-cross-file-part', PARSE + 'TimeOrderValidator.java',
+     '        return crossFile == null ? order : crossFile.merged(order);', '        return order;',
+     'TimeOrderValidatorTest#aRolledSetsCrossFileOverlapIsPartOfItsTimeOrder'),
+    ('m44-5-f3-generic-copy', UI + 'MainFrame.java',
+     '    private void reportAppendToSession() {',
+     '    private java.util.Optional<telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport> m445Copy;\n'
+     '    private void reportAppendToSession() {',
+     'OneDispatchModelTest#noSurfaceHoldsACopy'),
+    ('m44-5-f3-follow-line-in-poll', UI + 'MainFrame.java',
+     '        reportContentToSession(null);              // W1',
+     '        status.setText("Following " + displayName(followPath));\n'
+     '        reportContentToSession(null);              // W1',
+     'OneDispatchModelTest#theLogLineHasOneComposer'),
+    ('m44-5-f3-method-reference', UI + 'MainFrame.java',
+     '        String pending = store.pendingFrameText();',
+     '        java.util.function.Function<LogStore, telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport> m445Ref'
+     ' = telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderValidator::validate;\n'
+     '        String pending = store.pendingFrameText();',
+     'OneDispatchModelTest#everyDerivedStepHasOneHome'),
+    ('m44-5-f3-timer-stopped-outside-render', UI + 'MainFrame.java',
+     '        renderFollowControls(following());\n        if (entering',
+     '        renderFollowControls(following());\n        if (followTimer != null) followTimer.stop();\n        if (entering',
+     'OneDispatchModelTest#everyDerivedStepHasOneHome'),
     # the static check: a derived step at a second call site, and a frame copy of the evidence
     ('m44-5-static-second-call-site', UI + 'MainFrame.java',
      '        String pending = store.pendingFrameText();',

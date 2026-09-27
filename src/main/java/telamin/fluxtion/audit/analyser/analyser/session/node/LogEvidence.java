@@ -77,6 +77,9 @@ public class LogEvidence implements EventLogSource {
         timeOrder = null;
         signature = null;
         readFailure = null;
+        // Review F1: an outstanding scan belongs to the generation that asked for it. Coalescing is sound only within a
+        // generation — a scan of a log whose load failed after LogOpened never reports, and must not swallow this one.
+        scanPending = false;
         boundGeneration = generation;
         requestScan(generation, "opened");
         return true;

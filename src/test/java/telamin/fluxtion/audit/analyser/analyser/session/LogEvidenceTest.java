@@ -238,4 +238,37 @@ class LogEvidenceTest {
         d.post(new SessionEvents.LogContentObserved(g, 2, 0, "UNKNOWN", 0, null));
         assertEquals(before + 1, scans(a).size(), "the poll's content report coalesces into the outstanding scan");
     }
+
+    /**
+     * Review F1 (PR #43): coalescing is sound only WITHIN a generation. A scan the adapter legitimately dropped — its
+     * load threw after LogOpened, before the store was installed — never reports, so its outstanding flag must not
+     * outlive its generation. Before the fix the next generation's request coalesced into the dead one: no scan was
+     * ever asked for again, and the evidence stayed pending for every later open and append.
+     */
+    @Test
+    @DisplayName("A scan that never reports does not swallow the next generation's scan")
+    void aDroppedScanDoesNotSwallowTheNextGenerationsScan() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a, "/f.yaml");
+        long first = d.snapshot().logGeneration();
+        assertEquals(List.of(first), scans(a).stream().map(SessionEffects.ScanLogEvidenceEffect::generation).toList(),
+                "control: gen 1 asked for its scan");
+        // gen 1's results never arrive: the adapter dropped the scan
+
+        SessionFixtures.openLog(d, a, "/g.yaml", "DECLARED", Set.of("a"), 1, 1, "TRACE");
+        long second = d.snapshot().logGeneration();
+        assertNotEquals(first, second);
+        assertEquals(List.of(first, second),
+                scans(a).stream().map(SessionEffects.ScanLogEvidenceEffect::generation).toList(),
+                "the new generation asks for a scan of its own");
+
+        d.post(new SessionEvents.ProducerFindingsObserved(second, EMPTY_LOG));
+        d.post(new SessionEvents.TimeOrderObserved(second, oneViolation()));
+        assertEquals(EMPTY_LOG, d.snapshot().producerFindings(), "gen 2's results publish");
+        assertFalse(d.snapshot().timeOrder().isClean());
+        assertFalse(d.snapshot().evidencePending(), "and settle it — the surfaces may render");
+
+        d.post(new SessionEvents.LogAppended(second, Set.of("a"), 1, 2, "TRACE"));
+        assertEquals(3, scans(a).size(), "and a later append still asks");
+    }
 }
