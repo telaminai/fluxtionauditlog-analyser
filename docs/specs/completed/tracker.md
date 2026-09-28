@@ -1,3 +1,65 @@
+## Evidence bundles · first delivery — ☑ SHIPPED in 1.27.0 (PR #63, merged `77d268be`, 2026-09-28) — [spec](../spec-evidence-bundle-packaging.md)
+
+Capture is one operation on the running analyser (`report {bundle}`), decided by the `evidenceCapture` node; the
+recipient runs `--verify`/`--unpack`; optional excerpts; no skills. Four reviews, all in `docs/handoff/` (spec
+§13.8). Results: `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`. Open follow-ups are issues
+#64–#69, pointed at from the live tracker.
+
+    deferred, D-0 amended, L-33). Spec **r5, implemented** (r4: review F1/F2 fixed; r5: the convergence):
+    [`spec-evidence-bundle-packaging.md`](../spec-evidence-bundle-packaging.md), merged as PR #63 (`77d268be`). Placement **C**, with no verb, menu or dialog. The CLI owns the format (`--pack`,
+    `--verify`, `--unpack`, and in r3 `--bundle-profile`); `context` gains `log.generation` and, in r3,
+    `project.unsavedEdits`. Flags and excerpts are out of the first delivery. Results:
+    `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`. Slices:
+    - [EB.B0] ☑ M69.F3: the caveat once per walk (and, found in B4, once when an agent steps by `play`);
+    - [EB.B1] ☑ `context.log.generation`;
+    - [EB.B2] ☑ the CLI: `--pack`, `--verify`, `--unpack`;
+    - [EB.B3] ☑ the `capture-evidence-bundle` and `open-evidence-bundle` skills, `--bundle-profile`,
+      `context.project.unsavedEdits`;
+    - [EB.B4] ☑ a cold-recipient rehearsal, driven: `tools/evidence-bundle-demo.py`, timed. Two homes on two paths,
+      **one machine**.
+    - [EB.R4] ☑ the review's REQUIRED findings: F1 bounded-memory verify and unpack (`79851205`), F2 no machine path
+      leaves (`f908f08f`).
+    - [EB.C1] ☑ **the convergence** (spec r5 §13): capture is one operation on the running analyser,
+      `report {bundle: {path, notes?, from?, to?}}`, decided by the `evidenceCapture` session node; an optional
+      time-window **excerpt** with re-based walks and reports (owner, 2026-09-28); notes as a member; both skills,
+      `--pack` and `--bundle-profile` removed. The driver: 43 checks, whole log and excerpt.
+    Follow-ups:
+    - [EB.F1] ☑ **Accepted (owner, 2026-09-28): a pinned window.** At 1200×800 a chart target reports *"no room at
+      192×247 px — widen the window"* (`evidence-bundle-demo.py --default-window` reproduces it). The demo pins
+      1440×900, and the docs tell a recipient to widen the window. The layout is not changed.
+    - [EB.F2] ☑ moot: the skills were deleted in the convergence (EB.C1), so there is nothing for a generated project
+      to carry.
+    - [EB.F3] ☐ → issue #69: **Another machine.** EP-A6 was run on one machine with two homes; a second machine (or a CI runner)
+      is the stronger form.
+    - [EB.F4] ☐ → issue #69: **Small:** the empty "Graph 1" a log open creates travels in the profile; the recipient's recents
+      point at a working copy that may later be deleted.
+    - [EB.F5] ☐ (the second delivery): **Second delivery:** external-series CSVs as members, flags, replay. (Excerpts moved into the first,
+      EB.C1.)
+    - [EB.F6] ☑ **Decided (owner, 2026-09-28): what has been read so far.** A log still growing under Follow is
+      captured as an excerpt of every record the session read, marked `readSoFar` in the manifest. Walks and reports
+      are re-based onto it, so their steps stay current. Nothing read yet is refused. Outside Follow, a changed file
+      is still refused (spec §13.2).
+    - [EB.F7] ☐ → issue #68: **Rule 9: the walk SAVE's generation check is in the frame** (`ui/WalkAuthoring.java`), not a node.
+      Capture applies the rule in its node; the walk save should too.
+    - [EB.R5] ☑ **The reaper disarmed its own capture** (reaper review, `6d692032`): reaping closed a descriptor to a
+      marker this JVM owned, which on POSIX releases the lock. Fixed by real-path ownership, settled before the file
+      is touched. Blast radius: two analysers on one machine, one exchange directory; it failed closed (no bundle,
+      not a wrong one). Spec §13.7.
+    - [EB.F9] ☑ **Provoked from the frame** (`EvidenceCaptureFrameTest#anotherLogOpenedDuringTheWriteDeletesTheBundle`):
+      the capture's write is HELD at its start (BundleWriter's `beforeCopy` seam, the reviewer's suggestion) while a
+      second log's real load lands off the event thread, then released. There is no timing margin, so it is proven on
+      every build. A first version relied on a 64 MB copy outlasting a small load; it was replaced before commit as
+      flaky under load. The bundle is refused and deleted, with its working folder. Control
+      `cv-f9-another-log-opened-from-the-frame`.
+    - [EB.F10] ☐ → issue #67: an excerpt of a log that is not time ordered. "First at or after, to last at or
+      before" assumes monotonic time; build such a log and check what the excerpt holds.
+    - [EB.F11] ☑ **Found a defect, fixed.** A read-only profile made `flush()` fail, and the capture read the stale
+      file, so the bundle silently lacked the edit just made. The capture now serialises the session's settings in
+      memory, as a save would write them, and never reads the file. A project switch mid-task and a chart synced inside
+      a dispatch were shown safe. Four frame tests; controls `cv-the-bundle-takes-the-live-{project,own}-settings`.
+    - [EB.F8] ☐ → issue #69: **Unwitnessed defensive branches, declared:** the writer's delete-on-failure, unpack's between-passes
+      mismatch, the one-plain-file list-size test (masked by the observation's other conditions: a candidate control survived).
+
 ## M69 · Spotlight walks — saved, stepped explanations on the overlay — ☑ SHIPPED in 1.26.0 (merged `5cdd12ec`, 2026-09-28)
 
 Spec: [`spec-spotlight-walks.md`](../spec-spotlight-walks.md) (r4, consolidated). **Owner, 2026-09-27:**

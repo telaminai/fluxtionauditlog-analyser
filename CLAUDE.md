@@ -100,7 +100,12 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.26.1 (2026-09-28)**: PRs #61 and #62 — opt-in mouse tracing and cancellation of a
+`docs/specs/completed/tracker.md`. **Latest: 1.27.0 (2026-09-28)**: evidence bundles, first delivery (PR #63, merged `77d268be`) — an investigation
+as one verifiable `.fexp`. Capture is one operation on the running analyser, `report {bundle: {path, notes?, from?, to?}}`,
+decided by the `evidenceCapture` session node (rule 9); the recipient runs `--verify` / `--unpack` (bounded memory,
+nothing written until verified); optional time-window excerpts with re-based walks and reports; nothing machine-shaped
+leaves; no skills (the docs site's *Evidence bundles* section is the procedure). Spec r5, four reviews in `docs/handoff/`,
+follow-ups issues #64–#69. **1.26.1 (the same day)**: PRs #61 and #62 — opt-in mouse tracing and cancellation of a
 records-table or time-slider drag when an owned modal takes focus. External application focus loss is unchanged;
 the original incident remains unconfirmed. [Release evidence](docs/handoff/fix_runaway_table_drag_2026_09_28_codex.md).
 **1.26.0 (the same day)**: M69 spotlight walks (PR #57, merged `5cdd12ec`) —

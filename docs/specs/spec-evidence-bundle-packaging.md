@@ -1,6 +1,6 @@
 # Evidence bundle packaging — first delivery (package, verify, open, walk; no replay)
 
-**Status: r5 (2026-09-28), IMPLEMENTED on `feat/evidence-bundle-v1`.** r3 records what building and driving it
+**Status: r5 (2026-09-28), SHIPPED in 1.27.0 (PR #63, merged `77d268be`).** r3 records what building and driving it
 changed; r4, the review's two REQUIRED fixes; **r5, the convergence (§13): capture moved into the analyser, an
 optional time-window excerpt, the skills deleted.** Where §3–§5 describe skills doing the capture, §13 supersedes
 them. The executable reference is `tools/evidence-bundle-demo.py`; the
