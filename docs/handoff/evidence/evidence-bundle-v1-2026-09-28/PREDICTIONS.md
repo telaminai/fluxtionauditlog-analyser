@@ -27,3 +27,28 @@ Spec: `docs/specs/spec-evidence-bundle-packaging.md` r2 (`dff81924`). Scored in 
    is registered in both CI lists.
 9. Two to four new mutation controls, all caught. No retained control is orphaned, because neither edit touches a
    controlled line.
+
+## B2 · the CLI: `--pack`, `--verify`, `--unpack` (added before B2's code, after B0/B1 landed)
+
+10. One new pure class, `telamin.fluxtion.audit.analyser.bundle.EvidenceBundle`, using the existing `llm.Json` for
+    the manifest (no new dependency), and three flags in `Main`, dispatched **before any UI bootstrap**, as `--mcp`
+    is. No session node changes and no regeneration.
+11. Headless tests with **pinned fixtures**: a DEMO folder packed with a fixed clock gives a **fixed identity**,
+    asserted as a literal string. Verification cases:
+    - changed member;
+    - missing member;
+    - unlisted member;
+    - path escape (`../`), absolute path, backslash;
+    - a duplicate entry;
+    - a missing or malformed manifest.
+
+    Each refusal names the member. Each regression is red before at a named assertion, and B2's code does not
+    exist yet, so "red before" here means **each check's control** removes its guard and fails its named case.
+12. `--unpack` extracts nothing on refusal, into a fresh directory it creates; the received file's bytes are unchanged
+    (EP-A5).
+13. No output ever says or implies "authenticated" or "verified sender". A test asserts the `limits` text is
+    printed, and that the words "authentic" and "signed" appear only in the negative sentence.
+14. About 8–10 new controls.
+15. **What would show the design wrong:** a case where a correct bundle cannot be verified without trusting the
+    folder layout, or an identity that changes between two packs of identical bytes with the same clock (a
+    non-deterministic manifest). Either would mean the format is not pinned.
