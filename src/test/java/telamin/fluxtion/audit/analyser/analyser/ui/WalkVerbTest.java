@@ -184,6 +184,10 @@ class WalkVerbTest {
         assertEquals(3, request.count());
         assertEquals(2, r.payload().get("step"));
         assertFalse(v.run(Map.of("name", "w", "play", true, "step", 0)).ok(), "there is no step 0");
+        // review PR57 R9: 2^32 + 2 must not narrow to step 2
+        ActionResult wrapped = v.run(Map.of("name", "w", "play", true, "step", 4294967298L));
+        assertFalse(wrapped.ok(), "a step number beyond the supported range is refused, not narrowed");
+        assertTrue(wrapped.error().contains("'step'"), wrapped.error());
         assertFalse(v.run(Map.of("name", "nope", "play", true)).ok());
 
         rig.sessionStarts = false;

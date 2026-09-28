@@ -199,10 +199,13 @@ public final class WalkSteps {
         Integer record = null;
         Object r = m.get("record");
         if (r != null) {
-            if (!(r instanceof Number n) || n.doubleValue() != Math.floor(n.doubleValue())) {
-                throw new IllegalArgumentException("view.record is a record index");
+            // review PR57 R9: range-checked BEFORE narrowing — intValue() turned 4294967296 into record 0
+            Long index = integral(r, 0, Integer.MAX_VALUE);
+            if (index == null) {
+                throw new IllegalArgumentException("view.record is a record index: a whole number from 0 to "
+                        + Integer.MAX_VALUE);
             }
-            record = n.intValue();
+            record = index.intValue();
         }
         WalkSpec.FocusRef focus = null;
         Object fo = m.get("focus");
@@ -215,8 +218,35 @@ public final class WalkSteps {
 
     private static Long lng(Object o, String field) {
         if (o == null) return null;
-        if (o instanceof Number n) return n.longValue();
-        throw new IllegalArgumentException(field + " is epoch milliseconds");
+        Long millis = integral(o, Long.MIN_VALUE, Long.MAX_VALUE);
+        if (millis == null) throw new IllegalArgumentException(field + " is epoch milliseconds, a whole number");
+        return millis;
+    }
+
+    /**
+     * Review PR57 R9: {@code o} as a whole number in {@code [min, max]}, or null. It is checked EXACTLY before any
+     * narrowing: finite, integral, and in range. A JSON number may arrive as any {@link Number}, including a
+     * {@link java.math.BigInteger} beyond {@code long}.
+     */
+    public static Long integral(Object o, long min, long max) {
+        if (!(o instanceof Number n)) return null;
+        java.math.BigDecimal v;
+        if (n instanceof Double || n instanceof Float) {
+            double d = n.doubleValue();
+            if (!Double.isFinite(d)) return null;
+            v = java.math.BigDecimal.valueOf(d);
+        } else {
+            try {
+                v = new java.math.BigDecimal(n.toString());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        if (v.signum() != 0 && v.stripTrailingZeros().scale() > 0) return null;
+        if (v.compareTo(java.math.BigDecimal.valueOf(min)) < 0 || v.compareTo(java.math.BigDecimal.valueOf(max)) > 0) {
+            return null;
+        }
+        return v.longValueExact();
     }
 
     private static String unknownField(Map<?, ?> m, Set<String> allowed) {

@@ -187,8 +187,10 @@ final class WalkVerb {
         if (walk == null) return ActionResult.error("no walk called '" + name + "' — walks: " + names());
         int from = 0;
         if (step != null) {
-            if (!(step instanceof Number n) || n.doubleValue() != Math.rint(n.doubleValue()) || n.intValue() < 1) {
-                return ActionResult.error("'step' is a step number, counted from 1");
+            // review PR57 R9: range-checked before narrowing, as the step parser is
+            Long n = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.integral(step, 1, WalkSpec.MAX_STEPS);
+            if (n == null) {
+                return ActionResult.error("'step' is a step number, counted from 1 (at most " + WalkSpec.MAX_STEPS + ")");
             }
             from = n.intValue() - 1;
         }

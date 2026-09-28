@@ -873,4 +873,19 @@ CONTROLS = [
      '"screenshot", "report", "walk")',
      '"screenshot", "report")',
      'McpToolsTest#exposesExactlyTheVerbSchemasVerbSet'),
+
+    # --- M69 review response (PR57 R1–R9): each fix at its call site
+    # R9: range-checked before narrowing
+    ('m69-r9-record-range-before-narrowing', J + 'walk/WalkSteps.java',
+     '            Long index = integral(r, 0, Integer.MAX_VALUE);',
+     '            Long index = r instanceof Number nn ? (long) nn.intValue() : null;',
+     'WalkStepsTest#numbersAreRangeCheckedBeforeNarrowing'),
+    ('m69-r9-integral-is-exact', J + 'walk/WalkSteps.java',
+     '        if (v.compareTo(java.math.BigDecimal.valueOf(min)) < 0 || v.compareTo(java.math.BigDecimal.valueOf(max)) > 0) {',
+     '        if (false) {',
+     'WalkStepsTest#numbersAreRangeCheckedBeforeNarrowing'),
+    ('m69-r9-play-step-range', UI + 'WalkVerb.java',
+     '            Long n = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.integral(step, 1, WalkSpec.MAX_STEPS);',
+     '            Long n = step instanceof Number nn && nn.intValue() >= 1 ? (long) nn.intValue() : null;',
+     'WalkVerbTest#playReportsAndReadsBack'),
 ]

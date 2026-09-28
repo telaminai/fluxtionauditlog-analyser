@@ -52,6 +52,20 @@ class WalkStepsTest {
     }
 
     @Test
+    @DisplayName("review PR57 R9: a number is range-checked BEFORE narrowing — 2^32 is not record 0, infinity is not a record")
+    void numbersAreRangeCheckedBeforeNarrowing() {
+        refused(parse(step(Map.of("record", 4294967296L), "records:row:0")), "view.record");
+        refused(parse(step(Map.of("record", Double.POSITIVE_INFINITY), "records:row:0")), "view.record");
+        refused(parse(step(Map.of("record", -1), "records:row:0")), "view.record");
+        refused(parse(step(Map.of("record", new java.math.BigInteger("18446744073709551616")), "records:row:0")), "view.record");
+        refused(parse(step(Map.of("filter", Map.of("from", 1e300)), "status")), "view.filter.from");
+        refused(parse(step(Map.of("filter", Map.of("to", 1.5)), "status")), "view.filter.to");
+        var ok = parse(step(Map.of("record", 2147483647L), "status"));
+        assertTrue(ok.ok(), "the largest supported index is accepted: " + ok.error());
+        assertEquals(Integer.MAX_VALUE, ok.steps().get(0).view().record());
+    }
+
+    @Test
     @DisplayName("every field outside the allow-list is refused by name — a chart window explains itself")
     void fieldsOutsideTheAllowListAreRefusedByName() {
         refused(parse(Map.of("view", Map.of("window", 1), "targets", List.of("status"))), "view.window");
