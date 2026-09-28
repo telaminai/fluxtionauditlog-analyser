@@ -46,9 +46,8 @@ public class IdentityBanner implements EventLogSource {
     }
 
     /** The answer to a render: which backends drew it. Recorded; it changes nothing. */
-    @OnEventHandler(propagate = false)
+    @OnEventHandler(propagate = false, filterString = "identityBanner")
     public boolean onViewRendered(SessionEvents.ViewRendered event) {
-        if (!"identityBanner".equals(event.element())) return false;
         auditLog.info("rendered", event.element()).info("backends", String.join(",", event.backends()));
         return false;
     }

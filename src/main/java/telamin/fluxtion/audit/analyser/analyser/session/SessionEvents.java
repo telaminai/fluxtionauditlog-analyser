@@ -298,9 +298,20 @@ public final class SessionEvents {
      * View-model spike: the answer to a render effect — which element, and which registered backends drew it. Like
      * {@link ScanScheduled} it carries no operation: a render belongs to the log's state, not to a person's request.
      */
-    public record ViewRendered(long opId, String element, java.util.List<String> backends) implements Result {
+    public record ViewRendered(long opId, String element, java.util.List<String> backends)
+            implements Result, com.telamin.fluxtion.runtime.event.Event {
         public ViewRendered {
             backends = backends == null ? java.util.List.of() : java.util.List.copyOf(backends);
+        }
+
+        /**
+         * Review of #58: the element is the dispatch filter, so the generated processor invokes only the view node
+         * this answer belongs to. Unfiltered, every view node's handler ran — and wrote its invocation line — on
+         * every OTHER element's render, a cost of (view nodes × renders) that grows with each element added.
+         */
+        @Override
+        public String filterString() {
+            return element;
         }
     }
 

@@ -64,7 +64,7 @@ public class StatusLine implements EventLogSource {
     }
 
     /** The answer to a render: which backends drew it. Recorded; it changes nothing. */
-    @OnEventHandler(propagate = false)
+    @OnEventHandler(propagate = false, filterString = "statusLine")
     public boolean onViewRendered(SessionEvents.ViewRendered event) {
         auditLog.info("rendered", event.element()).info("backends", String.join(",", event.backends()));
         return false;

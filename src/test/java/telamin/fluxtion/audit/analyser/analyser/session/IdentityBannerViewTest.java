@@ -78,6 +78,29 @@ class IdentityBannerViewTest {
     }
 
     @Test
+    @DisplayName("Review of #58: a render answer reaches only its own element's node — no fan-out across views")
+    void aRenderAnswerReachesOnlyItsOwnNode() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionAuditSink sink = new SessionAuditSink();
+        SessionDriver d = new SessionDriver(a, sink);
+        SessionFixtures.openLog(d, a, "/logs/f.yaml", "DEMO", Set.of("a"), 1, 25, "TRACE");
+        d.post(new SessionEvents.LogIdentityObserved(d.snapshot().logGeneration(), "REPLACEMENT", "replaced"));
+
+        List<String> banner = sink.matching("event: ViewRendered").stream()
+                .filter(r -> r.contains("element=identityBanner")).toList();
+        assertFalse(banner.isEmpty(), "the banner's render was answered");
+        for (String r : banner) {
+            assertFalse(r.contains("statusLineView:"), "the status line's node ran on the banner's answer — every "
+                    + "view node then pays for every other view's renders, (nodes × renders):\n" + r);
+        }
+        List<String> line = sink.matching("event: ViewRendered").stream()
+                .filter(r -> r.contains("element=statusLine")).toList();
+        for (String r : line) {
+            assertFalse(r.contains("identityBannerView:"), "and the banner's node on the line's:\n" + r);
+        }
+    }
+
+    @Test
     @DisplayName("An unchanged verdict is not re-drawn — this is why the element costs no records")
     void anUnchangedVerdictIsNotRedrawn() {
         FakeSessionAdapter a = new FakeSessionAdapter();

@@ -392,16 +392,20 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged",
                 false),
             new ProcessorDescriptor.Input(
-                "ViewRendered",
+                "identityBanner",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewRendered",
-                false)
+                true),
+            new ProcessorDescriptor.Input(
+                "statusLine",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewRendered",
+                true)
           },
           new ProcessorDescriptor.Sink[] {},
           new ProcessorDescriptor.Service[] {},
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "199541e434549b9a922873fac887a9960dbb4bc752b1cda266982a27a2953cfa",
+              "154b8423b4d8c6b0db0a91f423113187a5a522d3f41d414509bd8d87019b6a40",
               null));
 
   @Override
@@ -1507,11 +1511,16 @@ public class SessionProcessor
 
   public void handleEvent(ViewRendered typedEvent) {
     auditEvent(typedEvent);
-    //Default, no filter methods
-    auditInvocation(identityBannerView, "identityBannerView", "onViewRendered", typedEvent);
-    identityBannerView.onViewRendered(typedEvent);
-    auditInvocation(statusLineView, "statusLineView", "onViewRendered", typedEvent);
-    statusLineView.onViewRendered(typedEvent);
+    switch (typedEvent.filterString()) {
+      case ("identityBanner"):
+        handle_ViewRendered_identityBanner(typedEvent);
+        afterEvent();
+        return;
+      case ("statusLine"):
+        handle_ViewRendered_statusLine(typedEvent);
+        afterEvent();
+        return;
+    }
     afterEvent();
   }
 
@@ -1555,6 +1564,18 @@ public class SessionProcessor
     afterEvent();
   }
   //EVENT DISPATCH - END
+
+  //FILTERED DISPATCH - START
+  private void handle_ViewRendered_identityBanner(ViewRendered typedEvent) {
+    auditInvocation(identityBannerView, "identityBannerView", "onViewRendered", typedEvent);
+    identityBannerView.onViewRendered(typedEvent);
+  }
+
+  private void handle_ViewRendered_statusLine(ViewRendered typedEvent) {
+    auditInvocation(statusLineView, "statusLineView", "onViewRendered", typedEvent);
+    statusLineView.onViewRendered(typedEvent);
+  }
+  //FILTERED DISPATCH - END
 
   //MERGED DISPATCH HELPERS - START
 
@@ -1827,10 +1848,16 @@ public class SessionProcessor
     } else if (event instanceof ViewRendered) {
       ViewRendered typedEvent = (ViewRendered) event;
       auditEvent(typedEvent);
-      auditInvocation(identityBannerView, "identityBannerView", "onViewRendered", typedEvent);
-      identityBannerView.onViewRendered(typedEvent);
-      auditInvocation(statusLineView, "statusLineView", "onViewRendered", typedEvent);
-      statusLineView.onViewRendered(typedEvent);
+      switch (typedEvent.filterString()) {
+        case ("identityBanner"):
+          handle_ViewRendered_identityBanner_bufferDispatch(typedEvent);
+          afterEvent();
+          return;
+        case ("statusLine"):
+          handle_ViewRendered_statusLine_bufferDispatch(typedEvent);
+          afterEvent();
+          return;
+      }
     } else if (event instanceof Activated) {
       Activated typedEvent = (Activated) event;
       auditEvent(typedEvent);
@@ -1857,6 +1884,16 @@ public class SessionProcessor
       auditInvocation(sessionRecovery, "sessionRecovery", "request", typedEvent);
       sessionRecovery.request(typedEvent);
     }
+  }
+
+  private void handle_ViewRendered_identityBanner_bufferDispatch(ViewRendered typedEvent) {
+    auditInvocation(identityBannerView, "identityBannerView", "onViewRendered", typedEvent);
+    identityBannerView.onViewRendered(typedEvent);
+  }
+
+  private void handle_ViewRendered_statusLine_bufferDispatch(ViewRendered typedEvent) {
+    auditInvocation(statusLineView, "statusLineView", "onViewRendered", typedEvent);
+    statusLineView.onViewRendered(typedEvent);
   }
 
   public void triggerCalculation() {
