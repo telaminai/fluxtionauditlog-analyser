@@ -5877,15 +5877,23 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result startCapture(telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CaptureBundleEffect e) throws Exception {
         long ticket = e.ticket(), generation = e.generation();
-        Path settings;
+        // EB.F11: the SESSION's settings, serialised here exactly as a save would write them, never read back from the
+        // file. A project write is debounced and can fail (a read-only profile keeps the edit in memory; the machine
+        // config's save is best-effort), and reading the file after either handed the bundle a stale profile. The open
+        // charts are synced in first, as the pre-save hook does.
+        syncOpenGraphsIntoConfig();
+        String settingsName;
+        String settingsText;
         if (project.hasProject()) {
-            flushProject();
-            settings = project.activeFile();
+            settingsName = "project.fluxtion-settings";
+            settingsText = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.write(config,
+                    new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare(), project.activeFile());
         } else {
-            saveConfigQuietly();
-            settings = configStore.path();
+            settingsName = "own.fluxtion-settings";
+            settingsText = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().export(config,
+                    telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.PROJECT_SCOPED);
         }
-        byte[] settingsBytes = java.nio.file.Files.readAllBytes(settings);
+        byte[] settingsBytes = settingsText.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         var info = currentLogFileInfo();
         Path log = Path.of(info.localPath());
         Path graph = topologyPanel.loadedGraphFile();
@@ -5913,7 +5921,7 @@ public final class MainFrame extends JFrame {
         }
         String expected = loadedLogIdentity.size() == 1 ? loadedLogIdentity.get(0).sha256() : null;
         var job = new telamin.fluxtion.audit.analyser.bundle.BundleWriter.Job(Path.of(e.path()), log, graph,
-                settings.getFileName().toString(), settingsBytes, e.notes(), taken, java.time.Instant.now(),
+                settingsName, settingsBytes, e.notes(), taken, java.time.Instant.now(),
                 telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected,
                 e.readSoFar());
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {

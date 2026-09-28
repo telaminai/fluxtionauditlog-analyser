@@ -365,7 +365,7 @@ results, two facts (`BundleWritten`, `BundleWriteFailed`) and a published `Captu
 |---|---|
 | 1. pause Follow, restore it whatever happens | the node requests `SetFollowEffect(false)` and, on every outcome, `(true)` |
 | 2. refuse by name: no log, load pending, identity `replacement`/`unverified`, `changed-on-disk`, not one plain file | the node, from the session's own state and the frame's observations; plus a capture already writing |
-| 3. settle project edits | **`ProjectSession.flush()`**, synchronously, in the effect: the coalesced write is made, not waited for. Safe there: it is what the debounce timer runs, on the same thread |
+| 3. settle project edits | **r5:** `ProjectSession.flush()` in the effect. **Superseded by EB.F11:** the session's settings are serialised in memory exactly as a save would write them, and the file is never read, so a debounced or FAILED write (a read-only profile) cannot make the bundle stale. Originally: the coalesced write is made, not waited for. Safe there: it is what the debounce timer runs, on the same thread |
 | 4. record `log.generation` | the node records it when it accepts; it travels with the effect and returns with the fact |
 | 5. assemble `log/ graph/ profile/` | `BundleWriter`, off the event thread; everything read from the live session is taken first, on its thread |
 | 6. profile export, pack | `BundleProfile` and `EvidenceBundle.pack`, in process |
@@ -472,8 +472,19 @@ second process, and the witness for "death releases it" is that process exiting.
 
 **Open before merge (the review's list):** ~~the moved-generation rule provoked from the frame by ANOTHER LOG
 OPENED off the event thread~~ (done, EB.F9: the write held by a test seam while the real load lands, so no timing); an excerpt of a log that is not time
-ordered; and `flush()` inside an effect under a read-only profile, a project switch in flight, and `preSave`
-syncing open charts (tracker EB.F9–F11).
+ordered; and ~~`flush()` inside an effect under a read-only profile, a project switch in flight, and `preSave`
+syncing open charts~~ (done, EB.F11; see below) (tracker EB.F9–F11).
+
+**EB.F11, found and fixed.** A read-only project profile made the flush fail: the edit stayed in memory, the file
+stayed stale, and the capture read the file, so the bundle silently lacked the edit just made. The no-project path
+had the same hazard, because its save is best-effort. Now the capture serialises the session's settings in memory,
+after syncing the open charts in, exactly as a save would write them, and never reads the file back. Four frame
+tests hold it:
+- a read-only profile (red before the fix);
+- read-only own settings with no project;
+- a project switch in the same task: a switch is applied within its own dispatch, so nothing is "in flight" when a
+  capture is asked for;
+- an open chart edited in the same task: syncing inside a dispatch is safe.
 
 ### 13.7 After the reaper review (`review/evidence-bundle-reaper`, `6d692032`): the reaper disarmed its own capture
 

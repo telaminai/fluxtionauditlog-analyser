@@ -1251,9 +1251,22 @@ CONTROLS = [
     ('cv-a-stale-result-is-ignored', CAPTURE,
      '        if (stale(e.ticket(), "BundleWritten")) return false;\n', '',
      'EvidenceCaptureTest#aStaleResultIsIgnored'),
-    ('cv-the-project-is-flushed-not-waited-for', UI + 'MainFrame.java',
-     '            flushProject();\n            settings = project.activeFile();\n', '            settings = project.activeFile();\n',
-     'EvidenceCaptureFrameTest#aCaptureFlushesAndWrites'),
+    # EB.F11: the bundle takes the SESSION's settings, serialised as a save would write them, never the file (a
+    # debounced or failed write left it stale). Replaces cv-the-project-is-flushed-not-waited-for: the flush is gone,
+    # and the property it guarded (an edit made a moment ago is in the bundle) is held more strongly by this.
+    ('cv-the-bundle-takes-the-live-project-settings', UI + 'MainFrame.java',
+     '            settingsText = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.write(config,\n'
+     '                    new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare(), project.activeFile());\n',
+     '            settingsText = java.nio.file.Files.readString(project.activeFile());\n',
+     'EvidenceCaptureFrameTest#aReadOnlyProfileDoesNotMakeTheBundleStale'),
+    ('cv-the-bundle-takes-the-live-own-settings', UI + 'MainFrame.java',
+     '            settingsText = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().export(config,\n'
+     '                    telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.PROJECT_SCOPED);\n',
+     '            settingsText = java.nio.file.Files.readString(configStore.path());\n',
+     'EvidenceCaptureFrameTest#aReadOnlyOwnSettingsFileDoesNotMakeTheBundleStale'),
+    # Declared, not registered: the capture's own syncOpenGraphsIntoConfig() call. As a candidate against
+    # EvidenceCaptureFrameTest#anOpenChartEditIsCaptured it SURVIVED (2026-09-28): every chart edit already syncs
+    # (onGraphsEdited -> saveConfigQuietly), so it is redundant today and kept as the pre-save hook's guarantee.
     ('cv-the-frame-observes-freshness', UI + 'MainFrame.java',
      '                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin));\n',
      '                observed, null, onePlainFile, windowRecords, origin));\n',

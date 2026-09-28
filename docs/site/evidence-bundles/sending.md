@@ -31,8 +31,8 @@ message, if the recipient needs to know the file is the one you packed.
     - the file changed on disk since it was read, outside Follow;
     - the log is not one plain file (a rolled set, a directory or a remote store);
     - a bundle is already being written.
-2. **It writes the project's pending edits now**, so a chart, report or walk you saved a moment ago is in the
-   bundle.
+2. **It takes the settings in force now, from the analyser itself, not from the file**, so a chart, report or walk
+   you saved a moment ago is in the bundle, even when the project's file could not be written (read-only).
 3. **It pauses Follow** while it copies, and turns it back on afterwards, whatever happened.
 4. **It keeps what may leave, and nothing else:**
     - the log (whole, or the excerpt);

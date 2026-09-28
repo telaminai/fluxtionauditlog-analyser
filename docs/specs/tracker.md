@@ -2330,8 +2330,10 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
       `cv-f9-another-log-opened-from-the-frame`.
     - [EB.F10] ☐ **Before merge:** an excerpt of a log that is not time ordered. "First at or after, to last at or
       before" assumes monotonic time; build such a log and check what the excerpt holds.
-    - [EB.F11] ☐ **Before merge:** `flush()` inside the capture effect, under a read-only profile, a project switch in
-      flight, and `preSave` syncing open charts from inside a dispatch.
+    - [EB.F11] ☑ **Found a defect, fixed.** A read-only profile made `flush()` fail, and the capture read the stale
+      file, so the bundle silently lacked the edit just made. The capture now serialises the session's settings in
+      memory, as a save would write them, and never reads the file. A project switch mid-task and a chart synced inside
+      a dispatch were shown safe. Four frame tests; controls `cv-the-bundle-takes-the-live-{project,own}-settings`.
     - [EB.F8] ☐ **Unwitnessed defensive branches, declared:** the writer's delete-on-failure, unpack's between-passes
       mismatch, the one-plain-file list-size test (masked by the observation's other conditions: a candidate control survived).
 1. ☐ **Owner decisions — they unblock the most.**

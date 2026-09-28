@@ -236,7 +236,7 @@ class EvidenceCaptureFrameTest {
     }
 
     @Test
-    @DisplayName("written: the bundle verifies, carries the notes, and the report saved IN THE SAME TASK — the flush, not a wait")
+    @DisplayName("written: the bundle verifies, carries the notes, and the report saved IN THE SAME TASK — the live settings, not a wait")
     void aCaptureFlushesAndWrites(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path profile = Files.createDirectories(tmp.resolve("proj/.analyser")).resolve("project.fluxtion-settings");
@@ -246,7 +246,7 @@ class EvidenceCaptureFrameTest {
             onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
             openLog(f, DEMO_LOG);
             AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
-            onEdt(() -> {        // one task: the debounce (800 ms) cannot have fired; only the flush can put it in the file
+            onEdt(() -> {        // one task: the debounce (800 ms) cannot have fired, so only the live settings can hold it
                 render(f.ex, "report", Map.of("name", "demo-just-saved", "sections",
                         List.of(Map.of("kind", "narrative", "text", "DEMO"))));
                 echo.set(render(f.ex, "report", Map.of("bundle", Map.of("path", "w.fexp", "notes", "# DEMO notes\n"))));
@@ -265,7 +265,7 @@ class EvidenceCaptureFrameTest {
                 assertEquals("# DEMO notes\n", new String(z.getInputStream(z.getEntry("notes/NOTES.md")).readAllBytes(), StandardCharsets.UTF_8));
                 String profileMember = new String(z.getInputStream(z.getEntry("profile/project.fluxtion-settings")).readAllBytes(), StandardCharsets.UTF_8);
                 assertTrue(profileMember.contains("demo-just-saved"),
-                        "a report saved in the same task is in the bundle: the capture flushed the project, it did not wait");
+                        "a report saved in the same task is in the bundle: the capture took the live settings, it did not wait");
                 assertArrayEquals(Files.readAllBytes(DEMO_LOG),
                         z.getInputStream(z.getEntry("log/demo-quote-audit.yaml")).readAllBytes(), "the whole log, byte for byte");
             }
@@ -334,6 +334,121 @@ class EvidenceCaptureFrameTest {
         } finally {
             release.countDown();
             telamin.fluxtion.audit.analyser.bundle.BundleWriterAccess.stopHolding();
+        }
+    }
+
+    /** The bundle's profile member, as text. */
+    static String profileMember(Path bundle) throws Exception {
+        try (ZipFile z = new ZipFile(bundle.toFile())) {
+            assertNotNull(z.getEntry("profile/project.fluxtion-settings"), "the bundle carries its profile");
+            return new String(z.getInputStream(z.getEntry("profile/project.fluxtion-settings")).readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    @Test
+    @DisplayName("EB.F11: a READ-ONLY project profile — the write fails — and the bundle still holds the edit just made")
+    void aReadOnlyProfileDoesNotMakeTheBundleStale(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path profile = Files.createDirectories(tmp.resolve("proj/.analyser")).resolve("project.fluxtion-settings");
+        Files.writeString(profile, "share.version=1\n");
+        try (var f = shown(tmp)) {
+            Path ex = exchange(f, tmp);
+            onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
+            openLog(f, DEMO_LOG);
+            for (int i = 0; i < 40; i++) Thread.sleep(50);                    // let the open's own writes settle
+            assertTrue(profile.toFile().setWritable(false), "control: the profile is read-only now");
+            try {
+                AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+                onEdt(() -> {        // one task: the edit, then the capture; the profile file cannot take the edit
+                    render(f.ex, "report", Map.of("name", "demo-unwritable", "sections",
+                            List.of(Map.of("kind", "narrative", "text", "DEMO"))));
+                    echo.set(ask(f, bundle("ro.fexp")));
+                });
+                assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
+                assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+                assertFalse(Files.readString(profile).contains("demo-unwritable"), "control: the FILE never got the edit");
+                assertTrue(profileMember(ex.resolve("ro.fexp")).contains("demo-unwritable"),
+                        "the bundle holds the session's settings, not a stale file the write could not update");
+            } finally {
+                profile.toFile().setWritable(true);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("EB.F11: no project, and your own settings file READ-ONLY — its best-effort save fails — the bundle still holds the edit")
+    void aReadOnlyOwnSettingsFileDoesNotMakeTheBundleStale(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = shown(tmp)) {
+            Path ex = exchange(f, tmp);
+            openLog(f, DEMO_LOG);
+            Path own = tmp.resolve("home/.fluxtion-analyser/config");
+            for (int i = 0; i < 40 && !Files.exists(own); i++) Thread.sleep(50);
+            assertTrue(Files.exists(own), "control: the analyser has written its own settings");
+            assertTrue(own.toFile().setWritable(false), "control: they are read-only now");
+            try {
+                AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+                onEdt(() -> {
+                    render(f.ex, "report", Map.of("name", "demo-own-unwritable", "sections",
+                            List.of(Map.of("kind", "narrative", "text", "DEMO"))));
+                    echo.set(ask(f, bundle("own.fexp")));
+                });
+                assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
+                assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+                assertFalse(Files.readString(own).contains("demo-own-unwritable"), "control: the FILE never got the edit");
+                assertTrue(profileMember(ex.resolve("own.fexp")).contains("demo-own-unwritable"),
+                        "the bundle holds the session's settings, not the file a failed save left stale");
+            } finally {
+                own.toFile().setWritable(true);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("EB.F11: a project switch in the same task as the capture — the bundle holds the NEW project's settings")
+    void aProjectSwitchIsNotInFlight(@TempDir Path tmp) throws Exception {
+        // a project switch is decided and applied within its own dispatch, so nothing is "in flight" by the time a
+        // capture is asked for: the capture sees the project now in force, whole
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path a = Files.createDirectories(tmp.resolve("a/.analyser")).resolve("project.fluxtion-settings");
+        Path b = Files.createDirectories(tmp.resolve("b/.analyser")).resolve("project.fluxtion-settings");
+        Files.writeString(a, "share.version=1\nreport.count=1\nreport.0.name=demo-in-a\nreport.0.s.count=0\n");
+        Files.writeString(b, "share.version=1\nreport.count=1\nreport.0.name=demo-in-b\nreport.0.s.count=0\n");
+        try (var f = shown(tmp)) {
+            Path ex = exchange(f, tmp);
+            onEdt(() -> render(f.ex, "open", Map.of("project", a.toString())));
+            openLog(f, DEMO_LOG);
+            onEdt(() -> render(f.ex, "open", Map.of("project", b.toString())));
+            openLog(f, DEMO_LOG);                                           // a switch closes the log; reopen under b
+            AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+            onEdt(() -> echo.set(ask(f, bundle("b.fexp"))));
+            assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"));
+            String member = profileMember(ex.resolve("b.fexp"));
+            assertTrue(member.contains("demo-in-b") && !member.contains("demo-in-a"), member);
+        }
+    }
+
+    @Test
+    @DisplayName("EB.F11: an open chart edited in the same task as the capture is in the bundle (the pre-save sync, inside a dispatch)")
+    void anOpenChartEditIsCaptured(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path profile = Files.createDirectories(tmp.resolve("proj/.analyser")).resolve("project.fluxtion-settings");
+        Files.writeString(profile, "share.version=1\n");
+        try (var f = shown(tmp)) {
+            Path ex = exchange(f, tmp);
+            onEdt(() -> render(f.ex, "open", Map.of("project", profile.toString())));
+            openLog(f, DEMO_LOG);
+            AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+            onEdt(() -> {
+                render(f.ex, "graph", Map.of("name", "DEMO spread just drawn", "series", List.of("quotePublisher.spread")));
+                echo.set(ask(f, bundle("chart.fexp")));
+            });
+            assertEquals(Boolean.TRUE, echo.get().get("ok"), String.valueOf(echo.get()));
+            assertEquals("WRITTEN", awaitDecided(f).get("phase"), "no protocol violation from syncing charts inside a dispatch");
+            assertTrue(profileMember(ex.resolve("chart.fexp")).contains("DEMO\\ spread\\ just\\ drawn")
+                            || profileMember(ex.resolve("chart.fexp")).contains("DEMO spread just drawn"),
+                    "the chart drawn a moment before is in the bundle");
         }
     }
 

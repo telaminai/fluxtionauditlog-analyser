@@ -13,8 +13,10 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   graph, the saved charts and named focuses, reports and walks, hidden columns, and your notes as
   `notes/NOTES.md`. It refuses, by name, when the capture would not be coherent: no log open, a load pending, a log
   file that changed or whose identity is not established, a log that is not one plain file, or a bundle already
-  being written. A log still growing under Follow is captured as the records read so far, and says so. It writes the project's pending edits first, pauses Follow while
-  it copies, and if another log is opened or the log is closed meanwhile, it refuses and deletes what it wrote.
+  being written. A log still growing under Follow is captured as the records read so far, and says so. It takes
+  the settings in force now, not the file on disk, so an edit a read-only profile could not save is still in the
+  bundle. It pauses Follow while it copies, and if another log is opened or the log is closed meanwhile, it
+  refuses and deletes what it wrote.
   In an exchange directory shared by several analysers, it never touches another capture's working folder; a
   folder left by a capture that was killed is cleared once its owner is provably gone.
   `context.capture` says when it is done, its identity, and what was left out, redacted or excerpted.

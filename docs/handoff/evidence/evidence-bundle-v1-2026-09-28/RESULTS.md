@@ -1,4 +1,60 @@
-# Evidence bundle v1 — results (2026-09-28)
+# Evidence bundles — results (2026-09-28)
+
+Spec: `docs/specs/spec-evidence-bundle-packaging.md` **r5** (§13–§13.7). Branch `feat/evidence-bundle-v1`, PR #63.
+This file has two parts. First, **the state now**, after three reviews and the convergence. Then, **the v1
+record** as it was written after B4, kept because the predictions are scored against it.
+
+## The state now
+
+**What ships:**
+- capture as one operation on the running analyser, `report {bundle: {path, notes?, from?, to?}}`, decided by the
+  `evidenceCapture` session node;
+- an optional time-window excerpt, and a log growing under Follow captured as the records read so far;
+- verify and unpack for the recipient, in bounded memory;
+- no skills. The docs site is the procedure.
+
+**Driven:** `tools/evidence-bundle-demo.py`, 43 passed / 0 failed. A sender makes three captures: the whole log
+with notes, an excerpt holding the breach, and one missing it. A cold recipient opens the two good bundles and plays
+each walk, with every target CURRENT and lit, the breach at row 7 (whole) and row 3 (excerpt). The received file
+reaches the walk's end in ~0.6 s whole and ~1.2 s as an excerpt, plus ~2.5–3 s to start the analyser. One machine,
+two isolated homes.
+
+**Findings, by round** (each with a regression, red before the fix where one could be written, and a control):
+
+| round | finding | outcome |
+|---|---|---|
+| driving B4 | the profile file lags the session (debounce) | `context.project.unsavedEdits`; later superseded by EB.F11 |
+| driving B4 | an agent stepping by `play` re-stated the caveat | a play of the walk showing continues it |
+| v1 review F1 | `--verify` died on a 2 MiB zip bomb (OOM) | streamed, manifest-first, declared sizes bound members; 160 MiB verified in a 64 MiB heap |
+| v1 review F2 | "holds no paths" was false: a path mid-prose travelled | a path-valued key refuses; a path in prose is redacted and named |
+| convergence | the capture skill was all mechanism, except a rule it never stated (a log growing under Follow) | capture moved into the analyser; the rule became EB.F6 |
+| convergence | WalkAuthoring's generation check is frame-side (rule 9) | capture applies it in its node; the walk save is EB.F7 |
+| convergence review | the empty-window refusal was the frame deciding | an observed count; the node refuses |
+| convergence review | cleanup deleted every `.capture-*` folder, a neighbour's included | reviewer's age gate rejected; owned folders under an OS lock |
+| reaper review | the reaper closed a descriptor to its own marker, releasing its own lock (POSIX) | ownership settled in memory by real path, before the file is touched |
+| EB.F9 | the moved-generation rule never provoked from the frame | held by a latch seam while a real load lands; no timing |
+| EB.F11 | a read-only profile made the bundle silently stale | the capture serialises the live settings and never reads the file |
+| driving | the chart spotlight has no room at the default window | EB.F1: accepted, the window is pinned |
+
+**Gates at `HEAD`:** see the latest commit message and PR #63. Local: `mvn -o clean test` green; the display gate
+green except the two known keyboard-focus skips; every `eb-` / `rf` / `cv-` control caught; the driver 43 / 0.
+CI's Linux frame suites are the PR's to show.
+
+**Open:**
+- EB.F10: an excerpt of a log that is not time ordered. A confusing excerpt, not a false claim.
+- EB.F7: the walk save's frame-side check.
+- EB.F3: a second machine.
+- EB.F4: small leftovers.
+- EB.F5: the second delivery.
+- EB.F8: the declared unwitnessed branches.
+
+**Predictions:** only B0–B2 had predictions committed before their code (scored below). The later rounds did not.
+Each review wrote and scored its own predictions in its own document on its review branch. Most findings in the
+table above were not predicted by anyone.
+
+---
+
+# The v1 record (after B4, before the reviews)
 
 Spec: `docs/specs/spec-evidence-bundle-packaging.md` **r3**. Branch `feat/evidence-bundle-v1`, cut from `dff81924`.
 Predictions: `PREDICTIONS.md` beside this file. **B3 and B4 had no predictions committed before their code**, which
