@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-09-28
+
 ### Added
 
 - **Spotlight walks — an explanation you can replay.** A walk is a named sequence of spotlight steps, saved in the
