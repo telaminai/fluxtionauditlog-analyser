@@ -30,7 +30,11 @@ public class ReplaySpike {
     public static void main(String[] a) throws Exception {
         Path out = Path.of(a.length > 0 ? a[0] : "out");
         // per-read: the clock ticks on EVERY read (the fixture generator's strategy); per-event: it moves only between events
-        boolean perRead = a.length < 2 || a[1].equals("per-read");
+        String mode = a.length < 2 ? "per-read" : a[1];
+        boolean perRead = mode.startsWith("per-read");
+        // per-read-shared: the recorder takes the PROCESSOR's clock reading for each event, as a YamlReplayRecordWriter
+        // installed as an auditor does, instead of reading the clock on its own (the per-read harness's mistake)
+        boolean shared = mode.equals("per-read-shared");
         Files.createDirectories(out);
 
         // ---- capture
@@ -44,7 +48,9 @@ public class ReplaySpike {
         p.setAuditLogProcessor(r -> append(capturedAudit, r.toString()));
         // the recorder reads the same clock the processor does, as a production auditor would
         Clock recorderClock = new Clock();
-        recorderClock.setClockStrategy(ClockStrategy.registerClockEvent(() -> tick[0]));
+        // shared: the instant the processor's clock will fix on RECEIPT of the next event (its next tick), read before
+        // dispatch, as an installed auditor records at receipt, before anything the graph raises in that cycle
+        recorderClock.setClockStrategy(ClockStrategy.registerClockEvent(shared ? () -> tick[0] + 10 : () -> tick[0]));
         YamlReplayRecordWriter recorder = new YamlReplayRecordWriter(recorderClock);
         recorder.setTargetWriter(replayYaml);
         recorder.init();
