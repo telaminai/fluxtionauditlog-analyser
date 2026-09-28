@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.26.1] - 2026-09-28
+
 - Cancel unfinished record-table and time-slider drags when an owned modal takes focus, so opening a modal
   during a drag cannot leave selection scrolling or time-window panning running after release.
   Non-modal focus changes preserve an ongoing drag and defer its final selection notification until release.
