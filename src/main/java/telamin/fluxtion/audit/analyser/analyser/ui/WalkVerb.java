@@ -178,6 +178,11 @@ final class WalkVerb {
         }
         String refused = WalkBin.restore(frame.config(), name);
         if (refused != null) return ActionResult.error(refused);
+        // review PR57 R6 (second round): restore is a mutation like the others, so it is REPORTED like the others.
+        // Today no showing walk can be reached by it — a restore refuses a name that is live, and deleting the
+        // showing walk already ended it — but the response claimed this post existed, and a path that mutates
+        // without reporting is the defect coming back the moment either of those rules changes.
+        frame.post(new SessionEvents.WalkDefinitionChanged(name, WalkBin.find(frame.config().walks, name), null));
         frame.persist();
         return ActionResult.ok("walk", "restored", new LinkedHashMap<>(Map.of("restored", name, "walks", names())));
     }

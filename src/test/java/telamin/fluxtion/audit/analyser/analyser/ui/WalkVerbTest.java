@@ -163,7 +163,7 @@ class WalkVerbTest {
 
     @Test
     @DisplayName("review PR57 R6: a delete or rename is REPORTED to the session — the verb no longer decides to end a walk")
-    void deletingTheShowingWalkEndsIt() {
+    void aDeleteOrRenameIsReportedNotDecided() {
         Rig rig = new Rig();
         save(rig, "w", "status");
         WalkVerb v = new WalkVerb(rig);
@@ -242,6 +242,24 @@ class WalkVerbTest {
         assertEquals(1, showing.get("step"));
         assertEquals("CURRENT", ((List<Map<String, Object>>) showing.get("targets")).get(0).get("state"),
                 "context reports the states the strip shows — the published ones");
+    }
+
+    @Test
+    @DisplayName("review PR57 R6 (second round): a restore is reported too — every mutation reports, none decides")
+    void restoringReportsTheDefinition() {
+        Rig rig = new Rig();
+        save(rig, "w", "status");
+        WalkVerb v = new WalkVerb(rig);
+        v.run(Map.of("name", "w", "delete", true));
+        rig.posted.clear();
+
+        assertTrue(v.run(Map.of("restore", "w")).ok());
+
+        assertEquals(1, rig.posted.size(), "one fact, for the walk that came back: " + rig.posted);
+        var reported = (SessionEvents.WalkDefinitionChanged) rig.posted.get(0);
+        assertEquals("w", reported.name());
+        assertNotNull(reported.now(), "a restore puts a definition BACK, so the fact carries it, not null");
+        assertNull(reported.renamedTo());
     }
 
     @Test

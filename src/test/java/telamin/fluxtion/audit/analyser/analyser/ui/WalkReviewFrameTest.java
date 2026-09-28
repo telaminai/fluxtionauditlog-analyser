@@ -204,4 +204,83 @@ class WalkReviewFrameTest {
             });
         }
     }
+
+    // ---- review PR57 R6, second round: the BULK paths report too --------------------------------------------
+
+    /** A walk of one status step whose caption says which version it is. */
+    static telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec version(String name, String caption) {
+        return new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec(name, "", "person", "", "", null, List.of(),
+                List.of(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step(caption,
+                        telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.View.NONE,
+                        List.of(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Target("status", "", null)))),
+                Map.of());
+    }
+
+    @Test
+    @DisplayName("R6: a Settings IMPORT that replaces the showing walk is the session's decision, like a save")
+    void animportOfTheShowingWalkIsReported(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            call(f, "walk", Map.of("name", "DEMO_imported", "steps",
+                    List.of(Map.of("caption", "as saved", "targets", List.of(target("status", "here"))))));
+            call(f, "walk", Map.of("name", "DEMO_imported", "play", true));
+            await("showing", () -> walk(f).showing());
+
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            var incoming = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+            incoming.walks.add(version("DEMO_imported", "a different version, imported"));
+            var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare();
+            var categories = java.util.Set.of(
+                    telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.REPORTS);
+
+            onEdt(() -> {
+                share.apply(share.preview(share.export(incoming, categories), config), categories, config);
+                try {
+                    ChartLifecycleReviewFrameTest.invoke(f.frame, "applyImportedConfig");
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+
+            await("the session ended it", () -> !walk(f).showing());
+            onEdt(() -> {
+                assertTrue(walk(f).reason().contains("changed while it was showing"),
+                        "the node's own policy for a changed definition, applied to an import: " + walk(f).reason());
+                assertEquals("a different version, imported", config.walks.get(0).steps().get(0).caption(),
+                        "control: the import really did replace the definition");
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("R6: an import that re-states the SAME walk changes nothing — it is not a change")
+    void anImportOfTheSameWalkLeavesItShowing(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            call(f, "walk", Map.of("name", "DEMO_same", "steps",
+                    List.of(Map.of("caption", "as saved", "targets", List.of(target("status", "here"))))));
+            call(f, "walk", Map.of("name", "DEMO_same", "play", true));
+            await("showing", () -> walk(f).showing());
+
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            var incoming = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+            incoming.walks.addAll(config.walks);                    // the very same definitions
+            var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare();
+            var categories = java.util.Set.of(
+                    telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.REPORTS);
+
+            onEdt(() -> {
+                share.apply(share.preview(share.export(incoming, categories), config), categories, config);
+                try {
+                    ChartLifecycleReviewFrameTest.invoke(f.frame, "applyImportedConfig");
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+
+            onEdt(() -> assertTrue(walk(f).showing(),
+                    "re-stating what was already there must not end a walk, exactly as an unchanged save does not: "
+                            + walk(f).reason()));
+        }
+    }
 }

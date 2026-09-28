@@ -2527,6 +2527,24 @@ public final class MainFrame extends JFrame {
     /** M69 S4: the Reports tab's walk list. */
     WalksPanel walksPanel;
 
+    /**
+     * Review PR57 R6 (second round): report to the session every walk a BULK path changed. The verb reports its own
+     * mutations; a Settings import and a project transition replace the list wholesale, and used to tell the session
+     * nothing — so a walk being shown from a definition that had just been replaced or removed carried on.
+     * This reports; {@link telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback} decides.
+     */
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walksLastReported = java.util.List.of();
+
+    private void reportWalkChanges() {
+        var before = walksLastReported;
+        walksLastReported = java.util.List.copyOf(config.walks);
+        if (session == null) return;
+        for (var c : telamin.fluxtion.audit.analyser.analyser.walk.WalkChanges.between(before, walksLastReported)) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkDefinitionChanged(
+                    c.name(), c.now(), null));
+        }
+    }
+
     /** M69 §3.5: the run basis — the read identity's file digests for what is loaded now. */
     private java.util.List<String> walkRunBasisNow() {
         // review PR57 R1: the opening file digests PLUS the session's current record count, so a Follow append —
@@ -5417,6 +5435,7 @@ public final class MainFrame extends JFrame {
         // Incoming definitions must reach the views before a save can snapshot the old tabs over them.
         if (store != null) restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
+        reportWalkChanges();   // review PR57 R6: an import replaces walks by name, and the session must be told
         onConfigChanged();
     }
 
@@ -5839,6 +5858,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProfileEffect e -> {
                 handoff.clear();       // M48.7: a project transition is a session boundary; what was placed was the last one's
                 applyProjectSettings();
+                reportWalkChanges();      // review PR57 R6: a project's walks are that project's
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
             }
@@ -5846,6 +5866,7 @@ public final class MainFrame extends JFrame {
                 project.close();
                 handoff.clear();       // M48.7: leaving a project ends the session the handoff belonged to
                 applyProjectSettings();
+                reportWalkChanges();
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored(opId);
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CloseLogEffect e -> {
