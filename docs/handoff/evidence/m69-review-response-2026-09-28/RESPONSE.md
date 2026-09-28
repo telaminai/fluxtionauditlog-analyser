@@ -92,8 +92,11 @@ The design falsifiers did not occur:
 
 ## Remaining limitations
 
-- **Not merged with `main`.** `origin/main` moved to `80decad7` ("docs: revise M69 because playback and identity
-  reuse need explicit safeguards") after this branch was cut. Integrating it is the owner's call.
+- **Correction (2026-09-28):** an earlier version of this line said `main` had moved to `80decad7` after the branch was
+  cut. **That was wrong.** `80decad7` is the specification-review commit (Codex r3) that r4 builds on. It is an
+  ancestor of this branch, and `main` has no commit the branch lacks (`git merge-base --is-ancestor origin/main
+  HEAD`), so a merge would be a fast-forward of 20 commits. The error came from seeing `80decad7` as `main`'s head
+  during the NullPointerException check and assuming it was new, without checking ancestry.
 - **The presenter's use of the frozen definition has no control.** Under the node's policy a showing walk's config
   never differs from its frozen copy (a change ends it or renames it), so reading config instead would be an
   equivalent mutant. The node-side controls cover the policy.
