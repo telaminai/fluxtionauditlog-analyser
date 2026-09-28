@@ -47,11 +47,17 @@ public final class TimeRangeSlider extends JComponent {
                 if (e.getClickCount() == 2) resetToFull(); else pick(e.getX());
             }
             @Override public void mouseDragged(MouseEvent e) { drag(e.getX()); }
-            @Override public void mouseReleased(MouseEvent e) { dragMode = -1; edgeScroll.stop(); }
+            @Override public void mouseReleased(MouseEvent e) { cancelMouseGesture(); }
             @Override public void mouseMoved(MouseEvent e) { updateCursor(e.getX()); }
         };
         addMouseListener(ma);
         addMouseMotionListener(ma);
+    }
+
+    /** Cancel a lost native gesture without changing or publishing the selected time range. */
+    void cancelMouseGesture() {
+        dragMode = -1;
+        edgeScroll.stop();
     }
 
     /** Called whenever the visible window (min/max) moves, so the owner can resync its pan control. */
