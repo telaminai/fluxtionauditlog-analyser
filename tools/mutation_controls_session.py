@@ -886,7 +886,7 @@ CONTROLS = [
      '        if (false) {',
      'WalkStepsTest#numbersAreRangeCheckedBeforeNarrowing'),
     ('m69-r9-play-step-range', UI + 'WalkVerb.java',
-     '            Long n = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.integral(step, 1, WalkSpec.MAX_STEPS);',
+     '            Long n = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.integral(step, 1, Integer.MAX_VALUE);',
      '            Long n = step instanceof Number nn && nn.intValue() >= 1 ? (long) nn.intValue() : null;',
      'WalkVerbTest#playReportsAndReadsBack'),
     # R8: an omitted filter takes the defaults
@@ -954,4 +954,13 @@ CONTROLS = [
      '        frame.post(new SessionEvents.WalkDefinitionChanged(name, null, to.trim()));   // reported; the node decides\n',
      '',
      'WalkReviewFrameTest#renameKeepsItAndDeleteEndsIt'),
+    # R7: the reply is the node's answer to THIS request
+    ('m69-r7-verb-reports-the-answer', UI + 'WalkVerb.java',
+     '        if (!answer.accepted()) {',
+     '        if (false) {',
+     'WalkReviewFrameTest#aRefusedPlayIsReportedAsRefused'),
+    ('m69-r7-node-answers-a-refusal', NODE + 'WalkPlayback.java',
+     '            answer(e, false);\n            auditLog.info("walkRefused", reason);\n            return true;\n        }\n        answer(e, true);',
+     '            auditLog.info("walkRefused", reason);\n            return true;\n        }\n        answer(e, true);',
+     'WalkReviewFrameTest#aRefusedPlayIsReportedAsRefused'),
 ]

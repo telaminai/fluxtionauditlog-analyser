@@ -57,6 +57,8 @@ final class WalkVerb {
             "end", Set.of("end"));
 
     private final Frame frame;
+    /** Review PR57 R7: this verb's play requests, numbered so the node's answer can be matched to its request. */
+    private long requests;
 
     WalkVerb(Frame frame) {
         this.frame = frame;
@@ -186,17 +188,23 @@ final class WalkVerb {
         if (walk == null) return ActionResult.error("no walk called '" + name + "' — walks: " + names());
         int from = 0;
         if (step != null) {
-            // review PR57 R9: range-checked before narrowing, as the step parser is
-            Long n = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.integral(step, 1, WalkSpec.MAX_STEPS);
+            // review PR57 R9: range-checked before narrowing, as the step parser is. Only the representable range is
+            // checked here — whether this walk HAS that step is the node's decision (R7), and it answers it.
+            Long n = telamin.fluxtion.audit.analyser.analyser.walk.WalkSteps.integral(step, 1, Integer.MAX_VALUE);
             if (n == null) {
-                return ActionResult.error("'step' is a step number, counted from 1 (at most " + WalkSpec.MAX_STEPS + ")");
+                return ActionResult.error("'step' is a step number: a whole number counted from 1");
             }
             from = n.intValue() - 1;
         }
-        frame.post(new SessionEvents.WalkPlayRequested(walk, from, origin));
-        WalkPlaybackState s = frame.state();              // the node decided; this reports what it published
-        if (!s.showing() || !s.walk().equals(walk.name())) {
-            return ActionResult.error(s.reason().isBlank() ? "the walk was not started" : s.reason());
+        long request = ++requests;
+        frame.post(new SessionEvents.WalkPlayRequested(request, walk, from, origin));
+        WalkPlaybackState s = frame.state();              // the node decided; this reports ITS answer to THIS request
+        WalkPlaybackState.Answer answer = s.answer();
+        if (answer.request() != request) {
+            return ActionResult.error("the session did not answer this play request");
+        }
+        if (!answer.accepted()) {
+            return ActionResult.error(answer.reason().isBlank() ? "the walk was not started" : answer.reason());
         }
         Map<String, Object> echo = new LinkedHashMap<>(showing(s));
         echo.put("note", "the person steps through it with the strip's ◀ ▶ (or ← →); context.walks.showing says what "

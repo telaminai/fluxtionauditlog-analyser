@@ -2458,7 +2458,8 @@ public final class MainFrame extends JFrame {
         var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, name);
         if (walk == null) return "no walk called '" + name + "' — walks: " + config.walks.stream().map(w -> w.name()).toList();
         if (session == null) return "the session is not running";
-        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(walk, step, origin));
+        // request 0: the strip shows what the session decided; nothing here awaits an answer
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(0, walk, step, origin));
         return null;
     }
 

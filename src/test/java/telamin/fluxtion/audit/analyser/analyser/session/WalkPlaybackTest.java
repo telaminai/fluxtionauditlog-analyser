@@ -51,7 +51,7 @@ class WalkPlaybackTest {
     void playAsksForTheFirstStep() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         assertEquals(1, a.walkViews.size());
         assertEquals("tour", a.walkViews.get(0).walk().name());
         assertEquals(0, a.walkViews.get(0).step());
@@ -65,7 +65,7 @@ class WalkPlaybackTest {
     void preparedLightsTheAvailableTargets() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         prepared(d, List.of(target(1, true), target(2, false), target(3, true)));
         assertEquals("PARTLY_SHOWN", walk(d).phase());
         assertEquals(1, a.walkLights.size());
@@ -79,7 +79,7 @@ class WalkPlaybackTest {
     void nothingAvailableLightsNothing() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 1), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 1), 0, "test"));
         prepared(d, List.of(target(1, false)));
         assertEquals("NOT_SHOWN", walk(d).phase());
         assertEquals(0, a.walkLights.size());
@@ -90,7 +90,7 @@ class WalkPlaybackTest {
     void navigateAndBoundaries() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 2), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 2), 0, "test"));
         d.post(new SessionEvents.WalkNavigated(-1));
         assertEquals(1, a.walkViews.size(), "Back on the first step asks for nothing");
         assertEquals("this is the first step", walk(d).reason());
@@ -107,7 +107,7 @@ class WalkPlaybackTest {
     void aStalePreparationIsRefused() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         long first = walk(d).ticket();
         d.post(new SessionEvents.WalkNavigated(1));                     // rapid Next before step 1 was ready
         d.post(new SessionEvents.WalkStepPrepared(first, d.snapshot().logGeneration(), List.of(target(1, true)), ""));
@@ -121,14 +121,14 @@ class WalkPlaybackTest {
     void endRemembersTheStep() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         d.post(new SessionEvents.WalkNavigated(1));
         d.post(new SessionEvents.WalkEndRequested("a press outside the strip"));
         assertFalse(walk(d).showing());
         assertEquals(1, a.walkEnds.size());
         assertEquals(1, walk(d).lastShown().get("tour"));
         assertTrue(walk(d).reason().contains("a press outside the strip"));
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), -1, "resume"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), -1, "resume"));
         assertEquals(1, a.walkViews.get(a.walkViews.size() - 1).step(), "resumed at step 2");
     }
 
@@ -137,7 +137,7 @@ class WalkPlaybackTest {
     void aNewGenerationEndsTheWalk() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         SessionFixtures.openLog(d, a, "/logs/g.yaml");
         assertFalse(walk(d).showing());
         assertEquals(1, a.walkEnds.size());
@@ -149,7 +149,7 @@ class WalkPlaybackTest {
     void aCloseEndsTheWalk() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         // what MainFrame.closeLog reports: the close as a fact about this generation (as SessionFactsTest drives it)
         d.post(new SessionEvents.LogCleared(d.snapshot().logGeneration()));
         assertFalse(d.snapshot().logOpen(), "control: the log is closed");
@@ -162,7 +162,7 @@ class WalkPlaybackTest {
     void anIdentityChangeReResolves() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         prepared(d, List.of(target(1, true)));
         long g = d.snapshot().logGeneration();
         d.post(new SessionEvents.LogIdentityObserved(g, "REPLACEMENT", "the file was replaced"));
@@ -177,7 +177,7 @@ class WalkPlaybackTest {
     void aLatePreparationAfterALogSwitchLightsNothing() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         long ticket = walk(d).ticket(), oldGeneration = d.snapshot().logGeneration();
         SessionFixtures.openLog(d, a, "/logs/g.yaml");
         d.post(new SessionEvents.WalkStepPrepared(ticket, oldGeneration, List.of(target(1, true)), ""));
@@ -190,7 +190,7 @@ class WalkPlaybackTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         a.refuseWalkViews = true;
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 0, "test"));
         assertEquals("NOT_SHOWN", walk(d).phase());
         assertEquals("refused by the fake", walk(d).reason());
         assertEquals(0, a.walkLights.size());
@@ -201,8 +201,8 @@ class WalkPlaybackTest {
     void badPlayRequestsAreRefused() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("empty", 0), 0, "test"));
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("tour", 3), 5, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("empty", 0), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 3), 5, "test"));
         assertEquals(0, a.walkViews.size());
         assertFalse(walk(d).showing());
         assertTrue(walk(d).reason().contains("no step 6"), walk(d).reason());
@@ -214,7 +214,7 @@ class WalkPlaybackTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
         var tour = walkOf("tour", 3);
-        d.post(new SessionEvents.WalkPlayRequested(tour, 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, tour, 0, "test"));
         assertEquals(tour, walk(d).definition(), "the published state carries the frozen definition");
 
         d.post(new SessionEvents.WalkDefinitionChanged("tour", tour, null));
@@ -232,7 +232,7 @@ class WalkPlaybackTest {
         assertFalse(walk(d).showing(), "a replacement with different steps ends the showing");
         assertTrue(walk(d).reason().contains("changed"), walk(d).reason());
 
-        d.post(new SessionEvents.WalkPlayRequested(walkOf("again", 2), 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("again", 2), 0, "test"));
         d.post(new SessionEvents.WalkDefinitionChanged("again", null, null));
         assertFalse(walk(d).showing(), "a delete ends it");
         assertTrue(walk(d).reason().contains("deleted"), walk(d).reason());
@@ -244,7 +244,7 @@ class WalkPlaybackTest {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = opened(a);
         var tour = walkOf("tour", 3);
-        d.post(new SessionEvents.WalkPlayRequested(tour, 0, "test"));
+        d.post(new SessionEvents.WalkPlayRequested(0, tour, 0, "test"));
         prepared(d, List.of(target(1, true)));
         d.post(new SessionEvents.WalkNavigated(1));
         var asked = a.walkViews.get(a.walkViews.size() - 1);

@@ -317,8 +317,11 @@ public final class SessionEvents {
      * Play a saved walk. {@code step} is 0-based; {@code -1} means "from the step last shown" (Play from step N).
      * Review PR57 R6: the fact carries the DEFINITION, which the node holds frozen while it shows it, so no effect ever
      * reads a step from mutable configuration.
+     * Review PR57 R7: {@code request} identifies THIS request; the node publishes its answer to it
+     * ({@link WalkPlaybackState#answer()}), so a caller never infers acceptance from whatever happens to be showing.
+     * {@code 0} means the caller does not await an answer.
      */
-    public record WalkPlayRequested(telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step, String origin) {
+    public record WalkPlayRequested(long request, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step, String origin) {
     }
 
     /**

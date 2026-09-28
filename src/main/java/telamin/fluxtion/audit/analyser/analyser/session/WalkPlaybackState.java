@@ -17,18 +17,30 @@ import java.util.Map;
  * @param targets   the current step's targets and their states
  * @param lastShown walk name → the last step shown (0-based), for Play from step N — session memory, never saved
  * @param definition the frozen definition being shown, or null (review PR57 R6): what every surface describes
+ * @param answer     the node's answer to the last play request that carried an id (review PR57 R7)
  */
 public record WalkPlaybackState(String walk, int step, int count, String phase, String reason, long ticket,
                                 List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown,
-                                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition) {
+                                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition, Answer answer) {
 
-    public static final WalkPlaybackState IDLE = new WalkPlaybackState(null, 0, 0, "IDLE", "", 0, List.of(), Map.of(), null);
+    /** Whether play request {@code request} was accepted, and if not, why. */
+    public record Answer(long request, boolean accepted, String reason) {
+        public static final Answer NONE = new Answer(0, false, "");
+
+        public Answer {
+            reason = reason == null ? "" : reason;
+        }
+    }
+
+    public static final WalkPlaybackState IDLE = new WalkPlaybackState(null, 0, 0, "IDLE", "", 0, List.of(), Map.of(), null,
+            Answer.NONE);
 
     public WalkPlaybackState {
         phase = phase == null ? "IDLE" : phase;
         reason = reason == null ? "" : reason;
         targets = List.copyOf(targets == null ? List.of() : targets);
         lastShown = Map.copyOf(lastShown == null ? Map.of() : lastShown);
+        answer = answer == null ? Answer.NONE : answer;
     }
 
     public boolean showing() {

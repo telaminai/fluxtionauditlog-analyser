@@ -55,8 +55,10 @@ class WalkVerbTest {
             if (fact instanceof SessionEvents.WalkPlayRequested p) {
                 state = sessionStarts
                         ? new WalkPlaybackState(p.walk().name(), p.step(), p.walk().steps().size(), "SHOWN", "", 1,
-                                List.of(new SessionEvents.WalkTargetState(1, "status", "", "CURRENT", true, "")), Map.of(), p.walk())
-                        : new WalkPlaybackState(null, 0, 0, "IDLE", "the session refused it", 0, List.of(), Map.of(), null);
+                                List.of(new SessionEvents.WalkTargetState(1, "status", "", "CURRENT", true, "")), Map.of(), p.walk(),
+                                new WalkPlaybackState.Answer(p.request(), true, ""))
+                        : new WalkPlaybackState(null, 0, 0, "IDLE", "the session refused it", 0, List.of(), Map.of(), null,
+                                new WalkPlaybackState.Answer(p.request(), false, "the session refused it"));
             }
         }
         public WalkPlaybackState state() { return state; }

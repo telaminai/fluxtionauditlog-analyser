@@ -154,4 +154,27 @@ class WalkReviewFrameTest {
             onEdt(() -> assertFalse(walk(f).showing(), "a deleted walk is not left showing"));
         }
     }
+
+    @Test
+    @DisplayName("R7: while a walk is showing, a refused play of it (step 99) is reported as refused, not as success")
+    void aRefusedPlayIsReportedAsRefused(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            var one = Map.of("view", Map.of("tab", "topology"), "targets", List.of(target("topology:node:priceListener", "one")));
+            call(f, "walk", Map.of("name", "DEMO_edit", "steps", List.of(one)));
+            call(f, "walk", Map.of("name", "DEMO_edit", "play", true));
+            await("shown", () -> "SHOWN".equals(walk(f).phase()) && overlay.isLit());
+
+            var result = new java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
+            onEdt(() -> result.set(f.ex.render("walk", new java.util.LinkedHashMap<>(Map.of("name", "DEMO_edit", "play", true, "step", 99)))));
+            assertFalse(result.get().ok(), "the node refused step 99; the reply must say so: " + result.get().toMap());
+            assertTrue(String.valueOf(result.get().error()).contains("no step 99"), String.valueOf(result.get().error()));
+            onEdt(() -> assertTrue(walk(f).showing(), "and the walk that was showing keeps showing"));
+
+            var again = new java.util.concurrent.atomic.AtomicReference<telamin.fluxtion.audit.analyser.analyser.llm.ActionResult>();
+            onEdt(() -> again.set(f.ex.render("walk", new java.util.LinkedHashMap<>(Map.of("name", "DEMO_edit", "play", true, "step", 1)))));
+            assertTrue(again.get().ok(), "a valid replay of the showing walk is accepted: " + again.get().toMap());
+        }
+    }
 }

@@ -52,6 +52,7 @@ public class WalkPlayback implements EventLogSource {
     private String identityAtStart;
     private List<SessionEvents.WalkTargetState> targets = List.of();
     private Map<String, Integer> lastShown = new HashMap<>();
+    private WalkPlaybackState.Answer answer = WalkPlaybackState.Answer.NONE;
 
     public WalkPlayback(OpenLog openLog, EffectQueue effects) {
         this.openLog = openLog;
@@ -69,15 +70,18 @@ public class WalkPlayback implements EventLogSource {
         int steps = e.walk().steps().size();
         if (steps <= 0) {
             reason = "walk '" + name + "' has no steps";
+            answer(e, false);
             auditLog.info("walkRefused", reason);
             return true;
         }
         int from = e.step() < 0 ? lastShown.getOrDefault(name, 0) : e.step();
         if (from >= steps) {
             reason = "walk '" + name + "' has " + steps + " step(s) — there is no step " + (from + 1);
+            answer(e, false);
             auditLog.info("walkRefused", reason);
             return true;
         }
+        answer(e, true);
         definition = e.walk();
         walk = name;
         count = steps;
@@ -211,6 +215,11 @@ public class WalkPlayback implements EventLogSource {
         return false;
     }
 
+    /** Review PR57 R7: the answer to THIS request, published for the caller that carried its id. */
+    private void answer(SessionEvents.WalkPlayRequested e, boolean accepted) {
+        if (e.request() != 0) answer = new WalkPlaybackState.Answer(e.request(), accepted, accepted ? "" : reason);
+    }
+
     private void prepare() {
         ticket++;
         phase = "PREPARING";
@@ -243,6 +252,6 @@ public class WalkPlayback implements EventLogSource {
 
     /** The published state — immutable, for the snapshot. */
     public WalkPlaybackState state() {
-        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown, definition);
+        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown, definition, answer);
     }
 }
