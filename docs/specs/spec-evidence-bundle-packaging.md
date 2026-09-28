@@ -1,7 +1,7 @@
 # Evidence bundle packaging — first delivery (package, verify, open, walk; no replay)
 
-**Status: r3 (2026-09-28), IMPLEMENTED on `feat/evidence-bundle-v1`, awaiting review.** r3 records what building it
-and driving it end to end changed (§11, §12). The executable reference is `tools/evidence-bundle-demo.py`; the
+**Status: r4 (2026-09-28), IMPLEMENTED on `feat/evidence-bundle-v1`; the review's two REQUIRED findings fixed.** r3
+records what building it and driving it end to end changed; r4, the review fixes (§11, §12). The executable reference is `tools/evidence-bundle-demo.py`; the
 results are in `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`.
 
 The review is
@@ -149,11 +149,20 @@ The `capture-evidence-bundle` skill:
 ### 4.2 Layout — `.fexp`, a zip
 
 ```
-manifest.json                        the member list and facts; its exact bytes are the identity
+manifest.json                        the FIRST entry: the member list and facts; its exact bytes are the identity
 log/<name>                           the WHOLE log file, byte for byte (v1: no excerpts)
 graph/<name>.graphml                 when a graph was open
 profile/project.fluxtion-settings    the allow-listed Settings export: GRAPHS, REPORTS (walks), VIEW
 ```
+
+**r4, bounded verification (review F1).** The manifest is the first entry, and a reader requires it: its declared
+sizes then bound every member while it streams. An unlisted member is refused before any of its bytes are read. A
+listed member is refused the moment it exceeds its declared size. Each member is digested through a 64 KiB buffer,
+so memory does not grow with the log. The one absolute bound is on the manifest itself, 4 MiB (a v1 manifest is
+well under a kilobyte). **No member has an absolute cap**: v1 carries the whole log, and a 160 MiB log verifies and
+unpacks in a 64 MiB heap. `--unpack` makes two passes: the first verifies and writes nothing; only then does the
+second stream each member to disk, digesting it again, and it deletes the working copy if the file changed between
+the passes.
 
 - **No flags.** They persist nowhere today (§2). A walk step does the same job, "look at this record, here is my
   note", and unlike a flag it persists, travels in the profile and re-resolves with an identity verdict. Building
@@ -233,7 +242,7 @@ chart basis. Show it **once per walk**.
 | EP-A1 | The capture skill refuses each §4.1 condition by name and leaves no bundle; a moved `log.generation` deletes the bundle. |
 | EP-A2 | `--pack`: members are byte-identical to the folder's files, and the manifest lists exactly them. |
 | EP-A3 | The identity is `sha256` of the manifest's exact bytes; re-serialising the manifest changes it. |
-| EP-A4 | `--verify` and `--unpack` refuse a changed, missing, unlisted, escaping (`..`, absolute) or linked member, each naming it; `--unpack` extracts nothing on refusal. |
+| EP-A4 | `--verify` and `--unpack` refuse a changed, missing, unlisted, escaping (`..`, absolute) or linked member, each naming it; `--unpack` extracts nothing on refusal. **r4:** also a member before the manifest, an oversized manifest and a member larger than declared, all as refusals in bounded memory, never a crash (review F1). |
 | EP-A5 | The received file is byte-identical after unpack, open, a walk, and a second unpack. |
 | EP-A6 | A cold recipient: unpack and open from **another path and another home**. The project, log, graph, walk and report load. (**ASSUMED by the review; must be RAN.**) |
 | EP-A7 | The recipient's own project settings are byte-identical after opening a bundle and closing it; any machine-config write (recents) is known and listed. |
@@ -293,6 +302,7 @@ Predictions are committed before code, as usual.
 | rev | date | by | what |
 |---|---|---|---|
 | r1 | 2026-09-28 | Claude (analyser session) | First draft, from the combined proposal and the owner's L-33 decisions. The placement question was left open. |
+| r4 | 2026-09-28 | Claude (analyser session), fixing the review's REQUIRED findings | **F1:** verification streams in bounded memory; the manifest is the first entry and bounds every member; unpack verifies, then writes, in two passes (§4.2). |
 | r3 | 2026-09-28 | Claude (analyser session), after implementing B0–B4 | **Implemented.** A fourth headless flag, `--bundle-profile`, by §3.1's rule (§3.3). A second `context` field, `project.unsavedEdits`, because the profile file lags the session (§4.1). The refusal fields as they really are: `log.identity` may be absent, `log.freshness` is the constant signal (§4.1). The manifest as shipped, without `provenance`/`records` (§4.3). An agent stepping a walk by `play` continues the showing (§5). The skills live in `docs/evidence-bundle/`, not the bundle-seeding `docs/skills/` library (§12). Acceptance status in §7. |
 | r2 | 2026-09-28 | Claude (analyser session), after the review | The placement question is decided: **C**, with no verb, menu or dialog. The review's rule is adopted (§3.1). **Argued back:** the CLI owns the whole format, `--pack`, `--verify` and `--unpack`, because the manifest and unpacking are trust-relevant too (§3.3). **The audience is decided:** technical or agent-led, no menu item, with the trigger that would add one (§3.4). **Flags are dropped:** they persist nowhere. **The paths question is restated:** GRAPHS carries home-relative external-series paths, so those charts are excluded and named. The whole-log cost is stated (64–142 MB) and **excerpts move to the second delivery**. Follow is paused and restored rather than refused. Coherence is **one `context` field** (`log.generation`); a pending load is already `inFlight`. EP-A11 is reduced to the by-eye check; **EP-A12** is added (no source roots). The plan is B0–B4. |
 

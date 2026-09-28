@@ -177,7 +177,7 @@ public class EvidenceBundleTest {
         var refusedUnpack = EvidenceBundle.unpack(zip(tmp.resolve("bad.fexp"), changed), parent);
         assertFalse(refusedUnpack.verification().ok());
         assertNull(refusedUnpack.workingCopy(), "no working copy for a refused bundle");
-        assertFalse(Files.exists(parent) && Files.list(parent).findAny().isPresent(), "and nothing was extracted");
+        assertFalse(Files.exists(parent), "and nothing was written, not even the parent: verification finishes first");
 
         var one = EvidenceBundle.unpack(bundle, parent);
         var two = EvidenceBundle.unpack(bundle, parent);
@@ -205,14 +205,15 @@ public class EvidenceBundleTest {
     }
 
     @Test
-    @DisplayName("EP-A4: a duplicate entry name is refused — built by renaming one entry's bytes, as ZipOutputStream will not write it")
+    @DisplayName("EP-A4: a duplicate of a LISTED member is refused — built by renaming bytes, as ZipOutputStream will not write it")
     void aDuplicateEntryIsRefused(@TempDir Path tmp) throws Exception {
+        // review F1 fix: an UNLISTED entry is now refused before it is read, so the duplicate that matters is a second
+        // copy of a member the manifest lists, the one that could otherwise pass for it
         var e = entries(good(tmp));
-        e.put("log/dupA.txt", "first".getBytes(StandardCharsets.UTF_8));
-        e.put("log/dupB.txt", "second".getBytes(StandardCharsets.UTF_8));
+        e.put("log/demo-quote-audit.yamZ", e.get("log/demo-quote-audit.yaml"));
         Path z = zip(tmp.resolve("dup.fexp"), e);
         byte[] raw = Files.readAllBytes(z);
-        byte[] from = "log/dupB.txt".getBytes(StandardCharsets.US_ASCII), to = "log/dupA.txt".getBytes(StandardCharsets.US_ASCII);
+        byte[] from = "log/demo-quote-audit.yamZ".getBytes(StandardCharsets.US_ASCII), to = "log/demo-quote-audit.yaml".getBytes(StandardCharsets.US_ASCII);
         int renamed = 0;
         for (int i = 0; i + from.length <= raw.length; i++) {
             if (java.util.Arrays.equals(raw, i, i + from.length, from, 0, from.length)) {
@@ -222,6 +223,26 @@ public class EvidenceBundleTest {
         }
         assertEquals(2, renamed, "the local header and the central directory both carry the name");
         Files.write(z, raw);
-        refused(EvidenceBundle.verify(z), "duplicate member: log/dupA.txt");
+        refused(EvidenceBundle.verify(z), "duplicate member: log/demo-quote-audit.yaml");
+    }
+
+    @Test
+    @DisplayName("F1: the manifest must be the FIRST entry — it is what bounds every member after it")
+    void aMemberBeforeTheManifestIsRefused(@TempDir Path tmp) throws Exception {
+        var e = entries(good(tmp));
+        var reordered = new LinkedHashMap<String, byte[]>();
+        reordered.put("log/demo-quote-audit.yaml", e.remove("log/demo-quote-audit.yaml"));
+        reordered.putAll(e);
+        refused(EvidenceBundle.verify(zip(tmp.resolve("late.fexp"), reordered)), "no manifest.json as the first entry");
+    }
+
+    @Test
+    @DisplayName("F1: a manifest over its 4 MiB bound is refused by name, read no further than the bound")
+    void anOversizedManifestIsRefused(@TempDir Path tmp) throws Exception {
+        var e = entries(good(tmp));
+        byte[] huge = new byte[EvidenceBundle.MANIFEST_MAX_BYTES + 1];
+        java.util.Arrays.fill(huge, (byte) ' ');
+        e.put(EvidenceBundle.MANIFEST, huge);
+        refused(EvidenceBundle.verify(zip(tmp.resolve("huge.fexp"), e)), "manifest.json is larger than 4 MiB");
     }
 }

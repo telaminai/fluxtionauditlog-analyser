@@ -12,7 +12,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   every member's sha256 and size. `--verify <bundle.fexp>` checks it and prints its identity (the manifest's
   sha256). `--unpack <bundle.fexp> [--into <dir>]` verifies, then extracts it to a fresh working copy and never
   modifies the received file. Verification refuses a changed, missing, unlisted, duplicated or escaping member
-  and names it. The bundle is unsigned: it shows that nothing changed, not who sent it, and every output says
+  and names it. It streams, in constant memory whatever the log's size: a member the manifest does not list is
+  refused unread, and one larger than declared is refused as it exceeds, so an oversized bundle is a refusal and
+  never a crash. The bundle is unsigned: it shows that nothing changed, not who sent it, and every output says
   so. It holds an investigation to show, not a replay.
 - **`--bundle-profile <settings> <out>`** writes what an evidence bundle may carry from a project profile (or from
   your own settings when no project is open): saved charts and named focuses, reports and walks, hidden columns.

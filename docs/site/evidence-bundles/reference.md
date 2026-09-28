@@ -19,7 +19,12 @@ Verification refuses, naming the member:
 - an **unlisted** member;
 - a **duplicated** entry;
 - a path that **escapes**: absolute, `..`, a backslash, an empty segment;
-- a manifest that is missing, duplicated, unreadable, or of another format.
+- a manifest that is missing, not the first entry, duplicated, larger than 4 MiB, unreadable, or of another format;
+- a member **larger than its declared size**, refused as soon as it exceeds it.
+
+Verification streams each member through a fixed buffer, so it needs the same small amount of memory for a 4 KB
+log as for a 150 MB one. A member the manifest does not list is refused without being read. `--unpack` verifies the
+whole bundle before it writes anything, then extracts in a second pass, checking every member again as it writes.
 
 ## The manifest (format 1)
 
