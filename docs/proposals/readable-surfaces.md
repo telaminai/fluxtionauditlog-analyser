@@ -112,12 +112,31 @@ of them deliberately the easy case. Nobody has measured what a graph with twenty
 signal-to-noise of the session audit. **That, not bytes, is what would quietly spoil the product's best property**,
 and it should be measured before the readable set is widened much beyond the audited one.
 
+## What step 1 landed, and one thing it proved wrong
+
+Step 1 is done (`surfaces` in the snapshot and in `context`, its own section). Two findings from doing it:
+
+**The divergence is real and is now legible.** `PublishedSurfacesTest#whatIsKnownAndWhatIsShownDiverge`: after an
+append with no re-scan, `log.records` is 30 and `surfaces.statusLine.records` is 25. The session knows 30; the
+person is being shown 25; the gate is working correctly. Before this, no reader of the snapshot or of `context`
+could tell those apart — which is the claim above, pinned as a test rather than asserted in prose.
+
+**Step 2 as written was wrong.** `context`'s identity has three branches, and the first is not a duplicate of the
+banner's: when Follow is off it *observes the file at this request* (D-E6), which is a fresher fact than the
+verdict the banner holds, and it carries `readsSuspended`, which the view does not. Retiring it would lose a real
+answer. The honest version of step 2 is narrower: **branches 2 and 3 are candidates; branch 1 is a separate
+question the session does not currently answer.** `surfaces.identityBanner` now sits beside `log.identity`, and
+the two disagreeing is itself informative — an agent can see that what the session freshly observed is not what
+the screen is showing.
+
+That comparison is deliberately **not** computed in `context`. A divergence note assembled there would be exactly
+the second composition site this argues against; if it is worth stating, a node should state it.
+
 ## Suggested order
 
-1. **Publish the two existing views in the snapshot and `context`** — no new nodes, and it proves the readable
-   half works.
-2. **Retire `context`'s hand-composed identity branches** in favour of the published view: the first case of
-   `context` as projection.
+1. ~~**Publish the two existing views in the snapshot and `context`**~~ — done; see above.
+2. **Fold `context`'s branches 2–3 into the published view**, and decide separately whether "observed at this
+   request" belongs in the session as a fact rather than a read performed by the context verb.
 3. **The `showing N of M` + filter core**, as the first readable-only element.
 4. **Measure the audit's signal-to-noise**, not just its volume, before going further.
 5. **Charts last, and with #53**: a `ChartView` alone would not have caught any of the five drawn-layer questions

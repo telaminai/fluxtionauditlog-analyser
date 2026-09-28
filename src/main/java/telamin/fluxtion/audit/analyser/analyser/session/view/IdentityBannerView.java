@@ -35,10 +35,27 @@ public record IdentityBannerView(long generation, String verdict, String reason,
     /** The fields that differ from {@code previous} — what the audit records about a render. */
     public Map<String, Object> changedFrom(IdentityBannerView previous) {
         Map<String, Object> changed = new LinkedHashMap<>();
-        if (previous == null || previous.generation != generation) changed.put("generation", generation);
-        if (previous == null || !Objects.equals(previous.verdict, verdict)) changed.put("verdict", verdict);
-        if (previous == null || !Objects.equals(previous.reason, reason)) changed.put("reason", reason);
-        if (previous == null || previous.shown != shown) changed.put("shown", shown);
+        Map<String, Object> now = fields();
+        Map<String, Object> before = previous == null ? Map.of() : previous.fields();
+        now.forEach((k, v) -> {
+            if (previous == null || !Objects.equals(v, before.get(k))) changed.put(k, v);
+        });
         return changed;
+    }
+
+    /**
+     * Every field by name — the order is the record's. Nulls are kept, so a cleared field shows as a change.
+     *
+     * <p>Two readers: the audit's field diff, and {@code context}'s {@code surfaces} section. Both must describe
+     * the same view with the same names, or an agent reading the log and an agent reading the context would be
+     * comparing different vocabularies for one statement.
+     */
+    public Map<String, Object> fields() {
+        Map<String, Object> f = new LinkedHashMap<>();
+        f.put("generation", generation);
+        f.put("verdict", verdict);
+        f.put("reason", reason);
+        f.put("shown", shown);
+        return f;
     }
 }

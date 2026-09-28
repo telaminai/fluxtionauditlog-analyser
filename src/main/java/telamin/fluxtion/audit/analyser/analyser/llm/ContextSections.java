@@ -42,6 +42,10 @@ public final class ContextSections {
         s.put("charts", List.of("graphs", "graphAddresses", "graphAddressUnavailable", "graphScopes", "savedGraphs"));
         s.put("menus", List.of("menus", "menuChanges"));
         s.put("design", List.of("design", "restoration", "designSpotlights"));
+        // What the SURFACES were last told to state, as opposed to what the session knows (readable-surfaces
+        // proposal). Its own section because it answers its own question — "is the person being shown this?" —
+        // and because a caller asking for "log" wants the facts, not a second copy of them worded as a screen.
+        s.put("surfaces", List.of("surfaces"));
         s.put("handoff", List.of("handoff"));
         SECTIONS = java.util.Collections.unmodifiableMap(s);
     }

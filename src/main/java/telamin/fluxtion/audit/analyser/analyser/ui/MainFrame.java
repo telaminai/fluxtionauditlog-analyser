@@ -6852,6 +6852,18 @@ public final class MainFrame extends JFrame {
                 log.put("streamEnd", streamEndFacts(store.streamEnd(), store.size()));
             }
             if (!log.isEmpty()) out.put("log", log);
+            // readable-surfaces: what the SURFACES were last told to state. A projection of the session's view
+            // models, not a second assembly — every value here is the record the backends were handed, by the
+            // names the audit log uses for the same render. The keys above say what the session KNOWS; these say
+            // what a person looking at the screen is being SHOWN, and the two can differ (the status line's
+            // consistency gates hold a view back; a VERIFIED banner is not drawn at all).
+            if (need.test("surfaces")) {
+                var snap = sessionSnapshot();
+                Map<String, Object> surfaces = new java.util.LinkedHashMap<>();
+                if (snap.statusLine() != null) surfaces.put("statusLine", snap.statusLine().fields());
+                if (snap.identityBanner() != null) surfaces.put("identityBanner", snap.identityBanner().fields());
+                if (!surfaces.isEmpty()) out.put("surfaces", surfaces);
+            }
             // §E: absent means absent. No key at all rather than a null an agent might read as ""
             if (logProvenance() != null) out.put("provenance", logProvenance());
             if (logProvenanceSource() != null) out.put("provenanceSource", logProvenanceSource());   // M38.3: declared, never inferred — and by whom

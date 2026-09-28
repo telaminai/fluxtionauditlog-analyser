@@ -61,7 +61,10 @@ class OneDispatchModelTest {
                     "private void scanLogEvidence("),
             // witness: compose the Follow line in pollFollow again (the W2 defect: a second assembly). View-model spike:
             // the composer is now a pure function of the session's StatusLineView, called by the backends
-            new OnlyIn("the log's status line is composed", Pattern.compile("(?<!String )\\bstatusLine\\("),
+            // readable-surfaces: `.statusLine()` on the snapshot is a READ of the view the session published, and
+            // context publishes it verbatim. The rule is about composing the line a second time, so the lookbehind
+            // excludes a call on a receiver; a bare `statusLine(` composer call is still caught.
+            new OnlyIn("the log's status line is composed", Pattern.compile("(?<!String )(?<!\\.)\\bstatusLine\\("),
                     "static String statusLineText("),
             // witness: restore the tooltip set in the load path
             new OnlyIn("the log's findings tooltip is set",

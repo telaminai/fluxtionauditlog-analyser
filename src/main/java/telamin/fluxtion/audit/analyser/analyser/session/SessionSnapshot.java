@@ -22,6 +22,11 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  * @param qualifications what wider comparisons say about {@code pairing}, or null — an independent, READ-ONLY copy
  *                       (M44.4c; independent review R4)
  * @param filterKey      the view filter in force, by identity, so a comparison made under another reads as stale
+ * @param statusLine     what the status line was last TOLD to state, or null before the first render — not what the
+ *                       session knows now. The two differ while the status line's consistency gates hold a view back,
+ *                       and that difference is the point: this field says what a reader is being shown.
+ * @param identityBanner what the file-identity banner was last told to state, or null. {@code shown=false} means the
+ *                       session decided no banner belongs on screen, which is not the same as having no verdict.
  * @param logIdentity    M68.5: Follow's verdict about the log FILE ({@code VERIFIED}/{@code UNVERIFIED}/{@code REPLACEMENT}),
  *                       {@code REOPENED} after a replacement, or null before Follow has polled
  */
@@ -30,6 +35,8 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                               GraphPairing pairing, CoveragePolicy.Assessment claim, boolean pending,
                               PairingQualifications qualifications, String filterKey,
                               String logIdentity, String logIdentityReason,
+                              telamin.fluxtion.audit.analyser.analyser.session.view.StatusLineView statusLine,
+                              telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView identityBanner,
                               telamin.fluxtion.audit.analyser.analyser.parse.ProducerDiagnostics producerFindings,
                               telamin.fluxtion.audit.analyser.analyser.parse.TimeOrderReport timeOrder,
                               String provenance, String provenanceSource, boolean following,
@@ -47,6 +54,7 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
     /** Before the first operation: nothing is open and nothing may be claimed. */
     public static final SessionSnapshot EMPTY =
             new SessionSnapshot(false, null, 0, 0, 0, false, null, null, 0, null, null, false, null, null, null, null,
+                    null, null,                      // statusLine, identityBanner: nothing has been stated yet
                     null, null, null, null, false, null, null, false);
 
     static SessionSnapshot of(SessionProcessor p) {
@@ -57,6 +65,9 @@ public record SessionSnapshot(boolean logOpen, String logPath, long logGeneratio
                 p.operationGate.inFlightWhat() != null,
                 p.pairingQualifier.qualifications(), p.pairingQualifier.filterKey(),
                 p.openLog.identity(), p.openLog.identityReason(),
+                // the view-model elements publish what they last TOLD their backends; a surface that has not been
+                // told is null here, and a reader can tell that from a surface told something stale
+                p.statusLineView.view(), p.identityBannerView.view(),
                 // M44.5: the log's own derived state, owned by logEvidence and openLog — every surface renders these
                 p.logEvidence.findings(), p.logEvidence.timeOrder(),
                 p.openLog.provenance(), p.openLog.provenanceSource(), p.openLog.following(),
