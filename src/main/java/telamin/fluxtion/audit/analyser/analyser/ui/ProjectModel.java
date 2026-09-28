@@ -74,7 +74,7 @@ public record ProjectModel(List<Section> sections) {
             "processors.class", "processors.selected", "processors.source", "processors.from",
             "source.rootTiers.path", "source.rootTiers.tier",
             "exports.enabled", "exports.dir", "exports.source", "exports.refused",
-            "reports.name", "reports.title", "reports.sections", "reports.from",
+            "reports.name", "reports.title", "reports.sections", "reports.from", "walks.saved", "walks.showing",
             "runbooks.name", "runbooks.path", "runbooks.description", "runbooks.resolved", "runbooks.exists", "runbooks.from",
             "runbooks.problem", "vocabulary.problem",
             "vocabulary.path", "vocabulary.resolved", "vocabulary.exists", "vocabulary.from",
@@ -422,6 +422,16 @@ public record ProjectModel(List<Section> sections) {
         if (reps.isEmpty()) {
             rows.add(new Row("No saved reports", "Reports tab ▸ New report, or report {…} from the socket",
                     null, null, Tone.MUTED, Target.REPORTS));
+        }
+        // M69 (spec-spotlight-walks.md §3.10): a walk count beside the reports — the list itself is in the Reports tab
+        if (ctx.get("walks") instanceof Map<?, ?> walks) {
+            int n = list(walks.get("saved")).size();
+            String detail = "Reports tab ▸ Spotlight walks";
+            if (walks.get("showing") instanceof Map<?, ?> showing) {
+                detail += " · showing \"" + showing.get("walk") + "\", step " + showing.get("step") + " of " + showing.get("of");
+            }
+            rows.add(new Row(n + " spotlight walk" + (n == 1 ? "" : "s"), detail, null, null,
+                    n == 0 ? Tone.MUTED : Tone.NORMAL, Target.REPORTS));
         }
         // M38.5: where reports are published — a place the publisher acts on; the analyser only states it.
         // Copy gives the location; Show only for a directory that exists on this machine.

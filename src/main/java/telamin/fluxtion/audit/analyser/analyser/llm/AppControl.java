@@ -195,6 +195,11 @@ public interface AppControl {
      * section to CSV, or render the report to PDF — {@code resolvedPath} is non-null only when the
      * caller already passed the path through the export guard. Default: not supported.
      */
+    /** M69: the {@code walk} verb — save, delete, rename, restore, play or end a spotlight walk. */
+    default ActionResult walk(java.util.Map<String, Object> params) {
+        return ActionResult.error("'walk' is not enabled here");
+    }
+
     default ActionResult report(java.util.Map<String, Object> params, String resolvedPath) {
         return ActionResult.error("'report' sections are not enabled here");
     }

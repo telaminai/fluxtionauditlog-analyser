@@ -157,6 +157,7 @@ public final class MainFrame extends JFrame {
     public MainFrame() {
         super("Fluxtion Audit Log Analyser");
         this.config = configStore.load();
+        walksLastReported = java.util.List.copyOf(config.walks);   // the bulk diff starts from what is loaded, not from nothing
         // M20 — the session is built FIRST so it can snapshot the user's own settings before the
         // project overwrites them; then it applies the active project over the project-scoped
         // categories. A moved repository clears the pointer and says so; startup never fails on it.
@@ -2266,6 +2267,60 @@ public final class MainFrame extends JFrame {
      */
     private final SpotlightOverlay spotlight = new SpotlightOverlay(this::spotlightDismissed);
 
+    /** M69: true while the walk lights or clears its OWN spotlight, so that is not reported as the walk ending. */
+    private boolean walkOwnSpotlight;
+
+    /** M69: performs what walkPlayback asks; decides nothing (spec-spotlight-walks.md §3.8). */
+    private final WalkPresenter walkPresenter = new WalkPresenter(new WalkPresenter.Frame() {
+        @Override public telamin.fluxtion.audit.analyser.analyser.config.AppConfig config() { return config; }
+        @Override public LogStore store() { return store; }
+        @Override public telamin.fluxtion.audit.analyser.analyser.filter.FilterState filter() { return filter; }
+        @Override public GraphTabs graphs() { return graphTabs; }
+        @Override public TopologyPanel topology() { return topologyPanel; }
+        @Override public void selectTab(String tab) { selectSideTab(tab); if (sideTabs != null) sideTabs.validate(); }
+        @Override public boolean selectRecord(int modelRow) { return tablePanel.selectModelRow(modelRow); }
+        @Override public boolean recordSelected(int modelRow) {
+            int[] rows = tablePanel.selectedModelRows();
+            return rows.length == 1 && rows[0] == modelRow;
+        }
+        @Override public java.util.List<String> runBasisNow() {
+            return walkRunBasisNow();
+        }
+        @Override public SpotlightTarget.Resolution resolve(String target) {
+            return SpotlightTarget.resolve(target, spotlightSurface);
+        }
+        @Override public WalkPresenter.LitResult light(java.util.List<WalkPresenter.Numbered> numbered) {
+            java.util.List<Map<String, Object>> targets = new java.util.ArrayList<>();
+            Map<String, Integer> numbers = new java.util.LinkedHashMap<>();
+            for (WalkPresenter.Numbered nr : numbered) {
+                SpotlightTarget.Request r = nr.request();
+                numbers.put(r.target(), nr.n());
+                Map<String, Object> one = new java.util.LinkedHashMap<>();
+                one.put("target", r.target());
+                if (r.caption() != null && !r.caption().isBlank()) one.put("caption", r.caption());
+                targets.add(one);
+            }
+            walkOwnSpotlight = true;
+            try {
+                var result = applySpotlight(Map.of("targets", targets));
+                if (result.ok()) spotlight.renumber(numbers);   // review PR57 R3: the session's numbers, not positions
+                return result.ok() ? new WalkPresenter.LitResult(spotlight.lit().size(), "")
+                        : new WalkPresenter.LitResult(0, result.error());
+            } finally {
+                walkOwnSpotlight = false;
+            }
+        }
+        @Override public void clearWalkSpotlight() {
+            walkOwnSpotlight = true;
+            try {
+                clearSpotlightHere();
+            } finally {
+                walkOwnSpotlight = false;
+            }
+        }
+        @Override public void post(Object fact) { if (session != null) session().post(fact); }
+    });
+
     private long javaSpotlightTicket;
     // Below McpBridge.CALL_TIMEOUT (60s). Package tests shorten this duration, never the transport.
     private java.time.Duration javaSourcePreparationTimeout = java.time.Duration.ofSeconds(10);
@@ -2282,10 +2337,242 @@ public final class MainFrame extends JFrame {
     private final Map<String, JavaBinding> javaSpotlightBindings = new java.util.LinkedHashMap<>();
 
     private void spotlightDismissed() {
+        // M69: a spotlight going out ends a showing walk — unless it is the walk's OWN light or clear (its presentation
+        // origin, §3.4). This reports; walkPlayback decides. Asked only while a walk shows, so an ordinary spotlight's
+        // dismissal writes nothing to the session.
+        if (!walkOwnSpotlight && session != null && sessionSnapshot().walkPlayback().showing()) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested(
+                    "the spotlight went out (a click, Escape, or a view change from outside the walk)"));
+        }
         if (!applyingJavaSpotlight) javaSpotlightTicket++;
         javaSpotlightBindings.clear();
         designSpotlightRevisions.clear();
     }
+    // ---- M69 spotlight walks: the strip and the save menu are surfaces; walkPlayback decides ------------------
+
+    /** A strip press, reported as the fact it is. "Open chart" is the person's own act, then the step re-prepares. */
+    private void walkStripPressed(SpotlightOverlay.StripControl control) {
+        if (session == null) return;
+        switch (control) {
+            case BACK -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(-1));
+            case NEXT -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(1));
+            case END -> session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested("closed from the strip"));
+            case ACTION -> {
+                String chart = closedChartOfShowingStep();
+                var spec = chart == null ? null : config.savedGraphs.stream().filter(g -> g.name().equals(chart)).findFirst().orElse(null);
+                if (spec != null && graphTabs.openSaved(spec)) session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(0));
+            }
+        }
+    }
+
+    /** The chart the showing step selects when it is saved but closed — the strip offers to open it. */
+    private String closedChartOfShowingStep() {
+        var state = sessionSnapshot().walkPlayback();
+        if (!state.showing()) return null;
+        var walk = state.definition();                  // review PR57 R6: the frozen version being shown, not config
+        if (walk == null || state.step() >= walk.steps().size()) return null;
+        String chart = walk.steps().get(state.step()).view().graph();
+        return chart != null && graphTabs.graphNamed(chart) == null && graphTabs.hasDefinition(chart) ? chart : null;
+    }
+
+    /** Render the strip from the snapshot: a surface, deciding nothing. */
+    private void renderWalkStrip(telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState state) {
+        if (!state.showing()) {
+            spotlight.setStrip(null);
+            return;
+        }
+        var walk = state.definition();
+        String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + walk.authorLabel());
+        String phase = switch (state.phase()) {
+            case "PREPARING" -> "preparing…";
+            case "SHOWN" -> "shown";
+            case "PARTLY_SHOWN" -> "partly shown (" + state.targets().stream().filter(t -> t.available()).count()
+                    + " of " + state.targets().size() + ")";
+            case "NOT_SHOWN" -> "not shown";
+            default -> state.phase().toLowerCase(java.util.Locale.ROOT);
+        };
+        java.util.List<String> reasons = new java.util.ArrayList<>();
+        for (var t : state.targets()) {
+            if (!t.available()) reasons.add(t.n() + ": " + t.reason());
+            else if (!"CURRENT".equals(t.state())) reasons.add(t.n() + ": " + t.state().toLowerCase(java.util.Locale.ROOT) + " — " + t.reason());
+        }
+        if (!state.reason().isBlank()) reasons.add(0, state.reason());
+        String action = closedChartOfShowingStep() == null ? null : "Open chart";
+        spotlight.setStrip(new SpotlightOverlay.Strip(title, "step " + (state.step() + 1) + " of " + state.count(), phase,
+                reasons, state.step() > 0, state.step() < state.count() - 1, action));
+    }
+
+    /** The right-click save menu (owner: "right click while in spotlight gives a popup menu for save"). */
+    private void showWalkSaveMenu(java.awt.event.MouseEvent e) {
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        boolean lit = spotlight.isLit();
+        javax.swing.JMenuItem saveNew = new javax.swing.JMenuItem("Save as new walk…");
+        saveNew.setEnabled(lit);
+        saveNew.addActionListener(a -> saveWalkFromSpotlight(null, -1));
+        menu.add(saveNew);
+        javax.swing.JMenu addTo = new javax.swing.JMenu("Add to walk");
+        for (var w : config.walks) {
+            javax.swing.JMenuItem item = new javax.swing.JMenuItem(w.displayTitle());
+            item.addActionListener(a -> saveWalkFromSpotlight(w.name(), -1));
+            addTo.add(item);
+        }
+        addTo.setEnabled(lit && !config.walks.isEmpty());
+        menu.add(addTo);
+        var state = session == null ? null : sessionSnapshot().walkPlayback();
+        if (state != null && state.showing()) {
+            javax.swing.JMenuItem replace = new javax.swing.JMenuItem("Replace this step");
+            replace.setEnabled(lit);
+            replace.addActionListener(a -> saveWalkFromSpotlight(state.walk(), state.step()));
+            menu.add(replace);
+        }
+        menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent ev) { }
+            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent ev) {
+                // its own dismissal wins: the press that closed it must not also end the walk or put the spotlight out
+                spotlight.swallowPressesUntil(java.awt.EventQueue.getMostRecentEventTime());
+            }
+            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent ev) { }
+        });
+        lastWalkMenu = menu;
+        menu.show(spotlight, e.getX(), e.getY());
+    }
+
+    /** For tests: the save menu last shown. */
+    javax.swing.JPopupMenu lastWalkMenu;
+
+    /**
+     * Asks the person for a new walk's name (null = cancelled). Replaceable so a test can answer it: the real one is a
+     * modal input dialog, which cannot be driven from a test, as GraphTabs' delete confirmation already found.
+     */
+    java.util.function.Function<String, String> walkNamePrompt = note -> {
+        Object name = JOptionPane.showInputDialog(this, "Name for the new walk:" + note, "Save as new walk",
+                JOptionPane.PLAIN_MESSAGE, null, null, "");
+        return name == null ? null : name.toString();
+    };
+
+    /**
+     * Play a saved walk from {@code step} (0-based; -1 = where it was last left). The entrance the Reports tab and the
+     * {@code walk} verb share: it reports the request, with the step count read from config, and walkPlayback decides.
+     * Returns null, or why the request could not be made.
+     */
+    String playWalk(String name, int step, String origin) {
+        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, name);
+        if (walk == null) return "no walk called '" + name + "' — walks: " + config.walks.stream().map(w -> w.name()).toList();
+        if (session == null) return "the session is not running";
+        // request 0: the strip shows what the session decided; nothing here awaits an answer
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(0, walk, step, origin));
+        return null;
+    }
+
+    /**
+     * Save what the spotlight shows now: as a new walk ({@code walk} null), appended to {@code walk}, or replacing its
+     * step {@code replaceStep}. What cannot be saved is named before anything is stored.
+     */
+    private void saveWalkFromSpotlight(String walk, int replaceStep) {
+        WalkAuthoring.Capture capture = walkAuthoring.capture();
+        String note = capture.notSaved().isEmpty() ? "" : "\n\nNot saved in this step: " + String.join("; ", capture.notSaved());
+        String error;
+        if (walk == null) {
+            String name = walkNamePrompt.apply(note);
+            if (name == null) return;
+            error = walkAuthoring.save(name.toString(), "", java.util.List.of(capture.step()),
+                    telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.AUTHOR_PERSON, capture.generation());
+        } else if (replaceStep >= 0) {
+            error = walkAuthoring.replace(walk, replaceStep, capture);
+        } else {
+            error = walkAuthoring.append(walk, capture);
+        }
+        if (error != null) {
+            JOptionPane.showMessageDialog(this, error, "Walk not saved", JOptionPane.WARNING_MESSAGE);
+        } else if (!note.isEmpty() && walk != null) {
+            JOptionPane.showMessageDialog(this, "Saved." + note, "Walk saved", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    /** M69: the one save path — the menu here and the {@code walk} verb both use it. */
+    private final WalkAuthoring walkAuthoring = new WalkAuthoring(new WalkAuthoring.Frame() {
+        @Override public telamin.fluxtion.audit.analyser.analyser.config.AppConfig config() { return config; }
+        @Override public LogStore store() { return store; }
+        @Override public telamin.fluxtion.audit.analyser.analyser.filter.FilterState filter() { return filter; }
+        @Override public GraphTabs graphs() { return graphTabs; }
+        @Override public TopologyPanel topology() { return topologyPanel; }
+        @Override public String selectedTabWord() {
+            if (sideTabs == null || sideTabs.getSelectedIndex() < 0) return null;
+            String title = sideTabs.getTitleAt(sideTabs.getSelectedIndex());
+            for (String word : SpotlightTarget.TABS) if (sideTabTitle(word).equals(title)) return word;
+            return null;
+        }
+        @Override public int selectedRecord() {
+            int[] rows = tablePanel.selectedModelRows();
+            return rows.length == 1 ? rows[0] : -1;
+        }
+        @Override public java.util.List<SpotlightOverlay.Lit> lit() { return spotlight.lit(); }
+        @Override public java.util.List<String> runBasisNow() { return walkRunBasisNow(); }
+        @Override public telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint fingerprint() {
+            return store == null ? null : telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
+                    store.index(), loadedLogName(), logProvenance(), logProvenanceSource());
+        }
+        @Override public long generation() { return session == null ? -1 : sessionSnapshot().logGeneration(); }
+        @Override public void persist() { persistWalks(); }
+        @Override public void post(Object fact) { if (session != null) session().post(fact); }
+        @Override public String sessionIdentity() { return session == null ? null : sessionSnapshot().logIdentity(); }
+    });
+
+    /** M69: the walks were edited — store them through the profile's edit funnel, as putReport does. */
+    private void persistWalks() {
+        // fix review, finding 1: every non-bulk mutation (the verb, the right-click save, the Reports tab) passes
+        // through here and has already reported itself. The bulk diff's baseline must move with it, or a later import
+        // that restores an older definition diffs equal against a stale baseline and reports nothing.
+        walksLastReported = java.util.List.copyOf(config.walks);
+        onGraphsEdited();
+        if (reportsPanel != null) reportsPanel.refresh();
+        if (walksPanel != null) walksPanel.refresh();
+    }
+
+    /** M69 S4: the Reports tab's walk list. */
+    WalksPanel walksPanel;
+
+    /**
+     * Review PR57 R6 (second round): report to the session every walk a BULK path changed. The verb reports its own
+     * mutations; a Settings import and a project transition replace the list wholesale, and used to tell the session
+     * nothing — so a walk being shown from a definition that had just been replaced or removed carried on.
+     * This reports; {@link telamin.fluxtion.audit.analyser.analyser.session.node.WalkPlayback} decides.
+     */
+    private java.util.List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walksLastReported = java.util.List.of();
+
+    private void reportWalkChanges() {
+        var before = walksLastReported;
+        walksLastReported = java.util.List.copyOf(config.walks);
+        if (session == null) return;
+        for (var c : telamin.fluxtion.audit.analyser.analyser.walk.WalkChanges.between(before, walksLastReported)) {
+            session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkDefinitionChanged(
+                    c.name(), c.now(), null));
+        }
+    }
+
+    /** M69 §3.5: the run basis — the read identity's file digests for what is loaded now. */
+    private java.util.List<String> walkRunBasisNow() {
+        // review PR57 R1: the opening file digests PLUS the session's current record count, so a Follow append —
+        // which the opening digests do not see — moves the run a chart describes
+        return telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity.runBasisOf(
+                loadedLogIdentity.stream().map(i -> i.sha256()).toList(),
+                session == null ? store == null ? 0 : store.size() : sessionSnapshot().total());
+    }
+
+    /** M69 S4: the {@code walk} verb, through the save path above and the session for play and end. */
+    private final WalkVerb walkVerb = new WalkVerb(new WalkVerb.Frame() {
+        @Override public telamin.fluxtion.audit.analyser.analyser.config.AppConfig config() { return config; }
+        @Override public WalkAuthoring authoring() { return walkAuthoring; }
+        @Override public boolean logOpen() { return store != null; }
+        @Override public java.util.List<String> runBasisNow() { return walkRunBasisNow(); }
+        @Override public void persist() { persistWalks(); }
+        @Override public void post(Object fact) { if (session != null) session().post(fact); }
+        @Override public telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState state() {
+            return session == null ? telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.IDLE
+                    : sessionSnapshot().walkPlayback();
+        }
+    });
+
     private void sourceViewportChanged() {
         if (applyingJavaSpotlight) return;
         if (sourceRemeasureQueued) return;
@@ -2393,6 +2680,9 @@ public final class MainFrame extends JFrame {
             }
         });
         spotlight.setOnPressed(this::spotlightPressed);   // M64.11: a press on a lit menu item chooses it
+        // M69: the strip's presses and a right-click are REPORTED; walkPlayback decides what they mean
+        spotlight.setOnStrip(this::walkStripPressed);
+        spotlight.setOnPopup(this::showWalkSaveMenu);
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent e) {
                 if (!applyingJavaSpotlight) relightSpotlight();
@@ -3149,6 +3439,11 @@ public final class MainFrame extends JFrame {
                 this::renameReport);
         reportsPanel.setLogFindings(() -> store == null ? null : sessionSnapshot().producerFindings());   // D-MA0c
         reportsPanel.setRestore(this::restorableReports, this::restoreReport);   // PR #33: a delete is recoverable
+        walksPanel = new WalksPanel(() -> java.util.List.copyOf(config.walks),
+                params -> walkVerb.run(params, WalkVerb.ORIGIN_REPORTS_TAB),
+                () -> telamin.fluxtion.audit.analyser.analyser.config.WalkBin.restorable(config));
+        reportsPanel.addWalks(walksPanel);
+        walksPanel.refresh();
         sideTabs.addTab("Reports", reportsPanel);
         reportsPanel.refresh();
         sideTabs.addTab("Analyser assistant", llmPanel);
@@ -4593,6 +4888,8 @@ public final class MainFrame extends JFrame {
         graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));
         detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));
         renderFollow(next);                      // M44.5: Follow's controls and its poll timer
+        renderWalkStrip(next.walkPlayback());    // M69: the walk's strip, as walkPlayback decided it
+        if (walksPanel != null) walksPanel.render(next.walkPlayback());
         renderLogEvidence(next);                 // M44.5: the log's line, tooltip, Reports tab and time-order report
     }
 
@@ -5029,6 +5326,7 @@ public final class MainFrame extends JFrame {
         topologyPanel.revalidateEmbeddedSource();
         searchField.setHistory(config.searchHistory);   // reflect cleared/updated history
         if (reportsPanel != null) reportsPanel.refresh();   // reports are project-tier state too
+        if (walksPanel != null) walksPanel.refresh();       // M69: and walks, stored like them
         rebuildRecentMenu();
         applyRestServer();   // honour a change to the REST toggle
         saveConfigQuietly();
@@ -5142,6 +5440,7 @@ public final class MainFrame extends JFrame {
         // Incoming definitions must reach the views before a save can snapshot the old tabs over them.
         if (store != null) restoreGraphDefinitions(List.copyOf(config.savedGraphs));
         tablePanel.setVisibleColumns(new java.util.HashSet<>(config.hiddenColumns));
+        reportWalkChanges();   // review PR57 R6: an import replaces walks by name, and the session must be told
         onConfigChanged();
     }
 
@@ -5564,6 +5863,7 @@ public final class MainFrame extends JFrame {
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyProfileEffect e -> {
                 handoff.clear();       // M48.7: a project transition is a session boundary; what was placed was the last one's
                 applyProjectSettings();
+                reportWalkChanges();      // review PR57 R6: a project's walks are that project's
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ProfileApplied(
                         opId, e.profilePath(), e.name());
             }
@@ -5571,6 +5871,7 @@ public final class MainFrame extends JFrame {
                 project.close();
                 handoff.clear();       // M48.7: leaving a project ends the session the handoff belonged to
                 applyProjectSettings();
+                reportWalkChanges();
                 yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.SettingsRestored(opId);
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CloseLogEffect e -> {
@@ -5597,6 +5898,13 @@ public final class MainFrame extends JFrame {
                 sessionInteractive = !e.fromSocket();
                 yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
             }
+            // M69: walk playback — the node decided; the presenter performs and answers
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyWalkViewEffect e -> {
+                yield walkPresenter.applyView(e);      // it clears the previous step's light only once the view is valid
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.LightWalkTargetsEffect e -> walkPresenter.light(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ResolveWalkTargetsEffect e -> walkPresenter.resolveAgain(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.EndWalkEffect e -> walkPresenter.end(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ScanLogEvidenceEffect e -> {
                 // M44.5: the processor decided the log's evidence is stale. The scan never runs inside the dispatch, and
                 // only against the store of the generation it names: see scanWhenInstalled.
@@ -6695,6 +7003,11 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult walk(java.util.Map<String, Object> params) {
+            return walkVerb.run(params);
+        }
+
+        @Override
 
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths) {
             return openLogs(paths, null);
@@ -7044,6 +7357,13 @@ public final class MainFrame extends JFrame {
                     reps.add(one);
                 }
                 if (!reps.isEmpty()) out.put("reports", reps);
+                // M69 S4: the walks, and the showing step's target states — the ones the strip shows
+                var walks = WalkVerb.context(config, session == null
+                                ? telamin.fluxtion.audit.analyser.analyser.session.WalkPlaybackState.IDLE
+                                : sessionSnapshot().walkPlayback(), store != null,
+                        walkRunBasisNow(),
+                        project.hasProject() ? "project" : "own settings");
+                if (walks != null) out.put("walks", walks);
             }
             if (store != null) {
                 if (pendingRolledSetOffer != null) {

@@ -11,6 +11,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
@@ -176,6 +177,17 @@ public final class ReportsPanel extends JPanel {
         categories.addTab("Investigation reports", split);
         categories.addTab("Producer findings", producerFindings);
         add(categories, BorderLayout.CENTER);
+    }
+
+    /** M69 S4: the Spotlight walks list, as a category beside the reports it is stored like. */
+    void addWalks(JComponent walks) {
+        categories.insertTab("Spotlight walks", null, walks, "Saved walks you step through with ◀ ▶ on the spotlight", 1);
+    }
+
+    /** Show the Spotlight walks category. */
+    void showWalks() {
+        int i = categories.indexOfTab("Spotlight walks");
+        if (i >= 0) categories.setSelectedIndex(i);
     }
 
     public void producerResult(telamin.fluxtion.audit.analyser.analyser.design.ProducerResult result,

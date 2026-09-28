@@ -1,0 +1,2 @@
+Original head + new regression only: {'tests': '1', 'failures': '1', 'errors': '0', 'skipped': '0'}
+equal text must not certify a different or unknown record representation: DEMO-other-representation ==> expected: <UNRESOLVED> but was: <CURRENT>

@@ -6,6 +6,48 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **Spotlight walks — an explanation you can replay.** A walk is a named sequence of spotlight steps, saved in the
+  project like a report, that you step through on the analyser itself with **◀ ▶** (or the ← → keys) on a strip on
+  the spotlight — later, by someone else, with no assistant connected. **Right-click** a spotlight to *Save as new
+  walk…*, *Add to walk*, or during a walk *Replace this step*; the right-click keeps the spotlight on. Or ask the
+  assistant: the new **`walk`** verb (the seventeenth) saves, plays, ends, renames, deletes and restores walks, one
+  operation per call. The Reports tab has a **Spotlight walks** list with Play, Play from step…, Rename, Delete and
+  Restore deleted…; the Project panel counts them; `context.walks` reports each walk and the showing step's targets.
+  Each step restores its tab, filter, record, open chart and saved focus without editing any of them, and every
+  record, chart and graph node it points at is bound to what it was saved against: played against another run, a
+  changed record is shown as not available instead of being lit somewhere else, and a callout is marked
+  *(historical)* or *(unresolved)* when it no longer describes what is under it. A click elsewhere, or a change of
+  view you make, ends a walk; *Play from step…* resumes it. Settings export now shares "Investigation reports and
+  spotlight walks".
+  A walk never claims more than it can show:
+  - when the log's file changes after it was read, the walk's record targets are *unresolved* and go out;
+  - a step whose record its own filter hides is *not shown*;
+  - a step that names a record outside the log is refused whole, and the previous step stays on screen;
+  - a step without a filter resets to the defaults, not to whatever you had selected;
+  - each callout carries the number the strip states;
+  - a step that points at the topology canvas is *not shown* when the record it names is not the one selected —
+    the canvas follows the selection, so lighting it would point at a different record;
+  - importing settings over a playing walk ends it with the reason, exactly as saving over it does, and switching
+    project away from it ends it too;
+  - on a log whose file has never been re-checked (no Follow, or a reader that cannot say), a step resting on
+    records or charts says so, because *current* there means unchanged since the step was saved, not unchanged on
+    disk.
+
+  Changing a walk while it plays ends it with the reason, and renaming it keeps it playing. Adding to a walk whose
+  chart steps were saved against another run is refused rather than silently moving those charts to this run.
+
+### Fixed
+
+- Spotlight walks refuse to light a saved record when its raw-text representation is unknown or differs,
+  even when the text digest matches.
+
+- **A cleared topology no longer leaves its file's digest behind.** The topology panel's graph digest survived *Close
+  graph* and a graph supplied by the log's source, so session recovery could record the previous graph's digest
+  beside a different graph. The digest now belongs to the graph on screen, and is absent when none has an established
+  identity.
+
 ## [1.25.0] - 2026-09-27
 
 ### Added

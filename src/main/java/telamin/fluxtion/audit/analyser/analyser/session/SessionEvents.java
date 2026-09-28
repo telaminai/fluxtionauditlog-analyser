@@ -298,4 +298,68 @@ public final class SessionEvents {
     /** M44.5: Follow was switched on or off for the open log — state the status line is composed from. */
     public record FollowToggled(long generation, boolean on) {
     }
+
+    // ---------------------------------------------------------------- M69 spotlight walks
+    //
+    // Playback is the walkPlayback node's (the M69 walk spec, §3.8; owner 2026-09-27): these facts are what the
+    // person, the agent and the adapter REPORT; every transition and every decision about them is the node's.
+
+    /** One target of a showing step, as the adapter resolved it and the node publishes it. */
+    public record WalkTargetState(int n, String target, String caption, String state, boolean available, String reason) {
+        public WalkTargetState {
+            caption = caption == null ? "" : caption;
+            state = state == null ? "UNRESOLVED" : state;
+            reason = reason == null ? "" : reason;
+        }
+    }
+
+    /**
+     * Play a saved walk. {@code step} is 0-based; {@code -1} means "from the step last shown" (Play from step N).
+     * Review PR57 R6: the fact carries the DEFINITION, which the node holds frozen while it shows it, so no effect ever
+     * reads a step from mutable configuration.
+     * Review PR57 R7: {@code request} identifies THIS request; the node publishes its answer to it
+     * ({@link WalkPlaybackState#answer()}), so a caller never infers acceptance from whatever happens to be showing.
+     * {@code 0} means the caller does not await an answer.
+     */
+    public record WalkPlayRequested(long request, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step, String origin) {
+    }
+
+    /**
+     * Review PR57 R6: a walk definition changed — saved (created or replaced), deleted ({@code now} null), or renamed
+     * ({@code renamedTo}). Posted by the adapter on EVERY such change, deciding nothing: whether a showing walk ends
+     * or keeps its frozen version is the node's decision.
+     */
+    public record WalkDefinitionChanged(String name, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec now, String renamedTo) {
+    }
+
+    /** ◀ ▶ or ← →: move by {@code delta} steps. */
+    public record WalkNavigated(int delta) {
+    }
+
+    /** Esc, ✕, a press outside the strip, or a view change from outside the walk. */
+    public record WalkEndRequested(String reason) {
+    }
+
+    /**
+     * The adapter prepared the step it was asked for (§3.4) — view applied, charts ready or timed out, every target
+     * resolved against what is on screen now. Refused when its ticket or generation is not the node's current one.
+     */
+    public record WalkStepPrepared(long ticket, long generation, java.util.List<WalkTargetState> targets, String note) {
+        public WalkStepPrepared {
+            targets = java.util.List.copyOf(targets == null ? java.util.List.of() : targets);
+            note = note == null ? "" : note;
+        }
+    }
+
+    /** Answer to {@link SessionEffects.ApplyWalkViewEffect}: the view was validated and applied, or refused whole. */
+    public record WalkViewApplied(long opId, long ticket, boolean ok, String reason) implements Result {
+    }
+
+    /** Answer to {@link SessionEffects.LightWalkTargetsEffect}: how many targets the overlay lit. */
+    public record WalkTargetsLit(long opId, long ticket, int lit, String reason) implements Result {
+    }
+
+    /** Answer to {@link SessionEffects.ResolveWalkTargetsEffect} and {@link SessionEffects.EndWalkEffect}. */
+    public record WalkAcknowledged(long opId, long ticket, String what) implements Result {
+    }
 }

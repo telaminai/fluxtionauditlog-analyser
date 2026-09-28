@@ -469,6 +469,15 @@ public final class TopologyPanel extends JPanel {
         return null;
     }
 
+    /**
+     * M69: the label of the focus context applied now (a recalled named focus carries its name), or null at the full
+     * graph. A walk capture checks it against the saved focuses before recording it.
+     */
+    public String appliedFocusLabel() {
+        java.util.List<FocusStack.Context> contexts = focusStack.contextsOldestFirst();
+        return contexts.isEmpty() ? null : contexts.get(contexts.size() - 1).label();
+    }
+
     /** The mismatch note from the last {@link #recallFocus}, or "" — for the verb echo. */
     public String lastRecallNote() {
         return lastRecallNote;
@@ -708,6 +717,7 @@ public final class TopologyPanel extends JPanel {
      */
     public void clearGraph() {
         loadedFrom = null;
+        forgetGraphIdentity();   // M69 S0 (R5): no graph is shown, so no digest may describe one
         graphSource = telamin.fluxtion.audit.analyser.analyser.topology.GraphSource.NONE;
         pairingPart = null;
         copyComparisonPart = null;
@@ -809,6 +819,9 @@ public final class TopologyPanel extends JPanel {
         fullTopology = telamin.fluxtion.audit.analyser.analyser.topology.ProcessorTopology.of(
                 g.nodes(), g.edges());
         loadedFrom = null;                       // it came from the log, not a file the user can point at
+        // M69 S0 (R5): a supplied graph has no established content identity. Defensive today — clearGraph has already
+        // dropped any digest, and an opened graph is never displaced by a supplied one — so no control can reach it.
+        forgetGraphIdentity();
         graphSource = candidate;
         copyComparisonPart = null;
         focusStack = new FocusStack(fullTopology);
@@ -833,7 +846,18 @@ public final class TopologyPanel extends JPanel {
                 loadedFrom == null || graphObservation.isEmpty() ? java.util.List.of() : java.util.List.of(graphObservation));
     }
     private String loadedGraphSha256;
+    /**
+     * SHA-256 of the graph file now shown, when its read was stable; null when no graph is shown, the graph came
+     * from a log source, or the file changed while it was read. M69 S0 (review R5): it used to survive
+     * {@link #clearGraph} and {@link #loadFromSource}, so a previous graph's digest could describe the current one.
+     */
     public String loadedGraphSha256() { return loadedGraphSha256; }
+
+    /** The file identity belongs to the graph it was read from: drop it with that graph. */
+    private void forgetGraphIdentity() {
+        loadedGraphSha256 = null;
+        graphObservation = java.util.Map.of();
+    }
 
     public void load(Path file) {
         var before = telamin.fluxtion.audit.analyser.analyser.session.resume.SessionResumeStore.identity("topology", file.toString());

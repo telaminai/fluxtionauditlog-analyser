@@ -1,0 +1,4 @@
+append: old chart HISTORICAL -> CURRENT; old step unchanged=true
+different representation: state=UNRESOLVED, available=false
+omitted filter: group=RAW_EVENT, text=dirty
+record 4294967296: accepted=true, resolved=0

@@ -81,6 +81,10 @@ log, and no file writes**. Two groups of verbs go further, honestly labelled:
 - **Scripting verbs — `open` and `source_root` — can change which log, event processor or source roots
   are open**, the same things you change through the UI. Still nothing outside the analyser: no shell,
   no arbitrary file reads, and your API key is never reachable.
+- **`walk` edits the project's saved spotlight walks** — it can save one, replace one by name, rename one or
+  move one to the recently-deleted list (restorable). It writes no file of its own and reads no log data
+  beyond the records a walk points at; it is marked destructive to MCP clients because replacing a walk by
+  name overwrites a person's work.
 - **Log-source plugins are jars you install yourself, and installing a jar is arbitrary code
   execution.** Nothing is bundled or downloaded — without plugins this application is byte-identical
   to a plain build — and a plugin can only ever be a log *reader*: it cannot add verbs to the action

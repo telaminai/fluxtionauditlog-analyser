@@ -653,11 +653,55 @@ def capture_spotlight(finish=True):
         finish_capture()
 
 
+def capture_walk(finish=True):
+    """M69: a spotlight walk showing, in BOTH themes — its strip with the step, ◀ ▶ and what the step points at.
+
+    Saved through the `walk` verb, then played from step 2, so the strip shows a Back and a Next. The captions are
+    TRUE OF THE THING THEY POINT AT on the demo fixture, as the spotlight's are (capture_spotlight).
+    """
+    steps = [
+        {"caption": "where every price enters", "view": {"tab": "topology"},
+         "targets": [{"target": "topology:node:priceListener", "caption": "every price arrives here"}]},
+        {"caption": "the node it feeds", "view": {"tab": "topology"},
+         "targets": [{"target": "topology:node:spreadCalculator", "caption": "declared, and silent in this run"}]},
+        {"caption": "how the graph fits the log", "view": {"tab": "topology"},
+         "targets": [{"target": "topology:verdict", "caption": "the analyser's own statement of the fit"}]},
+    ]
+    for theme, suffix in (("Light", ""), ("Dark", "-dark")):
+        print("spotlight walk (%s)" % theme.lower())
+        ep = launch(theme)
+        seed(ep)
+        act(ep, "topology", {"showAll": True})
+        time.sleep(1)
+        saved = act(ep, "walk", {"name": "price-path", "title": "Where the price goes", "steps": steps})
+        if not saved.get("ok"):
+            sys.exit("the demo walk did not save: %s" % saved)
+        played = act(ep, "walk", {"name": "price-path", "play": True, "step": 2})
+        if not played.get("ok"):
+            sys.exit("the demo walk did not play: %s" % played)
+        for _ in range(20):
+            time.sleep(0.3)
+            showing = ((act(ep, "context").get("context", {}).get("walks") or {}).get("showing") or {})
+            if showing.get("phase") == "SHOWN":
+                break
+        else:
+            sys.exit("the demo walk's step 2 was not shown: %s" % showing)
+        time.sleep(0.6)
+        capture(ep, "spotlight-walk%s.png" % suffix)
+        act(ep, "walk", {"end": True})
+    if finish:
+        finish_capture()
+
+
 def main():
     ASSETS.mkdir(parents=True, exist_ok=True)
 
     if "--spotlight" in sys.argv:
         capture_spotlight()
+        return
+
+    if "--walk" in sys.argv:
+        capture_walk()
         return
 
     if "--tutorial" in sys.argv:
@@ -845,6 +889,7 @@ def main():
     capture(ep, "ai-runbooks-panel.png")
 
     capture_spotlight(finish=False)
+    capture_walk(finish=False)
 
     finish_capture()
 

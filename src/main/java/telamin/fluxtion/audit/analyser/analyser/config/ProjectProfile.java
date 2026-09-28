@@ -240,6 +240,7 @@ public final class ProjectProfile {
                            List<GraphSpec> savedGraphs,
                            List<FocusSpec> namedFocuses,
                            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports,
+                           List<telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec> walks,
                            List<String> hiddenColumns,
                            boolean hiddenColumnsSet,
                            java.util.Map<String, Runbooks.Pointer> runbooks,
@@ -259,6 +260,7 @@ public final class ProjectProfile {
             savedGraphs = List.copyOf(savedGraphs);
             namedFocuses = List.copyOf(namedFocuses);
             reports = List.copyOf(reports);
+            walks = List.copyOf(walks == null ? List.of() : walks);   // M69: walks ride with reports
             hiddenColumns = List.copyOf(hiddenColumns);
             runbooks = java.util.Map.copyOf(runbooks == null ? java.util.Map.of() : runbooks);
             vocabularyPath = vocabularyPath == null ? "" : vocabularyPath;
@@ -273,7 +275,7 @@ public final class ProjectProfile {
 
     public static Snapshot snapshot(AppConfig c) {
         return new Snapshot(c.sourceRoots, c.mavenRepos, c.searchMavenRepos, c.eventProcessorFqns,
-                c.selectedEventProcessor, c.processorDeclarations, c.savedGraphs, c.namedFocuses, c.reports, c.hiddenColumns,
+                c.selectedEventProcessor, c.processorDeclarations, c.savedGraphs, c.namedFocuses, c.reports, c.walks, c.hiddenColumns,
                 c.hiddenColumnsSet, c.runbooks, c.vocabularyPath, c.environments, c.defaultEnvironment, c.analyses,
                 c.reportDestinations, c.workspaceRoot, c.projectExchangeDir);
     }
@@ -290,6 +292,7 @@ public final class ProjectProfile {
         into.savedGraphs.addAll(s.savedGraphs());
         into.namedFocuses.addAll(s.namedFocuses());
         into.reports.addAll(s.reports());
+        into.walks.addAll(s.walks());
         into.hiddenColumns.addAll(s.hiddenColumns());
         into.hiddenColumnsSet = s.hiddenColumnsSet();
         into.runbooks.putAll(s.runbooks());
@@ -314,6 +317,7 @@ public final class ProjectProfile {
         c.savedGraphs.clear();
         c.namedFocuses.clear();
         c.reports.clear();
+        c.walks.clear();                  // M69: a project's walks are that project's
         c.runbooks.clear();
         c.vocabularyPath = "";
         c.environments.clear();

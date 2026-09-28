@@ -99,6 +99,10 @@ drive the same verbs:
 
 - **spotlight** — point at what it is talking about: dim the window, cut out up to six things, and give
   each a short numbered callout. See [Ask it to show you](#ask-it-to-show-you) below.
+- **walk** — save a sequence of spotlight steps as a named **spotlight walk** you step through yourself with
+  ◀ ▶ on the spotlight, later and without the assistant. One operation per call: `walk {name, title?, steps}`
+  saves or replaces; `{name, play: true, step?}` presents it; `{end: true}` ends it; `{name, delete: true}`,
+  `{name, rename}` and `{restore}` tidy up, recoverably. See [Save it as a walk](#save-it-as-a-walk).
 
 `GET /manifest` publishes a JSON schema for every verb, so a foreign agent learns the shapes up front
 instead of trial-and-erroring against the structured errors.
@@ -196,13 +200,41 @@ Four things worth knowing before you rely on it:
   says something the screen under it does not bear out, believe the screen.
 - **Highlights are temporary by design.** Any click, Escape, or any change of view (a new filter, another
   record, a redrawn chart) puts them out, because a highlight left pointing at where something *used to be* is
-  worse than none. Nothing about one is ever saved — not in settings, a project, a graph or a report. A finding
-  you want to keep is a **flag**, a **chart note** or a **report**: ask for one of those as well.
+  worse than none. A highlight is never saved by itself — only when you save it as a
+  [spotlight walk](#save-it-as-a-walk), and then as a step you replay, not as a finding. A finding you want to
+  keep is a **flag**, a **chart note** or a **report**: ask for one of those as well.
 - **Everything lit has to be on screen together.** A topology node and a note on a chart live on different
   tabs, so the assistant lights those one after the other rather than at once — and says so if you ask for both.
 - **An assistant is told to do this unprompted** — the guidance travels with every way one connects (the
   built-in assistant, a copied prompt, an MCP client) — but only where you would otherwise have to hunt. If it
   explains something without pointing, *"show me"* is all you need to say.
+
+### Save it as a walk
+
+An explanation worth giving twice is worth keeping. A **spotlight walk** is a named sequence of spotlight steps,
+saved in the project like a report, that you — or a colleague who opens the same project — step through on the
+analyser itself, with no assistant connected.
+
+- **Save one yourself.** While something is lit, **right-click** the spotlight: *Save as new walk…* keeps exactly
+  what is lit, its callouts, and the view it is lit in (the tab, the filter, the selected record, the selected
+  chart, a saved topology focus). *Add to walk* appends the lit things as the next step; during a walk,
+  *Replace this step* re-records the step you are on. The right-click keeps the spotlight on. A chart's zoomed
+  window is not saved, and the save says so.
+- **Or ask for one.** *"Save that explanation as a walk called 'why quoting stopped'."* The assistant sends
+  `walk {name, steps}`; the walk says it was saved by the assistant.
+- **Play it.** The Reports tab's **Spotlight walks** list has **Play** and **Play from step…**, as well as
+  Rename, Delete and Restore deleted…; the Project panel counts them. While a walk shows, a strip on the
+  spotlight carries **◀** and **▶** (or the ← → keys), the step number, and anything a step could not show.
+  A click anywhere else ends the walk, and *Play from step…* resumes where you left it; so does any change of
+  view you make yourself.
+- **A walk is bound to what it was saved against.** Each record, chart and graph node a step points at is
+  checked against what is open now. Played against another run, a record that differs is shown as *not
+  available* rather than lit somewhere else, and a callout on something that changed is marked *(historical)*;
+  one whose identity cannot be checked is marked *(unresolved)*. A walk never opens, edits or saves a chart,
+  a filter or a focus of yours — it only selects what is already there. A chart that is closed is named, with
+  an **Open chart** button for you to press.
+- **Walks travel with the project.** Settings export shares them with the reports, and a walk made of tabs,
+  panels and graph nodes — no records — plays with no log open at all.
 
 ## Connect an MCP client
 
@@ -218,7 +250,7 @@ machine, not a command you need to reconstruct.
 The client discovers one tool per verb — `analyser_aggregate`, `analyser_read`, `analyser_series`,
 `analyser_filter`, `analyser_graph`, `analyser_goto`, `analyser_flag`, `analyser_coverage`,
 `analyser_topology`, `analyser_report`, `analyser_context`, `analyser_screenshot`, `analyser_open`,
-`analyser_source_root`, `analyser_source` and `analyser_spotlight` — with full parameter schemas, so
+`analyser_source_root`, `analyser_source`, `analyser_spotlight` and `analyser_walk` — with full parameter schemas, so
 there's nothing to paste into a prompt.
 
 `spotlight` lets an AI client **point** ([Ask it to show you](#ask-it-to-show-you) has the pictures and
@@ -467,12 +499,13 @@ server actually connected, then say what you want:
 $ claude
 
 > /mcp
-  ⎿ fluxtion-analyser   ✔ connected · 15 tools
+  ⎿ fluxtion-analyser   ✔ connected · 17 tools
        analyser_aggregate · analyser_read · analyser_series
        analyser_filter · analyser_graph · analyser_goto
        analyser_flag · analyser_report · analyser_coverage
        analyser_context · analyser_topology · analyser_screenshot
        analyser_open · analyser_source_root · analyser_source · analyser_spotlight
+       analyser_walk
 
 > I have a Fluxtion audit log open in the analyser. Use the fluxtion-analyser
   tools to work out why the hedge stopped quoting.

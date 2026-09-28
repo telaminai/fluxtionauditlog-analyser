@@ -72,7 +72,7 @@ public final class McpTools {
      * replaced is exactly the case the hint exists to warn about.
      */
     private static final java.util.Set<String> DESTRUCTIVE =
-            java.util.Set.of("open", "source_root", "screenshot", "report");
+            java.util.Set.of("open", "source_root", "screenshot", "report", "walk");
 
     /**
      * The verbs marked destructive to MCP clients. Exposed so {@code FaqSecurityContractTest} can assert

@@ -47,7 +47,12 @@ class CloseVerbTest {
         assertFalse(VerbSchemas.all().containsKey("handoff"),
                 "M48.7's canvas write lives on 'open' (posture / record / close: \"handoff\"), not on a verb of its own");
         // M66 adds source: a rereadable file glance, distinct from open's session declaration.
-        assertEquals(16, VerbSchemas.all().size(),
+        //   17  `walk` (M69)         a SAVED, NAMED sequence of spotlight steps. spotlight is transient by
+        //                            construction (D-SP4) and report stores references, not steps a person plays;
+        //                            the owner chose a verb of its own (spec-spotlight-walks.md O-1).
+        assertFalse(VerbSchemas.all().get("spotlight").toString().contains("\"play\""),
+                "a walk is not a spotlight parameter: a spotlight stays transient");
+        assertEquals(17, VerbSchemas.all().size(),
                 "a new verb is a compatibility decision — if this number moved, say which concept no existing verb named");
     }
 

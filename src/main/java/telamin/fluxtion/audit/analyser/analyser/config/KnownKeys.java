@@ -30,7 +30,7 @@ public final class KnownKeys {
     /** What {@code SettingsShare.export} can write — the profile and the share file. */
     public static final Set<String> PROFILE_FAMILIES = Set.of(
             "share", "sourceRoot", "mavenRepo", "mavenRepoSearch", "eventProcessorFqn", "selectedEventProcessor", "processorDeclaration",
-            "graph", "focus", "report", "hiddenColumn", "assistant", "llmProvider", "llmModel", "llmBaseUrl",
+            "graph", "focus", "report", "walk", "hiddenColumn", "assistant", "llmProvider", "llmModel", "llmBaseUrl",
             "runbook", "vocabulary", "environment", "analysis", "destination", "workspaceRoot",
             "profileNonce");  // §E: owned — only the profile writer sets it; a share export never carries it
 
@@ -39,12 +39,13 @@ public final class KnownKeys {
 
     static {
         Set<String> all = new java.util.HashSet<>(PROFILE_FAMILIES);
-        all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
+        all.addAll(Set.of("activeProjectPath", "apiKey", "deletedReport", "deletedWalk", "awsProfile", "awsRegion", "eventFilterCollapsed", "graphmlFile",
                 "lastRunVersion", "logFile", "memoryThresholdMb", "projectPanelCollapsed", "recentFile", "recentGraphml",
                 "recentProject", "searchHistory", "theme", "mcp", "topologyOrientation", "topologyPanX", "topologyPanY",
                 "topologySpacing", "topologySyncSource", "topologyTextSize", "topologyZoom", "westDivider", "westWidth",
                 "windowH", "windowW", "windowX", "windowY"));
-        // "deletedReport" (PR #33): the machine-local bin — CONFIG only, never a profile family, so it is never shared
+        // "deletedReport" (PR #33) and "deletedWalk" (M69): the machine-local bins — CONFIG only, never profile families,
+        // so they are never shared
         CONFIG_FAMILIES = Set.copyOf(all);
     }
 

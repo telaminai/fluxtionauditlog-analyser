@@ -1,5 +1,7 @@
 package telamin.fluxtion.audit.analyser.analyser.llm;
 
+import telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -398,7 +400,69 @@ public final class VerbSchemas {
                         p("clear", bool(), "true puts every spotlight out — or, with 'target', just that one")),
                 List.of()));
 
+        s.put("walk", schema("A SPOTLIGHT WALK: a saved, named sequence of spotlight steps the person steps through "
+                        + "with ◀ ▶ on the analyser's own overlay — an explanation that outlives this chat. Stored "
+                        + "like a report (in the project, shared by Settings export), attributed to the assistant. "
+                        + "ONE operation per call, and fields of another operation are refused before anything "
+                        + "changes. SAVE (create, or replace by name): {name, title?, steps: [{caption?, view?, "
+                        + "targets: [{target, caption?}]}]} — up to " + WalkSpec.MAX_STEPS + " steps, at most "
+                        + SpotlightVocabulary.MAX_LIT + " targets each, spotlight targets except source, toolbar "
+                        + "and menu ones. A view may set tab, filter (complete: from, to, groupMode, dimensions, "
+                        + "text), record, graph (an OPEN chart to select — a walk never opens or edits one) and "
+                        + "focus (a saved topology focus's name); anything else is refused, naming it. The analyser "
+                        + "binds every record, chart and graph target to what is loaded NOW, so a step pointing at "
+                        + "records or charts needs the log open; played against another run it is marked "
+                        + "historical or not shown, never re-pointed. PLAY: {name, play: true, step?} (step counted "
+                        + "from 1). END: {end: true}. CLEAN UP: {name, delete: true} (recoverable), {name, "
+                        + "rename}, {restore: true} lists the bin, {restore: \"name\"} restores. context.walks "
+                        + "lists the walks and the showing step's target states.",
+                props(
+                        p("name", string(), "the walk's identity — saving again with the same name REPLACES it"),
+                        p("title", string(), "the headline shown on the strip"),
+                        p("steps", arr(walkStepObject()), "the ordered steps (save)"),
+                        p("delete", bool(), "true moves the walk named by 'name' to this machine's recently-deleted list"),
+                        p("rename", string(), "the new name for the walk named by 'name'; refused if taken"),
+                        p("restore", nameOrTrue(),
+                                "use alone: true lists what can be restored; a string restores that walk, refusing a taken name"),
+                        p("play", bool(), "true presents the walk named by 'name' to the person"),
+                        p("step", integer(), "with play: the step to start from, counted from 1 (default 1)"),
+                        p("end", bool(), "true ends the showing walk")),
+                List.of()));
+
         return s;
+    }
+
+    /** A deleted walk's name, or {@code true} to list the bin — the shape report's 'restore' has. */
+    private static Map<String, Object> nameOrTrue() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("anyOf", List.of(string(), Map.of("type", "boolean", "enum", List.of(true))));
+        return m;
+    }
+
+    private static Map<String, Object> walkStepObject() {
+        Map<String, Object> filter = new LinkedHashMap<>();
+        filter.put("type", "object");
+        filter.put("properties", props(
+                p("from", integer(), "window start (epoch millis), or absent for the start"),
+                p("to", integer(), "window end (epoch millis), or absent for the end"),
+                p("groupMode", enumStr("DIMENSION", "RAW_EVENT"), "how records are grouped"),
+                pAny("dimensions", "a list of dimension names, or absent / \"all\" for every one"),
+                p("text", string(), "free-text match")));
+        Map<String, Object> view = new LinkedHashMap<>();
+        view.put("type", "object");
+        view.put("properties", props(
+                p("tab", string(), "the side tab to show, as a spotlight tab word"),
+                p("filter", filter, "the complete filter for this step — absent fields are the defaults"),
+                p("record", integer(), "the record to select"),
+                p("graph", string(), "an open chart to select"),
+                p("focus", string(), "a saved topology focus to apply")));
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("caption", string(), "the step's own line, shown on the strip"),
+                p("view", view, "what the step shows before it lights its targets"),
+                p("targets", arr(spotlightEntry()), "what the step lights, numbered as a spotlight numbers them")));
+        return m;
     }
 
     // ---- tiny JSON-Schema builders --------------------------------------------------------------
