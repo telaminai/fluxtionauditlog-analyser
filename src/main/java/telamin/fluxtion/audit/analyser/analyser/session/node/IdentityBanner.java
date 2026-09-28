@@ -61,7 +61,7 @@ public class IdentityBanner implements EventLogSource {
             return false;
         }
         IdentityBannerView view = IdentityBannerView.of(
-                openLog.generation(), openLog.identity(), openLog.identityReason());
+                openLog.generation(), openLog.identity(), openLog.identityReason(), openLog.readThroughAssessed());
         if (view.equals(emitted)) return false;
         Map<String, Object> changed = view.changedFrom(emitted);
         emitted = view;

@@ -4102,7 +4102,7 @@ public final class MainFrame extends JFrame {
         boolean followable = !S3Source.isS3(location) && loaded.supportsFollow();
         driver.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.LogOpened(opId, location, provenance,
                 arrival.ids(), arrival.scanned(), arrival.total(), level == null ? null : level.toString(),
-                provenanceSource, followable));
+                provenanceSource, followable, loaded.readThroughAssessed()));
         if (driver.processor().operationGate.accepted()) sessionLogGeneration = driver.snapshot().logGeneration();
         if (!driver.processor().operationGate.accepted()) {
             supersedeRecoveryLog(opId);
@@ -6821,10 +6821,16 @@ public final class MainFrame extends JFrame {
                 if (observedNow != null) {
                     log.put("identity", Map.of("state", observedNow.verdict().name().toLowerCase(java.util.Locale.ROOT),
                             "reason", observedNow.reason(), "readsSuspended", observedNow.suspendsReads()));
-                } else if (identitySnap.logIdentity() != null) {
-                    log.put("identity", Map.of("state", identitySnap.logIdentity().toLowerCase(java.util.Locale.ROOT),
-                            "reason", String.valueOf(identitySnap.logIdentityReason())));
-                } else if (!store.readThroughAssessed()) {
+                } else if (identitySnap.identityBanner() != null && identitySnap.identityBanner().verdict() != null
+                        && !telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.NOT_ASSESSED
+                                .equals(identitySnap.identityBanner().verdict())) {
+                    // readable-surfaces step 2: a PROJECTION of the verdict the banner was told, not a second
+                    // composition of it — the same view surfaces.identityBanner publishes
+                    log.put("identity", Map.of("state", identitySnap.identityBanner().verdict().toLowerCase(java.util.Locale.ROOT),
+                            "reason", String.valueOf(identitySnap.identityBanner().reason())));
+                } else if (identitySnap.identityBanner() != null
+                        && telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.NOT_ASSESSED
+                                .equals(identitySnap.identityBanner().verdict())) {
                     // independent review R3: a store that never looks at its file is SAID not to — its null identity
                     // would otherwise read exactly like a check that passed (agents only: the status bar speaks only
                     // of a change, and there is none to speak of)

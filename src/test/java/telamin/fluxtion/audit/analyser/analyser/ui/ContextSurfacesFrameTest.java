@@ -119,6 +119,11 @@ class ContextSurfacesFrameTest {
             assertEquals("not assessed", id.get("state"));
             assertEquals("this log's reader does not report whether its file has changed since it was read, so no change "
                     + "being shown is not evidence that there was none", id.get("reason"));
+            // step 2: the statement is a PROJECTION of the published view — the session now knows the store does not look
+            @SuppressWarnings("unchecked")
+            var banner = (Map<String, Object>) ((Map<String, Object>) context(f).get("surfaces")).get("identityBanner");
+            assertEquals("NOT_ASSESSED", banner.get("verdict"), "the banner was told the same: not assessed");
+            assertEquals(false, banner.get("shown"), "and it draws nothing — the screen speaks only of a change");
         }
     }
 }

@@ -28,7 +28,20 @@ public record IdentityBannerView(long generation, String verdict, String reason,
         return "UNVERIFIED".equals(verdict) || "REPLACEMENT".equals(verdict);
     }
 
-    public static IdentityBannerView of(long generation, String verdict, String reason) {
+    /**
+     * readable-surfaces step 2: the verdict for a log whose store never looks at its file. Without it, "no verdict"
+     * meant both "looked, and saw no change" and "never looked", and only a reader holding the store could tell which.
+     * It never warns: the screen speaks only of a change, and there is none to speak of.
+     */
+    public static final String NOT_ASSESSED = "NOT_ASSESSED";
+
+    /**
+     * The view of what the session knows about the file. {@code assessed} is whether the store looks at its file at all.
+     * There is deliberately no overload without it, because a default would answer "assessed" for a caller that did
+     * not say.
+     */
+    public static IdentityBannerView of(long generation, String verdict, String reason, boolean assessed) {
+        if (verdict == null && !assessed) return new IdentityBannerView(generation, NOT_ASSESSED, null, false);
         return new IdentityBannerView(generation, verdict, reason, warns(verdict));
     }
 

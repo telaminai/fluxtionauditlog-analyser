@@ -120,7 +120,7 @@ class PublishedSurfacesTest {
     @Test
     @DisplayName("fields() is the same vocabulary the audit log uses for the same render")
     void contextAndTheAuditNameTheSameThings() {
-        IdentityBannerView view = IdentityBannerView.of(7, "REPLACEMENT", "a different file");
+        IdentityBannerView view = IdentityBannerView.of(7, "REPLACEMENT", "a different file", true);
 
         assertEquals(view.fields().keySet(), view.changedFrom(null).keySet(),
                 "context publishes fields(); the audit records changedFrom(). A reader correlating the log with a "

@@ -124,9 +124,20 @@ public final class SessionEvents {
      */
     public record LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
                             int sampled, int total, String mostVerboseLevel, String provenanceSource,
-                            boolean followable) implements Result {
+                            boolean followable, boolean readThroughAssessed) implements Result {
         public LogOpened {
             loggedNodeIds = loggedNodeIds == null ? java.util.Set.of() : java.util.Set.copyOf(loggedNodeIds);
+        }
+
+        /**
+         * readable-surfaces step 2: no read-through assessment stated — the store is taken as one that does NOT look,
+         * which is the store SPI's own default. Never "assessed": a caller that did not say must not produce a verdict
+         * that reads as a check that passed.
+         */
+        public LogOpened(long opId, String logPath, String provenance, java.util.Set<String> loggedNodeIds,
+                         int sampled, int total, String mostVerboseLevel, String provenanceSource, boolean followable) {
+            this(opId, logPath, provenance, loggedNodeIds, sampled, total, mostVerboseLevel, provenanceSource, followable,
+                    false);
         }
 
         /** M44.5 stage 1: no follow capability stated — the log is taken as one that cannot be followed. */

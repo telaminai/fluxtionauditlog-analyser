@@ -713,4 +713,31 @@ CONTROLS = [
      'surfaces.put("statusLine", snap.statusLine().fields());',
      'surfaces.put("statusLine", new java.util.LinkedHashMap<>(snap.statusLine().fields()) {{ remove("generation"); }});',
      'ContextSurfacesFrameTest#theLiveContextCarriesTheSurfaces'),
+    # readable-surfaces step 2: context's log.identity branches 2 and 3 are projections of the published banner view.
+    # If OpenLog drops the fact, an ASSESSED file with no verdict reads as not assessed: context states an identity
+    # where it stated none. (Reached: every open runs onLogOpened.)
+    ('rs2-openlog-holds-the-assessment', NODE + 'OpenLog.java',
+     '        readThroughAssessed = event.readThroughAssessed();\n', '',
+     'ContextSurfacesFrameTest#aSessionVerdictIsStated'),
+    # If the view never states NOT_ASSESSED, a store that does not look has NO verdict, and context says nothing: its
+    # silence reads as a check that passed.
+    ('rs2-view-states-not-assessed', SESSION + 'view/IdentityBannerView.java',
+     '        if (verdict == null && !assessed) return new IdentityBannerView(generation, NOT_ASSESSED, null, false);\n', '',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
+    ('rs2-node-passes-the-assessment', NODE + 'IdentityBanner.java',
+     'openLog.identityReason(), openLog.readThroughAssessed());',
+     'openLog.identityReason(), true);',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
+    # the adapter reports the store's OWN answer, not an assumed one
+    ('rs2-adapter-reports-the-store', UI + 'MainFrame.java',
+     '                provenanceSource, followable, loaded.readThroughAssessed()));',
+     '                provenanceSource, followable, true));',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
+    # branch 2 must not word NOT_ASSESSED as a verdict ("not_assessed", reason "null")
+    ('rs2-branch-two-is-a-verdict-only', UI + 'MainFrame.java',
+     '                } else if (identitySnap.identityBanner() != null && identitySnap.identityBanner().verdict() != null\n'
+     '                        && !telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.NOT_ASSESSED\n'
+     '                                .equals(identitySnap.identityBanner().verdict())) {',
+     '                } else if (identitySnap.identityBanner() != null && identitySnap.identityBanner().verdict() != null) {',
+     'ContextSurfacesFrameTest#aStoreThatDoesNotLookIsNotAssessed'),
 ]
