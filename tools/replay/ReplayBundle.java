@@ -59,9 +59,9 @@ import java.util.zip.ZipInputStream;
  *   <li>a replay record names an event type your processor does not handle. The allow-list is YOUR build's: the event
  *   types its generated {@code handleEvent} methods take. Nothing the bundle names is loaded otherwise.</li>
  * </ul>
- * The audit log is written as the producer's fixtures are: each record framed by {@code ---}, and the runner's own
- * set-up records ({@code EventLogControlEvent}) left out, because they are this run's configuration, not the run's.
- * The file appears only when the replay completes.
+ * The audit log is written as the producer's fixtures are: each record framed by {@code ---}, every record the
+ * processor emits, whatever it says. The runner's set-up (the clock, the level, the sink) emits none. The file appears
+ * only when the replay completes.
  */
 public class ReplayBundle {
 
@@ -204,8 +204,11 @@ public class ReplayBundle {
                 long[] now = {0};
                 p.onEvent(ClockStrategy.registerClockEvent(() -> now[0]));      // data-driven: each record's instant
                 p.setAuditLogLevel(EventLogControlEvent.LogLevel.valueOf(a.level()));
+                // every record the processor emits is written, whatever it says (PR #70 review 3: a filter on the text
+                // "event: EventLogControlEvent" deleted a business record that printed it). The set-up above emits no
+                // audit record into this sink, in either order (observed on runtime 1.0.16, and asserted by
+                // ReplayRunnerEndToEndTest#theBundlesOwnBuildAgrees), so there is nothing of the runner's to leave out
                 p.setAuditLogProcessor(r -> {
-                    if (r.toString().contains("event: EventLogControlEvent")) return;
                     try {
                         log.write("---\n");
                         log.write(r.toString());

@@ -40,7 +40,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   at a time. It reads the whole replay member before your processor runs, and refuses a malformed record, or a count
   other than the manifest's. It writes its output only when the replay completes. It warns when the bundled log
   changes its audit level mid-run. It loads only the event types your processor handles, and replays each record at
-  its recorded instant on a data-driven clock. It writes the audit log for `--replay-compare`.
+  its recorded instant on a data-driven clock. It writes the audit log for `--replay-compare`, every record the
+  processor emits.
 - **The start page's DEMO is regenerated with the current Fluxtion toolchain.** A cycle now reads the clock once,
   so the DEMO log's times moved: the breach is at 09:00:00.180. The events and every node's values are unchanged.
 - **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It

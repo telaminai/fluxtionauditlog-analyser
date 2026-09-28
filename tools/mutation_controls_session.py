@@ -1397,6 +1397,12 @@ CONTROLS = [
      '                var bounded = new BoundedStream(zip, name, Long.MAX_VALUE, "the manifest\'s " + want.bytes() + " bytes");\n',
      'ReplayRunnerEndToEndTest#aMemberLongerThanDeclaredIsCutOff'),
     # finding 3: the runner's set-up is left out by when it happens; a record's text never decides
+    # the set-up emits no record into the sink (a guard removing one survived as an equivalent mutant, so there is
+    # none); theBundlesOwnBuildAgrees asserts that. The control re-adds the text filter the review found
+    ('rn-no-record-is-dropped-for-its-text', RUNNER,
+     '                        log.write("---\\n");\n',
+     '                        if (r.toString().contains("event: EventLogControlEvent")) return;\n                        log.write("---\\n");\n',
+     'ReplayRunnerEndToEndTest#anInputNamingTheControlEventKeepsItsRecord'),
     # finding 4: the member is read whole and counted before the processor runs; no reader takes a nameless field
     ('rn-the-count-is-the-manifests', RUNNER,
      '            if (taken.declaredRecords() != null && taken.declaredRecords() != inputs) {\n',

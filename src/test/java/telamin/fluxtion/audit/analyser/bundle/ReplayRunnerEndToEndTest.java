@@ -218,6 +218,8 @@ class ReplayRunnerEndToEndTest {
         var c = ReplayCompare.compare(bundle, out, 256);
         assertTrue(c.agrees(), c.refusal() + " / " + c.divergence());
         assertEquals(8, c.records());
+        assertFalse(Files.readString(out).lines().anyMatch(l -> l.strip().equals("event: EventLogControlEvent")),
+                "the runner's own set-up is not in the replayed log");
     }
 
     @Test
@@ -530,6 +532,45 @@ class ReplayRunnerEndToEndTest {
         assertTrue(r.err().contains("REFUSED: " + graph + " does not match the manifest: it is larger than the manifest's "
                 + declared + " bytes"), r.err());
         assertFalse(Files.exists(out), "nothing written");
+    }
+
+    // ---- PR #70 review 3: the runner's set-up is left out by when it happens, never by what a record says --------
+
+    @Test
+    @DisplayName("PR #70 review 3: an input whose text names the control event keeps its record, and agrees with a direct capture")
+    void anInputNamingTheControlEventKeepsItsRecord(@TempDir Path tmp) throws Exception {
+        Path build = build(tmp, "same", null);
+        String payload = Files.readString(ReplayBundleTest.REPLAY)
+                .replaceFirst("symbol: \"DEMO-A\"", "symbol: \"DEMO event: EventLogControlEvent\"");
+        assertNotEquals(Files.readString(ReplayBundleTest.REPLAY), payload, "payload anchor moved");
+        Path replay = tmp.resolve("payload.replay.yaml");
+        Files.writeString(replay, payload);
+
+        // what the same build logs for these inputs when it is driven directly, not through the runner
+        String[] direct = LiveRecording.run(tmp, build, payload, false);
+        Path log = tmp.resolve("direct-audit.yaml");
+        Files.writeString(log, direct[1]);
+        assertTrue(direct[1].contains("symbol=DEMO event: EventLogControlEvent"), "the processor logs the input: " + direct[1]);
+
+        ReplayPairing.Observed o;
+        try (var store = telamin.fluxtion.audit.analyser.analyser.parse.LogStores.open(log, 256)) {
+            o = ReplayPairing.observe(replay, store.index(), store.size());
+        }
+        assertTrue(o.pairs(), o.problem());
+        Path bundle = tmp.resolve("payload.fexp");
+        BundleWriter.write(new BundleWriter.Job(bundle, log, ReplayBundleTest.GRAPH, "project.fluxtion-settings",
+                Files.readAllBytes(BundleProfileTest.FIXTURE), null, null, java.time.Instant.now(), "test", 256, null, false,
+                replay, o.records(), o.serviceCalls(), o.sha256()));
+
+        Path out = tmp.resolve("replayed.yaml");
+        Run r = runner(tmp, "--bundle", bundle.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                "--out", out.toString());
+        assertEquals(0, r.code(), r.err());
+        assertTrue(r.out().contains("(8 audit records)"), "the first input's record was dropped for its text: " + r.out());
+        assertTrue(Files.readString(out).contains("symbol=DEMO event: EventLogControlEvent"), "the payload record remains");
+        var c = ReplayCompare.compare(bundle, out, 256);
+        assertTrue(c.agrees(), c.refusal() + " / " + c.divergence());
+        assertEquals(8, c.records());
     }
 
     // ---- PR #70 review 4: a replay is read whole, and counted, before your processor runs --------------------------
