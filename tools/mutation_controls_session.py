@@ -915,4 +915,17 @@ CONTROLS = [
      '            requests.add(new Numbered(new SpotlightTarget.Request(t.target(), t.caption()), t.n()));',
      '            requests.add(new Numbered(new SpotlightTarget.Request(t.target(), t.caption()), requests.size() + 1));',
      'WalkReviewFrameTest#theOverlayKeepsTheSessionsNumbers'),
+    # R5: a refused view leaves the previous step; a hidden record makes its dependants unavailable
+    ('m69-r5-record-refused-whole', UI + 'WalkPresenter.java',
+     '        if (record != null && (store == null || record >= store.size())) {',
+     '        if (false) {',
+     'WalkReviewFrameTest#aRefusedViewLeavesThePreviousStep'),
+    ('m69-r5-clear-only-after-validation', UI + 'WalkPresenter.java',
+     '        String problem = WalkSteps.problem(step);            // validate the whole view before applying any of it',
+     '        frame.clearWalkSpotlight();\n        String problem = WalkSteps.problem(step);',
+     'WalkReviewFrameTest#aRefusedViewLeavesThePreviousStep'),
+    ('m69-r5-selection-prerequisite', UI + 'WalkPresenter.java',
+     '            if (available && step.view().record() != null && dependsOnSelection(t) && !frame.recordSelected(step.view().record())) {',
+     '            if (false) {',
+     'WalkReviewFrameTest#aHiddenRecordIsNotClaimedAsShown'),
 ]

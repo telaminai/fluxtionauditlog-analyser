@@ -54,4 +54,55 @@ class WalkReviewFrameTest {
             });
         }
     }
+
+    @Test
+    @DisplayName("R5: a record the step's filter hides is not SHOWN, and a detail target that depends on it is not available")
+    void aHiddenRecordIsNotClaimedAsShown(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            var hidden = Map.of("view", Map.of("tab", "summary", "record", 1, "filter", Map.of("dimensions", List.of())),
+                    "targets", List.of(target("detail", "record one claim")));
+            call(f, "walk", Map.of("name", "DEMO_hidden", "steps", List.of(hidden)));
+            call(f, "walk", Map.of("name", "DEMO_hidden", "play", true));
+            await("the step decided", () -> walk(f).showing() && !"PREPARING".equals(walk(f).phase()));
+            onEdt(() -> {
+                int[] selected = ((LogTablePanel) field(f.frame, "tablePanel")).selectedModelRows();
+                assertEquals(0, selected.length, "control: the real selection is empty — record 1 is hidden");
+                assertNotEquals("SHOWN", walk(f).phase(), "a hidden record must not be reported as shown");
+                assertFalse(walk(f).targets().get(0).available(),
+                        "the detail target depends on the requested record, which is not shown: " + walk(f).targets());
+                assertTrue(walk(f).targets().get(0).reason().contains("record 1"), walk(f).targets().get(0).reason());
+                assertFalse(overlay.isLit(), "and nothing is lit that would point at the wrong record");
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("R5 / §3.4: a step whose record is not in the log is refused whole — the previous step stays on screen")
+    void aRefusedViewLeavesThePreviousStep(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            var first = Map.of("view", Map.of("tab", "topology"), "targets", List.of(target("topology:node:priceListener", "first")));
+            var beyond = Map.of("view", Map.of("tab", "summary", "record", 999_999, "filter", Map.of("text", "DEMO_changed")),
+                    "targets", List.of(target("status", "beyond")));
+            call(f, "walk", Map.of("name", "DEMO_refused", "steps", List.of(first, beyond)));
+            call(f, "walk", Map.of("name", "DEMO_refused", "play", true));
+            await("step 1 lit", () -> "SHOWN".equals(walk(f).phase()) && overlay.isLit());
+            var filter = (telamin.fluxtion.audit.analyser.analyser.filter.FilterState) field(f.frame, "filter");
+            String textBefore = filter.text();
+
+            onEdt(() -> ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session"))
+                    .post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(1)));
+            await("step 2 decided", () -> walk(f).step() == 1 && !"PREPARING".equals(walk(f).phase()));
+            onEdt(() -> {
+                assertEquals("NOT_SHOWN", walk(f).phase(), "the step is refused");
+                assertTrue(walk(f).reason().contains("999999") || walk(f).reason().contains("999,999"), walk(f).reason());
+                assertEquals(textBefore, filter.text(), "nothing of the refused view was applied");
+                assertTrue(overlay.lit().stream().anyMatch(l -> l.target().equals("topology:node:priceListener")),
+                        "the previous step stays on screen: " + overlay.lit());
+            });
+        }
+    }
 }

@@ -63,6 +63,7 @@ class WalkPresenterTest {
         public TopologyPanel topology() { return topology; }
         public void selectTab(String tab) { tabs.add(tab); }
         public boolean selectRecord(int row) { return recordVisible; }
+        public boolean recordSelected(int row) { return recordVisible; }
         public List<String> runBasisNow() { return List.of("sha256:run"); }
         public SpotlightTarget.Resolution resolve(String target) {
             return new SpotlightTarget.Resolution(SpotlightTarget.Outcome.LIT, SpotlightTarget.parse(target).target(),

@@ -53,6 +53,9 @@ final class WalkPresenter {
         /** Select a record the current filter shows; false when it is hidden or out of range. */
         boolean selectRecord(int modelRow);
 
+        /** Whether the record selected NOW is exactly {@code modelRow} — what the detail pane shows (review PR57 R5). */
+        boolean recordSelected(int modelRow);
+
         List<String> runBasisNow();
 
         SpotlightTarget.Resolution resolve(String target);
@@ -95,6 +98,14 @@ final class WalkPresenter {
         if (step.view().filter() != null && !Set.of("DIMENSION", "RAW_EVENT").contains(step.view().filter().groupMode())) {
             return refused(e, "the step's filter grouping is not DIMENSION or RAW_EVENT");
         }
+        // review PR57 R5 (§3.4): a record that is not in this log refuses the WHOLE view, before anything changes
+        Integer record = step.view().record();
+        LogStore store = frame.store();
+        if (record != null && (store == null || record >= store.size())) {
+            return refused(e, "record " + record + " is not in this log (" + (store == null ? 0 : store.size()) + " records)");
+        }
+        // only now does the previous step's spotlight go out: a refused view leaves the previous step on screen
+        frame.clearWalkSpotlight();
         List<String> notes = apply(step.view());
         prepare(e.ticket(), e.generation(), walk, e.step(), notes);
         return new SessionEvents.WalkViewApplied(e.opId(), e.ticket(), true, "");
@@ -121,11 +132,6 @@ final class WalkPresenter {
         cancel();
         frame.clearWalkSpotlight();
         return new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "end");
-    }
-
-    /** The previous step's spotlights go out before the next step's view is applied — the walk's own act. */
-    void clearOwnLightForNextStep() {
-        frame.clearWalkSpotlight();
     }
 
     void cancel() {
@@ -228,6 +234,13 @@ final class WalkPresenter {
             WalkResolver.Verdict v = WalkResolver.verdict(t, step.view(), walk.runBasis(), facts);
             boolean available = v.available();
             String reason = v.reason();
+            // review PR57 R5: a target that shows the SELECTED record is available only if the selection is the
+            // requested record. A visible detail pane is not proof that the step's record is in it.
+            if (available && step.view().record() != null && dependsOnSelection(t) && !frame.recordSelected(step.view().record())) {
+                available = false;
+                reason = "record " + step.view().record() + " is not shown — this step's filter hides it, so the detail "
+                        + "pane does not describe it";
+            }
             if (available) {
                 SpotlightTarget.Resolution r = frame.resolve(t.target());
                 if (!r.lit()) { available = false; reason = r.reason(); }
@@ -236,6 +249,13 @@ final class WalkPresenter {
                     v.state().name(), available, reason));
         }
         return out;
+    }
+
+    /** Detail targets describe whichever record is selected; every other family names its own subject. */
+    private static boolean dependsOnSelection(WalkSpec.Target t) {
+        SpotlightTarget.Parsed p = SpotlightTarget.parse(t.target());
+        return p.ok() && (p.target().family() == SpotlightTarget.Family.DETAIL
+                || p.target().family() == SpotlightTarget.Family.DETAIL_NODE);
     }
 
     /** The frame's current facts, read on the EDT at resolution time. */

@@ -2278,6 +2278,10 @@ public final class MainFrame extends JFrame {
         @Override public TopologyPanel topology() { return topologyPanel; }
         @Override public void selectTab(String tab) { selectSideTab(tab); if (sideTabs != null) sideTabs.validate(); }
         @Override public boolean selectRecord(int modelRow) { return tablePanel.selectModelRow(modelRow); }
+        @Override public boolean recordSelected(int modelRow) {
+            int[] rows = tablePanel.selectedModelRows();
+            return rows.length == 1 && rows[0] == modelRow;
+        }
         @Override public java.util.List<String> runBasisNow() {
             return walkRunBasisNow();
         }
@@ -5863,8 +5867,7 @@ public final class MainFrame extends JFrame {
             }
             // M69: walk playback — the node decided; the presenter performs and answers
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyWalkViewEffect e -> {
-                walkPresenter.clearOwnLightForNextStep();
-                yield walkPresenter.applyView(e);
+                yield walkPresenter.applyView(e);      // it clears the previous step's light only once the view is valid
             }
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.LightWalkTargetsEffect e -> walkPresenter.light(e);
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ResolveWalkTargetsEffect e -> walkPresenter.resolveAgain(e);
