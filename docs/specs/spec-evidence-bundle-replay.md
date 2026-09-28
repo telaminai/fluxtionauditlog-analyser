@@ -469,6 +469,28 @@ It re-ran the evidence (2850/0/0/170; demo 57/57; 29/29 sampled controls) and ju
 | 6 a `\u` escape's bound was off by one | fixed in both readers | read |
 | 7 mkdocs unverified there; painted screenshots | mkdocs passes here; screenshots open before merge (and M70.R0c, now decided: option a) | — |
 
+## 10c. The independent review (2026-09-28, [review](../handoff/review_pr70_evidence_bundle_replay_2026_09_28_codex.md)): what it found, and what was done
+
+The review ran §10a and §10b as claims. Nine findings; each fix has a regression that failed first by a named
+assertion, and a registered control (rule 8). Predictions were recorded before the fixes
+([predictions](../handoff/response_pr70_review_2026_09_28_predictions.md)).
+
+| finding | disposition | its check |
+|---|---|---|
+| 1 an indented comment set the header scope, so a nested `thread` was excepted: a false AGREES | fixed: the record's field scope is the first CONTENT line under its top-level key; comments set nothing | `ReplayCompareTest#aCommentDoesNotSetTheHeaderScope`; `rc-a-comment-sets-no-header-scope` |
+| 2 many hashed `replay/` members exhausted the runner's heap before cardinality was checked | fixed: the manifest schema (one replay, at most one graph) and a whole-bundle limit are checked before any member is read; every member is held to its declared size as it streams; the replay is spooled and read a line at a time; only the graph is held | three `-Xmx64m` child-JVM tests in `ReplayRunnerEndToEndTest`; five `rn-` controls |
+| 3 a text filter dropped a business record naming the control event | fixed: the filter is removed. The runner's set-up emits no audit record into the sink (observed; a set-up guard survived as an equivalent mutant) | `anInputNamingTheControlEventKeepsItsRecord` (a direct capture of the same build, bundled, replays and AGREES); `rn-no-record-is-dropped-for-its-text` |
+| 4 malformed replays silently lost input | the grammar was already strict in both readers (`abc55322`); now the whole member is read and built before the processor runs, its count must be the manifest's `replay.records`, and a nameless component is a refusal in both readers | `aReplayThatLosesInputIsRefused`, `bothReadersRequireTheWholeGrammar`; `rn-the-count-is-the-manifests`, `rn-a-component-needs-its-name`, `rq-demo-reader-a-component-needs-its-name` |
+| 5 the guidance claimed run identity, completeness and the same code | fixed in the capture script and the regenerated page, and in `reference.md`. Pairing now also compares content where the log prints it, at the owner's direction (`caebf31f`); it remains consistency evidence, and an unprinted input is matched by type and instant only and counted | `EvidenceBundleDocsTest#theReplayIsDescribedAsTheChecksShowIt`; `dg-no-run-identity-claim` |
+| 6 RB-2's identity guard had no effective regression | fixed: the review's live probe is a regression; an external `RiskBreachEvent` and the graph's own, one type | `ReplayFixtureTest#onlyTheExternalObjectIsRecorded`; `rq-records-only-the-named-object` (9 recorded where 8 are expected) |
+| 7 a valid pretty-printed manifest was refused by the runner's regex | fixed: a strict RFC 8259 reader and the bundle schema; `3375.0` is `3375` | `anyValidSpellingOfTheManifestReplays`; three `rn-json-` controls |
+| 8 painted previews stand in for native captures | **blocked**: this session has no Screen Recording permission (a full-screen `screencapture` is black; the window capture finds no window). The four images are unchanged; the page's text was regenerated | — |
+| 9 32 trailing-space lines in the captured fixtures | kept: a narrow `whitespace=-blank-at-eol` for the two captured fixtures, as for c21 | `ReplayFixtureTest#theProducersBytesAreKept`; `rf-the-producers-bytes-are-kept` |
+
+Not changed, disclosed: the analyser's own JSON reader is laxer than the runner's (it takes the last of a duplicated
+key, ignores content after the value, and truncates a fractional size); the runner refuses each of those, so no
+manifest is read two different ways and still replays. Sharing one strict reader is a follow-up.
+
 ## 11. Revision history
 
 - **r1 (2026-09-28):** first draft, from the spike and the owner's decisions R-D1…R-D4. The same day it took two
