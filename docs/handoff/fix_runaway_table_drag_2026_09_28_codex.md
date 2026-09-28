@@ -88,3 +88,37 @@ PR 62 is merged locally into the diagnostic stack before PR 61 goes into main, u
 The temporary diagnostic-base CI trigger is removed as the stack lands; main retains the full CI gates.
 The release must wait for CI on that final main tree. Cancellation remains limited to an owned modal taking
 focus: switching to another application does not cancel a drag, and the original incident remains unconfirmed.
+
+
+## Released in 1.26.1 — 2026-09-28
+
+RAN: PR 62 merged into the diagnostic stack at `0450b267`; PR 61 and that stack merged into main at
+`8e9de008`. Both pull requests are merged and closed. The release tag points to `b6c7e697`, which adds
+only the workflow's changelog stamp. The local merge commits use the personal identity.
+
+RAN: [final main CI](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/36450342428)
+is green: headless 2708 / 0 / 0 / 153 (361 source-mapped reports, no orphans in the local clean-package
+run of the same tree); display 151 / 0 / 0 / 0; 360 controls caught exactly once across four shards.
+Counts are total / failures / errors / skips. The earlier failed CI and its focus-fixture correction
+remain recorded in the correction evidence linked above.
+
+RAN: [release workflow](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/36451803573)
+and [release-notes deployment](https://github.com/telaminai/fluxtionauditlog-analyser/actions/runs/36452118275)
+succeeded. The [published release](https://github.com/telaminai/fluxtionauditlog-analyser/releases/tag/v1.26.1)
+contains the versioned JAR, stable-name JAR and checksum file. Both downloaded JARs match their published
+SHA-256 checksums and each other (`2926e3e7f9a081eb05a8933153615176d82e5108bb1b487f4bd67320f4316823`).
+The downloaded versioned JAR's Maven metadata identifies 1.26.1; `--help` under an isolated home exits 0
+and prints that version. The deployed release-notes page includes 1.26.1 and the external-focus limitation.
+
+Cleanup: removed the merged remote diagnostic and fix branches, the local fix branch and the local release
+helper branch. Worktrees, preserved evidence, active proposal/implementation branches and retained review
+references are left in place. No claim is made that the unexplained original incident is fixed.
+
+
+Post-release documentation check: the first local headless attempt was 2708 / 0 / 29 / 153;
+all 29 errors were sandbox refusals to bind local sockets. Its log is retained locally and it is not
+counted as green. The retry runs outside that restriction; the published release was already gated by
+the successful full main CI and release workflow above.
+
+RAN: the unrestricted documentation-check retry completed 2708 / 0 / 0 / 153 across 361 reports,
+with no orphans. Strict MkDocs, whitespace and public-data checks were clean.

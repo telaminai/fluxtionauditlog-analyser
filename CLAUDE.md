@@ -100,7 +100,10 @@ architecture, conventions). This file is only the rules that must never be skipp
 ## Current work
 
 `docs/specs/tracker.md` has the delivery order; fully-shipped milestones live in
-`docs/specs/completed/tracker.md`. **Latest: 1.26.0 (2026-09-28)**: M69 spotlight walks (PR #57, merged `5cdd12ec`) —
+`docs/specs/completed/tracker.md`. **Latest: 1.26.1 (2026-09-28)**: PRs #61 and #62 — opt-in mouse tracing and cancellation of a
+records-table or time-slider drag when an owned modal takes focus. External application focus loss is unchanged;
+the original incident remains unconfirmed. [Release evidence](docs/handoff/fix_runaway_table_drag_2026_09_28_codex.md).
+**1.26.0 (the same day)**: M69 spotlight walks (PR #57, merged `5cdd12ec`) —
 saved, stepped explanations replayed with ◀ ▶ on the overlay, stored like reports; the `walk` verb (the SEVENTEENTH);
 the right-click save menu; the Reports tab list and `context.walks`. Playback is the `walkPlayback` session node's
 (rule 9): a frozen definition, definition changes as facts, the session's file-identity verdict constraining what a
