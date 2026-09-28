@@ -197,11 +197,11 @@ def main():
     t.call("aggregate", {"groupBy": "dimension"})
     t.call("read", {"recordIndex": 7}, show=["records", "record", "event", "logTime", "nodeLogs"])
     t.call("flag", {"recordIndexes": [6, 7], "note": "live orders reached the risk limit — the breach that follows is routine here, but the spread moved first"})
-    t.agent("At 09:00:00.300 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live "
-            "orders. The cycle before it (09:00:00.270) is the one that took liveOrders to the limit — I've flagged "
+    t.agent("At 09:00:00.180 a RiskBreachEvent fired: `breachHandler` recorded `breachedOn: ord-2` with two live "
+            "orders. The cycle before it, at the same instant, is the one that took liveOrders to the limit — I've flagged "
             "both with a note; they're the yellow rows in your table and the *Flagged only* toggle shows just them. "
             "The final EOF record is included; a missing closing separator does not establish whether the file is whole.",
-            cites=["breachedOn", "ord-2", "riskMonitor"])
+            cites=["breachedOn", "ord-2", "riskMonitor", "1767258000180"])
     cd.act(ep, "goto", {"recordIndex": 7, "reveal": True})
     t.shot("conv-what-happened.png", "The two flagged records, the note in the detail pane — the agent's answer as things you can click")
 
@@ -223,12 +223,12 @@ def main():
 
     # 3 ---------------------------------------------------------------------------------------------
     t.heading("3 · \"Why is this number what it is?\" — one value followed back through the graph")
-    t.you("The spread in the 09:00:00.270 cycle is 0.011. Show me where that comes from.")
+    t.you("The spread in the 09:00:00.180 cycle is 0.011. Show me where that comes from.")
     t.call("topology", {"select": "quotePublisher", "scope": "routes"}, show=["selected", "scope", "visibleNodes", "totalNodes", "routeBound", "focus"])
     t.call("goto", {"recordIndex": 6, "reveal": True}, show=["recordIndex", "event", "logTime"])
     t.call("topology", {"step": 2}, show=["position", "currentNode", "rowCount", "atEntry", "orderMeaningful"])
     t.agent("`quotePublisher.spread` is computed from `spreadCalculator`, which listens to `priceListener` — the "
-            "Topology tab is now focused on exactly those routes, and I've stepped the 09:00:00.270 cycle to the "
+            "Topology tab is now focused on exactly those routes, and I've stepped the 09:00:00.180 cycle to the "
             "second node it dispatched — `quotePublisher`, after `orderTracker`. `spreadCalculator` cannot write audit output at "
             "all (conversation 2), so the "
             "0.011 you see is `quotePublisher` reporting a value it was handed, and no audit log will ever let us "

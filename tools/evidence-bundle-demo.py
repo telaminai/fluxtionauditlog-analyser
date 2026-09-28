@@ -13,6 +13,12 @@ sender's settings, roots or files:
   recipient  /tmp/fluxtion-evidence-demo/recipient  a cold home with its own project and no source roots; receives
                                                     only the two good .fexp files, opens each, plays the walk
 
+The replay leg (M70.R5): the sender then opens a RECORDED run and captures it with its replay records, after two
+refusals by name (replay records from another log; a window with them). The recipient verifies it, replays it with
+tools/replay/ReplayBundle.java into two builds compiled here from the committed DEMO sources, and compares each with
+--replay-compare: our build AGREES, a build with a different risk limit DIVERGES at record 6, and a build carrying
+another processor's graph is refused before anything runs. Then it opens the bundle and plays its walk.
+
 Both homes are isolated (rule 1): nothing on screen comes from this machine's own settings. Every check prints PASS
 or FAIL and the run exits non-zero on any FAIL; timings for the recipient's steps are written to the output JSON.
 
@@ -45,6 +51,20 @@ GRAPHML = FIXTURES / "demo-quote-processor.graphml"
 ROOT = pathlib.Path("/tmp/fluxtion-evidence-demo")
 SENDER = ROOT / "sender"
 RECIPIENT = ROOT / "recipient"
+
+# The replay leg (M70.R5): a recorded run, its replay records, and two builds of the processor for the recipient.
+REPLAY_DIR = REPO / "src/test/resources/replay"
+RECORDED_LOG = REPLAY_DIR / "demo-quote-recorded-audit.yaml"
+RECORDED_GRAPH = REPLAY_DIR / "demo-quote-recorded-processor.graphml"
+RECORDED_REPLAY = REPLAY_DIR / "demo-quote-recorded.replay.yaml"
+RECORDED_PROCESSOR = "com.acme.demo.generated.DemoQuoteRecordedProcessor"
+DEMO_SRC = REPO / "examples/fixture-generator/src/main/java"
+DEMO_RES = REPO / "examples/fixture-generator/src/main/resources"
+RUNNER = REPO / "tools/replay/ReplayBundle.java"
+M2 = pathlib.Path.home() / ".m2/repository"
+REPLAY_WALK = "the-recorded-breach"
+DIVERGENCE = ("replay: DIVERGES at record 6 (OrderUpdateEvent): eventLogRecord.nodeLogs.riskMonitor: the bundled log "
+              "has '{ liveOrders: 2, limit: 2, redispatch: true}', and the replay has no such line")
 
 WALK = "why-the-spread-moved"
 CHART = "Spread before the breach"
@@ -151,7 +171,7 @@ class Analyser:
 
 # ---- capture: one operation on the running analyser ----------------------------------------------------------------
 
-def capture(an, name, notes=None, frm=None, to=None):
+def capture(an, name, notes=None, frm=None, to=None, replay=None):
     """The capture OPERATION on the running analyser: report {bundle}. The session decides every refusal and whether
     the result stands; this only asks and waits. Returns (ok, lines, path): lines are the refusal, or what the
     analyser said was left out, redacted or excerpted, then the identity."""
@@ -162,6 +182,8 @@ def capture(an, name, notes=None, frm=None, to=None):
         bundle["from"] = frm
     if to is not None:
         bundle["to"] = to
+    if replay is not None:
+        bundle["replay"] = str(replay)
     res = an.act("report", {"bundle": bundle})
     if not res.get("ok"):
         return False, [res.get("error", "")], None
@@ -287,7 +309,7 @@ def sender_session():
 
 NOTES = "# The 09:00 breach (DEMO)\n\nThe spread widened two cycles before the risk limit was reached.\n"
 # the excerpt window: records 4..8 of the DEMO log, which hold the breach record (7) and the cycles before it
-EXCERPT = (1767258000200, 1767258000330)
+EXCERPT = (1767258000140, 1767258000210)
 
 
 def recipient(an, bundle, label, records, row, work):
@@ -343,6 +365,128 @@ def recipient(an, bundle, label, records, row, work):
 EXCERPT_RECORDS = "4..8"
 
 
+# ---- the replay leg (M70.R5): a recorded run, sent with its replay records, checked against two builds -------------
+
+def replay_sender(an, inbox):
+    """With the DEMO log open, then the recorded run: the analyser refuses replay records that are not this log's, and
+    a window with them; it writes the whole recorded run with them. Returns the bundle in the recipient's inbox."""
+    exchange = SENDER / "exchange"
+    # A genuinely different run: the longer series log. NOT the short DEMO log, whose first seven inputs are the recorded
+    # run's, at the same instants (the same input script on the same clock), so by content they ARE its inputs and pair.
+    an.must("open", {"log": str(FIXTURES / "demo-quote-series.yaml"), "provenance": "DEMO quote service"})
+    an.settle("the series log")
+    ok, lines, _ = capture(an, "wrong-log.fexp", replay=RECORDED_REPLAY)
+    check(not ok and "the replay does not belong to this log" in lines[0] and not (exchange / "wrong-log.fexp").exists(),
+          "R2 replay records from another run are refused by name, and nothing is written", "; ".join(lines))
+    an.must("open", {"log": str(RECORDED_LOG), "graphml": str(RECORDED_GRAPH), "provenance": "DEMO quote service"})
+    an.settle("the recorded run")
+    an.must("walk", {"name": REPLAY_WALK, "title": "The breach, in the recorded run", "steps": [
+        {"caption": "the graph raises the breach itself", "view": {"tab": "summary", "record": 7},
+         "targets": [{"target": "records:row:7", "caption": "raised by riskMonitor, not sent in"}]}]})
+    ok, lines, _ = capture(an, "recorded-window.fexp", frm=1767258000100, to=1767258000180, replay=RECORDED_REPLAY)
+    check(not ok and "a replay needs the whole run" in lines[0], "R2 a window with replay records is refused by name",
+          "; ".join(lines))
+    ok, lines, path = capture(an, "recorded-run.fexp", notes="# Recorded run (DEMO)\n", replay=RECORDED_REPLAY)
+    print("  recorded run, with its replay records:\n    " + "\n    ".join(lines))
+    check(ok and any("the run's 7 recorded inputs, paired with the log in order" in l for l in lines),
+          "R2 the whole recorded run is written with its 7 replay records, paired in order", "; ".join(lines))
+    with zipfile.ZipFile(path) as z:
+        check("replay/demo-quote-recorded.replay.yaml" in z.namelist(), "R2 the replay records travel as the replay/ member")
+        check(json.loads(z.read("manifest.json")).get("format") == 2, "R2 a bundle with replay records is format 2")
+    shutil.copyfile(path, inbox / "recorded-run.fexp")
+    return inbox / "recorded-run.fexp"
+
+
+def build(work, name, risk_limit=None, graphml=None):
+    """A recipient's build of the processor from the committed DEMO sources (not the builder, which needs the
+    compiler), with the generator's GraphML beside the class. `risk_limit` changes the generated processor's limit;
+    `graphml` puts another processor's graph beside it, making a build that is not the bundle's processor."""
+    src, classes = work / f"{name}-src", work / name
+    files = []
+    for p in DEMO_SRC.rglob("*.java"):
+        rel = p.relative_to(DEMO_SRC).as_posix()
+        if "/builder/" in rel or rel.endswith("GenerateFixtures.java"):
+            continue
+        text = p.read_text()
+        if risk_limit and rel.endswith("DemoQuoteRecordedProcessor.java"):
+            was = "new com.acme.demo.node.Nodes.RiskMonitor(orderTracker, 2)"
+            if was not in text:
+                sys.exit("the changed build could not find the generated risk limit")
+            text = text.replace(was, f"new com.acme.demo.node.Nodes.RiskMonitor(orderTracker, {risk_limit})")
+        (src / rel).parent.mkdir(parents=True, exist_ok=True)
+        (src / rel).write_text(text)
+        files.append(str(src / rel))
+    classes.mkdir(parents=True)
+    subprocess.run(["javac", "-proc:none", "-nowarn", "-d", str(classes), "-cp", runtime_cp(), *files], check=True)
+    graph = classes / "com/acme/demo/generated/DemoQuoteRecordedProcessor.graphml"
+    graph.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(graphml or DEMO_RES / "com/acme/demo/generated/DemoQuoteRecordedProcessor.graphml", graph)
+    return classes
+
+
+def runtime_cp():
+    """The Fluxtion runtime and its one dependency, from the local repository `mvn package` filled."""
+    runtime = M2 / "com/telamin/fluxtion/fluxtion-runtime/1.0.16/fluxtion-runtime-1.0.16.jar"
+    agrona = next((p for p in (M2 / "org/agrona/agrona").rglob("agrona-*.jar") if "sources" not in p.name), None)
+    if not runtime.exists() or agrona is None:
+        sys.exit("the Fluxtion runtime is not in ~/.m2 — run `mvn package` first")
+    return f"{runtime}{':'}{agrona}"
+
+
+def runner(bundle, build_dir, out):
+    """The recipient's runner, run as `java` runs a single source file: no JBang and no network needed here."""
+    r = subprocess.run(["java", "-cp", runtime_cp(), str(RUNNER), "--bundle", str(bundle), "--processor",
+                        RECORDED_PROCESSOR, "--cp", str(build_dir), "--out", str(out)], capture_output=True, text=True)
+    return r.returncode, r.stdout, r.stderr
+
+
+def replay_recipient(an, bundle, work):
+    """Verify, replay into our build (AGREES), into a build that behaves differently (DIVERGES, named), refuse a build
+    that is not the bundle's processor; then open the bundle and play its walk."""
+    label = "replay"
+    received = sha(bundle)
+    code, so, se = cli(an.home, "--verify", bundle)
+    check(code == 0 and "replay: replay/demo-quote-recorded.replay.yaml, the run's 7 recorded inputs" in so,
+          f"R2 [{label}] verify says the bundle carries the run's 7 recorded inputs", so + se)
+    check("limit: replay: the recorded inputs reproduce this log only on a build whose graph matches" in so
+          and "limit: no replay" not in so, f"R2 [{label}] verify states the replay limit, never 'no replay'", so)
+    builds = work / "builds"
+    builds.mkdir(parents=True)
+    ours = build(builds, "our-build")
+    changed = build(builds, "risk-change", risk_limit=3)
+    foreign = build(builds, "foreign", graphml=DEMO_RES / "com/acme/demo/generated/DemoQuoteProcessor.graphml")
+
+    t0 = time.monotonic()
+    code, so, se = runner(bundle, ours, work / "replayed.yaml")
+    RESULTS["timings"]["replay_runner_s"] = round(time.monotonic() - t0, 2)
+    check(code == 0 and "graph: your build's nodes and edges are the bundle's" in so and "(8 audit records)" in so,
+          f"R4 [{label}] the runner replays 7 inputs into our build, which raises the breach again: 8 records", so + se)
+    t0 = time.monotonic()
+    code, so, se = cli(an.home, "--replay-compare", bundle, work / "replayed.yaml")
+    RESULTS["timings"]["replay_compare_s"] = round(time.monotonic() - t0, 2)
+    check(code == 0 and "replay: AGREES, 8 of 8 records" in so, f"R3 [{label}] our build gives the same audit log: AGREES",
+          so + se)
+
+    code, so, se = runner(bundle, changed, work / "replayed-risk-change.yaml")
+    check(code == 0, f"R4 [{label}] a build with the same graph and a different risk limit replays", se)
+    code, so, se = cli(an.home, "--replay-compare", bundle, work / "replayed-risk-change.yaml")
+    check(code == 1 and DIVERGENCE in so,
+          f"R3 [{label}] it DIVERGES at record 6, naming the risk monitor entry it never writes", so + se)
+
+    code, so, se = runner(bundle, foreign, work / "replayed-foreign.yaml")
+    check(code == 1 and "your build's graph is not the bundle's: node(s) [replayCapture] missing" in se
+          and not (work / "replayed-foreign.yaml").exists(),
+          f"R4 [{label}] a build that is not the bundle's processor is refused by name, nothing written", so + se)
+
+    open_bundle(an, bundle, work / "copies")
+    shown = play(an, REPLAY_WALK, label)
+    check(len(shown) == 1 and shown[0].get("phase") == "SHOWN"
+          and all(t.get("state") == "CURRENT" for t in shown[0].get("targets") or []),
+          f"EP-A8 [{label}] the recorded run's walk plays, its target current", json.dumps(shown)[:300])
+    an.must("walk", {"end": True})
+    check(sha(bundle) == received, f"EP-A5 [{label}] the received bundle is byte-identical after replay, compare and the walk")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--keep", action="store_true", help="leave the recipient's analyser open on the excerpt's walk")
@@ -360,6 +504,7 @@ def main():
     inbox = RECIPIENT / "inbox"
     inbox.mkdir(parents=True)
     bundles = []
+    replay_bundle = None
     if a.open:
         bundles.append((a.open, "received", 10, 7))
     else:
@@ -387,10 +532,13 @@ def main():
             shutil.copyfile(path, inbox / "breach-0900-excerpt.fexp")
             bundles.append((inbox / "breach-0900-excerpt.fexp", "excerpt", 5, 3))
 
-            ok, lines, path = capture(an, "before-the-breach.fexp", to=1767258000250)
+            ok, lines, path = capture(an, "before-the-breach.fexp", to=1767258000170)
             check(ok and any(l.startswith(f"left out: walk '{WALK}'") for l in lines)
                   and any(l.startswith(f"left out: report '{REPORT}'") for l in lines),
                   "an excerpt that misses the breach leaves the walk and the report out, and names them", "; ".join(lines))
+
+            print("sender: the recorded run, with its replay records")
+            replay_bundle = replay_sender(an, inbox)
         finally:
             an.stop()
 
@@ -420,6 +568,9 @@ def main():
         config_before = props(home / ".fluxtion-analyser" / "config")
         for bundle, label, records, row in bundles:
             recipient(an, bundle, label, records, row, RECIPIENT / "work")
+        if not a.open:
+            print("recipient: the recorded run — verify, replay into two builds, compare, open")
+            replay_recipient(an, replay_bundle, RECIPIENT / "replay")
         RESULTS["screenshots"] = sorted(str(p) for p in shots.glob("*.png"))
         if not a.keep:
             an.must("open", {"project": str(own_profile)})                     # back to the recipient's own work

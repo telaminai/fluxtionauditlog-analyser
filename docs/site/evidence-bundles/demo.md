@@ -29,6 +29,14 @@ Before any log is open it asks for a capture, which must refuse. Then, through `
 - an **excerpt**, records 4..8, which hold the breach: the walk and the report are re-based onto it;
 - an excerpt that **misses** the breach: the walk and the report must be left out and named.
 
+**Then the recorded run, with its replay records.** The sender opens a run recorded with a replay writer and asks
+for a bundle with its replay records. The analyser first refuses, by name:
+
+- replay records from another run (with the longer DEMO series log open);
+- a time window with replay records.
+
+Then it writes the whole recorded run, format 2, carrying the run's 7 recorded inputs.
+
 **The recipient** starts cold, with its own project and no source roots, and receives only the two good `.fexp`
 files. For each, it:
 
@@ -38,13 +46,24 @@ files. For each, it:
    must be row 7 of the whole log and row 3 of the excerpt;
 4. goes back to its own project.
 
+For the recorded run it also compiles two builds of the processor from the committed DEMO sources: one as it is, and
+one with the risk limit raised from 2 to 3. It then:
+
+1. verifies it: `--verify` must state the replay limit, never *no replay*;
+2. replays it into the first build with `tools/replay/ReplayBundle.java`, and `--replay-compare` must say
+   **AGREES, 8 of 8**;
+3. replays it into the changed build: the same graph, so it replays, and `--replay-compare` must say **DIVERGES at
+   record 6**, naming the risk monitor entry that build never writes;
+4. offers the runner a build carrying another processor's graph, which it must refuse before running anything;
+5. opens the bundle and plays its walk.
+
 Then it checks:
 
 - that each received file is unchanged;
 - that its own project profile is byte-identical;
 - which of its machine settings changed. It lists them: recents and last-opened paths only.
 
-A typical run on one machine: from a received file to the walk's last step in about **0.6 s** for the whole log and
+The replay leg adds about 0.4 s to replay and 0.1 s to compare. A typical run on one machine: from a received file to the walk's last step in about **0.6 s** for the whole log and
 **1.2 s** for the excerpt, plus about 2.5 s to start the analyser. Results, the timings and the screenshots go to
 `/tmp/fluxtion-evidence-demo/results.json` and `…/recipient/shots/`.
 

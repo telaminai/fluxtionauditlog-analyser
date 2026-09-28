@@ -207,6 +207,11 @@ frame observes it and the node decides.
 - **A limit, deliberately.** A replay that also recorded the graph's own event still pairs: that event is in the log
   at that instant. Replaying it would raise the event twice, and that is the comparison's to find (§6), not the
   pairing's. Pairing asks only whether the replay belongs to this log.
+- **A second limit, found by the demo driver (R5).** Pairing is by content, so a *different run* whose inputs are the
+  same events at the same instants pairs too. The DEMO's short log and the recorded run are exactly that: the same
+  input script on the same clock, the DEMO log adding two service calls at the end. That is honest by construction:
+  those records ARE the replay's inputs. The capture then counts the service calls and warns, and `--replay-compare`
+  shows where the logs differ.
 - **The copy is held to the paired bytes.** The pairing digests the file in the same pass that reads it. The writer
   copies the file later, off the event thread, and refuses a copy whose digest differs: *"the replay file changed
   after it was paired with the log; nothing was written"*.
