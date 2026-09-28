@@ -68,7 +68,7 @@ class WalkPresenterTest {
             return new SpotlightTarget.Resolution(SpotlightTarget.Outcome.LIT, SpotlightTarget.parse(target).target(),
                     new java.awt.Rectangle(1, 1, 5, 5), null);
         }
-        public WalkPresenter.LitResult light(List<SpotlightTarget.Request> requests) {
+        public WalkPresenter.LitResult light(List<WalkPresenter.Numbered> requests) {
             return new WalkPresenter.LitResult(requests.size(), "");
         }
         public void clearWalkSpotlight() { }

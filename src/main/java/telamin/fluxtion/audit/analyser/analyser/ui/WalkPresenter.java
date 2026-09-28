@@ -57,8 +57,11 @@ final class WalkPresenter {
 
         SpotlightTarget.Resolution resolve(String target);
 
-        /** Light a set through the ordinary spotlight path, as the walk's own act; the lit count, or -1 and why. */
-        LitResult light(List<SpotlightTarget.Request> requests);
+        /**
+         * Light a set through the ordinary spotlight path, as the walk's own act; the lit count, or -1 and why. Each
+         * request carries the number the session assigned it (review PR57 R3), which the overlay must draw.
+         */
+        LitResult light(List<Numbered> requests);
 
         void clearWalkSpotlight();
 
@@ -66,6 +69,9 @@ final class WalkPresenter {
     }
 
     record LitResult(int lit, String reason) { }
+
+    /** A spotlight request with the number the session gave its target — not its position in the lit subset. */
+    record Numbered(SpotlightTarget.Request request, int n) { }
 
     private final Frame frame;
     private long preparing = -1;
@@ -103,8 +109,10 @@ final class WalkPresenter {
     }
 
     SessionEvents.Result light(SessionEffects.LightWalkTargetsEffect e) {
-        List<SpotlightTarget.Request> requests = new ArrayList<>();
-        for (SessionEvents.WalkTargetState t : e.targets()) requests.add(new SpotlightTarget.Request(t.target(), t.caption()));
+        List<Numbered> requests = new ArrayList<>();
+        for (SessionEvents.WalkTargetState t : e.targets()) {
+            requests.add(new Numbered(new SpotlightTarget.Request(t.target(), t.caption()), t.n()));
+        }
         LitResult r = frame.light(requests);
         return new SessionEvents.WalkTargetsLit(e.opId(), e.ticket(), Math.max(0, r.lit()), r.reason());
     }

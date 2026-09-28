@@ -182,6 +182,23 @@ public final class SpotlightOverlay extends JComponent {
         this.onPressed = onPressed == null ? (p, l) -> { } : onPressed;
     }
 
+    /**
+     * Review PR57 R3: give lit targets the numbers a caller assigned, instead of their order here. A walk's step can
+     * leave target 1 unavailable and light only target 2, and the strip and {@code context} say "2", so the callout
+     * must too. Targets not named keep their number; later additions continue after the highest.
+     */
+    public void renumber(java.util.Map<String, Integer> numbers) {
+        int highest = 0;
+        for (int i = 0; i < lit.size(); i++) {
+            Lit l = lit.get(i);
+            Integer n = numbers.get(l.target());
+            if (n != null) lit.set(i, new Lit(n, l.target(), l.bounds(), l.caption()));
+            highest = Math.max(highest, lit.get(i).n());
+        }
+        nextNumber = highest + 1;
+        repaint();
+    }
+
     /** Light ONE thing, replacing whatever was lit. */
     public void light(String targetName, Rectangle bounds, String caption) {
         lit.clear();

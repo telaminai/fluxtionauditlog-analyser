@@ -2284,9 +2284,12 @@ public final class MainFrame extends JFrame {
         @Override public SpotlightTarget.Resolution resolve(String target) {
             return SpotlightTarget.resolve(target, spotlightSurface);
         }
-        @Override public WalkPresenter.LitResult light(java.util.List<SpotlightTarget.Request> requests) {
+        @Override public WalkPresenter.LitResult light(java.util.List<WalkPresenter.Numbered> numbered) {
             java.util.List<Map<String, Object>> targets = new java.util.ArrayList<>();
-            for (SpotlightTarget.Request r : requests) {
+            Map<String, Integer> numbers = new java.util.LinkedHashMap<>();
+            for (WalkPresenter.Numbered nr : numbered) {
+                SpotlightTarget.Request r = nr.request();
+                numbers.put(r.target(), nr.n());
                 Map<String, Object> one = new java.util.LinkedHashMap<>();
                 one.put("target", r.target());
                 if (r.caption() != null && !r.caption().isBlank()) one.put("caption", r.caption());
@@ -2295,6 +2298,7 @@ public final class MainFrame extends JFrame {
             walkOwnSpotlight = true;
             try {
                 var result = applySpotlight(Map.of("targets", targets));
+                if (result.ok()) spotlight.renumber(numbers);   // review PR57 R3: the session's numbers, not positions
                 return result.ok() ? new WalkPresenter.LitResult(spotlight.lit().size(), "")
                         : new WalkPresenter.LitResult(0, result.error());
             } finally {

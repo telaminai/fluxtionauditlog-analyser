@@ -906,4 +906,13 @@ CONTROLS = [
      '        if (!keepsChart) return null;',
      '',
      'WalkAuthoringTest#anEditOnTheSameRunOrWithoutChartsWorks'),
+    # R3: the overlay draws the session's numbers
+    ('m69-r3-overlay-takes-the-numbers', UI + 'MainFrame.java',
+     '                if (result.ok()) spotlight.renumber(numbers);',
+     '',
+     'WalkReviewFrameTest#theOverlayKeepsTheSessionsNumbers'),
+    ('m69-r3-presenter-carries-n', UI + 'WalkPresenter.java',
+     '            requests.add(new Numbered(new SpotlightTarget.Request(t.target(), t.caption()), t.n()));',
+     '            requests.add(new Numbered(new SpotlightTarget.Request(t.target(), t.caption()), requests.size() + 1));',
+     'WalkReviewFrameTest#theOverlayKeepsTheSessionsNumbers'),
 ]
