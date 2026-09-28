@@ -1,0 +1,108 @@
+2026-09-28T13:49:35.906992Z WINDOW_EVENT id=200 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:35.907347Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:35.916757Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:36.316940Z READY rows=726 showing=true
+2026-09-28T13:49:36.556583Z BEGIN settings-dialog trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:36.614868Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603376612 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:37.160626Z HELD settings-dialog selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:37.466196Z WINDOW_EVENT id=208 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:37.468224Z WINDOW_EVENT id=206 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:37.468403Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:37.473749Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:37.474001Z WINDOW_EVENT id=200 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:37.474312Z DIALOG showing=[Settings]
+2026-09-28T13:49:37.699077Z RELEASE_SENT settings-dialog selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:38.767361Z RESULT settings-dialog trial=1 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:38.795195Z WINDOW_EVENT id=202 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:38.795415Z WINDOW_EVENT id=208 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:38.795510Z WINDOW_EVENT id=206 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:38.795853Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:38.842359Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:39.030161Z BEGIN settings-dialog trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:39.085830Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603379083 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:39.619919Z HELD settings-dialog selected=9 lead=52 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1040,width=594,height=223]
+2026-09-28T13:49:40.035243Z WINDOW_EVENT id=208 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:40.039086Z WINDOW_EVENT id=206 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:40.039191Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:40.046571Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:40.047169Z WINDOW_EVENT id=200 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:40.047732Z DIALOG showing=[Settings]
+2026-09-28T13:49:40.272402Z RELEASE_SENT settings-dialog selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:41.337375Z RESULT settings-dialog trial=2 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:41.354803Z WINDOW_EVENT id=202 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:41.354972Z WINDOW_EVENT id=208 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:41.355042Z WINDOW_EVENT id=206 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:41.355104Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:41.366516Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:41.636452Z BEGIN settings-dialog trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:41.697079Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603381696 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:42.295393Z HELD settings-dialog selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:42.459343Z WINDOW_EVENT id=208 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:42.460692Z WINDOW_EVENT id=206 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:42.460760Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:42.461155Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:42.461326Z WINDOW_EVENT id=200 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:42.461468Z DIALOG showing=[Settings]
+2026-09-28T13:49:42.687358Z RELEASE_SENT settings-dialog selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:43.744069Z RESULT settings-dialog trial=3 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:43.754467Z WINDOW_EVENT id=202 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:43.754588Z WINDOW_EVENT id=208 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:43.754624Z WINDOW_EVENT id=206 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T13:49:43.754665Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:43.759687Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:49:44.004413Z BEGIN ordinary trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:44.064303Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603384063 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:44.678758Z HELD ordinary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:44.850865Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603384849 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:44.904713Z RELEASE_SENT ordinary selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:45.965094Z RESULT ordinary trial=1 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:46.137609Z BEGIN ordinary trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:46.201171Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603386199 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:46.802768Z HELD ordinary selected=9 lead=52 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1040,width=594,height=223]
+2026-09-28T13:49:46.990414Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603386968 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:47.028583Z RELEASE_SENT ordinary selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:48.081433Z RESULT ordinary trial=2 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:48.206704Z BEGIN ordinary trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:48.266654Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603388260 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:48.820284Z HELD ordinary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:48.988259Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603388986 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:49.030091Z RELEASE_SENT ordinary selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:50.086481Z RESULT ordinary trial=3 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:50.220948Z BEGIN overlay trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:50.283153Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603390276 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:50.841583Z HELD overlay selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:51.017618Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603391015 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:51.113067Z RELEASE_SENT overlay selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:52.171977Z RESULT overlay trial=1 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:52.298194Z BEGIN overlay trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:52.357399Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603392353 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:52.904722Z HELD overlay selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:53.072199Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603393070 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:53.139940Z RELEASE_SENT overlay selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:54.196899Z RESULT overlay trial=2 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:54.339308Z BEGIN overlay trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:54.401453Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603394399 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:54.954109Z HELD overlay selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:55.120980Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603395119 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:55.196616Z RELEASE_SENT overlay selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T13:49:56.252429Z RESULT overlay trial=3 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T13:49:56.388916Z BEGIN walk-step trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:56.451006Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603396449 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:57.006363Z HELD walk-step selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:57.188322Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603397187 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:57.230189Z RELEASE_SENT walk-step selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]
+2026-09-28T13:49:58.287333Z RESULT walk-step trial=1 running=false first={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]} last={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]}
+2026-09-28T13:49:58.430653Z BEGIN walk-step trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:49:58.490237Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603398487 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:59.032295Z HELD walk-step selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:49:59.206526Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603399204 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:49:59.249410Z RELEASE_SENT walk-step selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]
+2026-09-28T13:50:00.305172Z RESULT walk-step trial=2 running=false first={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]} last={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]}
+2026-09-28T13:50:00.472325Z BEGIN walk-step trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:50:00.531647Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790603400530 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:50:01.125273Z HELD walk-step selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T13:50:01.348786Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603401316 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T13:50:01.488310Z RELEASE_SENT walk-step selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]
+2026-09-28T13:50:02.544506Z RESULT walk-step trial=3 running=false first={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]} last={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]}
+2026-09-28T13:50:02.547212Z DONE runawayCases=0 validGestures=12 inconclusive=0
+2026-09-28T13:50:02.551957Z QUEUE_BEFORE_FILTER id=502 button=1 when=1790603402550 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame

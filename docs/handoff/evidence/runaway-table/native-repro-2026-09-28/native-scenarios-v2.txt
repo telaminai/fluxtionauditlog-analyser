@@ -1,0 +1,44 @@
+2026-09-28T12:14:19.455883Z READY rows=726 showing=true
+2026-09-28T12:14:19.678625Z BEGIN outside-frame trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:20.283714Z HELD outside-frame selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:20.521267Z RELEASE_SENT outside-frame selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:21.579635Z RESULT outside-frame trial=1 running=false first={selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]} last={selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]}
+2026-09-28T12:14:21.745720Z BEGIN outside-frame trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:22.349194Z HELD outside-frame selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:22.586191Z RELEASE_SENT outside-frame selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:23.644637Z RESULT outside-frame trial=2 running=false first={selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]} last={selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]}
+2026-09-28T12:14:23.780260Z BEGIN outside-frame trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:24.378038Z HELD outside-frame selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:24.613030Z RELEASE_SENT outside-frame selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:25.668973Z RESULT outside-frame trial=3 running=false first={selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]} last={selected=10 lead=51 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]}
+2026-09-28T12:14:25.812384Z BEGIN secondary trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:26.426828Z HELD secondary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:26.893677Z RELEASE_SENT secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:14:27.953872Z RESULT secondary trial=1 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:14:28.162782Z BEGIN secondary trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:28.832173Z HELD secondary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:29.196046Z RELEASE_SENT secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:14:30.253108Z RESULT secondary trial=2 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:14:30.389746Z BEGIN secondary trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:30.986489Z HELD secondary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:31.312988Z RELEASE_SENT secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:32.369923Z RESULT secondary trial=3 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]}
+2026-09-28T12:14:32.499022Z BEGIN menu-open trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:33.109503Z HELD menu-open selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:33.336507Z RELEASE_SENT menu-open selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:14:34.387848Z RESULT menu-open trial=1 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:14:34.520739Z BEGIN menu-open trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:35.135342Z HELD menu-open selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:35.346297Z RELEASE_SENT menu-open selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:14:36.407258Z RESULT menu-open trial=2 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:14:36.536633Z BEGIN menu-open trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:37.141848Z HELD menu-open selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:37.362959Z RELEASE_SENT menu-open selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:14:38.421956Z RESULT menu-open trial=3 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:14:38.547620Z BEGIN settings-dialog trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:14:39.150295Z HELD settings-dialog selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:14:39.463702Z DIALOG showing=[Settings]
+2026-09-28T12:14:39.685428Z RELEASE_SENT settings-dialog selected=14 lead=47 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=940,width=594,height=223]
+2026-09-28T12:14:40.743640Z RESULT settings-dialog trial=1 running=true first={selected=16 lead=45 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=900,width=594,height=223]} last={selected=24 lead=37 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=740,width=594,height=223]}
+2026-09-28T12:14:40.743735Z RUNAWAY observed; stopping before another gesture changes it
+2026-09-28T12:14:41.751371Z DONE runawayCases=1 validGestures=10 inconclusive=0

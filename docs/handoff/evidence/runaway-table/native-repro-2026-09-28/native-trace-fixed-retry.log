@@ -1,0 +1,23 @@
+2026-09-28T13:49:35.499994Z START trace=<scratch>/native-trace-fixed-retry.log note="press/release/click with source window; drags counted"
+2026-09-28T13:49:36.616118Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:39.087605Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:41.697256Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:44.064497Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:44.851434Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T13:49:46.201315Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:46.990704Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T13:49:48.266864Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:48.988421Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T13:49:50.283400Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:51.017847Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T13:49:52.357647Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:53.072586Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T13:49:54.401629Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:55.121244Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T13:49:56.451180Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:57.188566Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=false popupShowing=none hadPress=true drags=12
+2026-09-28T13:49:58.490431Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:49:59.206768Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=false popupShowing=none hadPress=true drags=12
+2026-09-28T13:50:00.531836Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T13:50:01.349091Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=false popupShowing=none hadPress=true drags=12
+2026-09-28T13:50:02.552119Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=false popupShowing=none hadPress=false drags=12

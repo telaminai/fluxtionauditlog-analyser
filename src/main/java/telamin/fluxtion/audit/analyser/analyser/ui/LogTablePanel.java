@@ -302,6 +302,17 @@ public final class LogTablePanel extends JPanel {
         return table;
     }
 
+    /** End a gesture whose native release may be lost when a modal takes the window's focus. */
+    void cancelMouseGesture() {
+        // JComponent's public setter stops Swing's Autoscroller. Restore the setting for the next gesture;
+        // do not manufacture a release event, clear the selection, or disable future drag scrolling.
+        boolean autoscrolls = table.getAutoscrolls();
+        table.setAutoscrolls(false);
+        table.setAutoscrolls(autoscrolls);
+        table.getSelectionModel().setValueIsAdjusting(false);
+        table.getColumnModel().getSelectionModel().setValueIsAdjusting(false);
+    }
+
     /**
      * Selects the next (or previous) row — in current view order, starting from the selection — whose
      * record is an anomaly (parse-error / breach / NaN), wrapping around. Returns false if none exist.

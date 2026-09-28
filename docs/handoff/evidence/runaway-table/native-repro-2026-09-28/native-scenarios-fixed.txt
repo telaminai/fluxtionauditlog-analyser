@@ -1,0 +1,40 @@
+2026-09-28T13:45:04.078959Z WINDOW_EVENT id=200 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T13:45:05.103143Z READY rows=726 showing=true
+2026-09-28T13:45:05.310855Z BEGIN settings-dialog trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:05.913359Z HELD settings-dialog selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:05.942302Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:06.335745Z BEGIN settings-dialog trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:06.946536Z HELD settings-dialog selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:06.972336Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:07.117773Z BEGIN settings-dialog trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:07.714429Z HELD settings-dialog selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:07.740388Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:07.886761Z BEGIN ordinary trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:08.481856Z HELD ordinary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:08.509776Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:08.658334Z BEGIN ordinary trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:09.257748Z HELD ordinary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:09.287743Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:09.436450Z BEGIN ordinary trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:10.051229Z HELD ordinary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:10.081772Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:10.227584Z BEGIN overlay trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:10.839518Z HELD overlay selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:10.866725Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:11.026631Z BEGIN overlay trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:11.633872Z HELD overlay selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28 14:45:11.653 java[75618:153249256] *** Canceling drag because exception 'NSGenericException' (reason 'Java Exception') was raised during a dragging session
+2026-09-28T13:45:11.661461Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:11.803455Z BEGIN overlay trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:12.418706Z HELD overlay selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:12.448958Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:12.603850Z BEGIN walk-step trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:13.211523Z HELD walk-step selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:13.239768Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:13.410311Z BEGIN walk-step trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:14.007073Z HELD walk-step selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:14.032808Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:14.173496Z BEGIN walk-step trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:14.780116Z HELD walk-step selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T13:45:14.810445Z INCONCLUSIVE: gesture did not start the table autoscroller
+2026-09-28T13:45:14.812675Z DONE runawayCases=0 validGestures=0 inconclusive=12

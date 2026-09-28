@@ -2,6 +2,12 @@
 
 A field diagnostic for one open defect. Written for someone who was not there.
 
+**2026-09-28 update:** a native drag interrupted by the real Settings dialog now reproduces the runaway,
+including in a fresh process. A correction cancels the table and time-slider gestures on window focus loss.
+This is a controlled reproduction, **not proof of the original demo's trigger**. See
+[the reproduction and fix report](fix_runaway_table_drag_2026_09_28_codex.md) and
+[the preserved evidence](evidence/runaway-table/native-repro-2026-09-28/README.md).
+
 ## The symptom
 
 During a 1.26.0 demo the **records table began scrolling and extending its selection with nothing touching it**.
@@ -23,8 +29,10 @@ That anchor was set **programmatically**, through the action socket's `goto`, wi
 already in a drag. A **fresh process**, same log, same call, held at one row across four samples. So the fault is
 **state stuck inside the JVM**, not a wrong code path that would misbehave from cold.
 
-The symptom is `javax.swing.Autoscroller` still running. It stops only when the **table itself** processes a
-`MOUSE_RELEASED` (`JComponent.processMouseEvent`). **So a release went somewhere other than the table.**
+The symptom is `javax.swing.Autoscroller` still running. Its ordinary gesture-end path is the **table itself**
+processing `MOUSE_RELEASED` (`JComponent.processMouseEvent`). It can also be stopped by disabling autoscrolls
+through the public setter, or when the component stops showing. A missing release does not establish that
+another Java component received it: the controlled capture below saw no release even before event filtering.
 
 ## What is ruled OUT
 
@@ -43,7 +51,7 @@ A PR built on that theory ([#60]) was closed unmerged. Its tests only passed bec
 
 ## What remains
 
-The release is reaching *something*, and it is not the glass pane and not the table. The live candidates are
+The original incident still needs a trace. Possible boundaries include
 **another window** taking the release or the grab mid-gesture:
 
 - a dialog opening under the pointer,
@@ -51,16 +59,17 @@ The release is reaching *something*, and it is not the glass pane and not the ta
 - a tooltip window,
 - the OS delivering the release outside the frame entirely.
 
-A posted event cannot model which window the OS chooses, so **this needs a physical mouse**, and therefore
-instrumentation rather than a test. `java.awt.Robot` is not a way round it: its input is dropped on the affected
-machine without Accessibility permission, the same limit that causes the focus-bound test skips.
+A posted event cannot model which window the OS chooses. Native input is required. Robot input was reported
+dropped in the earlier session, but worked in this session: a native button probe observed one press, one
+release and one action before the analyser trials. The regression tests require delivered native input and
+report a skip if the desktop cannot provide it. That availability must be checked on each machine.
 
 ## Capturing the evidence
 
-Run the app with the trace on:
+Build the diagnostic branch first; the released 1.26.0 jar does not contain this diagnostic. Run with the trace on:
 
 ```bash
-java -Danalyser.mouseTrace=/tmp/mousetrace.log -jar fluxtion-auditlog-analyser-1.26.0.jar
+java -Danalyser.mouseTrace=/tmp/mousetrace.log -jar target/fluxtion-auditlog-analyser-0.0.0-SNAPSHOT.jar
 # or -Danalyser.mouseTrace=stderr
 ```
 
@@ -103,14 +112,17 @@ itself. It deliberately does *not* fire merely because a selection grew with no 
 selection does that (a walk step, `goto`, a spotlight), and a diagnostic that cries at normal behaviour is one
 nobody reads.
 
-**When you have a `SUSPECT` line, read upwards to the last `RELEASED` (or its absence).** That names the window
-and component that took the release, which is the answer.
+**When you have a `SUSPECT` line, read upwards to the last `RELEASED` (or its absence).** An observed release
+names the dispatched source, not proof that processing completed. `down` is an observed-event ledger, not
+physical button state. A completely missing release leaves it nonempty and can suppress `SUSPECT`: no warning
+is not evidence of health. `popupShowing` is sampled only when mouse events arrive; the controlled probe also
+records window events to cover this gap.
 
 ## Captured traces
 
-They go in [`evidence/runaway-table/`](evidence/runaway-table/), which also holds the capture protocol. **At the
-time of writing there is no captured trace** — the instrument is built and verified, the reproduction has not
-happened, and a diagnosis cannot start before it.
+They go in [`evidence/runaway-table/`](evidence/runaway-table/), which also holds the capture protocol.
+The native-repro subdirectory now contains controlled before/after captures. A trace of the original demo
+incident is still unavailable.
 
 Note from the first run of the instrument: a `SUSPECT` line with `size=0` is **noise from a log open**, not the
 fault. The rule now requires a non-empty selection and a prior real press; see the evidence directory's README.
@@ -121,7 +133,6 @@ fault. The rule now requires a non-empty selection and a prior real press; see t
 2. What was showing at the time (`popupShowing`)?
 3. Given that, what is the smallest correct fix, and roughly how big is it?
 
-The fix is **not** obvious from here, and the previous attempt failed by guessing before measuring. Please do not
-propose one without a trace showing where the release went.
+Do not infer the original trigger from the controlled reproduction. Preserve any new incident trace before extending the fix.
 
 [#60]: https://github.com/telaminai/fluxtionauditlog-analyser/pull/60

@@ -1,8 +1,8 @@
 # Runaway records table — captured traces
 
-**There is no captured trace here yet.** This directory is where one goes when the reproduction happens.
-A diagnosis cannot start before that: the whole point of the instrument is that the mechanism was guessed once
-already and the guess was wrong.
+**Controlled native captures are now available:** [native-repro-2026-09-28](native-repro-2026-09-28/README.md).
+Opening the real Settings dialog during a native drag reproduced the runaway twice. It does not establish
+the original walkthrough incident's trigger; that still needs its own capture.
 
 ## What a diagnosing reader gets, and does not get
 
@@ -10,29 +10,33 @@ already and the guess was wrong.
 |---|---|
 | the instrument | **built and verified** — `MouseTrace`, driven by `-Danalyser.mouseTrace` |
 | the listener records real mouse events | **verified** — `MouseTraceTest#itRecordsAMouseEventThroughTheToolkit` posts through the event queue and sees the line |
-| a trace from a real runaway | **not captured** — needs a person with a physical mouse |
+| a trace from a controlled native runaway | **captured twice** — native Robot drag, Settings modal; original incident unconfirmed |
 
 ## Capturing one
 
+Build the diagnostic branch first; the published 1.26.0 jar has no mouse trace.
+
 ```bash
 java -Danalyser.mouseTrace="$PWD/docs/handoff/evidence/runaway-table/trace-<date>.log" \
-     -jar fluxtion-auditlog-analyser-1.26.0.jar
+     -jar target/fluxtion-auditlog-analyser-0.0.0-SNAPSHOT.jar
 ```
 
 Then reproduce: open a log, play a spotlight walk, and **click around the records table while steps land** —
 pressing on the table as a step arrives is the shape that produced it. **Stop as soon as the table starts
 scrolling on its own**, and commit the file here.
 
-`java.awt.Robot` is not a substitute: its input is dropped without Accessibility permission on the affected
-machine, the same limit behind the focus-bound test skips.
+Native Robot input worked in the 2026-09-28 reproduction session. Verify delivery first on any other desktop;
+permission or focus restrictions can make it unavailable. A component-dispatched synthetic event remains an
+invalid substitute for native routing.
 
 ## Reading it
 
 Format and field meanings: [`../../runaway-table-mouse-trace.md`](../../runaway-table-mouse-trace.md).
 
-**The one line that matters** is `SUSPECT` — the table believes a drag is in progress while no button is down.
+**One useful line** is `SUSPECT` — the table believes a drag is in progress while no observed button remains down.
 Read *upwards* from it to the last `RELEASED`, which names the window and component that took the release. If
-there is no `RELEASED` at all, that is itself the answer.
+there is no `RELEASED` at all, record that limit. In particular, the ledger can retain the press forever,
+suppressing `SUSPECT` even during a real runaway. The new probes also sample the timer and window events.
 
 ## Two things the first capture already taught us
 

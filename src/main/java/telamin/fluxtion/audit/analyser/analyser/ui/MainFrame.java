@@ -22,6 +22,8 @@ import telamin.fluxtion.audit.analyser.analyser.template.TemplateClient;
 import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Dialog;
+import java.awt.Window;
 import java.awt.FlowLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -241,6 +243,13 @@ public final class MainFrame extends JFrame {
         addWindowFocusListener(new java.awt.event.WindowAdapter() {
             @Override public void windowGainedFocus(java.awt.event.WindowEvent e) {
                 observeReadIdentity();              // a person coming back to the window is the next observation
+            }
+            @Override public void windowLostFocus(java.awt.event.WindowEvent e) {
+                // Cancel only when an owned modal blocks this frame. A non-modal focus change can
+                // preserve the native drag; ending adjustment there would publish selection on every step.
+                if (!blockedByOwnedModal(e.getOppositeWindow())) return;
+                tablePanel.cancelMouseGesture();
+                timeSlider.cancelMouseGesture();
             }
         });
         actionExecutor.bindSessionSnapshot(() -> {
@@ -515,6 +524,15 @@ public final class MainFrame extends JFrame {
      * only at the instant it is measured, so it lives in the setup dialog instead.
      */
     private final JLabel mcpLight = new JLabel();
+
+    private boolean blockedByOwnedModal(Window opposite) {
+        boolean modal = false;
+        for (Window w = opposite; w != null && w != this; w = w.getOwner()) {
+            if (w instanceof Dialog d && d.isModal()) modal = true;
+            if (w.getOwner() == this) return modal;
+        }
+        return false;
+    }
 
     /**
      * Keep the light honest about a fact that changes WITHOUT this window doing anything.

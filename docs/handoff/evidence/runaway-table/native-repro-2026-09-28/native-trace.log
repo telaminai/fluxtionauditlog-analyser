@@ -1,0 +1,47 @@
+2026-09-28T12:12:36.050647Z START trace=<scratch>/native-trace.log note="press/release/click with source window; drags counted"
+2026-09-28T12:12:37.909775Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:38.652724Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:40.175356Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:40.975185Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:42.308683Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:43.091949Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:44.307627Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:45.094668Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:46.491592Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:47.276881Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:48.625669Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:49.408490Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=11 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:50.775521Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:51.587243Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=false popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:52.942493Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:53.757197Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=false popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:55.075435Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:55.893277Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=false popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:57.241537Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:12:58.025205Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:12:59.241638Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:13:00.027073Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:13:01.241768Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:13:02.025664Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=2 adjusting=true popupShowing=none hadPress=true drags=12
+2026-09-28T12:13:03.242112Z PRESSED btn=1 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=false popupShowing=none
+2026-09-28T12:13:03.906342Z PRESSED btn=3 down=[1, 3] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=10 adjusting=true popupShowing=none
+2026-09-28T12:13:04.057929Z RELEASED btn=3 down=[1] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=true popupShowing=HeavyWeightWindow hadPress=true drags=0
+2026-09-28T12:13:04.123245Z RELEASED btn=1 down=[] src= srcWindow=MainFrame(Fluxtion Audit Log Analyser) under= onTable=true sel=1 adjusting=true popupShowing=HeavyWeightWindow hadPress=true drags=0
+2026-09-28T12:13:05.477380Z PRESSED btn=1 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:06.140897Z PRESSED btn=3 down=[1, 3] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:06.141283Z RELEASED btn=3 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=true drags=0
+2026-09-28T12:13:06.141538Z CLICKED btn=3 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:06.340646Z RELEASED btn=1 down=[] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=true drags=0
+2026-09-28T12:13:07.590262Z PRESSED btn=1 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:08.163878Z PRESSED btn=3 down=[1, 3] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:08.198484Z RELEASED btn=3 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=true drags=0
+2026-09-28T12:13:08.198830Z CLICKED btn=3 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:08.393099Z RELEASED btn=1 down=[] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=true drags=0
+2026-09-28T12:13:09.596658Z PRESSED btn=1 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:10.360802Z RELEASED btn=1 down=[] src=JPopupMenu srcWindow=HeavyWeightWindow under=null onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=true drags=13
+2026-09-28T12:13:11.534300Z PRESSED btn=1 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:12.276916Z RELEASED btn=1 down=[] src=JPopupMenu srcWindow=HeavyWeightWindow under=null onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=true drags=13
+2026-09-28T12:13:13.467501Z PRESSED btn=1 down=[1] src=JPopupMenu srcWindow=HeavyWeightWindow under=JPopupMenu onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow
+2026-09-28T12:13:14.212430Z RELEASED btn=1 down=[] src=JPopupMenu srcWindow=HeavyWeightWindow under=null onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=true drags=13
+2026-09-28T12:13:15.335503Z RELEASED btn=1 down=[] src=JPopupMenu srcWindow=HeavyWeightWindow under=null onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=false drags=13
+2026-09-28T12:13:15.375221Z RELEASED btn=3 down=[] src=JPopupMenu srcWindow=HeavyWeightWindow under=null onTable=false sel=1 adjusting=false popupShowing=HeavyWeightWindow hadPress=false drags=13
