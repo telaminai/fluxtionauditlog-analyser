@@ -230,12 +230,14 @@ CONTROLS = [
      '        return input == null ? null : new telamin.fluxtion.audit.analyser.analyser.report.ReportVerb.CoverageData(\n                java.util.List.of(), telamin.fluxtion.audit.analyser.analyser.topology.CoverageService.assess(store, filtered, filter, input).scalarLine(), java.util.List.of(), null);',
      'ReportCoverageTest#theFrameDoesNotDecideCoverageForAReport'),
     # ---- set 13 (owner request, 2026-09-26): the stated gaps closed before one review
+    # re-anchored in the review of #58: the table's rule is now the view's warns(verdict)
     ('set13-a-table-banner', UI + 'LogTablePanel.java',
-     '        if (!"UNVERIFIED".equals(verdict) && !"REPLACEMENT".equals(verdict)) return null;',
+     '        if (!telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.warns(verdict)) return null;',
      '        if (true) return null;',
      'LogTablePanelIdentityBannerTest#theBannerStatesOnlyAChange'),
+    # re-anchored in the review of #58: #58 moved the hand-fed call into the table's registered backend
     ('set13-a-rendered-from-snapshot', UI + 'MainFrame.java',
-     '        tablePanel.setIdentityNote(LogTablePanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));\n',
+     '                            tablePanel.setIdentityNote(LogTablePanel.identityBannerText(v));\n',
      '',
      'LogTablePanelIdentityBannerTest#theFrameRendersItFromTheSnapshot'),
     ('set13-b-focus-drawn', UI + 'TopologyPanel.java',
@@ -355,20 +357,23 @@ CONTROLS = [
      's.emptyLogClaim());', 's.streamEnd());',
      'LogFindingsOnEverySurfaceFrameTest#aOneMemberSetOpenedInTheFrameIsWordedAsItsFile'),
     # ---- M68.7 (owner, Q4 2026-09-26): the charts and the detail pane state the file-identity verdict
+    # re-anchored in the review of #58, to the charts' registered backend
     ('m68-7-charts-not-rendered', UI + 'MainFrame.java',
-     '        graphTabs.setIdentityNote(GraphTabs.identityBannerText(next.logIdentity(), next.logIdentityReason()));\n',
+     '                            graphTabs.setIdentityNote(GraphTabs.identityBannerText(v));\n',
      '',
      'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
+    # re-anchored in the review of #58, to the detail pane's registered backend
     ('m68-7-detail-not-rendered', UI + 'MainFrame.java',
-     '        detailPanel.setIdentityNote(DetailPanel.identityBannerText(next.logIdentity(), next.logIdentityReason()));\n',
+     '                            detailPanel.setIdentityNote(DetailPanel.identityBannerText(v));\n',
      '',
      'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
     ('m68-7-chart-banner-hidden', UI + 'GraphTabs.java',
      '        identityBanner.setVisible(note != null);\n        revalidate();\n    }\n\n    /** The banner\'s text, or null while it is hidden. */',
      '        identityBanner.setVisible(false);\n        revalidate();\n    }\n\n    /** The banner\'s text, or null while it is hidden. */',
      'IdentityMarkSurfacesTest#theBannersAreOnThePanels'),
+    # re-anchored in the review of #58: the charts no longer ask the table; the rule is the view's warns(verdict)
     ('m68-7-chart-text-bypasses-rule', UI + 'GraphTabs.java',
-     '        if (LogTablePanel.identityBannerText(verdict, reason) == null) return null;\n',
+     '        if (!telamin.fluxtion.audit.analyser.analyser.session.view.IdentityBannerView.warns(verdict)) return null;\n',
      '',
      'IdentityMarkSurfacesTest#theSurfacesShareTheTablesRule'),
     # ---- M68.7 review (34f4d800) R1: the mark must reach the SCREEN, not only the label's own flag; O2: theme colour
@@ -668,15 +673,9 @@ CONTROLS = [
      '            view = IdentityBannerView.of(emitted.generation(), null, null);',
      '            return false;',
      'IdentityMarkFrameTest#closingTheLogTakesTheVerdictOffEverySurface'),
-    # The three backends: each surface's banner is drawn only by its registered backend.
+    # The table's backend on the real frame (the charts' and detail's are m68-7-*-not-rendered, re-anchored above).
     ('vm2-table-backend-draws', UI + 'MainFrame.java',
      '                            tablePanel.setIdentityNote(LogTablePanel.identityBannerText(v));\n', '',
-     'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
-    ('vm2-charts-backend-draws', UI + 'MainFrame.java',
-     '                            graphTabs.setIdentityNote(GraphTabs.identityBannerText(v));\n', '',
-     'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
-    ('vm2-detail-backend-draws', UI + 'MainFrame.java',
-     '                            detailPanel.setIdentityNote(DetailPanel.identityBannerText(v));\n', '',
      'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
     # Review of #58: a render answer is dispatched to its own element's node only — no (nodes x renders) fan-out.
     ('vm2-render-answer-filtered', SESSION + 'SessionEvents.java',
