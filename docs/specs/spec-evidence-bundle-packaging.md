@@ -501,4 +501,3 @@ bundle is produced.
 - a symlinked-path case;
 - a SIGKILLed neighbour's folder reaped once the OS releases its lock, the "however it ends" half no test had
   covered.
-
