@@ -1,0 +1,395 @@
+package telamin.fluxtion.audit.analyser.bundle;
+
+import telamin.fluxtion.audit.analyser.analyser.llm.Json;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
+/**
+ * Evidence bundle v1, the format (spec-evidence-bundle-packaging.md r2 §3.3, §4). ONE implementation of the thing a
+ * recipient must be able to trust: the manifest, its identity, verification, and a safe unpack. A skill chooses what
+ * goes into the folder; everything about the file itself is decided here, headless, with no UI.
+ *
+ * <p><b>Identity (D-2):</b> {@code sha256:} of the manifest's exact bytes, never stored inside it. <b>Unsigned (D-3):</b>
+ * verification detects a changed, missing or unlisted member; it does not say who sent the bundle, and nothing here
+ * ever says it does.
+ */
+public final class EvidenceBundle {
+
+    private EvidenceBundle() {
+    }
+
+    public static final String MANIFEST = "manifest.json";
+    public static final int FORMAT = 1;
+
+    /** Fixed text, stated by every surface that shows a verified bundle (spec §4.3, EP-A10). */
+    public static final List<String> LIMITS = List.of(
+            "unsigned: verification detects a changed member; it does not authenticate the sender",
+            "no replay: this bundle shows an investigation; it does not reproduce or fix it");
+
+    /** One member as the manifest lists it. */
+    public record Member(String path, String sha256, long bytes) { }
+
+    /** A verification: the identity, and either every member verified or the first refusal naming the member. */
+    public record Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt) {
+        public Verification(String identity, List<Member> members, String refusal) {
+            this(identity, members, refusal, null);
+        }
+
+        public boolean ok() {
+            return refusal == null;
+        }
+    }
+
+    // ---- pack --------------------------------------------------------------------------------------------------
+
+    /**
+     * Write {@code out} from every regular file under {@code folder}: a manifest listing each member's path, sha256 and
+     * size, then the members. The manifest's bytes are deterministic for a given folder and {@code createdAt}: members
+     * are sorted by path and the key order is fixed, so identical content packs to an identical identity. The manifest
+     * is the FIRST entry, which is what lets a reader bound every member by its declared size (review F1). Members are
+     * streamed, never held: memory does not grow with the log.
+     *
+     * @return the new bundle's identity
+     */
+    public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion) throws IOException {
+        return pack(folder, out, createdAt, analyserVersion, null);
+    }
+
+    /**
+     * As above, stating in the manifest that the log member is an EXCERPT, and which: {@code excerpt} is the cut
+     * (first and last record of the source, the source's record count, and the time window asked for). A recipient
+     * must never read a slice as the whole log. Null for a whole log, which leaves the manifest's bytes as they were.
+     */
+    public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
+                              Map<String, Object> excerpt) throws IOException {
+        if (!Files.isDirectory(folder)) throw new IOException("not a folder: " + folder);
+        if (Files.exists(out)) throw new IOException("will not overwrite " + out);
+        TreeMap<String, Path> files = new TreeMap<>();
+        try (var walk = Files.walk(folder)) {
+            for (Path p : (Iterable<Path>) walk::iterator) {
+                if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) continue;
+                String rel = folder.relativize(p).toString().replace('\\', '/');
+                if (Files.isSymbolicLink(p)) throw new IOException("a link cannot be a member: " + rel);
+                if (!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) throw new IOException("not a regular file: " + rel);
+                String problem = pathProblem(rel);
+                if (problem != null) throw new IOException(problem);
+                if (rel.equals(MANIFEST)) throw new IOException("the folder already holds a " + MANIFEST + ": pack writes it");
+                files.put(rel, p);
+            }
+        }
+        if (files.isEmpty()) throw new IOException("nothing to pack in " + folder);
+        List<Member> members = new ArrayList<>();
+        for (var e : files.entrySet()) {
+            try (InputStream in = Files.newInputStream(e.getValue())) {
+                Digest d = digest(in, Long.MAX_VALUE, null);
+                members.add(new Member(e.getKey(), d.sha256(), d.bytes()));
+            }
+        }
+        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt);
+        try (OutputStream os = Files.newOutputStream(out, java.nio.file.StandardOpenOption.CREATE_NEW);
+             ZipOutputStream zip = new ZipOutputStream(os)) {
+            put(zip, MANIFEST, manifest);
+            for (Member m : members) {
+                zip.putNextEntry(new ZipEntry(m.path()));
+                try (InputStream in = Files.newInputStream(files.get(m.path()))) {
+                    Digest d = digest(in, Long.MAX_VALUE, zip);
+                    if (!d.sha256().equals(m.sha256()) || d.bytes() != m.bytes()) {
+                        throw new IOException("changed while packing: " + m.path());
+                    }
+                }
+                zip.closeEntry();
+            }
+        } catch (IOException ex) {
+            Files.deleteIfExists(out);
+            throw ex;
+        }
+        return identity(manifest);
+    }
+
+    static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion) {
+        return manifestBytes(members, createdAt, analyserVersion, null);
+    }
+
+    static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("format", FORMAT);
+        m.put("createdAt", createdAt.toString());
+        m.put("analyser", analyserVersion == null ? "unknown" : analyserVersion);
+        members.stream().filter(x -> x.path().startsWith("log/")).findFirst()
+                .ifPresent(x -> m.put("log", Map.of("member", x.path())));
+        members.stream().filter(x -> x.path().startsWith("graph/")).findFirst()
+                .ifPresent(x -> m.put("graph", Map.of("member", x.path())));
+        if (excerpt != null) m.put("excerpt", excerpt);
+        List<Object> list = new ArrayList<>();
+        for (Member x : members) {
+            Map<String, Object> one = new LinkedHashMap<>();
+            one.put("path", x.path());
+            one.put("sha256", x.sha256());
+            one.put("bytes", x.bytes());
+            list.add(one);
+        }
+        m.put("members", list);
+        m.put("limits", LIMITS);
+        return (Json.write(m) + "\n").getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static void put(ZipOutputStream zip, String name, byte[] bytes) throws IOException {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write(bytes);
+        zip.closeEntry();
+    }
+
+    // ---- verify ------------------------------------------------------------------------------------------------
+
+    /**
+     * The one absolute bound (review F1): the manifest is the only entry read whole. A format-1 manifest lists a few
+     * members in well under a kilobyte; 4 MiB is some twenty thousand. A member has no absolute cap: it is bounded by
+     * the size its manifest declares, and read as a stream, so a legitimate whole log of any size verifies in constant
+     * memory.
+     */
+    public static final int MANIFEST_MAX_BYTES = 4 << 20;
+
+    /**
+     * Verify {@code bundle} without extracting it, in bounded memory. Refused, naming the member, for: a first entry
+     * that is not the manifest, or more than one; an unreadable or oversized manifest; a member path that escapes
+     * (absolute, {@code ..}, backslash, empty segments); a duplicate entry; an entry the manifest does not list (refused
+     * before its bytes are read); a member larger than declared (refused the moment it exceeds); a listed member that is
+     * missing; a member whose bytes or size differ.
+     */
+    public static Verification verify(Path bundle) throws IOException {
+        return check(bundle, null).verification();
+    }
+
+    /** One streaming pass. With {@code into}, each member is also written there, re-digested as it is written. */
+    private record Pass(Verification verification, Map<String, Member> listed) { }
+
+    private static Pass check(Path bundle, Path into) throws IOException {
+        String identity = null;
+        Map<String, Object> excerpt = null;
+        Map<String, Member> listed = null;
+        Set<String> seen = new LinkedHashSet<>();
+        try (InputStream in = Files.newInputStream(bundle); ZipInputStream zip = new ZipInputStream(in)) {
+            ZipEntry e;
+            while ((e = zip.getNextEntry()) != null) {
+                String name = e.getName();
+                if (e.isDirectory()) continue;
+                String problem = pathProblem(name);
+                if (problem != null) return refused(identity, problem);
+                if (listed == null) {
+                    // the manifest comes first, so every member after it is bounded by what it declares
+                    if (!name.equals(MANIFEST)) {
+                        return refused(null, "no " + MANIFEST + " as the first entry: this is not an evidence bundle");
+                    }
+                    byte[] manifest = readBounded(zip, MANIFEST_MAX_BYTES);
+                    if (manifest == null) {
+                        return refused(null, MANIFEST + " is larger than " + (MANIFEST_MAX_BYTES >> 20) + " MiB");
+                    }
+                    identity = identity(manifest);
+                    List<Member> members;
+                    try {
+                        members = members(manifest);
+                        excerpt = excerptOf(manifest);
+                    } catch (RuntimeException ex) {
+                        return refused(identity, MANIFEST + " cannot be read: " + ex.getMessage());
+                    }
+                    listed = new LinkedHashMap<>();
+                    for (Member m : members) {
+                        String bad = pathProblem(m.path());
+                        if (bad != null) return refused(identity, bad);
+                        if (m.path().equals(MANIFEST) || listed.put(m.path(), m) != null) {
+                            return refused(identity, "the manifest lists a member twice: " + m.path());
+                        }
+                    }
+                    continue;
+                }
+                if (name.equals(MANIFEST)) return refused(identity, "more than one " + MANIFEST);
+                if (!seen.add(name)) return refused(identity, "duplicate member: " + name);
+                Member m = listed.get(name);
+                if (m == null) return refused(identity, "unlisted member: " + name);          // never read
+                OutputStream sink = null;
+                try {
+                    if (into != null) {
+                        Path target = into.resolve(name).normalize();
+                        if (!target.startsWith(into)) throw new IOException("path escape at extraction: " + name);   // defensive
+                        Files.createDirectories(target.getParent());
+                        sink = Files.newOutputStream(target, java.nio.file.StandardOpenOption.CREATE_NEW);
+                    }
+                    Digest d = digest(zip, m.bytes(), sink);
+                    if (d.bytes() > m.bytes()) {
+                        return refused(identity, "changed member: " + name + " (larger than the manifest's " + m.bytes() + " bytes)");
+                    }
+                    if (d.bytes() != m.bytes()) {
+                        return refused(identity, "changed member: " + name + " (" + d.bytes() + " bytes, manifest says " + m.bytes() + ")");
+                    }
+                    if (!d.sha256().equals(m.sha256())) return refused(identity, "changed member: " + name + " (sha256 differs)");
+                } finally {
+                    if (sink != null) sink.close();
+                }
+            }
+        } catch (java.util.zip.ZipException | java.io.EOFException ex) {
+            return refused(identity, "not a readable bundle: " + ex.getMessage());
+        }
+        if (listed == null) return refused(null, "no " + MANIFEST + ": this is not an evidence bundle");
+        for (String path : listed.keySet()) {
+            if (!seen.contains(path)) return refused(identity, "missing member: " + path);
+        }
+        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt), listed);
+    }
+
+    private static Pass refused(String identity, String why) {
+        return new Pass(new Verification(identity, List.of(), why), Map.of());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Member> members(byte[] manifest) {
+        Object parsed = Json.parse(new String(manifest, StandardCharsets.UTF_8));
+        if (!(parsed instanceof Map<?, ?> m)) throw new IllegalArgumentException("not a JSON object");
+        Object format = m.get("format");
+        if (!(format instanceof Number n) || n.intValue() != FORMAT) {
+            throw new IllegalArgumentException("unsupported format " + format + " (this reader reads format " + FORMAT + ")");
+        }
+        if (!(m.get("members") instanceof List<?> list)) throw new IllegalArgumentException("no members list");
+        List<Member> out = new ArrayList<>();
+        for (Object o : list) {
+            if (!(o instanceof Map<?, ?> x) || !(x.get("path") instanceof String path) || !(x.get("sha256") instanceof String sha)
+                    || !(x.get("bytes") instanceof Number bytes) || bytes.longValue() < 0) {
+                throw new IllegalArgumentException("a member needs path, sha256 and a non-negative bytes");
+            }
+            out.add(new Member(path, sha, bytes.longValue()));
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> excerptOf(byte[] manifest) {
+        Object x = ((Map<String, Object>) Json.parse(new String(manifest, StandardCharsets.UTF_8))).get("excerpt");
+        if (x == null) return null;
+        if (!(x instanceof Map<?, ?> m)) throw new IllegalArgumentException("excerpt is not an object");
+        return Map.copyOf((Map<String, Object>) m);
+    }
+
+    // ---- unpack ------------------------------------------------------------------------------------------------
+
+    /**
+     * Verify {@code bundle}, then extract it into a NEW directory under {@code parent}, named for its identity. Two
+     * passes (review F1): the first verifies in bounded memory and writes NOTHING; only when it succeeds does the
+     * second stream each member to disk, digesting it again as it goes. If the file changed between the passes, the
+     * second refuses and the working copy is deleted. The bundle file itself is only read.
+     *
+     * @return the verification, and the working copy's path when it succeeded (null otherwise)
+     */
+    public static Unpacked unpack(Path bundle, Path parent) throws IOException {
+        Pass first = check(bundle, null);
+        if (!first.verification().ok()) return new Unpacked(first.verification(), null);
+        Files.createDirectories(parent);
+        String stem = first.verification().identity().substring("sha256:".length(), "sha256:".length() + 12);
+        Path dir = Files.createTempDirectory(parent, "bundle-" + stem + "-").toAbsolutePath().normalize();
+        Pass second;
+        try {
+            second = check(bundle, dir);
+        } catch (IOException | RuntimeException ex) {
+            deleteTree(dir);
+            throw ex;
+        }
+        if (!second.verification().ok() || !first.verification().identity().equals(second.verification().identity())) {
+            deleteTree(dir);
+            String why = second.verification().ok() ? "a different manifest" : second.verification().refusal();
+            return new Unpacked(new Verification(first.verification().identity(), List.of(),
+                    "the bundle changed while it was being unpacked (" + why + "); nothing was kept"), null);
+        }
+        return new Unpacked(first.verification(), dir);
+    }
+
+    public record Unpacked(Verification verification, Path workingCopy) { }
+
+    private static void deleteTree(Path dir) throws IOException {
+        if (!Files.exists(dir)) return;
+        try (var walk = Files.walk(dir)) {
+            for (Path p : walk.sorted(java.util.Comparator.reverseOrder()).toList()) Files.deleteIfExists(p);
+        }
+    }
+
+    // ---- helpers -----------------------------------------------------------------------------------------------
+
+    /** Why a member path is unsafe, or null. Relative, forward slashes only, no empty, "." or ".." segments. */
+    static String pathProblem(String path) {
+        if (path == null || path.isEmpty()) return "an empty member path";
+        if (path.startsWith("/") || path.contains(":") || path.contains("\\")) return "path escape: " + path;
+        for (String seg : path.split("/", -1)) {
+            if (seg.isEmpty() || seg.equals(".") || seg.equals("..")) return "path escape: " + path;
+        }
+        return null;
+    }
+
+    public static String identity(byte[] manifestBytes) {
+        return "sha256:" + sha256(manifestBytes);
+    }
+
+    static String sha256(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** The whole of {@code in} if it is at most {@code max} bytes, else null. Reads at most {@code max + 1}. */
+    private static byte[] readBounded(InputStream in, int max) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[64 * 1024];
+        int n;
+        while ((n = in.read(buf, 0, (int) Math.min(buf.length, (long) max + 1 - out.size()))) > 0) {
+            out.write(buf, 0, n);
+            if (out.size() > max) return null;
+        }
+        return out.toByteArray();
+    }
+
+    /** What a streamed read established: the sha256 of what was read, and how many bytes. */
+    private record Digest(String sha256, long bytes) { }
+
+    /**
+     * Digest {@code in} through a fixed buffer, copying to {@code sink} when given. Stops as soon as more than
+     * {@code limit} bytes have been read, reporting {@code limit + 1}-or-more: the caller refuses at that moment, and
+     * nothing beyond the declared size is ever read or written.
+     */
+    private static Digest digest(InputStream in, long limit, OutputStream sink) throws IOException {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+        byte[] buf = new byte[64 * 1024];
+        long total = 0;
+        int n;
+        while ((n = in.read(buf)) > 0) {
+            total += n;
+            if (total > limit) return new Digest("", total);
+            md.update(buf, 0, n);
+            if (sink != null) sink.write(buf, 0, n);
+        }
+        return new Digest(HexFormat.of().formatHex(md.digest()), total);
+    }
+}

@@ -176,6 +176,11 @@ public final class VerbSchemas {
                         + "'name' + 'rename' renames one. A throwaway diagnostic left behind becomes a "
                         + "permanent fixture of a shared profile, indistinguishable from a real finding.",
                 props(
+                        p("bundle", bundleObject(), "EVIDENCE BUNDLE: pack the open investigation (the log, its graph, "
+                                + "saved charts, reports and walks, and optional notes) as ONE verifiable .fexp. Goes alone. "
+                                + "Refused, by name, with no log, a load pending, a log file that changed or is not one "
+                                + "plain file. Written off the event thread: context.capture says when, its identity, and "
+                                + "what was left out or redacted. Unsigned, and not a replay"),
                         p("name", string(), "the report's identity — building again with the same name REPLACES it"),
                         p("delete", bool(), "true removes the report named by 'name', RECOVERABLY: it moves to "
                                 + "a recently-deleted list on this machine (restore it with 'restore'). The log, "
@@ -621,6 +626,19 @@ public final class VerbSchemas {
                 p("payload", string(), "optional column whose text rides each point (an order id)"),
                 p("offsetMillis", integer(), "deliberate clock correction, always shown on the stamp")));
         m.put("required", List.of("path", "time", "timeFormat"));
+        return m;
+    }
+
+    private static Map<String, Object> bundleObject() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "object");
+        m.put("properties", props(
+                p("path", string(), "the .fexp to write, inside the exchange directory; never overwritten"),
+                p("notes", string(), "the author's account, packed as notes/NOTES.md"),
+                p("from", integer(), "EXCERPT: only records whose log time is at or after this (epoch millis); walks "
+                        + "and reports are re-based onto the excerpt, and any that point outside it are left out and named"),
+                p("to", integer(), "EXCERPT: only records at or before this (epoch millis)")));
+        m.put("required", List.of("path"));
         return m;
     }
 

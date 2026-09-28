@@ -6,6 +6,48 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **Evidence bundles: an investigation as one verifiable file.** Ask the running analyser with
+  `report {bundle: {path, notes?, from?, to?}}` and it writes a `.fexp` into the exchange directory: the log, its
+  graph, the saved charts and named focuses, reports and walks, hidden columns, and your notes as
+  `notes/NOTES.md`. It refuses, by name, when the capture would not be coherent: no log open, a load pending, a log
+  file that changed or whose identity is not established, a log that is not one plain file, or a bundle already
+  being written. A log still growing under Follow is captured as the records read so far, and says so. It takes
+  the settings in force now, not the file on disk, so an edit a read-only profile could not save is still in the
+  bundle. It pauses Follow while it copies, and if another log is opened or the log is closed meanwhile, it
+  refuses and deletes what it wrote.
+  In an exchange directory shared by several analysers, it never touches another capture's working folder; a
+  folder left by a capture that was killed is cleared once its owner is provably gone.
+  `context.capture` says when it is done, its identity, and what was left out, redacted or excerpted.
+- **An excerpt instead of the whole log**: `from` and `to` pack only the records in that time window, each record's
+  exact text, re-read and matched against the source before the bundle stands. Walks and reports are re-based onto
+  the excerpt, so their steps are current on the other side. One that points outside the window is left out and
+  named. The manifest records the cut.
+- **Nothing that describes your machine leaves**: no source roots, runbooks, environments, processors, keys or
+  assistant settings. A chart with an external CSV series or markers is left out and named. A setting whose whole
+  value is a machine path refuses the capture, naming it. A path written inside prose (a report narrative, a
+  caption) is replaced by `‹path removed›` and listed. Relative paths, URLs, times and ratios are left alone.
+- **`--verify <bundle.fexp>` and `--unpack <bundle.fexp> [--into <dir>]`** for the recipient. They check every
+  member against the manifest in constant memory whatever the log's size. They refuse a changed, missing,
+  unlisted, duplicated, oversized or escaping member, naming it, and say when the log is an excerpt. `--unpack`
+  extracts to a fresh working copy only after the whole bundle verifies, and never modifies the received file. A
+  bundle is unsigned (it shows that nothing changed, not who sent it) and is not a replay, and every output says so.
+- **An *Evidence bundles* section on the docs site**: what a bundle is, sending one, opening one, the operation,
+  commands and format, and a demo. `tools/evidence-bundle-demo.py` runs the round trip on the DEMO log with a
+  sender and a cold recipient, whole log and excerpt, and checks every step.
+- **`context.project.unsavedEdits`**: whether a project edit is still waiting for its (debounced) write to the
+  profile file.
+
+### Changed
+
+- **A spotlight walk states the "not re-checked" caveat once**, on its first step that rests on records or
+  charts, instead of on every such step. With Follow off it was always present, and it filled the strip.
+  Stepping a walk from the socket with `walk {play, step}` now continues the walk already showing, so the caveat
+  is not stated again on each step.
+- **`context.log.generation`**: the session's log generation, so a tool copying the open log can tell whether
+  another log was opened while it copied.
+
 ## [1.26.1] - 2026-09-28
 
 - Cancel unfinished record-table and time-slider drags when an owned modal takes focus, so opening a modal

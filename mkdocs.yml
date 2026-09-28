@@ -116,6 +116,12 @@ nav:
       - Investigation reports: user-guide/reports.md
       - Sharing setups: user-guide/sharing-setups.md
       - Log-source plugins: user-guide/plugins.md
+  - Evidence bundles:
+      - What a bundle is: evidence-bundles/index.md
+      - Sending an investigation: evidence-bundles/sending.md
+      - Opening a bundle you were sent: evidence-bundles/opening.md
+      - Commands and file format: evidence-bundles/reference.md
+      - Try it with the demo: evidence-bundles/demo.md
   - The audit log:
       - Log format: log-format.md
       - Format specification: format-spec.md

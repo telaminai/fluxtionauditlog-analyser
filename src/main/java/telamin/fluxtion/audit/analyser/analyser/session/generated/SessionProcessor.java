@@ -42,8 +42,14 @@ import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.Cleared;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested;
 import telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed;
@@ -82,6 +88,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.CoverageClaim;
 import telamin.fluxtion.audit.analyser.analyser.session.node.DesignSession;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectOutcomes;
 import telamin.fluxtion.audit.analyser.analyser.session.node.EffectQueue;
+import telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence;
@@ -119,8 +126,14 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadCompleted
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ReadRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.design.DesignEvents.ResultReadCompleted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CloseRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.EffectFailed
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowToggled
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphCleared
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.GraphClosed
@@ -207,6 +220,9 @@ public class SessionProcessor
       new com.telamin.fluxtion.runtime.node.MutableDataFlowContext(
           nodeNameLookup, callbackDispatcher, subscriptionManager, callbackDispatcher);;
   public final transient EffectQueue effectQueue = new EffectQueue();
+  public final transient EvidenceCapture evidenceCapture =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.EvidenceCapture(
+          openLog, operationGate, effectQueue);;
   public final transient LogArrival logArrival =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
           operationGate, pairing, openGraph, effectQueue);;
@@ -258,6 +274,26 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Activated",
                 false),
             new ProcessorDescriptor.Input(
+                "BundleCaptureRequested",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested",
+                false),
+            new ProcessorDescriptor.Input(
+                "BundleDeleted",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted",
+                false),
+            new ProcessorDescriptor.Input(
+                "BundleWriteFailed",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed",
+                false),
+            new ProcessorDescriptor.Input(
+                "BundleWritten",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten",
+                false),
+            new ProcessorDescriptor.Input(
+                "CaptureStarted",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted",
+                false),
+            new ProcessorDescriptor.Input(
                 "Checked",
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Checked",
                 false),
@@ -276,6 +312,10 @@ public class SessionProcessor
             new ProcessorDescriptor.Input(
                 "Finished",
                 "telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Finished",
+                false),
+            new ProcessorDescriptor.Input(
+                "FollowSet",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet",
                 false),
             new ProcessorDescriptor.Input(
                 "FollowToggled",
@@ -431,7 +471,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "299dc5db466ceafd2af672ec99a19a3175ef0e8a5be7a28641571eecc4277328",
+              "8d239e5ec96f03776dfaa4d81d10f850d3a7588648459a9eb82039e140a5983c",
               null));
 
   @Override
@@ -601,11 +641,29 @@ public class SessionProcessor
     } else if (event instanceof ResultReadCompleted) {
       ResultReadCompleted typedEvent = (ResultReadCompleted) event;
       handleEvent(typedEvent);
+    } else if (event instanceof BundleCaptureRequested) {
+      BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof BundleDeleted) {
+      BundleDeleted typedEvent = (BundleDeleted) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof BundleWriteFailed) {
+      BundleWriteFailed typedEvent = (BundleWriteFailed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof BundleWritten) {
+      BundleWritten typedEvent = (BundleWritten) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof CaptureStarted) {
+      CaptureStarted typedEvent = (CaptureStarted) event;
+      handleEvent(typedEvent);
     } else if (event instanceof CloseRequested) {
       CloseRequested typedEvent = (CloseRequested) event;
       handleEvent(typedEvent);
     } else if (event instanceof EffectFailed) {
       EffectFailed typedEvent = (EffectFailed) event;
+      handleEvent(typedEvent);
+    } else if (event instanceof FollowSet) {
+      FollowSet typedEvent = (FollowSet) event;
       handleEvent(typedEvent);
     } else if (event instanceof FollowToggled) {
       FollowToggled typedEvent = (FollowToggled) event;
@@ -754,12 +812,42 @@ public class SessionProcessor
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(BundleCaptureRequested event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(BundleDeleted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(BundleWriteFailed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(BundleWritten event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(CaptureStarted event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(CloseRequested event) {
     processEvent(event);
   }
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(EffectFailed event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(FollowSet event) {
     processEvent(event);
   }
 
@@ -996,6 +1084,46 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(BundleCaptureRequested typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(evidenceCapture, "evidenceCapture", "onBundleCaptureRequested", typedEvent);
+    evidenceCapture.onBundleCaptureRequested(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(BundleDeleted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(evidenceCapture, "evidenceCapture", "onBundleDeleted", typedEvent);
+    evidenceCapture.onBundleDeleted(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(BundleWriteFailed typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWriteFailed", typedEvent);
+    evidenceCapture.onBundleWriteFailed(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(BundleWritten typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWritten", typedEvent);
+    evidenceCapture.onBundleWritten(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(CaptureStarted typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(evidenceCapture, "evidenceCapture", "onCaptureStarted", typedEvent);
+    evidenceCapture.onCaptureStarted(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(CloseRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -1029,6 +1157,14 @@ public class SessionProcessor
       logEvidence.onOpenLogChanged();
     }
     commonDispatchTail_1(typedEvent);
+    afterEvent();
+  }
+
+  public void handleEvent(FollowSet typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(evidenceCapture, "evidenceCapture", "onFollowSet", typedEvent);
+    evidenceCapture.onFollowSet(typedEvent);
     afterEvent();
   }
 
@@ -1665,6 +1801,31 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(designSession, "designSession", "result", typedEvent);
       designSession.result(typedEvent);
+    } else if (event instanceof BundleCaptureRequested) {
+      BundleCaptureRequested typedEvent = (BundleCaptureRequested) event;
+      auditEvent(typedEvent);
+      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleCaptureRequested", typedEvent);
+      evidenceCapture.onBundleCaptureRequested(typedEvent);
+    } else if (event instanceof BundleDeleted) {
+      BundleDeleted typedEvent = (BundleDeleted) event;
+      auditEvent(typedEvent);
+      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleDeleted", typedEvent);
+      evidenceCapture.onBundleDeleted(typedEvent);
+    } else if (event instanceof BundleWriteFailed) {
+      BundleWriteFailed typedEvent = (BundleWriteFailed) event;
+      auditEvent(typedEvent);
+      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWriteFailed", typedEvent);
+      evidenceCapture.onBundleWriteFailed(typedEvent);
+    } else if (event instanceof BundleWritten) {
+      BundleWritten typedEvent = (BundleWritten) event;
+      auditEvent(typedEvent);
+      auditInvocation(evidenceCapture, "evidenceCapture", "onBundleWritten", typedEvent);
+      evidenceCapture.onBundleWritten(typedEvent);
+    } else if (event instanceof CaptureStarted) {
+      CaptureStarted typedEvent = (CaptureStarted) event;
+      auditEvent(typedEvent);
+      auditInvocation(evidenceCapture, "evidenceCapture", "onCaptureStarted", typedEvent);
+      evidenceCapture.onCaptureStarted(typedEvent);
     } else if (event instanceof CloseRequested) {
       CloseRequested typedEvent = (CloseRequested) event;
       auditEvent(typedEvent);
@@ -1677,6 +1838,11 @@ public class SessionProcessor
       isDirty_operationGate = operationGate.onEffectFailed(typedEvent);
       auditInvocation(effectOutcomes, "effectOutcomes", "onEffectFailed", typedEvent);
       effectOutcomes.onEffectFailed(typedEvent);
+    } else if (event instanceof FollowSet) {
+      FollowSet typedEvent = (FollowSet) event;
+      auditEvent(typedEvent);
+      auditInvocation(evidenceCapture, "evidenceCapture", "onFollowSet", typedEvent);
+      evidenceCapture.onFollowSet(typedEvent);
     } else if (event instanceof FollowToggled) {
       FollowToggled typedEvent = (FollowToggled) event;
       auditEvent(typedEvent);
@@ -1960,6 +2126,7 @@ public class SessionProcessor
     auditor.nodeRegistered(designSession, "designSession");
     auditor.nodeRegistered(effectOutcomes, "effectOutcomes");
     auditor.nodeRegistered(effectQueue, "effectQueue");
+    auditor.nodeRegistered(evidenceCapture, "evidenceCapture");
     auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
     auditor.nodeRegistered(logArrival, "logArrival");
     auditor.nodeRegistered(logEvidence, "logEvidence");
@@ -2071,6 +2238,10 @@ public class SessionProcessor
     return isDirty_operationGate;
   }
 
+  private boolean guardCheck_evidenceCapture() {
+    return isDirty_openLog | isDirty_operationGate;
+  }
+
   private boolean guardCheck_logArrival() {
     return isDirty_openGraph | isDirty_operationGate | isDirty_pairing;
   }
@@ -2145,6 +2316,8 @@ public class SessionProcessor
         return (T) effectOutcomes;
       case "effectQueue":
         return (T) effectQueue;
+      case "evidenceCapture":
+        return (T) evidenceCapture;
       case "ignoredParameters":
         return (T) ignoredParameters;
       case "logArrival":
@@ -2215,6 +2388,9 @@ public class SessionProcessor
     }
     if (node == effectQueue) {
       return "effectQueue";
+    }
+    if (node == evidenceCapture) {
+      return "evidenceCapture";
     }
     if (node == ignoredParameters) {
       return "ignoredParameters";

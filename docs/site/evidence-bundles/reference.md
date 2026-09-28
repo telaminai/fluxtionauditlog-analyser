@@ -1,0 +1,77 @@
+# Commands and file format
+
+A bundle is **written by the running analyser** and **read by two headless commands**. Writing needs the live
+session, because every refusal is a fact only it holds. Reading needs nothing but the file.
+
+## Writing: one operation on the analyser
+
+```
+report {bundle: {path, notes?, from?, to?}}
+```
+
+| field | meaning |
+|---|---|
+| `path` | the `.fexp`, inside the exchange directory; never overwritten |
+| `notes` | your account, packed as `notes/NOTES.md` |
+| `from`, `to` | epoch millis: pack only that window of records, as an excerpt ([Sending](sending.md#an-excerpt-only-the-part-that-matters)) |
+
+The echo says `phase: WRITING`. **`context.capture`** then says `WRITTEN`, with the `identity` and `lines` (what
+was left out, redacted or excerpted), or `REFUSED`, with the `reason`. A refusal the analyser can make at once, such
+as no log open or a load pending, is the verb's error.
+
+## Reading: two commands
+
+An installed analyser is `analyser …`; from a jar, `java -jar fluxtion-auditlog-analyser-<version>.jar …`.
+
+| command | what it does | exit code |
+|---|---|---|
+| `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, and the limits | 0 · 1 refused, naming the member · 2 usage |
+| `--unpack <bundle.fexp> [--into <dir>]` | verifies, then extracts into a **new** directory named for the identity. Prints `working copy:` | 0 · 1 refused, nothing extracted · 2 usage |
+
+Verification refuses, naming the member:
+
+- a **changed** member (sha256 or size);
+- a **missing** member;
+- an **unlisted** member;
+- a **duplicated** entry;
+- a path that **escapes**: absolute, `..`, a backslash, an empty segment;
+- a manifest that is missing, not the first entry, duplicated, larger than 4 MiB, unreadable, or of another format;
+- a member **larger than its declared size**, refused as soon as it exceeds it.
+
+Verification streams each member through a fixed buffer, so it needs the same small amount of memory for a 4 KB
+log as for a 150 MB one. A member the manifest does not list is refused without being read. `--unpack` verifies the
+whole bundle before it writes anything, then extracts in a second pass, checking every member again as it writes.
+
+`--pack` and `--bundle-profile` existed in the first build and were removed: a bundle assembled by hand would skip
+the checks only the running analyser can make. They now exit 2 and say so.
+
+## The manifest (format 1)
+
+```json
+{"format":1,"createdAt":"2026-09-28T12:00:00Z","analyser":"1.27.0",
+ "log":{"member":"log/demo-quote-audit.yaml"},
+ "graph":{"member":"graph/demo-quote-processor.graphml"},
+ "members":[{"path":"graph/demo-quote-processor.graphml","sha256":"…","bytes":12653},
+            {"path":"log/demo-quote-audit.yaml","sha256":"…","bytes":4053},
+            {"path":"notes/NOTES.md","sha256":"…","bytes":…},
+            {"path":"profile/project.fluxtion-settings","sha256":"…","bytes":…}],
+ "limits":["unsigned: verification detects a changed member; it does not authenticate the sender",
+           "no replay: this bundle shows an investigation; it does not reproduce or fix it"]}
+```
+
+- The keys come in this fixed order, and the members are sorted by path, so a given folder packed at a given time
+  always gives the same bytes.
+- **The identity is `sha256:` of the manifest's exact bytes.** It is never stored inside the manifest. A manifest
+  re-serialised with the same content is a different bundle.
+- The walk and report fingerprints in the profile member already record the log's provenance and record count, so
+  the manifest does not repeat them unverified.
+- **An excerpt adds `excerpt`** after `graph`: `{"firstRecord":4,"lastRecord":8,"sourceRecords":10,"from":…,"to":…}`.
+  A recipient never reads a slice as the whole log. A log captured while still growing adds `"readSoFar":true`, and
+  `sourceRecords` is then the number of records read.
+
+## Context fields
+
+- `context.capture`: the last capture, as the session decided it: `phase`, `path`, `identity`, `reason`, `lines`.
+- `context.log.generation`: the session's log generation, the one a capture is decided in.
+- `context.project.unsavedEdits`: `true` while a project edit waits for its write to the profile file. A capture
+  does not wait for it: it writes the pending edit itself.

@@ -5851,6 +5851,119 @@ public final class MainFrame extends JFrame {
         return driver.processor().operationGate.inFlightWhat() == null ? pending : null;
     }
 
+    private long captureRequests;
+
+    /**
+     * Evidence bundle capture, the REQUEST entrance (convergence): observe what the session cannot see for itself (the
+     * file's read-through identity, its freshness, whether it is one plain file), report it with the request, and render
+     * the node's answer. It decides nothing: every refusal is the evidenceCapture node's.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult requestCapture(String path, String notes, Long from,
+                                                                                    Long to, String origin) {
+        if (session == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the session is not running");
+        var identity = observeReadIdentity();
+        String observed = identity == null ? null : identity.verdict().name().toLowerCase(java.util.Locale.ROOT);
+        Map<String, Object> freshness = store == null ? Map.of() : logFreshness();
+        Object state = freshness.get("state");
+        Object members = freshness.get("members");
+        var info = store == null ? null : currentLogFileInfo();
+        boolean onePlainFile = info != null && info.localPath() != null
+                && java.nio.file.Files.isRegularFile(Path.of(info.localPath()))
+                && members instanceof java.util.List<?> list && list.size() == 1
+                && !(list.get(0) instanceof Map<?, ?> m && m.get("loaded") instanceof Map<?, ?> loaded
+                     && Boolean.TRUE.equals(loaded.get("directory")));
+        int windowRecords = -1;
+        if (from != null || to != null) {
+            var range = store == null ? null : telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.range(store, from, to);
+            windowRecords = range == null ? 0 : range.size();
+        }
+        long request = ++captureRequests;
+        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested(request, path, notes, from, to,
+                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin));
+        var capture = sessionSnapshot().capture();
+        if (capture.answer().request() == request && !capture.answer().accepted()) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("capture refused: " + capture.answer().reason());
+        }
+        Map<String, Object> echo = new java.util.LinkedHashMap<>();
+        echo.put("phase", capture.phase());
+        echo.put("path", path);
+        echo.put("note", "the bundle is written off the event thread; context.capture says when it is written, its identity, "
+                + "and anything left out, redacted or excerpted");
+        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "bundle", echo);
+    }
+
+    /**
+     * Perform {@link telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CaptureBundleEffect}: settle the project's pending write by FLUSHING it
+     * (the skill waited for a debounce; here the coalesced write is simply made now), take everything the file work needs
+     * from the live session on this thread, and run the file work off it. The outcome is reported as a fact carrying the
+     * decision's ticket and generation; the node decides whether it stands.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result startCapture(telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CaptureBundleEffect e) throws Exception {
+        long ticket = e.ticket(), generation = e.generation();
+        // EB.F11: the SESSION's settings, serialised here exactly as a save would write them, never read back from the
+        // file. A project write is debounced and can fail (a read-only profile keeps the edit in memory; the machine
+        // config's save is best-effort), and reading the file after either handed the bundle a stale profile. The open
+        // charts are synced in first, as the pre-save hook does.
+        syncOpenGraphsIntoConfig();
+        String settingsName;
+        String settingsText;
+        if (project.hasProject()) {
+            settingsName = "project.fluxtion-settings";
+            settingsText = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.write(config,
+                    new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare(), project.activeFile());
+        } else {
+            settingsName = "own.fluxtion-settings";
+            settingsText = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare().export(config,
+                    telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.PROJECT_SCOPED);
+        }
+        byte[] settingsBytes = settingsText.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var info = currentLogFileInfo();
+        Path log = Path.of(info.localPath());
+        Path graph = topologyPanel.loadedGraphFile();
+        telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.Taken taken = null;
+        if (e.from() != null || e.to() != null) {
+            var range = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.range(store, e.from(), e.to());
+            if (range == null) {
+                // not a refusal (the node refused an empty window at the request, from what was observed): the store
+                // cannot change within one dispatch, so this reports a broken invariant as the failure it is
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed(ticket, generation,
+                        "internal: the window selected no records, though the request observed some; nothing was written"));
+                return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
+            }
+            taken = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.take(store, range);
+        } else if (e.readSoFar()) {
+            // EB.F6: the file has more than was read; the bundle holds exactly what this store read, as an excerpt of it
+            var range = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.all(store);
+            if (range == null) {
+                // the node refused a growing log with nothing read; the store cannot change within one dispatch
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed(ticket, generation,
+                        "internal: nothing had been read, though the session had records; nothing was written"));
+                return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
+            }
+            taken = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.take(store, range);
+        }
+        String expected = loadedLogIdentity.size() == 1 ? loadedLogIdentity.get(0).sha256() : null;
+        var job = new telamin.fluxtion.audit.analyser.bundle.BundleWriter.Job(Path.of(e.path()), log, graph,
+                settingsName, settingsBytes, e.notes(), taken, java.time.Instant.now(),
+                telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected,
+                e.readSoFar());
+        telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
+                    try {
+                        return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);
+                    } catch (java.io.IOException x) {
+                        throw new java.io.UncheckedIOException(x);
+                    }
+                },
+                w -> { if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten(ticket, generation,
+                        e.path(), w.identity(), w.lines())); },
+                err -> {
+                    Throwable t = err instanceof java.io.UncheckedIOException u ? u.getCause() : err;
+                    if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed(ticket, generation,
+                            t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage()));
+                });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
+    }
+
     /** The interactive form — a person asked, so a failure is a dialog. */
     private boolean requestProject(Path file,
                                    telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
@@ -5920,6 +6033,16 @@ public final class MainFrame extends JFrame {
                 // answers when it lands — Pending now, LogOpened/LogOpenFailed later, same opId.
                 sessionInteractive = !e.fromSocket();
                 yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
+            }
+            // evidence bundle capture — the evidenceCapture node decided; the frame performs and reports
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SetFollowEffect e -> {
+                setFollowing(e.on());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet(opId, e.ticket(), e.on());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CaptureBundleEffect e -> startCapture(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DeleteBundleEffect e -> {
+                telamin.fluxtion.audit.analyser.bundle.BundleWriter.delete(Path.of(e.path()));
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted(opId, e.ticket(), !java.nio.file.Files.exists(Path.of(e.path())), null);
             }
             // M69: walk playback — the node decided; the presenter performs and answers
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyWalkViewEffect e -> {
@@ -7031,6 +7154,11 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult captureBundle(String path, String notes, Long from, Long to) {
+            return requestCapture(path, notes, from, to, "action socket");
+        }
+
+        @Override
 
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths) {
             return openLogs(paths, null);
@@ -7098,6 +7226,10 @@ public final class MainFrame extends JFrame {
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
             if (store != null) {
                 log.put("freshness", logFreshness());
+                // evidence bundle v1, B1 (spec §4.1): the session's log generation, PROJECTED from the snapshot. A
+                // capture skill records it, copies, and re-reads it: if it moved, another log was opened meanwhile and the
+                // copy is incoherent. The same rule the walk save enforces internally, exposed rather than duplicated.
+                if (session != null) log.put("generation", sessionSnapshot().logGeneration());
                 log.put("following", following());
                 log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
                 // M68.5 (D-E6): what Follow established about the FILE, from the session; absent before the first poll
@@ -7154,6 +7286,10 @@ public final class MainFrame extends JFrame {
                 proj.put("settings", project.activeFile().toString());
                 proj.put("root", telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile
                         .baseDirFor(project.activeFile()).toString());        // M37: the project's directory
+                // evidence bundle v1 (spec r3 §4.1): project writes are debounced, so the file can lag the session by
+                // one window, or indefinitely when a write fails. A tool that copies the FILE waits for this to clear
+                // instead of guessing a delay. Read from the one owner of that fact, never recomputed here.
+                proj.put("unsavedEdits", project.isDirty());
             } else {
                 proj.put("note", "your own settings — no project is open");
             }
@@ -7387,6 +7523,17 @@ public final class MainFrame extends JFrame {
                         walkRunBasisNow(),
                         project.hasProject() ? "project" : "own settings");
                 if (walks != null) out.put("walks", walks);
+                // evidence bundle capture, rendered from the session's decision (evidenceCapture), never composed here
+                var capture = session == null ? null : sessionSnapshot().capture();
+                if (capture != null && !"IDLE".equals(capture.phase())) {
+                    Map<String, Object> c = new java.util.LinkedHashMap<>();
+                    c.put("phase", capture.phase());
+                    if (capture.path() != null) c.put("path", capture.path());
+                    if (capture.identity() != null) c.put("identity", capture.identity());
+                    if (!capture.reason().isEmpty()) c.put("reason", capture.reason());
+                    if (!capture.lines().isEmpty()) c.put("lines", capture.lines());
+                    out.put("capture", c);
+                }
             }
             if (store != null) {
                 if (pendingRolledSetOffer != null) {

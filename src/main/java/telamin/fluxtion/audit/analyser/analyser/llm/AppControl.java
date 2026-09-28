@@ -32,6 +32,11 @@ public interface AppControl {
     /** Open an audit log from a path (or {@code s3://…}); returns the echo or a structured error. */
     ActionResult openLog(String path);
 
+    /** Evidence bundle capture: write the open investigation to {@code path} (already confined), optionally a window. */
+    default ActionResult captureBundle(String path, String notes, Long from, Long to) {
+        return ActionResult.error("evidence bundle capture is not enabled here");
+    }
+
     default ActionResult follow(boolean on) { return ActionResult.error("Follow is not supported here; not following"); }
 
     /** Open with an explicit reader format (M31); default falls back to sniff-free canOpen routing. */

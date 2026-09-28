@@ -226,6 +226,25 @@ public final class ActionExecutor implements RenderExecutor {
                         : app.screenshot(out.path().toString(), str(params.get("scope"))));
             }
             case "report" -> {
+                // evidence bundle capture (convergence): the investigation packed as one .fexp — the session decides
+                if (params.containsKey("bundle")) {
+                    if (params.size() != 1) return ActionResult.error("report 'bundle' must be used alone");
+                    if (!(params.get("bundle") instanceof Map<?, ?> b)) {
+                        return ActionResult.error("report 'bundle' is an object: {path, notes?, from?, to?}");
+                    }
+                    var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write
+                    if (!out.ok()) return ActionResult.error(out.error());
+                    Object notes = b.get("notes");
+                    if (notes != null && !(notes instanceof String)) return ActionResult.error("bundle 'notes' is text");
+                    Long from = longOrNull(b.get("from")), to = longOrNull(b.get("to"));
+                    if ((b.get("from") != null && from == null) || (b.get("to") != null && to == null)) {
+                        return ActionResult.error("bundle 'from' and 'to' are epoch millis");
+                    }
+                    if (from != null && to != null && from > to) return ActionResult.error("bundle 'from' is after 'to'");
+                    return onEdt(() -> app == null
+                            ? ActionResult.error("'report' is not enabled here")
+                            : app.captureBundle(out.path().toString(), (String) notes, from, to));
+                }
                 if (params.containsKey("restore")) {
                     if (params.size() != 1) return ActionResult.error("report 'restore' must be used alone");
                     Object restore = params.get("restore");

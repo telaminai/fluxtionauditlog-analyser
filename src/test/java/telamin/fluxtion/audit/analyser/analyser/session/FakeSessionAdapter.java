@@ -26,6 +26,9 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
     final List<SessionEffects.ApplyWalkViewEffect> walkViews = new ArrayList<>();
     final List<SessionEffects.LightWalkTargetsEffect> walkLights = new ArrayList<>();
     final List<SessionEffects.ResolveWalkTargetsEffect> walkResolves = new ArrayList<>();
+    final List<SessionEffects.SetFollowEffect> followSets = new java.util.ArrayList<>();
+    final List<SessionEffects.CaptureBundleEffect> captures = new java.util.ArrayList<>();
+    final List<SessionEffects.DeleteBundleEffect> deletes = new java.util.ArrayList<>();
     final List<SessionEffects.EndWalkEffect> walkEnds = new ArrayList<>();
     /** Set to have the fake refuse a walk step's view. */
     boolean refuseWalkViews;
@@ -71,6 +74,18 @@ final class FakeSessionAdapter implements SessionDriver.Adapter {
             case SessionEffects.EndWalkEffect e -> {
                 walkEnds.add(e);
                 yield new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "end");
+            }
+            case SessionEffects.SetFollowEffect e -> {
+                followSets.add(e);
+                yield new SessionEvents.FollowSet(e.opId(), e.ticket(), e.on());
+            }
+            case SessionEffects.CaptureBundleEffect e -> {
+                captures.add(e);
+                yield new SessionEvents.CaptureStarted(e.opId(), e.ticket());
+            }
+            case SessionEffects.DeleteBundleEffect e -> {
+                deletes.add(e);
+                yield new SessionEvents.BundleDeleted(e.opId(), e.ticket(), true, null);
             }
             case SessionEffects.LoadProfileEffect e -> {
                 if (loadThrows) {
