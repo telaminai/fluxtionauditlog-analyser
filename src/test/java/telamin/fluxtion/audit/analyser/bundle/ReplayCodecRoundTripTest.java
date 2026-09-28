@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -186,8 +187,16 @@ class ReplayCodecRoundTripTest {
     @DisplayName("PR #70 review 2: both readers refuse a document that is not wholly replay records")
     void bothReadersRequireTheWholeGrammar() throws Exception {
         String good = yaml(probe("x", 'a', 'b', 1, 1.0));
+        String eventLine = good.lines().filter(l -> l.startsWith("event: ")).findFirst().orElseThrow();
         for (String bad : List.of("preamble\n" + good, good + "trailing\n", good.replace("wallClockTime: 5", "wallClockTime: 5 extra"),
-                good.replace("!!com.telamin.fluxtion.runtime.event.ReplayRecord", "!!Other"), good.substring(0, good.indexOf("wallClockTime")))) {
+                good.replace("!!com.telamin.fluxtion.runtime.event.ReplayRecord", "!!Other"), good.substring(0, good.indexOf("wallClockTime")),
+                // PR #70 review 4: two records with no separator between them; a field twice in one record; a
+                // component with no name. Each once read as fewer inputs, or failed as an exception, not a refusal
+                good + good.substring("---\n".length()),
+                good.replace("wallClockTime: 5\n", "wallClockTime: 5\n" + eventLine + "\nwallClockTime: 6\n"),
+                good.replace(eventLine, eventLine + "\n" + eventLine),
+                good.replaceFirst("\\{(\\w+): ", "{$1 "))) {
+            assertNotEquals(good, bad);
             var demo = assertThrows(InvocationTargetException.class, () -> demoRead.invoke(null, bad, Set.of(probe)), bad);
             assertTrue(demo.getCause() instanceof IllegalArgumentException, String.valueOf(demo.getCause()));
             var runner = assertThrows(InvocationTargetException.class,

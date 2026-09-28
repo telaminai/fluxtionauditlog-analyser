@@ -32,12 +32,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   record's own.
 - **The replay runner: `tools/replay/ReplayBundle.java`.** Run it with JBang against your own build:
   `jbang tools/replay/ReplayBundle.java --bundle run.fexp --processor <class> --cp <your build> --out replayed.yaml`.
-  It checks that your build is the bundle's processor, comparing the nodes and edges of your build's GraphML with
-  the bundle's, and refuses by name when they differ. It holds the replay and graph members to the manifest's
-  digests before your build runs on them, and keeps only those two in memory. It warns when the bundled log changes
-  its audit level mid-run. It loads only the event types your processor handles, and
-  replays each record at its recorded instant on a data-driven clock. It writes the audit log for
-  `--replay-compare`.
+  It checks that your build's graph matches the bundle's: the node ids and edges of your build's GraphML and the
+  bundle's must be the same, and it refuses by name when they differ. That is graph compatibility, not the same code.
+  It reads the manifest as JSON, in any valid spelling, and holds it to the bundle schema: one replay member, at most
+  one graph, and every member listed. It holds every member to its digest and size, within a per-member limit and a
+  whole-bundle limit, before your build runs on them. Only the graph is held in memory, and the replay is read a line
+  at a time. It reads the whole replay member before your processor runs, and refuses a malformed record, or a count
+  other than the manifest's. It writes its output only when the replay completes. It warns when the bundled log
+  changes its audit level mid-run. It loads only the event types your processor handles, and replays each record at
+  its recorded instant on a data-driven clock. It writes the audit log for `--replay-compare`.
 - **The start page's DEMO is regenerated with the current Fluxtion toolchain.** A cycle now reads the clock once,
   so the DEMO log's times moved: the breach is at 09:00:00.180. The events and every node's values are unchanged.
 - **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It

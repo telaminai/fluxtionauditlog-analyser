@@ -75,6 +75,7 @@ public final class ReplayReader {
         for (int i = 0; i < parts.length; i++) {
             String kv = values.get(i);
             int colon = kv.indexOf(':');
+            if (colon < 0) throw new IllegalArgumentException(type.getName() + ": not a component: " + kv.strip());
             String name = kv.substring(0, colon).strip();
             if (!name.equals(parts[i].getName())) {
                 throw new IllegalArgumentException(type.getName() + ": expected " + parts[i].getName() + ", got " + name);

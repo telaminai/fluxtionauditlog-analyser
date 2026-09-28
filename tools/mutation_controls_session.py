@@ -25,6 +25,7 @@ PAIRING = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayPairing.ja
 COMPARE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayCompare.java'
 RUNNER = 'tools/replay/ReplayBundle.java'
 CODEC_WRITER = 'examples/fixture-generator/src/main/java/com/acme/demo/replay/ReplayCapture.java'
+CODEC_READER = 'examples/fixture-generator/src/main/java/com/acme/demo/replay/ReplayReader.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
@@ -1292,7 +1293,7 @@ CONTROLS = [
      '                if (difference != null) throw new Refused("your build\'s graph is not the bundle\'s: " + difference);\n', '',
      'ReplayRunnerEndToEndTest#aDifferentGraphIsRefused'),
     ('rn-loads-only-handled-types', RUNNER,
-     '            if (type == null) throw new Refused("a replay record names " + r[0] + ", which your processor does not handle");\n', '',
+     '        if (type == null) throw new Refused("a replay record names " + r[0] + ", which your processor does not handle");\n', '',
      'ReplayRunnerEndToEndTest#whatCannotBeReplayedIsRefused'),
     ('rn-replays-at-the-recorded-instant', RUNNER,
      '                now[0] = (Long) e[1];\n', '',
@@ -1340,8 +1341,8 @@ CONTROLS = [
      '            if (false) throw new IllegalArgumentException("a format " + FORMAT + " manifest lists a " + REPLAY_DIR\n',
      'ReplayBundleTest#theMemberRuleHoldsOnRead'),
     ('rn-holds-members-to-the-manifest', RUNNER,
-     '                    if (!sha.equals(want[0]) || bytes.length != Long.parseLong(want[1])) {\n',
-     '                    if (false) {\n',
+     '                if (!sha.equals(want.sha256()) || bounded.total() != want.bytes()) {\n',
+     '                if (false) {\n',
      'ReplayRunnerEndToEndTest#whatCannotBeReplayedIsRefused'),
     ('rn-warns-of-a-level-change', RUNNER,
      '            if (taken.levelChanges() > 0) {\n',
@@ -1357,8 +1358,8 @@ CONTROLS = [
      '                    .append("\\nwallClockTime: ").append(Long.toString(clock.getWallClockTime())).append(\'\\n\');\n',
      'ReplayCodecRoundTripTest#theWriterStampsTheReceiptInstant'),
     ('rn-bounds-every-member', RUNNER,
-     '                    var bounded = new BoundedStream(zip, name, MAX_MEMBER_BYTES);\n',
-     '                    InputStream bounded = zip;\n',
+     '            if (bytes > MAX_MEMBER_BYTES) throw new Refused(path + " is larger than the runner\'s limit of " + MAX_MEMBER_BYTES + " bytes");\n',
+     '',
      'ReplayRunnerEndToEndTest#everyMemberIsBounded'),
     ('rp-counts-the-logs-service-calls', PAIRING,
      '        for (int i = 0; i < records; i++) if (SERVICE_CALL.equals(index.event(i))) serviceCalls++;\n',
@@ -1371,9 +1372,52 @@ CONTROLS = [
      'ReplayPairingTest#aWrongPayloadIsRefused_notPairedByTypeAndInstant'),
     # PR #70 review, finding 2: the runner validates the whole replay-record grammar; this restores skipping.
     ('rn-validates-the-whole-replay-grammar', RUNNER,
-     '            if (!lines[i].equals("---")) throw new Refused("line " + (i + 1) + " is not part of a replay record: " + lines[i].strip());\n',
-     '            if (!lines[i].equals("---")) { i++; continue; }\n',
+     '                    if (!line.equals("---")) throw new Refused("line " + at + " is not part of a replay record: " + line.strip());\n',
+     '                    if (!line.equals("---")) continue;\n',
      'ReplayRunnerEndToEndTest#aMalformedReplayDocumentIsRefused'),
+    # PR #70 independent review (2026-09-28, review/pr70-replay-2026-09-28-codex): each finding's fix, undone, must turn
+    # its named regression red. Finding 1 is rc-a-comment-sets-no-header-scope, above.
+    # finding 2: cardinality before reading, every member held to its declared size, a total, and streaming
+    ('rn-one-replay-member-before-reading', RUNNER,
+     '            if (replays != 1) throw new Refused("the bundle lists " + replays + " replay/ members, not one");\n', '',
+     'ReplayRunnerEndToEndTest#manyReplayMembersAreRefusedBeforeAnyIsRead'),
+    ('rn-an-unlisted-member-is-never-read', RUNNER,
+     '                if (want == null) throw new Refused(name + " is not listed in the manifest");\n', '',
+     'ReplayRunnerEndToEndTest#manyReplayMembersAreRefusedBeforeAnyIsRead'),
+    ('rn-the-members-together-are-bounded', RUNNER,
+     '            if (total > MAX_BUNDLE_BYTES) throw new Refused("the bundle\'s members are larger than the runner\'s limit of "\n',
+     '            if (false) throw new Refused("the bundle\'s members are larger than the runner\'s limit of "\n',
+     'ReplayRunnerEndToEndTest#aLargeValidBundleReplaysInBoundedMemory'),
+    ('rn-other-members-are-streamed-not-held', RUNNER,
+     '                    digest.transferTo(java.io.OutputStream.nullOutputStream());\n',
+     '                    digest.readAllBytes();\n',
+     'ReplayRunnerEndToEndTest#aLargeValidBundleReplaysInBoundedMemory'),
+    ('rn-a-member-is-read-no-further-than-declared', RUNNER,
+     '                var bounded = new BoundedStream(zip, name, want.bytes(), "the manifest\'s " + want.bytes() + " bytes");\n',
+     '                var bounded = new BoundedStream(zip, name, Long.MAX_VALUE, "the manifest\'s " + want.bytes() + " bytes");\n',
+     'ReplayRunnerEndToEndTest#aMemberLongerThanDeclaredIsCutOff'),
+    # finding 3: the runner's set-up is left out by when it happens; a record's text never decides
+    # finding 4: the member is read whole and counted before the processor runs; no reader takes a nameless field
+    ('rn-the-count-is-the-manifests', RUNNER,
+     '            if (taken.declaredRecords() != null && taken.declaredRecords() != inputs) {\n',
+     '            if (false) {\n',
+     'ReplayRunnerEndToEndTest#aReplayThatLosesInputIsRefused'),
+    ('rn-a-component-needs-its-name', RUNNER,
+     '            if (colon < 0) throw new Refused(type.getName() + ": not a component: " + kv.strip());\n', '',
+     'ReplayCodecRoundTripTest#bothReadersRequireTheWholeGrammar'),
+    ('rq-demo-reader-a-component-needs-its-name', CODEC_READER,
+     '            if (colon < 0) throw new IllegalArgumentException(type.getName() + ": not a component: " + kv.strip());\n', '',
+     'ReplayCodecRoundTripTest#bothReadersRequireTheWholeGrammar'),
+    # finding 7: the manifest is JSON, read as JSON
+    ('rn-json-nothing-after-the-value', RUNNER,
+     '            if (j.i != j.s.length()) throw j.bad("content after the JSON value");\n', '',
+     'ReplayRunnerEndToEndTest#anyValidSpellingOfTheManifestReplays'),
+    ('rn-json-a-key-once', RUNNER,
+     '                if (out.containsKey(k)) throw bad("the key " + k + " twice");\n', '',
+     'ReplayRunnerEndToEndTest#anyValidSpellingOfTheManifestReplays'),
+    ('rn-json-a-whole-number-is-whole', RUNNER,
+     '        if (v instanceof Double d && d == Math.rint(d) && Math.abs(d) <= (1L << 53)) return (long) (double) d;\n', '',
+     'ReplayRunnerEndToEndTest#anyValidSpellingOfTheManifestReplays'),
     ('cv-refuses-no-log', CAPTURE,
      '        if (!openLog.isOpen()) return "no log is open: open the log you are investigating first";\n', '',
      'EvidenceCaptureTest#noLogIsRefused'),

@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -76,13 +77,84 @@ class ReplayRunnerEndToEndTest {
         assertEquals(0, rc, "compiles: " + diag.toString(StandardCharsets.UTF_8));
     }
 
+    /** How a test writes a manifest: the analyser's compact JSON, the same keys in reverse order, or indented. */
+    enum Style { COMPACT, REORDERED, PRETTY }
+
+    /** The manifest, as JSON values: every whole number a Long, as the analyser wrote it. */
+    @SuppressWarnings("unchecked")
+    static java.util.Map<String, Object> manifest(java.util.Map<String, byte[]> entries) {
+        return (java.util.Map<String, Object>) whole(telamin.fluxtion.audit.analyser.analyser.llm.Json.parse(
+                new String(entries.get("manifest.json"), StandardCharsets.UTF_8)));
+    }
+
+    private static Object whole(Object v) {
+        if (v instanceof Double d && d == Math.rint(d)) return (long) (double) d;
+        if (v instanceof java.util.Map<?, ?> m) {
+            var out = new java.util.LinkedHashMap<String, Object>();
+            m.forEach((k, x) -> out.put((String) k, whole(x)));
+            return out;
+        }
+        if (v instanceof List<?> l) return new ArrayList<>(l.stream().map(ReplayRunnerEndToEndTest::whole).toList());
+        return v;
+    }
+
+    static void putManifest(java.util.Map<String, byte[]> entries, java.util.Map<String, Object> m, Style style) {
+        entries.put("manifest.json", (json(m, style, "") + "\n").getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** JSON in one of three spellings of the same value: what a reader must read alike. */
+    static String json(Object v, Style style, String indent) {
+        String in = indent + "  ", nl = style == Style.PRETTY ? "\n" : "", sp = style == Style.PRETTY ? " " : "";
+        if (v instanceof java.util.Map<?, ?> m) {
+            List<String> keys = new ArrayList<>(m.keySet().stream().map(String.class::cast).toList());
+            if (style == Style.REORDERED) java.util.Collections.reverse(keys);
+            List<String> parts = new ArrayList<>();
+            for (String k : keys) {
+                parts.add((style == Style.PRETTY ? in : "") + telamin.fluxtion.audit.analyser.analyser.llm.Json.write(k) + ":" + sp
+                        + json(m.get(k), style, in));
+            }
+            return parts.isEmpty() ? "{}" : "{" + nl + String.join("," + nl, parts) + nl + (style == Style.PRETTY ? indent : "") + "}";
+        }
+        if (v instanceof List<?> l) {
+            List<String> parts = new ArrayList<>();
+            for (Object x : l) parts.add((style == Style.PRETTY ? in : "") + json(x, style, in));
+            return parts.isEmpty() ? "[]" : "[" + nl + String.join("," + nl, parts) + nl + (style == Style.PRETTY ? indent : "") + "]";
+        }
+        return telamin.fluxtion.audit.analyser.analyser.llm.Json.write(v);
+    }
+
+    static String sha256(byte[] bytes) throws Exception {
+        return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+    }
+
     /** Re-stamp one member's sha256 and size in the manifest, as a bundle packed with those bytes would have them. */
+    @SuppressWarnings("unchecked")
     static void restamp(java.util.Map<String, byte[]> entries, String member, byte[] bytes) throws Exception {
-        String sha = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
-        String m = new String(entries.get("manifest.json"), StandardCharsets.UTF_8).replaceFirst(
-                "\\{\"path\":\"" + java.util.regex.Pattern.quote(member) + "\",\"sha256\":\"[0-9a-f]{64}\",\"bytes\":\\d+}",
-                java.util.regex.Matcher.quoteReplacement("{\"path\":\"" + member + "\",\"sha256\":\"" + sha + "\",\"bytes\":" + bytes.length + "}"));
-        entries.put("manifest.json", m.getBytes(StandardCharsets.UTF_8));
+        var m = manifest(entries);
+        boolean found = false;
+        for (Object o : (List<Object>) m.get("members")) {
+            var x = (java.util.Map<String, Object>) o;
+            if (x.get("path").equals(member)) {
+                x.put("sha256", sha256(bytes));
+                x.put("bytes", (long) bytes.length);
+                found = true;
+            }
+        }
+        assertTrue(found, member + " is listed");
+        putManifest(entries, m, Style.COMPACT);
+    }
+
+    /** Add a member and list it in the manifest, as a sender who packed it would. */
+    @SuppressWarnings("unchecked")
+    static void add(java.util.Map<String, byte[]> entries, String member, byte[] bytes) throws Exception {
+        entries.put(member, bytes);
+        var m = manifest(entries);
+        var x = new java.util.LinkedHashMap<String, Object>();
+        x.put("path", member);
+        x.put("sha256", sha256(bytes));
+        x.put("bytes", (long) bytes.length);
+        ((List<Object>) m.get("members")).add(x);
+        putManifest(entries, m, Style.COMPACT);
     }
 
     /** The runner, compiled from its committed source and called as its main would be. */
@@ -138,7 +210,8 @@ class ReplayRunnerEndToEndTest {
         Run r = runner(tmp, "--bundle", bundle.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
                 "--out", out.toString());
         assertEquals(0, r.code(), r.err());
-        assertTrue(r.out().contains("graph: your build's nodes and edges are the bundle's"), r.out());
+        assertTrue(r.out().contains("graph: your build's node ids and edges match the bundle's"), r.out());
+        assertTrue(r.out().contains("this does not show it is the same code"), "graph compatibility, not identity: " + r.out());
         assertTrue(r.out().contains("replayed: 7 recorded inputs"), r.out());
         assertTrue(r.out().contains("(8 audit records)"), "the graph raised its own breach again, by itself: " + r.out());
 
@@ -250,12 +323,10 @@ class ReplayRunnerEndToEndTest {
                     "--out", tmp.resolve("x.yaml").toString());
             assertEquals(1, r.code(), r.out());
             assertTrue(r.err().contains("is larger than the runner's limit of " + (logBytes - 1) + " bytes"), r.err());
-            // and a filler member the runner does not otherwise read
+            // and a filler member the runner does not otherwise read, listed as a sender would list it
             var entries = EvidenceBundleTest.entries(bundle);
-            entries.put("notes/filler.bin", new byte[(int) logBytes]);
             System.setProperty("replayBundle.maxMemberBytes", Long.toString(logBytes + 100_000));
-            byte[] big = new byte[(int) (logBytes + 200_000)];
-            entries.put("notes/filler.bin", big);
+            add(entries, "notes/filler.bin", new byte[(int) (logBytes + 200_000)]);
             Run f = runner(tmp.resolve("b"), "--bundle", EvidenceBundleTest.zip(tmp.resolve("filler.fexp"), entries).toString(),
                     "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("y.yaml").toString());
             assertEquals(1, f.code(), f.out());
@@ -273,8 +344,10 @@ class ReplayRunnerEndToEndTest {
         Path build = build(tmp, "same", null);
         var entries = EvidenceBundleTest.entries(bundle);
         String log = "log/demo-quote-recorded-audit.yaml";
-        entries.put(log, (new String(entries.get(log), StandardCharsets.UTF_8)
-                + "---\neventLogRecord: \n    event: EventLogControlEvent\n").getBytes(StandardCharsets.UTF_8));
+        byte[] changed = (new String(entries.get(log), StandardCharsets.UTF_8)
+                + "---\neventLogRecord: \n    event: EventLogControlEvent\n").getBytes(StandardCharsets.UTF_8);
+        entries.put(log, changed);
+        restamp(entries, log, changed);           // a log packed with the change: the manifest agrees with it
         Run r = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("levels.fexp"), entries).toString(),
                 "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("r.yaml").toString());
         assertEquals(0, r.code(), r.err());
@@ -350,6 +423,191 @@ class ReplayRunnerEndToEndTest {
         assertEquals(1, tamper.code());
         assertTrue(tamper.err().contains(member + " does not match the manifest"), tamper.err());
         assertFalse(Files.exists(tmp.resolve("e.yaml")), "nothing replayed, nothing written");
+        // the same size, one value changed: only the digest can see it
+        var same = EvidenceBundleTest.entries(bundle);
+        String text = new String(same.get(member), StandardCharsets.UTF_8);
+        String flipped = text.replaceFirst("bid: 100\\.1,", "bid: 100.2,");
+        assertNotEquals(text, flipped, "bid anchor moved");
+        same.put(member, flipped.getBytes(StandardCharsets.UTF_8));
+        Run digest = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("flipped.fexp"), same).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("f.yaml").toString());
+        assertEquals(1, digest.code(), digest.out());
+        assertTrue(digest.err().contains(member + " does not match the manifest"), digest.err());
         assertTrue(File.pathSeparator.length() == 1);
+    }
+
+    // ---- PR #70 review 2: the runner's resources are bounded in total, and cardinality is refused before reading ----
+
+    /** The runner in its own JVM, with {@code -Xmx64m}: a bundle is refused by name, or replayed, never an OOM. */
+    static Run child(Path tmp, List<String> jvm, String... args) throws Exception {
+        Path classes = tmp.resolve("runner-classes");
+        if (!Files.exists(classes.resolve("ReplayBundle.class"))) {
+            Files.createDirectories(classes);
+            compile(classes, List.of(RUNNER.toString()));
+        }
+        List<String> cmd = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Xmx64m"));
+        cmd.addAll(jvm);
+        cmd.addAll(List.of("-cp", classes + File.pathSeparator + System.getProperty("java.class.path"), "ReplayBundle"));
+        cmd.addAll(List.of(args));
+        Path out = tmp.resolve("child.out"), err = tmp.resolve("child.err");
+        Process p = new ProcessBuilder(cmd).redirectOutput(out.toFile()).redirectError(err.toFile()).start();
+        assertTrue(p.waitFor(120, java.util.concurrent.TimeUnit.SECONDS), "the runner finishes");
+        return new Run(p.exitValue(), Files.readString(out), Files.readString(err));
+    }
+
+    @Test
+    @DisplayName("PR #70 review 2: many hashed replay members are refused by name in 64 MiB, before any is read")
+    void manyReplayMembersAreRefusedBeforeAnyIsRead(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        // the review's archive: twelve more replay/ members of 6 MiB each, every one listed and correctly hashed
+        var entries = EvidenceBundleTest.entries(bundle);
+        for (int i = 0; i < 12; i++) add(entries, "replay/extra-" + i + ".yaml", new byte[6 << 20]);
+        Path hostile = EvidenceBundleTest.zip(tmp.resolve("hostile.fexp"), entries);
+        Path out = tmp.resolve("h.yaml");
+        Run r = child(tmp, List.of(), "--bundle", hostile.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                "--out", out.toString());
+        assertFalse(r.err().contains("OutOfMemoryError"), r.err());
+        assertEquals(1, r.code(), r.out() + r.err());
+        assertTrue(r.err().contains("REFUSED: the bundle lists 13 replay/ members, not one"), r.err());
+        assertFalse(Files.exists(out), "nothing written");
+
+        // the same members carried but NOT listed: refused at the first, never read
+        var unlisted = EvidenceBundleTest.entries(bundle);
+        for (int i = 0; i < 12; i++) unlisted.put("replay/extra-" + i + ".yaml", new byte[6 << 20]);
+        Run u = child(tmp, List.of(), "--bundle", EvidenceBundleTest.zip(tmp.resolve("unlisted.fexp"), unlisted).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+        assertEquals(1, u.code(), u.out() + u.err());
+        assertTrue(u.err().contains("REFUSED: replay/extra-0.yaml is not listed in the manifest"), u.err());
+        assertFalse(Files.exists(out), "nothing written");
+    }
+
+    @Test
+    @DisplayName("PR #70 review 2: a valid bundle far larger than the heap replays in 64 MiB; the total is bounded too")
+    void aLargeValidBundleReplaysInBoundedMemory(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        var entries = EvidenceBundleTest.entries(bundle);
+        String log = "log/demo-quote-recorded-audit.yaml";
+        // a 48 MiB note, and a log with a 32 MiB line: both streamed past, neither held
+        add(entries, "notes/large.bin", new byte[48 << 20]);
+        byte[] longLine = new byte[32 << 20];
+        java.util.Arrays.fill(longLine, (byte) 'x');
+        byte[] grown = java.nio.ByteBuffer.allocate(entries.get(log).length + longLine.length)
+                .put(entries.get(log)).put(longLine).array();
+        entries.put(log, grown);
+        restamp(entries, log, grown);
+        Path large = EvidenceBundleTest.zip(tmp.resolve("large.fexp"), entries);
+        Path out = tmp.resolve("l.yaml");
+        Run r = child(tmp, List.of(), "--bundle", large.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                "--out", out.toString());
+        assertEquals(0, r.code(), r.err());
+        assertTrue(r.out().contains("(8 audit records)"), r.out());
+
+        // the members together are bounded: the same bundle, under a total limit it exceeds, is refused by name
+        long limit = 64L << 20;
+        Run t = child(tmp, List.of("-DreplayBundle.maxBundleBytes=" + limit), "--bundle", large.toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("t.yaml").toString());
+        assertEquals(1, t.code(), t.out() + t.err());
+        assertTrue(t.err().contains("REFUSED: the bundle's members are larger than the runner's limit of " + limit
+                + " bytes together"), t.err());
+    }
+
+    @Test
+    @DisplayName("PR #70 review 2: a member longer than the manifest declares is cut off as it streams, in 64 MiB")
+    void aMemberLongerThanDeclaredIsCutOff(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        var entries = EvidenceBundleTest.entries(bundle);
+        String graph = entries.keySet().stream().filter(n -> n.startsWith("graph/")).findFirst().orElseThrow();
+        long declared = entries.get(graph).length;
+        // the graph is the member the runner holds: 96 MiB where the manifest declares a few KiB, and does not re-stamp
+        entries.put(graph, new byte[96 << 20]);
+        Path out = tmp.resolve("g.yaml");
+        Run r = child(tmp, List.of(), "--bundle", EvidenceBundleTest.zip(tmp.resolve("long.fexp"), entries).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+        assertEquals(1, r.code(), r.out() + r.err());
+        assertTrue(r.err().contains("REFUSED: " + graph + " does not match the manifest: it is larger than the manifest's "
+                + declared + " bytes"), r.err());
+        assertFalse(Files.exists(out), "nothing written");
+    }
+
+    // ---- PR #70 review 4: a replay is read whole, and counted, before your processor runs --------------------------
+
+    @Test
+    @DisplayName("PR #70 review 4: records run together, or fewer than the manifest declares, are refused before any output")
+    void aReplayThatLosesInputIsRefused(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        String member = "replay/demo-quote-recorded.replay.yaml";
+        var entries = EvidenceBundleTest.entries(bundle);
+        String good = new String(entries.get(member), StandardCharsets.UTF_8);
+
+        // the review's document: the separator between the first two records removed, the manifest re-stamped
+        int second = good.indexOf("---\n", 1);
+        byte[] joined = (good.substring(0, second) + good.substring(second + 4)).getBytes(StandardCharsets.UTF_8);
+        entries.put(member, joined);
+        restamp(entries, member, joined);
+        Path out = tmp.resolve("j.yaml");
+        Run j = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("joined.fexp"), entries).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+        assertEquals(1, j.code(), "refused, not six inputs of seven: " + j.out());
+        assertTrue(j.err().contains("REFUSED: line 5 is not part of a replay record"), j.err());
+        assertFalse(Files.exists(out), "nothing written");
+
+        // well-formed, but a record fewer than the manifest's count: the member is not the one that was packed
+        int last = good.lastIndexOf("---\n");
+        byte[] shorter = good.substring(0, last).getBytes(StandardCharsets.UTF_8);
+        entries.put(member, shorter);
+        restamp(entries, member, shorter);
+        Run s6 = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("short.fexp"), entries).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+        assertEquals(1, s6.code(), s6.out());
+        assertTrue(s6.err().contains("REFUSED: the replay member holds 6 records, and the manifest says 7"), s6.err());
+        assertFalse(Files.exists(out), "nothing written");
+    }
+
+    // ---- PR #70 review 7: the manifest is JSON, read as JSON ------------------------------------------------------
+
+    @Test
+    @DisplayName("PR #70 review 7: compact, reordered and pretty-printed manifests all verify and replay; malformed JSON is refused")
+    void anyValidSpellingOfTheManifestReplays(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        java.util.Set<String> identities = new java.util.HashSet<>();
+        for (Style style : Style.values()) {
+            var entries = EvidenceBundleTest.entries(bundle);
+            putManifest(entries, manifest(entries), style);
+            Path b = EvidenceBundleTest.zip(tmp.resolve(style + ".fexp"), entries);
+            var v = EvidenceBundle.verify(b);
+            assertTrue(v.ok(), style + ": " + v.refusal());
+            identities.add(v.identity());
+            Path out = tmp.resolve(style + ".yaml");
+            Run r = runner(tmp, "--bundle", b.toString(), "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+            assertEquals(0, r.code(), style + ": " + r.err());
+            assertTrue(ReplayCompare.compare(b, out, 256).agrees(), style.toString());
+        }
+        assertEquals(3, identities.size(), "each spelling is its own exact-byte bundle identity");
+
+        // a size written as 3375.0 is the same JSON number
+        var decimal = EvidenceBundleTest.entries(bundle);
+        String m = new String(decimal.get("manifest.json"), StandardCharsets.UTF_8).replaceFirst("\"bytes\":(\\d+)", "\"bytes\":$1.0");
+        decimal.put("manifest.json", m.getBytes(StandardCharsets.UTF_8));
+        Run d = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("decimal.fexp"), decimal).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("d.yaml").toString());
+        assertEquals(0, d.code(), d.err());
+
+        String compact = new String(EvidenceBundleTest.entries(bundle).get("manifest.json"), StandardCharsets.UTF_8).strip();
+        for (String bad : List.of(compact.substring(0, compact.length() - 1), compact + " {}", compact.replaceFirst("\"format\":", "format:"),
+                compact.replaceFirst("\\{", "{\"format\":1,"))) {
+            var broken = EvidenceBundleTest.entries(bundle);
+            broken.put("manifest.json", bad.getBytes(StandardCharsets.UTF_8));
+            Path out = tmp.resolve("bad.yaml");
+            Run r = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("bad.fexp"), broken).toString(),
+                    "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+            assertEquals(1, r.code(), bad + " / " + r.out());
+            assertTrue(r.err().contains("REFUSED: manifest.json is not valid JSON"), bad + " / " + r.err());
+            assertFalse(Files.exists(out), "nothing written");
+        }
     }
 }
