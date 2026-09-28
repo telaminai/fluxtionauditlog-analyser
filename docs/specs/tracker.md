@@ -1453,7 +1453,8 @@ Record at the processor (the single-threaded consumption point), replay into the
 time, compare in the analyser. YAML only for the demo. Spike: byte-identical replay when the recorder stamps the
 receipt instant; the shipped writer does not (UP-FLX-53); graph-raised events are matched at the redispatch queue in
 replay mode (owner design, UP-FLX-54).
-- [M70.R0] ⛔ Prove the auditor path on a DEMO processor generated with the recorder — approved; **blocked**: hosted generator 1.0.75 emits no audit dispatch and no re-entrancy even with no profile set (UP-FLX-55; spike README ▸ *R0*)
+- [M70.R0] ☑ The auditor path proven on a DEMO processor generated with the recorder (builder 1.0.71): inputs-only replay byte-identical; record-everything duplicates the graph-raised event; the second clock read reproduced (spike README ▸ *R0*)
+- [M70.R0a] ☐ `examples/fixture-generator` pins BOM 1.0.64 / runtime 1.0.13; follow the root pom (builder 1.0.71, runtime 1.0.16), or a regeneration audits nothing, with a check that the two agree
 - [M70.R1] ☐ The recorded fixture (log + replay + graph from one run, no service calls)
 - [M70.R2] ☐ The `replay` member: pairing by content, whole-log only, manifest format 2, `serviceCalls`
 - [M70.R3] ☐ `--replay-compare` and the measured rule

@@ -502,26 +502,6 @@ never 0.
 
 **Ask.** Stamp `clock.getProcessTime()`, the instant fixed on receipt, or make it the default and name the other.
 
-### UP-FLX-55 ☐ Generator 1.0.75 emits processors with no audit dispatch and no re-entrancy, with no profile set
-
-**Target** `fluxtion` (hosted generator) · **Priority** highest: the audit log is the product · _Not filed yet
-(2026-09-28)._
-
-**Evidence: measured** (spike README ▸ *R0*). Regenerating the analyser's **untouched**
-`examples/fixture-generator` today (plugin 1.3.0, `target generator version: 1.0.75`), whose builders call
-`addEventAudit()` and never `performanceProfile`:
-- `auditEvent(Object)` and `auditEvent(Event)` are generated **empty**. Clock, `EventLogManager` and every
-  `addAuditor` auditor are constructed but never called, so there is no audit log and no clock reading.
-- Re-entrancy is compiled out: 6 `"re-entrancy support disabled"` guards. The DEMO graph raises an event on itself.
-- `cfg.setSupportReentrancy(true)` and `performanceProfile(DEFAULT)` change nothing.
-- **End to end:** in one harness, the committed processor writes 2 audit records for 2 events, and the one
-  regenerated today writes 0.
-- The output needs runtime ≥ 1.0.15 (`callbacksPending`). The processor that the same source produced before,
-  and that is committed, calls every auditor.
-
-**Ask.** With no profile set, generate the framework defaults: audit dispatch and re-entrancy, as
-`EventProcessorConfig` declares. Or state the new default, and make a builder's explicit request win.
-
 ### UP-FLX-54 ☐ An installed replay recorder also records events the graph raises on itself
 
 **Target** `fluxtion` (builder/replay; relates to M50.8, the compiler-derived capture set) · **Priority** high,
