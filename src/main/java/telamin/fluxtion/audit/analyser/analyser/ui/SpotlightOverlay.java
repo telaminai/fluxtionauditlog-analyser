@@ -86,6 +86,8 @@ public final class SpotlightOverlay extends JComponent {
     private Strip strip;
     private java.util.function.Consumer<StripControl> onStrip = c -> { };
     private java.util.function.Consumer<java.awt.event.MouseEvent> onPopup = e -> { };
+    /** Whether the overlay received the press this release belongs to — see {@link #redispatchBeneath}. */
+    private boolean sawPress;
     /** Presses up to this event time are swallowed: they closed the save menu, and must not also end the walk. */
     private long swallowPressesUntil = Long.MIN_VALUE;
     private long popupShownAt = Long.MIN_VALUE;
@@ -97,6 +99,7 @@ public final class SpotlightOverlay extends JComponent {
         setVisible(false);
         addMouseListener(new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) {
+                sawPress = true;      // whatever this press means below, the overlay owns its release
                 // M69 R7: classify first. A popup request never dismisses — on platforms whose trigger is the
                 // RELEASE, the right button's press must not dismiss either, or the spotlight is gone before it.
                 if (e.isPopupTrigger() || javax.swing.SwingUtilities.isRightMouseButton(e)) {
@@ -116,7 +119,20 @@ public final class SpotlightOverlay extends JComponent {
             }
 
             @Override public void mouseReleased(MouseEvent e) {
-                if (e.isPopupTrigger()) popup(e);                    // the release-trigger platforms
+                boolean ours = sawPress;
+                sawPress = false;
+                if (e.isPopupTrigger()) {
+                    popup(e);                                        // the release-trigger platforms
+                    return;
+                }
+                // This is a GLASS PANE: while it is visible nothing beneath it sees a mouse event. That is right
+                // for a press — a press on the spotlight dismisses it — but a release whose press the overlay
+                // never saw belongs to whatever was pressed BEFORE the overlay appeared, and swallowing it leaves
+                // that component mid-gesture. A table left mid-drag keeps extending its selection and
+                // auto-scrolling for the rest of the session, and only a restart stops it (found in a 1.26.0
+                // demo). A walk raises the overlay by itself, while the person is still clicking, so this is
+                // reachable by simply pressing on the table as a step lands.
+                if (!ours) redispatchBeneath(e);
             }
         });
         registerKeyboardAction(e -> dismiss(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
@@ -127,6 +143,22 @@ public final class SpotlightOverlay extends JComponent {
                 KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), JComponent.WHEN_FOCUSED);
         registerKeyboardAction(e -> { if (strip != null && strip.canNext()) onStrip.accept(StripControl.NEXT); },
                 KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), JComponent.WHEN_FOCUSED);
+    }
+
+    /**
+     * Hand {@code e} to the component under it, beneath the glass pane. Best effort by position: Swing would have
+     * delivered the release to whichever component took the press, and the glass pane cannot know which that was,
+     * so the component under the release point is the closest honest guess — and far better than nobody.
+     */
+    private void redispatchBeneath(MouseEvent e) {
+        javax.swing.JRootPane root = getRootPane();
+        if (root == null) return;
+        java.awt.Container content = root.getContentPane();
+        if (content == null) return;
+        java.awt.Point p = javax.swing.SwingUtilities.convertPoint(this, e.getPoint(), content);
+        java.awt.Component beneath = javax.swing.SwingUtilities.getDeepestComponentAt(content, p.x, p.y);
+        if (beneath == null || beneath == this) return;
+        beneath.dispatchEvent(javax.swing.SwingUtilities.convertMouseEvent(this, e, beneath));
     }
 
     /** M69: where strip presses are reported. */

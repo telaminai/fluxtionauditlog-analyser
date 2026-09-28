@@ -6,6 +6,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Fixed
+
+- **The records table no longer runs away with its own selection.** If you pressed the mouse on the table just as
+  a spotlight or a walk step raised the overlay, the release landed on the overlay — the frame's glass pane — and
+  the table never learned the drag had ended. From then on every selection extended and the table auto-scrolled,
+  with nothing touching it, until the app was restarted. A release whose press the overlay never saw is now passed
+  to the component underneath, which is the one that owns the gesture.
+
 ## [1.26.0] - 2026-09-28
 
 ### Added

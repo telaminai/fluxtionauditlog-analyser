@@ -1058,4 +1058,19 @@ CONTROLS = [
      '        walksLastReported = java.util.List.copyOf(config.walks);\n        onGraphsEdited();',
      '        onGraphsEdited();',
      'WalkReviewFrameTest#aVerbSaveBetweenTwoImportsIsStillReported'),
+    # ---- the glass pane must not swallow a release whose press it never saw (1.26.0 demo defect)
+    # Without the redispatch the component that owns the drag never closes it: a table left mid-drag keeps
+    # extending its selection and auto-scrolling until the app restarts.
+    ('overlay-release-reaches-beneath', UI + 'SpotlightOverlay.java',
+     '                if (!ours) redispatchBeneath(e);', '',
+     'OverlayDoesNotSwallowAReleaseTest#aReleaseWithoutItsPressReachesTheComponentBeneath'),
+    # ...and the overlay's OWN release stays its own: passing it through would deliver a click to whatever the
+    # spotlight was covering.
+    ('overlay-keeps-its-own-release', UI + 'SpotlightOverlay.java',
+     '                boolean ours = sawPress;', '                boolean ours = false;',
+     'OverlayDoesNotSwallowAReleaseTest#theOverlaysOwnReleaseIsNotPassedOn'),
+    # ...judged per gesture: a press long past must not make this release look like the overlay's.
+    ('overlay-press-flag-is-per-gesture', UI + 'SpotlightOverlay.java',
+     '                sawPress = false;\n', '',
+     'OverlayDoesNotSwallowAReleaseTest#theFlagDoesNotLeakBetweenGestures'),
 ]
