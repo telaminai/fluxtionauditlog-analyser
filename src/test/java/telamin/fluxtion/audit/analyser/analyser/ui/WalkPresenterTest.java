@@ -204,4 +204,69 @@ class WalkPresenterTest {
         assertTrue(past.reason().contains("1 step"), past.reason());
         assertEquals(0, rig.filterChanges, "a refused step changes nothing");
     }
+
+    // ---- review PR57 R5, second round: the topology canvas describes the SELECTION too ------------------------
+
+    private static WalkSpec.Step stepPointingAt(String target, Integer record) {
+        return new WalkSpec.Step("look", new WalkSpec.View("topology", null, record, null, null),
+                List.of(new WalkSpec.Target(target, "what record " + record + " did", null)));
+    }
+
+    private static WalkSpec walkOf(WalkSpec.Step step) {
+        return new WalkSpec("tour", "", "person", "", "", null, List.of(), List.of(step), java.util.Map.of());
+    }
+
+    @Test
+    @DisplayName("R5: the topology canvas is not claimed to describe a record the filter hid")
+    void aHiddenRecordDoesNotLightTheTopologyCanvas() {
+        Rig rig = new Rig();
+        rig.recordVisible = false;                     // this step's filter hides record 3
+        WalkSpec.Step step = stepPointingAt("topology", 3);
+
+        var states = new WalkPresenter(rig).states(walkOf(step), step, true);
+
+        assertEquals(1, states.size());
+        assertFalse(states.get(0).available(),
+                "the canvas carries a step cursor bound to a record, so lighting it here would point at a "
+                        + "canvas describing a different one — R5's defect, one surface over");
+        assertTrue(states.get(0).reason().contains("topology's step cursor"),
+                "and the refusal names the surface the person is looking at: " + states.get(0).reason());
+    }
+
+    @Test
+    @DisplayName("R5: with the record actually selected, the canvas is available as before")
+    void aSelectedRecordStillLightsTheCanvas() {
+        Rig rig = new Rig();
+        rig.recordVisible = true;
+        WalkSpec.Step step = stepPointingAt("topology", 3);
+
+        var states = new WalkPresenter(rig).states(walkOf(step), step, true);
+
+        assertTrue(states.get(0).available(), states.get(0).reason());
+    }
+
+    @Test
+    @DisplayName("R5: a step naming NO record leaves the canvas alone — the rule is about the selection")
+    void aStepWithoutARecordIsUnaffected() {
+        Rig rig = new Rig();
+        rig.recordVisible = false;
+        WalkSpec.Step step = stepPointingAt("topology", null);
+
+        assertTrue(new WalkPresenter(rig).states(walkOf(step), step, true).get(0).available(),
+                "nothing was asked about a record, so nothing about the selection can be wrong");
+    }
+
+    @Test
+    @DisplayName("R5: topology:node names its own subject, so a hidden record does not refuse it")
+    void aNamedTopologyNodeIsNotSelectionDependent() {
+        Rig rig = new Rig();
+        rig.recordVisible = false;
+        WalkSpec.Step step = stepPointingAt("topology:node:a", 3);
+
+        var state = new WalkPresenter(rig).states(walkOf(step), step, true).get(0);
+
+        assertFalse(state.reason().contains("topology's step cursor"),
+                "node 'a' is on the canvas whatever is selected: whatever else this step needs, the SELECTION "
+                        + "is not it — over-refusing on that ground would cost real steps. Reason: " + state.reason());
+    }
 }

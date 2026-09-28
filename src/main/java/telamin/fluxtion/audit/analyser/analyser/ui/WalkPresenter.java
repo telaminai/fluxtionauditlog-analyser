@@ -241,8 +241,8 @@ final class WalkPresenter {
             // requested record. A visible detail pane is not proof that the step's record is in it.
             if (available && step.view().record() != null && dependsOnSelection(t) && !frame.recordSelected(step.view().record())) {
                 available = false;
-                reason = "record " + step.view().record() + " is not shown — this step's filter hides it, so the detail "
-                        + "pane does not describe it";
+                reason = "record " + step.view().record() + " is not shown — this step's filter hides it, so "
+                        + whatItWouldDescribe(t) + " does not describe it";
             }
             if (available) {
                 SpotlightTarget.Resolution r = frame.resolve(t.target());
@@ -254,11 +254,30 @@ final class WalkPresenter {
         return out;
     }
 
-    /** Detail targets describe whichever record is selected; every other family names its own subject. */
+    /** The surface a selection-dependent target draws, for a refusal that names what the person is looking at. */
+    private static String whatItWouldDescribe(WalkSpec.Target t) {
+        SpotlightTarget.Parsed p = SpotlightTarget.parse(t.target());
+        return p.ok() && p.target().family() == SpotlightTarget.Family.TOPOLOGY
+                ? "the topology's step cursor" : "the detail pane";
+    }
+
+    /**
+     * Targets whose CONTENT is whichever record is selected, rather than a subject they name themselves.
+     *
+     * <p>The detail pane and its node blocks describe the selection. So does the topology CANVAS (review PR57 R5,
+     * second round): it carries a step cursor bound to a record and kept in step with the table, so lighting it
+     * under a step whose record could not be selected points at a canvas describing a different record — the same
+     * defect as the detail pane, one surface over.
+     *
+     * <p>Deliberately NOT here: {@code records:row:<n>} names its own index, and its bounds are empty when the
+     * filter hides that row, so it is already refused; {@code topology:node:<id>} names a node that is there
+     * whatever is selected; {@code topology:verdict} states the pairing, which is not record-scoped.
+     */
     private static boolean dependsOnSelection(WalkSpec.Target t) {
         SpotlightTarget.Parsed p = SpotlightTarget.parse(t.target());
         return p.ok() && (p.target().family() == SpotlightTarget.Family.DETAIL
-                || p.target().family() == SpotlightTarget.Family.DETAIL_NODE);
+                || p.target().family() == SpotlightTarget.Family.DETAIL_NODE
+                || p.target().family() == SpotlightTarget.Family.TOPOLOGY);
     }
 
     /**
