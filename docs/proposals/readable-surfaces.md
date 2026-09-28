@@ -135,8 +135,9 @@ the second composition site this argues against; if it is worth stating, a node 
 ## Suggested order
 
 1. ~~**Publish the two existing views in the snapshot and `context`**~~ — done; see above.
-2. **Fold `context`'s branches 2–3 into the published view**, and decide separately whether "observed at this
-   request" belongs in the session as a fact rather than a read performed by the context verb.
+2. ~~**Fold `context`'s branches 2–3 into the published view**~~ — done: both project `surfaces.identityBanner`, which
+   now states `NOT_ASSESSED` because the store's read-through assessment reaches the session on `LogOpened`. "Observed
+   at this request" (branch 1) is written up separately, in [`identity-observation-as-a-fact.md`](identity-observation-as-a-fact.md).
 3. **The `showing N of M` + filter core**, as the first readable-only element.
 4. **Measure the audit's signal-to-noise**, not just its volume, before going further.
 5. **Charts last, and with #53**: a `ChartView` alone would not have caught any of the five drawn-layer questions
