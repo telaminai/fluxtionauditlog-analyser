@@ -142,13 +142,17 @@ class EvidenceCaptureFrameTest {
             awaitLoaded(f.ex);
             // what the session has READ: under a live read the unterminated last record is pending, not served
             AtomicReference<Integer> read = new AtomicReference<>();
+            AtomicReference<Integer> pending = new AtomicReference<>();
             onEdt(() -> {
                 @SuppressWarnings("unchecked")
                 var logCtx = (Map<String, Object>) ((Map<String, Object>) render(f.ex, "context",
                         Map.of("sections", List.of("log"))).get("context")).get("log");
                 read.set(((Number) logCtx.get("records")).intValue());
+                pending.set(((Number) logCtx.getOrDefault("trailingRecordsPending", 0)).intValue());
             });
             assertTrue(read.get() > 0, "control: the session has read records");
+            // review of EB.F6: "in the store" and "read" differ exactly when a trailing record is PENDING; this is that case
+            assertTrue(pending.get() > 0, "control: a trailing record is pending, so read and in-the-file really differ here");
             AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
             onEdt(() -> {        // one task: the append and the request, with no Follow poll between them
                 try {

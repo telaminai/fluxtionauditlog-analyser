@@ -42,7 +42,7 @@ public final class BundleWriter {
      * @param log            the open log's file, copied whole when {@code excerpt} is null
      * @param graph          the open graph's file, or null
      * @param settingsName   the settings file's name ({@code *.fluxtion-settings} for a project profile)
-     * @param settingsBytes  its bytes, read after the project's pending write was flushed
+     * @param settingsBytes  the SESSION's settings, serialised as a save would write them (EB.F11: never read from the file)
      * @param notes          the author's account, packed as {@code notes/NOTES.md}, or null/blank for none
      * @param excerpt        what was taken for a time-window excerpt, or null for the whole log
      */

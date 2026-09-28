@@ -395,6 +395,12 @@ choose**:
   `excerpt` carries `readSoFar: true`, `--verify` says so, and the author sees a `read so far:` line. A growing log
   with nothing read yet is refused by name.
 
+**Is "the records read" what the session published as read?** Yes (review of EB.F6, 2026-09-28). The store's
+size at the effect equals `context.log.records`: under a live read, the unterminated last record is pending and is
+not in the store, so it is not in the bundle either. `EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead` asserts
+`manifest.excerpt.sourceRecords == context.log.records`, with a control that a trailing record was pending at that
+moment, the one case where "in the file" and "read" differ.
+
 **Correction.** r5 said chart steps would read as *historical* on the other side. They do not. Like any excerpt,
 every walk and report is re-based: the excerpt's own fingerprint and run basis are computed by the recipient's own
 functions, so chart steps are current. `EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead` holds the rule
