@@ -173,4 +173,41 @@ class IdentityMarkFrameTest {
             });
         }
     }
+
+    /** Review of #58: on a real frame, closing the log takes the verdict off all three surfaces. */
+    @Test
+    void closingTheLogTakesTheVerdictOffEverySurface() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path log = writeLog();
+        try (AsyncOpenInterleavingFrameTest.Frame f = new AsyncOpenInterleavingFrameTest.Frame(tmp)) {
+            onEdt(() -> {
+                ((AppConfig) field(f.frame, "config")).memoryThresholdMb = 0;
+                f.frame.setSize(1200, 800);
+                f.frame.setVisible(true);
+            });
+            assertTrue(awaitOnEdt(f.frame::isShowing, 5_000), "control: the frame is on screen");
+            assertTrue(f.ex.render("open", Map.of("log", log.toString())).ok(), "the fixture opens");
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            assertTrue(f.ex.render("graph", Map.of("name", "Before", "series", List.of("node.value"))).ok(), "a chart opens");
+            assertTrue(f.ex.render("goto", Map.of("recordIndex", 1)).ok(), "a record is selected");
+            GraphTabs charts = (GraphTabs) field(f.frame, "graphTabs");
+            DetailPanel detail = (DetailPanel) field(f.frame, "detailPanel");
+            LogTablePanel table = (LogTablePanel) field(f.frame, "tablePanel");
+
+            Files.writeString(log, Files.readString(log).replace("value: 2", "value: 7"));
+            Files.setLastModifiedTime(log, FileTime.fromMillis(System.currentTimeMillis() + 60_000));
+            var dispatcher = new ActionDispatcher(false, null,
+                    () -> ((LogStore) field(f.frame, "store")).index().snapshot(),
+                    row -> ((LogStore) field(f.frame, "store")).rawText(row), f.ex);
+            dispatcher.dispatch(Map.of("action", "read", "params", Map.of("limit", 1)));
+            assertTrue(awaitOnEdt(() -> table.identityNote() != null && charts.identityNote() != null
+                    && detail.identityNote() != null, 5_000), "control: the verdict is up on all three surfaces");
+
+            assertTrue(f.ex.render("open", Map.of("close", "log")).ok(), "the log closes");
+            assertTrue(awaitOnEdt(() -> table.identityNote() == null && charts.identityNote() == null
+                    && detail.identityNote() == null, 5_000),
+                    "a closed log leaves no 'reopen the log' warning behind: table=" + table.identityNote()
+                            + " charts=" + charts.identityNote() + " detail=" + detail.identityNote());
+        }
+    }
 }

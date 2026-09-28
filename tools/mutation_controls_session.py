@@ -648,4 +648,39 @@ CONTROLS = [
     ('vm-swing-backend-draws', UI + 'MainFrame.java',
      '                            status.setText(statusLineText(v));\n', '',
      'LogFindingsOnEverySurfaceFrameTest#theFollowLineKeepsTheProvenanceAndTheOrderWarning'),
+
+    # --- View-model spike, second element (#58): the identity banner as a node, and the review's two fixes ---------
+    # Changed-only emit: an append moves the open log but not the verdict, so it draws nothing.
+    ('vm2-unchanged-verdict-not-drawn', NODE + 'IdentityBanner.java',
+     'if (view.equals(emitted)) return false;', '',
+     'IdentityBannerViewTest#anAppendIsNotAVerdictChange'),
+    # The policy is the view's: a verdict that does not warn is not shown.
+    ('vm2-policy-on-shown', SESSION + 'view/IdentityBannerView.java',
+     'return new IdentityBannerView(generation, verdict, reason, warns(verdict));',
+     'return new IdentityBannerView(generation, verdict, reason, true);',
+     'IdentityBannerViewTest#aClearVerdictIsAlsoAView'),
+    # Review of #58: a close is stated, or the warning stays over an empty screen — headless and on the frame.
+    ('vm2-close-takes-banner-down', NODE + 'IdentityBanner.java',
+     '            view = IdentityBannerView.of(emitted.generation(), null, null);',
+     '            return false;',
+     'IdentityBannerViewTest#closingTheLogTakesTheBannerDown'),
+    ('vm2-close-takes-banner-down-frame', NODE + 'IdentityBanner.java',
+     '            view = IdentityBannerView.of(emitted.generation(), null, null);',
+     '            return false;',
+     'IdentityMarkFrameTest#closingTheLogTakesTheVerdictOffEverySurface'),
+    # The three backends: each surface's banner is drawn only by its registered backend.
+    ('vm2-table-backend-draws', UI + 'MainFrame.java',
+     '                            tablePanel.setIdentityNote(LogTablePanel.identityBannerText(v));\n', '',
+     'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
+    ('vm2-charts-backend-draws', UI + 'MainFrame.java',
+     '                            graphTabs.setIdentityNote(GraphTabs.identityBannerText(v));\n', '',
+     'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
+    ('vm2-detail-backend-draws', UI + 'MainFrame.java',
+     '                            detailPanel.setIdentityNote(DetailPanel.identityBannerText(v));\n', '',
+     'IdentityMarkFrameTest#anInPlaceRewriteIsStatedOnTheTableTheChartsAndTheDetailPane'),
+    # Review of #58: a render answer is dispatched to its own element's node only — no (nodes x renders) fan-out.
+    ('vm2-render-answer-filtered', SESSION + 'SessionEvents.java',
+     '            return element;\n',
+     '            return "statusLine";\n',
+     'IdentityBannerViewTest#aRenderAnswerReachesOnlyItsOwnNode'),
 ]
