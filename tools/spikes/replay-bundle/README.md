@@ -125,9 +125,17 @@ logging would break everywhere. It was the client builder. The analyser's own `S
 same 1.0.75, audits normally with `fluxtion-builder` **1.0.71** (the root pom's `fluxtion.builder.version`).
 Pinning 1.0.71, and runtime 1.0.16, in the scratch pom fixed it. The draft ask is withdrawn.
 
-**Consequence for the repo:** `examples/fixture-generator` still pins BOM 1.0.64 and runtime 1.0.13. Regenerating
-the committed DEMO fixtures with it today gives a processor that audits nothing. Its builder and runtime should
-follow the root pom's versions.
+**Consequence for the repo (M70.R0a, fixed):** `examples/fixture-generator` now pins the root pom's builder
+(1.0.71) and runtime (1.0.16), with no BOM, and `FixtureGeneratorToolchainTest` holds the two poms together. The
+committed DEMO sources compile against it.
+
+**Regenerating the committed fixtures is a separate step (M70.R0b).** With the right toolchain, the audit logs change:
+- the generator reads the clock once per cycle, so `eventTime == logTime`;
+- the GraphML carries the new graph vocabulary, and grows from 12,653 to 24,958 bytes.
+
+Against the regenerated fixtures, `CoverageScopeTest` fails 2 of its assertions: coverage names 5 nodes that cannot
+log where the test expects 4, and the extra one is `QuoteControl`, the exported-service interface. The fixtures were
+restored.
 
 ## Rerun
 

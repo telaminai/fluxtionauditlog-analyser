@@ -14,8 +14,11 @@ mvn process-classes exec:java -Dexec.mainClass=com.acme.demo.GenerateFixtures
 `process-classes`, not `compile` — the plugin's `scan` goal binds to that phase, which is where it can see
 the compiled `FluxtionGraphBuilder`.
 
-The build follows the [project starter](https://fluxtion-playground.dev/start) output: the `fluxtion-bom`
-for coordinates, `fluxtion-runtime` at compile scope, `fluxtion-builder` `provided`, and the AOT plugin.
+The build follows the [project starter](https://fluxtion-playground.dev/start) layout: `fluxtion-runtime` at compile
+scope, `fluxtion-builder` `provided`, and the AOT plugin. **The versions are the analyser root pom's**
+(`fluxtion.version`, `fluxtion.builder.version`), with no `fluxtion-bom` import, and `FixtureGeneratorToolchainTest`
+holds them together. An older builder against the current hosted generator emits a processor that compiles and
+writes no audit log (2026-09-28).
 It is standalone — **not** a module of the analyser build, which keeps FlatLaf as the analyser's only
 runtime dependency and stops CI needing a Fluxtion toolchain to run unit tests.
 

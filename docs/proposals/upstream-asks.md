@@ -502,6 +502,10 @@ never 0.
 
 **Ask.** Stamp `clock.getProcessTime()`, the instant fixed on receipt, or make it the default and name the other.
 
+**Not a blocker (owner, 2026-09-28):** the analyser's replay writes with its own recorder, which stamps the receipt
+instant. This ask would give every Fluxtion user the same without writing one. Reproduced on a generated processor in
+R0: the cycle ran at `…140`, the shipped writer wrote `…150`.
+
 ### UP-FLX-54 ☐ An installed replay recorder also records events the graph raises on itself
 
 **Target** `fluxtion` (builder/replay; relates to M50.8, the compiler-derived capture set) · **Priority** high,
@@ -520,8 +524,8 @@ because nothing warns · _Not filed yet (2026-09-28)._
   consume the recorded event and dispatch once, at its recorded instant. On a mismatch, report where the replay
   diverged.
 
-The owner decided the form (2026-09-28): **a hook the dispatcher offers**, with the matcher supplied by the replay
-runner. This removes the duplicate and turns graph-raised events into a divergence check. The fallback, if this is delayed,
+**Not a blocker (owner, 2026-09-28, R-D8):** the analyser's replay uses its own writer and reader, and matches
+graph-raised events in its runner. This ask would let every Fluxtion user have the same without writing them. This removes the duplicate and turns graph-raised events into a divergence check. The fallback, if this is delayed,
 is for the generator to emit the processor's input types as the recorder's default whitelist.
 
 ---

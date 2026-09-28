@@ -1454,13 +1454,14 @@ time, compare in the analyser. YAML only for the demo. Spike: byte-identical rep
 receipt instant; the shipped writer does not (UP-FLX-53); graph-raised events are matched at the redispatch queue in
 replay mode (owner design, UP-FLX-54).
 - [M70.R0] ☑ The auditor path proven on a DEMO processor generated with the recorder (builder 1.0.71): inputs-only replay byte-identical; record-everything duplicates the graph-raised event; the second clock read reproduced (spike README ▸ *R0*)
-- [M70.R0a] ☐ `examples/fixture-generator` pins BOM 1.0.64 / runtime 1.0.13; follow the root pom (builder 1.0.71, runtime 1.0.16), or a regeneration audits nothing, with a check that the two agree
+- [M70.R0a] ☑ `examples/fixture-generator` follows the root pom (builder 1.0.71, runtime 1.0.16, no BOM); `FixtureGeneratorToolchainTest` holds it (red on the old pom, naming all three causes)
+- [M70.R0b] ☐ Regenerate the committed DEMO fixtures with that toolchain: one clock read per cycle (`eventTime == logTime`) and the new GraphML vocabulary; `CoverageScopeTest` then counts `QuoteControl` (5 nodes that cannot log, not 4). Decide whether that is right, then refresh
 - [M70.R1] ☐ The recorded fixture (log + replay + graph from one run, no service calls)
 - [M70.R2] ☐ The `replay` member: pairing by content, whole-log only, manifest format 2, `serviceCalls`
 - [M70.R3] ☐ `--replay-compare` and the measured rule
 - [M70.R4] ☐ The runner (JBang), and the demo driver's replay leg
 - [M70.R5] ☐ Docs site *Replay*; CHANGELOG
-- Decided: the redispatch match goes through a hook the dispatcher offers (R-D6). Open for the owner: licensing (deferred); processor vs agent.
+- Decided: our own replay writer and reader (R-D8), no Fluxtion core release; the redispatch match is made in our runner. Open for the owner: licensing (deferred); processor vs agent.
 
 ---
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
