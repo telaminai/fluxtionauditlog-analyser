@@ -470,8 +470,8 @@ second process, and the witness for "death releases it" is that process exiting.
   remaining check is an invariant that cannot fire within one dispatch, reported as an internal failure, not a
   refusal.
 
-**Open before merge (the review's list, not done here):** the moved-generation rule provoked from the frame by
-ANOTHER LOG OPENED off the event thread, not only by a close in the same task; an excerpt of a log that is not time
+**Open before merge (the review's list):** ~~the moved-generation rule provoked from the frame by ANOTHER LOG
+OPENED off the event thread~~ (done, EB.F9: the write held by a test seam while the real load lands, so no timing); an excerpt of a log that is not time
 ordered; and `flush()` inside an effect under a read-only profile, a project switch in flight, and `preSave`
 syncing open charts (tracker EB.F9–F11).
 

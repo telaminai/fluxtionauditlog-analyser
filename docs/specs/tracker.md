@@ -2322,8 +2322,12 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
       marker this JVM owned, which on POSIX releases the lock. Fixed by real-path ownership, settled before the file
       is touched. Blast radius: two analysers on one machine, one exchange directory; it failed closed (no bundle,
       not a wrong one). Spec §13.7.
-    - [EB.F9] ☐ **Before merge (convergence review):** provoke the moved-generation rule from the frame by ANOTHER
-      LOG OPENED off the event thread; today the frame provokes only a close in the same task.
+    - [EB.F9] ☑ **Provoked from the frame** (`EvidenceCaptureFrameTest#anotherLogOpenedDuringTheWriteDeletesTheBundle`):
+      the capture's write is HELD at its start (BundleWriter's `beforeCopy` seam, the reviewer's suggestion) while a
+      second log's real load lands off the event thread, then released. There is no timing margin, so it is proven on
+      every build. A first version relied on a 64 MB copy outlasting a small load; it was replaced before commit as
+      flaky under load. The bundle is refused and deleted, with its working folder. Control
+      `cv-f9-another-log-opened-from-the-frame`.
     - [EB.F10] ☐ **Before merge:** an excerpt of a log that is not time ordered. "First at or after, to last at or
       before" assumes monotonic time; build such a log and check what the excerpt holds.
     - [EB.F11] ☐ **Before merge:** `flush()` inside the capture effect, under a read-only profile, a project switch in

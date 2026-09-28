@@ -1391,4 +1391,10 @@ CONTROLS = [
     ('cv-ownership-lapses-with-the-channel', WRITER,
      '        if (ch.isOpen()) return true;\n', '        if (true) return true;\n',
      'BundleWriterReapTest#aClaimedFolderSurvives'),
+    # EB.F9 (convergence review): the moved-generation rule provoked FROM THE FRAME by another log opened, its load
+    # landing off the event thread while the bundle is still written. Same mutant as cv-another-log-is-incoherent,
+    # witnessed end to end rather than at the node.
+    ('cv-f9-another-log-opened-from-the-frame', CAPTURE,
+     '        if (!openLog.isOpen() || openLog.generation() != e.generation()) {\n', '        if (!openLog.isOpen()) {\n',
+     'EvidenceCaptureFrameTest#anotherLogOpenedDuringTheWriteDeletesTheBundle'),
 ]

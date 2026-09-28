@@ -297,6 +297,47 @@ class EvidenceCaptureFrameTest {
     }
 
     @Test
+    @DisplayName("PROVOKED (EB.F9): ANOTHER LOG OPENED while a bundle is written, the open landing off the event thread — refused, deleted")
+    void anotherLogOpenedDuringTheWriteDeletesTheBundle(@TempDir Path tmp) throws Exception {
+        // The real paths, and no timing: the capture goes through the verb, the node and the background write; the second
+        // log through the real open and its off-thread load. The test HOLDS the write at its start (BundleWriter's
+        // beforeCopy seam) until the other log has landed, so the order is held rather than raced, on every build.
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var reached = new java.util.concurrent.CountDownLatch(1);
+        try (var f = shown(tmp)) {
+            Path ex = exchange(f, tmp);
+            openLog(f, DEMO_LOG);
+            AtomicReference<Long> before = new AtomicReference<>();
+            onEdt(() -> before.set(((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session"))
+                    .snapshot().logGeneration()));
+            telamin.fluxtion.audit.analyser.bundle.BundleWriterAccess.holdWritesUntil(release, reached);
+            AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+            onEdt(() -> echo.set(ask(f, bundle("held.fexp"))));
+            assertEquals(Boolean.TRUE, echo.get().get("ok"), "control: the capture was accepted: " + echo.get());
+            assertTrue(reached.await(30, java.util.concurrent.TimeUnit.SECONDS), "control: the write started and is held");
+            onEdt(() -> render(f.ex, "open", Map.of("log",
+                    Path.of("src/main/resources/demo/demo-quote-series.yaml").toAbsolutePath().toString())));
+            awaitLoaded(f.ex);
+            AtomicReference<Long> after = new AtomicReference<>();
+            onEdt(() -> after.set(((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session"))
+                    .snapshot().logGeneration()));
+            assertNotEquals(before.get(), after.get(), "control: another log really was opened");
+            assertEquals("WRITING", captureNow(f).get("phase"), "control: it landed while the bundle was being written");
+            release.countDown();                              // the write carries on, and reports under the OLD generation
+            Map<String, Object> c = awaitDecided(f);
+            assertEquals("REFUSED", c.get("phase"), String.valueOf(c));
+            assertTrue(String.valueOf(c.get("reason")).startsWith("another log was opened while the bundle was being written"),
+                    String.valueOf(c.get("reason")));
+            for (int i = 0; i < 40 && !leftBehind(ex).isEmpty(); i++) Thread.sleep(50);
+            assertEquals(List.of(), leftBehind(ex), "neither the bundle nor its working folder is left behind");
+        } finally {
+            release.countDown();
+            telamin.fluxtion.audit.analyser.bundle.BundleWriterAccess.stopHolding();
+        }
+    }
+
+    @Test
     @DisplayName("an excerpt: records in the window, stated in the manifest, re-read and matched")
     void anExcerpt(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

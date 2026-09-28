@@ -62,6 +62,14 @@ public final class BundleWriter {
 
     public static final String NOTES = "notes/NOTES.md";
 
+    /**
+     * A test's hold on the file work, run on the writer's own thread after the folder is claimed and before anything is
+     * copied (reaper review, EB.F9). A no-op in the product. It lets a test open another log WHILE a capture is being
+     * written without depending on a large copy outlasting a small load: the order is held, not raced. It changes
+     * nothing about what runs; it only decides when.
+     */
+    static volatile Runnable beforeCopy = () -> { };
+
     /** The marker in a working folder: its host, under an exclusive lock held for the capture's whole life. */
     static final String OWNER = ".owner";
 
@@ -72,6 +80,7 @@ public final class BundleWriter {
         reapCorpses(parent);
         Path folder = Files.createTempDirectory(parent, ".capture-");
         try (java.nio.channels.FileChannel owner = claim(folder)) {
+            beforeCopy.run();
             // the members live in their own folder, so the owner marker is never packed
             Path payload = Files.createDirectories(folder.resolve("bundle"));
             List<String> lines = new ArrayList<>();
