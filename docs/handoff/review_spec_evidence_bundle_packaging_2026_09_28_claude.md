@@ -178,6 +178,52 @@ advantage of the spec over Friday's skills and it is currently unstated.
 **No new verb. No menu item. No dialog.** If the demo later shows a person without an agent needs it, one menu
 item calling the same CLI path is a small, separate decision — made with evidence instead of in advance.
 
+## The line, stated as a rule
+
+The owner's question was broader than §3: where does built-in functionality end and a runbook skill begin? The
+rule this review would apply, and which produced the verdict above:
+
+> **Put it in the analyser if a skill would have to guess, or would have to re-implement something a recipient
+> must trust. Otherwise put it in a skill.**
+
+Applied here:
+
+| | owns | because |
+|---|---|---|
+| **analyser** | verification; the log generation and pending-load facts | a second hashing implementation is not a trust anchor; a skill cannot see the generation, so it cannot tell a moved log from a still one |
+| **skills** | assembly, excerpting, the narrative, the rerun recipe, what goes in the write-up | all judgement, all varying per investigation — and Friday's skills already do it |
+| **UI** | nothing new | the recipient path is three shipped verbs |
+
+### Friday's skills, measured against the bundle
+
+They produced a **working, loadable bundle with no analyser change at all**: log, topology, profile, report PDF,
+screenshots and a rerun recipe, in a folder that loads. The skill layer is demonstrably capable of the thing the
+spec proposes to build. What it provably cannot do is the short list above, plus two more:
+
+- **travel.** Friday's design leaves the profile in `.analyser/` and ships a *pointer* — right for a colleague on
+  the same checkout, useless for a stranger. A bundle must carry the profile, which is what the spec's
+  allow-list makes safe.
+- **flags.** Nothing to capture (see 3).
+
+They also hold knowledge no UI would have found — the capture skill's §2a records the silent re-anchoring failure
+and says *"Found by loading a copied bundle from cold."* That is judgement in prose, and it belongs in prose.
+
+## The honest weakness in this verdict
+
+**C assumes the recipient will run a command.** `analyser --verify bundle.fexp`, then unzip, then open. For a
+technical recipient or one with an agent, that is nothing. **For a person you hand a laptop to at a demo, it is a
+terminal, and that may be unacceptable.**
+
+So the choice is a question about the audience, not about architecture:
+
+| the recipient is… | shape |
+|---|---|
+| technical, or has an agent | **C.** No UI, smallest delivery, no new states |
+| a person handed a laptop | **C plus exactly one menu item** — *File ▸ Open evidence bundle…*, reusing the existing file chooser, verdict on the status line, **no new dialog** |
+
+Build C first and add the menu item when a demo shows it is needed. A UI surface added speculatively is a state
+machine nobody has exercised, which is how this morning's demo broke.
+
 ## What I did not do
 
 - No product code changed; this is a review.
