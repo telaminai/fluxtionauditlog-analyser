@@ -4,6 +4,11 @@ Draft for launch, 2026-09-20. Written from one long build session against the re
 here is cited with its own limits. Everything in **Do not claim yet** is currently falsifiable — fix first,
 say later.
 
+**Refreshed 2026-09-28**, after 1.25.0 and 1.26.0 shipped. The argument was not touched: the claim, the wording
+decisions, the derivation-versus-tracing answer and the closed-world section are structural and have not aged.
+What changed is the evidence — one *Do not claim yet* row was overtaken by a release, walks shipped, and two
+proof points arrived. Each edit below says what was **verified** in a running build and what is **inferred**.
+
 ---
 
 ## The claim
@@ -282,6 +287,36 @@ control signals — then integrated a third-party component and added end-of-day
 | Integrating a vendor component shipped as a jar | **one bean reference** pulled in its sub-graph, events, ordering, audit trail and exported service. No adapter code. |
 | Framework facts the author had to learn | **12** |
 
+### Two proof points from 2026-09-28, of a different kind
+
+The numbers above are about building. These two are about the product refusing to overclaim, which is the
+harder thing to demonstrate and the thing the headline actually promises. Both were **observed in one session**
+against a released build.
+
+**The denominator argument, running.** Asked for a coverage score against a graph that did not match the loaded
+log, the analyser refused to produce one at all:
+
+> *"a denominator taken from the graph would score nodes this log may not contain … scoring against it would
+> still be wrong."*
+
+Against the right graph it answered **0.75**, and then spent more words on what that does not prove than on the
+number: five declared items excluded because they can never write audit output ("counting them as 'never logged'
+would report a category error as a low score"), seven framework nodes excluded as plumbing, and the whole claim
+labelled `"qualified"` because the log's finest level is INFO — *"a gap here is not proof a node never ran"*. It
+also upgraded its own earlier verdict, having checked all 1,535 records against a pairing previously judged on
+the first 500.
+
+Most tools would have returned 75% both times. **This is the section's argument as a transcript**, and it is
+worth more than a slide.
+
+**Where the guarantees stop, stated from evidence.** In a full day of reviewing and fixing across two branches,
+**every defect found was outside the event processor** — in the adapters, the presenter, or Swing. That included
+a table left auto-scrolling by a lost mouse release, and a proposed fix that was itself wrong because it
+addressed a path Swing's event router never takes. The node logic held throughout, under two adversarial review
+passes. Both halves are worth saying: it is real evidence that the deterministic core does what it claims, and
+it marks exactly where the guarantee ends. A prospect deserves *"the part inside the graph stops being where
+your bugs live"*, not *"your bugs go away"*.
+
 **How to use these honestly.** One session, one model, with two operator interventions and access to the
 source tree. State that. The claim it supports is *"an author with no prior exposure produced a verified
 non-trivial application, and every mistake they made was caught by the evidence"* — not *"LLMs can build
@@ -383,6 +418,27 @@ spec already calls the report the regression oracle, so D describes the designed
 3. **A support engineer is the reader least able to detect a false verdict**, having no model of the system to
    check it against. That makes them the highest-stakes audience for the evidence-integrity milestone, and it
    is why the 2026-09-24 client incident matters more than its size suggests.
+
+**What shipped since, and what it changes** (1.26.0, 2026-09-28). **Spotlight walks**: a named sequence of
+spotlight steps, saved in the project, that someone else steps through on the analyser itself with ◀ ▶ — later,
+by a different person, **with no assistant connected**.
+
+This is the purest expression of the headline that exists in the product, and the page does not mention it. An
+author pins a claim to specific records; each target carries the digest it was written against; and on replay
+the analyser **re-verifies before it will point** — a target whose record no longer matches is shown as not
+available rather than lit somewhere else. The author's testimony is checked against the log before it is
+allowed on screen. *Trust the evidence, not the author*, as a mechanism rather than a slogan.
+
+For D specifically it closes the handover: the 3am reader no longer needs the author's prose, they get the
+author's *pointing*, and the pointing is checkable. It does not touch limits 1 or 2 above — audit must still be
+compiled in, and it still only helps systems built on the framework. It bears directly on **limit 3**: a support
+engineer cannot detect a false verdict, and a walk that refuses to light an unverifiable target is exactly the
+protection that reader cannot supply for themselves.
+
+One honest edge, shipped deliberately: on a log nothing has re-checked since it was read, a walk step says so
+in words — *current here means unchanged since this step was saved, not unchanged on disk*. That sentence is
+the product declining to let a bare "current" read as "verified", and it is the kind of detail this page should
+cite rather than smooth over.
 
 **Commercial consequence, which is the useful part.** The before-and-after step — showing the fault is gone — is
 exactly where a cross-run delta is worth money, and it is the step D currently has to describe as re-opening a
@@ -533,8 +589,23 @@ Each of these is falsifiable today by a sceptic with an afternoon. Fix, then say
 |---|---|
 | **"Certified components."** | A dependency jar can be rebuilt with its risk calculation zeroed and dropped in under the same filename. Every hash in the build receipt stays byte-identical, the build is green, and the component reports zero risk. Needs dependency coordinates and digests in the run receipt. |
 | **"The toolchain protects your code."** | A class that exists only in a dependency can be silently replaced by an empty generated shell, with every stage reporting success. |
-| **"What the tool tells you is what happened."** | The analyser returns `ok` for a spotlight drawn in the wrong place, renders an empty chart with no explanation when a pin falls outside the loaded log, and reports marker counts that do not match the data. On a shared human/LLM canvas this is the one thing that must not be wrong — the human catches it instantly and the model does not. |
+| **"What the tool tells you is what happened."** | Two of the three faults behind this row are **unconfirmed since 1.26.0 and need re-checking**: `ok` returned for a spotlight drawn in the wrong place, and marker counts that do not match the data. On a shared human/LLM canvas this is the one thing that must not be wrong — the human catches it instantly and the model does not. **The third is fixed** (verified 2026-09-28, see below), so the row is narrower than it was. |
 | **"Every node's behaviour is audited."** | Nodes write their own audit entries. The unforgeable layer is the structural trace of which node ran; node-written values are the author's account. Say which is which. |
+
+**Fixed since this row was written, and now claimable** (verified 2026-09-28 against a running 1.26.0-equivalent
+build, not inferred): *"renders an empty chart with no explanation when a pin falls outside the loaded log"*. A
+chart whose window is pinned outside the data now reports its own reason, with the numbers to check it:
+
+```
+"pointsInWindow": 0,
+"window":     {"from": 1000000000000, "to": 1000000100000},
+"dataExtent": {"from": 1787325887742, "to": 1787326111728},
+"emptyReason": "window-outside-data"
+```
+
+I attempted the spotlight fault in the same session and could not construct it — the verb reveals its target
+first, including selecting the tab, so the case I built placed correctly. **That is a failed reproduction, not a
+fix**, which is why the row keeps it. The marker-count fault was not attempted.
 
 The headline is about evidence. It will be measured against the tools that produce the evidence.
 
@@ -567,6 +638,12 @@ Then the answer runs out, and say so. **The record itself has no provenance** �
 not bound to the run that produced it. That is the same hole as the unpinned dependency and the unsealed
 prediction, in a third place, and it is the strongest argument for treating provenance as its own column
 rather than folding it into proof.
+
+*Work in flight against exactly this, as of 2026-09-28: an evidence bundle — one file carrying the log, the
+graph and the author's walk, whose identity is a digest of its manifest, so a recipient can tell that no member
+changed on the way. It is **spec stage, not shipped**, and it closes only half the hole by design: the first
+delivery is unsigned, and every surface must say that verification detects a changed member and does **not**
+authenticate the sender. Do not claim it yet; it is named here so the concession and the work sit together.*
 
 **"Spring XML in 2026?"**
 It is not runtime wiring — it is compiled into a fixed dispatch table. It is also the artefact that makes
