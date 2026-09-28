@@ -137,6 +137,32 @@ Against the regenerated fixtures, `CoverageScopeTest` fails 2 of its assertions:
 log where the test expects 4, and the extra one is `QuoteControl`, the exported-service interface. The fixtures were
 restored.
 
+## R1, 2026-09-28: our own writer and reader (spec R-D8), on generated processors
+
+`r1/run.sh`: the DEMO graph generated with `ReplayCapture` compiled in, and the DEMO's own **record** events. No bean
+copies are needed, because the writer encodes a record's components itself.
+- **`ReplayCapture`** records every event, stamped with `clock.getProcessTime()`. A record the graph raised is
+  marked with a YAML comment, `# raised`, so Fluxtion's parser still reads the file. It knows which records are
+  raised from the input types it is given. In observe mode it reports each event instead of writing it.
+- **The runner** (`R1Run`, reading with `ReplayReader`) injects each input at its recorded instant. It matches each
+  `# raised` record against the events the observer heard the graph raise in the previous `onEvent`, and never
+  injects them.
+
+Recorded on the hard clock, **ticking on every read**:
+
+| replayed into | injected | matched | audit records | result |
+|---|---|---|---|---|
+| the same build | 7 | 1 | 8 of 8 | **only `endTime` differs** (8 records): every `eventTime` and `logTime` identical, the raised breach's included |
+| a changed build (risk limit 3, not 2) | 7 | 0 | 7 | **DIVERGES at record 7**: *"the recorded run raised RiskBreachEvent[orderId=ord-2, liveOrders=2]; this build raised nothing"* |
+
+What this settles:
+- **The clock-read fault (finding 7) is fixed by our writer**, with no Fluxtion change.
+- **The redispatch duplicate (finding 3) is fixed by our reader.** The breach is matched, not injected, and a
+  build that stops raising it is named at the record where it stops.
+- **The graph-raised time exception is gone on this generator.** A queued event keeps its triggering input's instant
+  in production too (`…260` for both). The 2026-08-16 processor gave it a fresh reading, which is where the spike's
+  exception came from. So **on 1.0.75 the comparison rule is: every record exact except `endTime`**.
+
 ## Rerun
 
 ```

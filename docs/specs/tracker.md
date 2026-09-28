@@ -1456,7 +1456,8 @@ replay mode (owner design, UP-FLX-54).
 - [M70.R0] ☑ The auditor path proven on a DEMO processor generated with the recorder (builder 1.0.71): inputs-only replay byte-identical; record-everything duplicates the graph-raised event; the second clock read reproduced (spike README ▸ *R0*)
 - [M70.R0a] ☑ `examples/fixture-generator` follows the root pom (builder 1.0.71, runtime 1.0.16, no BOM); `FixtureGeneratorToolchainTest` holds it (red on the old pom, naming all three causes)
 - [M70.R0b] ☐ Regenerate the committed DEMO fixtures with that toolchain: one clock read per cycle (`eventTime == logTime`) and the new GraphML vocabulary; `CoverageScopeTest` then counts `QuoteControl` (5 nodes that cannot log, not 4). Decide whether that is right, then refresh
-- [M70.R1] ☐ The recorded fixture (log + replay + graph from one run, no service calls)
+- [M70.R1s] ☑ Spike: our own writer (`ReplayCapture`) and matching reader on generated processors (`tools/spikes/replay-bundle/r1/`): same build, only `endTime` differs; a changed build diverges, named at the breach
+- [M70.R1] ☐ The recorded fixture (log + replay + graph from one run, no service calls), and `ReplayCapture` into the DEMO: waits on M70.R0b
 - [M70.R2] ☐ The `replay` member: pairing by content, whole-log only, manifest format 2, `serviceCalls`
 - [M70.R3] ☐ `--replay-compare` and the measured rule
 - [M70.R4] ☐ The runner (JBang), and the demo driver's replay leg

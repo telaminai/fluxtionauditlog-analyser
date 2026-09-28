@@ -135,9 +135,14 @@ dispatcher hook needed):
   recorded run did not.
 - So graph-raised events stop being a hazard and become a check. A changed build is caught at the first cycle where
   it behaves differently.
-- **The second exception in §6 probably stays.** The generated `auditEvent` calls `clock`, then our writer, then
-  the event log. The clock has already read the data-driven time by the time our observer hears a raised event, so
-  the runner cannot move the clock for it. To be measured in R1.
+- **Measured (R1 spike):** replayed into the same build, only `endTime` differs; replayed into a changed build (risk
+  limit 3), the runner names record 7, *"the recorded run raised RiskBreachEvent[…]; this build raised nothing"*.
+  §6's second exception does not arise on generator 1.0.75, because a queued event keeps its triggering input's
+  instant in production too.
+- **Which records are raised** is known from the input types the processor gives the writer, which marks the others
+  `# raised` (a YAML comment, so Fluxtion's parser still reads the file). The writer cannot see where an outside
+  `onEvent` call starts. A wrong declaration is still caught: a raised type declared as an input is injected and
+  duplicated, which the comparison names; an input declared as raised is never injected, which the matcher names.
 
 **Why not a whitelist.** Recording inputs only also avoids the duplicate (spike, R0), but the list is hand-written,
 it fails silently when wrong, and it throws the check away. It stays as the fallback if observe mode fails R1.
@@ -251,7 +256,9 @@ compared.
 the bundled log with the replayed one record by record, and prints one verdict. **The measured rule** (spike):
 - **Every record and field must agree exactly**, except:
   - **`endTime`, on every record.** It is a live read when the cycle ends, and it is pinned on replay.
-  - **The time fields of a record the graph raised itself mid-cycle.** In production it takes a fresh reading;
+  - **The time fields of a record the graph raised itself mid-cycle, on an older generator only.** On 1.0.75 there
+    is no such exception (R1 spike): a queued event keeps its input's instant in production and on replay. On the
+    2026-08-16 processor, in production it took a fresh reading;
     replay keeps the time of the input that triggered it. Such a record is known by its event type not being on the
     manifest's `inputTypes`, the types the producer declares it feeds from outside. They classify records for this
     exception only; they no longer decide what is recorded (§3.2). This exception probably stays (§3.2). **`ExportFunctionAuditEvent` is the one
