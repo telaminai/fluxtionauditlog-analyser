@@ -83,21 +83,21 @@ class EvidenceBundleDocsTest {
     }
 
     @Test
-    @DisplayName("no page claims more than a bundle can: authentication or reproduction, except to deny it")
+    @DisplayName("no page claims more than a bundle can: authentication, or reproduction beyond the limit")
     void noOverclaim() throws Exception {
-        // M70.R2: a bundle can CARRY the run's replay records, so a page may describe that member. Nothing replays or
-        // compares them yet (R3, R4), so a page may still mention reproducing, or authenticating, only to deny it.
+        // First delivery: a page could mention replay only to deny it. M70.R2–R4 made replay real (a bundle carries the
+        // records, the runner replays them, --replay-compare judges), so mentioning it is no longer an overclaim. What
+        // still is: saying the sender is authenticated, or that a bundle reproduces anything without the limit's
+        // qualification. So a line about either must deny it, or qualify it ("only …").
         for (String line : pages().split("\n")) {
             String l = line.toLowerCase(java.util.Locale.ROOT);
-            boolean denies = l.contains("not") || l.contains("no replay") || l.contains("never") || l.contains("unsigned");
-            if (l.contains("authentic") || l.contains("reproduc")) {
-                assertTrue(denies, "a page may mention authentication or reproduction only to deny it: " + line);
-            } else if (l.contains("replay")) {
-                // M70.R3: and the command that compares a replayed log, whose claim is the limit and not more
-                boolean aboutTheMember = l.contains("`replay`") || l.contains("replay/") || l.contains("replay records")
-                        || l.contains("replay:") || l.contains("\"replay\"") || l.contains("--replay-compare");
-                assertTrue(denies || aboutTheMember,
-                        "a page may mention replay only to deny it or to describe the replay member: " + line);
+            if (l.contains("authentic")) {
+                assertTrue(l.contains("not") || l.contains("never") || l.contains("unsigned"),
+                        "a page may mention authentication only to deny it: " + line);
+            }
+            if (l.contains("reproduc")) {
+                assertTrue(l.contains("not") || l.contains("never") || l.contains("no replay") || l.contains("only"),
+                        "a page may mention reproducing only to deny it or to qualify it: " + line);
             }
         }
     }

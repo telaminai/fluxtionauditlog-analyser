@@ -246,30 +246,52 @@ window's start depends on every earlier input (spike finding 4), and `YamlReplay
 Replaying from the start and comparing only the window is the right later design. It carries the whole replay but
 only an excerpt of the log, so it is a size decision, and it is deferred. Checkpoints come after that.
 
-## 5. Replay (the recipient's side, outside the analyser)
+## 5. Replay (the recipient's side, outside the analyser) — built in R4
 
 ### 5.1 The runner
 
-A small runner, `tools/replay/replay-bundle.java`, run with JBang, which is already the install. It:
-1. reads the unpacked bundle's manifest;
-2. checks the graph (§5.2);
-3. feeds `replay/<processor>.replay.yaml` into a fresh instance of the recipient's processor with our reader
-   (§3.2): every record injected at its recorded instant;
-4. writes the replayed audit log beside the working copy.
+`tools/replay/ReplayBundle.java`, one file, run with JBang (the install) or plain `java` with the Fluxtion runtime on
+the classpath:
 
-**Why outside the analyser.** Replay runs the recipient's code: their build of the processor, on their classpath.
-The analyser has never executed a user's processor, and the placement rule (first delivery, §3.1) does not require
-it to. The runner's output is untrusted input that the analyser then checks. The comparison is what the recipient
-must trust, so the comparison is the analyser's (§6).
+```
+jbang tools/replay/ReplayBundle.java --bundle run.fexp \
+      --processor com.acme.demo.generated.DemoQuoteRecordedProcessor --cp <your build> --out replayed-audit.yaml
+```
+
+1. It reads the bundle's `replay/` and `graph/` members.
+2. It checks the graph (§5.2).
+3. It resolves each replay record's event type **only from your build's handled types**: the event types the
+   generated processor's `handleEvent` overloads take, found by reflection, so this works for any generated processor.
+   A type outside them is refused and never loaded.
+4. It feeds each record into a fresh instance of your processor with a data-driven clock set to the record's instant.
+   The graph raises its own events again by itself.
+5. It writes the processor's audit log, framed as the producer's is, without the runner's own set-up records, and
+   prints the `--replay-compare` command to run next.
+
+It refuses, by name, exit 1: a build that is not the bundle's processor; a bundle with no replay records; a processor
+not on the classpath; a record type the build does not handle; an output file that exists. Exit 2 is usage.
+
+**Why outside the analyser.** Replay runs the recipient's code, their build on their classpath. The analyser has
+never executed a user's processor, and the placement rule (first delivery, §3.1) does not require it to. The runner's
+output is untrusted input that the analyser then checks. The comparison is what the recipient must trust, so the
+comparison is the analyser's (§6).
+
+**Found building it:** `fluxtion-runtime` is not on Maven Central, so the runner's JBang header names the repository
+the analyser's own build resolves it from (`//REPOS … repsy-fluxtion-public`). The first header had none and failed
+on a clean resolve. `ReplayRunnerEndToEndTest#theRunnerResolvesWhereTheAnalyserDoes` holds the header to the root
+pom's version and repository.
 
 ### 5.2 Is this the same processor?
 
-Before replaying, the runner compares the recipient's graph with the bundle's `graph/` member. It refuses by name
-when they differ: *"your build's graph is not the bundle's: node X added"*. The comparison uses the analyser's own
-topology model, node ids and edges, not bytes: GraphML is **not** byte-stable across generator versions (§10.4).
+Before replaying, the runner compares your build's own GraphML, which the generator writes as `<Class>.graphml`
+beside the class, with the bundle's `graph/` member, by **node ids and edges**, never bytes: GraphML is not byte-stable
+across generator versions (§10.4). It refuses naming the difference, *"your build's graph is not the bundle's:
+node(s) [replayCapture] missing"*. `--skip-graph-check` replays anyway, and says *"graph: NOT checked"*. The XML is
+parsed with DOCTYPEs and external entities disabled, since the bundle's is untrusted.
 
-The same check read the other way is the "fix" demo of the future: a build that differs on purpose, replayed and
-compared.
+A build with the **same graph but different behaviour** passes this check and replays. That is the case the
+comparison exists for: in the end-to-end test, a build whose risk limit is 3, not 2, replays and diverges at record 6,
+the risk monitor's own record, before the breach it no longer raises.
 
 ## 6. The comparison (in the analyser) — built in R3
 
@@ -277,10 +299,15 @@ compared.
 temporary working copy first, then compares the bundled log with the replayed one record by record, and prints one
 verdict. Both logs are read with the analyser's own reader, so how each file frames its records does not matter.
 
-**The rule, measured (R1/R2 spikes, generator 1.0.75): every record, and every line of it, is exact, except
-`endTime`.**
-- `endTime` is a live read when the cycle ends, and replay pins the clock at the recorded instant. The exception is
-  by position: a record whose `endTime` line is missing on one side, or has moved, still differs.
+**The rule, measured: every record, and every line of it, is exact, except `endTime` and `thread`.** Both say when
+and where a cycle ran, never what it computed.
+- `endTime` is a live read when the cycle ends, and replay pins the clock at the recorded instant (R1/R2 spikes,
+  generator 1.0.75).
+- `thread` is the name of the thread the cycle ran on, and a recipient's replay runs on its own. **Found by the R4
+  end-to-end test**: the spike's recording and replay ran on one thread, so it never saw it. R3 shipped the rule
+  with `endTime` only; R4 corrected it.
+- Both exceptions are by position and key: a record whose excepted line is missing on one side, or has moved, or
+  stands where the other has a different key, still differs.
 - Nothing else is excepted: an input's `eventTime`, a graph-raised record's times, every node's values.
 - *r1 carried a second exception, for a graph-raised record's time fields. It came from the 2026-08-16 processor,
   which gave a queued event a fresh clock reading. On 1.0.75 a queued event keeps its input's instant in production
@@ -293,7 +320,8 @@ verdict. Both logs are read with the analyser's own reader, so how each file fra
 log is an excerpt; a replayed log that cannot be read.
 
 **Output and exit codes:**
-- `replay: AGREES, 8 of 8 records (endTime excepted on 8, the one reading a replay cannot know)`, exit 0;
+- `replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle ran, which a
+  replay cannot know)`, exit 0;
 - `replay: DIVERGES at record 1 (OrderUpdateEvent): eventLogRecord.nodeLogs.orderTracker: '{ orderId: ord-1,
   live: 1}' ≠ '{ orderId: ord-1, live: 7}'`, then how many records before it agree, exit 1;
 - a refusal on stderr, exit 1; usage, exit 2.
@@ -332,7 +360,7 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 | R1 ☑ | `ReplayCapture` (identity recording, the static codec) and the injecting reader into the DEMO; commit the recorded fixture, the log, the replay and the graph from one real run with no service calls (§3.4) | R0; M70.R0b if the fixtures are regenerated |
 | R2 ☑ | The `replay` member: the `evidenceCapture` node's pairing, the whole-log rule and manifest format 2 | R1 |
 | R3 ☑ | `--replay-compare` and its rule (§6) | R1 |
-| R4 | The runner (§5), and the demo driver's replay leg | R2, R3 |
+| R4 ☑ | The runner (§5), and the demo driver's replay leg (the driver leg moves to R5) | R2, R3 |
 | R5 | The docs site's *Evidence bundles* section gains *Replay*; CHANGELOG | R4 |
 | — | UP-FLX-53, UP-FLX-54 filed as improvements, not blockers (R-D8); the Mongoose sink binding asked for after R0 | the owner files them |
 

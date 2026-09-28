@@ -98,7 +98,7 @@ class MainBundleTest {
 
         Run agrees = run("--replay-compare", bundle.toString(), replayed.toString());
         assertEquals(0, agrees.code(), agrees.all());
-        assertTrue(agrees.out().contains("replay: AGREES, 8 of 8 records (endTime excepted on 8"), agrees.out());
+        assertTrue(agrees.out().contains("replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8"), agrees.out());
         assertTrue(agrees.out().contains("limit: replay: the recorded inputs reproduce this log only on a build whose graph matches"),
                 agrees.out());
         assertTrue(agrees.out().contains("limit: unsigned"), agrees.out());

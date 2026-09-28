@@ -188,8 +188,8 @@ public class Main {
         out.println("verified: " + v.members().size() + " members, each matching the manifest's sha256 and size");
         int code;
         if (c.agrees()) {
-            out.println("replay: AGREES, " + c.records() + " of " + c.records() + " records (endTime excepted on "
-                    + c.excepted() + ", the one reading a replay cannot know)");
+            out.println("replay: AGREES, " + c.records() + " of " + c.records() + " records (endTime and thread excepted, "
+                    + "differing on " + c.excepted() + ": when and where a cycle ran, which a replay cannot know)");
             code = 0;
         } else {
             out.println("replay: DIVERGES at " + c.divergence());

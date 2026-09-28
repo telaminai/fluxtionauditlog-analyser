@@ -21,7 +21,14 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   the live clock reading at the end of a cycle, which a replay cannot know. It prints `AGREES, N of N records` and
   exits 0. Otherwise it prints `DIVERGES at record k (Event): path: 'bundled' ≠ 'replayed'`, the first difference
   with both values, or the first record one side has and the other does not, and exits 1. A bundle with no replay
-  records, or with an excerpt, is refused.
+  records, or with an excerpt, is refused. Besides `endTime`, the `thread` a cycle ran on is excepted, because a
+  replay runs on its own thread.
+- **The replay runner: `tools/replay/ReplayBundle.java`.** Run it with JBang against your own build:
+  `jbang tools/replay/ReplayBundle.java --bundle run.fexp --processor <class> --cp <your build> --out replayed.yaml`.
+  It checks that your build is the bundle's processor, comparing the nodes and edges of your build's GraphML with
+  the bundle's, and refuses by name when they differ. It loads only the event types your processor handles, and
+  replays each record at its recorded instant on a data-driven clock. It writes the audit log for
+  `--replay-compare`.
 - **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It
   records only the inputs the caller names, stamped with the instant each cycle ran at, for exactly the event types
   the processor handles. It also writes a recorded run's log, replay records and graph, and writes them only after

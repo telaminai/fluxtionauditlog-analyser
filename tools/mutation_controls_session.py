@@ -23,6 +23,7 @@ EXCERPT = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleExcerpt.ja
 CAPTURE = NODE + 'EvidenceCapture.java'
 PAIRING = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayPairing.java'
 COMPARE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayCompare.java'
+RUNNER = 'tools/replay/ReplayBundle.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
@@ -1265,7 +1266,7 @@ CONTROLS = [
     # M70.R3: --replay-compare (spec §6). Every record exact but endTime; a count difference and a changed line are
     # divergences; only a bundle carrying replay records is compared; the exit code carries the verdict.
     ('rc-only-endtime-is-excepted', COMPARE,
-     'Pattern.compile("^\\\\s*endTime:.*$")', 'Pattern.compile("^\\\\s*(endTime|eventTime):.*$")',
+     'Pattern.compile("^\\\\s*(endTime|thread):.*$")', 'Pattern.compile("^\\\\s*(endTime|thread|eventTime):.*$")',
      'ReplayCompareTest#anEventTimeIsNeverExcepted'),
     ('rc-a-changed-line-diverges', COMPARE,
      '            if (first != null) {\n', '            if (false) {\n',
@@ -1279,6 +1280,21 @@ CONTROLS = [
     ('rc-a-divergence-exits-one', MAIN,
      '            code = 1;\n', '            code = 0;\n',
      'MainBundleTest#replayCompareExitsByVerdict'),
+    # M70.R4: the recipient's runner (spec §5). It refuses a build that is not the bundle's processor, loads only the
+    # event types that build handles, and replays each record at its recorded instant. The end-to-end test compiles
+    # the runner from this source on every run, so both engines see a mutation of it (checked on each, 2026-09-28).
+    ('rn-refuses-a-different-graph', RUNNER,
+     '                if (difference != null) throw new Refused("your build\'s graph is not the bundle\'s: " + difference);\n', '',
+     'ReplayRunnerEndToEndTest#aDifferentGraphIsRefused'),
+    ('rn-loads-only-handled-types', RUNNER,
+     '            if (type == null) throw new Refused("a replay record names " + e.group(1) + ", which your processor does not handle");\n', '',
+     'ReplayRunnerEndToEndTest#whatCannotBeReplayedIsRefused'),
+    ('rn-replays-at-the-recorded-instant', RUNNER,
+     '                now[0] = (Long) e[1];\n', '',
+     'ReplayRunnerEndToEndTest#theBundlesOwnBuildAgrees'),
+    ('rn-the-header-names-the-repository', RUNNER,
+     '//REPOS mavencentral,repsy-fluxtion-public=https://repo.repsy.io/mvn/fluxtion/fluxtion-public\n', '',
+     'ReplayRunnerEndToEndTest#theRunnerResolvesWhereTheAnalyserDoes'),
     ('cv-refuses-no-log', CAPTURE,
      '        if (!openLog.isOpen()) return "no log is open: open the log you are investigating first";\n', '',
      'EvidenceCaptureTest#noLogIsRefused'),

@@ -123,6 +123,17 @@ public class ReplayCompareTest {
     }
 
     @Test
+    @DisplayName("the thread a cycle ran on is excepted too: a recipient's replay runs on its own (found end to end, M70.R4)")
+    void theThreadIsExcepted(@TempDir Path tmp) throws Exception {
+        var c = compare(tmp, replayed().replace("thread: com.acme.demo.GenerateFixtures.main()", "thread: main"));
+        assertTrue(c.agrees(), c.divergence());
+        assertEquals(8, c.excepted());
+        // but only as that key, in that place: a thread line cannot stand in for an endTime line
+        assertEquals("eventLogRecord.endTime: '5' ≠ 'x'", ReplayCompare.firstDifference(
+                java.util.List.of("eventLogRecord: ", "    endTime: 5"), java.util.List.of("eventLogRecord: ", "    thread: x")));
+    }
+
+    @Test
     @DisplayName("an endTime line that moved or is missing still differs: the exception is by position, not a filter")
     void theExceptionIsPositional() {
         var a = java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    endTime: 5");

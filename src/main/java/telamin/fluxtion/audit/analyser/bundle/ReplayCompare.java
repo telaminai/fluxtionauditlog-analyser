@@ -15,10 +15,13 @@ import java.util.regex.Pattern;
  * Does a replayed audit log reproduce the one a bundle carries (spec-evidence-bundle-replay §6)? The comparison is
  * what a recipient has to trust, so it is the analyser's, and it states one verdict.
  *
- * <p><b>The rule, measured (spike R1/R2, generator 1.0.75): every record, and every line of it, is exact, except
- * {@code endTime}.</b> {@code endTime} is a live clock read when the cycle ends; replay pins the clock at the recorded
- * instant, so it cannot know it. Nothing else is excepted: an input's {@code eventTime}, a graph-raised record's times,
- * every node's logged values must all agree. A record count that differs is a divergence, named at the first record
+ * <p><b>The rule, measured: every record, and every line of it, is exact, except {@code endTime} and
+ * {@code thread}.</b> Both say where and when a cycle ran, never what it computed. {@code endTime} is a live clock
+ * read when the cycle ends; replay pins the clock at the recorded instant, so it cannot know it (spike R1/R2,
+ * generator 1.0.75). {@code thread} is the name of the thread the cycle ran on, and a recipient's replay runs on its
+ * own (found by the end-to-end runner test, M70.R4: the spike never saw it, because its recording and its replay ran
+ * on the same thread). Nothing else is excepted: an input's {@code eventTime}, a graph-raised record's times, every
+ * node's logged values must all agree. A record count that differs is a divergence, named at the first record
  * one side has and the other does not.
  *
  * <p>The bundle is verified first, and only a bundle that carries replay records, of the whole log, is compared: the
@@ -30,8 +33,8 @@ public final class ReplayCompare {
     private ReplayCompare() {
     }
 
-    /** The one place a comparison may differ, and the reason: a live clock read at the end of the cycle. */
-    static final Pattern EXCEPTED = Pattern.compile("^\\s*endTime:.*$");
+    /** Where and when a cycle ran, never what it computed: the only lines a replay may differ in. */
+    static final Pattern EXCEPTED = Pattern.compile("^\\s*(endTime|thread):.*$");
 
     /**
      * The verdict. {@code refusal} non-null: nothing was compared, and it says why. Otherwise {@code agrees}, with the
@@ -117,7 +120,7 @@ public final class ReplayCompare {
             String x = i < a.size() ? a.get(i) : null, y = i < b.size() ? b.get(i) : null;
             if (x != null && x.equals(y)) continue;
             if (x != null && y != null && EXCEPTED.matcher(x).matches() && EXCEPTED.matcher(y).matches()
-                    && indent(x) == indent(y)) {
+                    && indent(x) == indent(y) && key(x).equals(key(y))) {
                 continue;
             }
             List<String> ctx = x != null ? a : b;

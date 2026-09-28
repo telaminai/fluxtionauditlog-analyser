@@ -87,9 +87,28 @@ A bundle that carries replay records is **format 2**; every other bundle stays f
 - A format 2 manifest must name its `replay/` member, and list it; verification refuses one that does not.
 - The replay records are the run's inputs only, each stamped with the instant its cycle ran at. The events the graph
   raised itself are in the log and not in the replay records.
-- **The analyser does not replay them.** You replay the records into your own build of the processor, with a
-  data-driven clock, writing its audit log; `--replay-compare` then says whether that log matches, which is the
-  claim in the limit and not more. A runner that does the replay step for you is the next delivery.
+- **The analyser does not replay them.** You replay the records into your own build of the processor with the
+  runner below; `--replay-compare` then says whether that log matches, which is the claim in the limit and not more.
+
+## Replaying replay records: the runner
+
+```
+jbang tools/replay/ReplayBundle.java --bundle breach-0900.fexp \
+      --processor com.acme.demo.generated.DemoQuoteRecordedProcessor --cp target/classes --out replayed-audit.yaml
+```
+
+It runs your build, which is why it is a separate program and not part of the analyser. It checks the build first,
+feeds the replay records in, and writes the audit log `--replay-compare` reads:
+
+- **Is your build the bundle's processor?** It compares the nodes and edges of your build's GraphML
+  (`<Class>.graphml`, written by the generator beside the class) with the bundle's `graph/` member. It refuses
+  naming the difference. `--skip-graph-check` goes on anyway and prints `graph: NOT checked`.
+- **Only your build's event types.** A replay record is read only as one of the event types your processor's
+  `handleEvent` methods take. Any other type is refused and never loaded.
+- **The recorded instant.** Each record is fed in on a data-driven clock set to its instant, so the processor reads
+  the time the run read. The events the graph raised itself are raised again by the graph, not fed in.
+
+Exit 0 when the replay records were fed in and the audit log written; 1 refused, naming why; 2 usage.
 
 ## `--replay-compare`: comparing a replayed log
 
@@ -97,13 +116,14 @@ A bundle that carries replay records is **format 2**; every other bundle stays f
 analyser --replay-compare breach-0900.fexp replayed-audit.yaml
 ```
 
-`--replay-compare` checks every record, and every line of it, exactly, **except `endTime`**. `endTime` is the live
-clock reading at the end of a cycle, and a replay pins the clock at the recorded instant, so it cannot know it.
-Nothing else is excepted: an input's `eventTime`, the times of an event the graph raised itself, and every node's
-values must all agree. The exception is by position, so a record whose `endTime` line is missing on one side still
-differs.
+`--replay-compare` checks every record, and every line of it, exactly, **except `endTime` and `thread`**: when and
+where a cycle ran, never what it computed. `endTime` is the live clock reading at the end of a cycle, and a replay pins
+the clock at the recorded instant. `thread` names the thread the cycle ran on, and your replay runs on its own. Nothing
+else is excepted: an input's `eventTime`, the times of an event the graph raised itself, and every node's values must
+all agree. The exceptions are by position, so a record whose `endTime` line is missing on one side still differs.
 
-- **Agrees:** `replay: AGREES, 8 of 8 records (endTime excepted on 8, the one reading a replay cannot know)`.
+- **Agrees:** `replay: AGREES, 8 of 8 records (endTime and thread excepted, differing on 8: when and where a cycle
+  ran, which a replay cannot know)`.
 - **A node computed something else:** `replay: DIVERGES at record 1 (OrderUpdateEvent):
   eventLogRecord.nodeLogs.orderTracker: '{ orderId: ord-1, live: 1}' ≠ '{ orderId: ord-1, live: 7}'`.
 - **A build that stopped raising an event:** `replay: DIVERGES at record 7: the bundled log has record 7
