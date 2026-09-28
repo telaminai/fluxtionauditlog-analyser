@@ -1,0 +1,83 @@
+{
+  "baseline-reports": {
+    "reportCount": 360,
+    "counts": {
+      "tests": 2705,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 150
+    },
+    "orphans": []
+  },
+  "final-headless-reports": {
+    "reportCount": 361,
+    "counts": {
+      "tests": 2707,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 152
+    },
+    "orphans": []
+  },
+  "regression-before-reports": {
+    "reportCount": 1,
+    "counts": {
+      "tests": 2,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0
+    },
+    "orphans": [],
+    "failures": [
+      {
+        "test": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange(Path)",
+        "message": "losing window focus cancels the slider gesture ==> expected: <-1> but was: <0>"
+      },
+      {
+        "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks(Path)",
+        "message": "losing window focus cancels the table's adjusting gesture ==> expected: <false> but was: <true>"
+      }
+    ]
+  },
+  "focused-display": {
+    "TableDragCancellationFrameTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "WalkPlaybackFrameTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "WalkReviewFrameTest": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "SpotlightFrameTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "final-docs-sandbox": {
+    "tests": 2707,
+    "failures": 0,
+    "errors": 29,
+    "skipped": 152,
+    "cause": "All errors: local socket bind Operation not permitted"
+  },
+  "final-docs-permitted-retry": {
+    "tests": 2707,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 152,
+    "reportCount": 361,
+    "orphans": []
+  }
+}

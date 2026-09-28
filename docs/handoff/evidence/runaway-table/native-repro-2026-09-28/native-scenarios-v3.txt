@@ -1,0 +1,17 @@
+2026-09-28T12:15:45.076388Z WINDOW_EVENT id=200 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T12:15:45.076976Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T12:15:45.093966Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T12:15:45.488630Z READY rows=726 showing=true
+2026-09-28T12:15:45.682492Z BEGIN settings-dialog trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:15:45.741057Z QUEUE_BEFORE_FILTER id=501 button=1 when=1790597745738 source=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame
+2026-09-28T12:15:46.288913Z HELD settings-dialog selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:15:46.569039Z WINDOW_EVENT id=208 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T12:15:46.569172Z WINDOW_EVENT id=206 class=telamin.fluxtion.audit.analyser.analyser.ui.MainFrame title=DEMO main
+2026-09-28T12:15:46.569213Z WINDOW_EVENT id=205 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T12:15:46.569557Z WINDOW_EVENT id=207 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T12:15:46.569610Z WINDOW_EVENT id=200 class=telamin.fluxtion.audit.analyser.analyser.ui.ConfigPanel title=Settings
+2026-09-28T12:15:46.569988Z DIALOG showing=[Settings]
+2026-09-28T12:15:46.793245Z RELEASE_SENT settings-dialog selected=13 lead=48 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=960,width=594,height=223]
+2026-09-28T12:15:47.861861Z RESULT settings-dialog trial=1 running=true first={selected=16 lead=45 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=900,width=594,height=223]} last={selected=24 lead=37 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=740,width=594,height=223]}
+2026-09-28T12:15:47.862134Z RUNAWAY observed; stopping before another gesture changes it
+2026-09-28T12:15:48.867879Z DONE runawayCases=1 validGestures=1 inconclusive=0

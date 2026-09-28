@@ -6,6 +6,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+- Cancel unfinished record-table and time-slider drags when the window loses focus, so opening a modal
+  during a drag cannot leave selection scrolling or time-window panning running after release.
+
 ### Added
 
 - **A mouse trace, for one open defect.** `-Danalyser.mouseTrace=<path>` (or `=stderr`) records every mouse press,

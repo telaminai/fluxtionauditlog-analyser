@@ -18,6 +18,16 @@ PARSE = J + 'parse/'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
+    # Native gesture cancellation: every witness starts with a Robot drag through the OS router.
+    ('mouse-loss-table-hook', UI + 'MainFrame.java',
+     '                tablePanel.cancelMouseGesture();', '                // table cancellation removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks'),
+    ('mouse-loss-table-timer', UI + 'LogTablePanel.java',
+     '        table.setAutoscrolls(false);', '        // autoscroller cancellation removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeTableDragAndTheNextDragStillWorks'),
+    ('mouse-loss-slider-hook', UI + 'MainFrame.java',
+     '                timeSlider.cancelMouseGesture();', '                // slider cancellation removed',
+     'TableDragCancellationFrameTest#aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange'),
     # ---- M44.4a: facts replace the observation funnel
     ('m44-graph-open-is-its-own-fact', NODE + 'OpenGraph.java',
      '    public boolean isOpen() {\n        return open;', '    public boolean isOpen() {\n        return graphPath != null;',

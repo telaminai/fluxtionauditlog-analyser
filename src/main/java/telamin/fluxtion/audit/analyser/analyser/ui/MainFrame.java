@@ -242,6 +242,12 @@ public final class MainFrame extends JFrame {
             @Override public void windowGainedFocus(java.awt.event.WindowEvent e) {
                 observeReadIdentity();              // a person coming back to the window is the next observation
             }
+            @Override public void windowLostFocus(java.awt.event.WindowEvent e) {
+                // A native release can disappear when a modal blocks this window. Cancel its unfinished
+                // Swing gestures explicitly; these are input timers, not session verdicts.
+                tablePanel.cancelMouseGesture();
+                timeSlider.cancelMouseGesture();
+            }
         });
         actionExecutor.bindSessionSnapshot(() -> {
             var driver = session;

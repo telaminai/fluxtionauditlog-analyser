@@ -1,0 +1,74 @@
+2026-09-28T12:12:37.730496Z READY rows=726 showing=true
+2026-09-28T12:12:37.850150Z BEGIN ordinary trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:38.468827Z HELD ordinary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:38.766474Z RELEASE_SENT ordinary selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:12:39.845628Z RESULT ordinary trial=1 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:12:40.113641Z BEGIN ordinary trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:40.799527Z HELD ordinary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:41.112883Z RELEASE_SENT ordinary selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:12:42.167942Z RESULT ordinary trial=2 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:12:42.247233Z BEGIN ordinary trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:42.921071Z HELD ordinary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:43.144761Z RELEASE_SENT ordinary selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:12:44.200705Z RESULT ordinary trial=3 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:12:44.247170Z BEGIN overlay trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:44.920373Z HELD overlay selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:45.312436Z RELEASE_SENT overlay selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:12:46.366911Z RESULT overlay trial=1 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:12:46.427541Z BEGIN overlay trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:47.103664Z HELD overlay selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:47.429089Z RELEASE_SENT overlay selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:12:48.481882Z RESULT overlay trial=2 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:12:48.562873Z BEGIN overlay trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:49.237232Z HELD overlay selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:49.579989Z RELEASE_SENT overlay selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]
+2026-09-28T12:12:50.640497Z RESULT overlay trial=3 running=false first={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]} last={selected=11 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1000,width=594,height=223]}
+2026-09-28T12:12:50.713324Z BEGIN walk-step trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:51.387545Z HELD walk-step selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:51.729759Z RELEASE_SENT walk-step selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]
+2026-09-28T12:12:52.786689Z RESULT walk-step trial=1 running=false first={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]} last={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]}
+2026-09-28T12:12:52.880145Z BEGIN walk-step trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:53.548015Z HELD walk-step selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:53.862688Z RELEASE_SENT walk-step selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]
+2026-09-28T12:12:54.923275Z RESULT walk-step trial=2 running=false first={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]} last={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]}
+2026-09-28T12:12:55.013572Z BEGIN walk-step trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:55.690853Z HELD walk-step selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:56.028523Z RELEASE_SENT walk-step selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]
+2026-09-28T12:12:57.089125Z RESULT walk-step trial=3 running=false first={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]} last={selected=2 lead=49 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=980,width=594,height=223]}
+2026-09-28T12:12:57.179193Z BEGIN goto trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:57.854440Z HELD goto selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:12:58.079675Z RELEASE_SENT goto selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]
+2026-09-28T12:12:59.139218Z RESULT goto trial=1 running=false first={selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]} last={selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]}
+2026-09-28T12:12:59.179123Z BEGIN goto trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:12:59.854047Z HELD goto selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:13:00.080017Z RELEASE_SENT goto selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]
+2026-09-28T12:13:01.136611Z RESULT goto trial=2 running=false first={selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]} last={selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]}
+2026-09-28T12:13:01.179067Z BEGIN goto trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:01.855402Z HELD goto selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:13:02.079566Z RELEASE_SENT goto selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]
+2026-09-28T12:13:03.138659Z RESULT goto trial=3 running=false first={selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]} last={selected=2 lead=9 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=180,width=594,height=223]}
+2026-09-28T12:13:03.181360Z BEGIN secondary trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:03.854383Z HELD secondary selected=10 lead=51 adjusting=true autoscroller=true view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:13:04.282731Z RELEASE_SENT secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]
+2026-09-28T12:13:05.343342Z RESULT secondary trial=1 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1020,width=594,height=223]}
+2026-09-28T12:13:05.412672Z BEGIN secondary trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:06.084759Z HELD secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:06.395766Z RELEASE_SENT secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:07.456418Z RESULT secondary trial=2 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]}
+2026-09-28T12:13:07.535502Z BEGIN secondary trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:08.144172Z HELD secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:08.436503Z RELEASE_SENT secondary selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:09.494376Z RESULT secondary trial=3 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]}
+2026-09-28T12:13:09.541586Z BEGIN outside-frame trial=1 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:10.157299Z HELD outside-frame selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:10.398201Z RELEASE_SENT outside-frame selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:11.450704Z RESULT outside-frame trial=1 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]}
+2026-09-28T12:13:11.480463Z BEGIN outside-frame trial=2 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:12.074206Z HELD outside-frame selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:12.313873Z RELEASE_SENT outside-frame selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:13.375602Z RESULT outside-frame trial=2 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]}
+2026-09-28T12:13:13.413931Z BEGIN outside-frame trial=3 selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:14.012833Z HELD outside-frame selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:14.252943Z RELEASE_SENT outside-frame selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]
+2026-09-28T12:13:15.310992Z RESULT outside-frame trial=3 running=false first={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]} last={selected=1 lead=50 adjusting=false autoscroller=false view=java.awt.Rectangle[x=0,y=1097,width=594,height=223]}
+2026-09-28T12:13:15.315010Z DONE runawayCases=0
