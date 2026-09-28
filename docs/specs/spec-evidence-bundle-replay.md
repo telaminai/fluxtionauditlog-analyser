@@ -7,6 +7,10 @@
 (its D-0) and says so on every surface: *"no replay: this bundle shows an investigation; it does not reproduce or fix
 it"*.
 
+**R0 is BLOCKED upstream (2026-09-28).** The hosted generator 1.0.75 emits every DEMO processor with an empty
+`auditEvent` and re-entrancy compiled out, even with no performance profile set, so a processor generated today
+writes no audit log and records nothing. See the spike README ▸ *R0* and UP-FLX-55. R1 onwards wait on it.
+
 **Owner decisions this spec builds on (2026-09-28), not open for review:**
 - **R-D1. Demo scope: YAML only.** Replay records are Fluxtion's YAML replay format. Other encodings, and a link to a
   log stored in the cloud instead of a member, come later. "We can't replay every scenario, but this is not the goal."
@@ -20,6 +24,10 @@ it"*.
 - **R-D5. Service invocations are dealt with separately.** A service call is a serialised method call, recorded and
   replayed in the same stream as the events. That is its own piece of work (UP-FLX-24, M50.7), and this delivery
   only names the gap (§3.4).
+- **R-D6. The redispatch match is made through a hook the dispatcher offers** (§3.2), not inside the generated
+  dispatcher. The replay runner supplies the matcher.
+- **R-D7. R0 goes ahead** (the compiler key through the plugin's build). **Licensing is deferred**; the owner will
+  decide it.
 
 ## 1. What the second delivery is for
 
@@ -113,7 +121,8 @@ filed when R0 has run.
   exception in §6 (a graph-raised record's time fields) would go.
 - The simpler variant, where replay mode ignores redispatch and injects recorded events only, also stops the
   duplicates. But it would hide a build that no longer raises the event, so it is not the design.
-- This needs a Fluxtion change, UP-FLX-54 (revised): a replay mode on the callback dispatcher.
+- This needs a Fluxtion change, UP-FLX-54 (revised): **a hook on the callback dispatcher** (R-D6). The dispatcher
+  offers each queued re-entrant event to it, and the replay runner's matcher consumes or refuses it.
 
 **The demo, until that lands: the processor's inputs, and nothing else.** The recorder names its processor's **input types** in `classWhiteList`. Getting that list wrong fails in two ways, and
 both are detectable:
@@ -272,7 +281,7 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 
 | slice | what | needs |
 |---|---|---|
-| **R0** | Prove the auditor path. Generate the DEMO processor with the DEMO recorder installed, record a run, and replay it: the spike's `record-all-whitelist` result, with no hand-called `eventReceived` | the Fluxtion compiler key, through the fixture generator's plugin build: **the owner's go** |
+| **R0** ⛔ | Prove the auditor path. Generate the DEMO processor with the DEMO recorder installed, record a run, and replay it: the spike's `record-all-whitelist` result, with no hand-called `eventReceived` | approved (R-D7). **Blocked:** generator 1.0.75 emits no audit dispatch (UP-FLX-55) |
 | R1 | Commit the recorded fixture: the log, the replay and the graph from one real run with no service calls (§3.4) | R0 |
 | R2 | The `replay` member: the `evidenceCapture` node's pairing, the whole-log rule and manifest format 2 | R1 |
 | R3 | `--replay-compare` and its rule (§6) | R1 |
@@ -296,9 +305,9 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
    `YamlReplayRunner` ships in `fluxtion-builder-api-all-java8`, and the jar states no licence terms of its own (its
    `LICENSE.txt` belongs to a bundled dependency). Can a recipient without a Fluxtion licence run the replay?
    **An owner question; it decides whether the demo can say "anyone can check it".**
-2. **The redispatch match: where does it live?** Choices: the generated callback dispatcher (a replay flag on
-   `queueReentrantEvent`), or the runner through a hook the dispatcher offers. What counts as a match: the event's
-   type and equality, or its type and position only? Equality needs the event's `equals`, which beans often lack.
+2. **The redispatch match: what counts as a match?** The hook is decided (R-D6). The open part is whether a match
+   means the event's type and equality, or its type and position only. Equality needs the event's `equals`, which
+   beans often lack.
 3. **Processor or agent?** R-D4 allows either. This spec uses the processor (§3.1) because it needs no Mongoose change
    and records the right instant. The agent route serves processors that cannot be regenerated. Is that a case worth
    designing for now?
@@ -314,4 +323,5 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 - **r1 (2026-09-28):** first draft, from the spike and the owner's decisions R-D1…R-D4. The same day it took two
   owner corrections: the JavaBean constraint is the YAML writer's, not replay's; and graph-raised events are matched
   at the redispatch queue in replay mode (§3.2), rather than only excluded by a whitelist. A third decision, R-D5:
-  service invocations are a separate piece of work, as serialised method calls.
+  service invocations are a separate piece of work, as serialised method calls. Then R-D6 (the hook) and R-D7 (R0
+  approved, licensing deferred), and R0 blocked by the generator.

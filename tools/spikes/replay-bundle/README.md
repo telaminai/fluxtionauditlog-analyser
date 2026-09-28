@@ -100,6 +100,43 @@ side is right; the recording side needs the one-line change in finding 7.
      install its own recorder, which is about twenty lines: an `Auditor` that writes a `ReplayRecord` stamped with
      `getProcessTime()`.
 
+## R0, 2026-09-28: blocked by the hosted generator (1.0.75)
+
+R0 (owner: "R0 is good") was to generate the DEMO processor with `YamlReplayRecordWriter` compiled in, through
+`cfg.addAuditor`, and record and replay with no hand-called `eventReceived`. It ran in a scratch copy of
+`examples/fixture-generator`, with the spike's bean events and two builders: record everything, and inputs only.
+The key was used only by the plugin's own build.
+
+**Generation succeeded, and the output is unusable, because the generator dropped the audit path.** Every processor
+generated today reads `target generator version: 1.0.75` and has:
+- `private void auditEvent(Object typedEvent) {}` and `private void auditEvent(Event typedEvent) {}`, **both
+  empty**. The clock, the event log and the recorder are constructed and initialised, but never called: no clock
+  reading, no audit record, no replay record. The committed processor (an older generator) calls `clock`,
+  `eventLogger` and `nodeNameLookup` there.
+- re-entrancy compiled out: `IllegalStateException("re-entrant event received but this processor was generated
+  with re-entrancy support disabled")`, 6 times. The DEMO graph raises `RiskBreachEvent` on itself, so that cycle
+  would throw.
+- a `callbacksPending(boolean)` `@Override` that exists only from runtime 1.0.15, so the output does not compile
+  against the fixture generator's pinned 1.0.13. Pinning 1.0.16 compiles it, and then every run records 0 events
+  and writes 0 audit records.
+
+**Isolated, three ways:**
+1. The **untouched** fixture generator, regenerated today, gives the same empty `auditEvent` and disabled
+   re-entrancy, in both `DemoQuoteProcessor` and `DemoQuoteTracedProcessor`. **Its builders make no
+   `performanceProfile` call.**
+2. The builder API on the classpath (1.0.13 or 1.0.16) makes no difference.
+3. Asking explicitly, with `cfg.setSupportReentrancy(true)` and
+   `cfg.performanceProfile(PerformanceProfile.DEFAULT)`, makes no difference.
+
+The 1.0.16 builder-api source defaults are `supportReentrancy = true` and `addEventAudit()` → `EventLogManager`. So
+the builder asks for both, and the hosted generator drops them. The owner's reading is that it is the
+performance-profile work. The evidence adds that **it happens with no profile set**, so it looks like a changed
+default, or a profile applied on the server side, in 1.0.75. The plugin (1.3.0) has no parameter for choosing a
+generator version. Filed as UP-FLX-55.
+
+**Also affected:** anyone who regenerates the committed DEMO fixtures today gets a processor that writes no audit
+log. The committed sources are unaffected until someone regenerates them.
+
 ## Rerun
 
 ```

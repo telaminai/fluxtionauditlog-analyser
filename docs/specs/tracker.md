@@ -1453,13 +1453,13 @@ Record at the processor (the single-threaded consumption point), replay into the
 time, compare in the analyser. YAML only for the demo. Spike: byte-identical replay when the recorder stamps the
 receipt instant; the shipped writer does not (UP-FLX-53); graph-raised events are matched at the redispatch queue in
 replay mode (owner design, UP-FLX-54).
-- [M70.R0] ☐ Prove the auditor path on a DEMO processor generated with the recorder — **needs the owner's go** (compiler key)
+- [M70.R0] ⛔ Prove the auditor path on a DEMO processor generated with the recorder — approved; **blocked**: hosted generator 1.0.75 emits no audit dispatch and no re-entrancy even with no profile set (UP-FLX-55; spike README ▸ *R0*)
 - [M70.R1] ☐ The recorded fixture (log + replay + graph from one run, no service calls)
 - [M70.R2] ☐ The `replay` member: pairing by content, whole-log only, manifest format 2, `serviceCalls`
 - [M70.R3] ☐ `--replay-compare` and the measured rule
 - [M70.R4] ☐ The runner (JBang), and the demo driver's replay leg
 - [M70.R5] ☐ Docs site *Replay*; CHANGELOG
-- Open for the owner: licensing on the recipient's side; where the redispatch match lives; processor vs agent.
+- Decided: the redispatch match goes through a hook the dispatcher offers (R-D6). Open for the owner: licensing (deferred); processor vs agent.
 
 ---
 ## M69 follow-ups — spotlight walks shipped in 1.26.0 (▸ [`completed/tracker.md`](completed/tracker.md) ▸ *M69*)
