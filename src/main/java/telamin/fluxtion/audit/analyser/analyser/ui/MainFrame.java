@@ -157,6 +157,7 @@ public final class MainFrame extends JFrame {
     public MainFrame() {
         super("Fluxtion Audit Log Analyser");
         this.config = configStore.load();
+        walksLastReported = java.util.List.copyOf(config.walks);   // the bulk diff starts from what is loaded, not from nothing
         // M20 — the session is built FIRST so it can snapshot the user's own settings before the
         // project overwrites them; then it applies the active project over the project-scoped
         // categories. A moved repository clears the pointer and says so; startup never fails on it.
@@ -2519,6 +2520,10 @@ public final class MainFrame extends JFrame {
 
     /** M69: the walks were edited — store them through the profile's edit funnel, as putReport does. */
     private void persistWalks() {
+        // fix review, finding 1: every non-bulk mutation (the verb, the right-click save, the Reports tab) passes
+        // through here and has already reported itself. The bulk diff's baseline must move with it, or a later import
+        // that restores an older definition diffs equal against a stale baseline and reports nothing.
+        walksLastReported = java.util.List.copyOf(config.walks);
         onGraphsEdited();
         if (reportsPanel != null) reportsPanel.refresh();
         if (walksPanel != null) walksPanel.refresh();

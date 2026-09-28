@@ -390,4 +390,47 @@ class WalkReviewFrameTest {
                     "and the saved definitions are what they were"));
         }
     }
+
+    /** Import {@code w} through the real Settings path: SettingsShare.apply, then the frame's applyImportedConfig. */
+    static void importing(AsyncOpenInterleavingFrameTest.Frame f, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec w)
+            throws Exception {
+        var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+        var incoming = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        incoming.walks.add(w);
+        var share = new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare();
+        var categories = java.util.Set.of(telamin.fluxtion.audit.analyser.analyser.config.SettingsShare.Category.REPORTS);
+        onEdt(() -> {
+            share.apply(share.preview(share.export(incoming, categories), config), categories, config);
+            try {
+                ChartLifecycleReviewFrameTest.invoke(f.frame, "applyImportedConfig");
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    @Test
+    @DisplayName("R6 (fix review, finding 1): a verb save BETWEEN two imports cannot leave the bulk diff stale")
+    void aVerbSaveBetweenTwoImportsIsStillReported(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            var d1 = version("DEMO_w", "D1");
+            importing(f, d1);                                        // the bulk path has now seen DEMO_w as D1
+            call(f, "walk", Map.of("name", "DEMO_w", "steps",
+                    List.of(Map.of("caption", "D2", "targets", List.of(target("status", "here"))))));
+            call(f, "walk", Map.of("name", "DEMO_w", "play", true));
+            await("showing D2", () -> walk(f).showing());
+
+            importing(f, d1);                                        // config goes back to D1
+
+            await("the session ended it", () -> !walk(f).showing());
+            var config = (telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config");
+            onEdt(() -> {
+                assertEquals("D1", config.walks.get(0).steps().get(0).caption(), "control: the import restored D1");
+                assertTrue(walk(f).reason().contains("changed while it was showing"),
+                        "D2 was showing and config now holds D1: the node must be told, whatever the bulk path saw last: "
+                                + walk(f).reason());
+            });
+        }
+    }
 }

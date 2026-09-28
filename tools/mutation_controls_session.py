@@ -1053,4 +1053,9 @@ CONTROLS = [
      '                g.selectGraph(view.graph());                 // transient: selecting persists nothing',
      '                g.addGraph(view.graph() + " (walk)");',
      'WalkReviewFrameTest#playbackPersistsNothing'),
+    # fix review, finding 1: the bulk diff's baseline moves with every reported non-bulk mutation
+    ('m69-r6c-baseline-follows-the-verb', UI + 'MainFrame.java',
+     '        walksLastReported = java.util.List.copyOf(config.walks);\n        onGraphsEdited();',
+     '        onGraphsEdited();',
+     'WalkReviewFrameTest#aVerbSaveBetweenTwoImportsIsStillReported'),
 ]
