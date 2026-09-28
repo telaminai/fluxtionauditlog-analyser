@@ -378,21 +378,50 @@ public class ReplayBundle {
 
     // ---- the replay records: ReplayRecord YAML, events as records, each resolved from the allow-list ------------
 
-    private static final Pattern EVENT = Pattern.compile("^event: !!(\\S+) \\{(.*)}$", Pattern.MULTILINE);
-    private static final Pattern TIME = Pattern.compile("^wallClockTime: (-?\\d+)$", Pattern.MULTILINE);
+    private static final Pattern EVENT = Pattern.compile("^event: !!([\\w.$]+) \\{(.*)}$");
+    private static final Pattern TIME = Pattern.compile("^wallClockTime: (-?\\d+)$");
 
     /** Each entry is {event, Long time}. */
+    /**
+     * The replay-record grammar, every line of it (PR #70 review, finding 2): blank lines, then for each record exactly
+     * {@code ---}, the {@code ReplayRecord} header, one {@code event:} line and one {@code wallClockTime:} line, then
+     * blank lines until the next {@code ---} or the end. A preamble, a stray line, trailing content or a record cut
+     * short is refused, naming the line; nothing is searched for and nothing is skipped. Each result is
+     * {class name, component body, time}.
+     */
+    static List<String[]> records(String yaml) throws Refused {
+        String text = (yaml.startsWith("\uFEFF") ? yaml.substring(1) : yaml).replace("\r\n", "\n");
+        String[] lines = text.split("\n", -1);
+        List<String[]> out = new ArrayList<>();
+        int i = 0;
+        while (i < lines.length) {
+            if (lines[i].isBlank()) {
+                i++;
+                continue;
+            }
+            if (!lines[i].equals("---")) throw new Refused("line " + (i + 1) + " is not part of a replay record: " + lines[i].strip());
+            if (i + 3 >= lines.length) {
+                throw new Refused("the replay record at line " + (i + 1) + " is cut off");
+            }
+            Matcher e = EVENT.matcher(lines[i + 2]), t = TIME.matcher(lines[i + 3]);
+            if (!lines[i + 1].equals(HEADER)) throw new Refused("line " + (i + 2) + " is not the ReplayRecord header: " + lines[i + 1].strip());
+            if (!e.matches()) throw new Refused("line " + (i + 3) + " is not a replay record's event line: " + lines[i + 2].strip());
+            if (!t.matches()) throw new Refused("line " + (i + 4) + " is not a replay record's wallClockTime line: " + lines[i + 3].strip());
+            out.add(new String[]{e.group(1), e.group(2), t.group(1)});
+            i += 4;
+        }
+        return out;
+    }
+
+    static final String HEADER = "!!com.telamin.fluxtion.runtime.event.ReplayRecord";
+
     static List<Object[]> read(String yaml, Map<String, Class<?>> handled) throws Exception {
         List<Object[]> out = new ArrayList<>();
-        String text = (yaml.startsWith("\uFEFF") ? yaml.substring(1) : yaml).replace("\r\n", "\n");
-        for (String doc : text.split("(?m)^---$")) {
-            if (doc.isBlank()) continue;
-            Matcher e = EVENT.matcher(doc), t = TIME.matcher(doc);
-            if (!e.find() || !t.find()) throw new Refused("not a replay record: " + doc.strip());
-            Class<?> type = handled.get(e.group(1));
-            if (type == null) throw new Refused("a replay record names " + e.group(1) + ", which your processor does not handle");
-            if (!type.isRecord()) throw new Refused(e.group(1) + " is not a record; this runner reads record events");
-            out.add(new Object[]{build(type, e.group(2)), Long.parseLong(t.group(1))});
+        for (String[] r : records(yaml)) {
+            Class<?> type = handled.get(r[0]);
+            if (type == null) throw new Refused("a replay record names " + r[0] + ", which your processor does not handle");
+            if (!type.isRecord()) throw new Refused(r[0] + " is not a record; this runner reads record events");
+            out.add(new Object[]{build(type, r[1]), Long.parseLong(r[2])});
         }
         if (out.isEmpty()) throw new Refused("the replay member holds no records");
         return out;

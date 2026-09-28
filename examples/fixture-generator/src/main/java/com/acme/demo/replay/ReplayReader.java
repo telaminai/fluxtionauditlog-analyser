@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
 public final class ReplayReader {
     public record Entry(Object event, long time) { }
 
-    private static final Pattern EVENT = Pattern.compile("^event: !!(\\S+) \\{(.*)}$", Pattern.MULTILINE);
-    private static final Pattern TIME = Pattern.compile("^wallClockTime: (-?\\d+)$", Pattern.MULTILINE);
+    private static final Pattern EVENT = Pattern.compile("^event: !!([\\w.$]+) \\{(.*)}$");
+    private static final Pattern TIME = Pattern.compile("^wallClockTime: (-?\\d+)$");
 
     private ReplayReader() { }
 
@@ -26,21 +26,45 @@ public final class ReplayReader {
         Map<String, Class<?>> byName = new HashMap<>();
         handled.forEach(c -> byName.put(c.getName(), c));
         List<Entry> out = new ArrayList<>();
-        // one byte-order-mark rule and either line ending, as the analyser's own reader accepts
-        String text = (yaml.startsWith("\uFEFF") ? yaml.substring(1) : yaml).replace("\r\n", "\n");
-        for (String doc : text.split("(?m)^---$")) {
-            if (doc.isBlank()) continue;
-            Matcher e = EVENT.matcher(doc);
-            Matcher t = TIME.matcher(doc);
-            if (!e.find() || !t.find()) throw new IllegalArgumentException("not a replay record: " + doc.strip());
-            Class<?> type = byName.get(e.group(1));
+        for (String[] r : records(yaml)) {
+            Class<?> type = byName.get(r[0]);
             if (type == null) {
-                throw new IllegalArgumentException("the replay names a type this build does not handle: " + e.group(1));
+                throw new IllegalArgumentException("the replay names a type this build does not handle: " + r[0]);
             }
-            out.add(new Entry(build(type, e.group(2)), Long.parseLong(t.group(1))));
+            out.add(new Entry(build(type, r[1]), Long.parseLong(r[2])));
         }
         return out;
     }
+
+    /**
+     * The replay-record grammar, every line of it, as the recipient's runner reads it: blank lines, then per record
+     * exactly {@code ---}, the header, one event line and one time line. Anything else is refused, naming the line.
+     * One byte-order-mark rule and either line ending. Each result is {class name, component body, time}.
+     */
+    static List<String[]> records(String yaml) {
+        String text = (yaml.startsWith("\uFEFF") ? yaml.substring(1) : yaml).replace("\r\n", "\n");
+        String[] lines = text.split("\n", -1);
+        List<String[]> out = new ArrayList<>();
+        int i = 0;
+        while (i < lines.length) {
+            if (lines[i].isBlank()) {
+                i++;
+                continue;
+            }
+            if (!lines[i].equals("---")) throw new IllegalArgumentException("line " + (i + 1) + " is not part of a replay record");
+            if (i + 3 >= lines.length) throw new IllegalArgumentException("the replay record at line " + (i + 1) + " is cut off");
+            Matcher e = EVENT.matcher(lines[i + 2]);
+            Matcher t = TIME.matcher(lines[i + 3]);
+            if (!lines[i + 1].equals(HEADER) || !e.matches() || !t.matches()) {
+                throw new IllegalArgumentException("the replay record at line " + (i + 1) + " is malformed");
+            }
+            out.add(new String[]{e.group(1), e.group(2), t.group(1)});
+            i += 4;
+        }
+        return out;
+    }
+
+    static final String HEADER = "!!com.telamin.fluxtion.runtime.event.ReplayRecord";
 
     static Object build(Class<?> type, String body) throws ReflectiveOperationException {
         RecordComponent[] parts = type.getRecordComponents();

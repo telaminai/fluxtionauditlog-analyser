@@ -183,6 +183,20 @@ class ReplayCodecRoundTripTest {
     }
 
     @Test
+    @DisplayName("PR #70 review 2: both readers refuse a document that is not wholly replay records")
+    void bothReadersRequireTheWholeGrammar() throws Exception {
+        String good = yaml(probe("x", 'a', 'b', 1, 1.0));
+        for (String bad : List.of("preamble\n" + good, good + "trailing\n", good.replace("wallClockTime: 5", "wallClockTime: 5 extra"),
+                good.replace("!!com.telamin.fluxtion.runtime.event.ReplayRecord", "!!Other"), good.substring(0, good.indexOf("wallClockTime")))) {
+            var demo = assertThrows(InvocationTargetException.class, () -> demoRead.invoke(null, bad, Set.of(probe)), bad);
+            assertTrue(demo.getCause() instanceof IllegalArgumentException, String.valueOf(demo.getCause()));
+            var runner = assertThrows(InvocationTargetException.class,
+                    () -> runnerRead.invoke(null, bad, Map.of(probe.getName(), probe)), bad);
+            assertTrue(runner.getCause().getClass().getSimpleName().equals("Refused"), String.valueOf(runner.getCause()));
+        }
+    }
+
+    @Test
     @DisplayName("both readers accept a byte-order mark and CRLF line endings")
     void aBomAndCrlfAreRead() throws Exception {
         Object event = probe("x", 'a', 'b', 1, 1.0);

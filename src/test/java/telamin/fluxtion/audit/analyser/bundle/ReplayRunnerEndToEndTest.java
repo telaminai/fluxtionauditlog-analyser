@@ -198,6 +198,45 @@ class ReplayRunnerEndToEndTest {
     }
 
     @Test
+    @DisplayName("PR #70 review 2: a replay member with a preamble and trailing garbage is REFUSED, never partly read")
+    void aMalformedReplayDocumentIsRefused(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        String member = "replay/demo-quote-recorded.replay.yaml";
+        var entries = EvidenceBundleTest.entries(bundle);
+        String good = new String(entries.get(member), StandardCharsets.UTF_8);
+        String oneRecord = good.substring(0, good.indexOf("---", 1));
+        // the reviewer's document: a non-record preamble, ONE event/time pair, trailing garbage. Before the fix the
+        // runner searched for an event and a time, accepted it as one input and wrote an audit log
+        byte[] malformed = ("preamble: not a record\n" + oneRecord + "trailing: garbage\n").getBytes(StandardCharsets.UTF_8);
+        entries.put(member, malformed);
+        restamp(entries, member, malformed);          // a manifest that agrees, so only the grammar can refuse it
+        Path out = tmp.resolve("m.yaml");
+        Run r = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("malformed.fexp"), entries).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", out.toString());
+        assertEquals(1, r.code(), "refused, not replayed: " + r.out());
+        assertTrue(r.err().contains("line 1 is not part of a replay record: preamble: not a record"), r.err());
+        assertFalse(Files.exists(out), "nothing written");
+
+        // trailing garbage alone, after whole records, is refused too, naming its line
+        byte[] trailing = (good + "trailing: garbage\n").getBytes(StandardCharsets.UTF_8);
+        entries.put(member, trailing);
+        restamp(entries, member, trailing);
+        Run t = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("trailing.fexp"), entries).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("t.yaml").toString());
+        assertEquals(1, t.code(), t.out());
+        assertTrue(t.err().contains("is not part of a replay record: trailing: garbage"), t.err());
+
+        // control: blank lines around well-formed records are allowed
+        byte[] spaced = ("\n" + good.replace("---\n", "\n---\n") + "\n\n").getBytes(StandardCharsets.UTF_8);
+        entries.put(member, spaced);
+        restamp(entries, member, spaced);
+        Run c = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("spaced.fexp"), entries).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("c.yaml").toString());
+        assertEquals(0, c.code(), c.err());
+    }
+
+    @Test
     @DisplayName("second review S3: every member is bounded, the log and anything else too, not only the two kept")
     void everyMemberIsBounded(@TempDir Path tmp) throws Exception {
         Path bundle = ReplayCompareTest.bundle(tmp);
