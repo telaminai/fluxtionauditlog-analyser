@@ -1058,4 +1058,23 @@ CONTROLS = [
      '        walksLastReported = java.util.List.copyOf(config.walks);\n        onGraphsEdited();',
      '        onGraphsEdited();',
      'WalkReviewFrameTest#aVerbSaveBetweenTwoImportsIsStillReported'),
+    # ---- the mouse-trace field diagnostic (the runaway-table hunt)
+    # NOT controlled: the `where == null` guard. Removing it is an EQUIVALENT MUTANT -- Path.of(null) throws,
+    # the catch returns null, and installIfRequested's observable result is the same null it returns with the
+    # guard. The only difference is a line on stderr. MouseTraceTest#offUnlessAsked still holds the behaviour;
+    # it simply cannot be witnessed by mutating that line, and registering a control that always passes would
+    # be worse than having none.
+    # The signal: the table believes a drag is in progress while no button is down.
+    ('mousetrace-suspect-is-the-stuck-state', UI + 'MouseTrace.java',
+     'if (adjusting && buttonsDown.isEmpty()) {', 'if (false) {',
+     'MouseTraceTest#theStuckStateIsFlagged'),
+    # ...and NOT every programmatic selection, or the real signal is invisible in the noise.
+    ('mousetrace-does-not-cry-wolf', UI + 'MouseTrace.java',
+     'if (adjusting && buttonsDown.isEmpty()) {', 'if (grew && buttonsDown.isEmpty()) {',
+     'MouseTraceTest#anOrdinarySelectionIsNotFlagged'),
+    # A bad destination must not stop the app starting.
+    ('mousetrace-never-fatal', UI + 'MouseTrace.java',
+     '            System.err.println("[mouseTrace] not installed: " + e);\n            return null;',
+     '            throw new IllegalStateException(e);',
+     'MouseTraceTest#aBadDestinationIsNotFatal'),
 ]

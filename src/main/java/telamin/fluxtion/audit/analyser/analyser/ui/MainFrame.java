@@ -156,6 +156,11 @@ public final class MainFrame extends JFrame {
 
     public MainFrame() {
         super("Fluxtion Audit Log Analyser");
+        // A field diagnostic, off unless -Danalyser.mouseTrace is set: it answers where a mouse release went
+        // when the records table is left auto-scrolling. Installed FIRST so it sees every event from startup,
+        // and it never throws into startup. See MouseTrace.
+        MouseTrace trace = MouseTrace.installIfRequested();
+        if (trace != null) trace.watch(tablePanel.table());
         this.config = configStore.load();
         walksLastReported = java.util.List.copyOf(config.walks);   // the bulk diff starts from what is loaded, not from nothing
         // M20 — the session is built FIRST so it can snapshot the user's own settings before the

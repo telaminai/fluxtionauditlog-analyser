@@ -6,6 +6,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **A mouse trace, for one open defect.** `-Danalyser.mouseTrace=<path>` (or `=stderr`) records every mouse press,
+  release and click with the component AND window that received it, the buttons it believes are down, and the
+  records table's selection state — and flags the moment the table believes a drag is in progress while no button
+  is down. It exists to catch a table that has been seen scrolling and extending its selection on its own until
+  the app is restarted. Off unless asked; it consumes no events and changes no behaviour. See
+  `docs/handoff/runaway-table-mouse-trace.md`.
+
 ## [1.26.0] - 2026-09-28
 
 ### Added
