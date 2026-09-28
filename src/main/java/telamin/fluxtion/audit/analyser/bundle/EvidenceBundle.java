@@ -41,19 +41,42 @@ public final class EvidenceBundle {
 
     public static final String MANIFEST = "manifest.json";
     public static final int FORMAT = 1;
+    /**
+     * A bundle that carries a replay (spec-evidence-bundle-replay §4.2). Only then: a bundle without one stays format 1,
+     * byte for byte, so a first-delivery reader still reads every bundle it could before.
+     */
+    public static final int FORMAT_REPLAY = 2;
+    /** Where a replay member lives in a bundle. */
+    public static final String REPLAY_DIR = "replay/";
 
     /** Fixed text, stated by every surface that shows a verified bundle (spec §4.3, EP-A10). */
     public static final List<String> LIMITS = List.of(
             "unsigned: verification detects a changed member; it does not authenticate the sender",
             "no replay: this bundle shows an investigation; it does not reproduce or fix it");
 
+    /** The limits of a bundle that carries a replay: what a replay may claim, and no more (replay spec §1, §4.2). */
+    public static final List<String> LIMITS_REPLAY = List.of(
+            "unsigned: verification detects a changed member; it does not authenticate the sender",
+            "replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the "
+                    + "processor reads nothing the records do not carry");
+
+    /** The limits a verified bundle states: its own, by whether it carries a replay. */
+    public static List<String> limits(Verification v) {
+        return v.replay() == null ? LIMITS : LIMITS_REPLAY;
+    }
+
     /** One member as the manifest lists it. */
     public record Member(String path, String sha256, long bytes) { }
 
     /** A verification: the identity, and either every member verified or the first refusal naming the member. */
-    public record Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt) {
+    public record Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt,
+                               Map<String, Object> replay) {
         public Verification(String identity, List<Member> members, String refusal) {
-            this(identity, members, refusal, null);
+            this(identity, members, refusal, null, null);
+        }
+
+        public Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt) {
+            this(identity, members, refusal, excerpt, null);
         }
 
         public boolean ok() {
@@ -83,6 +106,16 @@ public final class EvidenceBundle {
      */
     public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
                               Map<String, Object> excerpt) throws IOException {
+        return pack(folder, out, createdAt, analyserVersion, excerpt, null);
+    }
+
+    /**
+     * As above, stating that the bundle carries a REPLAY (format 2): {@code replay} holds what was established about it
+     * ({@code records}, {@code serviceCalls}), and the folder must hold exactly one member under {@link #REPLAY_DIR}.
+     * Null for no replay, which leaves the manifest format 1, byte for byte.
+     */
+    public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
+                              Map<String, Object> excerpt, Map<String, Object> replay) throws IOException {
         if (!Files.isDirectory(folder)) throw new IOException("not a folder: " + folder);
         if (Files.exists(out)) throw new IOException("will not overwrite " + out);
         TreeMap<String, Path> files = new TreeMap<>();
@@ -106,7 +139,10 @@ public final class EvidenceBundle {
                 members.add(new Member(e.getKey(), d.sha256(), d.bytes()));
             }
         }
-        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt);
+        long replays = members.stream().filter(x -> x.path().startsWith(REPLAY_DIR)).count();
+        if (replay != null && replays != 1) throw new IOException("a replay bundle holds one " + REPLAY_DIR + " member, not " + replays);
+        if (replay == null && replays != 0) throw new IOException("a " + REPLAY_DIR + " member with no replay stated");
+        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt, replay);
         try (OutputStream os = Files.newOutputStream(out, java.nio.file.StandardOpenOption.CREATE_NEW);
              ZipOutputStream zip = new ZipOutputStream(os)) {
             put(zip, MANIFEST, manifest);
@@ -132,8 +168,13 @@ public final class EvidenceBundle {
     }
 
     static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt) {
+        return manifestBytes(members, createdAt, analyserVersion, excerpt, null);
+    }
+
+    static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt,
+                                Map<String, Object> replay) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("format", FORMAT);
+        m.put("format", replay == null ? FORMAT : FORMAT_REPLAY);
         m.put("createdAt", createdAt.toString());
         m.put("analyser", analyserVersion == null ? "unknown" : analyserVersion);
         members.stream().filter(x -> x.path().startsWith("log/")).findFirst()
@@ -141,6 +182,12 @@ public final class EvidenceBundle {
         members.stream().filter(x -> x.path().startsWith("graph/")).findFirst()
                 .ifPresent(x -> m.put("graph", Map.of("member", x.path())));
         if (excerpt != null) m.put("excerpt", excerpt);
+        if (replay != null) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            members.stream().filter(x -> x.path().startsWith(REPLAY_DIR)).findFirst().ifPresent(x -> r.put("member", x.path()));
+            r.putAll(replay);
+            m.put("replay", r);
+        }
         List<Object> list = new ArrayList<>();
         for (Member x : members) {
             Map<String, Object> one = new LinkedHashMap<>();
@@ -150,7 +197,7 @@ public final class EvidenceBundle {
             list.add(one);
         }
         m.put("members", list);
-        m.put("limits", LIMITS);
+        m.put("limits", replay == null ? LIMITS : LIMITS_REPLAY);
         return (Json.write(m) + "\n").getBytes(StandardCharsets.UTF_8);
     }
 
@@ -187,6 +234,7 @@ public final class EvidenceBundle {
     private static Pass check(Path bundle, Path into) throws IOException {
         String identity = null;
         Map<String, Object> excerpt = null;
+        Map<String, Object> replay = null;
         Map<String, Member> listed = null;
         Set<String> seen = new LinkedHashSet<>();
         try (InputStream in = Files.newInputStream(bundle); ZipInputStream zip = new ZipInputStream(in)) {
@@ -210,6 +258,7 @@ public final class EvidenceBundle {
                     try {
                         members = members(manifest);
                         excerpt = excerptOf(manifest);
+                        replay = replayOf(manifest, members);
                     } catch (RuntimeException ex) {
                         return refused(identity, MANIFEST + " cannot be read: " + ex.getMessage());
                     }
@@ -254,7 +303,7 @@ public final class EvidenceBundle {
         for (String path : listed.keySet()) {
             if (!seen.contains(path)) return refused(identity, "missing member: " + path);
         }
-        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt), listed);
+        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt, replay), listed);
     }
 
     private static Pass refused(String identity, String why) {
@@ -266,8 +315,9 @@ public final class EvidenceBundle {
         Object parsed = Json.parse(new String(manifest, StandardCharsets.UTF_8));
         if (!(parsed instanceof Map<?, ?> m)) throw new IllegalArgumentException("not a JSON object");
         Object format = m.get("format");
-        if (!(format instanceof Number n) || n.intValue() != FORMAT) {
-            throw new IllegalArgumentException("unsupported format " + format + " (this reader reads format " + FORMAT + ")");
+        if (!(format instanceof Number n) || (n.intValue() != FORMAT && n.intValue() != FORMAT_REPLAY)) {
+            throw new IllegalArgumentException("unsupported format " + format + " (this reader reads formats " + FORMAT
+                    + " and " + FORMAT_REPLAY + ")");
         }
         if (!(m.get("members") instanceof List<?> list)) throw new IllegalArgumentException("no members list");
         List<Member> out = new ArrayList<>();
@@ -287,6 +337,28 @@ public final class EvidenceBundle {
         if (x == null) return null;
         if (!(x instanceof Map<?, ?> m)) throw new IllegalArgumentException("excerpt is not an object");
         return Map.copyOf((Map<String, Object>) m);
+    }
+
+    /**
+     * A format-2 manifest's replay: it must name a member the manifest lists, under {@link #REPLAY_DIR}. A format-1
+     * manifest must state none. So a replay can neither be claimed without its member nor carried without its claim.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> replayOf(byte[] manifest, List<Member> members) {
+        Map<String, Object> m = (Map<String, Object>) Json.parse(new String(manifest, StandardCharsets.UTF_8));
+        boolean format2 = ((Number) m.get("format")).intValue() == FORMAT_REPLAY;
+        Object x = m.get("replay");
+        if (!format2) {
+            if (x != null) throw new IllegalArgumentException("a format " + FORMAT + " manifest states a replay");
+            return null;
+        }
+        if (!(x instanceof Map<?, ?> r) || !(r.get("member") instanceof String member)) {
+            throw new IllegalArgumentException("a format " + FORMAT_REPLAY + " manifest needs a replay with its member");
+        }
+        if (!member.startsWith(REPLAY_DIR) || members.stream().noneMatch(mm -> mm.path().equals(member))) {
+            throw new IllegalArgumentException("the replay member " + member + " is not listed");
+        }
+        return Map.copyOf((Map<String, Object>) r);
     }
 
     // ---- unpack ------------------------------------------------------------------------------------------------

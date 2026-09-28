@@ -5860,6 +5860,12 @@ public final class MainFrame extends JFrame {
      */
     private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult requestCapture(String path, String notes, Long from,
                                                                                     Long to, String origin) {
+        return requestCapture(path, notes, from, to, null, origin);
+    }
+
+    /** As above, with the run's replay records to carry (replay spec §4.1): the pairing is OBSERVED here, decided there. */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult requestCapture(String path, String notes, Long from,
+                                                                                    Long to, String replay, String origin) {
         if (session == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the session is not running");
         var identity = observeReadIdentity();
         String observed = identity == null ? null : identity.verdict().name().toLowerCase(java.util.Locale.ROOT);
@@ -5877,9 +5883,17 @@ public final class MainFrame extends JFrame {
             var range = store == null ? null : telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.range(store, from, to);
             windowRecords = range == null ? 0 : range.size();
         }
+        telamin.fluxtion.audit.analyser.bundle.ReplayPairing.Observed pairing = null;
+        if (replay != null) {
+            pairing = store == null
+                    ? new telamin.fluxtion.audit.analyser.bundle.ReplayPairing.Observed(0, 0, "no log is open to pair it with")
+                    : telamin.fluxtion.audit.analyser.bundle.ReplayPairing.observe(Path.of(replay), store.index(), store.size());
+        }
         long request = ++captureRequests;
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested(request, path, notes, from, to,
-                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin));
+                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin, replay,
+                pairing == null ? 0 : pairing.records(), pairing == null ? 0 : pairing.serviceCalls(),
+                pairing == null ? null : pairing.problem(), pairing == null ? null : pairing.sha256()));
         var capture = sessionSnapshot().capture();
         if (capture.answer().request() == request && !capture.answer().accepted()) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("capture refused: " + capture.answer().reason());
@@ -5946,7 +5960,8 @@ public final class MainFrame extends JFrame {
         var job = new telamin.fluxtion.audit.analyser.bundle.BundleWriter.Job(Path.of(e.path()), log, graph,
                 settingsName, settingsBytes, e.notes(), taken, java.time.Instant.now(),
                 telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected,
-                e.readSoFar());
+                e.readSoFar(), e.replay() == null ? null : Path.of(e.replay()), e.replayRecords(), e.serviceCalls(),
+                e.replaySha256());
         telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
                     try {
                         return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);
@@ -7156,6 +7171,12 @@ public final class MainFrame extends JFrame {
         @Override
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult captureBundle(String path, String notes, Long from, Long to) {
             return requestCapture(path, notes, from, to, "action socket");
+        }
+
+        @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult captureBundle(String path, String notes, Long from, Long to,
+                                                                                       String replay) {
+            return requestCapture(path, notes, from, to, replay, "action socket");
         }
 
         @Override

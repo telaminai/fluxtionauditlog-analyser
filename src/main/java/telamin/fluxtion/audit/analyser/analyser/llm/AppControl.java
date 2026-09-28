@@ -37,6 +37,12 @@ public interface AppControl {
         return ActionResult.error("evidence bundle capture is not enabled here");
     }
 
+    /** As above, carrying the run's replay records ({@code replay}, a file to read; null for none). */
+    default ActionResult captureBundle(String path, String notes, Long from, Long to, String replay) {
+        return replay == null ? captureBundle(path, notes, from, to)
+                : ActionResult.error("evidence bundle capture with a replay is not enabled here");
+    }
+
     default ActionResult follow(boolean on) { return ActionResult.error("Follow is not supported here; not following"); }
 
     /** Open with an explicit reader format (M31); default falls back to sniff-free canOpen routing. */

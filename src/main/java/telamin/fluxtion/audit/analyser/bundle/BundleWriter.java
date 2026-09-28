@@ -45,10 +45,24 @@ public final class BundleWriter {
      * @param settingsBytes  the SESSION's settings, serialised as a save would write them (EB.F11: never read from the file)
      * @param notes          the author's account, packed as {@code notes/NOTES.md}, or null/blank for none
      * @param excerpt        what was taken for a time-window excerpt, or null for the whole log
+     * @param replay         the run's replay records, already paired with the log by the session, or null for none
+     *                       (replay spec §4.1: the node allows one only with the whole log)
+     * @param replayRecords  how many records the pairing read from it
+     * @param serviceCalls   the log's exported-service calls, which a replay does not carry
+     * @param replaySha256   the digest of the bytes the pairing read; a copy that differs is refused
      */
     public record Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
                       BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
-                      String expectedLogSha256, boolean readSoFar) {
+                      String expectedLogSha256, boolean readSoFar, Path replay, int replayRecords, int serviceCalls,
+                      String replaySha256) {
+        /** A capture with no replay. */
+        public Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
+                   BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb,
+                   String expectedLogSha256, boolean readSoFar) {
+            this(out, log, graph, settingsName, settingsBytes, notes, excerpt, createdAt, version, thresholdMb,
+                    expectedLogSha256, readSoFar, null, 0, 0, null);
+        }
+
         /** A capture of a log that is not still growing. */
         public Job(Path out, Path log, Path graph, String settingsName, byte[] settingsBytes, String notes,
                    BundleExcerpt.Taken excerpt, Instant createdAt, String version, int thresholdMb, String expectedLogSha256) {
@@ -141,7 +155,29 @@ public final class BundleWriter {
                 Path notes = Files.createDirectories(payload.resolve("notes")).resolve("NOTES.md");
                 Files.writeString(notes, job.notes().endsWith("\n") ? job.notes() : job.notes() + "\n", StandardCharsets.UTF_8);
             }
-            String identity = EvidenceBundle.pack(payload, job.out(), job.createdAt(), job.version(), cut);
+            Map<String, Object> replay = null;
+            if (job.replay() != null) {
+                Path replayDir = Files.createDirectories(payload.resolve("replay"));
+                Path member = replayDir.resolve(job.replay().getFileName().toString());
+                Files.copy(job.replay(), member);
+                // the pairing read the file on the event thread; this copy is taken later, so hold it to those bytes
+                String got;
+                try (var in = Files.newInputStream(member)) {
+                    var md = java.security.MessageDigest.getInstance("SHA-256");
+                    byte[] buf = new byte[64 * 1024];
+                    for (int n; (n = in.read(buf)) > 0; ) md.update(buf, 0, n);
+                    got = java.util.HexFormat.of().formatHex(md.digest());
+                } catch (java.security.NoSuchAlgorithmException e) {
+                    throw new IllegalStateException(e);
+                }
+                if (!got.equalsIgnoreCase(String.valueOf(job.replaySha256()))) {
+                    throw new IOException("the replay file changed after it was paired with the log; nothing was written");
+                }
+                replay = new LinkedHashMap<>();
+                replay.put("records", job.replayRecords());
+                replay.put("serviceCalls", job.serviceCalls());
+            }
+            String identity = EvidenceBundle.pack(payload, job.out(), job.createdAt(), job.version(), cut, replay);
             return new Written(identity, List.copyOf(lines));
         } catch (IOException | RuntimeException e) {
             Files.deleteIfExists(job.out());

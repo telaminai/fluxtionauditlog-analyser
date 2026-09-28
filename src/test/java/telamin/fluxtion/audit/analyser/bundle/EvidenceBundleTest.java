@@ -161,8 +161,14 @@ public class EvidenceBundleTest {
 
         var future = entries(bundle);
         future.put(EvidenceBundle.MANIFEST, new String(future.get(EvidenceBundle.MANIFEST), StandardCharsets.UTF_8)
+                .replace("\"format\":1", "\"format\":3").getBytes(StandardCharsets.UTF_8));
+        refused(EvidenceBundle.verify(zip(tmp.resolve("future.fexp"), future)), "unsupported format 3");
+
+        // format 2 exists now (a bundle carrying a replay), and it cannot be claimed without its replay member
+        var claimed = entries(bundle);
+        claimed.put(EvidenceBundle.MANIFEST, new String(claimed.get(EvidenceBundle.MANIFEST), StandardCharsets.UTF_8)
                 .replace("\"format\":1", "\"format\":2").getBytes(StandardCharsets.UTF_8));
-        refused(EvidenceBundle.verify(zip(tmp.resolve("future.fexp"), future)), "unsupported format 2");
+        refused(EvidenceBundle.verify(zip(tmp.resolve("claimed.fexp"), claimed)), "needs a replay with its member");
     }
 
     @Test

@@ -48,6 +48,10 @@ public class EvidenceCapture implements EventLogSource {
     private String reason = "";
     private List<String> lines = List.of();
     private CaptureState.Answer answer = CaptureState.Answer.NONE;
+    // the replay this capture carries (replay spec §4.1), for the lines the node publishes when it is written
+    private int replayRecords;
+    private int serviceCalls;
+    private boolean withReplay;
 
     public EvidenceCapture(OpenLog openLog, OperationGate gate, EffectQueue effects) {
         this.openLog = openLog;
@@ -83,12 +87,15 @@ public class EvidenceCapture implements EventLogSource {
         lines = List.of();
         generation = openLog.generation();
         resumeFollow = openLog.following();
+        withReplay = e.replay() != null;
+        replayRecords = e.replayRecords();
+        serviceCalls = e.serviceCalls();
         answer = new CaptureState.Answer(e.request(), true, "");
         auditLog.info("capture", path).info("generation", generation).info("ticket", ticket);
         if (resumeFollow) effects.request(new SessionEffects.SetFollowEffect(0L, ticket, false));
         boolean readSoFar = "changed-on-disk".equals(e.freshness()) && openLog.following();
         effects.request(new SessionEffects.CaptureBundleEffect(0L, ticket, generation, e.path(), e.notes(), e.from(), e.to(),
-                readSoFar));
+                readSoFar, e.replay(), e.replayRecords(), e.serviceCalls(), e.replaySha256()));
         return true;
     }
 
@@ -120,6 +127,17 @@ public class EvidenceCapture implements EventLogSource {
             return "no record's log time is between " + (e.from() == null ? "the start" : e.from()) + " and "
                     + (e.to() == null ? "the end" : e.to()) + ": nothing to excerpt";
         }
+        if (e.replay() != null) {
+            // replay spec §4.3: the processor's state at a window's start depends on every earlier input
+            if (e.from() != null || e.to() != null) return "a replay needs the whole run: drop the window or the replay";
+            // a log still growing is captured as what was read so far, and a replay of the whole run is not that
+            if (openLog.following() && "changed-on-disk".equals(e.freshness())) {
+                return "the log is still growing, and the bundle would hold only what was read so far: a replay needs "
+                        + "the whole run, so capture it once the run has ended";
+            }
+            // the frame OBSERVED whether the replay pairs with the open log; refusing one that does not is ours
+            if (e.replayProblem() != null) return "the replay does not belong to this log: " + e.replayProblem();
+        }
         return null;
     }
 
@@ -138,7 +156,7 @@ public class EvidenceCapture implements EventLogSource {
         } else {
             phase = "WRITTEN";
             identity = e.identity();
-            lines = e.lines();
+            lines = withReplay ? withReplayLines(e.lines()) : e.lines();
             auditLog.info("captured", identity);
         }
         restoreFollow();
@@ -173,6 +191,18 @@ public class EvidenceCapture implements EventLogSource {
     public boolean onBundleDeleted(SessionEvents.BundleDeleted e) {
         auditLog.info("bundleDeleted", e.ok()).info("reason", String.valueOf(e.reason()));
         return false;
+    }
+
+    /** What the author is told about the replay the bundle carries: what it is, and what it cannot reproduce. */
+    private List<String> withReplayLines(List<String> written) {
+        List<String> out = new java.util.ArrayList<>(written);
+        out.add("replay: the run's " + replayRecords + " recorded inputs, paired with the log in order; a recipient can "
+                + "replay them into their own build and compare");
+        if (serviceCalls > 0) {
+            out.add("replay: the log holds " + serviceCalls + " exported-service call(s) the replay does not carry, so a "
+                    + "replay diverges from the first cycle that depends on one");
+        }
+        return List.copyOf(out);
     }
 
     /** The skill's step 1, second half: Follow comes back on whatever happened. */

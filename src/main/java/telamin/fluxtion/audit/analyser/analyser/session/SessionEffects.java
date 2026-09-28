@@ -118,9 +118,18 @@ public sealed interface SessionEffects {
      *
      * <p>{@code readSoFar} (owner, 2026-09-28, EB.F6): the log is still growing under Follow, so the bundle holds the
      * records read so far, as an excerpt of all of them, and never the file, which has more than was read.
+     *
+     * <p>{@code replay} (replay spec §4.1): the replay file the node allowed, already paired with the log, or null; the
+     * writer packs it as the bundle's {@code replay/} member and holds the copy to {@code replaySha256}.
      */
     record CaptureBundleEffect(long opId, long ticket, long generation, String path, String notes, Long from, Long to,
-                               boolean readSoFar) implements SessionEffects {
+                               boolean readSoFar, String replay, int replayRecords, int serviceCalls,
+                               String replaySha256) implements SessionEffects {
+        /** A capture with no replay. */
+        public CaptureBundleEffect(long opId, long ticket, long generation, String path, String notes, Long from, Long to,
+                                   boolean readSoFar) {
+            this(opId, ticket, generation, path, notes, from, to, readSoFar, null, 0, 0, null);
+        }
     }
 
     /** Delete a bundle this capture wrote, with any working folder left beside it; answer {@link SessionEvents.BundleDeleted}. */

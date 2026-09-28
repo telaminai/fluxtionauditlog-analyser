@@ -192,30 +192,49 @@ The capture's author points at the replay file (`report {bundle: {…, replay: <
 decides whether it goes in (rule 9: the file is read as a fact, and the node decides). The path itself never enters
 the bundle (first delivery, r4).
 
-**Pairing, because a replay file from another run is the likeliest mistake.** The node checks, in order, that the
-replay's records correspond one to one to the log's records, in order. `ReplayCapture` records every event the
-processor hears, and each audit record is one received event, so the two line up, apart from service-call records
-(`ExportFunctionAuditEvent`, §3.4), which the replay does not carry. The check compares event type and position. It **refuses** when they do not correspond, naming
-the first record that does not, because a replay from another run would produce a confident, wrong comparison.
+**Pairing, because a replay file from another run is the likeliest mistake** (built in R2, `ReplayPairing`). The
+frame observes it and the node decides.
+- **The rule.** A replay holds the run's inputs only (R-D10), each stamped with its cycle's instant (§3.3). So each
+  replay record must match a log record with the same event name and the same `eventTime`, **in order, within the
+  log**. The log records in between are the ones the graph raised itself, and service calls.
+- **Refused, naming the first record that has no match.** A replay from another run fails at record 0. A replay
+  re-stamped by a writer that read the clock again (UP-FLX-53) fails at the first record it moved. Records out of order
+  fail too. *r1 said the replay lines up one to one with the log minus service calls; that was written before R-D10,
+  and is wrong once the graph's own events are not recorded.*
+- **Nothing is loaded from the file.** Only each record's class name and time are read. Any document that is not a
+  replay record refuses the file, which, with the pairing, is what stands between an arbitrary file named as a replay
+  and the bundle it would be packed into.
+- **A limit, deliberately.** A replay that also recorded the graph's own event still pairs: that event is in the log
+  at that instant. Replaying it would raise the event twice, and that is the comparison's to find (§6), not the
+  pairing's. Pairing asks only whether the replay belongs to this log.
+- **The copy is held to the paired bytes.** The pairing digests the file in the same pass that reads it. The writer
+  copies the file later, off the event thread, and refuses a copy whose digest differs: *"the replay file changed
+  after it was paired with the log; nothing was written"*.
 
-It also compares times, and **reports rather than refuses** on a mismatch: *"recorded instants differ from the log's
-on K of N records, by at most X"*. With `ReplayCapture` it should be 0; a non-zero K means the replay was written by
-another writer (UP-FLX-53), and the recipient sees it before replaying.
+**Also refused, by name:** a replay with a window (§4.3), and a replay while the log is still growing under Follow,
+because the bundle would then hold only what was read so far.
+
+**What the author is told** (the node's lines, when it is written): *"replay: the run's N recorded inputs, paired
+with the log in order…"*, and, when the log has any, *"replay: the log holds K exported-service call(s) the replay
+does not carry, so a replay diverges from the first cycle that depends on one"*. `--verify` prints the same facts.
 
 ### 4.2 Manifest (format 2)
 
 ```json
-"replay": {"member": "replay/demo-quote-processor.replay.yaml",
-           "processor": "com.acme.demo.generated.DemoQuoteProcessor",
-           "inputTypes": ["com.acme.demo.event.Events$MarketDataEvent", "com.acme.demo.event.Events$OrderUpdateEvent"],
-           "inputs": 7, "serviceCalls": 0}
+"replay": {"member": "replay/demo-quote-recorded.replay.yaml", "records": 7, "serviceCalls": 0}
 ```
 
-`format` becomes 2 only when a replay is present, so a first-delivery reader still reads every bundle without one.
-`limits` replaces its "no replay" line with:
+- `format` is 2 **only** when a replay is present. Every other bundle stays format 1, byte for byte, so a
+  first-delivery reader still reads every bundle it could before.
+- A format-2 manifest must name its `replay/` member, and list it; a format-1 manifest may not state a replay. So a
+  replay can be neither claimed without its member nor carried without its claim.
+- `limits` replaces its "no replay" line with:
 
 > *"replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the
 > processor reads nothing the records do not carry"*
+
+*r1 listed `processor` and `inputTypes` here as well. `inputTypes` went with R-D10, since nothing in the bundle needs
+to classify records any more. The processor's identity is the graph member's, for the runner (§5.2).*
 
 ### 4.3 Excerpts and a replay
 
@@ -298,7 +317,7 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 |---|---|---|
 | **R0** ☑ | Prove the auditor path. Generate the DEMO processor with the DEMO recorder installed, record a run, and replay it: the spike's `record-all-whitelist` result, with no hand-called `eventReceived` | done: builder 1.0.71 (the root pom's), runtime 1.0.16 |
 | R1 ☑ | `ReplayCapture` (identity recording, the static codec) and the injecting reader into the DEMO; commit the recorded fixture, the log, the replay and the graph from one real run with no service calls (§3.4) | R0; M70.R0b if the fixtures are regenerated |
-| R2 | The `replay` member: the `evidenceCapture` node's pairing, the whole-log rule and manifest format 2 | R1 |
+| R2 ☑ | The `replay` member: the `evidenceCapture` node's pairing, the whole-log rule and manifest format 2 | R1 |
 | R3 | `--replay-compare` and its rule (§6) | R1 |
 | R4 | The runner (§5), and the demo driver's replay leg | R2, R3 |
 | R5 | The docs site's *Evidence bundles* section gains *Replay*; CHANGELOG | R4 |

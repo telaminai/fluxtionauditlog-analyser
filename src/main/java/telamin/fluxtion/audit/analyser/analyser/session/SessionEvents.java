@@ -376,10 +376,23 @@ public final class SessionEvents {
      * @param onePlainFile     whether the log is exactly one regular local file
      * @param windowRecords    for a window ({@code from}/{@code to}), how many records it selects in the open log, as
      *                         observed at this request; -1 when no window was asked for
+     * @param replay           the replay file the author named (replay spec §4.1), or null for none
+     * @param replayRecords    how many replay records the pairing read from it
+     * @param serviceCalls     the open log's exported-service calls, which a replay does not carry
+     * @param replayProblem    why the replay does not pair with the open log, in words, or null when it pairs
+     * @param replaySha256     the digest of exactly the bytes that were paired
      */
     public record BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
                                          String observedIdentity, String freshness, boolean onePlainFile,
-                                         int windowRecords, String origin) {
+                                         int windowRecords, String origin, String replay, int replayRecords,
+                                         int serviceCalls, String replayProblem, String replaySha256) {
+        /** A request with no replay. */
+        public BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
+                                      String observedIdentity, String freshness, boolean onePlainFile,
+                                      int windowRecords, String origin) {
+            this(request, path, notes, from, to, observedIdentity, freshness, onePlainFile, windowRecords, origin,
+                    null, 0, 0, null, null);
+        }
     }
 
     public record FollowSet(long opId, long ticket, boolean on) implements Result {

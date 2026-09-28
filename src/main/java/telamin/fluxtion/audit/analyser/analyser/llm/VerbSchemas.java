@@ -180,7 +180,8 @@ public final class VerbSchemas {
                                 + "saved charts, reports and walks, and optional notes) as ONE verifiable .fexp. Goes alone. "
                                 + "Refused, by name, with no log, a load pending, a log file that changed or is not one "
                                 + "plain file. Written off the event thread: context.capture says when, its identity, and "
-                                + "what was left out or redacted. Unsigned, and not a replay"),
+                                + "what was left out or redacted. Unsigned. It carries a replay only when 'replay' names the "
+                                + "run's replay records"),
                         p("name", string(), "the report's identity — building again with the same name REPLACES it"),
                         p("delete", bool(), "true removes the report named by 'name', RECOVERABLY: it moves to "
                                 + "a recently-deleted list on this machine (restore it with 'restore'). The log, "
@@ -637,7 +638,11 @@ public final class VerbSchemas {
                 p("notes", string(), "the author's account, packed as notes/NOTES.md"),
                 p("from", integer(), "EXCERPT: only records whose log time is at or after this (epoch millis); walks "
                         + "and reports are re-based onto the excerpt, and any that point outside it are left out and named"),
-                p("to", integer(), "EXCERPT: only records at or before this (epoch millis)")));
+                p("to", integer(), "EXCERPT: only records at or before this (epoch millis)"),
+                p("replay", string(), "REPLAY: the path of the run's replay records, recorded with the log. They must "
+                        + "pair with it (each record a log record's event at its eventTime, in order), and only with the "
+                        + "whole log: refused with a window, or while the log is still growing. The log's exported-service "
+                        + "calls are counted, because a replay does not carry them")));
         m.put("required", List.of("path"));
         return m;
     }

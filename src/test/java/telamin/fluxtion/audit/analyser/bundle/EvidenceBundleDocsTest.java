@@ -63,9 +63,9 @@ class EvidenceBundleDocsTest {
         var report = (Map<String, Object>) telamin.fluxtion.audit.analyser.analyser.llm.VerbSchemas.all().get("report");
         var props = (Map<String, Object>) ((Map<String, Object>) report.get("properties")).get("bundle");
         Set<String> schema = new TreeSet<>(((Map<String, Object>) props.get("properties")).keySet());
-        assertEquals(Set.of("from", "notes", "path", "to"), schema, "control: the schema's bundle fields");
+        assertEquals(Set.of("from", "notes", "path", "replay", "to"), schema, "control: the schema's bundle fields");
         String reference = Files.readString(SITE.resolve("reference.md"));
-        assertTrue(reference.contains("report {bundle: {path, notes?, from?, to?}}"), "the reference states the form");
+        assertTrue(reference.contains("report {bundle: {path, notes?, from?, to?, replay?}}"), "the reference states the form");
         String table = reference.substring(reference.indexOf("| field | meaning |"), reference.indexOf("## Reading"));
         for (String field : schema) assertTrue(table.contains("`" + field + "`"), "the reference's field table documents '" + field + "'");
     }
@@ -83,13 +83,20 @@ class EvidenceBundleDocsTest {
     }
 
     @Test
-    @DisplayName("no page claims more than a bundle can: authentication or replay, except to deny it")
+    @DisplayName("no page claims more than a bundle can: authentication or reproduction, except to deny it")
     void noOverclaim() throws Exception {
+        // M70.R2: a bundle can CARRY the run's replay records, so a page may describe that member. Nothing replays or
+        // compares them yet (R3, R4), so a page may still mention reproducing, or authenticating, only to deny it.
         for (String line : pages().split("\n")) {
             String l = line.toLowerCase(java.util.Locale.ROOT);
-            if (l.contains("authentic") || l.contains("reproduc") || l.contains("replay")) {
-                assertTrue(l.contains("not") || l.contains("no replay") || l.contains("never") || l.contains("unsigned"),
-                        "a page may mention authentication or replay only to deny it: " + line);
+            boolean denies = l.contains("not") || l.contains("no replay") || l.contains("never") || l.contains("unsigned");
+            if (l.contains("authentic") || l.contains("reproduc")) {
+                assertTrue(denies, "a page may mention authentication or reproduction only to deny it: " + line);
+            } else if (l.contains("replay")) {
+                boolean aboutTheMember = l.contains("`replay`") || l.contains("replay/") || l.contains("replay records")
+                        || l.contains("replay:") || l.contains("\"replay\"");
+                assertTrue(denies || aboutTheMember,
+                        "a page may mention replay only to deny it or to describe the replay member: " + line);
             }
         }
     }

@@ -221,6 +221,35 @@ class EvidenceCaptureFrameTest {
     }
 
     @Test
+    @DisplayName("M70.R2 through the verb: a paired replay is carried as format 2; another run's replay is refused, nothing written")
+    void aReplayIsCarriedOnlyWhenItPairs(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        Path recordedLog = Path.of("src/test/resources/replay/demo-quote-recorded-audit.yaml").toAbsolutePath();
+        Path replay = Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml").toAbsolutePath();
+        try (var f = shown(tmp)) {
+            Path ex = exchange(f, tmp);
+            // the recorded run's replay against ANOTHER run's log (the shipped DEMO): refused by the node, nothing left
+            openLog(f, DEMO_LOG);
+            AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
+            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "wrong.fexp", "replay", replay.toString())))));
+            refused(echo.get(), "the replay does not belong to this log");
+            assertEquals(List.of(), leftBehind(ex), "a refused capture writes nothing");
+
+            // against its own log: written, format 2, with the replay member and what the node says of it
+            openLog(f, recordedLog);
+            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "run.fexp", "replay", replay.toString())))));
+            assertEquals(Boolean.TRUE, echo.get().get("ok"), "a paired replay is capturable: " + echo.get());
+            Map<String, Object> c = awaitDecided(f);
+            assertEquals("WRITTEN", c.get("phase"), String.valueOf(c));
+            assertTrue(String.valueOf(c.get("lines")).contains("the run's 7 recorded inputs, paired with the log in order"),
+                    String.valueOf(c.get("lines")));
+            var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(ex.resolve("run.fexp"));
+            assertTrue(v.ok(), v.refusal());
+            assertEquals("replay/demo-quote-recorded.replay.yaml", v.replay().get("member"));
+        }
+    }
+
+    @Test
     @DisplayName("a memory-mapped log that did NOT change is captured: a large log is not refused for being large")
     void anUnchangedMappedLogIsCaptured(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());

@@ -230,7 +230,7 @@ public final class ActionExecutor implements RenderExecutor {
                 if (params.containsKey("bundle")) {
                     if (params.size() != 1) return ActionResult.error("report 'bundle' must be used alone");
                     if (!(params.get("bundle") instanceof Map<?, ?> b)) {
-                        return ActionResult.error("report 'bundle' is an object: {path, notes?, from?, to?}");
+                        return ActionResult.error("report 'bundle' is an object: {path, notes?, from?, to?, replay?}");
                     }
                     var out = guardedPath(b.get("path"));      // B1: the same guard and directory as every verb write
                     if (!out.ok()) return ActionResult.error(out.error());
@@ -241,9 +241,13 @@ public final class ActionExecutor implements RenderExecutor {
                         return ActionResult.error("bundle 'from' and 'to' are epoch millis");
                     }
                     if (from != null && to != null && from > to) return ActionResult.error("bundle 'from' is after 'to'");
+                    Object replay = b.get("replay");
+                    if (replay != null && !(replay instanceof String r && !r.isBlank())) {
+                        return ActionResult.error("bundle 'replay' is the path of the run's replay records");
+                    }
                     return onEdt(() -> app == null
                             ? ActionResult.error("'report' is not enabled here")
-                            : app.captureBundle(out.path().toString(), (String) notes, from, to));
+                            : app.captureBundle(out.path().toString(), (String) notes, from, to, (String) replay));
                 }
                 if (params.containsKey("restore")) {
                     if (params.size() != 1) return ActionResult.error("report 'restore' must be used alone");

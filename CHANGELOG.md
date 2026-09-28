@@ -6,6 +6,21 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Added
+
+- **An evidence bundle can carry the run's replay records.** Name them with
+  `report {bundle: {path, replay: <file>}}`. They must pair with the open log: each replay record is one of the
+  log's records, at its `eventTime`, in order. A replay from another run is refused, naming its first record that
+  does not match. It is also refused with a time window, or while the log is still growing, because a replay needs
+  the whole run. The records are packed as the `replay/` member of a **format 2** bundle, and a bundle without them
+  stays format 1, unchanged. The capture says how many recorded inputs it carries, and how many exported-service
+  calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit.
+  Nothing replays them yet: replaying into your own build and comparing is the next step.
+- **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It
+  records only the inputs the caller names, stamped with the instant each cycle ran at, for exactly the event types
+  the processor handles. It also writes a recorded run's log, replay records and graph, and writes them only after
+  replaying them reproduces the log.
+
 ## [1.27.0] - 2026-09-28
 
 ### Added

@@ -154,7 +154,13 @@ public class Main {
                 + whole(v.excerpt().get("lastRecord")) + " of " + whole(v.excerpt().get("sourceRecords")) + ", not the whole log"
                 + (Boolean.TRUE.equals(v.excerpt().get("readSoFar"))
                         ? " (it was still growing when captured: these are the records read so far)" : ""));
-        limits(out);
+        if (v.replay() != null) out.println("replay: " + v.replay().get("member") + ", the run's "
+                + whole(v.replay().get("records")) + " recorded inputs"
+                + (v.replay().get("serviceCalls") instanceof Number n && n.longValue() > 0
+                        ? "; the log holds " + n.longValue() + " exported-service call(s) the replay does not carry, so a"
+                          + " replay diverges from the first cycle that depends on one"
+                        : ""));
+        limits(v, out);
         return 0;
     }
 
@@ -163,8 +169,8 @@ public class Main {
         return n instanceof Number x ? Long.toString(x.longValue()) : String.valueOf(n);
     }
 
-    private static void limits(java.io.PrintStream out) {
-        for (String l : telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.LIMITS) out.println("limit: " + l);
+    private static void limits(telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.Verification v, java.io.PrintStream out) {
+        for (String l : telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.limits(v)) out.println("limit: " + l);
     }
 
     static boolean isHelpFlag(String arg) {

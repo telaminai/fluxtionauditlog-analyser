@@ -70,6 +70,27 @@ class MainBundleTest {
     }
 
     @Test
+    @DisplayName("a bundle carrying replay records: verify says so, with its own limit, and never 'no replay'")
+    void aReplayBundleSaysWhatItCarries(@TempDir Path tmp) throws Exception {
+        Path folder = demo(tmp);
+        Files.createDirectories(folder.resolve("replay"));
+        Files.copy(Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml"),
+                folder.resolve("replay/demo-quote-recorded.replay.yaml"));
+        Path bundle = tmp.resolve("replay.fexp");
+        EvidenceBundle.pack(folder, bundle, java.time.Instant.now(), "test", null,
+                new java.util.LinkedHashMap<>(java.util.Map.of("records", 7, "serviceCalls", 2)));
+
+        Run verify = run("--verify", bundle.toString());
+        assertEquals(0, verify.code(), verify.all());
+        assertTrue(verify.out().contains("replay: replay/demo-quote-recorded.replay.yaml, the run's 7 recorded inputs; "
+                + "the log holds 2 exported-service call(s) the replay does not carry"), verify.out());
+        assertTrue(verify.out().contains("limit: replay: the recorded inputs reproduce this log only on a build whose graph matches"),
+                verify.out());
+        assertFalse(verify.out().contains("no replay"), "a replay bundle never states the no-replay limit:\n" + verify.out());
+        assertTrue(verify.out().contains("limit: unsigned"), verify.out());
+    }
+
+    @Test
     @DisplayName("a refused bundle exits 1, names the member on stderr, prints no 'verified' and unpacks nothing")
     void aRefusalExitsOne(@TempDir Path tmp) throws Exception {
         Path folder = demo(tmp);

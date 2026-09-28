@@ -173,6 +173,79 @@ class EvidenceCaptureTest {
         assertEquals(PATH, a.captures.get(0).path());
     }
 
+    // ---- a replay (M70.R2, replay spec §4.1): the frame observes the pairing, the node decides -----------------
+
+    static final String REPLAY = "/logs/demo-quote-recorded.replay.yaml";
+
+    /** A request carrying a replay, as the frame makes it: observed to pair (problem null) unless a case says otherwise. */
+    static SessionEvents.BundleCaptureRequested withReplay(long id, Long from, String freshness, String problem, int serviceCalls) {
+        return new SessionEvents.BundleCaptureRequested(id, PATH, null, from, null, null, freshness, true,
+                from == null ? -1 : 3, "test", REPLAY, 7, serviceCalls, problem, problem == null ? "abc123" : null);
+    }
+
+    @Test
+    @DisplayName("replay: a replay that pairs travels with the one write, with what the pairing read")
+    void aPairedReplayTravelsWithTheWrite() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.submit(withReplay(20, null, "unchanged-metadata", null, 0));
+        assertTrue(capture(d).answer().accepted(), capture(d).answer().reason());
+        var e = a.captures.get(0);
+        assertEquals(REPLAY, e.replay());
+        assertEquals(7, e.replayRecords());
+        assertEquals("abc123", e.replaySha256(), "the digest of the paired bytes, to hold the copy to");
+    }
+
+    @Test
+    @DisplayName("replay: one that does not pair with the log is refused by name, nothing written")
+    void aReplayFromAnotherRunIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.submit(withReplay(21, null, "unchanged-metadata", "its record 0 (MarketDataEvent at 1) matches no log record", 0));
+        refusedWritingNothing(d, a, 21, "the replay does not belong to this log: its record 0");
+    }
+
+    @Test
+    @DisplayName("replay: with a window, refused by name — a replay needs the whole run")
+    void aReplayWithAWindowIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.submit(withReplay(22, 1L, "unchanged-metadata", null, 0));
+        refusedWritingNothing(d, a, 22, "a replay needs the whole run");
+    }
+
+    @Test
+    @DisplayName("replay: while the log is still growing, refused by name — the bundle would hold only what was read")
+    void aReplayOfAGrowingLogIsRefused() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = following(a, 10);
+        d.submit(withReplay(23, null, "changed-on-disk", null, 0));
+        refusedWritingNothing(d, a, 23, "a replay needs the whole run");
+    }
+
+    @Test
+    @DisplayName("replay: written, the node says what it carries, and names the service calls it cannot")
+    void aWrittenReplayIsDescribedAndItsLimitNamed() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.submit(withReplay(24, null, "unchanged-metadata", null, 2));
+        var e = a.captures.get(0);
+        d.post(new SessionEvents.BundleWritten(e.ticket(), e.generation(), PATH, "sha256:demo", List.of("left out: DEMO")));
+        List<String> lines = capture(d).lines();
+        assertEquals("left out: DEMO", lines.get(0), "the writer's lines first");
+        assertTrue(lines.get(1).contains("the run's 7 recorded inputs, paired with the log in order"), lines.toString());
+        assertTrue(lines.get(2).contains("2 exported-service call(s) the replay does not carry"), lines.toString());
+
+        // and a bundle with no replay says nothing about one
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver plain = opened(b);
+        plain.submit(ok(25));
+        var f = b.captures.get(0);
+        plain.post(new SessionEvents.BundleWritten(f.ticket(), f.generation(), PATH, "sha256:demo", List.of()));
+        assertEquals(List.of(), capture(plain).lines());
+        assertEquals(null, f.replay());
+    }
+
     @Test
     @DisplayName("written under the same log: it stands, with its identity and lines")
     void writtenUnderTheSameLogStands() {

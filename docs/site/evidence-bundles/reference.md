@@ -6,7 +6,7 @@ session, because every refusal is a fact only it holds. Reading needs nothing bu
 ## Writing: one operation on the analyser
 
 ```
-report {bundle: {path, notes?, from?, to?}}
+report {bundle: {path, notes?, from?, to?, replay?}}
 ```
 
 | field | meaning |
@@ -14,6 +14,7 @@ report {bundle: {path, notes?, from?, to?}}
 | `path` | the `.fexp`, inside the exchange directory; never overwritten |
 | `notes` | your account, packed as `notes/NOTES.md` |
 | `from`, `to` | epoch millis: pack only that window of records, as an excerpt ([Sending](sending.md#an-excerpt-only-the-part-that-matters)) |
+| `replay` | the path of the run's replay records, written by a replay writer in the same run as the log. Packed as the `replay/` member. They must pair with the log: each record is one of the log's records, at its `eventTime`, in order. Refused with `from`/`to`, while the log is still growing, or when they do not pair. The log's exported-service calls are counted, because replay records do not carry them |
 
 The echo says `phase: WRITING`. **`context.capture`** then says `WRITTEN`, with the `identity` and `lines` (what
 was left out, redacted or excerpted), or `REFUSED`, with the `reason`. A refusal the analyser can make at once, such
@@ -25,7 +26,7 @@ An installed analyser is `analyser …`; from a jar, `java -jar fluxtion-auditlo
 
 | command | what it does | exit code |
 |---|---|---|
-| `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, and the limits | 0 · 1 refused, naming the member · 2 usage |
+| `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, `replay: …` for a bundle with replay records, and the limits | 0 · 1 refused, naming the member · 2 usage |
 | `--unpack <bundle.fexp> [--into <dir>]` | verifies, then extracts into a **new** directory named for the identity. Prints `working copy:` | 0 · 1 refused, nothing extracted · 2 usage |
 
 Verification refuses, naming the member:
@@ -68,6 +69,25 @@ the checks only the running analyser can make. They now exit 2 and say so.
 - **An excerpt adds `excerpt`** after `graph`: `{"firstRecord":4,"lastRecord":8,"sourceRecords":10,"from":…,"to":…}`.
   A recipient never reads a slice as the whole log. A log captured while still growing adds `"readSoFar":true`, and
   `sourceRecords` is then the number of records read.
+
+## The manifest with replay records (format 2)
+
+A bundle that carries replay records is **format 2**; every other bundle stays format 1, byte for byte. It adds
+`"replay"` after `graph` and states its own second limit:
+
+```json
+{"format":2, …,
+ "replay":{"member":"replay/demo-quote-recorded.replay.yaml","records":7,"serviceCalls":0},
+ "members":[…],
+ "limits":["unsigned: verification detects a changed member; it does not authenticate the sender",
+           "replay: the recorded inputs reproduce this log only on a build whose graph matches, and only as far as the processor reads nothing the records do not carry"]}
+```
+
+- A format 2 manifest must name its `replay/` member, and list it; verification refuses one that does not.
+- The replay records are the run's inputs only, each stamped with the instant its cycle ran at. The events the graph
+  raised itself are in the log and not in the replay records.
+- **Nothing replays them yet.** Replaying the records into your own build of the processor, and comparing the result
+  with the log, is the next delivery. Today a bundle carries and verifies them and does not reproduce anything.
 
 ## Context fields
 

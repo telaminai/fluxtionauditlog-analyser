@@ -21,6 +21,7 @@ BUNDLE_PROFILE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundlePro
 WRITER = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleWriter.java'
 EXCERPT = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleExcerpt.java'
 CAPTURE = NODE + 'EvidenceCapture.java'
+PAIRING = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayPairing.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
@@ -1125,7 +1126,7 @@ CONTROLS = [
      '                seen.add(name);\n',
      'EvidenceBundleTest#aDuplicateEntryIsRefused'),
     ('eb-b2-refuses-another-format', BUNDLE,
-     '        if (!(format instanceof Number n) || n.intValue() != FORMAT) {\n',
+     '        if (!(format instanceof Number n) || (n.intValue() != FORMAT && n.intValue() != FORMAT_REPLAY)) {\n',
      '        if (!(format instanceof Number n)) {\n',
      'EvidenceBundleTest#aBadManifestIsRefused'),
     ('eb-b2-unpacks-nothing-on-refusal', BUNDLE,
@@ -1136,9 +1137,7 @@ CONTROLS = [
      '        m.put("createdAt", Instant.now().toString());\n',
      'EvidenceBundleTest#theIdentityIsPinnedAndDeterministic'),
     ('eb-b2-verify-states-the-limits', MAIN,
-     '                        ? " (it was still growing when captured: these are the records read so far)" : ""));\n'
-     '        limits(out);\n',
-     '                        ? " (it was still growing when captured: these are the records read so far)" : ""));\n',
+     '        limits(v, out);\n', '',
      'MainBundleTest#theHappyPath'),
     ('eb-b2-a-refusal-exits-one', MAIN,
      '            err.println("REFUSED: " + v.refusal());\n            return 1;\n',
@@ -1231,6 +1230,37 @@ CONTROLS = [
     # reaper's cannot-tell branch (a filesystem without locking); the observation's list-size test
     # for one plain file: registered as a candidate against EvidenceCaptureFrameTest#notOnePlainFile, it SURVIVED
     # (2026-09-28), because the observation's other conditions already refuse a rolled set — masked, and now shown.
+    # M70.R2: a bundle carrying the run's replay records (spec-evidence-bundle-replay §4). The frame observes the
+    # pairing (ReplayPairing), the node decides (EvidenceCapture), the writer holds the copy to the paired bytes, and
+    # the format states a replay only with its member.
+    ('rp-refuses-a-replay-with-a-window', CAPTURE,
+     '            if (e.from() != null || e.to() != null) return "a replay needs the whole run: drop the window or the replay";\n', '',
+     'EvidenceCaptureTest#aReplayWithAWindowIsRefused'),
+    ('rp-refuses-a-replay-of-a-growing-log', CAPTURE,
+     '            if (openLog.following() && "changed-on-disk".equals(e.freshness())) {\n', '            if (false) {\n',
+     'EvidenceCaptureTest#aReplayOfAGrowingLogIsRefused'),
+    ('rp-refuses-an-unpaired-replay', CAPTURE,
+     '            if (e.replayProblem() != null) return "the replay does not belong to this log: " + e.replayProblem();\n', '',
+     'EvidenceCaptureTest#aReplayFromAnotherRunIsRefused'),
+    ('rp-pairing-matches-the-time', PAIRING,
+     ' && Long.valueOf(at).equals(index.eventTime(j))', '',
+     'ReplayPairingTest#aReplayRestampedByAWriterThatReadTheClockAgainIsRefused'),
+    ('rp-pairing-refuses-a-non-record', PAIRING,
+     '                if (!line.equals("---")) return notRecord(k, serviceCalls, lineNo);\n', '',
+     'ReplayPairingTest#aFileThatIsNotAReplayIsRefusedWithoutLoadingAnything'),
+    ('rp-writer-holds-the-copy-to-the-digest', WRITER,
+     '                if (!got.equalsIgnoreCase(String.valueOf(job.replaySha256()))) {\n', '                if (false) {\n',
+     'ReplayBundleTest#aReplayChangedAfterPairingIsRefused'),
+    ('rp-format2-needs-its-member', BUNDLE,
+     '        if (!member.startsWith(REPLAY_DIR) || members.stream().noneMatch(mm -> mm.path().equals(member))) {\n',
+     '        if (false) {\n',
+     'ReplayBundleTest#claimAndMemberGoTogether'),
+    ('rp-format1-states-no-replay', BUNDLE,
+     '            if (x != null) throw new IllegalArgumentException("a format " + FORMAT + " manifest states a replay");\n', '',
+     'ReplayBundleTest#claimAndMemberGoTogether'),
+    ('rp-verify-states-the-replay-limit', BUNDLE,
+     '        return v.replay() == null ? LIMITS : LIMITS_REPLAY;\n', '        return LIMITS;\n',
+     'MainBundleTest#aReplayBundleSaysWhatItCarries'),
     ('cv-refuses-no-log', CAPTURE,
      '        if (!openLog.isOpen()) return "no log is open: open the log you are investigating first";\n', '',
      'EvidenceCaptureTest#noLogIsRefused'),
@@ -1287,8 +1317,8 @@ CONTROLS = [
     # EvidenceCaptureFrameTest#anOpenChartEditIsCaptured it SURVIVED (2026-09-28): every chart edit already syncs
     # (onGraphsEdited -> saveConfigQuietly), so it is redundant today and kept as the pre-save hook's guarantee.
     ('cv-the-frame-observes-freshness', UI + 'MainFrame.java',
-     '                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin));\n',
-     '                observed, null, onePlainFile, windowRecords, origin));\n',
+     '                observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin, replay,\n',
+     '                observed, null, onePlainFile, windowRecords, origin, replay,\n',
      'EvidenceCaptureFrameTest#aGrowingLogBundlesWhatWasRead'),   # EB.F6: the observation is what tells growth
     ('cv-the-frame-observes-the-identity', UI + 'MainFrame.java',
      '        String observed = identity == null ? null : identity.verdict().name().toLowerCase(java.util.Locale.ROOT);\n',
