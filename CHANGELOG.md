@@ -29,8 +29,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   - each callout carries the number the strip states;
   - a step that points at the topology canvas is *not shown* when the record it names is not the one selected —
     the canvas follows the selection, so lighting it would point at a different record;
-  - a walk that ends because its definition changed now does so however it changed: importing settings over it, or
-    switching project away from it, ends it exactly as saving over it does;
+  - importing settings over a playing walk ends it with the reason, exactly as saving over it does, and switching
+    project away from it ends it too;
   - on a log whose file has never been re-checked (no Follow, or a reader that cannot say), a step resting on
     records or charts says so, because *current* there means unchanged since the step was saved, not unchanged on
     disk.
