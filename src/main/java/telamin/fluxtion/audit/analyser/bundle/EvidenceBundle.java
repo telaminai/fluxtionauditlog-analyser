@@ -189,6 +189,7 @@ public final class EvidenceBundle {
         Map<String, Object> excerpt = null;
         Map<String, Member> listed = null;
         Set<String> seen = new LinkedHashSet<>();
+        Map<String, String> foldedPaths = new LinkedHashMap<>();
         try (InputStream in = Files.newInputStream(bundle); ZipInputStream zip = new ZipInputStream(in)) {
             ZipEntry e;
             while ((e = zip.getNextEntry()) != null) {
@@ -219,6 +220,17 @@ public final class EvidenceBundle {
                         if (bad != null) return refused(identity, bad);
                         if (m.path().equals(MANIFEST) || listed.put(m.path(), m) != null) {
                             return refused(identity, "the manifest lists a member twice: " + m.path());
+                        }
+                        // A bundle whose members differ only in case cannot be unpacked the same way everywhere:
+                        // on a case-sensitive filesystem both are written, on a case-insensitive one the second
+                        // collides with the first. Refusing it HERE means verify and unpack agree, and agree on
+                        // every disk — the alternative, found by a reviewer, is a bundle that verifies, unpacks on
+                        // their machine and is refused on yours, with the refusal naming only a path. An artefact
+                        // whose meaning depends on the recipient's filesystem is not portable evidence.
+                        String clash = foldedPaths.put(m.path().toLowerCase(java.util.Locale.ROOT), m.path());
+                        if (clash != null && !clash.equals(m.path())) {
+                            return refused(identity, "two members differ only in case, so this bundle cannot be "
+                                    + "unpacked the same way on every filesystem: " + clash + " and " + m.path());
                         }
                     }
                     continue;

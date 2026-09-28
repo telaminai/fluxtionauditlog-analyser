@@ -1410,4 +1410,16 @@ CONTROLS = [
     ('cv-f9-another-log-opened-from-the-frame', CAPTURE,
      '        if (!openLog.isOpen() || openLog.generation() != e.generation()) {\n', '        if (!openLog.isOpen()) {\n',
      'EvidenceCaptureFrameTest#anotherLogOpenedDuringTheWriteDeletesTheBundle'),
+    # ---- portability review: a bundle whose members differ only in case is refused by VERIFY, so the answer
+    # does not depend on the recipient's filesystem. Found by a reviewer on a case-sensitive volume: it
+    # verified, unpacked there, and was refused on a case-insensitive disk with a reason-less message.
+    ('cv-a-case-collision-is-refused', BUNDLE,
+     'String clash = foldedPaths.put(m.path().toLowerCase(java.util.Locale.ROOT), m.path());',
+     'String clash = null;',
+     'BundleCaseCollisionTest#aCaseCollisionIsRefusedByVerify'),
+    # ...and the refusal names BOTH paths, or the reader is left guessing what it collided with.
+    ('cv-a-case-collision-names-both', BUNDLE,
+     '''" + clash + " and " + m.path()''',
+     '''" + m.path()''',
+     'BundleCaseCollisionTest#aCaseCollisionIsRefusedByVerify'),
 ]
