@@ -56,12 +56,15 @@ public class IdentityBanner implements EventLogSource {
     /** The open log moved: state the banner again if the verdict or its reason changed. */
     @OnTrigger
     public boolean onStateChanged() {
+        IdentityBannerView view;
         if (!openLog.isOpen()) {
-            emitted = null;              // the next log's first view is always emitted
-            return false;
+            // Review of #58: the three backends are the banner's ONLY writers, so a close must be stated too — or
+            // a warning stays over an empty screen. Nothing told yet means nothing to take down.
+            if (emitted == null) return false;
+            view = IdentityBannerView.of(emitted.generation(), null, null);
+        } else {
+            view = IdentityBannerView.of(openLog.generation(), openLog.identity(), openLog.identityReason());
         }
-        IdentityBannerView view = IdentityBannerView.of(
-                openLog.generation(), openLog.identity(), openLog.identityReason());
         if (view.equals(emitted)) return false;
         Map<String, Object> changed = view.changedFrom(emitted);
         emitted = view;

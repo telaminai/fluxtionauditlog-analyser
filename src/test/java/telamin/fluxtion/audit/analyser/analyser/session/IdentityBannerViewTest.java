@@ -57,6 +57,27 @@ class IdentityBannerViewTest {
     }
 
     @Test
+    @DisplayName("Review of #58: closing a log with a warning up takes the banner DOWN — nothing else will")
+    void closingTheLogTakesTheBannerDown() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        long g = d.snapshot().logGeneration();
+        d.post(new SessionEvents.LogIdentityObserved(g, "REPLACEMENT", "replaced"));
+        assertTrue(a.identityBanners.get(a.identityBanners.size() - 1).shown(), "the warning is up");
+        int after = a.identityBanners.size();
+
+        d.post(new SessionEvents.LogCleared(g));
+
+        assertEquals(after + 1, a.identityBanners.size(),
+                "the three backends are the only writers of the banner: unless the session tells them the log is gone, "
+                        + "the table, the charts and the detail pane keep saying 'reopen the log' over an empty screen");
+        assertFalse(a.identityBanners.get(a.identityBanners.size() - 1).shown());
+
+        d.post(new SessionEvents.LogCleared(g));
+        assertEquals(after + 1, a.identityBanners.size(), "and a closed log is told once, not on every later cycle");
+    }
+
+    @Test
     @DisplayName("An unchanged verdict is not re-drawn — this is why the element costs no records")
     void anUnchangedVerdictIsNotRedrawn() {
         FakeSessionAdapter a = new FakeSessionAdapter();
