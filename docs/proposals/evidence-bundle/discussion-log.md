@@ -561,12 +561,28 @@ Merged as `5cdd12ec` (PR #57), 2026-09-28. For §8, what the bundle can rely on:
 - **Still open, and relevant here:** #56's layout owner (A-7, "no room") is not yet landed, so an undrawn chart
   reports why but cannot make room.
 
+### L-33 · Owner decisions: package-only first, exact-bytes identity, unsigned · resolved (OWNER, 2026-09-28)
+
+- **D-0 amended.** The first delivery is a portable investigation **without replay**: capture, verify, open and
+  play the walk, for a demo that works easily. Replay and comparison are **deferred, not dropped**; they are the
+  second delivery. A first-delivery claim never says the bundle reproduces or fixes the incident.
+- **D-2 accepted.** The identity is `sha256:` of the exact manifest bytes, held outside the manifest.
+- **D-3 accepted.** Unsigned first. Verification detects a changed member and does not authenticate the sender, and
+  the UI says so.
+
+Consequences:
+- EB-0 shrinks to the portable-state probe (a coherent capture of the log, profile, flags and view);
+- EB-3 (replay) moves out of the first delivery;
+- EB-2 is mostly supplied by M69 (L-32).
+
+The next artefact is a packaging spec slice.
+
 ## Open disputes, at a glance
 
 | log | question | what settles it |
 |---|---|---|
-| L-5, L-21, L-30 | Sign in the first delivery? | **owner:** is authenticated ticket authorship required now? If not, unsigned with its limits (all drafts now agree, L-30) |
-| L-6, L-20, L-30 | Exact manifest bytes, or canonical JSON? | **owner:** all drafts now recommend exact bytes (L-30); pin it with cross-reader fixtures |
+| L-5, L-21, L-30, L-33 | Sign in the first delivery? — **decided: unsigned (L-33)** | **owner:** is authenticated ticket authorship required now? If not, unsigned with its limits (all drafts now agree, L-30) |
+| L-6, L-20, L-30, L-33 | Exact manifest bytes, or canonical JSON? — **decided: exact bytes (L-33)** | **owner:** all drafts now recommend exact bytes (L-30); pin it with cross-reader fixtures |
 | L-16, L-17, L-28 | Chart fact placement and coherent capture (D-1a) | context is the smaller chart-fact candidate (L-17). The log half of capture validity is a published generation plus `expectGeneration` (L-28); the chart half needs a revision counter or native capture, then an A-3 proof |
 | L-18 | Complete replay route (§9) | dispatch/clock primitives and mapper bypass established by READ; pin and run a released pre-mapper runner with reset/build identity/oracle (EB-0) |
 | L-25, L-29 | Which input channels a replay must cover (§9) | the host declares its channels, and the log is a second guard only (L-29); witnesses for an uncovered admin reset (INCOMPATIBLE) and for an invisible one, refused on the declaration |

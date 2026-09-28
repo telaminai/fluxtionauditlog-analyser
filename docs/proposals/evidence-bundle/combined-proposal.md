@@ -108,7 +108,10 @@ first implementation does not claim to execute every application or interpret ev
 
 Inspection-only bundles are valid artefacts and remain useful. A bundle containing inputs but no
 verified executable route is labelled accordingly. It cannot count as the replay acceptance pair.
-No implementation may silently move the required replay or comparison into “phase 2”.
+No implementation may silently move the required replay or comparison into “phase 2”. **The owner has done so
+explicitly (D-0 amended, L-33, 2026-09-28):** the first delivery packages, verifies, opens and plays the walk, and
+replay is the second delivery. A first-delivery claim must therefore never describe the bundle as reproducing or
+fixing the incident.
 
 ## 4. Delivery architecture: recommended sequence, still open to review
 
@@ -680,12 +683,12 @@ Only D-0 and D-0b are owner direction; all other rows are recommendations to con
 
 | ID | Recommendation / open choice | What settles it |
 |---|---|---|
-| D-0 | Portable investigation plus bounded replay/comparison required; browser optional | Already stated by owner. Scope changes require an explicit owner decision. |
+| D-0 | **Amended by the owner, 2026-09-28 (L-33):** the first delivery is a **portable investigation without replay** — capture, verify, open and follow the walk. Bounded replay and comparison are **deferred, not dropped**: they remain the second delivery's requirement. Browser optional. | Owner direction. Any further scope change needs another explicit owner decision. |
 | D-0b | The spotlight walkthrough is needed **regardless of this proposal**: M69, native, overlay arrows, stored like reports, right-click save | Stated by the owner, 2026-09-27. Not open to review here; M69's own spec carries its open questions. |
 | D-1 | Internal evidence core with a thin client; external-only is an alternative if complete exports are proved | EB-0 proves complete state/export/fidelity and races; compare integration cost with native CLI-first delivery. |
 | D-1a | *r3:* extend existing `context.savedGraphs` for complete definitions; preserve summary fields. This closes a representation gap only. Coherent capture and any filtered-index export remain separate requirements. | L-17 favours the context extension on inspected contract surface. EB-0/A-3 must prove a capture-validity contract before choosing the overall architecture; L-16. |
-| D-2 | `.fexp`; integer format v1; exact manifest-byte identity outside manifest; timestamp included | Choose one algorithm and pin cross-reader fixtures. Canonical blanked-ID alternatives remain valid proposals, not simultaneous rules. |
-| D-3 | Unsigned first; optional signatures only with a separate reviewed envelope/trust rule | Owner weighs value versus delivery time; reviewer checks signer language and digest-cycle avoidance. |
+| D-2 | **Decided by the owner, 2026-09-28 (L-33):** `.fexp`; integer format v1; identity is `sha256:` of the **exact manifest bytes**, held outside the manifest; timestamp included | Pin cross-reader fixtures for the one algorithm. Canonical-JSON alternatives are closed for v1. |
+| D-3 | **Decided by the owner, 2026-09-28 (L-33):** **unsigned first**. Optional signatures only later, with a separately reviewed envelope and trust rule. | Verification detects a changed member; it does not authenticate the sender, and the UI must say so. |
 | D-4 | Fresh disposable working copy; immutable received evidence; no cached edited instance | Show source/destination hashes across edits and reopen; native overlay may later improve UX. |
 | D-5 | Complete allow-listed profile plus explicit view/flags; root `.analyser/` layout | Fidelity probe; no missing log/profile keys, unsafe grants or stale saved-state assumptions. |
 | D-6 | Typed bounded walk translated to existing verbs; client controls initially | Visible playback and failure handling; full arbitrary saved analyses are not an equivalent safety boundary. |
