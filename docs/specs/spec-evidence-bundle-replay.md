@@ -297,7 +297,7 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 | slice | what | needs |
 |---|---|---|
 | **R0** ☑ | Prove the auditor path. Generate the DEMO processor with the DEMO recorder installed, record a run, and replay it: the spike's `record-all-whitelist` result, with no hand-called `eventReceived` | done: builder 1.0.71 (the root pom's), runtime 1.0.16 |
-| R1 | `ReplayCapture` (identity recording, the static codec) and the injecting reader into the DEMO; commit the recorded fixture, the log, the replay and the graph from one real run with no service calls (§3.4) | R0; M70.R0b if the fixtures are regenerated |
+| R1 ☑ | `ReplayCapture` (identity recording, the static codec) and the injecting reader into the DEMO; commit the recorded fixture, the log, the replay and the graph from one real run with no service calls (§3.4) | R0; M70.R0b if the fixtures are regenerated |
 | R2 | The `replay` member: the `evidenceCapture` node's pairing, the whole-log rule and manifest format 2 | R1 |
 | R3 | `--replay-compare` and its rule (§6) | R1 |
 | R4 | The runner (§5), and the demo driver's replay leg | R2, R3 |

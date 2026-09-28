@@ -51,7 +51,11 @@ class GeneratedSourceIsPublishableTest {
             Path.of("examples/fixture-generator/src/main/resources/com/acme/demo/generated/DemoQuoteTracedProcessor.java"),
             Path.of("examples/fixture-generator/src/main/resources/com/acme/demo/generated/DemoQuoteProcessor.graphml"),
             Path.of("examples/fixture-generator/src/main/resources/com/acme/demo/generated/DemoQuoteTracedProcessor.graphml"),
-            Path.of("src/test/resources/topology/demo-quote-processor.graphml"));
+            Path.of("src/test/resources/topology/demo-quote-processor.graphml"),
+            Path.of("examples/fixture-generator/src/main/java/com/acme/demo/generated/DemoQuoteRecordedProcessor.java"),
+            Path.of("examples/fixture-generator/src/main/resources/com/acme/demo/generated/DemoQuoteRecordedProcessor.java"),
+            Path.of("examples/fixture-generator/src/main/resources/com/acme/demo/generated/DemoQuoteRecordedProcessor.graphml"),
+            Path.of("src/test/resources/replay/demo-quote-recorded-processor.graphml"));
 
     @Test
     @DisplayName("no generated file carries a real name into a public repository")

@@ -6,6 +6,7 @@ Regenerates the analyser's topology test fixtures from a **real Fluxtion AOT bui
 |---|---|
 | `src/test/resources/topology/demo-quote-processor.graphml` | `fluxtion-maven-plugin` (`scan` goal, `setGenerateDescription(true)`) |
 | `src/test/resources/topology/demo-quote-audit.yaml` | running the generated processor with event audit on |
+| `src/test/resources/replay/` — one recorded run's audit log, replay records and graph | `DemoQuoteRecordedProcessor`, the same graph with the replay writer (`com.acme.demo.replay.ReplayCapture`) compiled in. Written only after replaying it into a fresh processor reproduces the log apart from `endTime` |
 
 ```bash
 mvn process-classes exec:java -Dexec.mainClass=com.acme.demo.GenerateFixtures

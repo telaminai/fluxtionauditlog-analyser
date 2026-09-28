@@ -2,6 +2,8 @@ package com.acme.demo;
 
 import com.acme.demo.api.QuoteControl;
 import com.acme.demo.event.Events;
+import com.acme.demo.replay.ReplayCapture;
+import com.acme.demo.replay.ReplayReader;
 import com.telamin.fluxtion.runtime.DataFlow;
 import com.telamin.fluxtion.runtime.audit.EventLogControlEvent;
 import com.telamin.fluxtion.runtime.time.ClockStrategy;
@@ -10,6 +12,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.io.StringWriter;
+import java.util.List;
 
 /**
  * Writes the analyser's topology test fixtures: a processor's {@code .graphml} and an audit log from
@@ -23,6 +27,12 @@ public final class GenerateFixtures {
 
     private static final String PROCESSOR = "com.acme.demo.generated.DemoQuoteProcessor";
     private static final String TRACED_PROCESSOR = "com.acme.demo.generated.DemoQuoteTracedProcessor";
+    private static final String RECORDED_PROCESSOR = "com.acme.demo.generated.DemoQuoteRecordedProcessor";
+
+    /** The replay fixture set: one recorded run's audit log, its replay records and its graph. */
+    private static final Path REPLAY_FIXTURES = Path.of("../../src/test/resources/replay");
+    private static final Path RECORDED_GRAPHML =
+            Path.of("src/main/resources/com/acme/demo/generated/DemoQuoteRecordedProcessor.graphml");
 
     /** Where the analyser keeps the fixtures, relative to this module. */
     private static final Path FIXTURES = Path.of("../../src/test/resources/topology");
@@ -45,6 +55,7 @@ public final class GenerateFixtures {
         write(TRACED_PROCESSOR, EventLogControlEvent.LogLevel.TRACE, "demo-quote-audit-traced.yaml");
         writeSeries("demo-quote-series.yaml");
         copyGraphMlIfPresent();
+        writeReplay();
         System.out.println("fixtures written to " + FIXTURES.toAbsolutePath().normalize());
     }
 
@@ -131,6 +142,73 @@ public final class GenerateFixtures {
         }
         Files.createDirectories(FIXTURES);
         Files.writeString(FIXTURES.resolve(file), log.toString());
+    }
+
+    /**
+     * One recorded run: the audit log and the replay records from the SAME run, with the graph they came from.
+     *
+     * <p>The consumption point, this loop, names each input to the writer before dispatching it, so only the
+     * inputs are recorded. The graph's own RiskBreachEvent is not; replay raises it again by itself. No
+     * exported-service call is made: a replay does not carry one (spec §3.4).
+     *
+     * <p>The fixture proves itself before it is written. The replay is fed into a fresh processor on a
+     * data-driven clock, and generation FAILS unless the replayed audit log equals the recorded one in every
+     * line but {@code endTime}, the one reading replay cannot know.
+     */
+    private static void writeReplay() throws Exception {
+        StringBuilder log = new StringBuilder();
+        StringWriter replay = new StringWriter();
+        DataFlow processor = (DataFlow) Class.forName(RECORDED_PROCESSOR).getDeclaredConstructor().newInstance();
+        processor.init();
+        long[] tick = {FIXED_START_MILLIS};
+        processor.onEvent(ClockStrategy.registerClockEvent(() -> tick[0] += 10));   // ticks per read, as a wall clock does
+        processor.setAuditLogLevel(EventLogControlEvent.LogLevel.INFO);
+        processor.setAuditLogProcessor(record -> append(log, record.toString()));
+        ReplayCapture writer = processor.getAuditorById(ReplayCapture.NAME);
+        writer.setTarget(replay);
+        for (Object input : List.of(
+                new Events.MarketDataEvent("DEMO-A", 100.10, 100.30),
+                new Events.OrderUpdateEvent("ord-1", "LIVE"),
+                new Events.MarketDataEvent("DEMO-A", 100.12, 100.28),
+                new Events.OrderUpdateEvent("ord-1", "DONE"),
+                new Events.MarketDataEvent("DEMO-B", 55.01, 55.09),
+                new Events.OrderUpdateEvent("ord-2", "LIVE"),
+                new Events.OrderUpdateEvent("ord-3", "LIVE"))) {   // the graph raises its own breach here
+            writer.expect(input);
+            processor.onEvent(input);
+        }
+
+        // prove it: replay into a fresh processor and compare
+        StringBuilder replayed = new StringBuilder();
+        DataFlow fresh = (DataFlow) Class.forName(RECORDED_PROCESSOR).getDeclaredConstructor().newInstance();
+        fresh.init();
+        long[] now = {0};
+        fresh.onEvent(ClockStrategy.registerClockEvent(() -> now[0]));             // data-driven: the recorded instant
+        fresh.setAuditLogLevel(EventLogControlEvent.LogLevel.INFO);
+        fresh.setAuditLogProcessor(record -> append(replayed, record.toString()));
+        ReplayCapture freshWriter = fresh.getAuditorById(ReplayCapture.NAME);
+        for (ReplayReader.Entry entry : ReplayReader.read(replay.toString(), freshWriter.getHandled())) {
+            now[0] = entry.time();
+            fresh.onEvent(entry.event());
+        }
+        String expected = withoutEndTime(log.toString());
+        String actual = withoutEndTime(replayed.toString());
+        if (!expected.equals(actual)) {
+            throw new IllegalStateException("the replay does not reproduce the recorded audit log; nothing written");
+        }
+
+        Files.createDirectories(REPLAY_FIXTURES);
+        Files.writeString(REPLAY_FIXTURES.resolve("demo-quote-recorded-audit.yaml"), log.toString());
+        Files.writeString(REPLAY_FIXTURES.resolve("demo-quote-recorded.replay.yaml"), replay.toString());
+        if (Files.exists(RECORDED_GRAPHML)) {
+            Files.copy(RECORDED_GRAPHML, REPLAY_FIXTURES.resolve("demo-quote-recorded-processor.graphml"),
+                    StandardCopyOption.REPLACE_EXISTING);
+        }
+        System.out.println("replay fixture written and proven: the replay reproduces the log apart from endTime");
+    }
+
+    private static String withoutEndTime(String log) {
+        return log.replaceAll("(?m)^\\s*endTime: .*\\n", "");
     }
 
     private static double round(double v) {

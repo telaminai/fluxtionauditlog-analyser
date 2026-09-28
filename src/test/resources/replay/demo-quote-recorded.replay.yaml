@@ -1,0 +1,28 @@
+---
+!!com.telamin.fluxtion.runtime.event.ReplayRecord
+event: !!com.acme.demo.event.Events$MarketDataEvent {symbol: "DEMO-A", bid: 100.1, ask: 100.3}
+wallClockTime: 1767258000060
+---
+!!com.telamin.fluxtion.runtime.event.ReplayRecord
+event: !!com.acme.demo.event.Events$OrderUpdateEvent {orderId: "ord-1", state: "LIVE"}
+wallClockTime: 1767258000080
+---
+!!com.telamin.fluxtion.runtime.event.ReplayRecord
+event: !!com.acme.demo.event.Events$MarketDataEvent {symbol: "DEMO-A", bid: 100.12, ask: 100.28}
+wallClockTime: 1767258000100
+---
+!!com.telamin.fluxtion.runtime.event.ReplayRecord
+event: !!com.acme.demo.event.Events$OrderUpdateEvent {orderId: "ord-1", state: "DONE"}
+wallClockTime: 1767258000120
+---
+!!com.telamin.fluxtion.runtime.event.ReplayRecord
+event: !!com.acme.demo.event.Events$MarketDataEvent {symbol: "DEMO-B", bid: 55.01, ask: 55.09}
+wallClockTime: 1767258000140
+---
+!!com.telamin.fluxtion.runtime.event.ReplayRecord
+event: !!com.acme.demo.event.Events$OrderUpdateEvent {orderId: "ord-2", state: "LIVE"}
+wallClockTime: 1767258000160
+---
+!!com.telamin.fluxtion.runtime.event.ReplayRecord
+event: !!com.acme.demo.event.Events$OrderUpdateEvent {orderId: "ord-3", state: "LIVE"}
+wallClockTime: 1767258000180
