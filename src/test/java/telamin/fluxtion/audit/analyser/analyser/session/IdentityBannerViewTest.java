@@ -56,8 +56,14 @@ class IdentityBannerViewTest {
         assertFalse(a.identityBanners.get(a.identityBanners.size() - 1).shown());
     }
 
+    /**
+     * Note which gate does the work here: {@code OpenLog.onLogIdentityObserved} returns {@code moved}, so a
+     * repeated identical observation never propagates and the node's own {@code view.equals(emitted)} is not
+     * reached. The behaviour is doubly protected, which is why no single mutation can fail this test — see
+     * {@link #anAppendIsNotAVerdictChange} for the one that pins the node's gate.
+     */
     @Test
-    @DisplayName("An unchanged verdict is not re-drawn — this is why the element costs no records")
+    @DisplayName("An unchanged verdict is not re-drawn — stopped upstream, before the node's own gate")
     void anUnchangedVerdictIsNotRedrawn() {
         FakeSessionAdapter a = new FakeSessionAdapter();
         SessionDriver d = driver(a);
@@ -104,6 +110,11 @@ class IdentityBannerViewTest {
                 .filter(l -> l.contains("- identityBannerView:")).findFirst().orElse("");
         assertTrue(entry.contains("verdict: REPLACEMENT"), entry);
         assertTrue(entry.contains("shown: true"), entry);
+        // The DIFF, not the view: the generation did not change between these two renders, so it is not written.
+        // Asserting only what is PRESENT cannot tell changedFrom(emitted) from fields() -- the mutation gate
+        // caught exactly that, because the two differ here by this one absent field and nothing else.
+        assertFalse(entry.contains("generation:"),
+                "an unchanged field is not re-stated — this is what makes the audit cost per CHANGE: " + entry);
         assertEquals(2, sink.matching("rendered: identityBanner").size(),
                 "TWO: opening the log draws the first view (clear), and the verdict draws the second. The first "
                         + "is not waste — without it a surface would keep the PREVIOUS log's banner, since nothing "

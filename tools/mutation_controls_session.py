@@ -660,11 +660,14 @@ CONTROLS = [
      'LogFindingsOnEverySurfaceFrameTest#theFollowLineKeepsTheProvenanceAndTheOrderWarning'),
 
     # ---- the second element: the file-identity banner (PR #58)
-    # A verdict that has not changed is not redrawn -- the cost claim (0 new records for a second element)
-    # rests entirely on this line.
+    # A view equal to the last one is not redrawn -- the cost claim (0 new records for a second element) rests
+    # on this line. Named against anAppendIsNotAVerdictChange, NOT anUnchangedVerdictIsNotRedrawn: a repeated
+    # identical LogIdentityObserved is already stopped upstream (OpenLog.onLogIdentityObserved returns `moved`),
+    # so that scenario never reaches this line and the mutation SURVIVED it. An append does move OpenLog, so the
+    # trigger fires and this line is the only thing standing between it and a redraw. Found by the gate.
     ('vm-banner-unchanged-not-redrawn', NODE + 'IdentityBanner.java',
      'if (view.equals(emitted)) return false;', '',
-     'IdentityBannerViewTest#anUnchangedVerdictIsNotRedrawn'),
+     'IdentityBannerViewTest#anAppendIsNotAVerdictChange'),
     # WHETHER a banner belongs on screen is the session's decision, made once, not three surfaces' guess.
     ('vm-banner-shown-is-the-policy', SESSION + 'view/IdentityBannerView.java',
      'return "UNVERIFIED".equals(verdict) || "REPLACEMENT".equals(verdict);', 'return verdict != null;',
@@ -694,5 +697,5 @@ CONTROLS = [
     # context reaches it: a key with no section is unreachable by projection, and the static check says so.
     ('rs-context-publishes-surfaces', UI + 'MainFrame.java',
      'if (!surfaces.isEmpty()) out.put("surfaces", surfaces);', 'if (false) surfaces.clear();',
-     'ContextSectionsTest#everySectionEqualsTheSameSectionOfTheFullContext'),
+     'ContextSectionsTest#theSectionTableCoversEveryKeyTheBuilderPuts'),
 ]
