@@ -1403,6 +1403,11 @@ CONTROLS = [
      '                        log.write("---\\n");\n',
      '                        if (r.toString().contains("event: EventLogControlEvent")) return;\n                        log.write("---\\n");\n',
      'ReplayRunnerEndToEndTest#anInputNamingTheControlEventKeepsItsRecord'),
+    # finding 6 (RB-2): the writer records the object its caller names, never another of the same type the graph raises
+    ('rq-records-only-the-named-object', CODEC_WRITER,
+     '        if (event != expected || target == null) return;\n',
+     '        if (target == null) return;\n',
+     'ReplayFixtureTest#onlyTheExternalObjectIsRecorded'),
     # finding 4: the member is read whole and counted before the processor runs; no reader takes a nameless field
     ('rn-the-count-is-the-manifests', RUNNER,
      '            if (taken.declaredRecords() != null && taken.declaredRecords() != inputs) {\n',
