@@ -69,6 +69,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.StatusShow
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkAcknowledged;
+import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkDefinitionChanged;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated;
 import telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested;
@@ -145,6 +146,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.resume.ResumeEvents.Requ
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.TimeOrderObserved
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.ViewFilterChanged
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkAcknowledged
+ *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkDefinitionChanged
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated
  *   <li>telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested
@@ -396,6 +398,10 @@ public class SessionProcessor
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkAcknowledged",
                 false),
             new ProcessorDescriptor.Input(
+                "WalkDefinitionChanged",
+                "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkDefinitionChanged",
+                false),
+            new ProcessorDescriptor.Input(
                 "WalkEndRequested",
                 "telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkEndRequested",
                 false),
@@ -425,7 +431,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "57a25bff080529dc5841be75d900b3946dd618a16877f5aebd783cd71fb72f5e",
+              "299dc5db466ceafd2af672ec99a19a3175ef0e8a5be7a28641571eecc4277328",
               null));
 
   @Override
@@ -676,6 +682,9 @@ public class SessionProcessor
     } else if (event instanceof WalkAcknowledged) {
       WalkAcknowledged typedEvent = (WalkAcknowledged) event;
       handleEvent(typedEvent);
+    } else if (event instanceof WalkDefinitionChanged) {
+      WalkDefinitionChanged typedEvent = (WalkDefinitionChanged) event;
+      handleEvent(typedEvent);
     } else if (event instanceof WalkEndRequested) {
       WalkEndRequested typedEvent = (WalkEndRequested) event;
       handleEvent(typedEvent);
@@ -876,6 +885,11 @@ public class SessionProcessor
 
   @OnEventHandler(failBuildIfMissingBooleanReturn = false)
   public void onEvent(WalkAcknowledged event) {
+    processEvent(event);
+  }
+
+  @OnEventHandler(failBuildIfMissingBooleanReturn = false)
+  public void onEvent(WalkDefinitionChanged event) {
     processEvent(event);
   }
 
@@ -1477,6 +1491,14 @@ public class SessionProcessor
     afterEvent();
   }
 
+  public void handleEvent(WalkDefinitionChanged typedEvent) {
+    auditEvent(typedEvent);
+    //Default, no filter methods
+    auditInvocation(walkPlayback, "walkPlayback", "onWalkDefinitionChanged", typedEvent);
+    walkPlayback.onWalkDefinitionChanged(typedEvent);
+    afterEvent();
+  }
+
   public void handleEvent(WalkEndRequested typedEvent) {
     auditEvent(typedEvent);
     //Default, no filter methods
@@ -1834,6 +1856,11 @@ public class SessionProcessor
       auditEvent(typedEvent);
       auditInvocation(walkPlayback, "walkPlayback", "onWalkAcknowledged", typedEvent);
       walkPlayback.onWalkAcknowledged(typedEvent);
+    } else if (event instanceof WalkDefinitionChanged) {
+      WalkDefinitionChanged typedEvent = (WalkDefinitionChanged) event;
+      auditEvent(typedEvent);
+      auditInvocation(walkPlayback, "walkPlayback", "onWalkDefinitionChanged", typedEvent);
+      walkPlayback.onWalkDefinitionChanged(typedEvent);
     } else if (event instanceof WalkEndRequested) {
       WalkEndRequested typedEvent = (WalkEndRequested) event;
       auditEvent(typedEvent);

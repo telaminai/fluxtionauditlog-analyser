@@ -191,16 +191,15 @@ class WalkPresenterTest {
     }
 
     @Test
-    @DisplayName("a missing walk, a step past its end, or an invalid step is refused whole, and nothing is applied")
+    @DisplayName("a step past its end, or an invalid step, is refused whole, and nothing is applied")
     void refusalsApplyNothing() {
         Rig rig = new Rig();
         WalkPresenter p = new WalkPresenter(rig);
-        var missing = (SessionEvents.WalkViewApplied) p.applyView(new SessionEffects.ApplyWalkViewEffect(0, 1, 1, "nope", 0));
-        assertFalse(missing.ok());
-        rig.config.walks.add(new WalkSpec("w", "", "assistant", "", "", null, List.of(),
+        // review PR57 R6: the effect carries the frozen definition, so "no longer saved" is not the presenter's to decide
+        WalkSpec w = new WalkSpec("w", "", "assistant", "", "", null, List.of(),
                 List.of(new WalkSpec.Step("", view(new WalkSpec.Filter(5L, 6L, "DIMENSION", null, ""), null, null, null),
-                        List.of(new WalkSpec.Target("status", "", null)))), Map.of()));
-        var past = (SessionEvents.WalkViewApplied) p.applyView(new SessionEffects.ApplyWalkViewEffect(0, 2, 1, "w", 4));
+                        List.of(new WalkSpec.Target("status", "", null)))), Map.of());
+        var past = (SessionEvents.WalkViewApplied) p.applyView(new SessionEffects.ApplyWalkViewEffect(0, 2, 1, w, 4));
         assertFalse(past.ok());
         assertTrue(past.reason().contains("1 step"), past.reason());
         assertEquals(0, rig.filterChanges, "a refused step changes nothing");

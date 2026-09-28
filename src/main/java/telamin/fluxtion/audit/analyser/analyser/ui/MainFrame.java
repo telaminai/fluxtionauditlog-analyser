@@ -2368,7 +2368,7 @@ public final class MainFrame extends JFrame {
     private String closedChartOfShowingStep() {
         var state = sessionSnapshot().walkPlayback();
         if (!state.showing()) return null;
-        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, state.walk());
+        var walk = state.definition();                  // review PR57 R6: the frozen version being shown, not config
         if (walk == null || state.step() >= walk.steps().size()) return null;
         String chart = walk.steps().get(state.step()).view().graph();
         return chart != null && graphTabs.graphNamed(chart) == null && graphTabs.hasDefinition(chart) ? chart : null;
@@ -2380,7 +2380,7 @@ public final class MainFrame extends JFrame {
             spotlight.setStrip(null);
             return;
         }
-        var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, state.walk());
+        var walk = state.definition();
         String title = (walk == null ? state.walk() : walk.displayTitle()) + (walk == null ? "" : " · " + walk.authorLabel());
         String phase = switch (state.phase()) {
             case "PREPARING" -> "preparing…";
@@ -2458,7 +2458,7 @@ public final class MainFrame extends JFrame {
         var walk = telamin.fluxtion.audit.analyser.analyser.config.WalkBin.find(config.walks, name);
         if (walk == null) return "no walk called '" + name + "' — walks: " + config.walks.stream().map(w -> w.name()).toList();
         if (session == null) return "the session is not running";
-        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(walk.name(), step, walk.steps().size(), origin));
+        session().post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkPlayRequested(walk, step, origin));
         return null;
     }
 
@@ -2512,6 +2512,7 @@ public final class MainFrame extends JFrame {
         }
         @Override public long generation() { return session == null ? -1 : sessionSnapshot().logGeneration(); }
         @Override public void persist() { persistWalks(); }
+        @Override public void post(Object fact) { if (session != null) session().post(fact); }
     });
 
     /** M69: the walks were edited — store them through the profile's edit funnel, as putReport does. */

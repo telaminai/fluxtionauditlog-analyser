@@ -147,8 +147,8 @@ final class WalkVerb {
         if (name == null) return ActionResult.error("delete needs 'name' — walks: " + names());
         WalkSpec doomed = WalkBin.delete(frame.config(), name, java.time.Instant.now().toString());
         if (doomed == null) return ActionResult.error("no walk called '" + name + "' — walks: " + names());
-        WalkPlaybackState s = frame.state();
-        if (s.showing() && s.walk().equals(name)) frame.post(new SessionEvents.WalkEndRequested("the walk was deleted"));
+        // review PR57 R6: reported, never decided here — the node decides what a delete means for a showing walk
+        frame.post(new SessionEvents.WalkDefinitionChanged(name, null, null));
         frame.persist();
         Map<String, Object> echo = new LinkedHashMap<>();
         echo.put("deleted", name);
@@ -162,8 +162,7 @@ final class WalkVerb {
         if (name == null) return ActionResult.error("rename needs 'name' (the walk to rename) — walks: " + names());
         String refused = WalkBin.rename(frame.config(), name, to);
         if (refused != null) return ActionResult.error(refused);
-        WalkPlaybackState s = frame.state();
-        if (s.showing() && s.walk().equals(name)) frame.post(new SessionEvents.WalkEndRequested("the walk was renamed"));
+        frame.post(new SessionEvents.WalkDefinitionChanged(name, null, to.trim()));   // reported; the node decides
         frame.persist();
         return ActionResult.ok("walk", "renamed", new LinkedHashMap<>(Map.of("from", name, "to", to.trim())));
     }
@@ -194,7 +193,7 @@ final class WalkVerb {
             }
             from = n.intValue() - 1;
         }
-        frame.post(new SessionEvents.WalkPlayRequested(walk.name(), from, walk.steps().size(), origin));
+        frame.post(new SessionEvents.WalkPlayRequested(walk, from, origin));
         WalkPlaybackState s = frame.state();              // the node decided; this reports what it published
         if (!s.showing() || !s.walk().equals(walk.name())) {
             return ActionResult.error(s.reason().isBlank() ? "the walk was not started" : s.reason());

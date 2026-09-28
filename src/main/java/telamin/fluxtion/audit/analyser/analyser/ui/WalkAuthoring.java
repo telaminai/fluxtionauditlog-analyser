@@ -56,6 +56,9 @@ final class WalkAuthoring {
 
         /** Store the edited walks the way reports are stored: through the profile's edit funnel. */
         void persist();
+
+        /** Report a fact to the session (review PR57 R6: every saved definition is reported; the node decides). */
+        void post(Object fact);
     }
 
     /** A captured step, what could not be saved in it, and the generation it was read under. */
@@ -190,6 +193,7 @@ final class WalkAuthoring {
         frame.config().walks.removeIf(w -> w.name().equals(walk.name()));
         frame.config().walks.add(walk);
         frame.persist();
+        frame.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkDefinitionChanged(walk.name(), walk, null));
         return null;
     }
 

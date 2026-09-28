@@ -87,10 +87,9 @@ final class WalkPresenter {
     // ---- effects ----------------------------------------------------------------------------------------------
 
     SessionEvents.Result applyView(SessionEffects.ApplyWalkViewEffect e) {
-        WalkSpec walk = WalkBin.find(frame.config().walks, e.walk());
-        if (walk == null) return refused(e, "walk '" + e.walk() + "' is no longer saved");
+        WalkSpec walk = e.walk();                            // review PR57 R6: the node's frozen definition, not config
         if (e.step() < 0 || e.step() >= walk.steps().size()) {
-            return refused(e, "walk '" + e.walk() + "' now has " + walk.steps().size() + " step(s)");
+            return refused(e, "walk '" + walk.name() + "' has " + walk.steps().size() + " step(s)");
         }
         WalkSpec.Step step = walk.steps().get(e.step());
         String problem = WalkSteps.problem(step);            // validate the whole view before applying any of it
@@ -112,8 +111,8 @@ final class WalkPresenter {
     }
 
     SessionEvents.Result resolveAgain(SessionEffects.ResolveWalkTargetsEffect e) {
-        WalkSpec walk = WalkBin.find(frame.config().walks, e.walk());
-        if (walk != null && e.step() >= 0 && e.step() < walk.steps().size()) {
+        WalkSpec walk = e.walk();
+        if (e.step() >= 0 && e.step() < walk.steps().size()) {
             prepare(e.ticket(), e.generation(), walk, e.step(), List.of(e.why()));
         }
         return new SessionEvents.WalkAcknowledged(e.opId(), e.ticket(), "resolve");

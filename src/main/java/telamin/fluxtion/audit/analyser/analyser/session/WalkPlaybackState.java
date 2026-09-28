@@ -16,11 +16,13 @@ import java.util.Map;
  * @param ticket    the node's current ticket: any adapter answer naming another is stale
  * @param targets   the current step's targets and their states
  * @param lastShown walk name → the last step shown (0-based), for Play from step N — session memory, never saved
+ * @param definition the frozen definition being shown, or null (review PR57 R6): what every surface describes
  */
 public record WalkPlaybackState(String walk, int step, int count, String phase, String reason, long ticket,
-                                List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown) {
+                                List<SessionEvents.WalkTargetState> targets, Map<String, Integer> lastShown,
+                                telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition) {
 
-    public static final WalkPlaybackState IDLE = new WalkPlaybackState(null, 0, 0, "IDLE", "", 0, List.of(), Map.of());
+    public static final WalkPlaybackState IDLE = new WalkPlaybackState(null, 0, 0, "IDLE", "", 0, List.of(), Map.of(), null);
 
     public WalkPlaybackState {
         phase = phase == null ? "IDLE" : phase;

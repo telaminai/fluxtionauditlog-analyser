@@ -315,9 +315,18 @@ public final class SessionEvents {
 
     /**
      * Play a saved walk. {@code step} is 0-based; {@code -1} means "from the step last shown" (Play from step N).
-     * {@code count} is the walk's step count as the adapter read it from config — the node holds no definitions.
+     * Review PR57 R6: the fact carries the DEFINITION, which the node holds frozen while it shows it, so no effect ever
+     * reads a step from mutable configuration.
      */
-    public record WalkPlayRequested(String walk, int step, int count, String origin) {
+    public record WalkPlayRequested(telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec walk, int step, String origin) {
+    }
+
+    /**
+     * Review PR57 R6: a walk definition changed — saved (created or replaced), deleted ({@code now} null), or renamed
+     * ({@code renamedTo}). Posted by the adapter on EVERY such change, deciding nothing: whether a showing walk ends
+     * or keeps its frozen version is the node's decision.
+     */
+    public record WalkDefinitionChanged(String name, telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec now, String renamedTo) {
     }
 
     /** ◀ ▶ or ← →: move by {@code delta} steps. */

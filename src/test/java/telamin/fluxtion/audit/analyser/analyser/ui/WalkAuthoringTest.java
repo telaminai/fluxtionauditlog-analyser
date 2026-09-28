@@ -49,6 +49,8 @@ class WalkAuthoringTest {
         public LogFingerprint fingerprint() { return null; }
         public long generation() { return generation; }
         public void persist() { persisted++; }
+        final List<Object> posted = new ArrayList<>();
+        public void post(Object fact) { posted.add(fact); }
     }
 
     @Test

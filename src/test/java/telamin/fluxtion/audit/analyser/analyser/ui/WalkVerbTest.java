@@ -54,9 +54,9 @@ class WalkVerbTest {
             posted.add(fact);
             if (fact instanceof SessionEvents.WalkPlayRequested p) {
                 state = sessionStarts
-                        ? new WalkPlaybackState(p.walk(), p.step(), p.count(), "SHOWN", "", 1,
-                                List.of(new SessionEvents.WalkTargetState(1, "status", "", "CURRENT", true, "")), Map.of())
-                        : new WalkPlaybackState(null, 0, 0, "IDLE", "the session refused it", 0, List.of(), Map.of());
+                        ? new WalkPlaybackState(p.walk().name(), p.step(), p.walk().steps().size(), "SHOWN", "", 1,
+                                List.of(new SessionEvents.WalkTargetState(1, "status", "", "CURRENT", true, "")), Map.of(), p.walk())
+                        : new WalkPlaybackState(null, 0, 0, "IDLE", "the session refused it", 0, List.of(), Map.of(), null);
             }
         }
         public WalkPlaybackState state() { return state; }
@@ -159,7 +159,7 @@ class WalkVerbTest {
     }
 
     @Test
-    @DisplayName("deleting or renaming the SHOWING walk asks the session to end it")
+    @DisplayName("review PR57 R6: a delete or rename is REPORTED to the session — the verb no longer decides to end a walk")
     void deletingTheShowingWalkEndsIt() {
         Rig rig = new Rig();
         save(rig, "w", "status");
@@ -167,8 +167,13 @@ class WalkVerbTest {
         assertTrue(v.run(Map.of("name", "w", "play", true)).ok());
         rig.posted.clear();
         v.run(Map.of("name", "w", "delete", true));
-        assertTrue(rig.posted.stream().anyMatch(f -> f instanceof SessionEvents.WalkEndRequested),
-                "a deleted walk must not stay on screen: " + rig.posted);
+        assertEquals(List.of(new SessionEvents.WalkDefinitionChanged("w", null, null)), rig.posted,
+                "the delete is reported as it happened, and nothing else is decided here: " + rig.posted);
+        save(rig, "x", "status");
+        rig.posted.clear();
+        new WalkVerb(rig).run(Map.of("name", "x", "rename", "y"));
+        assertEquals(List.of(new SessionEvents.WalkDefinitionChanged("x", null, "y")), rig.posted,
+                "so is a rename, whether or not that walk is showing");
     }
 
     @Test
@@ -181,7 +186,7 @@ class WalkVerbTest {
         assertTrue(r.ok(), String.valueOf(r.error()));
         var request = (SessionEvents.WalkPlayRequested) rig.posted.get(rig.posted.size() - 1);
         assertEquals(1, request.step(), "step 2, counted from 1, is index 1");
-        assertEquals(3, request.count());
+        assertEquals(3, request.walk().steps().size(), "the play fact carries the whole definition");
         assertEquals(2, r.payload().get("step"));
         assertFalse(v.run(Map.of("name", "w", "play", true, "step", 0)).ok(), "there is no step 0");
         // review PR57 R9: 2^32 + 2 must not narrow to step 2

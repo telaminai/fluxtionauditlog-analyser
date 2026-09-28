@@ -105,4 +105,53 @@ class WalkReviewFrameTest {
             });
         }
     }
+
+    @Test
+    @DisplayName("R6: replacing the SHOWING walk is decided by the session — it ends, and nothing of either version is left lit")
+    void replacingTheShowingWalkIsTheSessionsDecision(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            var structural = Map.of("view", Map.of("tab", "topology"), "targets", List.of(target("topology:node:priceListener", "original")));
+            call(f, "walk", Map.of("name", "DEMO_edit", "steps", List.of(structural, structural)));
+            call(f, "walk", Map.of("name", "DEMO_edit", "play", true));
+            await("original shown", () -> "SHOWN".equals(walk(f).phase()) && overlay.isLit());
+
+            call(f, "walk", Map.of("name", "DEMO_edit", "steps", List.of(Map.of("targets", List.of(target("status", "replacement"))))));
+
+            await("the session decided", () -> !walk(f).showing() || walk(f).count() == 1);
+            onEdt(() -> {
+                assertFalse(walk(f).showing(), "a replaced definition ends its showing: published count=" + walk(f).count());
+                assertTrue(walk(f).reason().contains("changed"), walk(f).reason());
+                assertFalse(overlay.lit().stream().anyMatch(l -> "original".equals(l.caption())),
+                        "the old version's caption is not left lit: " + overlay.lit());
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("R6: a rename keeps the frozen version showing under its new name; a delete ends it")
+    void renameKeepsItAndDeleteEndsIt(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            SpotlightOverlay overlay = (SpotlightOverlay) field(f.frame, "spotlight");
+            var one = Map.of("view", Map.of("tab", "topology"), "targets", List.of(target("topology:node:priceListener", "one")));
+            var two = Map.of("view", Map.of("tab", "topology"), "targets", List.of(target("topology:node:quotePublisher", "two")));
+            call(f, "walk", Map.of("name", "DEMO_a", "steps", List.of(one, two)));
+            call(f, "walk", Map.of("name", "DEMO_a", "play", true));
+            await("shown", () -> "SHOWN".equals(walk(f).phase()) && overlay.isLit());
+
+            call(f, "walk", Map.of("name", "DEMO_a", "rename", "DEMO_b"));
+            onEdt(() -> {
+                assertTrue(walk(f).showing(), "a rename does not change what is shown");
+                assertEquals("DEMO_b", walk(f).walk(), "the showing walk carries its new name");
+            });
+            onEdt(() -> ((telamin.fluxtion.audit.analyser.analyser.session.SessionDriver) field(f.frame, "session"))
+                    .post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.WalkNavigated(1)));
+            await("step 2 of the frozen version", () -> walk(f).step() == 1 && "SHOWN".equals(walk(f).phase()));
+
+            call(f, "walk", Map.of("name", "DEMO_b", "delete", true));
+            onEdt(() -> assertFalse(walk(f).showing(), "a deleted walk is not left showing"));
+        }
+    }
 }

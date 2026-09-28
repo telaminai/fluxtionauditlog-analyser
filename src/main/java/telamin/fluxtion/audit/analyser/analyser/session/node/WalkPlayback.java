@@ -27,8 +27,10 @@ import java.util.Map;
  * <p><b>What it refuses.</b> Any answer carrying a ticket or generation that is not current: a late preparation from
  * a superseded step cannot light anything, advance the walk, or overwrite the reason (review R8).
  *
- * <p>It holds no walk definitions — those are configuration, like reports. A play request carries the step count the
- * adapter read; a step's content is fetched by the adapter when the node asks for it.
+ * <p>Review PR57 R6: it holds the definition it is showing, FROZEN from the play request, and every effect carries the
+ * step it names — so a later step can never be read from a definition edited meanwhile. A definition change reaches it
+ * as {@link SessionEvents.WalkDefinitionChanged}, and it decides: a rename keeps the frozen version under the new name;
+ * a delete, or a save that changes the steps, ends the showing and says why.
  */
 public class WalkPlayback implements EventLogSource {
 
@@ -39,6 +41,7 @@ public class WalkPlayback implements EventLogSource {
     private EventLogger auditLog = NullEventLogger.INSTANCE;
     // Not final: node-local state (a final field is constructor-mapped by the generator).
     private String walk;
+    private telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec definition;
     private int step;
     private int count;
     private String phase = "IDLE";
@@ -62,19 +65,22 @@ public class WalkPlayback implements EventLogSource {
 
     @OnEventHandler
     public boolean onWalkPlayRequested(SessionEvents.WalkPlayRequested e) {
-        if (e.count() <= 0) {
-            reason = "walk '" + e.walk() + "' has no steps";
+        String name = e.walk().name();
+        int steps = e.walk().steps().size();
+        if (steps <= 0) {
+            reason = "walk '" + name + "' has no steps";
             auditLog.info("walkRefused", reason);
             return true;
         }
-        int from = e.step() < 0 ? lastShown.getOrDefault(e.walk(), 0) : e.step();
-        if (from >= e.count()) {
-            reason = "walk '" + e.walk() + "' has " + e.count() + " step(s) — there is no step " + (from + 1);
+        int from = e.step() < 0 ? lastShown.getOrDefault(name, 0) : e.step();
+        if (from >= steps) {
+            reason = "walk '" + name + "' has " + steps + " step(s) — there is no step " + (from + 1);
             auditLog.info("walkRefused", reason);
             return true;
         }
-        walk = e.walk();
-        count = e.count();
+        definition = e.walk();
+        walk = name;
+        count = steps;
         step = from;
         logOpenAtStart = openLog.isOpen();
         generation = logOpenAtStart ? openLog.generation() : -1;
@@ -106,6 +112,27 @@ public class WalkPlayback implements EventLogSource {
     public boolean onWalkEndRequested(SessionEvents.WalkEndRequested e) {
         if (walk == null) return false;
         end(e.reason());
+        return true;
+    }
+
+    /** Review PR57 R6: the node decides what a change to the SHOWING definition means; the adapter only reports it. */
+    @OnEventHandler
+    public boolean onWalkDefinitionChanged(SessionEvents.WalkDefinitionChanged e) {
+        if (walk == null || !walk.equals(e.name())) return false;
+        if (e.renamedTo() != null) {
+            Integer at = lastShown.remove(walk);
+            if (at != null) lastShown.put(e.renamedTo(), at);
+            walk = e.renamedTo();
+            definition = definition.renamed(e.renamedTo());
+            auditLog.info("walkRenamed", walk);                   // the frozen version keeps showing, under its new name
+            return true;
+        }
+        if (e.now() == null) {
+            end("the walk was deleted");
+            return true;
+        }
+        if (e.now().steps().equals(definition.steps())) return false;   // saved unchanged: nothing shown differs
+        end("the walk was changed while it was showing — play it again to see the new version");
         return true;
     }
 
@@ -176,7 +203,7 @@ public class WalkPlayback implements EventLogSource {
             ticket++;
             phase = "PREPARING";
             auditLog.info("walkReresolve", String.valueOf(identityAtStart));
-            effects.request(new SessionEffects.ResolveWalkTargetsEffect(0L, ticket, generation, walk, step,
+            effects.request(new SessionEffects.ResolveWalkTargetsEffect(0L, ticket, generation, definition, step,
                     "the log's identity is now " + identityAtStart
                             + (openLog.identityReason() == null ? "" : ": " + openLog.identityReason())));
             return true;
@@ -190,13 +217,14 @@ public class WalkPlayback implements EventLogSource {
         reason = "";
         targets = List.of();
         auditLog.info("decision", "applyWalkView").info("ticket", ticket);
-        effects.request(new SessionEffects.ApplyWalkViewEffect(0L, ticket, generation, walk, step));
+        effects.request(new SessionEffects.ApplyWalkViewEffect(0L, ticket, generation, definition, step));
     }
 
     private void end(String why) {
         lastShown.put(walk, step);
         auditLog.info("walkEnded", walk).info("reason", why);
         walk = null;
+        definition = null;
         count = 0;
         phase = "IDLE";
         reason = "ended: " + why;
@@ -215,6 +243,6 @@ public class WalkPlayback implements EventLogSource {
 
     /** The published state — immutable, for the snapshot. */
     public WalkPlaybackState state() {
-        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown);
+        return new WalkPlaybackState(walk, step, count, phase, reason, ticket, targets, lastShown, definition);
     }
 }
