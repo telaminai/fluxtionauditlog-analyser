@@ -21,6 +21,15 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   *(historical)* or *(unresolved)* when it no longer describes what is under it. A click elsewhere, or a change of
   view you make, ends a walk; *Play from step…* resumes it. Settings export now shares "Investigation reports and
   spotlight walks".
+  A walk never claims more than it can show:
+  - when the log's file changes after it was read, the walk's record targets are *unresolved* and go out;
+  - a step whose record its own filter hides is *not shown*;
+  - a step that names a record outside the log is refused whole, and the previous step stays on screen;
+  - a step without a filter resets to the defaults, not to whatever you had selected;
+  - each callout carries the number the strip states.
+
+  Changing a walk while it plays ends it with the reason, and renaming it keeps it playing. Adding to a walk whose
+  chart steps were saved against another run is refused rather than silently moving those charts to this run.
 
 ### Fixed
 
