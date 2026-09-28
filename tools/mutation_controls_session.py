@@ -698,4 +698,19 @@ CONTROLS = [
     ('rs-context-publishes-surfaces', UI + 'MainFrame.java',
      'if (!surfaces.isEmpty()) out.put("surfaces", surfaces);', 'if (false) surfaces.clear();',
      'ContextSectionsTest#theSectionTableCoversEveryKeyTheBuilderPuts'),
+    # readable-surfaces step 1, the runtime half: what the live context payload carries. The static section test sees
+    # the `surfaces` key; only executing context() sees what is inside it.
+    ('rs-context-carries-the-status-line', UI + 'MainFrame.java',
+     '                if (snap.statusLine() != null) surfaces.put("statusLine", snap.statusLine().fields());\n',
+     '',
+     'ContextSurfacesFrameTest#theLiveContextCarriesTheSurfaces'),
+    ('rs-context-carries-the-identity-banner', UI + 'MainFrame.java',
+     '                if (snap.identityBanner() != null) surfaces.put("identityBanner", snap.identityBanner().fields());\n',
+     '',
+     'ContextSurfacesFrameTest#theLiveContextCarriesTheSurfaces'),
+    # an ABSENT field (trap 2): a projection one name short must fail on the name list, not pass on what it contains
+    ('rs-context-projects-every-field', UI + 'MainFrame.java',
+     'surfaces.put("statusLine", snap.statusLine().fields());',
+     'surfaces.put("statusLine", new java.util.LinkedHashMap<>(snap.statusLine().fields()) {{ remove("generation"); }});',
+     'ContextSurfacesFrameTest#theLiveContextCarriesTheSurfaces'),
 ]
