@@ -38,9 +38,9 @@ public final class ReplayPairing {
      * {@code sha256} is the digest of exactly the bytes that were paired, taken in the same pass: the writer copies the
      * file later, off the event thread, and refuses a copy whose digest differs.
      */
-    public record Observed(int records, int serviceCalls, String problem, String sha256) {
+    public record Observed(int records, int serviceCalls, String problem, String sha256, int uncarried) {
         public Observed(int records, int serviceCalls, String problem) {
-            this(records, serviceCalls, problem, null);
+            this(records, serviceCalls, problem, null, 0);
         }
 
         public boolean pairs() {
@@ -60,6 +60,8 @@ public final class ReplayPairing {
         }
         int k = 0;          // replay records read
         int j = 0;          // the next log record a replay record may match
+        java.util.Set<String> names = new java.util.HashSet<>();   // the event types the replay carries
+        boolean[] matched = new boolean[records];
         java.security.MessageDigest md;
         try {
             md = java.security.MessageDigest.getInstance("SHA-256");
@@ -72,12 +74,17 @@ public final class ReplayPairing {
             int lineNo = 0;
             while ((line = in.readLine()) != null) {
                 lineNo++;
+                if (lineNo == 1) line = telamin.fluxtion.audit.analyser.analyser.parse.AuditText.withoutLeadingBom(line);
                 if (line.isBlank()) continue;
                 if (!line.equals("---")) return notRecord(k, serviceCalls, lineNo);
                 String header = in.readLine();
                 String event = in.readLine();
                 String time = in.readLine();
                 lineNo += 3;
+                if (header == null || event == null || time == null) {
+                    return new Observed(k, serviceCalls, "its last record, " + k + ", is cut off: was the file still "
+                            + "being written when it was copied?", null, 0);
+                }
                 Matcher e = event == null ? null : EVENT.matcher(event);
                 Matcher t = time == null ? null : TIME.matcher(time);
                 if (!HEADER.equals(header) || e == null || !e.matches() || t == null || !t.matches()) {
@@ -87,9 +94,15 @@ public final class ReplayPairing {
                 long at = Long.parseLong(t.group(1));
                 while (j < records && !(name.equals(index.event(j)) && Long.valueOf(at).equals(index.eventTime(j)))) j++;
                 if (j == records) {
+                    String rest;
+                    while ((rest = in.readLine()) != null && rest.isBlank()) { }
                     return new Observed(k, serviceCalls, "its record " + k + " (" + name + " at " + at
-                            + ") matches no log record after the previous one: is it from another run?");
+                            + ") matches no log record after the previous one: " + (rest == null
+                            ? "it is the last, so it may be cut off, or the replay is from another run"
+                            : "is it from another run?"));
                 }
+                matched[j] = true;
+                names.add(name);
                 j++;
                 k++;
             }
@@ -97,7 +110,11 @@ public final class ReplayPairing {
             return new Observed(k, serviceCalls, "cannot read it: " + x.getMessage());
         }
         if (k == 0) return new Observed(0, serviceCalls, "it holds no replay records");
-        return new Observed(k, serviceCalls, null, java.util.HexFormat.of().formatHex(md.digest()));
+        // review S1: a replay cut short still pairs (each record it has IS one of the log's). Count what it does not
+        // carry of its own event types, so the capture can say so rather than read as the whole run
+        int uncarried = 0;
+        for (int i = 0; i < records; i++) if (!matched[i] && names.contains(index.event(i))) uncarried++;
+        return new Observed(k, serviceCalls, null, java.util.HexFormat.of().formatHex(md.digest()), uncarried);
     }
 
     private static Observed notRecord(int k, int serviceCalls, int lineNo) {

@@ -205,7 +205,8 @@ def launch(cp, launcher_dir, selectors, names, timeout, workdir='.'):
     command = ['java', '-Djava.awt.headless=false', '-Dbasedir=' + str(Path(workdir).resolve()),
                '-cp', str(Path(launcher_dir).resolve()) + ':' + cp, 'GateLauncher', str(out), *selectors]
     code, output = run_with_timeout(command, timeout, cwd=None if str(workdir) == '.' else workdir)
-    rows = [json.loads(line) for line in out.read_text().splitlines()] if out.exists() else []
+    # split on '\n' only: splitlines() also splits on U+0085/U+2028/U+2029, which may sit inside a JSON string
+    rows = [json.loads(line) for line in out.read_text().split('\n') if line.strip()] if out.exists() else []
     suites = []
     for cls in dict.fromkeys(n.split('#')[0] for n in names):
         mine = [r for r in rows if r['class'].split('.')[-1] == cls]

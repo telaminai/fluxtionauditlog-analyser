@@ -97,6 +97,36 @@ class ReplayPairingTest {
     }
 
     @Test
+    void aReplayCutShortStillPairs_andSaysWhatItDoesNotCarry() throws Exception {
+        // review S1: its one record IS one of the log's, so it pairs; but it carries 1 input of the 7, and says so
+        String text = Files.readString(REPLAY);
+        Path cut = Files.writeString(tmp.resolve("cut.replay.yaml"), text.substring(0, text.indexOf("---", 1)));
+        var o = observe(cut, AUDIT);
+        assertTrue(o.pairs(), o.problem());
+        assertEquals(1, o.records());
+        // its one record is a MarketDataEvent, so its own types are that one: the log's other two are not in it
+        assertEquals(2, o.uncarried(), "two of the log's three MarketDataEvents are not in it");
+        assertEquals(0, observe(REPLAY, AUDIT).uncarried(), "control: the whole replay carries every one");
+    }
+
+    @Test
+    void aLastRecordCutOffIsNamedAsCutOff() throws Exception {
+        // review S2: cut mid-record, and cut mid-number, are both named as a cut, not as "another run"
+        String text = Files.readString(REPLAY);
+        Path noTime = Files.writeString(tmp.resolve("no-time.replay.yaml"), text.substring(0, text.lastIndexOf("wallClockTime")));
+        assertTrue(observe(noTime, AUDIT).problem().contains("is cut off"), observe(noTime, AUDIT).problem());
+        Path midNumber = Files.writeString(tmp.resolve("mid.replay.yaml"), text.substring(0, text.length() - 6) + "\n");
+        assertTrue(observe(midNumber, AUDIT).problem().contains("it is the last, so it may be cut off"),
+                observe(midNumber, AUDIT).problem());
+    }
+
+    @Test
+    void aByteOrderMarkIsAccepted() throws Exception {
+        Path bom = Files.writeString(tmp.resolve("bom.replay.yaml"), "\uFEFF" + Files.readString(REPLAY));
+        assertTrue(observe(bom, AUDIT).pairs(), observe(bom, AUDIT).problem());
+    }
+
+    @Test
     void theSimpleNameIsTheOneTheLogUses() {
         assertEquals("MarketDataEvent", ReplayPairing.simpleName("com.acme.demo.event.Events$MarketDataEvent"));
         assertEquals("Tick", ReplayPairing.simpleName("com.acme.Tick"));

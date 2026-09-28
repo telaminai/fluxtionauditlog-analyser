@@ -118,6 +118,11 @@ public class ReplayBundle {
         if (bundle == null || processor == null || out == null) {
             throw new IllegalArgumentException("--bundle, --processor and --out are required");
         }
+        try {
+            EventLogControlEvent.LogLevel.valueOf(level);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("--level is one of " + java.util.Arrays.toString(EventLogControlEvent.LogLevel.values()));
+        }
         return new Args(bundle, processor, out, List.copyOf(cp), skip, level);
     }
 
@@ -128,7 +133,8 @@ public class ReplayBundle {
 
     static int replay(Args a, java.io.PrintStream out, java.io.PrintStream err) throws Exception {
         if (Files.exists(a.out())) throw new Refused("will not overwrite " + a.out());
-        Map<String, byte[]> members = members(a.bundle());
+        Members taken = members(a.bundle());
+        Map<String, byte[]> members = taken.kept();
         String replayName = only(members, "replay/");
         if (replayName == null) throw new Refused("the bundle carries no replay records (no replay/ member)");
         String graphName = only(members, "graph/");
@@ -183,6 +189,13 @@ public class ReplayBundle {
             Files.writeString(a.out(), log, StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
             long records = log.toString().lines().filter(l -> l.equals("---")).count();
             out.println(graphLine);
+            out.println("members: " + String.join(", ", members.keySet()) + " match the manifest (for the whole bundle: "
+                    + "analyser --verify)");
+            if (taken.levelChanges() > 0) {
+                out.println("warning: the bundled log changes its audit level " + taken.levelChanges() + " time(s); this "
+                        + "replay runs at one level (--level " + a.level() + "), so records after a change may differ "
+                        + "for that reason alone");
+            }
             out.println("replayed: " + entries.size() + " recorded inputs into " + a.processor() + ", on a data-driven clock");
             out.println("wrote: " + a.out() + " (" + records + " audit records)");
             out.println("next: analyser --replay-compare " + a.bundle() + " " + a.out());
@@ -190,26 +203,78 @@ public class ReplayBundle {
         }
     }
 
-    // ---- the bundle's members, read directly: the analyser verifies; this only needs two of them ---------------
+    // ---- the bundle's members: only the two it needs, each held to the manifest ------------------------------------
 
-    static Map<String, byte[]> members(Path bundle) throws IOException, Refused {
+    /** What the runner takes from a bundle: the replay and graph members, and what the log says about audit levels. */
+    record Members(Map<String, byte[]> kept, int levelChanges) { }
+
+    private static final Pattern MANIFEST_MEMBER =
+            Pattern.compile("\\{\"path\":\"([^\"]+)\",\"sha256\":\"([0-9a-f]{64})\",\"bytes\":(\\d+)}");
+
+    /**
+     * Reads the manifest (the first entry), then keeps ONLY the {@code replay/} and {@code graph/} members, each checked
+     * against the manifest's sha256 and size before your build ever runs on it; every other member is streamed past,
+     * never held (review S4: holding every member let a bundle of many large entries exhaust the heap). The log is
+     * scanned, not kept, for audit-level changes. This is not a full verification: {@code analyser --verify} is.
+     */
+    static Members members(Path bundle) throws IOException, Refused {
         Map<String, byte[]> out = new LinkedHashMap<>();
+        Map<String, String[]> listed = null;
+        int levelChanges = 0;
+        java.util.Set<String> seen = new java.util.HashSet<>();
         try (ZipInputStream zip = new ZipInputStream(Files.newInputStream(bundle))) {
             ZipEntry e;
             while ((e = zip.getNextEntry()) != null) {
                 if (e.isDirectory()) continue;
-                ByteArrayOutputStream b = new ByteArrayOutputStream();
-                byte[] buf = new byte[64 * 1024];
-                long total = 0;
-                for (int n; (n = zip.read(buf)) > 0; ) {
-                    total += n;
-                    if (total > MAX_MEMBER_BYTES) throw new Refused(e.getName() + " is larger than " + (MAX_MEMBER_BYTES >> 20) + " MiB");
-                    b.write(buf, 0, n);
+                String name = e.getName();
+                if (!seen.add(name)) throw new Refused("duplicate member: " + name);
+                if (listed == null) {
+                    if (!name.equals("manifest.json")) throw new Refused("no manifest.json first: this is not an evidence bundle");
+                    listed = new HashMap<>();
+                    Matcher m = MANIFEST_MEMBER.matcher(new String(readBounded(zip, name, 4L << 20), StandardCharsets.UTF_8));
+                    while (m.find()) listed.put(m.group(1), new String[]{m.group(2), m.group(3)});
+                    continue;
                 }
-                if (out.put(e.getName(), b.toByteArray()) != null) throw new Refused("duplicate member: " + e.getName());
+                boolean keep = name.startsWith("replay/") || name.startsWith("graph/");
+                if (keep) {
+                    String[] want = listed.get(name);
+                    if (want == null) throw new Refused(name + " is not listed in the manifest");
+                    byte[] bytes = readBounded(zip, name, MAX_MEMBER_BYTES);
+                    String sha = sha256(bytes);
+                    if (!sha.equals(want[0]) || bytes.length != Long.parseLong(want[1])) {
+                        throw new Refused(name + " does not match the manifest: the bundle was changed; run analyser --verify");
+                    }
+                    out.put(name, bytes);
+                } else if (name.startsWith("log/")) {
+                    var r = new java.io.BufferedReader(new java.io.InputStreamReader(zip, StandardCharsets.UTF_8));
+                    for (String l; (l = r.readLine()) != null; ) if (l.strip().equals("event: EventLogControlEvent")) levelChanges++;
+                } else {
+                    zip.transferTo(java.io.OutputStream.nullOutputStream());
+                }
             }
         }
-        return out;
+        if (listed == null) throw new Refused("no manifest.json: this is not an evidence bundle");
+        return new Members(out, levelChanges);
+    }
+
+    private static byte[] readBounded(InputStream in, String name, long max) throws IOException, Refused {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        byte[] buf = new byte[64 * 1024];
+        long total = 0;
+        for (int n; (n = in.read(buf)) > 0; ) {
+            total += n;
+            if (total > max) throw new Refused(name + " is larger than " + (max >> 20) + " MiB");
+            b.write(buf, 0, n);
+        }
+        return b.toByteArray();
+    }
+
+    private static String sha256(byte[] bytes) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static String only(Map<String, byte[]> members, String dir) throws Refused {
@@ -278,7 +343,8 @@ public class ReplayBundle {
     /** Each entry is {event, Long time}. */
     static List<Object[]> read(String yaml, Map<String, Class<?>> handled) throws Exception {
         List<Object[]> out = new ArrayList<>();
-        for (String doc : yaml.split("(?m)^---$")) {
+        String text = (yaml.startsWith("\uFEFF") ? yaml.substring(1) : yaml).replace("\r\n", "\n");
+        for (String doc : text.split("(?m)^---$")) {
             if (doc.isBlank()) continue;
             Matcher e = EVENT.matcher(doc), t = TIME.matcher(doc);
             if (!e.find() || !t.find()) throw new Refused("not a replay record: " + doc.strip());
@@ -311,16 +377,66 @@ public class ReplayBundle {
     }
 
     static Object value(Class<?> t, String raw) throws Refused {
-        if (t == String.class) return raw.substring(1, raw.length() - 1).replace("\\\"", "\"").replace("\\\\", "\\");
-        if (t == double.class || t == Double.class) return Double.parseDouble(raw);
-        if (t == float.class || t == Float.class) return Float.parseFloat(raw);
-        if (t == int.class || t == Integer.class) return Integer.parseInt(raw);
-        if (t == long.class || t == Long.class) return Long.parseLong(raw);
-        if (t == short.class || t == Short.class) return Short.parseShort(raw);
-        if (t == byte.class || t == Byte.class) return Byte.parseByte(raw);
-        if (t == boolean.class || t == Boolean.class) return Boolean.parseBoolean(raw);
-        if (t == char.class || t == Character.class) return raw.charAt(0);
+        if (raw.equals("null")) {
+            if (t.isPrimitive()) throw new Refused("null for a primitive " + t.getName());
+            return null;
+        }
+        if (t == String.class || t == char.class || t == Character.class) {
+            String v = unquote(raw);
+            if (t == String.class) return v;
+            if (v.length() != 1) throw new Refused("not one character: " + raw);
+            return v.charAt(0);
+        }
+        try {
+            if (t == double.class || t == Double.class) return Double.parseDouble(raw);
+            if (t == float.class || t == Float.class) return Float.parseFloat(raw);
+            if (t == int.class || t == Integer.class) return Integer.parseInt(raw);
+            if (t == long.class || t == Long.class) return Long.parseLong(raw);
+            if (t == short.class || t == Short.class) return Short.parseShort(raw);
+            if (t == byte.class || t == Byte.class) return Byte.parseByte(raw);
+        } catch (NumberFormatException e) {
+            throw new Refused("not a " + t.getSimpleName() + ": " + raw);
+        }
+        if (t == boolean.class || t == Boolean.class) {
+            if (!raw.equals("true") && !raw.equals("false")) throw new Refused("not a boolean: " + raw);
+            return Boolean.parseBoolean(raw);
+        }
         throw new Refused("unsupported component type " + t.getName());
+    }
+
+    /** One quoted token, unescaped left to right, as the replay writer escapes it. An unquoted string is refused. */
+    static String unquote(String raw) throws Refused {
+        if (raw.length() < 2 || raw.charAt(0) != '"' || raw.charAt(raw.length() - 1) != '"') {
+            throw new Refused("a string must be quoted: " + raw);
+        }
+        StringBuilder out = new StringBuilder();
+        for (int i = 1; i < raw.length() - 1; i++) {
+            char ch = raw.charAt(i);
+            if (ch != '\\') {
+                out.append(ch);
+                continue;
+            }
+            if (++i >= raw.length() - 1) throw new Refused("a dangling escape: " + raw);
+            char e = raw.charAt(i);
+            switch (e) {
+                case '\\' -> out.append('\\');
+                case '"' -> out.append('"');
+                case 'n' -> out.append('\n');
+                case 'r' -> out.append('\r');
+                case 't' -> out.append('\t');
+                case 'u' -> {
+                    if (i + 4 >= raw.length()) throw new Refused("a short \\u escape: " + raw);
+                    try {
+                        out.append((char) Integer.parseInt(raw.substring(i + 1, i + 5), 16));
+                    } catch (NumberFormatException x) {
+                        throw new Refused("a bad \\u escape: " + raw);
+                    }
+                    i += 4;
+                }
+                default -> throw new Refused("an unknown escape \\" + e + ": " + raw);
+            }
+        }
+        return out.toString();
     }
 
     static List<String> split(String body) {

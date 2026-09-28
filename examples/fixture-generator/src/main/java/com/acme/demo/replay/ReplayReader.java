@@ -26,7 +26,9 @@ public final class ReplayReader {
         Map<String, Class<?>> byName = new HashMap<>();
         handled.forEach(c -> byName.put(c.getName(), c));
         List<Entry> out = new ArrayList<>();
-        for (String doc : yaml.split("(?m)^---$")) {
+        // one byte-order-mark rule and either line ending, as the analyser's own reader accepts
+        String text = (yaml.startsWith("\uFEFF") ? yaml.substring(1) : yaml).replace("\r\n", "\n");
+        for (String doc : text.split("(?m)^---$")) {
             if (doc.isBlank()) continue;
             Matcher e = EVENT.matcher(doc);
             Matcher t = TIME.matcher(doc);
@@ -62,16 +64,58 @@ public final class ReplayReader {
     }
 
     static Object value(Class<?> t, String raw) {
-        if (t == String.class) return raw.substring(1, raw.length() - 1).replace("\\\"", "\"").replace("\\\\", "\\");
+        if (raw.equals("null")) {
+            if (t.isPrimitive()) throw new IllegalArgumentException("null for a primitive " + t.getName());
+            return null;
+        }
+        if (t == String.class || t == char.class || t == Character.class) {
+            String s = unquote(raw);
+            if (t == String.class) return s;
+            if (s.length() != 1) throw new IllegalArgumentException("not one character: " + raw);
+            return s.charAt(0);
+        }
         if (t == double.class || t == Double.class) return Double.parseDouble(raw);
         if (t == float.class || t == Float.class) return Float.parseFloat(raw);
         if (t == int.class || t == Integer.class) return Integer.parseInt(raw);
         if (t == long.class || t == Long.class) return Long.parseLong(raw);
         if (t == short.class || t == Short.class) return Short.parseShort(raw);
         if (t == byte.class || t == Byte.class) return Byte.parseByte(raw);
-        if (t == boolean.class || t == Boolean.class) return Boolean.parseBoolean(raw);
-        if (t == char.class || t == Character.class) return raw.charAt(0);
+        if (t == boolean.class || t == Boolean.class) {
+            if (!raw.equals("true") && !raw.equals("false")) throw new IllegalArgumentException("not a boolean: " + raw);
+            return Boolean.parseBoolean(raw);
+        }
         throw new IllegalArgumentException("unsupported type " + t);
+    }
+
+    /** One quoted token, unescaped left to right: the inverse of {@code ReplayCapture.quote}. Unquoted is refused. */
+    static String unquote(String raw) {
+        if (raw.length() < 2 || raw.charAt(0) != '"' || raw.charAt(raw.length() - 1) != '"') {
+            throw new IllegalArgumentException("a string must be quoted: " + raw);
+        }
+        StringBuilder out = new StringBuilder();
+        for (int i = 1; i < raw.length() - 1; i++) {
+            char ch = raw.charAt(i);
+            if (ch != '\\') {
+                out.append(ch);
+                continue;
+            }
+            if (++i >= raw.length() - 1) throw new IllegalArgumentException("a dangling escape: " + raw);
+            char e = raw.charAt(i);
+            switch (e) {
+                case '\\' -> out.append('\\');
+                case '"' -> out.append('"');
+                case 'n' -> out.append('\n');
+                case 'r' -> out.append('\r');
+                case 't' -> out.append('\t');
+                case 'u' -> {
+                    if (i + 4 >= raw.length()) throw new IllegalArgumentException("a short \\u escape: " + raw);
+                    out.append((char) Integer.parseInt(raw.substring(i + 1, i + 5), 16));
+                    i += 4;
+                }
+                default -> throw new IllegalArgumentException("an unknown escape \\" + e + ": " + raw);
+            }
+        }
+        return out.toString();
     }
 
     /** Split {@code a: 1, b: "x, y"} at top-level commas, respecting quoted strings. */

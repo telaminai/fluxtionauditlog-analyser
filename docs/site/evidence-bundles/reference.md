@@ -14,7 +14,7 @@ report {bundle: {path, notes?, from?, to?, replay?}}
 | `path` | the `.fexp`, inside the exchange directory; never overwritten |
 | `notes` | your account, packed as `notes/NOTES.md` |
 | `from`, `to` | epoch millis: pack only that window of records, as an excerpt ([Sending](sending.md#an-excerpt-only-the-part-that-matters)) |
-| `replay` | the path of the run's replay records, written by a replay writer in the same run as the log. Packed as the `replay/` member. They must pair with the log: each record is one of the log's records, at its `eventTime`, in order. Refused with `from`/`to`, while the log is still growing, or when they do not pair. The log's exported-service calls are counted, because replay records do not carry them |
+| `replay` | the path of the run's replay records, written by a replay writer in the same run as the log. Like every file the analyser reads for an assistant, it must be **inside the exchange directory** (a relative name resolves there), or a file you picked this session. Packed as the `replay/` member. They must pair with the log: each record is one of the log's records, at its `eventTime`, in order. Refused with `from`/`to`, while the log is still growing, or when they do not pair. The log's exported-service calls are counted, because replay records do not carry them |
 
 The echo says `phase: WRITING`. **`context.capture`** then says `WRITTEN`, with the `identity` and `lines` (what
 was left out, redacted or excerpted), or `REFUSED`, with the `reason`. A refusal the analyser can make at once, such

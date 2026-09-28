@@ -381,17 +381,28 @@ public final class SessionEvents {
      * @param serviceCalls     the open log's exported-service calls, which a replay does not carry
      * @param replayProblem    why the replay does not pair with the open log, in words, or null when it pairs
      * @param replaySha256     the digest of exactly the bytes that were paired
+     * @param replayUncarried  the log's records of the replay's own event types that it does not carry
      */
     public record BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
                                          String observedIdentity, String freshness, boolean onePlainFile,
                                          int windowRecords, String origin, String replay, int replayRecords,
-                                         int serviceCalls, String replayProblem, String replaySha256) {
+                                         int serviceCalls, String replayProblem, String replaySha256,
+                                         int replayUncarried) {
+        /** A request with a replay, before the uncarried count was observed. */
+        public BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
+                                      String observedIdentity, String freshness, boolean onePlainFile,
+                                      int windowRecords, String origin, String replay, int replayRecords,
+                                      int serviceCalls, String replayProblem, String replaySha256) {
+            this(request, path, notes, from, to, observedIdentity, freshness, onePlainFile, windowRecords, origin,
+                    replay, replayRecords, serviceCalls, replayProblem, replaySha256, 0);
+        }
+
         /** A request with no replay. */
         public BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
                                       String observedIdentity, String freshness, boolean onePlainFile,
                                       int windowRecords, String origin) {
             this(request, path, notes, from, to, observedIdentity, freshness, onePlainFile, windowRecords, origin,
-                    null, 0, 0, null, null);
+                    null, 0, 0, null, null, 0);
         }
     }
 

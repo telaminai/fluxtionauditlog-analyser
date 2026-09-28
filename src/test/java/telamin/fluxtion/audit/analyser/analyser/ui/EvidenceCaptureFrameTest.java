@@ -225,19 +225,21 @@ class EvidenceCaptureFrameTest {
     void aReplayIsCarriedOnlyWhenItPairs(@TempDir Path tmp) throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         Path recordedLog = Path.of("src/test/resources/replay/demo-quote-recorded-audit.yaml").toAbsolutePath();
-        Path replay = Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml").toAbsolutePath();
         try (var f = shown(tmp)) {
             Path ex = exchange(f, tmp);
+            // a read the analyser confines (review R4): the replay records sit in the exchange directory, named relative
+            Files.copy(Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml"), ex.resolve("demo-quote-recorded.replay.yaml"));
+            String replay = "demo-quote-recorded.replay.yaml";
             // the recorded run's replay against ANOTHER run's log (the shipped DEMO): refused by the node, nothing left
             openLog(f, DEMO_LOG);
             AtomicReference<Map<String, Object>> echo = new AtomicReference<>();
-            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "wrong.fexp", "replay", replay.toString())))));
+            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "wrong.fexp", "replay", replay)))));
             refused(echo.get(), "the replay does not belong to this log");
             assertEquals(List.of(), leftBehind(ex), "a refused capture writes nothing");
 
             // against its own log: written, format 2, with the replay member and what the node says of it
             openLog(f, recordedLog);
-            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "run.fexp", "replay", replay.toString())))));
+            onEdt(() -> echo.set(ask(f, Map.of("bundle", Map.of("path", "run.fexp", "replay", replay)))));
             assertEquals(Boolean.TRUE, echo.get().get("ok"), "a paired replay is capturable: " + echo.get());
             Map<String, Object> c = awaitDecided(f);
             assertEquals("WRITTEN", c.get("phase"), String.valueOf(c));

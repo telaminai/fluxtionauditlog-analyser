@@ -51,6 +51,7 @@ public class EvidenceCapture implements EventLogSource {
     // the replay this capture carries (replay spec §4.1), for the lines the node publishes when it is written
     private int replayRecords;
     private int serviceCalls;
+    private int uncarried;
     private boolean withReplay;
 
     public EvidenceCapture(OpenLog openLog, OperationGate gate, EffectQueue effects) {
@@ -90,6 +91,7 @@ public class EvidenceCapture implements EventLogSource {
         withReplay = e.replay() != null;
         replayRecords = e.replayRecords();
         serviceCalls = e.serviceCalls();
+        uncarried = e.replayUncarried();
         answer = new CaptureState.Answer(e.request(), true, "");
         auditLog.info("capture", path).info("generation", generation).info("ticket", ticket);
         if (resumeFollow) effects.request(new SessionEffects.SetFollowEffect(0L, ticket, false));
@@ -198,6 +200,12 @@ public class EvidenceCapture implements EventLogSource {
         List<String> out = new java.util.ArrayList<>(written);
         out.add("replay: the run's " + replayRecords + " recorded inputs, paired with the log in order; a recipient can "
                 + "replay them into their own build and compare");
+        if (uncarried > 0) {
+            // review S1: a replay cut short pairs too; say what it does not carry rather than read as the whole run
+            out.add("replay: the log holds " + uncarried + " record(s) of the replay's own event types that it does not "
+                    + "carry: raised by the graph itself, or inputs the replay is missing (a replay cut short); "
+                    + "--replay-compare names the first that matters");
+        }
         if (serviceCalls > 0) {
             out.add("replay: the log holds " + serviceCalls + " exported-service call(s) the replay does not carry, so a "
                     + "replay diverges from the first cycle that depends on one");

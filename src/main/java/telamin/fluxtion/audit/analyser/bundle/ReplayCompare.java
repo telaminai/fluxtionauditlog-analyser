@@ -33,12 +33,16 @@ public final class ReplayCompare {
     private ReplayCompare() {
     }
 
-    /** Where and when a cycle ran, never what it computed: the only lines a replay may differ in. */
+    /**
+     * Where and when a cycle ran, never what it computed: the only lines a replay may differ in, and only as the
+     * record's own fields (at its field indent), never a node's nested value of the same name (review N2).
+     */
     static final Pattern EXCEPTED = Pattern.compile("^\\s*(endTime|thread):.*$");
 
     /**
      * The verdict. {@code refusal} non-null: nothing was compared, and it says why. Otherwise {@code agrees}, with the
-     * records compared and how many had {@code endTime} excepted, or the first {@code divergence}, in words.
+     * records compared and how many differed only in their excepted fields ({@code endTime}, {@code thread}), or the
+     * first {@code divergence}, in words.
      */
     public record Verdict(EvidenceBundle.Verification verification, String refusal, boolean agrees, int records,
                           int excepted, String divergence) {
@@ -100,8 +104,18 @@ public final class ReplayCompare {
         return e == null ? "no event" : e;
     }
 
-    private static List<String> lines(String record) {
-        return List.of(record.split("\n", -1));
+    /** A record's lines, each without a trailing {@code \r}: a log written with CRLF is the same record (review R3). */
+    static List<String> lines(String record) {
+        String[] raw = record.split("\n", -1);
+        List<String> out = new ArrayList<>(raw.length);
+        for (String l : raw) out.add(l.endsWith("\r") ? l.substring(0, l.length() - 1) : l);
+        return out;
+    }
+
+    /** The indent of a record's own fields: the first indented line's. Only there are endTime and thread excepted. */
+    private static int fieldIndent(List<String> lines) {
+        for (String l : lines) if (!l.isBlank() && indent(l) > 0) return indent(l);
+        return -1;
     }
 
     /** Whether the two records differ in an excepted line (so the verdict can say how often the exception applied). */
@@ -120,11 +134,13 @@ public final class ReplayCompare {
      */
     static String firstDifference(List<String> a, List<String> b) {
         int n = Math.max(a.size(), b.size());
+        int fields = fieldIndent(a);
         for (int i = 0; i < n; i++) {
             String x = i < a.size() ? a.get(i) : null, y = i < b.size() ? b.get(i) : null;
             if (x != null && x.equals(y)) continue;
+            // a record's OWN endTime/thread only: a node's nested value that happens to be called thread is compared
             if (x != null && y != null && EXCEPTED.matcher(x).matches() && EXCEPTED.matcher(y).matches()
-                    && indent(x) == indent(y) && key(x).equals(key(y))) {
+                    && indent(x) == fields && indent(y) == fields && key(x).equals(key(y))) {
                 continue;
             }
             if (x != null && y != null && key(x).equals(key(y)) && indent(x) == indent(y)) {

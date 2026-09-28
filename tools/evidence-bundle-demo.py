@@ -371,11 +371,13 @@ def replay_sender(an, inbox):
     """With the DEMO log open, then the recorded run: the analyser refuses replay records that are not this log's, and
     a window with them; it writes the whole recorded run with them. Returns the bundle in the recipient's inbox."""
     exchange = SENDER / "exchange"
+    # the replay records are a file the analyser READS, so they go in the exchange directory (its read confinement)
+    shutil.copyfile(RECORDED_REPLAY, exchange / RECORDED_REPLAY.name)
     # A genuinely different run: the longer series log. NOT the short DEMO log, whose first seven inputs are the recorded
     # run's, at the same instants (the same input script on the same clock), so by content they ARE its inputs and pair.
     an.must("open", {"log": str(FIXTURES / "demo-quote-series.yaml"), "provenance": "DEMO quote service"})
     an.settle("the series log")
-    ok, lines, _ = capture(an, "wrong-log.fexp", replay=RECORDED_REPLAY)
+    ok, lines, _ = capture(an, "wrong-log.fexp", replay=RECORDED_REPLAY.name)
     check(not ok and "the replay does not belong to this log" in lines[0] and not (exchange / "wrong-log.fexp").exists(),
           "R2 replay records from another run are refused by name, and nothing is written", "; ".join(lines))
     an.must("open", {"log": str(RECORDED_LOG), "graphml": str(RECORDED_GRAPH), "provenance": "DEMO quote service"})
@@ -383,10 +385,10 @@ def replay_sender(an, inbox):
     an.must("walk", {"name": REPLAY_WALK, "title": "The breach, in the recorded run", "steps": [
         {"caption": "the graph raises the breach itself", "view": {"tab": "summary", "record": 7},
          "targets": [{"target": "records:row:7", "caption": "raised by riskMonitor, not sent in"}]}]})
-    ok, lines, _ = capture(an, "recorded-window.fexp", frm=1767258000100, to=1767258000180, replay=RECORDED_REPLAY)
+    ok, lines, _ = capture(an, "recorded-window.fexp", frm=1767258000100, to=1767258000180, replay=RECORDED_REPLAY.name)
     check(not ok and "a replay needs the whole run" in lines[0], "R2 a window with replay records is refused by name",
           "; ".join(lines))
-    ok, lines, path = capture(an, "recorded-run.fexp", notes="# Recorded run (DEMO)\n", replay=RECORDED_REPLAY)
+    ok, lines, path = capture(an, "recorded-run.fexp", notes="# Recorded run (DEMO)\n", replay=RECORDED_REPLAY.name)
     print("  recorded run, with its replay records:\n    " + "\n    ".join(lines))
     check(ok and any("the run's 7 recorded inputs, paired with the log in order" in l for l in lines),
           "R2 the whole recorded run is written with its 7 replay records, paired in order", "; ".join(lines))

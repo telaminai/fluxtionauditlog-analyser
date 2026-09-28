@@ -5883,17 +5883,15 @@ public final class MainFrame extends JFrame {
             var range = store == null ? null : telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.range(store, from, to);
             windowRecords = range == null ? 0 : range.size();
         }
-        telamin.fluxtion.audit.analyser.bundle.ReplayPairing.Observed pairing = null;
-        if (replay != null) {
-            pairing = store == null
-                    ? new telamin.fluxtion.audit.analyser.bundle.ReplayPairing.Observed(0, 0, "no log is open to pair it with")
-                    : telamin.fluxtion.audit.analyser.bundle.ReplayPairing.observe(Path.of(replay), store.index(), store.size());
-        }
+        // observed only with a log open; with none, the node refuses for that, by its own words (rule 9)
+        telamin.fluxtion.audit.analyser.bundle.ReplayPairing.Observed pairing = replay == null || store == null ? null
+                : telamin.fluxtion.audit.analyser.bundle.ReplayPairing.observe(Path.of(replay), store.index(), store.size());
         long request = ++captureRequests;
         session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested(request, path, notes, from, to,
                 observed, state == null ? null : state.toString(), onePlainFile, windowRecords, origin, replay,
                 pairing == null ? 0 : pairing.records(), pairing == null ? 0 : pairing.serviceCalls(),
-                pairing == null ? null : pairing.problem(), pairing == null ? null : pairing.sha256()));
+                pairing == null ? null : pairing.problem(), pairing == null ? null : pairing.sha256(),
+                pairing == null ? 0 : pairing.uncarried()));
         var capture = sessionSnapshot().capture();
         if (capture.answer().request() == request && !capture.answer().accepted()) {
             return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("capture refused: " + capture.answer().reason());

@@ -236,6 +236,18 @@ class EvidenceCaptureTest {
         assertTrue(lines.get(1).contains("the run's 7 recorded inputs, paired with the log in order"), lines.toString());
         assertTrue(lines.get(2).contains("2 exported-service call(s) the replay does not carry"), lines.toString());
 
+        // review S1: a replay that does not carry every record of its own types says so, rather than read as the run
+        FakeSessionAdapter c = new FakeSessionAdapter();
+        SessionDriver cut = opened(c);
+        cut.submit(new SessionEvents.BundleCaptureRequested(26, PATH, null, null, null, null, "unchanged-metadata", true,
+                -1, "test", REPLAY, 1, 0, null, "abc", 6));
+        var g = c.captures.get(0);
+        cut.post(new SessionEvents.BundleWritten(g.ticket(), g.generation(), PATH, "sha256:demo", List.of()));
+        assertTrue(capture(cut).lines().stream().anyMatch(l -> l.contains("6 record(s) of the replay's own event types that it does not carry")),
+                capture(cut).lines().toString());
+        assertTrue(capture(d).lines().stream().noneMatch(l -> l.contains("does not carry: raised")),
+                "control: the whole replay says nothing of the kind");
+
         // and a bundle with no replay says nothing about one
         FakeSessionAdapter b = new FakeSessionAdapter();
         SessionDriver plain = opened(b);

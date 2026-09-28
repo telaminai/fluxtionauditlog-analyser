@@ -174,7 +174,8 @@ public class Main {
     static final int REPLAY_COMPARE_THRESHOLD_MB = 256;
 
     /**
-     * {@code --replay-compare}: 0 when the replayed log reproduces the bundled one (every record exact but {@code endTime}),
+     * {@code --replay-compare}: 0 when the replayed log reproduces the bundled one (every record exact but its own
+     * {@code endTime} and {@code thread}),
      * 1 when it diverges or the bundle is refused. The bundle is verified first, and the verdict states its limits.
      */
     private static int replayVerdict(telamin.fluxtion.audit.analyser.bundle.ReplayCompare.Verdict c,
@@ -262,7 +263,8 @@ public class Main {
                                         extracted if verification fails
                   analyser --replay-compare <bundle.fexp> <replayed-audit.yaml>
                                         verify, then compare a replayed audit log with the bundle's:
-                                        every record exact but endTime; names the first difference
+                                        every record exact but endTime and thread; names the
+                                        first difference
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

@@ -348,12 +348,20 @@ public final class EvidenceBundle {
         Map<String, Object> m = (Map<String, Object>) Json.parse(new String(manifest, StandardCharsets.UTF_8));
         boolean format2 = ((Number) m.get("format")).intValue() == FORMAT_REPLAY;
         Object x = m.get("replay");
+        long replays = members.stream().filter(mm -> mm.path().startsWith(REPLAY_DIR)).count();
         if (!format2) {
             if (x != null) throw new IllegalArgumentException("a format " + FORMAT + " manifest states a replay");
+            // review S5: the other half of the rule, as pack enforces it: no replay records carried without the claim
+            if (replays != 0) throw new IllegalArgumentException("a format " + FORMAT + " manifest lists a " + REPLAY_DIR
+                    + " member it does not state");
             return null;
         }
         if (!(x instanceof Map<?, ?> r) || !(r.get("member") instanceof String member)) {
             throw new IllegalArgumentException("a format " + FORMAT_REPLAY + " manifest needs a replay with its member");
+        }
+        if (replays != 1) {
+            throw new IllegalArgumentException("a format " + FORMAT_REPLAY + " manifest lists " + replays + " " + REPLAY_DIR
+                    + " members, not one");
         }
         if (!member.startsWith(REPLAY_DIR) || members.stream().noneMatch(mm -> mm.path().equals(member))) {
             throw new IllegalArgumentException("the replay member " + member + " is not listed");

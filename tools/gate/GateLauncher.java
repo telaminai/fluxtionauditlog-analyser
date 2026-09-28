@@ -123,7 +123,9 @@ public final class GateLauncher {
                 case '\r' -> b.append("\\r");
                 case '\t' -> b.append("\\t");
                 default -> {
-                    if (c < 0x20) b.append(String.format("\\u%04x", (int) c));
+                    // U+0085, U+2028 and U+2029 too: a reader splitting lines on Unicode rules (Python's splitlines)
+                    // would otherwise cut one JSON row in two, as a test message carrying them did (M70 review)
+                    if (c < 0x20 || c == 0x85 || c == 0x2028 || c == 0x2029) b.append(String.format("\\u%04x", (int) c));
                     else b.append(c);
                 }
             }

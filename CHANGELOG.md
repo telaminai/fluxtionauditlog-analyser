@@ -15,19 +15,23 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   the whole run. The records are packed as the `replay/` member of a **format 2** bundle, and a bundle without them
   stays format 1, unchanged. The capture says how many recorded inputs it carries, and how many exported-service
   calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit.
-  Nothing in the analyser replays them: you replay them into your own build, then compare.
+  Nothing in the analyser replays them: you replay them into your own build, then compare. The replay file must sit
+  in the exchange directory, like any file the analyser reads for an assistant. Replay records that do not carry
+  every record of their own event types, such as a replay cut short, are named in the capture.
 - **`--replay-compare <bundle.fexp> <replayed-audit.yaml>`: does a replay give the same audit log?** It verifies the
   bundle, then compares its log with a replayed one record by record. Every line must be exact except `endTime`,
   the live clock reading at the end of a cycle, which a replay cannot know. It prints `AGREES, N of N records` and
   exits 0. Otherwise it prints `DIVERGES at record k (Event): path: 'bundled' ≠ 'replayed'`, the first difference
   with both values. A line one side has and the other lacks, such as a node that logged nothing on replay, is named
   as missing. The first record one side has and the other does not is named too. Either way it exits 1. A bundle with no replay
-  records, or with an excerpt, is refused. Besides `endTime`, the `thread` a cycle ran on is excepted, because a
+  records, or with an excerpt, is refused. A log with CRLF line endings compares as the same log. Besides `endTime`, the `thread` a cycle ran on is excepted, because a
   replay runs on its own thread.
 - **The replay runner: `tools/replay/ReplayBundle.java`.** Run it with JBang against your own build:
   `jbang tools/replay/ReplayBundle.java --bundle run.fexp --processor <class> --cp <your build> --out replayed.yaml`.
   It checks that your build is the bundle's processor, comparing the nodes and edges of your build's GraphML with
-  the bundle's, and refuses by name when they differ. It loads only the event types your processor handles, and
+  the bundle's, and refuses by name when they differ. It holds the replay and graph members to the manifest's
+  digests before your build runs on them, and keeps only those two in memory. It warns when the bundled log changes
+  its audit level mid-run. It loads only the event types your processor handles, and
   replays each record at its recorded instant on a data-driven clock. It writes the audit log for
   `--replay-compare`.
 - **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It

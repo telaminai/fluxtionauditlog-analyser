@@ -149,6 +149,28 @@ public class ReplayCompareTest {
     }
 
     @Test
+    @DisplayName("review R3: a log written with CRLF line endings is the same log, and agrees")
+    void aCrlfLogAgrees(@TempDir Path tmp) throws Exception {
+        var c = compare(tmp, replayed().replace("\n", "\r\n"));
+        assertTrue(c.agrees(), c.divergence());
+        assertEquals(8, c.records());
+    }
+
+    @Test
+    @DisplayName("review N2: only the record's OWN endTime and thread are excepted, never a node's nested value of that name")
+    void aNestedThreadValueIsCompared() {
+        var a = java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    nodeLogs: ", "        thread:", "            name: a");
+        var b = java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    nodeLogs: ", "        thread:", "            name: b");
+        assertEquals("eventLogRecord.nodeLogs.thread.name: 'a' ≠ 'b'", ReplayCompare.firstDifference(a, b));
+        var nestedThread = java.util.List.of("eventLogRecord: ", "    nodeLogs: ", "        thread: x");
+        var otherThread = java.util.List.of("eventLogRecord: ", "    nodeLogs: ", "        thread: y");
+        assertEquals("eventLogRecord.nodeLogs.thread: 'x' ≠ 'y'", ReplayCompare.firstDifference(nestedThread, otherThread));
+        // control: the record's own thread IS excepted
+        assertEquals(null, ReplayCompare.firstDifference(java.util.List.of("eventLogRecord: ", "    thread: x"),
+                java.util.List.of("eventLogRecord: ", "    thread: y")));
+    }
+
+    @Test
     @DisplayName("an endTime line that moved or is missing still differs: the exception is by position, not a filter")
     void theExceptionIsPositional() {
         var a = java.util.List.of("eventLogRecord: ", "    eventTime: 1", "    endTime: 5");

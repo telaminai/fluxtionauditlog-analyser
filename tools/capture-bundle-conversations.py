@@ -204,9 +204,11 @@ def sender(t):
     await_log(ep, 8)
     t.you("This run was recorded with a replay writer. Send the dev team the minute around the breach, with its replay "
           "records, so they can check it on their own build.")
+    shutil.copy(RECORDED_REPLAY, cd.EXPORT_DIR / RECORDED_REPLAY.name)   # a read the analyser confines to it
     t.prose("The processor that wrote this log had a replay writer compiled in: it recorded each input the service "
-            "received, at the instant its cycle ran, next to the audit log. The agent names that file.")
-    t.attempt("report", {"bundle": {"path": "recorded-run.fexp", "replay": str(RECORDED_REPLAY),
+            "received, at the instant its cycle ran, next to the audit log. That file is in the exchange directory, "
+            "the one place the assistant may point the analyser at a file, and the agent names it.")
+    t.attempt("report", {"bundle": {"path": "recorded-run.fexp", "replay": RECORDED_REPLAY.name,
                                     "from": 1767258000100, "to": 1767258000180}},
               expect="a replay needs the whole run")
     t.agent("The analyser refused a time window with the replay records, and it is right to: the processor's state "
@@ -217,7 +219,7 @@ def sender(t):
         {"caption": "the graph raises the breach itself", "view": {"tab": "summary", "record": 7},
          "targets": [{"target": "records:row:7", "caption": "raised by riskMonitor, not sent in"}]}]},
            show=["walk", "name", "saved"])
-    t.call("report", {"bundle": {"path": "recorded-run.fexp", "replay": str(RECORDED_REPLAY),
+    t.call("report", {"bundle": {"path": "recorded-run.fexp", "replay": RECORDED_REPLAY.name,
                                  "notes": "# Recorded run (DEMO)\n\nReplay it into your build and compare.\n"}},
            show=["phase", "path"])
     await_capture(ep, "recorded-run.fexp")

@@ -75,15 +75,19 @@ public class ReplayCapture implements Auditor {
         }
     }
 
+    /** Exactly the component types {@link ReplayReader} decodes: anything else fails the build, not a cycle. */
+    static final Set<Class<?>> ENCODABLE = Set.of(String.class, char.class, Character.class, boolean.class, Boolean.class,
+            byte.class, Byte.class, short.class, Short.class, int.class, Integer.class, long.class, Long.class,
+            float.class, Float.class, double.class, Double.class);
+
     static void checkEncodable(Class<?> type) {
         if (!type.isRecord()) {
             throw new IllegalArgumentException("ReplayCapture cannot write " + type.getName() + ": not a record");
         }
         for (RecordComponent c : type.getRecordComponents()) {
-            Class<?> t = c.getType();
-            if (!(t == String.class || t.isPrimitive() || Number.class.isAssignableFrom(t) || t == Boolean.class)) {
+            if (!ENCODABLE.contains(c.getType())) {
                 throw new IllegalArgumentException(
-                        "ReplayCapture cannot write " + type.getName() + "." + c.getName() + ": " + t.getName());
+                        "ReplayCapture cannot write " + type.getName() + "." + c.getName() + ": " + c.getType().getName());
             }
         }
     }
@@ -100,9 +104,37 @@ public class ReplayCapture implements Auditor {
                 throw new IllegalStateException(e);
             }
             sb.append(parts[i].getName()).append(": ");
-            if (v instanceof String s) sb.append('"').append(s.replace("\\", "\\\\").replace("\"", "\\\"")).append('"');
+            if (v == null) sb.append("null");                              // never quoted: a quoted "null" is the text
+            else if (v instanceof String || v instanceof Character) quote(sb, v.toString());
             else sb.append(v);
         }
         return sb.append('}').toString();
+    }
+
+    /**
+     * A string as one quoted token on one line: backslash, quote, and every character that could end a line or a
+     * record ({@code \n}, {@code \r}, the other controls, U+0085, U+2028, U+2029) escaped, so a record is always
+     * exactly one line and {@code ---} inside a string can never split one.
+     */
+    static void quote(StringBuilder sb, String s) {
+        sb.append('"');
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            switch (ch) {
+                case '\\' -> sb.append("\\\\");
+                case '"' -> sb.append("\\\"");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (ch < 0x20 || ch == 0x7f || ch == 0x85 || ch == 0x2028 || ch == 0x2029) {
+                        sb.append(String.format("\\u%04x", (int) ch));
+                    } else {
+                        sb.append(ch);
+                    }
+                }
+            }
+        }
+        sb.append('"');
     }
 }

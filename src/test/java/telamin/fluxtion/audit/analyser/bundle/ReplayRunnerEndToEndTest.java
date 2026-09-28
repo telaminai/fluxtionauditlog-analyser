@@ -76,6 +76,15 @@ class ReplayRunnerEndToEndTest {
         assertEquals(0, rc, "compiles: " + diag.toString(StandardCharsets.UTF_8));
     }
 
+    /** Re-stamp one member's sha256 and size in the manifest, as a bundle packed with those bytes would have them. */
+    static void restamp(java.util.Map<String, byte[]> entries, String member, byte[] bytes) throws Exception {
+        String sha = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+        String m = new String(entries.get("manifest.json"), StandardCharsets.UTF_8).replaceFirst(
+                "\\{\"path\":\"" + java.util.regex.Pattern.quote(member) + "\",\"sha256\":\"[0-9a-f]{64}\",\"bytes\":\\d+}",
+                java.util.regex.Matcher.quoteReplacement("{\"path\":\"" + member + "\",\"sha256\":\"" + sha + "\",\"bytes\":" + bytes.length + "}"));
+        entries.put("manifest.json", m.getBytes(StandardCharsets.UTF_8));
+    }
+
     /** The runner, compiled from its committed source and called as its main would be. */
     static Run runner(Path tmp, String... args) throws Exception {
         Path classes = tmp.resolve("runner-classes");
@@ -157,6 +166,24 @@ class ReplayRunnerEndToEndTest {
     }
 
     @Test
+    @DisplayName("review S6: a bundled log that changes its audit level mid-run is warned about, not replayed silently")
+    void aLevelChangeInTheLogIsWarnedAbout(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        var entries = EvidenceBundleTest.entries(bundle);
+        String log = "log/demo-quote-recorded-audit.yaml";
+        entries.put(log, (new String(entries.get(log), StandardCharsets.UTF_8)
+                + "---\neventLogRecord: \n    event: EventLogControlEvent\n").getBytes(StandardCharsets.UTF_8));
+        Run r = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("levels.fexp"), entries).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("r.yaml").toString());
+        assertEquals(0, r.code(), r.err());
+        assertTrue(r.out().contains("warning: the bundled log changes its audit level 1 time(s)"), r.out());
+        Run control = runner(tmp, "--bundle", bundle.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                "--out", tmp.resolve("s.yaml").toString());
+        assertFalse(control.out().contains("warning:"), "control: " + control.out());
+    }
+
+    @Test
     @DisplayName("a build that is not the bundle's processor is refused by name; --skip-graph-check replays and says so")
     void aDifferentGraphIsRefused(@TempDir Path tmp) throws Exception {
         Path bundle = ReplayCompareTest.bundle(tmp);
@@ -198,8 +225,10 @@ class ReplayRunnerEndToEndTest {
         // a replay naming a type the build does not handle: refused, never loaded
         var entries = EvidenceBundleTest.entries(bundle);
         String member = "replay/demo-quote-recorded.replay.yaml";
-        entries.put(member, new String(entries.get(member), StandardCharsets.UTF_8)
-                .replaceFirst("Events\\$MarketDataEvent", "Events\\$NotHandled").getBytes(StandardCharsets.UTF_8));
+        byte[] renamed = new String(entries.get(member), StandardCharsets.UTF_8)
+                .replaceFirst("Events\\$MarketDataEvent", "Events\\$NotHandled").getBytes(StandardCharsets.UTF_8);
+        entries.put(member, renamed);
+        restamp(entries, member, renamed);        // a SENDER who packed such a record: the manifest agrees with it
         Path tampered = EvidenceBundleTest.zip(tmp.resolve("t.fexp"), entries);
         Run unhandled = runner(tmp, "--bundle", tampered.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
                 "--out", tmp.resolve("c.yaml").toString());
@@ -208,6 +237,18 @@ class ReplayRunnerEndToEndTest {
                 unhandled.err());
 
         assertEquals(2, runner(tmp, "--bundle", bundle.toString()).code(), "usage");
+        Run badLevel = runner(tmp, "--bundle", bundle.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                "--out", tmp.resolve("d.yaml").toString(), "--level", "LOUD");
+        assertEquals(2, badLevel.code(), "review N5: a bad --level is usage, not a refusal: " + badLevel.err());
+
+        // review S4: the runner holds the replay member to the manifest before your build runs on it
+        var changed = EvidenceBundleTest.entries(bundle);
+        changed.put(member, (new String(changed.get(member), StandardCharsets.UTF_8) + "\n").getBytes(StandardCharsets.UTF_8));
+        Run tamper = runner(tmp, "--bundle", EvidenceBundleTest.zip(tmp.resolve("changed.fexp"), changed).toString(),
+                "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("e.yaml").toString());
+        assertEquals(1, tamper.code());
+        assertTrue(tamper.err().contains(member + " does not match the manifest"), tamper.err());
+        assertFalse(Files.exists(tmp.resolve("e.yaml")), "nothing replayed, nothing written");
         assertTrue(File.pathSeparator.length() == 1);
     }
 }

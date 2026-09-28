@@ -185,7 +185,7 @@ at `…140` and the shipped writer wrote `…150`.
 ### 4.1 A new member, paired by content
 
 ```
-replay/<processor>.replay.yaml      the processor's replay records, byte for byte
+replay/<file>                       the run's replay records, byte for byte, under the name the author's file had
 ```
 
 The capture's author points at the replay file (`report {bundle: {…, replay: <path>}}`). The `evidenceCapture` node
@@ -212,6 +212,13 @@ frame observes it and the node decides.
   input script on the same clock, the DEMO log adding two service calls at the end. That is honest by construction:
   those records ARE the replay's inputs. The capture then counts the service calls and warns, and `--replay-compare`
   shows where the logs differ.
+- **A third limit (review N4): the log names an event type by its SIMPLE class name**, so pairing matches on it:
+  `a.Foo` and `b.Foo` are indistinguishable here. The runner is not affected, since it resolves the full name
+  against the build's own handled types.
+- **What a replay does not carry of its own types** (review S1). A replay cut short still pairs, because each record
+  it has IS one of the log's. So the pairing counts the log's records of the replay's own event types that it does
+  not carry, and the node says so: they are events the graph raised itself, or inputs the replay is missing. It does
+  not refuse, because an event the graph raises can share a type with an input.
 - **The copy is held to the paired bytes.** The pairing digests the file in the same pass that reads it. The writer
   copies the file later, off the event thread, and refuses a copy whose digest differs: *"the replay file changed
   after it was paired with the log; nothing was written"*.
@@ -401,6 +408,37 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
    generated source ships in the analyser's jar as a resource (`src/main/resources/demo/`), and it compiles against the
    Fluxtion runtime with no compiler key (the spike's `run.sh` does exactly this). For a real incident, is the build named in the bundle (a Maven coordinate and a
    commit), and does the runner fetch it?
+
+## 10a. The pre-review (2026-09-28): what it found, and what was done
+
+An independent agent reviewed the whole range (`v1.27.0…feat/evidence-bundle-replay`) before the PR's review.
+Every finding was checked against the code before anything was changed:
+
+| finding | disposition | its check (rule 8) |
+|---|---|---|
+| R1 a null String replayed as `"ul"` | fixed: `null` written bare, a String must be quoted, one left-to-right unescape | `ReplayCodecRoundTripTest`; `rq-null-is-written-bare` |
+| R2 strings with line endings, `char ','`, `BigDecimal` | fixed: controls and U+0085/2028/2029 escaped; chars quoted; the encodable set is exactly what the readers decode | round trip through BOTH readers; `rq-escapes-every-line-ending`, `rq-encodable-is-what-the-readers-read`, `rn-refuses-an-unquoted-string` |
+| R3 a CRLF log never agreed | fixed: a trailing `\r` dropped per line | `ReplayCompareTest#aCrlfLogAgrees`; `rc-a-crlf-log-is-the-same-log` |
+| R4 the `replay` read was unconfined | fixed: `ExportGuard.resolveRead`, as every verb read | `ReplayConfinementTest`; `ax-the-replay-read-is-confined` |
+| R5 painted screenshots | open, before merge: native regeneration needs Screen Recording | the PR's checklist |
+| S1 a replay cut short paired as the whole run | fixed as a statement, not a refusal: the uncarried records of its own types are counted and named (a graph-raised event may share an input's type) | `ReplayPairingTest#aReplayCutShortStillPairs…`; `rp-counts-what-a-replay-does-not-carry` |
+| S2 a cut-off last record, mis-worded | fixed: named as cut off | `ReplayPairingTest#aLastRecordCutOffIsNamedAsCutOff` |
+| S3 the pairing reads the file on the event thread | **not fixed, recorded**: it streams in bounded memory, so a large replay stalls the window for its read time. Moving it off the thread needs the capture request to become asynchronous (observe, then submit the fact), a rule 9 change of its own | tracker M70.R2a |
+| S4 the runner held every member, and checked no digest | fixed: only `replay/` and `graph/` kept, each held to the manifest | `ReplayRunnerEndToEndTest#whatCannotBeReplayedIsRefused`; `rn-holds-members-to-the-manifest` |
+| S5 format-1 listing a `replay/` member verified | fixed: the member rule enforced on read both ways | `ReplayBundleTest#theMemberRuleHoldsOnRead`; `eb-format1-lists-no-replay-member` |
+| S6 audit-level changes mid-run | fixed as a warning from the runner | `ReplayRunnerEndToEndTest#aLevelChangeInTheLogIsWarnedAbout`; `rn-warns-of-a-level-change` |
+| N1 text said only `endTime` | fixed | read |
+| N2 a nested `thread` value was excepted | fixed: only the record's own fields, at its field indent | `ReplayCompareTest#aNestedThreadValueIsCompared`; `rc-only-the-records-own-fields-are-excepted` |
+| N3 a byte-order mark refused a replay | fixed, in the pairing and both readers | `ReplayPairingTest#aByteOrderMarkIsAccepted`, `ReplayCodecRoundTripTest#aBomAndCrlfAreRead` |
+| N4 simple class names | recorded as a limit (§4.1) | — |
+| N5 a bad `--level`; one exit code for refused and diverges | `--level` fixed (usage, exit 2). **Exit 1 for both kept**: every bundle command uses 1 for "not accepted", and a script reads the `DIVERGES`/`REFUSED` line | `ReplayRunnerEndToEndTest` |
+| N6 the member's name | fixed in §4.1 | read |
+| (rule 9 nit) the frame composed "no log is open" | fixed: with no log the frame observes nothing, and the node refuses in its own words | — |
+
+**Found while closing them:** the mutation harness's JSON-lines reader split rows on U+2028 (`splitlines()`), so a
+test message carrying one crashed the gate. `GateLauncher` now escapes U+0085/2028/2029 and the reader splits on
+`\n` only; the engine's self-test passes. Two controls first survived because their test *threw* instead of
+asserting (the gate counts only a named assertion); both tests now assert.
 
 ## 11. Revision history
 
