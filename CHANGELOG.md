@@ -11,7 +11,7 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 - **An evidence bundle can carry the run's replay records.** Name them with
   `report {bundle: {path, replay: <file>}}`. They must pair with the open log: each replay record is one of the
   log's records, at its `eventTime`, in order. A replay from another run is refused, naming its first record that
-  does not match. It is also refused with a time window, or while the log is still growing, because a replay needs
+  does not match. It is also refused with a time window, or while Follow is on, because a replay needs
   the whole run. The records are packed as the `replay/` member of a **format 2** bundle, and a bundle without them
   stays format 1, unchanged. The capture says how many recorded inputs it carries, and how many exported-service
   calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit.

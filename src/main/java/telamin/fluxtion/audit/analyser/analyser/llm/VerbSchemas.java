@@ -641,7 +641,7 @@ public final class VerbSchemas {
                 p("to", integer(), "EXCERPT: only records at or before this (epoch millis)"),
                 p("replay", string(), "REPLAY: the path of the run's replay records, recorded with the log. They must "
                         + "pair with it (each record a log record's event at its eventTime, in order), and only with the "
-                        + "whole log: refused with a window, or while the log is still growing. The log's exported-service "
+                        + "whole log: refused with a window, or while Follow is on. The log's exported-service "
                         + "calls are counted, because a replay does not carry them")));
         m.put("required", List.of("path"));
         return m;

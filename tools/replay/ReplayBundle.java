@@ -62,7 +62,7 @@ import java.util.zip.ZipInputStream;
 public class ReplayBundle {
 
     /** Every bundle member is read into memory: a guard against a bundle that is not what it says. */
-    static final long MAX_MEMBER_BYTES = 512L << 20;
+    static final long MAX_MEMBER_BYTES = Long.getLong("replayBundle.maxMemberBytes", 512L << 20);
 
     public static void main(String[] args) throws Exception {
         System.exit(run(args, System.out, System.err));
@@ -245,16 +245,57 @@ public class ReplayBundle {
                         throw new Refused(name + " does not match the manifest: the bundle was changed; run analyser --verify");
                     }
                     out.put(name, bytes);
-                } else if (name.startsWith("log/")) {
-                    var r = new java.io.BufferedReader(new java.io.InputStreamReader(zip, StandardCharsets.UTF_8));
-                    for (String l; (l = r.readLine()) != null; ) if (l.strip().equals("event: EventLogControlEvent")) levelChanges++;
                 } else {
-                    zip.transferTo(java.io.OutputStream.nullOutputStream());
+                    // second review (S3): every member is bounded, not only the two kept; the log is scanned as it passes
+                    var bounded = new BoundedStream(zip, name, MAX_MEMBER_BYTES);
+                    if (name.startsWith("log/")) {
+                        var r = new java.io.BufferedReader(new java.io.InputStreamReader(bounded, StandardCharsets.UTF_8));
+                        for (String l; (l = r.readLine()) != null; ) if (l.strip().equals("event: EventLogControlEvent")) levelChanges++;
+                    } else {
+                        bounded.transferTo(java.io.OutputStream.nullOutputStream());
+                    }
                 }
             }
         }
         if (listed == null) throw new Refused("no manifest.json: this is not an evidence bundle");
         return new Members(out, levelChanges);
+    }
+
+    /** A member's bytes, read no further than {@code max}: past it, the read fails naming the member. */
+    static final class BoundedStream extends java.io.FilterInputStream {
+        private final String name;
+        private final long max;
+        private long total;
+
+        BoundedStream(InputStream in, String name, long max) {
+            super(in);
+            this.name = name;
+            this.max = max;
+        }
+
+        @Override
+        public int read() throws IOException {
+            int b = super.read();
+            if (b >= 0) count(1);
+            return b;
+        }
+
+        @Override
+        public int read(byte[] buf, int off, int len) throws IOException {
+            int n = super.read(buf, off, len);
+            if (n > 0) count(n);
+            return n;
+        }
+
+        private void count(int n) throws IOException {
+            total += n;
+            if (total > max) throw new IOException(name + " is larger than the runner's limit of " + max + " bytes");
+        }
+
+        @Override
+        public void close() {
+            // the zip stream's entries are read in turn; closing one member must not close the archive
+        }
     }
 
     private static byte[] readBounded(InputStream in, String name, long max) throws IOException, Refused {
@@ -263,7 +304,7 @@ public class ReplayBundle {
         long total = 0;
         for (int n; (n = in.read(buf)) > 0; ) {
             total += n;
-            if (total > max) throw new Refused(name + " is larger than " + (max >> 20) + " MiB");
+            if (total > max) throw new Refused(name + " is larger than the runner's limit of " + max + " bytes");
             b.write(buf, 0, n);
         }
         return b.toByteArray();
@@ -425,7 +466,7 @@ public class ReplayBundle {
                 case 'r' -> out.append('\r');
                 case 't' -> out.append('\t');
                 case 'u' -> {
-                    if (i + 4 >= raw.length()) throw new Refused("a short \\u escape: " + raw);
+                    if (i + 4 >= raw.length() - 1) throw new Refused("a short \\u escape: " + raw);
                     try {
                         out.append((char) Integer.parseInt(raw.substring(i + 1, i + 5), 16));
                     } catch (NumberFormatException x) {

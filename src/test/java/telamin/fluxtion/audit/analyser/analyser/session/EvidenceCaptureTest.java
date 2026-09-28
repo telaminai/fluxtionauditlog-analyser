@@ -224,6 +224,20 @@ class EvidenceCaptureTest {
     }
 
     @Test
+    @DisplayName("second review S4: under Follow a replay is refused even before any growth is seen — one moment needs Follow off")
+    void aReplayUnderFollowIsRefusedBeforeGrowthIsSeen() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = following(a, 10);
+        d.submit(withReplay(27, null, "unchanged-metadata", null, 0));
+        refusedWritingNothing(d, a, 27, "turn Follow off once it has ended");
+        // control: the same request without Follow is accepted
+        FakeSessionAdapter b = new FakeSessionAdapter();
+        SessionDriver still = opened(b);
+        still.submit(withReplay(28, null, "unchanged-metadata", null, 0));
+        assertTrue(capture(still).answer().accepted(), capture(still).answer().reason());
+    }
+
+    @Test
     @DisplayName("replay: written, the node says what it carries, and names the service calls it cannot")
     void aWrittenReplayIsDescribedAndItsLimitNamed() {
         FakeSessionAdapter a = new FakeSessionAdapter();

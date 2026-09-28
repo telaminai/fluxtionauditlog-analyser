@@ -35,7 +35,7 @@ report {bundle: {path: "breach-0900.fexp", notes: "# The 09:00 breach\n\nThe spr
 - **`replay`** (optional) is the path of the run's replay records, written by a replay writer in the same run as
   the log. Put the file in the exchange directory, as for any file the assistant points the analyser at. They are packed as the `replay/` member. The analyser first checks that each replay record is one of the
   log's records, at its `eventTime`, in order. It refuses replay records from another run, and refuses them with a
-  window or while the log is still growing. It counts the log's exported-service calls, which replay records cannot
+  window or while Follow is on, because the run may not have ended. It counts the log's exported-service calls, which replay records cannot
   carry. See [Commands and file format](reference.md#the-manifest-with-replay-records-format-2).
 
 The bundle is written in the background. `context.capture` says when it is done: `phase: WRITTEN` with its

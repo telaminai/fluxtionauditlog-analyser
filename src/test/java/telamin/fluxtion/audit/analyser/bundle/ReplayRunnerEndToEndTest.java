@@ -165,6 +165,68 @@ class ReplayRunnerEndToEndTest {
                 "with the limit at 3 the risk monitor does not log at all on the cycle that breached");
     }
 
+    /** The short DEMO TEST fixture: the recorded run's seven inputs on the same clock, then two exported-service calls. */
+    static final Path WITH_SERVICE_CALLS = Path.of("src/test/resources/topology/demo-quote-audit.yaml");
+
+    @Test
+    @DisplayName("RB-9: a log whose run made service calls pairs, is warned about, and a REAL replay diverges at the first call")
+    void aLogWithServiceCallsDivergesAtTheFirstCall(@TempDir Path tmp) throws Exception {
+        // the pairing, observed for real (not a literal): its seven inputs ARE this log's, and it counts the two calls
+        ReplayPairing.Observed o;
+        try (var store = telamin.fluxtion.audit.analyser.analyser.parse.LogStores.open(WITH_SERVICE_CALLS, 256)) {
+            o = ReplayPairing.observe(ReplayBundleTest.REPLAY, store.index(), store.size());
+        }
+        assertTrue(o.pairs(), o.problem());
+        assertEquals(2, o.serviceCalls(), "suspendQuoting and resumeQuoting");
+        Path bundle = tmp.resolve("with-calls.fexp");
+        BundleWriter.write(new BundleWriter.Job(bundle, WITH_SERVICE_CALLS, ReplayBundleTest.GRAPH, "project.fluxtion-settings",
+                Files.readAllBytes(BundleProfileTest.FIXTURE), null, null, java.time.Instant.now(), "test", 256, null, false,
+                ReplayBundleTest.REPLAY, o.records(), o.serviceCalls(), o.sha256()));
+        assertEquals(2, ((Number) EvidenceBundle.verify(bundle).replay().get("serviceCalls")).intValue());
+
+        Path out = tmp.resolve("replayed.yaml");
+        Run r = runner(tmp, "--bundle", bundle.toString(), "--processor", PROCESSOR, "--cp", build(tmp, "same", null).toString(),
+                "--out", out.toString());
+        assertEquals(0, r.code(), r.err());
+
+        // the replay cannot carry the calls, so it ends where they begin: named, never an AGREE
+        var c = ReplayCompare.compare(bundle, out, 256);
+        assertFalse(c.agrees(), "a log with service calls the replay does not carry must never read as agreeing");
+        assertEquals("record 8: the bundled log has record 8 (ExportFunctionAuditEvent), and the replay does not "
+                + "(10 records bundled, 8 replayed)", c.divergence());
+        assertEquals(8, c.records(), "the eight records before the first call agree");
+    }
+
+    @Test
+    @DisplayName("second review S3: every member is bounded, the log and anything else too, not only the two kept")
+    void everyMemberIsBounded(@TempDir Path tmp) throws Exception {
+        Path bundle = ReplayCompareTest.bundle(tmp);
+        Path build = build(tmp, "same", null);
+        long logBytes = EvidenceBundleTest.entries(bundle).get("log/demo-quote-recorded-audit.yaml").length;
+        String was = System.getProperty("replayBundle.maxMemberBytes");
+        try {
+            // a limit just under the log member: the log, which is scanned and never kept, is refused by name
+            System.setProperty("replayBundle.maxMemberBytes", Long.toString(logBytes - 1));
+            Run r = runner(tmp.resolve("a"), "--bundle", bundle.toString(), "--processor", PROCESSOR, "--cp", build.toString(),
+                    "--out", tmp.resolve("x.yaml").toString());
+            assertEquals(1, r.code(), r.out());
+            assertTrue(r.err().contains("is larger than the runner's limit of " + (logBytes - 1) + " bytes"), r.err());
+            // and a filler member the runner does not otherwise read
+            var entries = EvidenceBundleTest.entries(bundle);
+            entries.put("notes/filler.bin", new byte[(int) logBytes]);
+            System.setProperty("replayBundle.maxMemberBytes", Long.toString(logBytes + 100_000));
+            byte[] big = new byte[(int) (logBytes + 200_000)];
+            entries.put("notes/filler.bin", big);
+            Run f = runner(tmp.resolve("b"), "--bundle", EvidenceBundleTest.zip(tmp.resolve("filler.fexp"), entries).toString(),
+                    "--processor", PROCESSOR, "--cp", build.toString(), "--out", tmp.resolve("y.yaml").toString());
+            assertEquals(1, f.code(), f.out());
+            assertTrue(f.err().contains("notes/filler.bin is larger than the runner's limit"), f.err());
+        } finally {
+            if (was == null) System.clearProperty("replayBundle.maxMemberBytes");
+            else System.setProperty("replayBundle.maxMemberBytes", was);
+        }
+    }
+
     @Test
     @DisplayName("review S6: a bundled log that changes its audit level mid-run is warned about, not replayed silently")
     void aLevelChangeInTheLogIsWarnedAbout(@TempDir Path tmp) throws Exception {

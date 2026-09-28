@@ -132,10 +132,12 @@ public class EvidenceCapture implements EventLogSource {
         if (e.replay() != null) {
             // replay spec §4.3: the processor's state at a window's start depends on every earlier input
             if (e.from() != null || e.to() != null) return "a replay needs the whole run: drop the window or the replay";
-            // a log still growing is captured as what was read so far, and a replay of the whole run is not that
-            if (openLog.following() && "changed-on-disk".equals(e.freshness())) {
-                return "the log is still growing, and the bundle would hold only what was read so far: a replay needs "
-                        + "the whole run, so capture it once the run has ended";
+            // second review (S4): under Follow the producer may still be writing, so the log copied later off this
+            // thread may hold records the replay records paired now do not: one moment needs Follow off, whether or not
+            // growth has been seen yet
+            if (openLog.following()) {
+                return "the log is being followed, so the run may not have ended: a replay needs the whole run, so turn "
+                        + "Follow off once it has ended, then capture";
             }
             // the frame OBSERVED whether the replay pairs with the open log; refusing one that does not is ours
             if (e.replayProblem() != null) return "the replay does not belong to this log: " + e.replayProblem();

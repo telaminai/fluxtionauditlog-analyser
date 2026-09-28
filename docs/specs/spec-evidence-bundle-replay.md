@@ -208,7 +208,8 @@ frame observes it and the node decides.
   at that instant. Replaying it would raise the event twice, and that is the comparison's to find (§6), not the
   pairing's. Pairing asks only whether the replay belongs to this log.
 - **A second limit, found by the demo driver (R5).** Pairing is by content, so a *different run* whose inputs are the
-  same events at the same instants pairs too. The DEMO's short log and the recorded run are exactly that: the same
+  same events at the same instants pairs too. The short DEMO **test fixture** (`src/test/resources/topology/demo-quote-audit.yaml`, not the jar's copy) and the
+  recorded run are exactly that: the same
   input script on the same clock, the DEMO log adding two service calls at the end. That is honest by construction:
   those records ARE the replay's inputs. The capture then counts the service calls and warns, and `--replay-compare`
   shows where the logs differ.
@@ -223,7 +224,8 @@ frame observes it and the node decides.
   copies the file later, off the event thread, and refuses a copy whose digest differs: *"the replay file changed
   after it was paired with the log; nothing was written"*.
 
-**Also refused, by name:** a replay with a window (§4.3), and a replay while the log is still growing under Follow,
+**Also refused, by name:** a replay with a window (§4.3), and a replay while Follow is on, whether or not growth has
+been seen yet (second review S4: a producer still writing could add records between the pairing and the copy),
 because the bundle would then hold only what was read so far.
 
 **What the author is told** (the node's lines, when it is written): *"replay: the run's N recorded inputs, paired
@@ -357,9 +359,9 @@ follow-up; the demo is the CLI verdict.
 | RB-4 | a replay file from another run is refused at capture, naming the first unmatched input | a correctly paired file passes |
 | RB-5 | a window together with a replay is refused by name | a whole-log capture with a replay succeeds |
 | RB-6 | the runner refuses a build whose graph differs, naming the difference | the matching build replays |
-| RB-7 | the recorder stamps the receipt instant | `RecorderClockProbe`: the shipped writer, with a ticking clock, records a different instant; the DEMO recorder does not |
+| RB-7 | the recorder stamps the receipt instant | `ReplayCodecRoundTripTest#theWriterStampsTheReceiptInstant`: the DEMO's `ReplayCapture` on a clock that ticks per read records the cycle's instant, never a later read; control `rq-stamps-the-receipt-instant`. (`RecorderClockProbe` shows Fluxtion's own writer does not, by hand.) |
 | RB-8 | a format-1 bundle still verifies and unpacks, unchanged | `EvidenceBundle` refuses a format-2 bundle with its `replay` member removed but still in the manifest |
-| RB-9 | a log holding exported-service calls is captured with `serviceCalls: K` and the warning | the shipped 10-cycle DEMO log replays to a divergence the comparison names, and it never reads as agreeing |
+| RB-9 | a log holding exported-service calls is captured with `serviceCalls: K` and the warning | `ReplayRunnerEndToEndTest#aLogWithServiceCallsDivergesAtTheFirstCall`: the short DEMO test fixture pairs (its 7 inputs are the recorded run's) with `serviceCalls: 2`, observed for real; the runner replays it and `--replay-compare` DIVERGES at record 8, the first `ExportFunctionAuditEvent`, never AGREES; control `rp-counts-the-logs-service-calls`. (r1 named the jar's DEMO log, which since R0b no longer pairs: second review finding 1.) |
 
 Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to-end run joins
 `tools/evidence-bundle-demo.py`.
@@ -439,6 +441,20 @@ Every finding was checked against the code before anything was changed:
 test message carrying one crashed the gate. `GateLauncher` now escapes U+0085/2028/2029 and the reader splits on
 `\n` only; the engine's self-test passes. Two controls first survived because their test *threw* instead of
 asserting (the gate counts only a named assertion); both tests now assert.
+
+## 10b. The second pre-review (2026-09-28, a different model): what it found, and what was done
+
+It re-ran the evidence (2850/0/0/170; demo 57/57; 29/29 sampled controls) and judged §7 item by item:
+
+| finding | disposition | its check |
+|---|---|---|
+| 1 RB-9's witness was dead: the jar's DEMO log no longer pairs (R0b), and the only service-call test fed the count by hand | fixed: RB-9 now runs on the DEMO test fixture, which pairs, with the count observed and a real replay DIVERGING at the first call; §4.1's "short log" now names the test fixture | `aLogWithServiceCallsDivergesAtTheFirstCall`, `theTestDemoLogPairs_andItsServiceCallsAreCountedForReal`; `rp-counts-the-logs-service-calls` |
+| 2 RB-7 had no check CI runs | fixed: the DEMO `ReplayCapture` itself, on a ticking clock | `theWriterStampsTheReceiptInstant`; `rq-stamps-the-receipt-instant` |
+| 3 the runner bounded only the two members it keeps | fixed: every member bounded (`BoundedStream`) | `everyMemberIsBounded`; `rn-bounds-every-member` |
+| 4 a replay under Follow was refused only once growth was seen | fixed: refused whenever Follow is on | `aReplayUnderFollowIsRefusedBeforeGrowthIsSeen`; `rp-refuses-a-replay-of-a-growing-log` (re-anchored) |
+| 5 a divergence may be non-determinism, not the build | fixed as a statement on every DIVERGES | `MainBundleTest#replayCompareExitsByVerdict` |
+| 6 a `\u` escape's bound was off by one | fixed in both readers | read |
+| 7 mkdocs unverified there; painted screenshots | mkdocs passes here; screenshots open before merge (and M70.R0c, now decided: option a) | — |
 
 ## 11. Revision history
 

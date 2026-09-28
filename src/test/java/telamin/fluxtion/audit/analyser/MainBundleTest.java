@@ -110,6 +110,8 @@ class MainBundleTest {
         assertTrue(diverges.out().contains("replay: DIVERGES at record 7: the bundled log has record 7 (RiskBreachEvent)"),
                 diverges.out());
         assertTrue(diverges.out().contains("replay: the 7 record(s) before it agree"), diverges.out());
+        assertTrue(diverges.out().contains("a wall-clock read, hash order, a random value"),
+                "second review S5: a divergence names what else can cause one: " + diverges.out());
 
         assertEquals(2, run("--replay-compare", bundle.toString()).code());
         assertTrue(run("--replay-compare").err().startsWith("usage: --replay-compare"));

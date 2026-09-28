@@ -121,6 +121,16 @@ class ReplayPairingTest {
     }
 
     @Test
+    void theTestDemoLogPairs_andItsServiceCallsAreCountedForReal() throws Exception {
+        // RB-9, observed rather than assumed: the short DEMO TEST fixture holds the recorded run's inputs on the same
+        // clock, then two exported-service calls; the replay belongs to it, and the calls are counted
+        var o = observe(REPLAY, Path.of("src/test/resources/topology/demo-quote-audit.yaml"));
+        assertTrue(o.pairs(), o.problem());
+        assertEquals(2, o.serviceCalls());
+        assertEquals(0, o.uncarried());
+    }
+
+    @Test
     void aByteOrderMarkIsAccepted() throws Exception {
         Path bom = Files.writeString(tmp.resolve("bom.replay.yaml"), "\uFEFF" + Files.readString(REPLAY));
         assertTrue(observe(bom, AUDIT).pairs(), observe(bom, AUDIT).problem());

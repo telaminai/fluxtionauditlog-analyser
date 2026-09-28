@@ -159,6 +159,30 @@ class ReplayCodecRoundTripTest {
     }
 
     @Test
+    @DisplayName("RB-7: the writer stamps the instant the cycle ran at, never a fresh reading of a clock that moved since")
+    @SuppressWarnings("unchecked")
+    void theWriterStampsTheReceiptInstant() throws Exception {
+        long[] now = {1000};
+        var clock = new com.telamin.fluxtion.runtime.time.Clock();
+        clock.setClockStrategy(com.telamin.fluxtion.runtime.time.ClockStrategy.registerClockEvent(() -> now[0]++));  // ticks per read
+        Class<?> capture = codec.loadClass("com.acme.demo.replay.ReplayCapture");
+        Object writer = capture.getConstructor(com.telamin.fluxtion.runtime.time.Clock.class).newInstance(clock);
+        capture.getMethod("setHandled", Set.class).invoke(writer, Set.of(probe));
+        var out = new java.io.StringWriter();
+        capture.getMethod("setTarget", java.io.Writer.class).invoke(writer, out);
+        Object event = probe("x", 'a', 'b', 1, 1.0);
+
+        clock.eventReceived(event);                  // the processor's clock auditor hears it first, and fixes the instant
+        long cycle = clock.getProcessTime();
+        capture.getMethod("expect", Object.class).invoke(writer, event);
+        capture.getMethod("eventReceived", Object.class).invoke(writer, event);
+
+        assertTrue(out.toString().contains("\nwallClockTime: " + cycle + "\n"),
+                "recorded the cycle's instant " + cycle + ", not a later read (the clock is now at " + now[0] + "): " + out);
+        assertFalse(out.toString().contains("wallClockTime: " + (cycle + 1)), out.toString());
+    }
+
+    @Test
     @DisplayName("both readers accept a byte-order mark and CRLF line endings")
     void aBomAndCrlfAreRead() throws Exception {
         Object event = probe("x", 'a', 'b', 1, 1.0);

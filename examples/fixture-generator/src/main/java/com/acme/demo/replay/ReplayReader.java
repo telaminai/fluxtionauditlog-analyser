@@ -108,7 +108,7 @@ public final class ReplayReader {
                 case 'r' -> out.append('\r');
                 case 't' -> out.append('\t');
                 case 'u' -> {
-                    if (i + 4 >= raw.length()) throw new IllegalArgumentException("a short \\u escape: " + raw);
+                    if (i + 4 >= raw.length() - 1) throw new IllegalArgumentException("a short \\u escape: " + raw);
                     out.append((char) Integer.parseInt(raw.substring(i + 1, i + 5), 16));
                     i += 4;
                 }

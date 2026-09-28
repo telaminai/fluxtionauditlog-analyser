@@ -195,6 +195,9 @@ public class Main {
         } else {
             out.println("replay: DIVERGES at " + c.divergence());
             out.println("replay: the " + c.records() + " record(s) before it agree");
+            // second review (S5): a divergence is not always the build: say what else can make one
+            out.println("replay: a divergence is a difference in behaviour OR in something the processor read outside the "
+                    + "recorded inputs and the injected clock (a wall-clock read, hash order, a random value)");
             code = 1;
         }
         if (v.replay() != null && v.replay().get("serviceCalls") instanceof Number n && n.longValue() > 0) {
