@@ -63,3 +63,21 @@ The native regressions exercise the real controlled modal interruption, not the 
 The pre-release assertions no longer rely on whether the OS later delivers release. Local results do not
 establish Linux/Xvfb success; the PR comment will give the exact CI head, run ID and job outcomes after push.
 No merge, release, keys, provider, model session or participant project was used.
+
+## First full CI attempt: 36445347305 at 0b1cdac7
+
+RAN on Linux/Xvfb: build, self-test and loop benchmark succeeded. The registered display command reported
+151 / 2 / 0 / 0. Both failures were the table tests' assertion that the frame regained focus after disposing
+its dialog. The modal pre-release checks and the slider test completed; this was not a lost-release failure.
+The mutation shards stopped at baseline, so no Linux caught-control claim can be made from this attempt.
+A logged EDT exception is not itself the named test failure; the shard evidence must be read for that distinction.
+
+Correction: explicitly request focus on the frame and table after closing either dialog. Bringing the frame
+forward alone depended on the desktop window manager. The bounded focus conditions and native drag assertions
+remain unchanged; no timeout extension, synthetic release, skip or assertion removal was introduced.
+The sealed prediction that the first CI run would be green was wrong.
+
+RAN after the explicit-focus correction on macOS: clean package 2708 / 0 / 0 / 153, 361 mapped reports,
+no orphans; the four sequential display suites 20 / 0 / 0 / 0; all six controls caught again in 73.0 seconds,
+with named failures, byte-identical source/class restores and green reruns. The five harness tests, preflight
+(30 / 360), strict MkDocs and whitespace check remain green. Linux confirmation is still required at that head.

@@ -129,7 +129,7 @@ class TableDragCancellationFrameTest {
                     assertTrue(table.getAutoscrolls(), "release preserves autoscroll for the next normal drag");
                     assertArrayEquals(selection, table.getSelectedRows(), "release does not restart selection growth");
                     assertEquals(after, table.getVisibleRect(), "release does not restart table scrolling");
-                    dialog.dispose(); f.frame.toFront();
+                    dialog.dispose(); f.frame.toFront(); f.frame.requestFocus(); table.requestFocusInWindow();
                 });
                 assertTrue(until(f.frame::isFocused), "the main window regains focus for the next gesture");
                 onEdt(() -> table.scrollRectToVisible(table.getCellRect(65, 0, true)));
@@ -222,7 +222,7 @@ class TableDragCancellationFrameTest {
                 onEdt(() -> {
                     assertTrue(table.getSelectionModel().getValueIsAdjusting(), "non-modal focus loss keeps selection adjusting");
                     assertEquals(0, finalized.get(), "non-modal focus loss does not publish a finalized selection");
-                    other.dispose(); f.frame.toFront();
+                    other.dispose(); f.frame.toFront(); f.frame.requestFocus(); table.requestFocusInWindow();
                 });
                 assertTrue(until(f.frame::isFocused), "control: return focus to continue the held drag");
                 int[] before = edt(table::getSelectedRows);

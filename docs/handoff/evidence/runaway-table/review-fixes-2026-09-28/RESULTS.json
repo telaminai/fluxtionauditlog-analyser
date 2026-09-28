@@ -364,6 +364,459 @@
     "5": "confirmed: non-modal native continuation; unconditional mutant caught",
     "6": "confirmed: 2708/0/0/153; display 20/0/0/0",
     "7": "confirmed: six caught; 30 suites and 360 anchors",
-    "8": "pending CI at pushed head"
+    "8": "miss: first full CI failed two focus-return assertions; no Linux mutation controls ran. Explicit focus requests added; new run required."
+  },
+  "ciFirstAttempt": {
+    "run": 36445347305,
+    "head": "0b1cdac7",
+    "build": [
+      2708,
+      0,
+      0,
+      153
+    ],
+    "display": [
+      151,
+      2,
+      0,
+      0
+    ],
+    "selftest": "success",
+    "loopBench": "success",
+    "mutationControlsExecuted": 0,
+    "shardFailures": [
+      {
+        "shard": "mutation-shard-0",
+        "suites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 3,
+            "failures": 2,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+              "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: control: return focus to continue the held drag ==> expected: <true> but was: <false>"
+              },
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: the main window regains focus for the next gesture ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "shard": "mutation-shard-1",
+        "suites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 3,
+            "failures": 2,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+              "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: control: return focus to continue the held drag ==> expected: <true> but was: <false>"
+              },
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: the main window regains focus for the next gesture ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "shard": "mutation-shard-2",
+        "suites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 3,
+            "failures": 2,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+              "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: control: return focus to continue the held drag ==> expected: <true> but was: <false>"
+              },
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: the main window regains focus for the next gesture ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "shard": "mutation-shard-3",
+        "suites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 3,
+            "failures": 2,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+              "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: control: return focus to continue the held drag ==> expected: <true> but was: <false>"
+              },
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: the main window regains focus for the next gesture ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "afterExplicitFocus": {
+    "package": {
+      "exit": 0,
+      "counts": [
+        2708,
+        0,
+        0,
+        153
+      ],
+      "reports": 361,
+      "orphans": [],
+      "seconds": 26.22
+    },
+    "TableDragCancellationFrameTest": {
+      "exit": 0,
+      "counts": [
+        3,
+        0,
+        0,
+        0
+      ],
+      "reports": 1,
+      "orphans": [],
+      "seconds": 18.72
+    },
+    "WalkPlaybackFrameTest": {
+      "exit": 0,
+      "counts": [
+        2,
+        0,
+        0,
+        0
+      ],
+      "reports": 1,
+      "orphans": [],
+      "seconds": 7.15
+    },
+    "WalkReviewFrameTest": {
+      "exit": 0,
+      "counts": [
+        11,
+        0,
+        0,
+        0
+      ],
+      "reports": 1,
+      "orphans": [],
+      "seconds": 12.09
+    },
+    "SpotlightFrameTest": {
+      "exit": 0,
+      "counts": [
+        4,
+        0,
+        0,
+        0
+      ],
+      "reports": 1,
+      "orphans": [],
+      "seconds": 7.09
+    },
+    "controls": [
+      {
+        "name": "mouse-loss-table-hook",
+        "sha256": "aac744cbbf89c6b2729aca54f4f1deccfc4c09022eda5104e389705755361a4d",
+        "baselineGreen": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "verdict": "caught",
+        "seconds": 10.9,
+        "mutatedSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: before release, losing window focus cancels the table's adjusting gesture ==> expected: <false> but was: <true>"
+              }
+            ]
+          }
+        ],
+        "restoredSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": []
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "mouse-loss-table-timer",
+        "sha256": "ea97ed448a2ed64c39d7ba030d1fdfebf4212fa289ebe447a7802962c8d5ef7f",
+        "baselineGreen": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "verdict": "caught",
+        "seconds": 10.6,
+        "mutatedSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: no table selection growth after window loses drag ==> array lengths differ, expected: <11> but was: <16>"
+              }
+            ]
+          }
+        ],
+        "restoredSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": []
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "mouse-loss-slider-hook",
+        "sha256": "aac744cbbf89c6b2729aca54f4f1deccfc4c09022eda5104e389705755361a4d",
+        "baselineGreen": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "verdict": "caught",
+        "seconds": 8.9,
+        "mutatedSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange"
+            ],
+            "assertions": [
+              {
+                "test": "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: before release, losing window focus cancels the slider gesture ==> expected: <-1> but was: <0>"
+              }
+            ]
+          }
+        ],
+        "restoredSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeSliderEdgePanWithoutChangingItsRange"
+            ],
+            "assertions": []
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "mouse-loss-autoscroll-restored",
+        "sha256": "ea97ed448a2ed64c39d7ba030d1fdfebf4212fa289ebe447a7802962c8d5ef7f",
+        "baselineGreen": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "verdict": "caught",
+        "seconds": 9.8,
+        "mutatedSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: cancellation preserves the configured autoscroll behaviour ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "restoredSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": []
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "mouse-loss-column-adjustment",
+        "sha256": "ea97ed448a2ed64c39d7ba030d1fdfebf4212fa289ebe447a7802962c8d5ef7f",
+        "baselineGreen": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "verdict": "caught",
+        "seconds": 9.1,
+        "mutatedSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": [
+              {
+                "test": "aModalEndsTheNativeTableDragAndTheNextDragStillWorks",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: column adjustment ends with the cancelled gesture ==> expected: <false> but was: <true>"
+              }
+            ]
+          }
+        ],
+        "restoredSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aModalEndsTheNativeTableDragAndTheNextDragStillWorks"
+            ],
+            "assertions": []
+          }
+        ],
+        "restoredExit": 0
+      },
+      {
+        "name": "mouse-loss-nonmodal-preserved",
+        "sha256": "aac744cbbf89c6b2729aca54f4f1deccfc4c09022eda5104e389705755361a4d",
+        "baselineGreen": true,
+        "restoredByteIdentical": true,
+        "classesRestoredByteIdentical": true,
+        "verdict": "caught",
+        "seconds": 8.3,
+        "mutatedSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aNonModalFocusLossKeepsSelectionDeferredUntilRelease"
+            ],
+            "assertions": [
+              {
+                "test": "aNonModalFocusLossKeepsSelectionDeferredUntilRelease",
+                "kind": "failure",
+                "message": "org.opentest4j.AssertionFailedError: non-modal focus loss keeps selection adjusting ==> expected: <true> but was: <false>"
+              }
+            ]
+          }
+        ],
+        "restoredSuites": [
+          {
+            "name": "TableDragCancellationFrameTest",
+            "tests": 1,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "testNames": [
+              "aNonModalFocusLossKeepsSelectionDeferredUntilRelease"
+            ],
+            "assertions": []
+          }
+        ],
+        "restoredExit": 0
+      }
+    ]
   }
 }
