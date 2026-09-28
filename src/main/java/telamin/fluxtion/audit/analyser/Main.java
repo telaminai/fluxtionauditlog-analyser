@@ -158,8 +158,15 @@ public class Main {
             return 1;
         }
         out.println("verified: " + v.members().size() + " members, each matching the manifest's sha256 and size");
+        if (v.excerpt() != null) out.println("excerpt: the log is records " + whole(v.excerpt().get("firstRecord")) + ".."
+                + whole(v.excerpt().get("lastRecord")) + " of " + whole(v.excerpt().get("sourceRecords")) + ", not the whole log");
         limits(out);
         return 0;
+    }
+
+    /** A manifest count, as the integer it is: JSON numbers parse as doubles, and "4.0" is not a record index. */
+    private static String whole(Object n) {
+        return n instanceof Number x ? Long.toString(x.longValue()) : String.valueOf(n);
     }
 
     private static void limits(java.io.PrintStream out) {

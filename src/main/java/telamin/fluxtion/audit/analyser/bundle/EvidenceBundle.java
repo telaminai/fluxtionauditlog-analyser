@@ -51,7 +51,11 @@ public final class EvidenceBundle {
     public record Member(String path, String sha256, long bytes) { }
 
     /** A verification: the identity, and either every member verified or the first refusal naming the member. */
-    public record Verification(String identity, List<Member> members, String refusal) {
+    public record Verification(String identity, List<Member> members, String refusal, Map<String, Object> excerpt) {
+        public Verification(String identity, List<Member> members, String refusal) {
+            this(identity, members, refusal, null);
+        }
+
         public boolean ok() {
             return refusal == null;
         }
@@ -69,6 +73,16 @@ public final class EvidenceBundle {
      * @return the new bundle's identity
      */
     public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion) throws IOException {
+        return pack(folder, out, createdAt, analyserVersion, null);
+    }
+
+    /**
+     * As above, stating in the manifest that the log member is an EXCERPT, and which: {@code excerpt} is the cut
+     * (first and last record of the source, the source's record count, and the time window asked for). A recipient
+     * must never read a slice as the whole log. Null for a whole log, which leaves the manifest's bytes as they were.
+     */
+    public static String pack(Path folder, Path out, Instant createdAt, String analyserVersion,
+                              Map<String, Object> excerpt) throws IOException {
         if (!Files.isDirectory(folder)) throw new IOException("not a folder: " + folder);
         if (Files.exists(out)) throw new IOException("will not overwrite " + out);
         TreeMap<String, Path> files = new TreeMap<>();
@@ -92,7 +106,7 @@ public final class EvidenceBundle {
                 members.add(new Member(e.getKey(), d.sha256(), d.bytes()));
             }
         }
-        byte[] manifest = manifestBytes(members, createdAt, analyserVersion);
+        byte[] manifest = manifestBytes(members, createdAt, analyserVersion, excerpt);
         try (OutputStream os = Files.newOutputStream(out, java.nio.file.StandardOpenOption.CREATE_NEW);
              ZipOutputStream zip = new ZipOutputStream(os)) {
             put(zip, MANIFEST, manifest);
@@ -114,6 +128,10 @@ public final class EvidenceBundle {
     }
 
     static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion) {
+        return manifestBytes(members, createdAt, analyserVersion, null);
+    }
+
+    static byte[] manifestBytes(List<Member> members, Instant createdAt, String analyserVersion, Map<String, Object> excerpt) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("format", FORMAT);
         m.put("createdAt", createdAt.toString());
@@ -122,6 +140,7 @@ public final class EvidenceBundle {
                 .ifPresent(x -> m.put("log", Map.of("member", x.path())));
         members.stream().filter(x -> x.path().startsWith("graph/")).findFirst()
                 .ifPresent(x -> m.put("graph", Map.of("member", x.path())));
+        if (excerpt != null) m.put("excerpt", excerpt);
         List<Object> list = new ArrayList<>();
         for (Member x : members) {
             Map<String, Object> one = new LinkedHashMap<>();
@@ -167,6 +186,7 @@ public final class EvidenceBundle {
 
     private static Pass check(Path bundle, Path into) throws IOException {
         String identity = null;
+        Map<String, Object> excerpt = null;
         Map<String, Member> listed = null;
         Set<String> seen = new LinkedHashSet<>();
         try (InputStream in = Files.newInputStream(bundle); ZipInputStream zip = new ZipInputStream(in)) {
@@ -189,6 +209,7 @@ public final class EvidenceBundle {
                     List<Member> members;
                     try {
                         members = members(manifest);
+                        excerpt = excerptOf(manifest);
                     } catch (RuntimeException ex) {
                         return refused(identity, MANIFEST + " cannot be read: " + ex.getMessage());
                     }
@@ -233,7 +254,7 @@ public final class EvidenceBundle {
         for (String path : listed.keySet()) {
             if (!seen.contains(path)) return refused(identity, "missing member: " + path);
         }
-        return new Pass(new Verification(identity, List.copyOf(listed.values()), null), listed);
+        return new Pass(new Verification(identity, List.copyOf(listed.values()), null, excerpt), listed);
     }
 
     private static Pass refused(String identity, String why) {
@@ -258,6 +279,14 @@ public final class EvidenceBundle {
             out.add(new Member(path, sha, bytes.longValue()));
         }
         return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> excerptOf(byte[] manifest) {
+        Object x = ((Map<String, Object>) Json.parse(new String(manifest, StandardCharsets.UTF_8))).get("excerpt");
+        if (x == null) return null;
+        if (!(x instanceof Map<?, ?> m)) throw new IllegalArgumentException("excerpt is not an object");
+        return Map.copyOf((Map<String, Object>) m);
     }
 
     // ---- unpack ------------------------------------------------------------------------------------------------

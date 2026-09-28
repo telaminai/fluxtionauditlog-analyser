@@ -103,4 +103,24 @@ public sealed interface SessionEffects {
     /** The walk ended: put its lit targets and its strip away, restore keyboard focus. */
     record EndWalkEffect(long opId, long ticket, String reason) implements SessionEffects {
     }
+
+    // ---- evidence bundle capture: decided by the evidenceCapture node, performed by the frame -------------------
+
+    /** Turn Follow on or off, then answer {@link SessionEvents.FollowSet}: capture pauses it and restores it. */
+    record SetFollowEffect(long opId, long ticket, boolean on) implements SessionEffects {
+    }
+
+    /**
+     * Write the bundle: flush the project's pending write, take what the capture needs from the live session (the
+     * settings bytes, and for a window the excerpt), and start the file work off this thread. Answered at once by
+     * {@link SessionEvents.CaptureStarted}; the outcome arrives later as {@link SessionEvents.BundleWritten} or
+     * {@link SessionEvents.BundleWriteFailed}, carrying {@code ticket} and {@code generation}.
+     */
+    record CaptureBundleEffect(long opId, long ticket, long generation, String path, String notes, Long from, Long to)
+            implements SessionEffects {
+    }
+
+    /** Delete a bundle this capture wrote, with any working folder left beside it; answer {@link SessionEvents.BundleDeleted}. */
+    record DeleteBundleEffect(long opId, long ticket, String path) implements SessionEffects {
+    }
 }

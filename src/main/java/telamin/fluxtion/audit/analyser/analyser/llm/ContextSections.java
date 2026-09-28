@@ -33,7 +33,7 @@ public final class ContextSections {
         s.put("log", List.of("log", "provenance", "provenanceSource", "files", "inFlight", "dispatchOrder",
                 "timeOrder", "producer", "rolledSetOffer"));
         s.put("project", List.of("project", "skills", "projectOffer", "fluxtionKey", "environments", "runbooks",
-                "vocabulary", "analyses", "reportDestinations", "exports", "reports", "walks"));
+                "vocabulary", "analyses", "reportDestinations", "exports", "reports", "walks", "capture"));
         s.put("pairing", List.of("graphPairing"));
         s.put("processors", List.of("processors", "processorDeclarations"));
         s.put("source", List.of("source"));

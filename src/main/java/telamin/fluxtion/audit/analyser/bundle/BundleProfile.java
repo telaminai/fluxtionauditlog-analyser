@@ -77,11 +77,24 @@ public final class BundleProfile {
      * @throws IOException when {@code settings} cannot be read, {@code out} exists, or a kept value is path-shaped
      */
     public static Export export(Path settings, Path out) throws IOException {
+        return export(settings, out, null);
+    }
+
+    /**
+     * An excerpt's re-base (owner, 2026-09-28: capture takes an optional time window): records {@code first..last} of
+     * the source become records {@code 0..} of the excerpt. The excerpt's own run basis and index (from
+     * {@link BundleExcerpt#check}, the recipient's computation) replace the source's in every walk and report.
+     */
+    public record Rebase(int first, int last, List<String> runBasis, telamin.fluxtion.audit.analyser.analyser.index.LogIndex index) { }
+
+    /** As {@link #export(Path, Path)}, re-basing every walk and report onto an excerpt when {@code rebase} is given. */
+    public static Export export(Path settings, Path out, Rebase rebase) throws IOException {
         if (!Files.isRegularFile(settings)) throw new IOException("no settings file at " + settings);
         if (Files.exists(out)) throw new IOException("will not overwrite " + out);
         AppConfig c = read(settings);
+        List<String> rebased = rebase == null ? List.of() : rebase(c, rebase);
 
-        List<String> leftOut = new ArrayList<>();
+        List<String> leftOut = new ArrayList<>(rebased);
         Set<String> gone = new TreeSet<>();
         c.savedGraphs.removeIf(g -> {
             boolean external = !g.external().isEmpty() || g.markers().stream().anyMatch(GraphSpec.MarkerSpec::isExternal);
@@ -156,6 +169,91 @@ public final class BundleProfile {
             }
         }
         return out.toString();
+    }
+
+    /**
+     * Shift every record reference by {@code r.first()} and give each walk and report the excerpt's own identity. A walk
+     * or report that points at a record outside the excerpt cannot be re-based honestly, so it is LEFT OUT and named, as
+     * a chart with external data is; so is a report whose table or series is derived by record index.
+     */
+    static List<String> rebase(AppConfig c, Rebase r) {
+        List<String> leftOut = new ArrayList<>();
+        String window = "records " + r.first() + ".." + r.last();
+        List<WalkSpec> walks = new ArrayList<>();
+        for (WalkSpec w : c.walks) {
+            List<WalkSpec.Step> steps = new ArrayList<>();
+            String outside = null;
+            for (int i = 0; i < w.steps().size() && outside == null; i++) {
+                WalkSpec.Step s = w.steps().get(i);
+                WalkSpec.View v = s.view();
+                Integer record = v == null ? null : v.record();
+                if (record != null && (record < r.first() || record > r.last())) {
+                    outside = "step " + (i + 1) + " shows record " + record;
+                    break;
+                }
+                List<WalkSpec.Target> targets = new ArrayList<>();
+                for (WalkSpec.Target t : s.targets()) {
+                    var parsed = telamin.fluxtion.audit.analyser.analyser.ui.SpotlightTarget.parse(t.target());
+                    if (parsed.ok() && parsed.target().family() == telamin.fluxtion.audit.analyser.analyser.ui.SpotlightTarget.Family.RECORDS_ROW) {
+                        int n = parsed.target().number();
+                        if (n < r.first() || n > r.last()) {
+                            outside = "step " + (i + 1) + " points at record " + n;
+                            break;
+                        }
+                        targets.add(new WalkSpec.Target("records:row:" + (n - r.first()), t.caption(), t.basis()));
+                    } else {
+                        targets.add(t);
+                    }
+                }
+                WalkSpec.View shifted = v == null || record == null ? v
+                        : new WalkSpec.View(v.tab(), v.filter(), record - r.first(), v.graph(), v.focus());
+                steps.add(new WalkSpec.Step(s.caption(), shifted, targets));
+            }
+            if (outside != null) {
+                leftOut.add("walk '" + w.name() + "' (" + outside + ", outside the excerpt's " + window + ")");
+                continue;
+            }
+            walks.add(new WalkSpec(w.name(), w.title(), w.author(), w.createdAt(), w.updatedAt(),
+                    refingerprint(w.fingerprint(), r), w.runBasis().isEmpty() ? w.runBasis() : r.runBasis(), steps, w.extras()));
+        }
+        c.walks.clear();
+        c.walks.addAll(walks);
+
+        List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec> reports = new ArrayList<>();
+        for (var rep : c.reports) {
+            List<telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.SectionSpec> sections = new ArrayList<>();
+            String outside = null;
+            for (var s : rep.sections()) {
+                if (s.call().containsKey("recordIndex")) {
+                    outside = "a " + s.kind().name().toLowerCase(java.util.Locale.ROOT) + " section is derived by record index";
+                    break;
+                }
+                if (s.recordIndex() >= 0) {
+                    if (s.recordIndex() < r.first() || s.recordIndex() > r.last()) {
+                        outside = "a section is on record " + s.recordIndex() + ", outside the excerpt's " + window;
+                        break;
+                    }
+                    s = new telamin.fluxtion.audit.analyser.analyser.report.ReportSpec.SectionSpec(s.kind(),
+                            s.recordIndex() - r.first(), s.file(), s.ref(), s.call(), s.text(), s.columns(), s.rowWhen(), s.rowWhenLabel());
+                }
+                sections.add(s);
+            }
+            if (outside != null) {
+                leftOut.add("report '" + rep.name() + "' (" + outside + ")");
+                continue;
+            }
+            reports.add(new telamin.fluxtion.audit.analyser.analyser.report.ReportSpec(rep.name(), rep.title(), rep.createdAt(),
+                    rep.notes(), refingerprint(rep.fingerprint(), r), rep.filter(), sections));
+        }
+        c.reports.clear();
+        c.reports.addAll(reports);
+        return leftOut;
+    }
+
+    private static telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint refingerprint(
+            telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint fp, Rebase r) {
+        return fp == null ? null : telamin.fluxtion.audit.analyser.analyser.report.LogFingerprint.of(
+                r.index(), fp.logName(), fp.provenance(), fp.provenanceSource());
     }
 
     private static AppConfig read(Path settings) throws IOException {

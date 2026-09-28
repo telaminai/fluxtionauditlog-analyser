@@ -362,4 +362,40 @@ public final class SessionEvents {
     /** Answer to {@link SessionEffects.ResolveWalkTargetsEffect} and {@link SessionEffects.EndWalkEffect}. */
     public record WalkAcknowledged(long opId, long ticket, String what) implements Result {
     }
+
+    // ---- evidence bundle capture (convergence, 2026-09-28): the capture skill's steps, as session facts ----------
+
+    /**
+     * Someone asked for a bundle. The adapter carries what it OBSERVED of the log at the request, as facts, and decides
+     * nothing: the node refuses or proceeds.
+     *
+     * @param request          the caller's id, answered in {@link telamin.fluxtion.audit.analyser.analyser.session.CaptureState}
+     * @param path             where the bundle goes, already resolved inside the exchange directory
+     * @param observedIdentity the read-through identity observed at this request, lower case, or null when none ran
+     * @param freshness        the log file's freshness state ({@code unchanged-metadata}, {@code changed-on-disk}, …)
+     * @param onePlainFile     whether the log is exactly one regular local file
+     */
+    public record BundleCaptureRequested(long request, String path, String notes, Long from, Long to,
+                                         String observedIdentity, String freshness, boolean onePlainFile, String origin) {
+    }
+
+    public record FollowSet(long opId, long ticket, boolean on) implements Result {
+    }
+
+    public record CaptureStarted(long opId, long ticket) implements Result {
+    }
+
+    public record BundleDeleted(long opId, long ticket, boolean ok, String reason) implements Result {
+    }
+
+    /** The bundle was written, under the generation the capture was decided in. The node decides whether it stands. */
+    public record BundleWritten(long ticket, long generation, String path, String identity, java.util.List<String> lines) {
+        public BundleWritten {
+            lines = java.util.List.copyOf(lines == null ? java.util.List.of() : lines);
+        }
+    }
+
+    /** The file work failed; nothing was left behind (the writer deletes what it started). */
+    public record BundleWriteFailed(long ticket, long generation, String reason) {
+    }
 }

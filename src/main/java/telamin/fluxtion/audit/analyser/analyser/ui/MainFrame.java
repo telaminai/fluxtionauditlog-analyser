@@ -5828,6 +5828,93 @@ public final class MainFrame extends JFrame {
         return driver.processor().operationGate.inFlightWhat() == null ? pending : null;
     }
 
+    private long captureRequests;
+
+    /**
+     * Evidence bundle capture, the REQUEST entrance (convergence): observe what the session cannot see for itself (the
+     * file's read-through identity, its freshness, whether it is one plain file), report it with the request, and render
+     * the node's answer. It decides nothing: every refusal is the evidenceCapture node's.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.llm.ActionResult requestCapture(String path, String notes, Long from,
+                                                                                    Long to, String origin) {
+        if (session == null) return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("the session is not running");
+        var identity = observeReadIdentity();
+        String observed = identity == null ? null : identity.verdict().name().toLowerCase(java.util.Locale.ROOT);
+        Map<String, Object> freshness = store == null ? Map.of() : logFreshness();
+        Object state = freshness.get("state");
+        Object members = freshness.get("members");
+        var info = store == null ? null : currentLogFileInfo();
+        boolean onePlainFile = info != null && info.localPath() != null
+                && java.nio.file.Files.isRegularFile(Path.of(info.localPath()))
+                && members instanceof java.util.List<?> list && list.size() == 1
+                && !(list.get(0) instanceof Map<?, ?> m && m.get("loaded") instanceof Map<?, ?> loaded
+                     && Boolean.TRUE.equals(loaded.get("directory")));
+        long request = ++captureRequests;
+        session.submit(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleCaptureRequested(request, path, notes, from, to,
+                observed, state == null ? null : state.toString(), onePlainFile, origin));
+        var capture = sessionSnapshot().capture();
+        if (capture.answer().request() == request && !capture.answer().accepted()) {
+            return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.error("capture refused: " + capture.answer().reason());
+        }
+        Map<String, Object> echo = new java.util.LinkedHashMap<>();
+        echo.put("phase", capture.phase());
+        echo.put("path", path);
+        echo.put("note", "the bundle is written off the event thread; context.capture says when it is written, its identity, "
+                + "and anything left out, redacted or excerpted");
+        return telamin.fluxtion.audit.analyser.analyser.llm.ActionResult.ok("report", "bundle", echo);
+    }
+
+    /**
+     * Perform {@link telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CaptureBundleEffect}: settle the project's pending write by FLUSHING it
+     * (the skill waited for a debounce; here the coalesced write is simply made now), take everything the file work needs
+     * from the live session on this thread, and run the file work off it. The outcome is reported as a fact carrying the
+     * decision's ticket and generation; the node decides whether it stands.
+     */
+    private telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.Result startCapture(telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CaptureBundleEffect e) throws Exception {
+        long ticket = e.ticket(), generation = e.generation();
+        Path settings;
+        if (project.hasProject()) {
+            flushProject();
+            settings = project.activeFile();
+        } else {
+            saveConfigQuietly();
+            settings = configStore.path();
+        }
+        byte[] settingsBytes = java.nio.file.Files.readAllBytes(settings);
+        var info = currentLogFileInfo();
+        Path log = Path.of(info.localPath());
+        Path graph = topologyPanel.loadedGraphFile();
+        telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.Taken taken = null;
+        if (e.from() != null || e.to() != null) {
+            var range = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.range(store, e.from(), e.to());
+            if (range == null) {
+                session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed(ticket, generation,
+                        "no record's log time is between " + e.from() + " and " + e.to() + ": nothing to excerpt"));
+                return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
+            }
+            taken = telamin.fluxtion.audit.analyser.bundle.BundleExcerpt.take(store, range);
+        }
+        String expected = loadedLogIdentity.size() == 1 ? loadedLogIdentity.get(0).sha256() : null;
+        var job = new telamin.fluxtion.audit.analyser.bundle.BundleWriter.Job(Path.of(e.path()), log, graph,
+                settings.getFileName().toString(), settingsBytes, e.notes(), taken, java.time.Instant.now(),
+                telamin.fluxtion.audit.analyser.analyser.core.ReleaseNotes.version(), config.memoryThresholdMb, expected);
+        telamin.fluxtion.audit.analyser.analyser.core.Background.run(() -> {
+                    try {
+                        return telamin.fluxtion.audit.analyser.bundle.BundleWriter.write(job);
+                    } catch (java.io.IOException x) {
+                        throw new java.io.UncheckedIOException(x);
+                    }
+                },
+                w -> { if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWritten(ticket, generation,
+                        e.path(), w.identity(), w.lines())); },
+                err -> {
+                    Throwable t = err instanceof java.io.UncheckedIOException u ? u.getCause() : err;
+                    if (session != null) session.post(new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleWriteFailed(ticket, generation,
+                            t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage()));
+                });
+        return new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.CaptureStarted(e.opId(), ticket);
+    }
+
     /** The interactive form — a person asked, so a failure is a dialog. */
     private boolean requestProject(Path file,
                                    telamin.fluxtion.audit.analyser.analyser.session.TransitionKind kind,
@@ -5897,6 +5984,16 @@ public final class MainFrame extends JFrame {
                 // answers when it lands — Pending now, LogOpened/LogOpenFailed later, same opId.
                 sessionInteractive = !e.fromSocket();
                 yield startLoad(opId, e.location(), e.format(), takeRequest(opId, e.fromSocket(), e.provenance()));
+            }
+            // evidence bundle capture — the evidenceCapture node decided; the frame performs and reports
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.SetFollowEffect e -> {
+                setFollowing(e.on());
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.FollowSet(opId, e.ticket(), e.on());
+            }
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.CaptureBundleEffect e -> startCapture(e);
+            case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.DeleteBundleEffect e -> {
+                telamin.fluxtion.audit.analyser.bundle.BundleWriter.delete(Path.of(e.path()));
+                yield new telamin.fluxtion.audit.analyser.analyser.session.SessionEvents.BundleDeleted(opId, e.ticket(), !java.nio.file.Files.exists(Path.of(e.path())), null);
             }
             // M69: walk playback — the node decided; the presenter performs and answers
             case telamin.fluxtion.audit.analyser.analyser.session.SessionEffects.ApplyWalkViewEffect e -> {
@@ -7008,6 +7105,11 @@ public final class MainFrame extends JFrame {
         }
 
         @Override
+        public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult captureBundle(String path, String notes, Long from, Long to) {
+            return requestCapture(path, notes, from, to, "action socket");
+        }
+
+        @Override
 
         public telamin.fluxtion.audit.analyser.analyser.llm.ActionResult openLogs(java.util.List<String> paths) {
             return openLogs(paths, null);
@@ -7372,6 +7474,17 @@ public final class MainFrame extends JFrame {
                         walkRunBasisNow(),
                         project.hasProject() ? "project" : "own settings");
                 if (walks != null) out.put("walks", walks);
+                // evidence bundle capture, rendered from the session's decision (evidenceCapture), never composed here
+                var capture = session == null ? null : sessionSnapshot().capture();
+                if (capture != null && !"IDLE".equals(capture.phase())) {
+                    Map<String, Object> c = new java.util.LinkedHashMap<>();
+                    c.put("phase", capture.phase());
+                    if (capture.path() != null) c.put("path", capture.path());
+                    if (capture.identity() != null) c.put("identity", capture.identity());
+                    if (!capture.reason().isEmpty()) c.put("reason", capture.reason());
+                    if (!capture.lines().isEmpty()) c.put("lines", capture.lines());
+                    out.put("capture", c);
+                }
             }
             if (store != null) {
                 if (pendingRolledSetOffer != null) {

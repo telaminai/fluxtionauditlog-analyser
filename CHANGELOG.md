@@ -29,6 +29,17 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   with a sender and a cold recipient, and checks every step.
 - **`context.project.unsavedEdits`**: whether a project edit is still waiting for its (debounced) write to the
   profile file, so a tool copying that file can wait for it rather than copy a stale one.
+- **Capture an evidence bundle from the running analyser**: `report {bundle: {path, notes?, from?, to?}}` writes
+  the `.fexp` into the exchange directory. It refuses, by name, with no log open, a load pending, a log file that
+  changed or whose identity is not established, a log still growing under Follow, a log that is not one plain
+  file, or a bundle already being written. It writes the project's pending edits first, pauses Follow while it
+  copies, and if another log is opened or the log is closed meanwhile, it refuses and deletes what it wrote.
+  `context.capture` says when it is done, its identity, and what was left out, redacted or excerpted. Notes travel
+  as `notes/NOTES.md`.
+- **An excerpt instead of the whole log**: `from`/`to` pack only the records in that time window, each record's
+  exact text, re-read and matched against the source. Walks and reports are re-based onto it, so their steps stay
+  current. One that points outside the window is left out and named. The manifest records the cut, and
+  `--verify` says the log is an excerpt.
 
 ### Changed
 

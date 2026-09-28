@@ -303,6 +303,9 @@ public final class SessionDriver {
             case SessionEffects.LightWalkTargetsEffect ignored -> "lightWalkTargets";
             case SessionEffects.ResolveWalkTargetsEffect ignored -> "resolveWalkTargets";
             case SessionEffects.EndWalkEffect ignored -> "endWalk";
+            case SessionEffects.SetFollowEffect ignored -> "setFollow";
+            case SessionEffects.CaptureBundleEffect ignored -> "captureBundle";
+            case SessionEffects.DeleteBundleEffect ignored -> "deleteBundle";
         };
     }
 
