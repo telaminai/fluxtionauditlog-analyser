@@ -253,4 +253,75 @@ class WalkPlaybackTest {
         assertSame(tour, asked.walk(), "the effect carries the very definition the play fact carried");
         assertEquals(1, asked.step());
     }
+
+    // ---- review PR57 R5/R1, second round: what "current" can mean on a log nobody has re-checked ----------------
+
+    /** A one-step walk whose target rests on the log's contents — a record basis (§3.5). */
+    private static telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec recordWalk() {
+        var target = new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Target("records:row:1", "here",
+                new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Basis("record", "sha256:abc", "HeapLogStore"));
+        return new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec("tour", "", "person", "", "", null, List.of(),
+                List.of(new telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.Step("one",
+                        telamin.fluxtion.audit.analyser.analyser.walk.WalkSpec.View.NONE, List.of(target))),
+                java.util.Map.of());
+    }
+
+    private static final String CAVEAT = "has not been re-checked since it was read";
+
+    @Test
+    @DisplayName("A record step on a log with NO identity verdict says what 'current' does and does not mean")
+    void anUnassessedLogIsSaidSo() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        assertNull(d.snapshot().logIdentity(), "precondition: nothing has assessed the file behind this log");
+        d.post(new SessionEvents.WalkPlayRequested(0, recordWalk(), 0, "test"));
+
+        prepared(d, List.of(new SessionEvents.WalkTargetState(1, "records:row:1", "here", "CURRENT", true, "")));
+
+        assertEquals("SHOWN", walk(d).phase(), "the step is shown: this is a caveat, not a refusal");
+        assertTrue(walk(d).reason().contains(CAVEAT),
+                "a bare 'current' reads as 'verified', and nothing here has looked at the file: " + walk(d).reason());
+    }
+
+    @Test
+    @DisplayName("Once the file HAS been assessed, the caveat goes — it states a gap, not a mood")
+    void anAssessedLogCarriesNoCaveat() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.post(new SessionEvents.LogIdentityObserved(d.snapshot().logGeneration(), "VERIFIED", "the same file"));
+        d.post(new SessionEvents.WalkPlayRequested(0, recordWalk(), 0, "test"));
+
+        prepared(d, List.of(new SessionEvents.WalkTargetState(1, "records:row:1", "here", "CURRENT", true, "")));
+
+        assertFalse(walk(d).reason().contains(CAVEAT), walk(d).reason());
+    }
+
+    @Test
+    @DisplayName("A structural step claims nothing about the log's contents, so it is not caveated")
+    void aStructuralStepIsNotCaveated() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.post(new SessionEvents.WalkPlayRequested(0, walkOf("tour", 1), 0, "test"));
+
+        prepared(d, List.of(new SessionEvents.WalkTargetState(1, "status", "", "CURRENT", true, "")));
+
+        assertFalse(walk(d).reason().contains(CAVEAT),
+                "a status target rests on no basis — caveating it would make the warning meaningless: " + walk(d).reason());
+    }
+
+    @Test
+    @DisplayName("The caveat joins the preparation's own note rather than replacing it")
+    void theCaveatJoinsTheNote() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = opened(a);
+        d.post(new SessionEvents.WalkPlayRequested(0, recordWalk(), 0, "test"));
+        WalkPlaybackState w = walk(d);
+
+        d.post(new SessionEvents.WalkStepPrepared(w.ticket(), d.snapshot().logGeneration(),
+                List.of(new SessionEvents.WalkTargetState(1, "records:row:1", "here", "CURRENT", true, "")),
+                "a chart did not finish drawing in 5 s"));
+
+        assertTrue(walk(d).reason().startsWith("a chart did not finish drawing in 5 s; "), walk(d).reason());
+        assertTrue(walk(d).reason().contains(CAVEAT), walk(d).reason());
+    }
 }

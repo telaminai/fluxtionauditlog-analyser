@@ -164,7 +164,7 @@ public class WalkPlayback implements EventLogSource {
         targets = e.targets();
         List<SessionEvents.WalkTargetState> available = targets.stream().filter(SessionEvents.WalkTargetState::available).toList();
         phase = available.size() == targets.size() ? "SHOWN" : available.isEmpty() ? "NOT_SHOWN" : "PARTLY_SHOWN";
-        reason = e.note();
+        reason = withIdentityCaveat(e.note());
         lastShown.put(walk, step);
         auditLog.info("walkShown", phase).info("lit", available.size()).info("of", targets.size());
         // review PR57 R1: ALWAYS say what is lit, even nothing — a re-resolution that makes every target unavailable must
@@ -216,6 +216,38 @@ public class WalkPlayback implements EventLogSource {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Review PR57 R5/R1 (second round): what "current" can and cannot mean when the file behind the log has never
+     * been re-checked.
+     *
+     * <p>{@link telamin.fluxtion.audit.analyser.analyser.walk.WalkIdentity#recordsTrusted} is false only for a
+     * verdict that says the file CHANGED. A null verdict — Follow has not polled, or this reader cannot say — is
+     * not a change, so the step resolves and its record and chart bases compare equal against the same store they
+     * were saved from. That comparison is sound for what it claims (§3.5: a record digest binds one record's text
+     * under one store representation) and says nothing about the file on disk, which nothing here has looked at.
+     *
+     * <p>The run basis cannot close that gap either: its file digests are taken when the log opens and the record
+     * count it now carries does not move for an in-place rewrite of the same length. The verdict is the only thing
+     * that sees one, and an unassessed log has no verdict.
+     *
+     * <p>So the walk says so, in the words {@code context} already uses for the same state, rather than presenting
+     * a bare "current" that reads as "verified". Stated once per step, and only when the step actually rests on a
+     * record or chart basis — a structural step claims nothing about the log's contents.
+     */
+    private String withIdentityCaveat(String note) {
+        if (openLog.identity() != null || !restsOnTheLogsContents()) return note;
+        String caveat = "the file behind this log has not been re-checked since it was read, so 'current' here means "
+                + "unchanged since this step was saved, not unchanged on disk";
+        return note == null || note.isBlank() ? caveat : note + "; " + caveat;
+    }
+
+    /** Whether the step being shown rests on the log's contents — a record or a chart basis (§3.5). */
+    private boolean restsOnTheLogsContents() {
+        if (definition == null || step < 0 || step >= definition.steps().size()) return false;
+        return definition.steps().get(step).targets().stream()
+                .anyMatch(t -> "record".equals(t.basis().kind()) || "chart".equals(t.basis().kind()));
     }
 
     /**
