@@ -133,9 +133,10 @@ committed DEMO sources compile against it.
 - the generator reads the clock once per cycle, so `eventTime == logTime`;
 - the GraphML carries the new graph vocabulary, and grows from 12,653 to 24,958 bytes.
 
-Against the regenerated fixtures, `CoverageScopeTest` fails 2 of its assertions: coverage names 5 nodes that cannot
-log where the test expects 4, and the extra one is `QuoteControl`, the exported-service interface. The fixtures were
-restored.
+Against the regenerated fixtures, `CoverageScopeTest` failed 2 assertions. *(First reported here as `QuoteControl`,
+which was wrong: `QuoteControl` was already expected.)* The extra exclusion is `spreadCalculator`: the new graph
+**declares** it cannot log (`fluxtion.auditCapable=false`), and M45.3 excludes a declared non-logger with no source.
+That is the specified behaviour, so the test was updated, and the fixtures committed (M70.R0b).
 
 ## R1, 2026-09-28: our own writer and reader (spec R-D8), on generated processors
 

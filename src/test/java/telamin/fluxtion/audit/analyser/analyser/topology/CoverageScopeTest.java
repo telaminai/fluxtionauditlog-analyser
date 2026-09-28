@@ -78,12 +78,27 @@ class CoverageScopeTest {
     }
 
     @Test
-    void withNoSourceNothingIsDroppedForSilence_theSafeDirection() throws Exception {
-        var authored = Scaffolding.authoredNodes(demo());
-        CoverageScope.Scope none = CoverageScope.of(demo(), authored, null);
+    void withNoSourceAndNoDeclarationNothingIsDroppedForSilence_theSafeDirection() {
+        // a graph that does not declare fluxtion.auditCapable, and no source: there is no evidence either way,
+        // so the node stays counted — never assume silence
+        ProcessorTopology undeclared = graphOf("spreadCalculator", "NODE", "quotePublisher", "NODE");
+        CoverageScope.Scope none = CoverageScope.of(undeclared, Set.of("spreadCalculator", "quotePublisher"), null);
         assertTrue(none.excludedFor(CoverageScope.Reason.SILENT_BY_CONSTRUCTION).isEmpty());
         assertTrue(none.loggable().contains("spreadCalculator"),
                 "with no evidence the node stays counted — never assume silence");
+    }
+
+    @Test
+    void withNoSourceADeclaredFactIsEnough() throws Exception {
+        // M45.3: the demo graph DECLARES spreadCalculator cannot log (fluxtion.auditCapable=false), so it leaves
+        // with no source at all — a declared fact, not an assumption. The demo fixture carries the key since it
+        // was regenerated with the current toolchain (M70.R0b, 2026-09-28); before that this test's premise was
+        // "no source, nothing dropped", true only because the graph declared nothing.
+        var authored = Scaffolding.authoredNodes(demo());
+        CoverageScope.Scope none = CoverageScope.of(demo(), authored, null);
+        assertEquals(java.util.List.of("spreadCalculator"),
+                none.excludedFor(CoverageScope.Reason.SILENT_BY_CONSTRUCTION));
+        assertTrue(none.loggable().contains("riskMonitor"), "a node the graph declares capable stays counted");
     }
 
     @Test
@@ -132,16 +147,22 @@ class CoverageScopeTest {
         Set<String> authored = Scaffolding.authoredNodes(t);
         CoverageScope.Scope scope = CoverageScope.of(t, authored);
 
-        // the three event classes and the exported service leave; nothing else does
+        // the three event classes and the exported service leave by KIND
         assertTrue(scope.excluded().containsKey("MarketDataEvent"), scope.excluded().toString());
         assertTrue(scope.excluded().containsKey("OrderUpdateEvent"), scope.excluded().toString());
         assertTrue(scope.excluded().containsKey("RiskBreachEvent"), scope.excluded().toString());
         assertTrue(scope.excluded().containsKey("QuoteControl"), scope.excluded().toString());
-        assertEquals(4, scope.excluded().size(), scope.excluded().toString());
 
-        // and the node that is genuinely a node stays, even though it never logs — that is slice 2's
-        // job and counting it meanwhile is the honest answer: it IS a node and it DID never log
-        assertTrue(scope.loggable().contains("spreadCalculator"), scope.loggable().toString());
+        // and spreadCalculator leaves too, with no source in hand, because the graph now DECLARES it cannot
+        // log (M45.3, fluxtion.auditCapable=false). Until the fixture was regenerated with the current
+        // toolchain (M70.R0b, 2026-09-28) the graph carried no such key, so this test kept it counted — the
+        // honest answer then, and the wrong one now that the fact is declared.
+        assertEquals(CoverageScope.Reason.SILENT_BY_CONSTRUCTION, scope.reasons().get("spreadCalculator"),
+                scope.excluded().toString());
+        assertEquals(5, scope.excluded().size(), scope.excluded().toString());
+
+        // a node the graph declares CAN log stays, whether or not it logged
+        assertFalse(scope.loggable().contains("spreadCalculator"), scope.loggable().toString());
         assertTrue(scope.loggable().contains("quotePublisher"));
     }
 

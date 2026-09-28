@@ -1,7 +1,7 @@
 ---
 eventLogRecord: 
-    eventTime: 1767258000080
-    logTime: 1767258000090
+    eventTime: 1767258000060
+    logTime: 1767258000060
     groupingId: null
     event: MarketDataEvent
     eventToString: MarketDataEvent[symbol=DEMO-A, bid=100.1, ask=100.3]
@@ -9,11 +9,11 @@ eventLogRecord:
     nodeLogs: 
         - priceListener: { symbol: DEMO-A, mid: 100.19999999999999}
         - quotePublisher: { spread: 0.02004, liveOrders: 0, suspended: false}
-    endTime: 1767258000100
+    endTime: 1767258000070
 ---
 eventLogRecord: 
-    eventTime: 1767258000110
-    logTime: 1767258000120
+    eventTime: 1767258000080
+    logTime: 1767258000080
     groupingId: null
     event: OrderUpdateEvent
     eventToString: OrderUpdateEvent[orderId=ord-1, state=LIVE]
@@ -21,11 +21,11 @@ eventLogRecord:
     nodeLogs: 
         - orderTracker: { orderId: ord-1, live: 1}
         - quotePublisher: { spread: 0.02004, liveOrders: 1, suspended: false}
-    endTime: 1767258000130
+    endTime: 1767258000090
 ---
 eventLogRecord: 
-    eventTime: 1767258000140
-    logTime: 1767258000150
+    eventTime: 1767258000100
+    logTime: 1767258000100
     groupingId: null
     event: MarketDataEvent
     eventToString: MarketDataEvent[symbol=DEMO-A, bid=100.12, ask=100.28]
@@ -33,11 +33,11 @@ eventLogRecord:
     nodeLogs: 
         - priceListener: { symbol: DEMO-A, mid: 100.2}
         - quotePublisher: { spread: 0.020040000000000002, liveOrders: 1, suspended: false}
-    endTime: 1767258000160
+    endTime: 1767258000110
 ---
 eventLogRecord: 
-    eventTime: 1767258000170
-    logTime: 1767258000180
+    eventTime: 1767258000120
+    logTime: 1767258000120
     groupingId: null
     event: OrderUpdateEvent
     eventToString: OrderUpdateEvent[orderId=ord-1, state=DONE]
@@ -45,11 +45,11 @@ eventLogRecord:
     nodeLogs: 
         - orderTracker: { orderId: ord-1, live: 0}
         - quotePublisher: { spread: 0.020040000000000002, liveOrders: 0, suspended: false}
-    endTime: 1767258000190
+    endTime: 1767258000130
 ---
 eventLogRecord: 
-    eventTime: 1767258000200
-    logTime: 1767258000210
+    eventTime: 1767258000140
+    logTime: 1767258000140
     groupingId: null
     event: MarketDataEvent
     eventToString: MarketDataEvent[symbol=DEMO-B, bid=55.01, ask=55.09]
@@ -57,11 +57,11 @@ eventLogRecord:
     nodeLogs: 
         - priceListener: { symbol: DEMO-B, mid: 55.05}
         - quotePublisher: { spread: 0.01101, liveOrders: 0, suspended: false}
-    endTime: 1767258000220
+    endTime: 1767258000150
 ---
 eventLogRecord: 
-    eventTime: 1767258000230
-    logTime: 1767258000240
+    eventTime: 1767258000160
+    logTime: 1767258000160
     groupingId: null
     event: OrderUpdateEvent
     eventToString: OrderUpdateEvent[orderId=ord-2, state=LIVE]
@@ -69,11 +69,11 @@ eventLogRecord:
     nodeLogs: 
         - orderTracker: { orderId: ord-2, live: 1}
         - quotePublisher: { spread: 0.01101, liveOrders: 1, suspended: false}
-    endTime: 1767258000250
+    endTime: 1767258000170
 ---
 eventLogRecord: 
-    eventTime: 1767258000260
-    logTime: 1767258000270
+    eventTime: 1767258000180
+    logTime: 1767258000180
     groupingId: null
     event: OrderUpdateEvent
     eventToString: OrderUpdateEvent[orderId=ord-3, state=LIVE]
@@ -82,22 +82,22 @@ eventLogRecord:
         - orderTracker: { orderId: ord-3, live: 2}
         - quotePublisher: { spread: 0.01101, liveOrders: 2, suspended: false}
         - riskMonitor: { liveOrders: 2, limit: 2, redispatch: true}
-    endTime: 1767258000280
+    endTime: 1767258000190
 ---
 eventLogRecord: 
-    eventTime: 1767258000290
-    logTime: 1767258000300
+    eventTime: 1767258000180
+    logTime: 1767258000180
     groupingId: null
     event: RiskBreachEvent
     eventToString: RiskBreachEvent[orderId=ord-2, liveOrders=2]
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - breachHandler: { breachedOn: ord-2, liveOrders: 2, breachesToday: 1}
-    endTime: 1767258000310
+    endTime: 1767258000200
 ---
 eventLogRecord: 
     eventTime: -1
-    logTime: 1767258000330
+    logTime: 1767258000210
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -105,11 +105,11 @@ public void suspendQuoting(String arg0)
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - quotePublisher: { suspended: true, reason: demo: spread too wide}
-    endTime: 1767258000340
+    endTime: 1767258000220
 ---
 eventLogRecord: 
     eventTime: -1
-    logTime: 1767258000360
+    logTime: 1767258000230
     groupingId: null
     event: ExportFunctionAuditEvent
     eventToString: @Override
@@ -117,4 +117,4 @@ public void resumeQuoting()
     thread: com.acme.demo.GenerateFixtures.main()
     nodeLogs: 
         - quotePublisher: { suspended: false}
-    endTime: 1767258000370
+    endTime: 1767258000240
