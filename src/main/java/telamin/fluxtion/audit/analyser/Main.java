@@ -33,7 +33,7 @@ public class Main {
     public static final String REST_PROPERTY = "analyser.rest";
 
     /** Evidence bundle v1 (spec-evidence-bundle-packaging.md r2 §3.3): headless, before any UI, like {@code --mcp}. */
-    static final java.util.Set<String> BUNDLE_FLAGS = java.util.Set.of("--verify", "--unpack");
+    static final java.util.Set<String> BUNDLE_FLAGS = java.util.Set.of("--verify", "--unpack", "--replay-compare");
     /** Removed in the convergence: said so, rather than launching the app with the flag taken for a log path. */
     static final java.util.Set<String> RETIRED_BUNDLE_FLAGS = java.util.Set.of("--pack", "--bundle-profile");
 
@@ -126,6 +126,12 @@ public class Main {
                     var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(Path.of(args[1]));
                     return report(v, out, err);
                 }
+                case "--replay-compare" -> {
+                    if (args.length != 3) { err.println("usage: --replay-compare <bundle.fexp> <replayed-audit.yaml>"); return 2; }
+                    var c = telamin.fluxtion.audit.analyser.bundle.ReplayCompare.compare(Path.of(args[1]), Path.of(args[2]),
+                            REPLAY_COMPARE_THRESHOLD_MB);
+                    return replayVerdict(c, out, err);
+                }
                 default -> {
                     Path into = Path.of(System.getProperty("user.home"), ".fluxtion-analyser", "bundles");
                     if (args.length == 4 && "--into".equals(args[2])) into = Path.of(args[3]);
@@ -162,6 +168,40 @@ public class Main {
                         : ""));
         limits(v, out);
         return 0;
+    }
+
+    /** Logs at or above this size are memory-mapped while compared; below it they are read into memory. */
+    static final int REPLAY_COMPARE_THRESHOLD_MB = 256;
+
+    /**
+     * {@code --replay-compare}: 0 when the replayed log reproduces the bundled one (every record exact but {@code endTime}),
+     * 1 when it diverges or the bundle is refused. The bundle is verified first, and the verdict states its limits.
+     */
+    private static int replayVerdict(telamin.fluxtion.audit.analyser.bundle.ReplayCompare.Verdict c,
+                                     java.io.PrintStream out, java.io.PrintStream err) {
+        var v = c.verification();
+        if (v.identity() != null) out.println("identity: " + v.identity());
+        if (c.refusal() != null) {
+            err.println("REFUSED: " + c.refusal());
+            return 1;
+        }
+        out.println("verified: " + v.members().size() + " members, each matching the manifest's sha256 and size");
+        int code;
+        if (c.agrees()) {
+            out.println("replay: AGREES, " + c.records() + " of " + c.records() + " records (endTime excepted on "
+                    + c.excepted() + ", the one reading a replay cannot know)");
+            code = 0;
+        } else {
+            out.println("replay: DIVERGES at " + c.divergence());
+            out.println("replay: the " + c.records() + " record(s) before it agree");
+            code = 1;
+        }
+        if (v.replay() != null && v.replay().get("serviceCalls") instanceof Number n && n.longValue() > 0) {
+            out.println("replay: the log holds " + n.longValue() + " exported-service call(s) the replay records do not "
+                    + "carry; a divergence from the first cycle that depends on one is expected");
+        }
+        limits(v, out);
+        return code;
     }
 
     /** A manifest count, as the integer it is: JSON numbers parse as doubles, and "4.0" is not a record index. */
@@ -220,6 +260,9 @@ public class Main {
                   analyser --unpack <bundle.fexp> [--into <dir>]
                                         verify, then extract into a fresh working copy; nothing is
                                         extracted if verification fails
+                  analyser --replay-compare <bundle.fexp> <replayed-audit.yaml>
+                                        verify, then compare a replayed audit log with the bundle's:
+                                        every record exact but endTime; names the first difference
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

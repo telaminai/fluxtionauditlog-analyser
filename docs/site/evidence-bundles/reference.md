@@ -20,7 +20,7 @@ The echo says `phase: WRITING`. **`context.capture`** then says `WRITTEN`, with 
 was left out, redacted or excerpted), or `REFUSED`, with the `reason`. A refusal the analyser can make at once, such
 as no log open or a load pending, is the verb's error.
 
-## Reading: two commands
+## Reading: three commands
 
 An installed analyser is `analyser …`; from a jar, `java -jar fluxtion-auditlog-analyser-<version>.jar …`.
 
@@ -28,6 +28,7 @@ An installed analyser is `analyser …`; from a jar, `java -jar fluxtion-auditlo
 |---|---|---|
 | `--verify <bundle.fexp>` | checks every member against the manifest without extracting anything. Prints the identity, `verified: N members…`, `excerpt: …` for an excerpt, `replay: …` for a bundle with replay records, and the limits | 0 · 1 refused, naming the member · 2 usage |
 | `--unpack <bundle.fexp> [--into <dir>]` | verifies, then extracts into a **new** directory named for the identity. Prints `working copy:` | 0 · 1 refused, nothing extracted · 2 usage |
+| `--replay-compare <bundle.fexp> <replayed-audit.yaml>` | verifies, then compares the bundle's log with an audit log written by replaying its `replay/` records into your own build of the processor. Prints `replay: AGREES, N of N records`, or `replay: DIVERGES at …` naming the first difference, and the limits | 0 agrees · 1 diverges, or refused · 2 usage |
 
 Verification refuses, naming the member:
 
@@ -86,8 +87,30 @@ A bundle that carries replay records is **format 2**; every other bundle stays f
 - A format 2 manifest must name its `replay/` member, and list it; verification refuses one that does not.
 - The replay records are the run's inputs only, each stamped with the instant its cycle ran at. The events the graph
   raised itself are in the log and not in the replay records.
-- **Nothing replays them yet.** Replaying the records into your own build of the processor, and comparing the result
-  with the log, is the next delivery. Today a bundle carries and verifies them and does not reproduce anything.
+- **The analyser does not replay them.** You replay the records into your own build of the processor, with a
+  data-driven clock, writing its audit log; `--replay-compare` then says whether that log matches, which is the
+  claim in the limit and not more. A runner that does the replay step for you is the next delivery.
+
+## `--replay-compare`: comparing a replayed log
+
+```
+analyser --replay-compare breach-0900.fexp replayed-audit.yaml
+```
+
+`--replay-compare` checks every record, and every line of it, exactly, **except `endTime`**. `endTime` is the live
+clock reading at the end of a cycle, and a replay pins the clock at the recorded instant, so it cannot know it.
+Nothing else is excepted: an input's `eventTime`, the times of an event the graph raised itself, and every node's
+values must all agree. The exception is by position, so a record whose `endTime` line is missing on one side still
+differs.
+
+- **Agrees:** `replay: AGREES, 8 of 8 records (endTime excepted on 8, the one reading a replay cannot know)`.
+- **A node computed something else:** `replay: DIVERGES at record 1 (OrderUpdateEvent):
+  eventLogRecord.nodeLogs.orderTracker: '{ orderId: ord-1, live: 1}' ≠ '{ orderId: ord-1, live: 7}'`.
+- **A build that stopped raising an event:** `replay: DIVERGES at record 7: the bundled log has record 7
+  (RiskBreachEvent), and the replay does not (8 records bundled, 7 replayed)`.
+
+It is refused, comparing nothing, when the bundle fails verification, carries no replay records, or holds an
+excerpt: replay records are of the whole run.
 
 ## Context fields
 

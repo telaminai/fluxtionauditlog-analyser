@@ -93,8 +93,9 @@ class EvidenceBundleDocsTest {
             if (l.contains("authentic") || l.contains("reproduc")) {
                 assertTrue(denies, "a page may mention authentication or reproduction only to deny it: " + line);
             } else if (l.contains("replay")) {
+                // M70.R3: and the command that compares a replayed log, whose claim is the limit and not more
                 boolean aboutTheMember = l.contains("`replay`") || l.contains("replay/") || l.contains("replay records")
-                        || l.contains("replay:") || l.contains("\"replay\"");
+                        || l.contains("replay:") || l.contains("\"replay\"") || l.contains("--replay-compare");
                 assertTrue(denies || aboutTheMember,
                         "a page may mention replay only to deny it or to describe the replay member: " + line);
             }

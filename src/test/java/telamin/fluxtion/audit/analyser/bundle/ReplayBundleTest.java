@@ -30,7 +30,7 @@ class ReplayBundleTest {
     static final Path REPLAY = Path.of("src/test/resources/replay/demo-quote-recorded.replay.yaml");
     static final Path GRAPH = Path.of("src/test/resources/replay/demo-quote-recorded-processor.graphml");
 
-    private static ReplayPairing.Observed pairing() throws Exception {
+    static ReplayPairing.Observed pairing() throws Exception {
         return pairing(REPLAY);
     }
 
@@ -40,7 +40,7 @@ class ReplayBundleTest {
         }
     }
 
-    private static BundleWriter.Job job(Path out, Path replay, ReplayPairing.Observed o) throws IOException {
+    static BundleWriter.Job job(Path out, Path replay, ReplayPairing.Observed o) throws IOException {
         return new BundleWriter.Job(out, AUDIT, GRAPH, "project.fluxtion-settings",
                 Files.readAllBytes(BundleProfileTest.FIXTURE), null, null, Instant.parse("2026-09-28T12:00:00Z"), "test",
                 256, null, false, replay, o.records(), o.serviceCalls(), o.sha256());

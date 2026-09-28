@@ -15,7 +15,13 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   the whole run. The records are packed as the `replay/` member of a **format 2** bundle, and a bundle without them
   stays format 1, unchanged. The capture says how many recorded inputs it carries, and how many exported-service
   calls the log holds that replay records cannot carry. `--verify` prints the same, with the bundle's replay limit.
-  Nothing replays them yet: replaying into your own build and comparing is the next step.
+  Nothing in the analyser replays them: you replay them into your own build, then compare.
+- **`--replay-compare <bundle.fexp> <replayed-audit.yaml>`: does a replay give the same audit log?** It verifies the
+  bundle, then compares its log with a replayed one record by record. Every line must be exact except `endTime`,
+  the live clock reading at the end of a cycle, which a replay cannot know. It prints `AGREES, N of N records` and
+  exits 0. Otherwise it prints `DIVERGES at record k (Event): path: 'bundled' ≠ 'replayed'`, the first difference
+  with both values, or the first record one side has and the other does not, and exits 1. A bundle with no replay
+  records, or with an excerpt, is refused.
 - **The DEMO records a replay.** `examples/fixture-generator` gains a replay writer compiled into the processor. It
   records only the inputs the caller names, stamped with the instant each cycle ran at, for exactly the event types
   the processor handles. It also writes a recorded run's log, replay records and graph, and writes them only after

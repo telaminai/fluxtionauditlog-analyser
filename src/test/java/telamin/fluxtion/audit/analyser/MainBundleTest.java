@@ -91,6 +91,31 @@ class MainBundleTest {
     }
 
     @Test
+    @DisplayName("--replay-compare: 0 AGREES with the limits, 1 DIVERGES naming the record, 2 usage")
+    void replayCompareExitsByVerdict(@TempDir Path tmp) throws Exception {
+        Path bundle = telamin.fluxtion.audit.analyser.bundle.ReplayCompareTest.bundle(tmp);
+        Path replayed = telamin.fluxtion.audit.analyser.bundle.ReplayCompareTest.REPLAYED;
+
+        Run agrees = run("--replay-compare", bundle.toString(), replayed.toString());
+        assertEquals(0, agrees.code(), agrees.all());
+        assertTrue(agrees.out().contains("replay: AGREES, 8 of 8 records (endTime excepted on 8"), agrees.out());
+        assertTrue(agrees.out().contains("limit: replay: the recorded inputs reproduce this log only on a build whose graph matches"),
+                agrees.out());
+        assertTrue(agrees.out().contains("limit: unsigned"), agrees.out());
+
+        String text = Files.readString(replayed);
+        Path changed = Files.writeString(tmp.resolve("changed.yaml"), text.substring(0, text.lastIndexOf("---\neventLogRecord")));
+        Run diverges = run("--replay-compare", bundle.toString(), changed.toString());
+        assertEquals(1, diverges.code(), diverges.all());
+        assertTrue(diverges.out().contains("replay: DIVERGES at record 7: the bundled log has record 7 (RiskBreachEvent)"),
+                diverges.out());
+        assertTrue(diverges.out().contains("replay: the 7 record(s) before it agree"), diverges.out());
+
+        assertEquals(2, run("--replay-compare", bundle.toString()).code());
+        assertTrue(run("--replay-compare").err().startsWith("usage: --replay-compare"));
+    }
+
+    @Test
     @DisplayName("a refused bundle exits 1, names the member on stderr, prints no 'verified' and unpacks nothing")
     void aRefusalExitsOne(@TempDir Path tmp) throws Exception {
         Path folder = demo(tmp);

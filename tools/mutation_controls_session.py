@@ -22,6 +22,7 @@ WRITER = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleWriter.java
 EXCERPT = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/BundleExcerpt.java'
 CAPTURE = NODE + 'EvidenceCapture.java'
 PAIRING = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayPairing.java'
+COMPARE = 'src/main/java/telamin/fluxtion/audit/analyser/bundle/ReplayCompare.java'
 GRAPHML = 'src/main/resources/telamin/fluxtion/audit/analyser/analyser/session/generated/SessionProcessor.graphml'
 
 CONTROLS = [
@@ -1137,7 +1138,7 @@ CONTROLS = [
      '        m.put("createdAt", Instant.now().toString());\n',
      'EvidenceBundleTest#theIdentityIsPinnedAndDeterministic'),
     ('eb-b2-verify-states-the-limits', MAIN,
-     '        limits(v, out);\n', '',
+     '        limits(v, out);\n        return 0;\n', '        return 0;\n',
      'MainBundleTest#theHappyPath'),
     ('eb-b2-a-refusal-exits-one', MAIN,
      '            err.println("REFUSED: " + v.refusal());\n            return 1;\n',
@@ -1165,8 +1166,8 @@ CONTROLS = [
      '            for (String l : x.leftOut()) lines.add("left out: " + l);\n', '',
      'BundleExcerptTest#theWriterReportsWhatWasLeftOut'),
     ('eb-b3-the-profile-flag-is-routed', MAIN,            # the skills are gone; the docs site names the flags now
+     'java.util.Set.of("--verify", "--unpack", "--replay-compare")',
      'java.util.Set.of("--verify", "--unpack")',
-     'java.util.Set.of("--verify")',
      'EvidenceBundleDocsTest#theFlagsExist'),
     ('eb-b3-context-publishes-unsaved-edits', UI + 'MainFrame.java',
      '                proj.put("unsavedEdits", project.isDirty());\n', '',
@@ -1261,6 +1262,23 @@ CONTROLS = [
     ('rp-verify-states-the-replay-limit', BUNDLE,
      '        return v.replay() == null ? LIMITS : LIMITS_REPLAY;\n', '        return LIMITS;\n',
      'MainBundleTest#aReplayBundleSaysWhatItCarries'),
+    # M70.R3: --replay-compare (spec §6). Every record exact but endTime; a count difference and a changed line are
+    # divergences; only a bundle carrying replay records is compared; the exit code carries the verdict.
+    ('rc-only-endtime-is-excepted', COMPARE,
+     'Pattern.compile("^\\\\s*endTime:.*$")', 'Pattern.compile("^\\\\s*(endTime|eventTime):.*$")',
+     'ReplayCompareTest#anEventTimeIsNeverExcepted'),
+    ('rc-a-changed-line-diverges', COMPARE,
+     '            if (first != null) {\n', '            if (false) {\n',
+     'ReplayCompareTest#aChangedNodeValueDiverges'),
+    ('rc-a-count-difference-diverges', COMPARE,
+     '        if (n != m) {\n', '        if (false) {\n',
+     'ReplayCompareTest#aMissingRecordDiverges'),
+    ('rc-refuses-a-bundle-without-replay-records', COMPARE,
+     '            if (v.replay() == null) {\n', '            if (false) {\n',
+     'ReplayCompareTest#whatCannotBeComparedIsRefused'),
+    ('rc-a-divergence-exits-one', MAIN,
+     '            code = 1;\n', '            code = 0;\n',
+     'MainBundleTest#replayCompareExitsByVerdict'),
     ('cv-refuses-no-log', CAPTURE,
      '        if (!openLog.isOpen()) return "no log is open: open the log you are investigating first";\n', '',
      'EvidenceCaptureTest#noLogIsRefused'),

@@ -271,25 +271,38 @@ topology model, node ids and edges, not bytes: GraphML is **not** byte-stable ac
 The same check read the other way is the "fix" demo of the future: a build that differs on purpose, replayed and
 compared.
 
-## 6. The comparison (in the analyser)
+## 6. The comparison (in the analyser) — built in R3
 
-`--replay-compare <bundle.fexp> <replayed-audit.yaml>` verifies the bundle first (as `--verify` does), then compares
-the bundled log with the replayed one record by record, and prints one verdict. **The measured rule** (spike):
-- **Every record and field must agree exactly**, except:
-  - **`endTime`, on every record.** It is a live read when the cycle ends, and it is pinned on replay.
-  - **The time fields of a record the graph raised itself mid-cycle, on an older generator only.** On 1.0.75 there
-    is no such exception (R1 spike): a queued event keeps its input's instant in production and on replay. On the
-    2026-08-16 processor, in production it took a fresh reading;
-    replay keeps the time of the input that triggered it. Such a record is known by its event type not being on the
-    manifest's `inputTypes`, the types the producer declares it feeds from outside. They classify records for this
-    exception only; they no longer decide what is recorded (§3.2). This exception probably stays (§3.2). **`ExportFunctionAuditEvent` is the one
-    exception to the classifier.** A service call's record is not graph-raised, and it is never excepted (§3.4).
-- A record count that differs is a divergence, named at the first extra or missing record.
-- Anything else that differs is a divergence, named by record index and field, **first difference first**.
+`--replay-compare <bundle.fexp> <replayed-audit.yaml>` (`ReplayCompare`) verifies and unpacks the bundle into a
+temporary working copy first, then compares the bundled log with the replayed one record by record, and prints one
+verdict. Both logs are read with the analyser's own reader, so how each file frames its records does not matter.
 
-Output: `replay: 8 of 8 records agree (endTime excepted on 8; graph-raised time fields excepted on 1)`, or
-`replay: DIVERGES at record 5 (OrderUpdateEvent): nodeLogs.riskMonitor.exposure 1200 ≠ 1100`, with the limits line
-from §4.2 on either.
+**The rule, measured (R1/R2 spikes, generator 1.0.75): every record, and every line of it, is exact, except
+`endTime`.**
+- `endTime` is a live read when the cycle ends, and replay pins the clock at the recorded instant. The exception is
+  by position: a record whose `endTime` line is missing on one side, or has moved, still differs.
+- Nothing else is excepted: an input's `eventTime`, a graph-raised record's times, every node's values.
+- *r1 carried a second exception, for a graph-raised record's time fields. It came from the 2026-08-16 processor,
+  which gave a queued event a fresh clock reading. On 1.0.75 a queued event keeps its input's instant in production
+  and on replay (R1), so there is no such exception, and with it went the need for `inputTypes` to classify records.*
+- A record count that differs is a divergence, named at the first record one side has and the other does not.
+- Anything else that differs is a divergence, named by record, event and YAML key path, first difference first,
+  with both values.
+
+**Refused, with nothing compared:** a bundle that fails verification; one that carries no replay records; one whose
+log is an excerpt; a replayed log that cannot be read.
+
+**Output and exit codes:**
+- `replay: AGREES, 8 of 8 records (endTime excepted on 8, the one reading a replay cannot know)`, exit 0;
+- `replay: DIVERGES at record 1 (OrderUpdateEvent): eventLogRecord.nodeLogs.orderTracker: '{ orderId: ord-1,
+  live: 1}' ≠ '{ orderId: ord-1, live: 7}'`, then how many records before it agree, exit 1;
+- a refusal on stderr, exit 1; usage, exit 2.
+
+Either verdict states the limits from §4.2, and names the service calls the replay records cannot carry when the log
+holds any.
+
+**Measured on a real replay.** The fixture generator now also commits what its fresh processor wrote replaying the
+recorded run (`demo-quote-recorded.replayed-audit.yaml`). It agrees 8 of 8, with `endTime` excepted on all 8.
 
 In the UI the replayed log opens beside the bundled one and the walk can step onto the first divergence. That is the
 follow-up; the demo is the CLI verdict.
@@ -318,7 +331,7 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 | **R0** ☑ | Prove the auditor path. Generate the DEMO processor with the DEMO recorder installed, record a run, and replay it: the spike's `record-all-whitelist` result, with no hand-called `eventReceived` | done: builder 1.0.71 (the root pom's), runtime 1.0.16 |
 | R1 ☑ | `ReplayCapture` (identity recording, the static codec) and the injecting reader into the DEMO; commit the recorded fixture, the log, the replay and the graph from one real run with no service calls (§3.4) | R0; M70.R0b if the fixtures are regenerated |
 | R2 ☑ | The `replay` member: the `evidenceCapture` node's pairing, the whole-log rule and manifest format 2 | R1 |
-| R3 | `--replay-compare` and its rule (§6) | R1 |
+| R3 ☑ | `--replay-compare` and its rule (§6) | R1 |
 | R4 | The runner (§5), and the demo driver's replay leg | R2, R3 |
 | R5 | The docs site's *Evidence bundles* section gains *Replay*; CHANGELOG | R4 |
 | — | UP-FLX-53, UP-FLX-54 filed as improvements, not blockers (R-D8); the Mongoose sink binding asked for after R0 | the owner files them |

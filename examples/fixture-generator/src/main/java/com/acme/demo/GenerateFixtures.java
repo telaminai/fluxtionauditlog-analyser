@@ -145,7 +145,8 @@ public final class GenerateFixtures {
     }
 
     /**
-     * One recorded run: the audit log and the replay records from the SAME run, with the graph they came from.
+     * One recorded run: the audit log and the replay records from the SAME run, with the graph they came from, and
+     * the audit log a fresh processor wrote replaying them.
      *
      * <p>The consumption point, this loop, names each input to the writer before dispatching it, so only the
      * inputs are recorded. The graph's own RiskBreachEvent is not; replay raises it again by itself. No
@@ -200,6 +201,8 @@ public final class GenerateFixtures {
         Files.createDirectories(REPLAY_FIXTURES);
         Files.writeString(REPLAY_FIXTURES.resolve("demo-quote-recorded-audit.yaml"), log.toString());
         Files.writeString(REPLAY_FIXTURES.resolve("demo-quote-recorded.replay.yaml"), replay.toString());
+        // the fresh processor's audit log: what a recipient's replay produces, for the analyser's comparison
+        Files.writeString(REPLAY_FIXTURES.resolve("demo-quote-recorded.replayed-audit.yaml"), replayed.toString());
         if (Files.exists(RECORDED_GRAPHML)) {
             Files.copy(RECORDED_GRAPHML, REPLAY_FIXTURES.resolve("demo-quote-recorded-processor.graphml"),
                     StandardCopyOption.REPLACE_EXISTING);
