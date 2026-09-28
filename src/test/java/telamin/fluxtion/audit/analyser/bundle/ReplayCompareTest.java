@@ -11,6 +11,7 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -168,6 +169,22 @@ public class ReplayCompareTest {
         // control: the record's own thread IS excepted
         assertEquals(null, ReplayCompare.firstDifference(java.util.List.of("eventLogRecord: ", "    thread: x"),
                 java.util.List.of("eventLogRecord: ", "    thread: y")));
+    }
+
+    @Test
+    @DisplayName("PR #70 review 1: a comment never sets the record's field scope, so a nested thread is still compared")
+    void aCommentDoesNotSetTheHeaderScope() throws Exception {
+        // the review's probe: an indented comment first under the header, then a node value called thread
+        String log = replayed().replaceFirst("eventLogRecord: \n", "eventLogRecord: \n            # DEMO indented YAML comment\n")
+                .replaceFirst("        - priceListener: \\{ symbol: DEMO-A, mid: 100.19999999999999}",
+                        "        - priceListener:\n            thread: DEMO-old");
+        assertTrue(log.contains("thread: DEMO-old"), "fixture anchor moved");
+        var c = ReplayCompare.firstDifference(ReplayCompare.lines(log), ReplayCompare.lines(log.replace("DEMO-old", "DEMO-new")));
+        assertEquals("eventLogRecord.nodeLogs.priceListener.thread: 'DEMO-old' ≠ 'DEMO-new'", c);
+        // the record's own thread, under the same comment, is still excepted
+        String header = log.replaceFirst("    thread: com.acme.demo.GenerateFixtures.main\\(\\)", "    thread: main");
+        assertNotEquals(log, header, "header anchor moved");
+        assertNull(ReplayCompare.firstDifference(ReplayCompare.lines(log), ReplayCompare.lines(header)));
     }
 
     @Test

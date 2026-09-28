@@ -27,7 +27,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   with both values. A line one side has and the other lacks, such as a node that logged nothing on replay, is named
   as missing. The first record one side has and the other does not is named too. Either way it exits 1. A bundle with no replay
   records, or with an excerpt, is refused. A log with CRLF line endings compares as the same log. Besides `endTime`, the `thread` a cycle ran on is excepted, because a
-  replay runs on its own thread.
+  replay runs on its own thread. Only the record's own `endTime` and `thread` are excepted, found from the record's
+  structure: a node's value of the same name is compared, and a YAML comment does not change which lines are the
+  record's own.
 - **The replay runner: `tools/replay/ReplayBundle.java`.** Run it with JBang against your own build:
   `jbang tools/replay/ReplayBundle.java --bundle run.fexp --processor <class> --cp <your build> --out replayed.yaml`.
   It checks that your build is the bundle's processor, comparing the nodes and edges of your build's GraphML with

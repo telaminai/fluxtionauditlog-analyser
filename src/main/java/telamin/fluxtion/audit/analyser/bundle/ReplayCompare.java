@@ -112,10 +112,24 @@ public final class ReplayCompare {
         return out;
     }
 
-    /** The indent of a record's own fields: the first indented line's. Only there are endTime and thread excepted. */
+    /**
+     * The indent of a record's own fields, found from its structure: the first CONTENT line under the record's
+     * top-level key. Only there are endTime and thread excepted. A comment is not content and sets nothing (PR #70
+     * review 1: an indented comment first under the header set the scope to a node's depth, and a node value called
+     * {@code thread} was excepted, so a changed business value read AGREES).
+     */
     private static int fieldIndent(List<String> lines) {
-        for (String l : lines) if (!l.isBlank() && indent(l) > 0) return indent(l);
+        boolean underTop = false;
+        for (String l : lines) {
+            if (l.isBlank() || comment(l)) continue;        // a comment is not a field: it sets no scope
+            if (indent(l) == 0) underTop = true;
+            else if (underTop) return indent(l);
+        }
         return -1;
+    }
+
+    private static boolean comment(String line) {
+        return line.stripLeading().startsWith("#");
     }
 
     /** Whether the two records differ in an excepted line (so the verdict can say how often the exception applied). */
@@ -161,7 +175,7 @@ public final class ReplayCompare {
         keys.add(key(lines.get(i)));
         for (int j = i - 1; j >= 0 && depth > 0; j--) {
             String l = lines.get(j);
-            if (l.isBlank()) continue;
+            if (l.isBlank() || comment(l)) continue;
             int d = indent(l);
             if (d < depth) {
                 keys.add(0, key(l));
