@@ -2281,10 +2281,16 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
 
 0. ☑ **M69 spotlight walks — shipped in 1.26.0** (merged `5cdd12ec`, 2026-09-28). Follow-ups ▸ *M69 follow-ups*.
 0a. ◧ **Evidence bundle packaging, first delivery** (owner, 2026-09-28: package, verify, open and walk; replay
-    deferred, D-0 amended, L-33). Spec DRAFT r1:
+    deferred, D-0 amended, L-33). Spec **DRAFT r2**:
     [`spec-evidence-bundle-packaging.md`](spec-evidence-bundle-packaging.md), branch `spec/evidence-bundle-packaging`.
-    Its open question is the placement: how much belongs in the UI and how much in skills (§3). Prerequisite:
-    M69.F3.
+    Placement decided: **C**, with no verb, menu or dialog. The CLI owns the format (`--pack`, `--verify`,
+    `--unpack`), and `context` gains one field, `log.generation`. Flags and excerpts are out of the first delivery.
+    Slices:
+    - [EB.B0] ☐ M69.F3: the caveat once per walk;
+    - [EB.B1] ☐ `context.log.generation`;
+    - [EB.B2] ☐ the CLI: `--pack`, `--verify`, `--unpack`;
+    - [EB.B3] ☐ the `capture-evidence-bundle` and `open-evidence-bundle` skills;
+    - [EB.B4] ☐ a cold-recipient rehearsal (EP-A6, another home).
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).
