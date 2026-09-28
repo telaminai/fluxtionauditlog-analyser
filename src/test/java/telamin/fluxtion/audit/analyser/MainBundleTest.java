@@ -50,13 +50,10 @@ class MainBundleTest {
     }
 
     @Test
-    @DisplayName("pack, verify, unpack: exit 0, the same identity at each step, the limits stated every time")
+    @DisplayName("verify, unpack: exit 0, the bundle's identity at each step, the limits stated every time")
     void theHappyPath(@TempDir Path tmp) throws Exception {
         Path bundle = tmp.resolve("demo.fexp");
-        Run pack = run("--pack", demo(tmp).toString(), bundle.toString());
-        assertEquals(0, pack.code(), pack.all());
-        String identity = pack.out().lines().filter(l -> l.startsWith("identity: ")).findFirst().orElseThrow();
-        statesTheLimitsAndNeverAuthenticity(pack);
+        String identity = "identity: " + EvidenceBundle.pack(demo(tmp), bundle, java.time.Instant.now(), "test");
 
         Run verify = run("--verify", bundle.toString());
         assertEquals(0, verify.code(), verify.all());
@@ -77,7 +74,7 @@ class MainBundleTest {
     void aRefusalExitsOne(@TempDir Path tmp) throws Exception {
         Path folder = demo(tmp);
         Path bundle = tmp.resolve("demo.fexp");
-        assertEquals(0, run("--pack", folder.toString(), bundle.toString()).code());
+        EvidenceBundle.pack(folder, bundle, java.time.Instant.now(), "test");
         var entries = EvidenceBundleTest.entries(bundle);
         entries.put("log/demo-quote-audit.yaml", "tampered".getBytes(StandardCharsets.UTF_8));
         Path bad = EvidenceBundleTest.zip(tmp.resolve("bad.fexp"), entries);
@@ -92,30 +89,23 @@ class MainBundleTest {
         assertFalse(unpack.out().contains("working copy"), unpack.out());
         assertFalse(Files.exists(tmp.resolve("copies")), "nothing was extracted");
 
-        Run overwrite = run("--pack", folder.toString(), bundle.toString());
-        assertEquals(1, overwrite.code(), "pack refuses to overwrite: " + overwrite.all());
     }
 
     @Test
     @DisplayName("wrong arguments exit 2 with the usage line")
     void usageExitsTwo() {
-        assertEquals(2, run("--pack", "only-one").code());
         assertEquals(2, run("--verify").code());
         assertEquals(2, run("--unpack", "a.fexp", "--elsewhere", "x").code());
         assertTrue(run("--verify").err().startsWith("usage: --verify"));
     }
 
     @Test
-    @DisplayName("--bundle-profile: exit 0 naming what was left out; exit 1 when the settings cannot be read; 2 on usage")
-    void bundleProfile(@TempDir Path tmp) throws Exception {
-        Path profile = telamin.fluxtion.audit.analyser.bundle.BundleProfileTest.senderProfile(tmp);
-        Path out = tmp.resolve("p.fluxtion-settings");
-        Run r = run("--bundle-profile", profile.toString(), out.toString());
-        assertEquals(0, r.code(), r.all());
-        assertTrue(r.out().contains("left out: chart 'Venue feed latency (external CSV)'"), r.out());
-        assertTrue(r.out().contains("dangling: walk 'why-the-spread-moved' step 4"), r.out());
-        assertTrue(Files.exists(out));
-        assertEquals(1, run("--bundle-profile", tmp.resolve("absent").toString(), tmp.resolve("q").toString()).code());
-        assertEquals(2, run("--bundle-profile", profile.toString()).code());
+    @DisplayName("--pack and --bundle-profile are retired: exit 2 saying where bundles are written now, never an app launch")
+    void theRetiredFlagsSaySo() {
+        for (String flag : new String[]{"--pack", "--bundle-profile"}) {
+            Run r = run(flag, "a", "b");
+            assertEquals(2, r.code(), flag + ": " + r.all());
+            assertTrue(r.err().contains(flag + " was removed") && r.err().contains("report {bundle"), r.err());
+        }
     }
 }

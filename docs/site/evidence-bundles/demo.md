@@ -23,25 +23,30 @@ It needs a display. Both analysers run under their own isolated home, on separat
 - a report;
 - a three-step walk: where every price enters, the breach record, and the spread before it.
 
-Before any log is open it tries a capture, which must refuse. Then it captures, following the
-`capture-evidence-bundle` skill step by step.
+Before any log is open it asks for a capture, which must refuse. Then, through `report {bundle}`, it makes three:
 
-**The recipient** starts cold, with its own project and no source roots, and receives only the `.fexp`. It:
+- the **whole log**, with notes;
+- an **excerpt**, records 4..8, which hold the breach: the walk and the report are re-based onto it;
+- an excerpt that **misses** the breach: the walk and the report must be left out and named.
 
-1. verifies the bundle;
-2. unpacks it and opens it, following the `open-evidence-bundle` skill;
-3. plays the walk and takes a screenshot of each step;
+**The recipient** starts cold, with its own project and no source roots, and receives only the two good `.fexp`
+files. For each, it:
+
+1. verifies the bundle; for the excerpt, `--verify` must say which records it holds;
+2. unpacks it and opens it: `--unpack`, then the three opens;
+3. plays the walk and takes a screenshot of each step. Every target must be current and lit, and the breach record
+   must be row 7 of the whole log and row 3 of the excerpt;
 4. goes back to its own project.
 
 Then it checks:
 
-- that the received file is unchanged;
+- that each received file is unchanged;
 - that its own project profile is byte-identical;
 - which of its machine settings changed. It lists them: recents and last-opened paths only.
 
-A typical run on one machine: the recipient goes from received file to the walk's last step in about **0.6 s**
-(unpack 0.06 s, open 0.22 s, walk 0.3 s), plus about 2.5 s to start the analyser. Results, the timings and the
-screenshots go to `/tmp/fluxtion-evidence-demo/results.json` and `…/recipient/shots/`.
+A typical run on one machine: from a received file to the walk's last step in about **0.6 s** for the whole log and
+**1.2 s** for the excerpt, plus about 2.5 s to start the analyser. Results, the timings and the screenshots go to
+`/tmp/fluxtion-evidence-demo/results.json` and `…/recipient/shots/`.
 
 `--default-window` leaves the window at a fresh install's size, which shows the one known rough edge: the chart
 step reports *"no room — widen the window"*.

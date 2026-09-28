@@ -10,4 +10,8 @@ public final class MainAccess {
     public static Set<String> bundleFlags() {
         return Main.BUNDLE_FLAGS;
     }
+
+    public static Set<String> retiredBundleFlags() {
+        return Main.RETIRED_BUNDLE_FLAGS;
+    }
 }

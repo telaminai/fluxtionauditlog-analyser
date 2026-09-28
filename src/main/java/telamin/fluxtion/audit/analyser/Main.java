@@ -33,9 +33,14 @@ public class Main {
     public static final String REST_PROPERTY = "analyser.rest";
 
     /** Evidence bundle v1 (spec-evidence-bundle-packaging.md r2 §3.3): headless, before any UI, like {@code --mcp}. */
-    static final java.util.Set<String> BUNDLE_FLAGS = java.util.Set.of("--pack", "--verify", "--unpack", "--bundle-profile");
+    static final java.util.Set<String> BUNDLE_FLAGS = java.util.Set.of("--verify", "--unpack");
+    /** Removed in the convergence: said so, rather than launching the app with the flag taken for a log path. */
+    static final java.util.Set<String> RETIRED_BUNDLE_FLAGS = java.util.Set.of("--pack", "--bundle-profile");
 
     public static void main(String[] args) {
+        if (args.length > 0 && RETIRED_BUNDLE_FLAGS.contains(args[0])) {
+            System.exit(bundle(args, System.out, System.err));
+        }
         if (args.length > 0 && BUNDLE_FLAGS.contains(args[0])) {
             System.exit(bundle(args, System.out, System.err));
         }
@@ -102,33 +107,20 @@ public class Main {
     }
 
     /**
-     * {@code --pack <folder> <out.fexp>}, {@code --verify <bundle.fexp>}, {@code --unpack <bundle.fexp> [--into <dir>]}.
+     * {@code --verify <bundle.fexp>}, {@code --unpack <bundle.fexp> [--into <dir>]}: the RECIPIENT's half. A bundle is
+     * written by the running analyser ({@code report {bundle}}), because every refusal is a fact only the live session
+     * holds; so there is no {@code --pack} (convergence, 2026-09-28).
      * Returns the exit code: 0 ok, 1 refused, 2 usage. Everything it prints states the limits, and nothing it prints
      * says or implies that the sender is authenticated (D-3).
      */
     static int bundle(String[] args, java.io.PrintStream out, java.io.PrintStream err) {
-        String version = ReleaseNotes.version();
+        if (RETIRED_BUNDLE_FLAGS.contains(args[0])) {
+            err.println(args[0] + " was removed: the running analyser writes evidence bundles, because only the live "
+                    + "session can refuse an incoherent capture. Ask it with report {bundle: {path}} on the action socket.");
+            return 2;
+        }
         try {
             switch (args[0]) {
-                case "--pack" -> {
-                    if (args.length != 3) { err.println("usage: --pack <folder> <out.fexp>"); return 2; }
-                    String id = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.pack(Path.of(args[1]), Path.of(args[2]),
-                            java.time.Instant.now(), version);
-                    out.println("packed " + args[2]);
-                    out.println("identity: " + id);
-                    limits(out);
-                    return 0;
-                }
-                case "--bundle-profile" -> {
-                    if (args.length != 3) { err.println("usage: --bundle-profile <settings-file> <out.fluxtion-settings>"); return 2; }
-                    var x = telamin.fluxtion.audit.analyser.bundle.BundleProfile.export(Path.of(args[1]), Path.of(args[2]));
-                    out.println("profile " + args[2] + ": saved charts and focuses, reports and walks, hidden columns; nothing else");
-                    for (String l : x.leftOut()) out.println("left out: " + l);
-                    for (String d : x.dangling()) out.println("dangling: " + d);
-                    for (String r : x.redacted()) out.println("redacted: " + r + "  (a machine path in prose; it reads "
-                            + telamin.fluxtion.audit.analyser.bundle.BundleProfile.REDACTED + " in the bundle)");
-                    return 0;
-                }
                 case "--verify" -> {
                     if (args.length != 2) { err.println("usage: --verify <bundle.fexp>"); return 2; }
                     var v = telamin.fluxtion.audit.analyser.bundle.EvidenceBundle.verify(Path.of(args[1]));
@@ -214,20 +206,12 @@ public class Main {
                   analyser --rest [log] open the desktop app with the REST transport ON and no first-run
                                         dialog — for an agent starting the analyser on a fresh machine.
                                         The setting persists (Settings ▸ Assistant) and stdout says so.
-                  analyser --pack <folder> <out.fexp>
-                                        write an evidence bundle from a folder: a manifest of every
-                                        file's sha256 and size, then the files, in one zip
                   analyser --verify <bundle.fexp>
                                         check every member against the manifest; prints the bundle's
                                         identity. It does NOT authenticate the sender (unsigned)
                   analyser --unpack <bundle.fexp> [--into <dir>]
                                         verify, then extract into a fresh working copy; nothing is
                                         extracted if verification fails
-                  analyser --bundle-profile <settings-file> <out.fluxtion-settings>
-                                        write the part of a project profile (or of your own settings)
-                                        that an evidence bundle carries: saved charts and focuses,
-                                        reports and walks, hidden columns. A chart with external data
-                                        is left out and named; no path, key or machine setting leaves
                   analyser --help       show this message
                 """.formatted(ReleaseNotes.version());
     }

@@ -9,7 +9,7 @@ It is built for one job: **showing what you found**.
 
 ## Two limits, stated everywhere
 
-Every command that reports on a bundle prints these, and the skills repeat them:
+Every command and operation that reports on a bundle states them:
 
 - **Unsigned.** Verification shows that nothing in the bundle has changed since it was packed. It does not show
   who packed it. If the sender gives you the bundle's *identity* line by another route, comparing the two is what
@@ -22,9 +22,10 @@ Every command that reports on a bundle prints these, and the skills repeat them:
 | member | what it is |
 |---|---|
 | `manifest.json` | every member's path, sha256 and size, plus the limits. Its sha256 is the bundle's **identity** |
-| `log/<file>` | the **whole** log, byte for byte |
+| `log/<file>` | the whole log, byte for byte, or an **excerpt** of it, stated in the manifest |
 | `graph/<file>.graphml` | the graph that was open, if one was |
 | `profile/project.fluxtion-settings` | saved charts and named focuses, reports and walks, hidden columns |
+| `notes/NOTES.md` | your account, when you gave one |
 
 ## What does not travel, and why
 
@@ -39,7 +40,7 @@ all work.
 
 ## Where to go next
 
-- [Sending an investigation](sending.md): capture a bundle, with an AI assistant or by hand.
+- [Sending an investigation](sending.md): one operation on the running analyser, whole log or a time window.
 - [Opening a bundle you were sent](opening.md): verify it, open it and play the walk.
-- [Commands and file format](reference.md): the four commands, their exit codes, and the manifest.
+- [Commands and file format](reference.md): the capture operation, the two commands, and the manifest.
 - [Try it with the demo](demo.md): the whole round trip on the DEMO log, in one command.

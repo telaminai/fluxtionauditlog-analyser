@@ -2,37 +2,35 @@
 
 Opening a bundle never changes the file you received or your own project. It opens from a disposable working copy.
 
-## With an AI assistant
+## One line, then three opens
 
-Give your assistant the
-[`open-evidence-bundle`](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/evidence-bundle/open-evidence-bundle/SKILL.md)
-skill and ask it to *"open the evidence bundle I was sent"*. It verifies and unpacks the bundle, opens it and plays
-its walk, pointing at each step as it explains it.
+```
+analyser --unpack breach-0900.fexp
+```
 
-## By hand
+It verifies every member before it writes anything. On a bundle that does not verify it prints `REFUSED:` and the
+member at fault, and extracts nothing. On success it prints:
+- the **identity**: compare it with the one the sender gave you, if they gave one;
+- the two **limits**: unsigned, and no replay;
+- `excerpt: the log is records … of …, not the whole log`, when it is an excerpt;
+- `working copy: <dir>`, by default under `~/.fluxtion-analyser/bundles/`. `--into <dir>` chooses another place.
 
-1. **Verify and unpack:**
+Then open the working copy, on the action socket or from the menus:
 
-    ```
-    analyser --unpack breach-0900.fexp
-    ```
+```
+open {project: "<working copy>/profile/project.fluxtion-settings"}      Project ▸ Open project…
+open {log: "<working copy>/log/<file>", graphml: "<working copy>/graph/<file>"}   Audit log ▸ Open log…
+walk {name: "<walk>", play: true}                                        the Reports tab ▸ Play
+```
 
-    Nothing is extracted from a bundle that does not verify. You see `REFUSED:` and the member at fault. On
-    success it prints the identity, the two limits and `working copy: <dir>`, by default under
-    `~/.fluxtion-analyser/bundles/`. To check without extracting, use `analyser --verify`.
-
-2. **Open the working copy's project:** *Project ▸ Open project…*, then choose
-    `<working copy>/profile/project.fluxtion-settings`.
-3. **Open its log and graph:** *Audit log ▸ Open log…* on `<working copy>/log/…`, then *Sources ▸ Open GraphML…* on
-    `<working copy>/graph/…`.
-4. **Play the walk** from the **Reports** tab, and step with ◀ ▶.
-
-To go back to your own work, open your own project again.
+Open the project on its own first: a project switch is a session boundary. The sender's notes, if any, are in
+`<working copy>/notes/NOTES.md`. To go back to your own work, open your own project again. To check a bundle
+without extracting it, run `analyser --verify <bundle>.fexp`.
 
 ## What to expect
 
 - **Targets are current.** Each step's record, chart and graph targets match what the sender saved, because the
-  bytes are the same.
+  bytes are the same. For an excerpt, the sender's analyser re-based them onto it.
 - **A caveat, once.** The walk says, once, that the file has not been re-checked since it was read. A bundle
   opens with Follow off, so no re-check has run.
 - **Give a chart step room.** At the default window size a chart target can report *"no room … — widen the

@@ -1143,13 +1143,13 @@ CONTROLS = [
     ('eb-b3-names-the-dangling-step', BUNDLE_PROFILE,
      '                    dangling.add("walk \'" + w.name() + "\' step " + (i + 1) + " shows left-out chart \'" + graph + "\'");\n', '',
      'BundleProfileTest#theExternalChartIsLeftOutAndNamed'),
-    ('eb-b3-cli-names-what-was-left-out', MAIN,
-     '                    for (String l : x.leftOut()) out.println("left out: " + l);\n', '',
-     'MainBundleTest#bundleProfile'),
-    ('eb-b3-the-profile-flag-is-routed', MAIN,
-     'java.util.Set.of("--pack", "--verify", "--unpack", "--bundle-profile")',
-     'java.util.Set.of("--pack", "--verify", "--unpack")',
-     'EvidenceBundleSkillsTest#theFlagsExist'),
+    ('eb-b3-cli-names-what-was-left-out', WRITER,         # the flag is retired; capture's lines carry it now
+     '            for (String l : x.leftOut()) lines.add("left out: " + l);\n', '',
+     'BundleExcerptTest#theWriterReportsWhatWasLeftOut'),
+    ('eb-b3-the-profile-flag-is-routed', MAIN,            # the skills are gone; the docs site names the flags now
+     'java.util.Set.of("--verify", "--unpack")',
+     'java.util.Set.of("--verify")',
+     'EvidenceBundleDocsTest#theFlagsExist'),
     ('eb-b3-context-publishes-unsaved-edits', UI + 'MainFrame.java',
      '                proj.put("unsavedEdits", project.isDirty());\n', '',
      'ContextLogGenerationFrameTest#theProjectSaysWhenItsFileLagsTheSession'),
@@ -1321,4 +1321,7 @@ CONTROLS = [
     ('cv-the-manifest-states-the-excerpt', BUNDLE,
      '        if (excerpt != null) m.put("excerpt", excerpt);\n', '',
      'EvidenceCaptureFrameTest#anExcerpt'),
+    ('cv-a-retired-flag-says-so', MAIN,
+     '        if (RETIRED_BUNDLE_FLAGS.contains(args[0])) {\n            err.println(', '        if (false) {\n            err.println(',
+     'MainBundleTest#theRetiredFlagsSaySo'),
 ]

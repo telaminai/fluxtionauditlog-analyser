@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
-"""Evidence bundle v1 — a driver that runs the whole demo against REAL analysers, and checks it (spec r3 §4, §5, §7).
+"""Evidence bundles — a driver that runs the whole demo against REAL analysers, and checks it (spec §4, §5, §7).
 
-It is the executable reference for the two skills, docs/skills/common/capture-evidence-bundle and
-open-evidence-bundle: each step below is a numbered step there. It runs two analysers under two isolated homes on
-two different paths, so "the recipient" really has none of the sender's settings, roots or files:
+Capture is one operation on the running analyser, report {bundle}; there is no capture skill any more
+(convergence, 2026-09-28). This drives it as an agent would, then opens the result as a recipient would
+(--unpack, then the three opens), under two isolated homes on two paths, so "the recipient" really has none of the
+sender's settings, roots or files:
 
   sender     /tmp/fluxtion-evidence-demo/sender     a DEMO project; opens the DEMO log and graph, saves a chart,
                                                     a chart with an external CSV (to be LEFT OUT), a report and
-                                                    a three-step walk; then CAPTURES a bundle (the skill)
-  recipient  /tmp/fluxtion-evidence-demo/recipient  a cold home with no source roots; receives only the .fexp,
-                                                    unpacks it, opens it and plays the walk (the other skill)
+                                                    a three-step walk; then captures: the whole log with notes,
+                                                    an excerpt that holds the breach, and one that misses it
+  recipient  /tmp/fluxtion-evidence-demo/recipient  a cold home with its own project and no source roots; receives
+                                                    only the two good .fexp files, opens each, plays the walk
 
 Both homes are isolated (rule 1): nothing on screen comes from this machine's own settings. Every check prints PASS
 or FAIL and the run exits non-zero on any FAIL; timings for the recipient's steps are written to the output JSON.
 
 Usage:
   python3 tools/evidence-bundle-demo.py                 # the whole demo; both analysers are stopped at the end
-  python3 tools/evidence-bundle-demo.py --keep          # leave the recipient's analyser open on the walk, to look at
-  python3 tools/evidence-bundle-demo.py --open X.fexp   # recipient only: open a bundle someone sent you
+  python3 tools/evidence-bundle-demo.py --keep          # leave the recipient's analyser open, to look at
+  python3 tools/evidence-bundle-demo.py --open X.fexp   # recipient only: open a whole-log bundle someone sent you
   python3 tools/evidence-bundle-demo.py --out results.json
 
 Needs a built jar (`mvn package`) and a display. The analyser is run as `java -jar <jar>`; an installed one is
@@ -33,6 +35,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import zipfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 FIXTURES = REPO / "src/test/resources/topology"
@@ -70,7 +73,7 @@ def jar():
 
 
 def cli(home, *args):
-    """The analyser's headless flags. Exit code, stdout and stderr, exactly as a skill sees them."""
+    """The analyser's headless flags. Exit code, stdout and stderr, exactly as a recipient sees them."""
     r = subprocess.run(["java", f"-Duser.home={home}", "-jar", str(jar()), *map(str, args)],
                        capture_output=True, text=True)
     return r.returncode, r.stdout, r.stderr
@@ -146,92 +149,40 @@ class Analyser:
             self.proc.kill()
 
 
-# ---- capture-evidence-bundle, step by step ------------------------------------------------------------------------
+# ---- capture: one operation on the running analyser ----------------------------------------------------------------
 
-def capture_refusal(ctx):
-    """Skill step 2: the reason this session cannot be captured coherently, or None. Pure: tested headless.
-
-    Each reason is one of spec §4.1's, named so a person reading it knows what to do. An ABSENT log.identity is not a
-    refusal: it means no identity check has run yet, and the bundle's own sha256 of the copied bytes is then the only
-    statement of what was read; the skill says so.
-    """
-    log = ctx.get("log") or {}
-    if not log.get("path"):
-        return "no log is open: open the log you are investigating first"
-    if ctx.get("inFlight"):
-        return f"a load is pending ({ctx['inFlight']}): wait for it to land, then capture"
-    ident = (log.get("identity") or {}).get("state")
-    if ident in ("replacement", "unverified"):
-        return f"the log file is not established to be the one that was read (identity: {ident}); reopen it first"
-    fresh = log.get("freshness") or {}
-    if fresh.get("state") == "changed-on-disk":
-        return "the log file changed on disk since it was read; reopen it first"
-    members = fresh.get("members") or []
-    if len(members) != 1 or (members[0].get("loaded") or {}).get("directory"):
-        return "the log is not one plain file (a rolled set, a directory or a remote store): v1 bundles one file"
-    if not pathlib.Path(log["path"]).is_file():
-        return "the log's store is not a plain file on this machine"
-    return None
-
-
-def capture(an, out):
-    """The capture skill: one coherent transaction (spec §4.1). Returns (ok, lines) and leaves no bundle on refusal."""
-    lines = []
-    ctx = an.context()
-    resume_follow = bool((ctx.get("log") or {}).get("following"))
-    if resume_follow:                                                            # step 1: pause Follow
-        an.must("open", {"follow": False})
-        ctx = an.context()
-    try:
-        why = capture_refusal(ctx)                                               # step 2: refuse, by name
-        if why:
-            return False, [f"REFUSED: {why}"]
-        for _ in range(40):                    # a project's edits reach its FILE after a debounce: wait, never guess
-            if not (ctx.get("project") or {}).get("unsavedEdits"):
-                break
-            time.sleep(0.25)
-            ctx = an.context()
-        else:
-            return False, ["REFUSED: the project has edits that are not yet written to its file (a failed write?): "
-                           "see the status bar, then capture again"]
-        generation = ctx["log"]["generation"]                                    # step 3: record the generation
-        folder = out.with_suffix(".folder")
-        shutil.rmtree(folder, ignore_errors=True)
-        (folder / "log").mkdir(parents=True)
-        log = pathlib.Path(ctx["log"]["path"])
-        shutil.copyfile(log, folder / "log" / log.name)
-        graph = (ctx.get("graphPairing") or {}).get("graphPath")
-        if graph:
-            (folder / "graph").mkdir()
-            shutil.copyfile(graph, folder / "graph" / pathlib.Path(graph).name)
-        settings = (ctx.get("project") or {}).get("settings") or str(an.home / ".fluxtion-analyser" / "config")
-        (folder / "profile").mkdir()
-        code, so, se = cli(an.home, "--bundle-profile", settings, folder / "profile" / "project.fluxtion-settings")
-        lines += so.splitlines()
-        if code != 0:
-            return False, [f"REFUSED: the profile cannot travel: {se.strip()}"]
-        code, so, se = cli(an.home, "--pack", folder, out)
-        lines += so.splitlines()
-        if code != 0:
-            return False, [f"REFUSED: {se.strip()}"]
-        after = an.context()                                                     # step 4: re-read; moved -> delete
-        if (after.get("log") or {}).get("generation") != generation:
-            out.unlink(missing_ok=True)
-            return False, ["REFUSED: another log was opened while the bundle was being written; it was deleted"]
-        if not (ctx["log"].get("identity") or {}).get("state"):
-            lines.append("note: no identity check had run on the open log; the bundle's sha256 is the statement of "
-                         "the bytes it carries")
-        return True, lines
-    finally:
-        shutil.rmtree(out.with_suffix(".folder"), ignore_errors=True)
-        if resume_follow:
-            an.act("open", {"follow": True})
+def capture(an, name, notes=None, frm=None, to=None):
+    """The capture OPERATION on the running analyser: report {bundle}. The session decides every refusal and whether
+    the result stands; this only asks and waits. Returns (ok, lines, path): lines are the refusal, or what the
+    analyser said was left out, redacted or excerpted, then the identity."""
+    bundle = {"path": name}
+    if notes is not None:
+        bundle["notes"] = notes
+    if frm is not None:
+        bundle["from"] = frm
+    if to is not None:
+        bundle["to"] = to
+    res = an.act("report", {"bundle": bundle})
+    if not res.get("ok"):
+        return False, [res.get("error", "")], None
+    path = res["bundle"]["path"]
+    for _ in range(80):
+        c = an.context().get("capture") or {}
+        if c.get("path") == path and c.get("phase") != "WRITING":
+            break
+        time.sleep(0.25)
+    else:
+        return False, ["the capture did not finish"], path
+    if c.get("phase") != "WRITTEN":
+        return False, [c.get("reason", "")], path
+    return True, list(c.get("lines") or []) + ["identity: " + c["identity"]], path
 
 
-# ---- open-evidence-bundle, step by step ---------------------------------------------------------------------------
+# ---- opening a received bundle: --unpack, then the three opens ---------------------------------------------------------------------------
 
 def open_bundle(an, bundle, work):
-    """The open skill (spec §5). Returns the working copy, or exits on a refusal: nothing is opened from a bad bundle."""
+    """--unpack, then the three opens (spec §5). Returns the working copy, or exits on a refusal: nothing is opened
+    from a bad bundle."""
     t0 = time.monotonic()
     code, so, se = cli(an.home, "--unpack", bundle, "--into", work)              # step 1: verify, extract
     RESULTS["timings"]["unpack_s"] = round(time.monotonic() - t0, 2)
@@ -253,8 +204,8 @@ def open_bundle(an, bundle, work):
     return copy
 
 
-def play(an, name):
-    """Skill step 4: play the walk, one step at a time; each step's showing as the analyser states it."""
+def play(an, name, label="walk"):
+    """Play the walk, one step at a time; each step's showing as the analyser states it."""
     shown = []
     t0 = time.monotonic()
     an.must("walk", {"name": name, "play": True, "step": 1})
@@ -268,7 +219,7 @@ def play(an, name):
             time.sleep(0.25)
         shown.append(showing)
         if showing.get("phase") == "SHOWN":            # EP-A11 is by eye: the recipient's screen, painted by the app
-            an.act("screenshot", {"path": f"walk-step-{step}.png"})
+            an.act("screenshot", {"path": f"{label}-step-{step}.png"})
         total = showing.get("of") or total
         if not total or step >= total:
             break
@@ -310,10 +261,9 @@ def sender_session():
     (exchange / "venue-latency.csv").write_text("t,latencyMs\n1767258000100,3\n1767258000200,9\n1767258000300,4\n")
     an = Analyser(home, {"assistant.rest": "true", "activeProjectPath": profile,
                          "assistant.exports": "true", "assistant.exportDir": exchange})
-    never = ROOT / "never.fexp"                 # EP-A1, live: a real session with no log refuses, and writes nothing
-    ok, lines = capture(an, never)
-    check(not ok and lines[0].startswith("REFUSED: no log is open") and not never.exists(),
-          "EP-A1 a live capture with no log open refuses by name and leaves no bundle", "; ".join(lines))
+    ok, lines, _ = capture(an, "never.fexp")     # EP-A1, live: a real session with no log refuses, and writes nothing
+    check(not ok and lines[0].startswith("capture refused: no log is open") and not (exchange / "never.fexp").exists(),
+          "EP-A1 a live capture with no log open refuses by name and writes nothing", "; ".join(lines))
     an.must("open", {"log": str(LOG), "graphml": str(GRAPHML), "provenance": "DEMO quote service"})
     an.settle()
     an.must("graph", {"name": CHART, "series": ["quotePublisher.spread"],
@@ -335,10 +285,68 @@ def sender_session():
     return an
 
 
+NOTES = "# The 09:00 breach (DEMO)\n\nThe spread widened two cycles before the risk limit was reached.\n"
+# the excerpt window: records 4..8 of the DEMO log, which hold the breach record (7) and the cycles before it
+EXCERPT = (1767258000200, 1767258000330)
+
+
+def recipient(an, bundle, label, records, row, work):
+    """Open one bundle on the cold recipient and play its walk; every check names the bundle it is about."""
+    received = sha(bundle)
+    code, so, se = cli(an.home, "--verify", bundle)
+    check(code == 0, f"EP-A2/A4 [{label}] the received bundle verifies", se.strip())
+    check("limit: unsigned" in so and "limit: no replay" in so, f"EP-A10 [{label}] verify states both limits")
+    check("authenticated" not in (so + se).replace("does not authenticate", "").lower(),
+          f"EP-A10 [{label}] nothing says the sender is authenticated")
+    if records != 10:
+        check(f"excerpt: the log is records {EXCERPT_RECORDS} of 10, not the whole log" in so,
+              f"[{label}] verify says the log is an excerpt, and which", so)
+    t_flow = time.monotonic()
+    copy = open_bundle(an, bundle, work)
+    ctx = an.context()
+    check((ctx.get("project") or {}).get("settings", "").startswith(str(copy)),
+          f"EP-A6 [{label}] the project is the bundle's working copy", str((ctx.get("project") or {}).get("settings")))
+    check((ctx.get("log") or {}).get("records") == records, f"EP-A6 [{label}] the log loaded: {records} records",
+          str((ctx.get("log") or {}).get("records")))
+    check((ctx.get("graphPairing") or {}).get("applies") is True, f"EP-A6 [{label}] the graph loaded and applies")
+    names = [w.get("name") for w in ((ctx.get("walks") or {}).get("saved") or [])]
+    check(WALK in names, f"EP-A6 [{label}] the walk arrived", str(ctx.get("walks")))
+    # review F4: assert the key exists and holds what it should, so a renamed key fails rather than passing for free
+    saved = ctx.get("savedGraphs")
+    check(isinstance(saved, list) and any(g.get("name") == CHART for g in saved)
+          and not any(g.get("name") == EXTERNAL_CHART for g in saved),
+          f"EP-A9 [{label}] the chart arrived and the external-series chart did not", json.dumps(saved)[:300])
+    source = ctx.get("source")
+    check(isinstance(source, dict) and source.get("roots") == [], f"EP-A12 [{label}] the recipient has no source roots",
+          json.dumps(source)[:200])
+    shown = play(an, WALK, label)
+    RESULTS["timings"][f"{label}_received_to_walk_end_s"] = round(time.monotonic() - t_flow, 2)
+    RESULTS["walks"][label] = shown
+    check(len(shown) == 3 and all(s.get("phase") == "SHOWN" for s in shown), f"EP-A8 [{label}] all three steps shown",
+          json.dumps(shown)[:400])
+    caveats = [i for i, s in enumerate(shown, 1) if "not been re-checked" in (s.get("reason") or "")]
+    check(len(caveats) == 1, f"M69.F3 [{label}] the not-re-checked caveat is stated once, stepping by the verb",
+          f"stated on steps {caveats}")
+    for i, s in enumerate(shown, 1):
+        targets = s.get("targets") or []
+        check(targets and all(t.get("state") == "CURRENT" and t.get("available") for t in targets),
+              f"EP-A8 [{label}] step {i}: every target current and lit", json.dumps(targets)[:300])
+    record_targets = [t.get("target") for t in (shown[1].get("targets") or [])] if len(shown) > 1 else []
+    check(record_targets == [f"records:row:{row}"], f"[{label}] the breach record is row {row} here", str(record_targets))
+    an.must("walk", {"end": True})
+    check(sha(bundle) == received, f"EP-A5 [{label}] the received bundle is byte-identical after unpack, open and the walk")
+    code2, _, _ = cli(an.home, "--unpack", bundle, "--into", work)
+    check(code2 == 0 and sha(bundle) == received, f"EP-A5 [{label}] a second unpack: a fresh copy, the bundle unchanged")
+    return copy
+
+
+EXCERPT_RECORDS = "4..8"
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--keep", action="store_true", help="leave the recipient's analyser open on the walk")
-    ap.add_argument("--open", type=pathlib.Path, help="recipient only: open this bundle")
+    ap.add_argument("--keep", action="store_true", help="leave the recipient's analyser open on the excerpt's walk")
+    ap.add_argument("--open", type=pathlib.Path, help="recipient only: open this bundle (a whole-log bundle)")
     ap.add_argument("--out", type=pathlib.Path, default=ROOT / "results.json")
     ap.add_argument("--default-window", action="store_true", help="do not pin the window size (a fresh home's default)")
     a = ap.parse_args()
@@ -348,29 +356,47 @@ def main():
         a.open = a.open.resolve()
     shutil.rmtree(ROOT, ignore_errors=True)
     ROOT.mkdir(parents=True)
-
-    bundle = a.open
-    if bundle is None:
-        print("sender: a DEMO investigation, then capture-evidence-bundle")
+    RESULTS["walks"] = {}
+    inbox = RECIPIENT / "inbox"
+    inbox.mkdir(parents=True)
+    bundles = []
+    if a.open:
+        bundles.append((a.open, "received", 10, 7))
+    else:
+        print("sender: a DEMO investigation, then three captures through report {bundle}")
         an = sender_session()
+        exchange = SENDER / "exchange"
         try:
-            bundle = RECIPIENT / "inbox" / "breach-0900.fexp"
-            bundle.parent.mkdir(parents=True)
-            ok, lines = capture(an, bundle)
-            print("  " + "\n  ".join(lines))
-            check(ok and bundle.exists(), "capture wrote a bundle", "; ".join(lines))
+            ok, lines, path = capture(an, "breach-0900.fexp", notes=NOTES)
+            print("  whole log:\n    " + "\n    ".join(lines))
+            check(ok and path and pathlib.Path(path).exists(), "capture wrote a whole-log bundle", "; ".join(lines))
             check(any(l.startswith("left out: chart '" + EXTERNAL_CHART) for l in lines),
                   "EP-A9 the chart with an external series is left out and named")
+            with zipfile.ZipFile(path) as z:
+                check(z.read("notes/NOTES.md").decode() == NOTES, "the author's notes travel as notes/NOTES.md")
             RESULTS["identity"] = next((l.split(": ", 1)[1] for l in lines if l.startswith("identity: ")), None)
+            shutil.copyfile(path, inbox / "breach-0900.fexp")
+            bundles.append((inbox / "breach-0900.fexp", "whole", 10, 7))
+
+            ok, lines, path = capture(an, "breach-0900-excerpt.fexp", frm=EXCERPT[0], to=EXCERPT[1])
+            print("  excerpt:\n    " + "\n    ".join(lines))
+            check(ok and any(l.startswith(f"excerpt: records {EXCERPT_RECORDS} of 10") for l in lines),
+                  "capture wrote an excerpt of records 4..8, and says so", "; ".join(lines))
+            check(not any(l.startswith("left out: walk") or l.startswith("left out: report") for l in lines),
+                  "the excerpt holds the breach, so the walk and the report are re-based, not left out", "; ".join(lines))
+            shutil.copyfile(path, inbox / "breach-0900-excerpt.fexp")
+            bundles.append((inbox / "breach-0900-excerpt.fexp", "excerpt", 5, 3))
+
+            ok, lines, path = capture(an, "before-the-breach.fexp", to=1767258000250)
+            check(ok and any(l.startswith(f"left out: walk '{WALK}'") for l in lines)
+                  and any(l.startswith(f"left out: report '{REPORT}'") for l in lines),
+                  "an excerpt that misses the breach leaves the walk and the report out, and names them", "; ".join(lines))
         finally:
             an.stop()
-        if not bundle.exists():
-            return finish(a)
 
-    print("recipient: a cold home on another path — open-evidence-bundle")
+    print("recipient: a cold home on another path — --unpack, then open")
     home = RECIPIENT / "home"
     home.mkdir(parents=True, exist_ok=True)
-    received = sha(bundle)
     own_profile = RECIPIENT / "own-project" / ".analyser" / "project.fluxtion-settings"   # the recipient's OWN work
     own_profile.parent.mkdir(parents=True)
     own_profile.write_text("share.version=1\nreport.count=0\n")
@@ -391,54 +417,20 @@ def main():
         an.must("source_root", {"remove": [str(scratch_root)]})
         an.idle()
         own_profile_before = sha(own_profile)
-        shutil.copyfile(own_profile, ROOT / "own-profile.baseline")
-        shutil.copyfile(home / ".fluxtion-analyser" / "config", ROOT / "recipient-config.baseline")
         config_before = props(home / ".fluxtion-analyser" / "config")
-        code, so, se = cli(home, "--verify", bundle)
-        check(code == 0, "EP-A2/A4 the received bundle verifies", se.strip())
-        check(all(("limit: " + l) in so for l in ("unsigned:", "no replay:")) or ("limit: unsigned" in so and "limit: no replay" in so),
-              "EP-A10 verify states both limits")
-        check("authenticated" not in (so + se).replace("does not authenticate", "").lower(),
-              "EP-A10 nothing says the sender is authenticated")
-        t_flow = time.monotonic()
-        copy = open_bundle(an, bundle, RECIPIENT / "work")
-        ctx = an.context()
-        check((ctx.get("project") or {}).get("settings", "").startswith(str(copy)),
-              "EP-A6 the project is the bundle's working copy", str((ctx.get("project") or {}).get("settings")))
-        check((ctx.get("log") or {}).get("records") == 10, "EP-A6 the log loaded: 10 records")
-        check((ctx.get("graphPairing") or {}).get("applies") is True, "EP-A6 the graph loaded and applies")
-        names = [w.get("name") for w in ((ctx.get("walks") or {}).get("saved") or [])]
-        check(WALK in names, "EP-A6 the walk arrived", str(ctx.get("walks")))
-        check(not [g for g in ctx.get("savedGraphs") or [] if (g.get("name") if isinstance(g, dict) else g) == EXTERNAL_CHART],
-              "EP-A9 the external-series chart is not in the recipient's session")
-        check(not ctx.get("source", {}).get("roots"), "EP-A12 the recipient has no source roots")
-        shown = play(an, WALK)
-        RESULTS["timings"]["received_to_walk_end_s"] = round(time.monotonic() - t_flow, 2)
-        RESULTS["walk"] = shown
+        for bundle, label, records, row in bundles:
+            recipient(an, bundle, label, records, row, RECIPIENT / "work")
         RESULTS["screenshots"] = sorted(str(p) for p in shots.glob("*.png"))
-        check(len(shown) == 3 and all(s.get("phase") == "SHOWN" for s in shown), "EP-A8 all three steps shown",
-              json.dumps(shown)[:400])
-        caveats = [i for i, s in enumerate(shown, 1) if "not been re-checked" in (s.get("reason") or "")]
-        check(len(caveats) == 1, "M69.F3 the not-re-checked caveat is stated once in the walk, stepping by the verb",
-              f"stated on steps {caveats}")
-        for i, s in enumerate(shown, 1):
-            targets = s.get("targets") or []
-            check(targets and all(t.get("state") == "CURRENT" and t.get("available") for t in targets),
-                  f"EP-A8 step {i}: every target current and lit", json.dumps(targets)[:300])
         if not a.keep:
-            an.must("walk", {"end": True})
-        check(sha(bundle) == received, "EP-A5 the received bundle is byte-identical after unpack, open and the walk")
-        code2, so2, _ = cli(home, "--unpack", bundle, "--into", RECIPIENT / "work")
-        check(code2 == 0 and sha(bundle) == received, "EP-A5 a second unpack: a fresh copy, the bundle unchanged")
-        an.must("open", {"project": str(own_profile)})                         # back to the recipient's own work
-        an.must("open", {"close": "project"})
-        check(sha(own_profile) == own_profile_before, "EP-A7 the recipient's own project profile is byte-identical")
-        keys = config_diff(config_before, props(home / ".fluxtion-analyser" / "config"))
-        RESULTS["recipientConfigKeysChanged"] = keys
-        print("  recipient machine-tier settings changed (EP-A7, listed, not judged): " + (", ".join(keys) or "none"))
+            an.must("open", {"project": str(own_profile)})                     # back to the recipient's own work
+            an.must("open", {"close": "project"})
+            check(sha(own_profile) == own_profile_before, "EP-A7 the recipient's own project profile is byte-identical")
+            keys = config_diff(config_before, props(home / ".fluxtion-analyser" / "config"))
+            RESULTS["recipientConfigKeysChanged"] = keys
+            print("  recipient machine-tier settings changed (EP-A7, listed, not judged): " + (", ".join(keys) or "none"))
     finally:
         if a.keep:
-            print(f"\nthe recipient's analyser is still open (pid {an.proc.pid}), on the walk '{WALK}'")
+            print(f"\nthe recipient's analyser is still open (pid {an.proc.pid})")
         else:
             an.stop()
     return finish(a)

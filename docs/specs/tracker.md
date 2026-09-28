@@ -2281,7 +2281,7 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
 
 0. ☑ **M69 spotlight walks — shipped in 1.26.0** (merged `5cdd12ec`, 2026-09-28). Follow-ups ▸ *M69 follow-ups*.
 0a. ◧ **Evidence bundle packaging, first delivery** (owner, 2026-09-28: package, verify, open and walk; replay
-    deferred, D-0 amended, L-33). Spec **r3, implemented**:
+    deferred, D-0 amended, L-33). Spec **r5, implemented** (r4: review F1/F2 fixed; r5: the convergence):
     [`spec-evidence-bundle-packaging.md`](spec-evidence-bundle-packaging.md), branch **`feat/evidence-bundle-v1`**
     (unmerged, awaiting review). Placement **C**, with no verb, menu or dialog. The CLI owns the format (`--pack`,
     `--verify`, `--unpack`, and in r3 `--bundle-profile`); `context` gains `log.generation` and, in r3,
@@ -2292,22 +2292,34 @@ starter 1.0.74, and M19.4/M19.8 are archived; that order is kept in [`completed/
     - [EB.B2] ☑ the CLI: `--pack`, `--verify`, `--unpack`;
     - [EB.B3] ☑ the `capture-evidence-bundle` and `open-evidence-bundle` skills, `--bundle-profile`,
       `context.project.unsavedEdits`;
-    - [EB.B4] ☑ a cold-recipient rehearsal, driven: `tools/evidence-bundle-demo.py`, 20 checks, timed. Two homes on
-      two paths, **one machine**.
+    - [EB.B4] ☑ a cold-recipient rehearsal, driven: `tools/evidence-bundle-demo.py`, timed. Two homes on two paths,
+      **one machine**.
+    - [EB.R4] ☑ the review's REQUIRED findings: F1 bounded-memory verify and unpack (`79851205`), F2 no machine path
+      leaves (`f908f08f`).
+    - [EB.C1] ☑ **the convergence** (spec r5 §13): capture is one operation on the running analyser,
+      `report {bundle: {path, notes?, from?, to?}}`, decided by the `evidenceCapture` session node; an optional
+      time-window **excerpt** with re-based walks and reports (owner, 2026-09-28); notes as a member; both skills,
+      `--pack` and `--bundle-profile` removed. The driver: 43 checks, whole log and excerpt.
     Follow-ups:
     - [EB.F1] ☐ **A chart spotlight at the default window.** At 1200×800 a chart target reports *"no room at 192×247
       px — widen the window"*, so a cold recipient's first chart step is not lit (`evidence-bundle-demo.py
       --default-window` reproduces it). Pre-existing, M64/M69; it is the demo's first impression. Fix before a demo
       on a fresh install, or pin the window in the demo.
-    - [EB.F2] ☐ **Owner decision: should a generated project carry the two skills?** They live in
-      `docs/evidence-bundle/`, outside the playground-seeded `docs/skills/` library; carrying them means an
-      `m19-skills/3` index (cross-repo, `upstream-asks.md`).
+    - [EB.F2] ☑ moot: the skills were deleted in the convergence (EB.C1), so there is nothing for a generated project
+      to carry.
     - [EB.F3] ☐ **Another machine.** EP-A6 was run on one machine with two homes; a second machine (or a CI runner)
       is the stronger form.
     - [EB.F4] ☐ **Small:** the empty "Graph 1" a log open creates travels in the profile; the recipient's recents
       point at a working copy that may later be deleted.
-    - [EB.F5] ☐ **Second delivery:** excerpts (a time window, the cut recorded), external-series CSVs as members,
-      flags, replay.
+    - [EB.F5] ☐ **Second delivery:** external-series CSVs as members, flags, replay. (Excerpts moved into the first,
+      EB.C1.)
+    - [EB.F6] ☐ **Owner decision: a log still growing under Follow.** Capture refuses it now, and says to stop Follow
+      once the producer has stopped (spec r5 §13.2). The alternative is to bundle the records read so far, whose chart
+      steps would read as historical on the other side.
+    - [EB.F7] ☐ **Rule 9: the walk SAVE's generation check is in the frame** (`ui/WalkAuthoring.java`), not a node.
+      Capture applies the rule in its node; the walk save should too.
+    - [EB.F8] ☐ **Unwitnessed defensive branches, declared:** the writer's delete-on-failure, unpack's between-passes
+      mismatch, the one-plain-file list-size test (masked by the observation's other conditions: a candidate control survived).
 1. ☐ **Owner decisions — they unblock the most.**
    - **G14:** accept its three residual risks, then run it once, supervised. It is run on demand by the owner and is
      not a release gate (owner, 2026-09-26 — ▸ *Spring-side work block*).

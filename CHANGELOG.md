@@ -8,38 +8,32 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ### Added
 
-- **Evidence bundles from the command line**: `--pack <folder> <out.fexp>` writes one file with a manifest of
-  every member's sha256 and size. `--verify <bundle.fexp>` checks it and prints its identity (the manifest's
-  sha256). `--unpack <bundle.fexp> [--into <dir>]` verifies, then extracts it to a fresh working copy and never
-  modifies the received file. Verification refuses a changed, missing, unlisted, duplicated or escaping member
-  and names it. It streams, in constant memory whatever the log's size: a member the manifest does not list is
-  refused unread, and one larger than declared is refused as it exceeds, so an oversized bundle is a refusal and
-  never a crash. The bundle is unsigned: it shows that nothing changed, not who sent it, and every output says
-  so. It holds an investigation to show, not a replay.
-- **`--bundle-profile <settings> <out>`** writes what an evidence bundle may carry from a project profile (or from
-  your own settings when no project is open): saved charts and named focuses, reports and walks, hidden columns.
-  A chart with an external CSV series or markers is left out and named, along with each walk step and report
-  section that showed it. Source roots, runbooks, environments, processors, keys and assistant settings never
-  leave. No machine path leaves: a setting whose whole value is a path refuses the export, naming it, and a path
-  written inside prose (a report narrative, a caption) is replaced by `‹path removed›` and listed on a `redacted:`
-  line. Relative paths, URLs, times and ratios are left alone.
-- **Two skills, `capture-evidence-bundle` and `open-evidence-bundle`** (`docs/evidence-bundle/`), and an *Evidence
-  bundles* section on the docs site: what a bundle is, sending one, opening one, the commands and format, and the demo. An agent can package an investigation, and open one it was sent, from a fresh working
-  copy that leaves your own project untouched. `tools/evidence-bundle-demo.py` runs the whole thing on the DEMO log
-  with a sender and a cold recipient, and checks every step.
+- **Evidence bundles: an investigation as one verifiable file.** Ask the running analyser with
+  `report {bundle: {path, notes?, from?, to?}}` and it writes a `.fexp` into the exchange directory: the log, its
+  graph, the saved charts and named focuses, reports and walks, hidden columns, and your notes as
+  `notes/NOTES.md`. It refuses, by name, when the capture would not be coherent: no log open, a load pending, a log
+  file that changed or whose identity is not established, a log still growing under Follow, a log that is not one
+  plain file, or a bundle already being written. It writes the project's pending edits first, pauses Follow while
+  it copies, and if another log is opened or the log is closed meanwhile, it refuses and deletes what it wrote.
+  `context.capture` says when it is done, its identity, and what was left out, redacted or excerpted.
+- **An excerpt instead of the whole log**: `from` and `to` pack only the records in that time window, each record's
+  exact text, re-read and matched against the source before the bundle stands. Walks and reports are re-based onto
+  the excerpt, so their steps are current on the other side. One that points outside the window is left out and
+  named. The manifest records the cut.
+- **Nothing that describes your machine leaves**: no source roots, runbooks, environments, processors, keys or
+  assistant settings. A chart with an external CSV series or markers is left out and named. A setting whose whole
+  value is a machine path refuses the capture, naming it. A path written inside prose (a report narrative, a
+  caption) is replaced by `‹path removed›` and listed. Relative paths, URLs, times and ratios are left alone.
+- **`--verify <bundle.fexp>` and `--unpack <bundle.fexp> [--into <dir>]`** for the recipient. They check every
+  member against the manifest in constant memory whatever the log's size. They refuse a changed, missing,
+  unlisted, duplicated, oversized or escaping member, naming it, and say when the log is an excerpt. `--unpack`
+  extracts to a fresh working copy only after the whole bundle verifies, and never modifies the received file. A
+  bundle is unsigned (it shows that nothing changed, not who sent it) and is not a replay, and every output says so.
+- **An *Evidence bundles* section on the docs site**: what a bundle is, sending one, opening one, the operation,
+  commands and format, and a demo. `tools/evidence-bundle-demo.py` runs the round trip on the DEMO log with a
+  sender and a cold recipient, whole log and excerpt, and checks every step.
 - **`context.project.unsavedEdits`**: whether a project edit is still waiting for its (debounced) write to the
-  profile file, so a tool copying that file can wait for it rather than copy a stale one.
-- **Capture an evidence bundle from the running analyser**: `report {bundle: {path, notes?, from?, to?}}` writes
-  the `.fexp` into the exchange directory. It refuses, by name, with no log open, a load pending, a log file that
-  changed or whose identity is not established, a log still growing under Follow, a log that is not one plain
-  file, or a bundle already being written. It writes the project's pending edits first, pauses Follow while it
-  copies, and if another log is opened or the log is closed meanwhile, it refuses and deletes what it wrote.
-  `context.capture` says when it is done, its identity, and what was left out, redacted or excerpted. Notes travel
-  as `notes/NOTES.md`.
-- **An excerpt instead of the whole log**: `from`/`to` pack only the records in that time window, each record's
-  exact text, re-read and matched against the source. Walks and reports are re-based onto it, so their steps stay
-  current. One that points outside the window is left out and named. The manifest records the cut, and
-  `--verify` says the log is an excerpt.
+  profile file.
 
 ### Changed
 

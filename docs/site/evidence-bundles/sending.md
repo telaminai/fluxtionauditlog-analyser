@@ -1,47 +1,66 @@
 # Sending an investigation
 
-## With an AI assistant
+The running analyser writes the bundle. Only the live session knows whether a capture would be coherent: whether a
+load is still pending, whether the file changed since it was read, whether another log is opened while the copy is
+made. So capture is one operation on the analyser, not a procedure anyone follows.
 
-Connect an assistant to the analyser ([Connecting an LLM](../connect-an-llm.md)). Give it the
-[`capture-evidence-bundle`](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/evidence-bundle/capture-evidence-bundle/SKILL.md)
-skill, and ask it to *"capture this investigation as an evidence bundle"*. It will:
+## Ask for it
 
-1. pause Follow while it copies, and turn it back on afterwards;
-2. **refuse, by name,** when the session cannot be captured coherently:
+From an AI assistant connected to the analyser ([Connecting an LLM](../connect-an-llm.md)), or any client of the
+action socket:
+
+```
+report {bundle: {path: "breach-0900.fexp", notes: "# The 09:00 breach\n\nThe spread moved first."}}
+```
+
+- **`path`** is written inside the exchange directory (*AI ▸ Report exchange directory…*), and never overwrites.
+- **`notes`** (optional) is your account, in Markdown. It travels as `notes/NOTES.md`.
+- **`from` / `to`** (optional, epoch millis) make the bundle an **excerpt**, described below.
+
+The bundle is written in the background. `context.capture` says when it is done: `phase: WRITTEN` with its
+**identity**, or `phase: REFUSED` with the reason. It also lists anything that was **left out**, **redacted** or
+**excerpted**. An assistant reads that and tells you. Send the identity line separately, for example in a chat
+message, if the recipient needs to know the file is the one you packed.
+
+## What the analyser does, and when it refuses
+
+1. **It refuses, by name, when a capture would not be coherent:**
     - no log is open;
     - a load is still pending;
-    - the log changed on disk since it was read, or its identity is not established;
+    - the log file's identity is not established (it was replaced, or changed after it was read);
+    - the file changed on disk. Under Follow, the log is still growing: stop Follow once the producer has stopped;
     - the log is not one plain file (a rolled set, a directory or a remote store);
-    - a project edit has not yet been written to the profile file;
-3. copy the log and graph, have the analyser write the profile member, and pack;
-4. check that no other log was opened while it copied. If one was, it deletes the bundle.
+    - a bundle is already being written.
+2. **It writes the project's pending edits now**, so a chart, report or walk you saved a moment ago is in the
+   bundle.
+3. **It pauses Follow** while it copies, and turns it back on afterwards, whatever happened.
+4. **It keeps what may leave, and nothing else:**
+    - the log (whole, or the excerpt);
+    - the graph;
+    - saved charts and named focuses, reports and walks, hidden columns;
+    - your notes.
 
-It then tells you where the file is, its **identity** line, and anything that was **left out**.
+   See [what does not travel](index.md#what-does-not-travel-and-why).
+5. **It checks the copy is coherent.** If another log is opened, or the log is closed, while the bundle is being
+   written, the bundle would mix two sessions. It is refused and deleted, along with its working folder.
 
-## By hand
+## An excerpt: only the part that matters
 
-```
-analyser --bundle-profile <settings> <folder>/profile/project.fluxtion-settings
-analyser --pack <folder> <out>.fexp
-```
+Real logs can be tens or hundreds of MB. `from` and `to` pack only the records whose log time falls in the window:
+the contiguous run, in file order, from the first at or after `from` to the last at or before `to`.
 
-Put the log in `<folder>/log/` and the graph in `<folder>/graph/` first. `<settings>` is the open project's
-profile (the Project panel shows it, and `context.project.settings` names it) or, with no project open, `~/.fluxtion-analyser/config`. Save anything
-you want to send before you capture: a bundle carries what is **saved**, not what is only on screen.
-
-`--bundle-profile` prints a `left out:` line for each chart with external data. It prints a `dangling:` line for
-each walk step or report section that showed one of those charts. Those will say so on the other side.
-
-**No machine path leaves.** A path written inside prose, such as a report narrative saying *"we saw it in
-/Users/…/quote.yaml"*, is replaced by `‹path removed›`. It is listed on a `redacted:` line so you see exactly what
-was removed, and the recipient sees the marker in the report. A setting whose whole value is a path stops the
-export instead, naming it. Relative paths, URLs, times and ratios are left alone.
+- Each record is copied as its exact text, so it is **the same record**. Its digest, which a walk step is bound to,
+  is unchanged. The analyser re-reads the excerpt it wrote and refuses it unless every record matches the source.
+- **Walks and reports are re-based** onto the excerpt: a step on record 7 of the log becomes record 3 of an
+  excerpt that starts at record 4. Each gets the excerpt's own identity, so its steps are **current** on the other
+  side.
+- A walk or report that points at a record **outside** the window cannot be re-based honestly. It is **left out and
+  named**. So is a report whose table is derived by record index.
+- The manifest records the cut: which records of how many, and the window. The recipient's `--verify` says the log
+  is an excerpt, and which.
 
 ## Before you send it
 
-- **Size.** The whole log is inside, so a bundle is about the size of its log. A real incident's log can be tens or
-  hundreds of MB, too big for most email. Excerpts are planned for a later version.
-- **Send the identity separately** (for example, in a chat message) if the recipient needs to know the file is the
-  one you packed.
+- **Size.** A whole-log bundle is about the size of its log, compressed. Use an excerpt for a big log.
 - **Findings as walks.** Flags do not travel. A walk step with a caption on the record says the same thing, and it
   does travel.

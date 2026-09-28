@@ -1,7 +1,9 @@
 # Evidence bundle packaging — first delivery (package, verify, open, walk; no replay)
 
-**Status: r4 (2026-09-28), IMPLEMENTED on `feat/evidence-bundle-v1`; the review's two REQUIRED findings fixed.** r3
-records what building it and driving it end to end changed; r4, the review fixes (§11, §12). The executable reference is `tools/evidence-bundle-demo.py`; the
+**Status: r5 (2026-09-28), IMPLEMENTED on `feat/evidence-bundle-v1`.** r3 records what building and driving it
+changed; r4, the review's two REQUIRED fixes; **r5, the convergence (§13): capture moved into the analyser, an
+optional time-window excerpt, the skills deleted.** Where §3–§5 describe skills doing the capture, §13 supersedes
+them. The executable reference is `tools/evidence-bundle-demo.py`; the
 results are in `docs/handoff/evidence/evidence-bundle-v1-2026-09-28/RESULTS.md`.
 
 The review is
@@ -279,7 +281,7 @@ chart basis. Show it **once per walk**.
 
 | id | status | how it is shown |
 |---|---|---|
-| EP-A1 | RAN | `test_evidence_bundle_demo.py`: every §4.1 refusal by name, on contexts shaped like real ones; live, the driver's capture on a real session with no log refuses and writes nothing. The moved-generation deletion is code only, not provoked live. |
+| EP-A1 | RAN | **r5:** each refusal is its own case, on the real processor (`EvidenceCaptureTest`) and through the real verb on a real frame (`EvidenceCaptureFrameTest`); the moved-generation deletion is PROVOKED both ways, asserting the bundle and its working folder are gone; `cv-*` controls |
 | EP-A2…A5 | RAN | `EvidenceBundleTest`, `MainBundleTest`; eleven `eb-b2-*` controls; the driver re-hashes the received file after unpack, open, the walk and a second unpack |
 | EP-A6 | RAN, same machine | two isolated homes on two paths; the recipient has none of the sender's settings or files. **Not** another machine. |
 | EP-A7 | RAN | the recipient's own profile is byte-identical; the machine-tier keys that change are listed: last-opened log and graph, three recents lists, the active project |
@@ -297,7 +299,7 @@ Predictions are committed before code, as usual.
 - **Signatures** (D-3).
 - **Flags.** They persist nowhere. Persisting them per file, with row indices stable across reopen, is its own
   feature. A walk step carries the same meaning.
-- **Excerpts.** They are needed to *send* real incidents (64–142 MB logs), so they are the second delivery's.
+- ~~**Excerpts.**~~ **In the first delivery since r5** (owner, 2026-09-28): an optional time window, §13.4.
 - **Charts with external series or markers.** Their CSVs would need to travel as members, with paths rewritten.
 - **A menu item.** Deferred until a demo's recipient has no agent (§3.4).
 - **Readers other than a plain file**, a browser viewer, and a returned bundle B.
@@ -315,6 +317,7 @@ Predictions are committed before code, as usual.
 | rev | date | by | what |
 |---|---|---|---|
 | r1 | 2026-09-28 | Claude (analyser session) | First draft, from the combined proposal and the owner's L-33 decisions. The placement question was left open. |
+| r5 | 2026-09-28 | Claude (analyser session), the convergence | Capture is one operation on the running analyser (`report {bundle}`), decided by the `evidenceCapture` node; an optional time-window excerpt with re-based walks and reports; notes as a member; both skills, `--pack` and `--bundle-profile` removed (§13). |
 | r4 | 2026-09-28 | Claude (analyser session), fixing the review's REQUIRED findings | **F1:** verification streams in bounded memory; the manifest is the first entry and bounds every member; unpack verifies, then writes, in two passes (§4.2). **F2:** no machine path leaves: a path-valued key refuses, a path in prose is redacted and named (§4.2, EP-A9). |
 | r3 | 2026-09-28 | Claude (analyser session), after implementing B0–B4 | **Implemented.** A fourth headless flag, `--bundle-profile`, by §3.1's rule (§3.3). A second `context` field, `project.unsavedEdits`, because the profile file lags the session (§4.1). The refusal fields as they really are: `log.identity` may be absent, `log.freshness` is the constant signal (§4.1). The manifest as shipped, without `provenance`/`records` (§4.3). An agent stepping a walk by `play` continues the showing (§5). The skills live in `docs/evidence-bundle/`, not the bundle-seeding `docs/skills/` library (§12). Acceptance status in §7. |
 | r2 | 2026-09-28 | Claude (analyser session), after the review | The placement question is decided: **C**, with no verb, menu or dialog. The review's rule is adopted (§3.1). **Argued back:** the CLI owns the whole format, `--pack`, `--verify` and `--unpack`, because the manifest and unpacking are trust-relevant too (§3.3). **The audience is decided:** technical or agent-led, no menu item, with the trigger that would add one (§3.4). **Flags are dropped:** they persist nowhere. **The paths question is restated:** GRAPHS carries home-relative external-series paths, so those charts are excluded and named. The whole-log cost is stated (64–142 MB) and **excerpts move to the second delivery**. Follow is paused and restored rather than refused. Coherence is **one `context` field** (`log.generation`); a pending load is already `inFlight`. EP-A11 is reduced to the by-eye check; **EP-A12** is added (no source roots). The plan is B0–B4. |
@@ -341,3 +344,93 @@ Predictions are committed before code, as usual.
   `docs/evidence-bundle/`, with `EvidenceBundleSkillsTest` holding them to what the analyser publishes.
 - **Capture hashing in a skill** would be a second implementation of a trust-relevant format; see §3.3. This is a
   disagreement with the review's split, not an error in its facts.
+
+## 13. r5: converging on `.fexp` (owner, 2026-09-28)
+
+The owner's goal changed the verdict of §3.2: *"the `.fexp` is the product. Few skills, or none."* The plan and its
+reasoning are `docs/proposals/evidence-bundle-convergence.md` (branch `review/evidence-bundle-v1`). §3.1's rule
+still decides it, now to the end: **nothing was left for a skill.**
+
+### 13.1 Capture is one operation on the running analyser
+
+`report {bundle: {path, notes?, from?, to?}}`, on the existing verb (no new verb: CloseVerbTest's count stays 17).
+It must be the live session's, because every refusal is a fact only the session holds. It needs no UI.
+
+**Rule 9.** The `evidenceCapture` session node decides; the frame performs and reports. The request carries what the
+frame OBSERVED of the file (the read-through identity, freshness, whether it is one plain file), and the node
+refuses or proceeds. Three new effects (`SetFollowEffect`, `CaptureBundleEffect`, `DeleteBundleEffect`), their
+results, two facts (`BundleWritten`, `BundleWriteFailed`) and a published `CaptureState` (`context.capture`).
+
+| skill step | where it is now |
+|---|---|
+| 1. pause Follow, restore it whatever happens | the node requests `SetFollowEffect(false)` and, on every outcome, `(true)` |
+| 2. refuse by name: no log, load pending, identity `replacement`/`unverified`, `changed-on-disk`, not one plain file | the node, from the session's own state and the frame's observations; plus a capture already writing |
+| 3. settle project edits | **`ProjectSession.flush()`**, synchronously, in the effect: the coalesced write is made, not waited for. Safe there: it is what the debounce timer runs, on the same thread |
+| 4. record `log.generation` | the node records it when it accepts; it travels with the effect and returns with the fact |
+| 5. assemble `log/ graph/ profile/` | `BundleWriter`, off the event thread; everything read from the live session is taken first, on its thread |
+| 6. profile export, pack | `BundleProfile` and `EvidenceBundle.pack`, in process |
+| 7. re-read the generation; delete if it moved | the node, when `BundleWritten` arrives: moved or closed ⇒ `REFUSED` and `DeleteBundleEffect` (the file and its working folder) |
+
+**Why the copy runs off the event thread.** Effects run inside the processor's batch end, on the event thread. A
+copy made there could never be overlapped by another open, so step 7 would be vacuous by construction. Off the
+thread it can be, and it is provoked: node-level by another log opening, frame-level by a close issued in the same
+event-thread task as the capture (a background result reaches the session by `invokeLater`, so the close always
+lands first). Both assert the bundle and its working folder are gone.
+
+**Notes** are an input: `notes` is packed as `notes/NOTES.md`. The rerun recipe stays out (D-0).
+
+### 13.2 Were the seven steps all mechanism? One was not complete
+
+Six moved as they were. **Step 2's `changed-on-disk` held an unstated assumption: that the producer has
+stopped.** Outside Follow it is never the refusal that fires: the read-through identity observes any change first
+(`unverified`). Under Follow there is no read-through observation, so freshness is the only witness. There, the
+file grows between polls whenever a producer is writing: the skill refused almost every capture of a live log,
+and its advice, *"reopen it"*, was wrong, since reopening does not stop a producer. This is not judgement a
+capturer makes, and the skill keeps nothing. It is a **rule the skill never stated, and the rule is the owner's to
+choose**:
+- **now:** refuse, conservatively, and say what works: *"the log is still growing under Follow … stop Follow once the
+  producer has stopped, then capture"*;
+- **the alternative:** bundle the records read so far, which is an excerpt of `0..N-1`. Chart steps then read as
+  historical on the other side, because the run they were saved against is the opening read.
+
+A related fact, stated rather than refused: pausing Follow stops the analyser reading, not the producer writing.
+A whole-log copy whose sha256 differs from the opening read adds a `note:` line.
+
+### 13.3 The walk-save coherence rule, and where it lives
+
+The brief was to reuse `WalkAuthoring`'s rule. **It is an adapter-side check** (`ui/WalkAuthoring.java`, comparing
+a captured generation with the frame's): a rule 9 departure in shipped M69 code. Capture does not copy it. It
+applies the same rule where `WalkPlayback` applies it, in a session node, on a fact that carries its generation.
+Moving the walk save's check into a node is a separate follow-up (tracker EB.F7).
+
+### 13.4 The excerpt (owner decision, 2026-09-28: an optional time window)
+
+- **What:** the contiguous run of records, in file order, from the first whose log time is at or after `from` to
+  the last at or before `to`. Each record is written as its exact raw text in Format 1 framing, every record
+  closed.
+- **Self-check (mechanism, not trust):** the written excerpt is re-read with the analyser's own opener. It must
+  yield exactly the chosen records, each with the source record's digest, and make no stream-end claim. Anything
+  else refuses the capture, naming it.
+- **Re-basing:** a record's digest is over its exact text, so a record target stays valid and only its index
+  shifts. Every walk and report is re-based: record indexes shift by the first record, and the fingerprint and run
+  basis become the excerpt's own. These are computed by the same functions the recipient uses (`LogFingerprint.of`,
+  `WalkIdentity.runBasisOf`), so chart steps are current too. Driven, all three steps of an excerpt's walk were
+  CURRENT and lit on a cold recipient, the breach record at row 3.
+- **Left out and named:** a walk or report pointing at a record outside the window, and a report whose table is
+  derived by record index. Nothing is silently shifted past the edge.
+- **Stated:** the manifest's `excerpt` (first and last record, the source count, the window), and `--verify`'s
+  `excerpt:` line.
+- **F1's bearing on it:** with F1 fixed, a whole-log bundle verifies in constant memory, so an excerpt is about
+  size, not heap.
+
+### 13.5 What was deleted, and the tests with it
+
+- **Both skills** (`docs/evidence-bundle/`). Opening is a documented one-liner: `--unpack`, then the three opens.
+- **`--pack` and `--bundle-profile`** came off the CLI. A hand-assembled folder would skip every check only the
+  running analyser can make. They exit 2 and say so. The code stays, called by capture.
+- **`EvidenceBundleSkillsTest`** guarded files that no longer exist. It is replaced by `EvidenceBundleDocsTest`,
+  which holds the docs site (now the only procedure) to the code: the flags, the `bundle` fields, the
+  `context.capture` fields, and no overclaim. **`CanonicalSkillsTest` is unaffected:** these skills were never in its
+  library.
+- **The driver** drives the operation. Its refusal logic moved to Java, and its Python test keeps only the EP-A7
+  bookkeeping. Review F4's two absence checks now assert that the key exists and what it holds.
