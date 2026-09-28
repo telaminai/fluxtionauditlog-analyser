@@ -1037,8 +1037,8 @@ CONTROLS = [
      'WalkPlaybackTest#anUnassessedLogIsSaidSo'),
     # ...only while the file is unassessed: once a verdict exists the caveat goes.
     ('m69-r1b-caveat-goes-when-assessed', NODE + 'WalkPlayback.java',
-     'if (openLog.identity() != null || !restsOnTheLogsContents()) return note;',
-     'if (!restsOnTheLogsContents()) return note;',
+     'if (openLog.identity() != null || !restsOnTheLogsContents() || caveatStated) return note;',
+     'if (!restsOnTheLogsContents() || caveatStated) return note;',
      'WalkPlaybackTest#anAssessedLogCarriesNoCaveat'),
     # ...and only for a step that actually rests on the log's contents.
     ('m69-r1b-caveat-only-for-content-steps', NODE + 'WalkPlayback.java',
@@ -1058,4 +1058,12 @@ CONTROLS = [
      '        walksLastReported = java.util.List.copyOf(config.walks);\n        onGraphsEdited();',
      '        onGraphsEdited();',
      'WalkReviewFrameTest#aVerbSaveBetweenTwoImportsIsStillReported'),
+    # evidence bundle v1, B0 (M69.F3): the unassessed-log caveat is stated once per showing
+    ('eb-b0-caveat-once-per-walk', NODE + 'WalkPlayback.java',
+     "        if (openLog.identity() != null || !restsOnTheLogsContents() || caveatStated) return note;",
+     "        if (openLog.identity() != null || !restsOnTheLogsContents()) return note;",
+     'WalkPlaybackTest#theCaveatIsStatedOncePerWalk'),
+    ('eb-b0-caveat-again-per-showing', NODE + 'WalkPlayback.java',
+     '        caveatStated = false;                 // M69.F3: a new showing states the caveat again, once\n', '',
+     'WalkPlaybackTest#theCaveatIsStatedOncePerWalk'),
 ]

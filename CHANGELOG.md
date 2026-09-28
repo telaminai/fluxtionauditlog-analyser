@@ -6,6 +6,11 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+### Changed
+
+- **A spotlight walk states the "not re-checked" caveat once**, on its first step that rests on records or
+  charts, instead of on every such step. With Follow off it was always present, and it filled the strip.
+
 ## [1.26.0] - 2026-09-28
 
 ### Added

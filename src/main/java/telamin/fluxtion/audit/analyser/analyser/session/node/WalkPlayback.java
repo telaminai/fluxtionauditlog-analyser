@@ -53,6 +53,8 @@ public class WalkPlayback implements EventLogSource {
     private List<SessionEvents.WalkTargetState> targets = List.of();
     private Map<String, Integer> lastShown = new HashMap<>();
     private WalkPlaybackState.Answer answer = WalkPlaybackState.Answer.NONE;
+    /** M69.F3: whether this showing has already stated the unassessed-log caveat. */
+    private boolean caveatStated;
 
     public WalkPlayback(OpenLog openLog, EffectQueue effects) {
         this.openLog = openLog;
@@ -89,6 +91,7 @@ public class WalkPlayback implements EventLogSource {
         logOpenAtStart = openLog.isOpen();
         generation = logOpenAtStart ? openLog.generation() : -1;
         identityAtStart = openLog.identity();
+        caveatStated = false;                 // M69.F3: a new showing states the caveat again, once
         auditLog.info("walkPlay", walk).info("step", step + 1).info("origin", String.valueOf(e.origin()));
         prepare();
         return true;
@@ -233,11 +236,15 @@ public class WalkPlayback implements EventLogSource {
      * that sees one, and an unassessed log has no verdict.
      *
      * <p>So the walk says so, in the words {@code context} already uses for the same state, rather than presenting
-     * a bare "current" that reads as "verified". Stated once per step, and only when the step actually rests on a
-     * record or chart basis — a structural step claims nothing about the log's contents.
+     * a bare "current" that reads as "verified". Stated only when the step actually rests on a record or chart basis —
+     * a structural step claims nothing about the log's contents.
+     *
+     * <p>M69.F3: stated ONCE per showing, on the first such step. A bundle opens with Follow off, so the verdict is
+     * never formed, and repeating it on every step filled the strip's three reason lines with the same sentence.
      */
     private String withIdentityCaveat(String note) {
-        if (openLog.identity() != null || !restsOnTheLogsContents()) return note;
+        if (openLog.identity() != null || !restsOnTheLogsContents() || caveatStated) return note;
+        caveatStated = true;
         String caveat = "the file behind this log has not been re-checked since it was read, so 'current' here means "
                 + "unchanged since this step was saved, not unchanged on disk";
         return note == null || note.isBlank() ? caveat : note + "; " + caveat;
