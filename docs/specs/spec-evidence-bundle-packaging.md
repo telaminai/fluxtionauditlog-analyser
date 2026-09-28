@@ -174,6 +174,19 @@ the passes.
 - **No machine-tier settings, source roots, Maven repos, assistant settings, keys, runbook pointers or workspace
   anchors.** These are also the keys that re-anchor, so the allow-list makes the bundle immune to the failure the
   owner's capture skill recorded ("a missing source root is not an error, so navigation silently stops working").
+- **No machine path leaves (r4, review F2; decided, not open).** "The profile holds no paths" was false as written:
+  the check refused only a value that BEGAN with a path, so a narrative saying *"we saw it in /Users/…/x.yaml"*
+  travelled. Two cases, handled differently because they are different things:
+  - **a path-valued key** (the whole value is a path, such as a report section's rolled-set `file`) **refuses** the
+    export, naming the key. It is structure: redacting it would silently break the reference;
+  - **a path inside prose** (narratives, captions, notes, titles) is **redacted** to `‹path removed›`, and
+    `--bundle-profile` prints `redacted: <key>: <path>` for each one, so the author sees exactly what was removed.
+    The recipient reads the marker in the report itself. Refusing ordinary writing would get the check turned off;
+    narrowing the claim to keys alone would let the most ordinary leak through.
+
+  A machine path is absolute POSIX with at least two segments, home-relative (`~/…`, `~user/…`), a Windows drive
+  path with a segment, a UNC path, or a `file:` URI. Relative paths, URLs, ratios, times, `and/or`, `~5%` and a bare
+  `C:` are not. A segment is cut at whitespace, so a directory name with a space is redacted up to the space.
 - **Whole log only, and it has a cost.** Taking the whole log keeps every record digest valid and needs no index
   remapping, which is why it is right for v1. But real logs here run to **64 MB and 142 MB**, so a real incident's
   `.fexp` may be **a 140 MB file**. That is fine for a demo on one machine, and for the demo's DEMO log (well under a
@@ -247,7 +260,7 @@ chart basis. Show it **once per walk**.
 | EP-A6 | A cold recipient: unpack and open from **another path and another home**. The project, log, graph, walk and report load. (**ASSUMED by the review; must be RAN.**) |
 | EP-A7 | The recipient's own project settings are byte-identical after opening a bundle and closing it; any machine-config write (recents) is known and listed. |
 | EP-A8 | The walk plays from the bundle, with its record, chart and graph targets current and lit, numbered as in the strip. |
-| EP-A9 | The captured profile holds only GRAPHS, REPORTS and VIEW; **no allow-listed key holds a path**, and a chart with external series is left out and named. |
+| EP-A9 | The captured profile holds only GRAPHS, REPORTS and VIEW; a chart with external series is left out and named. **r4: no machine path leaves:** a path-valued key refuses the export, naming it; a path inside prose is redacted and named; ordinary writing passes untouched (review F2, §4.2). |
 | EP-A10 | Every surface that shows a verified bundle shows the `limits`, and nothing says the sender is authenticated or the incident is reproduced. |
 | EP-A11 | **Changed in r2:** a by-eye check of a captured DEMO bundle's images and rendered report. The rule-1 text sweep is a release gate that already runs on everything, so it is not repeated here (review §7). |
 | EP-A12 | **New in r2:** with none of the sender's source roots, the bundle opens usefully. The walk and report work, and source navigation is absent without error. |
@@ -271,7 +284,7 @@ chart basis. Show it **once per walk**.
 | EP-A6 | RAN, same machine | two isolated homes on two paths; the recipient has none of the sender's settings or files. **Not** another machine. |
 | EP-A7 | RAN | the recipient's own profile is byte-identical; the machine-tier keys that change are listed: last-opened log and graph, three recents lists, the active project |
 | EP-A8 | RAN | all three steps SHOWN, every target CURRENT and lit, at a 1440×900 window. **At the default 1200×800 the chart step is not lit** (§12) |
-| EP-A9 | RAN | `BundleProfileTest` on a real sender profile; seven `eb-b3-*` controls |
+| EP-A9 | RAN | `BundleProfileTest` on a real sender profile, with r4's redaction, refusal and false-positive cases; seven `eb-b3-*` and seven `rf2-*` controls |
 | EP-A10 | RAN | `MainBundleTest`, `EvidenceBundleSkillsTest`, the driver |
 | EP-A11 | RAN, by eye | the recipient's three walk-step screenshots, painted by the app: DEMO data and neutral paths only |
 | EP-A12 | RAN | the recipient has no source roots; the walk and report work |
@@ -302,7 +315,7 @@ Predictions are committed before code, as usual.
 | rev | date | by | what |
 |---|---|---|---|
 | r1 | 2026-09-28 | Claude (analyser session) | First draft, from the combined proposal and the owner's L-33 decisions. The placement question was left open. |
-| r4 | 2026-09-28 | Claude (analyser session), fixing the review's REQUIRED findings | **F1:** verification streams in bounded memory; the manifest is the first entry and bounds every member; unpack verifies, then writes, in two passes (§4.2). |
+| r4 | 2026-09-28 | Claude (analyser session), fixing the review's REQUIRED findings | **F1:** verification streams in bounded memory; the manifest is the first entry and bounds every member; unpack verifies, then writes, in two passes (§4.2). **F2:** no machine path leaves: a path-valued key refuses, a path in prose is redacted and named (§4.2, EP-A9). |
 | r3 | 2026-09-28 | Claude (analyser session), after implementing B0–B4 | **Implemented.** A fourth headless flag, `--bundle-profile`, by §3.1's rule (§3.3). A second `context` field, `project.unsavedEdits`, because the profile file lags the session (§4.1). The refusal fields as they really are: `log.identity` may be absent, `log.freshness` is the constant signal (§4.1). The manifest as shipped, without `provenance`/`records` (§4.3). An agent stepping a walk by `play` continues the showing (§5). The skills live in `docs/evidence-bundle/`, not the bundle-seeding `docs/skills/` library (§12). Acceptance status in §7. |
 | r2 | 2026-09-28 | Claude (analyser session), after the review | The placement question is decided: **C**, with no verb, menu or dialog. The review's rule is adopted (§3.1). **Argued back:** the CLI owns the whole format, `--pack`, `--verify` and `--unpack`, because the manifest and unpacking are trust-relevant too (§3.3). **The audience is decided:** technical or agent-led, no menu item, with the trigger that would add one (§3.4). **Flags are dropped:** they persist nowhere. **The paths question is restated:** GRAPHS carries home-relative external-series paths, so those charts are excluded and named. The whole-log cost is stated (64–142 MB) and **excerpts move to the second delivery**. Follow is paused and restored rather than refused. Coherence is **one `context` field** (`log.generation`); a pending load is already `inFlight`. EP-A11 is reduced to the by-eye check; **EP-A12** is added (no source roots). The plan is B0–B4. |
 

@@ -30,9 +30,20 @@ import java.util.regex.Pattern;
  *
  * <p>The member holds {@link #CATEGORIES} only: saved charts and named focuses, reports and walks, hidden columns. A
  * chart with an external series or external markers is LEFT OUT and named, because its CSV path would re-anchor
- * silently on the recipient's machine (§2). Any remaining value that is shaped like a machine path refuses the export,
- * naming the key: the allow-list is meant to hold no path at all, and if it ever does, it must fail loudly here rather
- * than resolve against the wrong home over there.
+ * silently on the recipient's machine (§2).
+ *
+ * <p><b>No machine path leaves (review F2, spec r4 §4.2, EP-A9).</b> Two cases, because they are different things:
+ * <ul>
+ *   <li>a value that IS a path (a path-valued key, such as a report section's rolled-set {@code file}) refuses the
+ *       export, naming the key: it is structure, and redacting it would silently break the reference;</li>
+ *   <li>a path INSIDE prose (a narrative, a caption, a note: "we saw it in /Users/…/x.yaml") is REDACTED to
+ *       {@link #REDACTED} and named in {@link Export#redacted()}, so the author sees exactly what was removed. Refusing
+ *       ordinary writing would get this check turned off.</li>
+ * </ul>
+ * A machine path here is absolute POSIX with at least two segments, home-relative ({@code ~/…}, {@code ~user/…}),
+ * a Windows drive path with a segment, a UNC path, or a {@code file:} URI. Relative paths ({@code logs/uat/x.yaml}),
+ * URLs, ratios, times and {@code and/or} are not: they name no machine. A segment is cut at whitespace, so a path
+ * with a space in a directory name is redacted up to the space.
  */
 public final class BundleProfile {
 
@@ -42,11 +53,22 @@ public final class BundleProfile {
     public static final Set<SettingsShare.Category> CATEGORIES =
             EnumSet.of(SettingsShare.Category.GRAPHS, SettingsShare.Category.REPORTS, SettingsShare.Category.VIEW);
 
-    /** What was written: the charts left out, the walks and reports that name a left-out chart. */
-    public record Export(List<String> leftOut, List<String> dangling) { }
+    /** What was written: the charts left out, the walks and reports that name a left-out chart, the paths redacted. */
+    public record Export(List<String> leftOut, List<String> dangling, List<String> redacted) { }
 
-    /** An absolute POSIX or Windows path, a home-relative path, or a file URI. */
-    private static final Pattern PATH_SHAPED = Pattern.compile("^(/|~[/\\\\]|~$|[A-Za-z]:[/\\\\]|\\\\\\\\|file:)");
+    /** What a redacted path is replaced with, in the text the recipient reads. */
+    public static final String REDACTED = "\u2039path removed\u203a";
+
+    /** A value that is, as a whole, a machine path: refused, because it is structure. */
+    static final Pattern WHOLE_PATH = Pattern.compile("^(?:/|~[/\\\\]|~$|~[\\w.-]+/|[A-Za-z]:[/\\\\]|\\\\\\\\|(?i:file):)\\S*$");
+
+    /** A machine path INSIDE prose: redacted. Each alternative needs a real path shape, not just a slash or a colon. */
+    static final Pattern EMBEDDED_PATH = Pattern.compile(String.join("|",
+            "(?i:\\bfile:/+[\\w.~%@:/+-]*)",                                      // file:///etc/x
+            "(?<![\\w.~:/\\\\-])/[\\w.-]+(?:/[\\w.-]+)+/?",                          // /Users/x/y, not a/b or https://h/p
+            "(?<![\\w/~])~[\\w.-]*/[\\w.-]+(?:/[\\w.-]+)*/?",                        // ~/x, ~user/x, not ~5%
+            "(?<![\\w])[A-Za-z]:[\\\\/][\\w.$-]+(?:[\\\\/][\\w.$-]+)*[\\\\/]?",          // C:\\Users\\x, not C: or C:\\ alone
+            "(?<![\\w\\\\])\\\\\\\\[\\w.$-]+(?:\\\\[\\w.$-]+)+"));                          // \\\\server\\share
 
     /**
      * Write the allow-listed profile of {@code settings} to {@code out}. {@code settings} is the open project's
@@ -91,15 +113,49 @@ public final class BundleProfile {
         String text = new SettingsShare("").export(c, CATEGORIES, out.toAbsolutePath().getParent(), null, null);
         Properties written = new Properties();
         written.load(new StringReader(text));
+        List<String> redacted = new ArrayList<>();
+        java.util.TreeMap<String, String> kept = new java.util.TreeMap<>();
         for (String key : new TreeSet<>(written.stringPropertyNames())) {
-            String v = written.getProperty(key).trim();
-            if (PATH_SHAPED.matcher(v).find()) {
-                throw new IOException("the profile would carry a machine path in " + key + " (" + v
-                        + "); an evidence bundle's profile holds no paths");
+            String v = written.getProperty(key);
+            if (WHOLE_PATH.matcher(v.trim()).matches()) {
+                throw new IOException("the profile would carry a machine path as the value of " + key + " (" + v.trim()
+                        + "); no machine path leaves in an evidence bundle, and a path-valued key cannot be redacted");
+            }
+            java.util.regex.Matcher m = EMBEDDED_PATH.matcher(v);
+            StringBuilder b = new StringBuilder();
+            int at = 0;
+            while (m.find()) {
+                int end = m.end();
+                while (end > m.start() + 1 && v.charAt(end - 1) == '.') end--;     // a sentence's full stop is not the path's
+                redacted.add(key + ": " + v.substring(m.start(), end));
+                b.append(v, at, m.start()).append(REDACTED);
+                at = end;
+            }
+            b.append(v.substring(at));
+            kept.put(key, b.toString());
+        }
+        if (!redacted.isEmpty()) text = serialise(text, kept);        // untouched otherwise: the exporter's own bytes
+        Files.writeString(out, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+        return new Export(List.copyOf(leftOut), List.copyOf(dangling), List.copyOf(redacted));
+    }
+
+    /** The exporter's comment lines, then every key in order, each escaped exactly as {@link Properties#store} does. */
+    private static String serialise(String original, java.util.SortedMap<String, String> values) throws IOException {
+        StringBuilder out = new StringBuilder();
+        for (String line : original.split("\n")) {
+            if (!line.startsWith("#")) break;
+            out.append(line).append('\n');
+        }
+        for (var e : values.entrySet()) {
+            Properties one = new Properties();
+            one.setProperty(e.getKey(), e.getValue());
+            java.io.StringWriter w = new java.io.StringWriter();
+            one.store(w, null);
+            for (String line : w.toString().split("\n")) {
+                if (!line.startsWith("#") && !line.isEmpty()) out.append(line).append('\n');
             }
         }
-        Files.writeString(out, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-        return new Export(List.copyOf(leftOut), List.copyOf(dangling));
+        return out.toString();
     }
 
     private static AppConfig read(Path settings) throws IOException {

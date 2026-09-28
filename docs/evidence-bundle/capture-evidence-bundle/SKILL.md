@@ -64,9 +64,11 @@ The analyser decides the right-hand column (`--bundle-profile`), not you. Do not
    ```
 
    `<settings>` is `project.settings` from `context` when a project is open. Otherwise it is the person's own
-   settings file, `~/.fluxtion-analyser/config`. Relay every `left out:` and `dangling:` line it prints. A
-   left-out chart is not in the bundle, and a walk step or report section that showed it will say so on the other
-   side. A non-zero exit means a kept value was shaped like a path: stop and show the message.
+   settings file, `~/.fluxtion-analyser/config`. Relay every `left out:`, `dangling:` and `redacted:` line it
+   prints. A left-out chart is not in the bundle, and a walk step or report section that showed it will say so on
+   the other side. A `redacted:` line is a machine path found in prose (a narrative, a caption): it reads
+   `‹path removed›` in the bundle. A non-zero exit means a path-valued key (a whole value that is a path): stop and
+   show the message.
 
    Then pack:
 

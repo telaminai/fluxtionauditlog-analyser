@@ -125,6 +125,8 @@ public class Main {
                     out.println("profile " + args[2] + ": saved charts and focuses, reports and walks, hidden columns; nothing else");
                     for (String l : x.leftOut()) out.println("left out: " + l);
                     for (String d : x.dangling()) out.println("dangling: " + d);
+                    for (String r : x.redacted()) out.println("redacted: " + r + "  (a machine path in prose; it reads "
+                            + telamin.fluxtion.audit.analyser.bundle.BundleProfile.REDACTED + " in the bundle)");
                     return 0;
                 }
                 case "--verify" -> {

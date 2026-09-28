@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -111,5 +112,95 @@ public class BundleProfileTest {
         assertFalse(text.contains("DEMO-not-a-key"), "the key stays");
         assertFalse(text.contains("sourceRoot"), "the roots stay");
         assertEquals("thread", read(out).getProperty("hiddenColumn.0"), "the view travels");
+    }
+
+    /** The fixture with its report narrative (report.0.s.0.text) replaced by {@code text}, escaped as a properties value. */
+    static Path withNarrative(Path tmp, String text) throws IOException {
+        Path profile = senderProfile(tmp);
+        Properties one = new Properties();
+        one.setProperty("report.0.s.0.text", text);
+        java.io.StringWriter w = new java.io.StringWriter();
+        one.store(w, null);
+        String line = w.toString().lines().filter(l -> l.startsWith("report.0.s.0.text=")).findFirst().orElseThrow();
+        Files.writeString(profile, Files.readString(profile).lines()
+                .map(l -> l.startsWith("report.0.s.0.text=") ? line : l).collect(java.util.stream.Collectors.joining("\n")) + "\n");
+        return profile;
+    }
+
+    static String exportedNarrative(Path tmp, String text, List<String> redactedOut) throws Exception {
+        Path profile = withNarrative(tmp, text);
+        Path out = tmp.resolve("n-" + Integer.toHexString(text.hashCode()) + ".fluxtion-settings");
+        var x = assertDoesNotThrow(() -> BundleProfile.export(profile, out), "prose never refuses the export: " + text);
+        redactedOut.addAll(x.redacted());
+        return read(out).getProperty("report.0.s.0.text");
+    }
+
+    @Test
+    @DisplayName("F2: a machine path INSIDE prose is redacted, named, and absent from the bundle — the review's reproduction")
+    void anEmbeddedPathIsRedactedAndNamed(@TempDir Path tmp) throws Exception {
+        List<String> redacted = new java.util.ArrayList<>();
+        String got = exportedNarrative(tmp, "we saw it in /Users/demo-person/private/logs/secret-venue.yaml and moved on", redacted);
+        assertFalse(got.contains("demo-person") || got.contains("secret-venue"), "the path does not leave: " + got);
+        assertEquals("we saw it in " + BundleProfile.REDACTED + " and moved on", got, "only the path is removed");
+        assertEquals(List.of("report.0.s.0.text: /Users/demo-person/private/logs/secret-venue.yaml"), redacted,
+                "and the author is told exactly what was removed, from which key");
+    }
+
+    @Test
+    @DisplayName("F2: every machine-path shape is redacted in prose — home, Windows, UNC, file URI, a sentence-leading path")
+    void everyMachinePathShapeIsRedacted(@TempDir Path tmp) throws Exception {
+        for (String path : List.of("~/logs/demo/quote.yaml", "~demo/logs/quote.yaml", "C:\\Users\\demo\\logs\\q.yaml",
+                "D:/data/demo/q.yaml", "\\\\fileserver\\demo\\q.yaml", "file:///tmp/DEMO/q.yaml", "/etc/demo/q.yaml")) {
+            List<String> redacted = new java.util.ArrayList<>();
+            Path dir = Files.createDirectories(tmp.resolve(Integer.toHexString(path.hashCode())));
+            String got = exportedNarrative(dir, "see " + path + ", then the chart", redacted);
+            assertEquals("see " + BundleProfile.REDACTED + ", then the chart", got, "redacted: " + path);
+            assertEquals(1, redacted.size(), path + " -> " + redacted);
+        }
+        List<String> stop = new java.util.ArrayList<>();
+        Path d2 = Files.createDirectories(tmp.resolve("stop"));
+        assertEquals("it was in " + BundleProfile.REDACTED + ".", exportedNarrative(d2, "it was in /var/demo/q.yaml.", stop),
+                "a sentence's full stop stays");
+        assertEquals(List.of("report.0.s.0.text: /var/demo/q.yaml"), stop);
+        List<String> leading = new java.util.ArrayList<>();
+        Path dir = Files.createDirectories(tmp.resolve("leading"));
+        assertEquals(BundleProfile.REDACTED + " held the log", exportedNarrative(dir, "/var/demo/logs held the log", leading),
+                "prose that STARTS with a path is prose, redacted, not refused");
+    }
+
+    @Test
+    @DisplayName("F2 mirror: ordinary writing passes untouched — %, colons, ratios, and/or, URLs, relative paths, C: alone")
+    void ordinaryProsePassesUntouched(@TempDir Path tmp) throws Exception {
+        for (String prose : List.of(
+                "~5% of records carried a spread above 0.004",
+                "at 09:00: the spread widened; ratio 3:1 bid to ask",
+                "note: this is a bare colon in a sentence",
+                "the file: demo-quote-audit.yaml, read whole",
+                "and/or the risk limit; 1/2 of the records; bid/ask per quotePublisher.spread/bid",
+                "the drive letter C: on its own, or the string \"C:\\\" quoted in an explanation",
+                "see https://fluxtion-playground.dev/fluxtion-golden-path.md for the model",
+                "the uat logs live under logs/uat/quote-service-uat.yaml in the project",
+                "dated 28/09/2026, window 09:00:00.090 to 09:00:00.360")) {
+            List<String> redacted = new java.util.ArrayList<>();
+            Path dir = Files.createDirectories(tmp.resolve(Integer.toHexString(prose.hashCode())));
+            assertEquals(prose, exportedNarrative(dir, prose, redacted), "ordinary writing is left alone");
+            assertEquals(List.of(), redacted, "and nothing is reported as redacted: " + prose);
+        }
+    }
+
+    @Test
+    @DisplayName("F2: a redacted profile is still a profile — it loads, with its report and walk")
+    void aRedactedProfileStillLoads(@TempDir Path tmp) throws Exception {
+        Path profile = withNarrative(tmp, "we saw it in /Users/demo-person/logs/q.yaml");
+        Path out = Files.createDirectories(tmp.resolve("bundle/profile")).resolve("project.fluxtion-settings");
+        BundleProfile.export(profile, out);
+        var c = new telamin.fluxtion.audit.analyser.analyser.config.AppConfig();
+        var loaded = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.load(out, c,
+                new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+        assertTrue(loaded.loaded(), loaded.message());
+        assertEquals(1, c.reports.size());
+        assertEquals(1, c.walks.size());
+        assertTrue(c.reports.get(0).sections().stream().anyMatch(s -> ("we saw it in " + BundleProfile.REDACTED).equals(s.text())),
+                "the recipient reads the redaction in the report itself");
     }
 }

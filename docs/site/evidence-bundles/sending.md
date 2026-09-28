@@ -32,6 +32,11 @@ you want to send before you capture: a bundle carries what is **saved**, not wha
 `--bundle-profile` prints a `left out:` line for each chart with external data. It prints a `dangling:` line for
 each walk step or report section that showed one of those charts. Those will say so on the other side.
 
+**No machine path leaves.** A path written inside prose, such as a report narrative saying *"we saw it in
+/Users/…/quote.yaml"*, is replaced by `‹path removed›`. It is listed on a `redacted:` line so you see exactly what
+was removed, and the recipient sees the marker in the report. A setting whose whole value is a path stops the
+export instead, naming it. Relative paths, URLs, times and ratios are left alone.
+
 ## Before you send it
 
 - **Size.** The whole log is inside, so a bundle is about the size of its log. A real incident's log can be tens or

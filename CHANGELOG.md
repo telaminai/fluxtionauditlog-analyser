@@ -20,7 +20,9 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
   your own settings when no project is open): saved charts and named focuses, reports and walks, hidden columns.
   A chart with an external CSV series or markers is left out and named, along with each walk step and report
   section that showed it. Source roots, runbooks, environments, processors, keys and assistant settings never
-  leave. A kept value shaped like a machine path refuses the export.
+  leave. No machine path leaves: a setting whose whole value is a path refuses the export, naming it, and a path
+  written inside prose (a report narrative, a caption) is replaced by `‹path removed›` and listed on a `redacted:`
+  line. Relative paths, URLs, times and ratios are left alone.
 - **Two skills, `capture-evidence-bundle` and `open-evidence-bundle`** (`docs/evidence-bundle/`), and an *Evidence
   bundles* section on the docs site: what a bundle is, sending one, opening one, the commands and format, and the demo. An agent can package an investigation, and open one it was sent, from a fresh working
   copy that leaves your own project untouched. `tools/evidence-bundle-demo.py` runs the whole thing on the DEMO log
