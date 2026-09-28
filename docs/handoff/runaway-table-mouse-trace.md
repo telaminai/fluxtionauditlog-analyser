@@ -106,6 +106,15 @@ nobody reads.
 **When you have a `SUSPECT` line, read upwards to the last `RELEASED` (or its absence).** That names the window
 and component that took the release, which is the answer.
 
+## Captured traces
+
+They go in [`evidence/runaway-table/`](evidence/runaway-table/), which also holds the capture protocol. **At the
+time of writing there is no captured trace** — the instrument is built and verified, the reproduction has not
+happened, and a diagnosis cannot start before it.
+
+Note from the first run of the instrument: a `SUSPECT` line with `size=0` is **noise from a log open**, not the
+fault. The rule now requires a non-empty selection and a prior real press; see the evidence directory's README.
+
 ## The question to answer
 
 1. Where did the release go — which `srcWindow`, which component? Or did no `RELEASED` arrive at all?

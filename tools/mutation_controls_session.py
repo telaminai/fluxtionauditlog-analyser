@@ -1066,12 +1066,18 @@ CONTROLS = [
     # be worse than having none.
     # The signal: the table believes a drag is in progress while no button is down.
     ('mousetrace-suspect-is-the-stuck-state', UI + 'MouseTrace.java',
-     'if (adjusting && buttonsDown.isEmpty()) {', 'if (false) {',
+     'if (adjusting && buttonsDown.isEmpty() && size > 0 && everSawPress) {', 'if (false) {',
      'MouseTraceTest#theStuckStateIsFlagged'),
     # ...and NOT every programmatic selection, or the real signal is invisible in the noise.
     ('mousetrace-does-not-cry-wolf', UI + 'MouseTrace.java',
-     'if (adjusting && buttonsDown.isEmpty()) {', 'if (grew && buttonsDown.isEmpty()) {',
+     'if (adjusting && buttonsDown.isEmpty() && size > 0 && everSawPress) {',
+     'if (grew && buttonsDown.isEmpty()) {',
      'MouseTraceTest#anOrdinarySelectionIsNotFlagged'),
+    # ...and not on the selection-model churn a log open causes, which a real capture produced three times.
+    ('mousetrace-ignores-model-churn', UI + 'MouseTrace.java',
+     'if (adjusting && buttonsDown.isEmpty() && size > 0 && everSawPress) {',
+     'if (adjusting && buttonsDown.isEmpty()) {',
+     'MouseTraceTest#modelChurnWithAnEmptySelectionIsNotSuspect'),
     # A bad destination must not stop the app starting.
     ('mousetrace-never-fatal', UI + 'MouseTrace.java',
      '            System.err.println("[mouseTrace] not installed: " + e);\n            return null;',

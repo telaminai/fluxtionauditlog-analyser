@@ -75,6 +75,7 @@ class MouseTraceTest {
         Path out = tmp.resolve("trace.log");
         javax.swing.JTable table = watchedTable(out);
 
+        pressSomewhere();                                        // a real gesture happened at some point
         table.getSelectionModel().setValueIsAdjusting(true);     // the table believes a drag is in progress
         table.setRowSelectionInterval(3, 9);                     // ...and it extends, with no button down
 
@@ -97,5 +98,65 @@ class MouseTraceTest {
         assertFalse(Files.readString(out).contains("SUSPECT"),
                 "every programmatic selection grows with no button down; flagging those makes the trace "
                         + "unreadable and the real signal invisible");
+    }
+
+    @Test
+    @DisplayName("It actually records a real mouse event — the worst failure is a trace that stays empty")
+    void itRecordsAMouseEventThroughTheToolkit(@TempDir Path tmp) throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeFalse(java.awt.GraphicsEnvironment.isHeadless());
+        Path out = tmp.resolve("trace.log");
+        System.setProperty(MouseTrace.PROPERTY, out.toString());
+        try {
+            assertNotNull(MouseTrace.installIfRequested());
+            javax.swing.JPanel panel = new javax.swing.JPanel();
+            panel.setSize(100, 100);
+            // through the queue, so it reaches the Toolkit's AWTEventListener the way a real click does
+            java.awt.EventQueue.invokeAndWait(() -> panel.dispatchEvent(new java.awt.event.MouseEvent(
+                    panel, java.awt.event.MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(),
+                    java.awt.event.MouseEvent.BUTTON1_DOWN_MASK, 5, 5, 1, false,
+                    java.awt.event.MouseEvent.BUTTON1)));
+
+            String log = Files.readString(out);
+            assertTrue(log.contains("PRESSED"),
+                    "a trace that records no mouse events is worse than no trace: it looks like evidence of "
+                            + "nothing happening. Got:\n" + log);
+            assertTrue(log.contains("src=JPanel"), log);
+        } finally {
+            System.clearProperty(MouseTrace.PROPERTY);
+        }
+    }
+
+    /** A real press, through the queue, so the trace has seen a gesture. */
+    private static void pressSomewhere() throws Exception {
+        javax.swing.JPanel panel = new javax.swing.JPanel();
+        panel.setSize(50, 50);
+        java.awt.EventQueue.invokeAndWait(() -> panel.dispatchEvent(new java.awt.event.MouseEvent(
+                panel, java.awt.event.MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(),
+                java.awt.event.MouseEvent.BUTTON1_DOWN_MASK, 5, 5, 1, false,
+                java.awt.event.MouseEvent.BUTTON1)));
+        java.awt.EventQueue.invokeAndWait(() -> panel.dispatchEvent(new java.awt.event.MouseEvent(
+                panel, java.awt.event.MouseEvent.MOUSE_RELEASED, System.currentTimeMillis(), 0,
+                5, 5, 1, false, java.awt.event.MouseEvent.BUTTON1)));
+    }
+
+    @Test
+    @DisplayName("Opening a log churns the selection model — that is NOT suspect, and a real capture proved it")
+    void modelChurnWithAnEmptySelectionIsNotSuspect(@TempDir Path tmp) throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeFalse(java.awt.GraphicsEnvironment.isHeadless());
+        Path out = tmp.resolve("trace.log");
+        javax.swing.JTable table = watchedTable(out);
+        pressSomewhere();
+
+        // exactly what a log open does: something was selected, then the model is swapped out under an
+        // adjusting flag and the selection goes empty. clearSelection() on an ALREADY empty selection fires
+        // no event at all, so the rule would never be reached and the test would pass for the wrong reason.
+        table.setRowSelectionInterval(1, 1);
+        table.getSelectionModel().setValueIsAdjusting(true);
+        table.clearSelection();
+        table.getSelectionModel().setValueIsAdjusting(false);
+
+        assertFalse(Files.readString(out).contains("SUSPECT"),
+                "the first capture produced three SUSPECT lines with size=0 during a log open; a runaway always "
+                        + "has rows selected, so an empty selection is churn, not the fault");
     }
 }

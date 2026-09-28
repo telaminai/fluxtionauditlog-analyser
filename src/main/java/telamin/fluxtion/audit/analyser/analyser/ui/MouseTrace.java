@@ -50,6 +50,8 @@ public final class MouseTrace {
     private final Writer out;
     private final Set<Integer> buttonsDown = new LinkedHashSet<>();
     private int dragsSincePress;
+    /** Whether any real press has been seen: a runaway follows a gesture, model churn does not. */
+    private boolean everSawPress;
     private JTable watched;
     private int lastSelectionSize = -1;
 
@@ -95,7 +97,11 @@ public final class MouseTrace {
             // made of. Deliberately NOT "the selection grew with no button down" — every programmatic
             // selection does that (a walk step, goto, a spotlight), and a diagnostic that cries at normal
             // behaviour is one nobody reads.
-            if (adjusting && buttonsDown.isEmpty()) {
+            // size > 0 and everSawPress, because a real capture proved the bare rule fires on nothing: opening a
+            // log churns the selection model, so valueIsAdjusting goes true with no button down and an EMPTY
+            // selection, three times in a row. A runaway always has rows selected and always follows a real
+            // gesture, so both are required.
+            if (adjusting && buttonsDown.isEmpty() && size > 0 && everSawPress) {
                 line("SUSPECT", "tableIsMidDragButNoButtonIsDown size=" + size + " grew=" + grew
                         + " dragsSinceLastPress=" + dragsSincePress
                         + " note=\"the release that should have ended this gesture went elsewhere - the"
@@ -109,6 +115,7 @@ public final class MouseTrace {
             case MouseEvent.MOUSE_DRAGGED -> dragsSincePress++;
             case MouseEvent.MOUSE_PRESSED -> {
                 buttonsDown.add(e.getButton());
+                everSawPress = true;
                 dragsSincePress = 0;
                 line("PRESSED", describe(e));
             }
