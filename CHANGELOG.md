@@ -6,6 +6,8 @@ Add a line under **[Unreleased]** with every user-visible change; the release wo
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-09-28
+
 ### Added
 
 - **Evidence bundles: an investigation as one verifiable file.** Ask the running analyser with
