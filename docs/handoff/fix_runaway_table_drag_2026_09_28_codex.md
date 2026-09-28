@@ -62,3 +62,17 @@ public-data handling and per-suite counts are in the evidence README.
   focus; it does not claim to fix a lost release with no such event.
 - Linux/Xvfb CI and the full registered display/mutation lists were not run locally.
 - No native screenshot/visual-design claim was made. No keys, providers or participant data were accessed.
+
+## PR 62 independent-review response
+
+The earlier verification table records `66f9fddf`, before the review corrections. See the
+[correction evidence and sealed predictions](evidence/runaway-table/review-fixes-2026-09-28/README.md).
+
+R1 is addressed by asserting cancellation while the button is still held, before any native release can make
+an unfixed test green. O3 now binds the expected slider endpoints to the focus-loss event before cancellation.
+O2 registers the autoscroll-restore and column-adjustment controls. For O1, cancellation is restricted to an
+owned modal; non-modal focus loss and resumed drag steps keep selection notifications deferred until release,
+which a new native test witnesses. The original Settings reproduction remains the product boundary covered.
+
+The full CI workflow now triggers for the stacked diagnostic base as well as main. Its result must be checked
+at the pushed head; local evidence and the other reviewer's results cannot substitute for that run.

@@ -114,3 +114,11 @@ Counts are total / failures / errors / skips, **not passed / failed**.
 Not run locally: the full display list and full mutation list; CI must establish Linux/Xvfb behaviour.
 No hosted provider, key, LLM session, participant project or real log was used. No screenshot was required
 or captured for the fix; the native input and component state were measured.
+
+## Independent-review correction
+
+The original results above are preserved as measurements of `66f9fddf`. The review found that assertions
+following native release depend on whether that release is delivered. The [correction evidence](../review-fixes-2026-09-28/README.md)
+adds pre-release assertions, range-at-focus-loss checks, two missing-line controls, and a native non-modal
+continuation control. Product cancellation is now restricted to an owned modal taking focus. The original
+capture does not establish the cause of the owner's incident or justify cancellation on every focus change.

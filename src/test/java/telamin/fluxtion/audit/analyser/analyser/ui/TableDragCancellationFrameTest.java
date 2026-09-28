@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.*;
@@ -102,12 +103,14 @@ class TableDragCancellationFrameTest {
                 Point end = screen(table, visible.x + 180, visible.y - 8);
                 robot.mouseMove(start.x, start.y); robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
                 assumeTrue(until(() -> table.getSelectionModel().getValueIsAdjusting()), "native mouse press must reach the table, not be dropped by the desktop");
+                assertTrue(edt(() -> table.getColumnModel().getSelectionModel().getValueIsAdjusting()),
+                        "control: the native table press starts column adjustment too");
                 move(robot, start, end);
                 assertTrue(until(() -> table.getVisibleRect().y < beforeDragY), "control: native drag starts actual table autoscrolling");
                 Window dialog = settings(f);
-                robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
+                // The button is STILL HELD: release delivery must not be what makes these checks pass.
                 onEdt(() -> {
-                    assertFalse(table.getSelectionModel().getValueIsAdjusting(), "losing window focus cancels the table's adjusting gesture");
+                    assertFalse(table.getSelectionModel().getValueIsAdjusting(), "before release, losing window focus cancels the table's adjusting gesture");
                     assertFalse(table.getColumnModel().getSelectionModel().getValueIsAdjusting(), "column adjustment ends with the cancelled gesture");
                     assertTrue(table.getAutoscrolls(), "cancellation preserves the configured autoscroll behaviour");
                 });
@@ -117,6 +120,15 @@ class TableDragCancellationFrameTest {
                 onEdt(() -> {
                     assertArrayEquals(selection, table.getSelectedRows(), "no table selection growth after window loses drag");
                     assertEquals(after, table.getVisibleRect(), "no table scrolling after window loses drag");
+                });
+                robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
+                timerTurns();
+                onEdt(() -> {
+                    assertFalse(table.getSelectionModel().getValueIsAdjusting(), "release does not restart row adjustment");
+                    assertFalse(table.getColumnModel().getSelectionModel().getValueIsAdjusting(), "release does not restart column adjustment");
+                    assertTrue(table.getAutoscrolls(), "release preserves autoscroll for the next normal drag");
+                    assertArrayEquals(selection, table.getSelectedRows(), "release does not restart selection growth");
+                    assertEquals(after, table.getVisibleRect(), "release does not restart table scrolling");
                     dialog.dispose(); f.frame.toFront();
                 });
                 assertTrue(until(f.frame::isFocused), "the main window regains focus for the next gesture");
@@ -152,19 +164,76 @@ class TableDragCancellationFrameTest {
                 assumeTrue(until(() -> (int) field(slider, "dragMode") >= 0), "native mouse press must reach the slider");
                 move(robot, start, end);
                 assertTrue(until(edge::isRunning), "control: the native edge drag starts the slider timer");
-                settings(f);
-                robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
+                AtomicReference<long[]> atFocusLoss = new AtomicReference<>();
+                // Toolkit observers run before the frame's focus listeners. Edge ticks before this moment
+                // are legitimate; cancellation must preserve THIS range, not the range before the drag.
+                AWTEventListener captureRange = event -> {
+                    if (event.getSource() == f.frame && event.getID() == WindowEvent.WINDOW_LOST_FOCUS)
+                        atFocusLoss.set(new long[]{(long) field(slider, "lo"), (long) field(slider, "hi")});
+                };
+                Toolkit.getDefaultToolkit().addAWTEventListener(captureRange, AWTEvent.WINDOW_FOCUS_EVENT_MASK);
+                try { settings(f); }
+                finally { Toolkit.getDefaultToolkit().removeAWTEventListener(captureRange); }
+                assertNotNull(atFocusLoss.get(), "control: observed the slider range at the moment focus was lost");
                 onEdt(() -> {
-                    assertEquals(-1, field(slider, "dragMode"), "losing window focus cancels the slider gesture");
-                    assertFalse(edge.isRunning(), "losing window focus stops the slider edge timer");
+                    assertEquals(-1, field(slider, "dragMode"), "before release, losing window focus cancels the slider gesture");
+                    assertFalse(edge.isRunning(), "before release, losing window focus stops the slider edge timer");
+                    assertRangeAtFocusLoss(slider, atFocusLoss.get());
                 });
-                Object lo = edt(() -> field(slider, "lo")), hi = edt(() -> field(slider, "hi"));
+                timerTurns();
+                onEdt(() -> assertRangeAtFocusLoss(slider, atFocusLoss.get()));
+                robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
                 timerTurns();
                 onEdt(() -> {
-                    assertEquals(lo, field(slider, "lo"), "cancelled slider retains its lower range boundary");
-                    assertEquals(hi, field(slider, "hi"), "cancelled slider retains its upper range boundary");
+                    assertEquals(-1, field(slider, "dragMode"), "release does not restart the slider gesture");
+                    assertFalse(edge.isRunning(), "release does not restart the slider edge timer");
+                    assertRangeAtFocusLoss(slider, atFocusLoss.get());
                 });
             } finally { robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); disposeDialogs(); }
         } finally { robot.mouseMove(previous.x, previous.y); }
     }
+    private static void assertRangeAtFocusLoss(TimeRangeSlider slider, long[] range) {
+        assertEquals(range[0], field(slider, "lo"), "lower boundary remains the range at the moment focus was lost");
+        assertEquals(range[1], field(slider, "hi"), "upper boundary remains the range at the moment focus was lost");
+    }
+
+    @Test
+    void aNonModalFocusLossKeepsSelectionDeferredUntilRelease(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "a real display is required");
+        Robot robot = new Robot(); robot.setAutoDelay(25);
+        Point previous = MouseInfo.getPointerInfo().getLocation();
+        try (Frame f = new Frame(tmp)) {
+            JDialog other = edt(() -> new JDialog(f.frame, "DEMO non-modal", false));
+            try {
+                open(f);
+                JTable table = ((LogTablePanel) field(f.frame, "tablePanel")).table();
+                Rectangle visible = edt(table::getVisibleRect);
+                Point start = screen(table, visible.x + 180, visible.y + 40);
+                Point end = screen(table, visible.x + 180, visible.y + 160);
+                robot.mouseMove(start.x, start.y); robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+                assumeTrue(until(() -> table.getSelectionModel().getValueIsAdjusting()), "native press must reach table for non-modal control");
+                AtomicInteger finalized = new AtomicInteger();
+                onEdt(() -> {
+                    table.getSelectionModel().addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) finalized.incrementAndGet(); });
+                    other.setBounds(f.frame.getX() + 700, f.frame.getY() + 80, 240, 120);
+                    other.setVisible(true); other.toFront();
+                });
+                assertTrue(until(other::isFocused), "control: the non-modal window takes focus");
+                onEdt(() -> {
+                    assertTrue(table.getSelectionModel().getValueIsAdjusting(), "non-modal focus loss keeps selection adjusting");
+                    assertEquals(0, finalized.get(), "non-modal focus loss does not publish a finalized selection");
+                    other.dispose(); f.frame.toFront();
+                });
+                assertTrue(until(f.frame::isFocused), "control: return focus to continue the held drag");
+                int[] before = edt(table::getSelectedRows);
+                move(robot, start, end);
+                assertTrue(until(() -> !Arrays.equals(before, table.getSelectedRows())), "control: the native drag continues after non-modal focus loss");
+                assertEquals(0, finalized.get(), "continued drag steps remain deferred until release");
+                robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); robot.waitForIdle();
+                assertTrue(until(() -> !table.getSelectionModel().getValueIsAdjusting()), "release finalizes the continued drag");
+                assertTrue(finalized.get() > 0, "release publishes the final selection");
+            } finally { robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK); onEdt(other::dispose); disposeDialogs(); }
+        } finally { robot.mouseMove(previous.x, previous.y); }
+    }
+
 }
