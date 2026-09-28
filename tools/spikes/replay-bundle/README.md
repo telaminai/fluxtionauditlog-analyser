@@ -175,6 +175,32 @@ What this settles:
   in production too (`…260` for both). The 2026-08-16 processor gave it a fresh reading, which is where the spike's
   exception came from. So **on 1.0.75 the comparison rule is: every record exact except `endTime`**.
 
+## R2, 2026-09-28: record by identity at the consumption point; replay is plain injection
+
+The owner asked: if graph-raised events are never recorded, is replay easier? Yes. The audit-log comparison already
+names a changed build: in R1 it produced 7 records against 8. So R1's matcher only named the same divergence one step
+earlier. **Except**, as the owner added, for an event type that arrives from outside AND is raised by the graph. A
+type-based whitelist cannot tell those apart: include the type and the internal copy duplicates on replay; exclude it
+and the external one is lost.
+
+**The writer cannot tell either, from its callbacks** (`NestingProbe`). The graph's own breach arrives *after* its
+input's `processingComplete`: `eventReceived OrderUpdateEvent`, `processingComplete`, `eventReceived
+RiskBreachEvent`, `processingComplete`. To the writer it is indistinguishable from a new input.
+
+**Identity is what separates them.** The consumption point (R-D4: the code that calls `onEvent`) names each input to
+the writer (`writer.expect(e)`) just before dispatching it. The writer records only that exact object, stamped with
+the receipt instant, and ignores everything else it hears during the call, whatever its type. `R2Run` sends a
+`RiskBreachEvent` in from outside, as well as the graph raising its own:
+
+| | result |
+|---|---|
+| capture | 8 inputs, 9 audit records, **8 replay records**: the external breach recorded, the graph's own breach not |
+| replay into the same build (plain injection) | 9 of 9 audit records, **only `endTime` differs** |
+| replay into the changed build | 8 audit records against 9; the comparison shows the missing breach |
+
+So replay needs **no matcher, no observe mode, and no declaration** of what the graph raises. The handled types
+(R-D9) stay: they are the codec, and the reader's allow-list.
+
 ## Rerun
 
 ```

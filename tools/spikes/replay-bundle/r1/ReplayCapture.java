@@ -32,6 +32,9 @@ public class ReplayCapture implements Auditor {
     /** The handled types the graph raises on itself; declared, because a method body is not visible statically. */
     private Set<Class<?>> raised = new HashSet<>();
     private transient Writer target;
+    /** Set by the consumption point just before it calls onEvent: the one object that is this cycle's INPUT. */
+    private transient Object expected;
+    private transient boolean identityMode;
     private transient Consumer<Object> observer;
 
     public ReplayCapture(Clock clock) { this.clock = clock; }
@@ -76,6 +79,12 @@ public class ReplayCapture implements Auditor {
 
     public void setTarget(Writer target) { this.target = target; }
 
+    /**
+     * Identity mode: the caller names each input before dispatching it, and only that object is recorded. Anything
+     * else the processor hears during the call was raised by the graph, whatever its type.
+     */
+    public void expect(Object input) { identityMode = true; expected = input; }
+
     /** Observe mode: report each event heard, write nothing. */
     public void setObserver(Consumer<Object> observer) { this.observer = observer; }
 
@@ -87,8 +96,13 @@ public class ReplayCapture implements Auditor {
 
     @Override
     public void eventReceived(Object event) {
+        if (trace != null && !isFramework(event)) trace.add("eventReceived " + event.getClass().getSimpleName());
         if (isFramework(event) || !handled.contains(event.getClass())) return;
         if (observer != null) { observer.accept(event); return; }
+        if (identityMode) {
+            if (event != expected) return;          // graph-raised: same type or not, never recorded
+            expected = null;
+        }
         if (target == null) return;
         try {
             // a YAML comment marks a graph-raised record, so Fluxtion's own parser still reads the file
@@ -100,6 +114,12 @@ public class ReplayCapture implements Auditor {
             throw new UncheckedIOException(e);
         }
     }
+
+    /** Probe: the order of receipt and completion callbacks, to see whether a raised event arrives INSIDE its input's cycle. */
+    public static transient java.util.List<String> trace;
+
+    @Override
+    public void processingComplete() { if (trace != null) trace.add("processingComplete"); }
 
     static boolean isFramework(Object event) {
         return event instanceof Lifecycle.LifecycleEvent || event instanceof EventLogControlEvent

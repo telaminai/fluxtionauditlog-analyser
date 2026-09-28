@@ -24,11 +24,12 @@ graph-raised event (8 → 9); a ticking clock shows the recorder's second read. 
 - **R-D5. Service invocations are dealt with separately.** A service call is a serialised method call, recorded and
   replayed in the same stream as the events. That is its own piece of work (UP-FLX-24, M50.7), and this delivery
   only names the gap (§3.4).
-- **R-D6. The redispatch match is made through a hook the dispatcher offers** (§3.2), not inside the generated
-  dispatcher. The replay runner supplies the matcher.
+- **R-D6** *(superseded by R-D8, then R-D10)*. The redispatch match was to go through a hook the dispatcher offers.
 - **R-D8. Our own replay writer and reader** fix the clock read and the redispatch duplicate, with no Fluxtion core
-  release (§3.2). This replaces R-D6's dispatcher hook: the match is made in our runner.
+  release (§3.2).
 - **R-D9. The serialiser supports exactly the event types the processor handles**, known statically (§3.2).
+- **R-D10. Record by identity at the consumption point; replay by plain injection** (§3.2). The caller names each
+  input, and only that object is recorded; graph-raised events are never recorded, whatever their type.
 - **R-D7. R0 goes ahead** (the compiler key through the plugin's build). **Licensing is deferred**; the owner will
   decide it.
 
@@ -114,46 +115,39 @@ filed when R0 has run.
 The clock read (UP-FLX-53) and the redispatch duplicate (UP-FLX-54) are both fixed on our side, with a writer and a
 reader of our own. The asks stay open as improvements, and neither blocks this delivery.
 
-**The writer: `ReplayCapture`, an `Auditor` compiled into the processor** (`cfg.addAuditor`, as R0 proved works):
-- It records **every** event it hears, graph-raised ones included, in dispatch order.
-- It stamps each record with `clock.getProcessTime()`, the instant the cycle ran at (§3.3). The generator injects
-  the processor's own clock (`@Inject`, as it does into `YamlReplayRecordWriter`).
-- It writes Fluxtion's replay YAML (`ReplayRecord`, `wallClockTime`, `event`), so a record stays readable by
-  `YamlReplayRunner` too, when the events are beans. Our reader does the reading, so the JavaBean constraint is a
-  choice of encoding, not a rule of replay (R-D1's later encodings).
+**Record only what arrives from outside, by identity, at the consumption point (owner, R-D10).**
+- The code that calls `onEvent` (R-D4: the processor's caller, or the Mongoose agent) names each input to the
+  writer just before dispatching it: `writer.expect(event)`.
+- The writer, `ReplayCapture`, an `Auditor` compiled into the processor (`cfg.addAuditor`, as R0 proved works),
+  records **only that exact object**, stamped with `clock.getProcessTime()`, the instant the cycle ran at (§3.3).
+- Everything else it hears during the call was raised by the graph, **whatever its type**, and is never recorded.
+  That includes a type that also arrives from outside, which a type-based whitelist cannot handle: include the type
+  and the internal copy duplicates on replay; exclude it and the external one is lost.
+- **Why the caller has to name it.** The writer cannot tell from its own callbacks. The graph's own event arrives
+  *after* its input's `processingComplete`, exactly like a new input (spike, `NestingProbe`).
 
-**The reader: our runner, which matches graph-raised events instead of injecting them** (R-D6's matcher, with no
-dispatcher hook needed):
-- The runtime has no `addAuditor`, so the runner cannot attach an observer of its own. The writer is already compiled
-  into the recipient's build, so **the runner switches it into observe mode**. It then reports each event it hears to
-  the runner instead of writing it.
-- For each recorded record the runner does one of two things:
-  - **If the graph raised events during the last injected input** (the observer heard them inside that `onEvent`
-    call, since queued events drain within it), the record must be the **next of those, in order**. Equal type and
-    fields: consumed as a match, never injected. Anything else: the replay **diverged here**, named by record.
-  - **Otherwise it is an input:** the runner sets the data-driven clock to the record's instant and calls `onEvent`.
-- A raised event with no recorded record left to match it is a divergence too: this build raised something the
-  recorded run did not.
-- So graph-raised events stop being a hazard and become a check. A changed build is caught at the first cycle where
-  it behaves differently.
-- **Measured (R1 spike):** replayed into the same build, only `endTime` differs; replayed into a changed build (risk
-  limit 3), the runner names record 7, *"the recorded run raised RiskBreachEvent[…]; this build raised nothing"*.
-  §6's second exception does not arise on generator 1.0.75, because a queued event keeps its triggering input's
-  instant in production too.
-- **The serialiser is fixed by the processor's handled types, known statically** (owner, R-D9). The builder reads
-  them from the nodes' `@OnEventHandler` methods and hands them to the writer, and the generator compiles the set
-  into the processor. A handled type the writer cannot encode **fails the build**, by name. The reader resolves
-  event types **only from the recipient's own build's handled set**; a replay naming anything else is refused and
-  never loaded, so an untrusted bundle cannot make the recipient instantiate an arbitrary class. Measured in the R1
-  spike, with a witness for each refusal.
-- **Which records are raised** is declared beside the node that raises them (`raisedByGraph(RiskBreachEvent.class)`),
-  because the raise sits in a method body that reflection cannot see (a bytecode scan could). The writer marks those
-  records `# raised` (a YAML comment, so Fluxtion's parser still reads the file). The writer cannot see where an outside
-  `onEvent` call starts. A wrong declaration is still caught: a raised type declared as an input is injected and
-  duplicated, which the comparison names; an input declared as raised is never injected, which the matcher names.
+**The codec is the processor's handled event types, known statically (owner, R-D9).**
+- The builder reads them from the nodes' `@OnEventHandler` methods, and the generator compiles the set into the
+  processor.
+- A handled type the writer cannot encode **fails the build**, by name.
+- The writer encodes a record's components itself, so the JavaBean constraint is a choice of encoding, not a rule of
+  replay. It keeps Fluxtion's `ReplayRecord` YAML shape.
 
-**Why not a whitelist.** Recording inputs only also avoids the duplicate (spike, R0), but the list is hand-written,
-it fails silently when wrong, and it throws the check away. It stays as the fallback if observe mode fails R1.
+**The reader: plain injection.**
+- Every record is an input. The runner sets the data-driven clock to the record's instant and calls `onEvent`, and
+  the graph raises its own events again by itself.
+- The reader resolves event types **only from the recipient's own build's handled set**. A replay naming anything
+  else is refused and never loaded, so an untrusted bundle cannot make the recipient instantiate an arbitrary class.
+- **No matcher.** The audit-log comparison (§6) already names a build that behaves differently: the changed build's
+  missing breach is its first difference.
+
+**Measured (spike R2, on a clock that ticks per read, with a `RiskBreachEvent` sent in from outside as well):**
+- capture: 8 replay records for 9 audit records;
+- the same build replays 9 of 9, with only `endTime` differing;
+- the changed build (risk limit 3) replays 8 of 9, and the comparison shows the missing breach.
+
+*Superseded the same day:* R1's matcher, observe mode and `raisedByGraph` declaration. R1 showed them working; R2
+shows none of them is needed.
 
 ### 3.3 When: the instant the cycle ran at
 
@@ -241,7 +235,7 @@ A small runner, `tools/replay/replay-bundle.java`, run with JBang, which is alre
 1. reads the unpacked bundle's manifest;
 2. checks the graph (§5.2);
 3. feeds `replay/<processor>.replay.yaml` into a fresh instance of the recipient's processor with our reader
-   (§3.2): inputs injected at their recorded instants, graph-raised records matched, never injected;
+   (§3.2): every record injected at its recorded instant;
 4. writes the replayed audit log beside the working copy.
 
 **Why outside the analyser.** Replay runs the recipient's code: their build of the processor, on their classpath.
@@ -286,7 +280,7 @@ follow-up; the demo is the CLI verdict.
 | id | acceptance | wrong-result witness |
 |---|---|---|
 | RB-1 | a DEMO run recorded with `ReplayCapture` replays to N of N agreeing, graph-raised records matched and never injected | the same with one node's logic changed diverges, named at its first record |
-| RB-2 | a build that no longer raises the breach, or raises a different one, is named at that record by the runner's matcher | the recorded run replayed into its own build matches every raised event; the shipped reader, injecting everything, duplicates the breach (spike `record-all`, R0) |
+| RB-2 | an event raised by the graph is never recorded, even when an input of the same type arrives from outside | the external `RiskBreachEvent` is recorded and replays; recording by type instead duplicates the graph's own (spike `record-all`, R0) |
 | RB-3 | the exceptions are only those in §6 | a replayed log that differs in an input's `eventTime` is a divergence, not excepted |
 | RB-4 | a replay file from another run is refused at capture, naming the first unmatched input | a correctly paired file passes |
 | RB-5 | a window together with a replay is refused by name | a whole-log capture with a replay succeeds |
@@ -303,7 +297,7 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 | slice | what | needs |
 |---|---|---|
 | **R0** ☑ | Prove the auditor path. Generate the DEMO processor with the DEMO recorder installed, record a run, and replay it: the spike's `record-all-whitelist` result, with no hand-called `eventReceived` | done: builder 1.0.71 (the root pom's), runtime 1.0.16 |
-| R1 | `ReplayCapture` (the writer, with observe mode) and the matching reader; commit the recorded fixture, the log, the replay and the graph from one real run with no service calls (§3.4). Measure whether §6's second exception stays | R0; M70.R0b if the fixtures are regenerated |
+| R1 | `ReplayCapture` (identity recording, the static codec) and the injecting reader into the DEMO; commit the recorded fixture, the log, the replay and the graph from one real run with no service calls (§3.4) | R0; M70.R0b if the fixtures are regenerated |
 | R2 | The `replay` member: the `evidenceCapture` node's pairing, the whole-log rule and manifest format 2 | R1 |
 | R3 | `--replay-compare` and its rule (§6) | R1 |
 | R4 | The runner (§5), and the demo driver's replay leg | R2, R3 |
@@ -326,7 +320,7 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
    `YamlReplayRunner` ships in `fluxtion-builder-api-all-java8`, and the jar states no licence terms of its own (its
    `LICENSE.txt` belongs to a bundled dependency). Can a recipient without a Fluxtion licence run the replay?
    **An owner question; it decides whether the demo can say "anyone can check it".**
-2. **The redispatch match: what counts as a match?** It is made in our runner (R-D8). The open part is whether a match
+2. **Settled by R-D10:** there is no redispatch match. The open part is whether a match
    means the event's type and equality, or its type and position only. Equality needs the event's `equals`, which
    beans often lack.
 3. **Processor or agent?** R-D4 allows either. This spec uses the processor (§3.1) because it needs no Mongoose change
@@ -348,6 +342,6 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 - **r1 (2026-09-28):** first draft, from the spike and the owner's decisions R-D1…R-D4. The same day it took two
   owner corrections: the JavaBean constraint is the YAML writer's, not replay's; and graph-raised events are matched
   at the redispatch queue in replay mode (§3.2), rather than only excluded by a whitelist. A third decision, R-D5:
-  service invocations are a separate piece of work, as serialised method calls. Then R-D6 (the hook) and R-D7 (R0
+  service invocations are a separate piece of work, as serialised method calls. Then R-D6 (a hook, since superseded) and R-D7 (R0
   approved, licensing deferred), and R0 done. Then R-D8, our own writer and reader (§3.2 rewritten), and a
   correction: GraphML is not byte-stable across generator versions (§10.4).
