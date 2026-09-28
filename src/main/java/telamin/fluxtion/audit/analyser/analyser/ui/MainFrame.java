@@ -7075,6 +7075,10 @@ public final class MainFrame extends JFrame {
             if (!log.isEmpty()) log.put("openedBy", currentRequest.openedBy());   // M46 A4: a startup open says so
             if (store != null) {
                 log.put("freshness", logFreshness());
+                // evidence bundle v1, B1 (spec §4.1): the session's log generation, PROJECTED from the snapshot. A
+                // capture skill records it, copies, and re-reads it: if it moved, another log was opened meanwhile and the
+                // copy is incoherent. The same rule the walk save enforces internally, exposed rather than duplicated.
+                if (session != null) log.put("generation", sessionSnapshot().logGeneration());
                 log.put("following", following());
                 log.put("supportsFollow", store.supportsFollow() && followPath != null && !loadInFlight);
                 // M68.5 (D-E6): what Follow established about the FILE, from the session; absent before the first poll

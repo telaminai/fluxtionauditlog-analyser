@@ -1066,4 +1066,8 @@ CONTROLS = [
     ('eb-b0-caveat-again-per-showing', NODE + 'WalkPlayback.java',
      '        caveatStated = false;                 // M69.F3: a new showing states the caveat again, once\n', '',
      'WalkPlaybackTest#theCaveatIsStatedOncePerWalk'),
+    # evidence bundle v1, B1: context.log.generation, the capture skill's coherence check
+    ('eb-b1-context-publishes-the-generation', UI + 'MainFrame.java',
+     '                if (session != null) log.put("generation", sessionSnapshot().logGeneration());\n', '',
+     'ContextLogGenerationFrameTest#theGenerationIsPublishedAndMoves'),
 ]
