@@ -36,5 +36,7 @@ without extracting it, run `analyser --verify <bundle>.fexp`.
 - **Give a chart step room.** At the default window size a chart target can report *"no room … — widen the
   window"*. Enlarge the window and show the step again.
 - **No source navigation.** The bundle carries none of the sender's source roots.
-- **Your recents change.** The recent-files lists gain the working copy's log, graph and project. Nothing else
-  about your settings changes.
+- **Some machine settings change; your project's do not.** Your own project profile is untouched, byte for byte.
+  What does change is this machine's record of what was last open: the three recent lists (logs, graphs,
+  projects), the last-opened log and graph, and the active project. Measured on a second machine
+  (`docs/handoff/evidence/eb-f3-cross-machine/`), not assumed.
