@@ -5,8 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    # PR62 is stacked on the diagnostic PR; it needs these same full gates before merging.
-    branches: [main, diag/mouse-trace]
+    branches: [main]
 
 jobs:
   changes:

@@ -76,3 +76,15 @@ which a new native test witnesses. The original Settings reproduction remains th
 
 The full CI workflow now triggers for the stacked diagnostic base as well as main. Its result must be checked
 at the pushed head; local evidence and the other reviewer's results cannot substitute for that run.
+
+
+## Release integration (1.26.1 preparation)
+
+The independent re-review accepted R1 and O1–O3 at `5d790275`. Full CI run `36447058069` reported build
+2708 / 0 / 0 / 153, display 151 / 0 / 0 / 0, and 360 controls caught exactly once across four shards.
+The six mouse controls failed at their named assertions on Linux, including the pre-release checks.
+
+PR 62 is merged locally into the diagnostic stack before PR 61 goes into main, using the personal identity.
+The temporary diagnostic-base CI trigger is removed as the stack lands; main retains the full CI gates.
+The release must wait for CI on that final main tree. Cancellation remains limited to an owned modal taking
+focus: switching to another application does not cancel a drag, and the original incident remains unconfirmed.
