@@ -140,4 +140,16 @@ class ReplayFixtureTest {
         // and the first seven are the fixture's inputs, as it recorded them
         assertTrue(live[0].startsWith(Files.readString(REPLAY)), "the live run records the fixture's inputs exactly");
     }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("PR #70 review 9: the captured fixtures keep the producer's own trailing spaces, as .gitattributes says")
+    void theProducersBytesAreKept() throws Exception {
+        for (Path p : List.of(AUDIT, DIR.resolve("demo-quote-recorded.replayed-audit.yaml"))) {
+            String text = Files.readString(p);
+            assertEquals(8, text.split("eventLogRecord: \n", -1).length - 1, p + ": every record header as Fluxtion wrote it");
+            assertEquals(8, text.split("    nodeLogs: \n", -1).length - 1, p + ": every nodeLogs key as Fluxtion wrote it");
+            assertTrue(Files.readString(Path.of(".gitattributes")).contains(DIR.resolve(p.getFileName()) + " whitespace=-blank-at-eol"),
+                    p + " has its narrow whitespace exception, and only that");
+        }
+    }
 }

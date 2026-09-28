@@ -1413,6 +1413,10 @@ CONTROLS = [
      '"evidence: the records agree with this log, which is not proof that the run that wrote it also wrote them. "',
      '"evidence: the records agree with this log, so they cannot be from another run. "',
      'EvidenceBundleDocsTest#theReplayIsDescribedAsTheChecksShowIt'),
+    # finding 9: the captured fixture keeps the producer's bytes; trimming one header is caught
+    ('rf-the-producers-bytes-are-kept', 'src/test/resources/replay/demo-quote-recorded-audit.yaml',
+     'eventLogRecord: \n    eventTime: 1767258000060\n', 'eventLogRecord:\n    eventTime: 1767258000060\n',
+     'ReplayFixtureTest#theProducersBytesAreKept'),
     # finding 4: the member is read whole and counted before the processor runs; no reader takes a nameless field
     ('rn-the-count-is-the-manifests', RUNNER,
      '            if (taken.declaredRecords() != null && taken.declaredRecords() != inputs) {\n',
