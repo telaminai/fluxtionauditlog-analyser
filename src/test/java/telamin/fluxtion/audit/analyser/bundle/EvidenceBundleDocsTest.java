@@ -101,4 +101,27 @@ class EvidenceBundleDocsTest {
             }
         }
     }
+
+    static final Path CONVERSATIONS = Path.of("tools/capture-bundle-conversations.py");
+
+    /** Claims the checks do not support (PR #70 review 5), in the pages and in the script that writes one of them. */
+    static final java.util.List<String> UNSUPPORTED = java.util.List.of(
+            "cannot be from another run",                  // pairing is consistency evidence, not run identity
+            "so nothing the replay",                       // no service calls is not completeness
+            "**is** the bundle's processor",               // a graph match is compatibility, not the same code
+            "build the bundle's processor",
+            "nodes and edges are the bundle's");
+
+    @Test
+    @DisplayName("PR #70 review 5: no page, nor the script that writes one, claims run identity, completeness or the same code")
+    void theReplayIsDescribedAsTheChecksShowIt() throws Exception {
+        String text = pages() + Files.readString(CONVERSATIONS).replaceAll("\"\\s*\n\\s*\"", "");
+        for (String claim : UNSUPPORTED) assertFalse(text.contains(claim), "an unsupported claim: " + claim);
+        // what IS said, in the page an assistant's user reads
+        String page = Files.readString(SITE.resolve("with-an-assistant.md"));
+        for (String bounded : java.util.List.of("That is consistency evidence", "That is not a completeness check",
+                "not that it is the same code", "not proof of everything the build does")) {
+            assertTrue(page.contains(bounded), "the page states the bounded meaning: " + bounded);
+        }
+    }
 }

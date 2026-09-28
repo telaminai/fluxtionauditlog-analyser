@@ -226,9 +226,12 @@ def sender(t):
     t.context(["capture"])
     t.agent("Written as `recorded-run.fexp`, and it carries **the run's 7 recorded inputs, matched to the log in "
             "order by type, instant and content**: the analyser checked that each one is a log record of the same type, "
-            "at the instant its cycle ran, whose printed event is exactly the recorded one. The eighth record, the breach, is not among them because the graph "
-            "raised it itself; a replay raises it again. The log holds no exported-service calls, so nothing the "
-            "replay records cannot carry.",
+            "at the instant its cycle ran, whose printed event is exactly the recorded one. That is consistency "
+            "evidence: the records agree with this log, which is not proof that the run that wrote it also wrote them. "
+            "The eighth record, the breach, is not among them because the graph raised it itself; a replay raises it "
+            "again. The log holds no exported-service calls, so there are none the replay would miss. That is not a "
+            "completeness check: anything else the processor read, such as a file or a random value, is invisible to "
+            "the analyser and would not be replayed.",
             cites=["the run's 7 recorded inputs, matched to the log in order by type, instant and content"])
     t.shot("bundle-conv-recorded-run.png", "The recorded run the second bundle carries: eight records, the last "
            "the breach the graph raised itself")
@@ -263,12 +266,14 @@ def recipient(t):
              "--cp", ours, "--out", out])
     t.shell("analyser --replay-compare ~/Downloads/recorded-run.fexp ~/work/replayed.yaml",
             ["java", "-jar", jar, "--replay-compare", bundle, out])
-    t.agent("Our build gives the same audit log. The runner first checked that our build **is** the bundle's processor: the "
-            "same nodes and edges as the graph the bundle carries. It then replayed the 7 inputs at their recorded "
-            "instants, and the graph raised the breach again by itself: 8 audit records. The analyser compared "
-            "them with the bundled log and they agree, 8 of 8. The only lines allowed to differ are when and where "
-            "each cycle ran (`endTime`, `thread`), which a replay cannot know.",
-            cites=["graph: your build's nodes and edges are the bundle's", "replay: AGREES, 8 of 8 records"])
+    t.agent("Our build gives the same audit log on this run. The runner first checked that our build's graph matches "
+            "the bundle's: the same node ids and edges. That shows it is wired the same way, not that it is the same "
+            "code; the replay is what tests the behaviour. It then replayed the 7 inputs at their recorded instants, "
+            "and the graph raised the breach again by itself: 8 audit records. The analyser compared them with the "
+            "bundled log and they agree, 8 of 8. The only lines allowed to differ are when and where each cycle ran "
+            "(`endTime`, `thread`), which a replay cannot know. That is evidence for these recorded inputs, not "
+            "proof of everything the build does.",
+            cites=["graph: your build's node ids and edges match the bundle's", "replay: AGREES, 8 of 8 records"])
 
     printed = t.shell("analyser --unpack ~/Downloads/recorded-run.fexp",
                       ["java", "-jar", jar, "--unpack", bundle, "--into", WORK / "copies"])

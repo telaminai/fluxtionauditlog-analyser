@@ -402,7 +402,7 @@ def replay_sender(an, inbox):
 def build(work, name, risk_limit=None, graphml=None):
     """A recipient's build of the processor from the committed DEMO sources (not the builder, which needs the
     compiler), with the generator's GraphML beside the class. `risk_limit` changes the generated processor's limit;
-    `graphml` puts another processor's graph beside it, making a build that is not the bundle's processor."""
+    `graphml` puts another processor's graph beside it, making a build whose graph does not match the bundle's."""
     src, classes = work / f"{name}-src", work / name
     files = []
     for p in DEMO_SRC.rglob("*.java"):
@@ -444,7 +444,7 @@ def runner(bundle, build_dir, out):
 
 def replay_recipient(an, bundle, work):
     """Verify, replay into our build (AGREES), into a build that behaves differently (DIVERGES, named), refuse a build
-    that is not the bundle's processor; then open the bundle and play its walk."""
+    whose graph does not match the bundle's; then open the bundle and play its walk."""
     label = "replay"
     received = sha(bundle)
     code, so, se = cli(an.home, "--verify", bundle)
@@ -461,7 +461,8 @@ def replay_recipient(an, bundle, work):
     t0 = time.monotonic()
     code, so, se = runner(bundle, ours, work / "replayed.yaml")
     RESULTS["timings"]["replay_runner_s"] = round(time.monotonic() - t0, 2)
-    check(code == 0 and "graph: your build's nodes and edges are the bundle's" in so and "(8 audit records)" in so,
+    check(code == 0 and "graph: your build's node ids and edges match the bundle's" in so
+          and "this does not show it is the same code" in so and "(8 audit records)" in so,
           f"R4 [{label}] the runner replays 7 inputs into our build, which raises the breach again: 8 records", so + se)
     t0 = time.monotonic()
     code, so, se = cli(an.home, "--replay-compare", bundle, work / "replayed.yaml")
@@ -478,7 +479,7 @@ def replay_recipient(an, bundle, work):
     code, so, se = runner(bundle, foreign, work / "replayed-foreign.yaml")
     check(code == 1 and "your build's graph is not the bundle's: node(s) [replayCapture] missing" in se
           and not (work / "replayed-foreign.yaml").exists(),
-          f"R4 [{label}] a build that is not the bundle's processor is refused by name, nothing written", so + se)
+          f"R4 [{label}] a build whose graph does not match the bundle's is refused by name, nothing written", so + se)
 
     open_bundle(an, bundle, work / "copies")
     shown = play(an, REPLAY_WALK, label)

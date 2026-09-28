@@ -287,11 +287,16 @@ jbang tools/replay/ReplayBundle.java --bundle run.fexp \
    A type outside them is refused and never loaded.
 4. It feeds each record into a fresh instance of your processor with a data-driven clock set to the record's instant.
    The graph raises its own events again by itself.
-5. It writes the processor's audit log, framed as the producer's is, without the runner's own set-up records, and
-   prints the `--replay-compare` command to run next.
+5. It writes the processor's audit log, framed as the producer's is, every record the processor emits (the runner's
+   set-up emits none; PR #70 review 3), and prints the `--replay-compare` command to run next. The file appears only
+   when the replay completes.
 
-It refuses, by name, exit 1: a build that is not the bundle's processor; a bundle with no replay records; a processor
-not on the classpath; a record type the build does not handle; an output file that exists. Exit 2 is usage.
+It refuses, by name, exit 1: a build whose graph's node ids and edges do not match the bundle's (a match is graph
+compatibility, not the same code); a manifest that is not JSON, or not the bundle schema (one replay member, at most
+one graph, every member listed); a member that does not match its digest and size, or is over the per-member or
+whole-bundle limit; a malformed replay record anywhere in the member, or a count other than the manifest's, before
+the processor runs (PR #70 review 2, 4, 7); a bundle with no replay records; a processor not on the classpath; a
+record type the build does not handle; an output file that exists. Exit 2 is usage.
 
 **Why outside the analyser.** Replay runs the recipient's code, their build on their classpath. The analyser has
 never executed a user's processor, and the placement rule (first delivery, §3.1) does not require it to. The runner's

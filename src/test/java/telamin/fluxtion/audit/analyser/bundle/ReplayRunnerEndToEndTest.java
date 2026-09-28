@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The recipient's whole path (M70.R4, spec-evidence-bundle-replay §5–§6), end to end: a bundle with replay records, a
  * build of the processor compiled from the committed DEMO sources as a recipient would have it, the runner
  * ({@code tools/replay/ReplayBundle.java}) replaying the records into it, and the analyser's comparison judging what it
- * wrote. Then the same with a build that behaves differently, and one that is not the bundle's processor at all.
+ * wrote. Then the same with a build that behaves differently, and one whose graph does not match the bundle's at all.
  */
 class ReplayRunnerEndToEndTest {
 
@@ -360,7 +360,7 @@ class ReplayRunnerEndToEndTest {
     }
 
     @Test
-    @DisplayName("a build that is not the bundle's processor is refused by name; --skip-graph-check replays and says so")
+    @DisplayName("a build whose graph does not match the bundle's is refused by name; --skip-graph-check replays and says so")
     void aDifferentGraphIsRefused(@TempDir Path tmp) throws Exception {
         Path bundle = ReplayCompareTest.bundle(tmp);
         Path build = build(tmp, "other", null);

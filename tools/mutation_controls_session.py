@@ -1286,7 +1286,7 @@ CONTROLS = [
     ('rc-a-divergence-exits-one', MAIN,
      '            code = 1;\n', '            code = 0;\n',
      'MainBundleTest#replayCompareExitsByVerdict'),
-    # M70.R4: the recipient's runner (spec §5). It refuses a build that is not the bundle's processor, loads only the
+    # M70.R4: the recipient's runner (spec §5). It refuses a build whose graph does not match the bundle's, loads only the
     # event types that build handles, and replays each record at its recorded instant. The end-to-end test compiles
     # the runner from this source on every run, so both engines see a mutation of it (checked on each, 2026-09-28).
     ('rn-refuses-a-different-graph', RUNNER,
@@ -1408,6 +1408,11 @@ CONTROLS = [
      '        if (event != expected || target == null) return;\n',
      '        if (target == null) return;\n',
      'ReplayFixtureTest#onlyTheExternalObjectIsRecorded'),
+    # finding 5: the guidance says what the checks show; the script that writes the page cannot restore the claim
+    ('dg-no-run-identity-claim', 'tools/capture-bundle-conversations.py',
+     '"evidence: the records agree with this log, which is not proof that the run that wrote it also wrote them. "',
+     '"evidence: the records agree with this log, so they cannot be from another run. "',
+     'EvidenceBundleDocsTest#theReplayIsDescribedAsTheChecksShowIt'),
     # finding 4: the member is read whole and counted before the processor runs; no reader takes a nameless field
     ('rn-the-count-is-the-manifests', RUNNER,
      '            if (taken.declaredRecords() != null && taken.declaredRecords() != inputs) {\n',

@@ -18,13 +18,16 @@ import java.util.regex.Pattern;
  *
  * <p>A replay holds the run's INPUTS only (R-D10: the graph's own events are never recorded), each stamped with the
  * instant its cycle ran at. So its records must appear, in order, WITHIN the log: each matching a log record with the
- * same event name and the same {@code eventTime}. The log records between them are the ones the graph raised itself
- * and exported-service calls. A replay from another run, or re-stamped by a writer that read the clock again, fails at
- * its first record that has no match.
+ * same event name and the same {@code eventTime} and, where the log prints the event, the same content. The log
+ * records between them are the ones the graph raised itself and exported-service calls. A replay whose inputs differ
+ * from the log's, or re-stamped by a writer that read the clock again, fails at its first record that has no match.
+ * This is consistency evidence, not run identity (PR #70 review 5): a replay that agrees with the log in every checked
+ * field pairs, whichever run wrote it; an input the log does not print is matched by type and instant only, and
+ * counted as that.
  *
- * <p>Nothing is loaded from the file: only each record's event class NAME and its time are read, and any document that
- * is not a replay record refuses the file. That, and the pairing, is what stands between an arbitrary file named as a
- * replay and the bundle it would otherwise be packed into.
+ * <p>Nothing is loaded from the file: each record's event class NAME, its time and its component text are read, and
+ * any document that is not a replay record refuses the file. That, and the pairing, is what stands between an
+ * arbitrary file named as a replay and the bundle it would otherwise be packed into.
  */
 public final class ReplayPairing {
 

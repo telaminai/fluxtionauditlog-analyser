@@ -100,9 +100,17 @@ jbang tools/replay/ReplayBundle.java --bundle breach-0900.fexp \
 It runs your build, which is why it is a separate program and not part of the analyser. It checks the build first,
 feeds the replay records in, and writes the audit log `--replay-compare` reads:
 
-- **Is your build the bundle's processor?** It compares the nodes and edges of your build's GraphML
+- **Does your build's graph match the bundle's?** It compares the node ids and edges of your build's GraphML
   (`<Class>.graphml`, written by the generator beside the class) with the bundle's `graph/` member. It refuses
-  naming the difference. `--skip-graph-check` goes on anyway and prints `graph: NOT checked`.
+  naming the difference. A match is graph compatibility: the same nodes, wired the same way. It does not show the
+  same code, which is what the replay tests. `--skip-graph-check` goes on anyway and prints `graph: NOT checked`.
+- **The bundle is what its manifest says.** The manifest is read as JSON, in any valid spelling, and held to the
+  bundle schema: one replay member, at most one graph, every member listed. Every member must match its digest and
+  size, within a per-member limit (`-DreplayBundle.maxMemberBytes`, 512 MiB) and a whole-bundle limit
+  (`-DreplayBundle.maxBundleBytes`, 4 GiB). Only the graph is held in memory.
+- **The whole replay, before your build runs.** Every replay record is read and built first. A malformed record
+  anywhere, or a count other than the manifest's, is refused before your processor sees an input. The audit log
+  appears only when the replay completes.
 - **Only your build's event types.** A replay record is read only as one of the event types your processor's
   `handleEvent` methods take. Any other type is refused and never loaded.
 - **The recorded instant.** Each record is fed in on a data-driven clock set to its instant, so the processor reads
