@@ -548,6 +548,19 @@ saying so. READ evidence is at `main` `d82f1487`, the same revision r2 and r3 us
   - A bundle carries walks because it carries the profile.
   - M69 also delivers feature request 40 / proposal P1 (2026-09-20), and adopts P1's constraints (M69 §0).
 
+### L-32 · M69 shipped in 1.26.0 — what a bundle can now rely on · resolved (fact)
+
+Merged as `5cdd12ec` (PR #57), 2026-09-28. For §8, what the bundle can rely on:
+- **Walks are profile content**, stored and shared like reports, and a walk-only share is supported.
+- **A walk step is honest about what it cannot show.** A record, chart or graph target is bound to what it was
+  saved against. A record that differs is not lit. A chart that did not draw says why (the chart panel's drawn
+  fact). A record hidden by the step's filter makes the detail pane and topology canvas unavailable. A log whose
+  file changed after it was read makes record targets unresolved.
+- **An unassessed log says "current" means unchanged since saving**, not unchanged on disk. A bundle opened with
+  Follow off will show that caveat.
+- **Still open, and relevant here:** #56's layout owner (A-7, "no room") is not yet landed, so an undrawn chart
+  reports why but cannot make room.
+
 ## Open disputes, at a glance
 
 | log | question | what settles it |
@@ -557,5 +570,5 @@ saying so. READ evidence is at `main` `d82f1487`, the same revision r2 and r3 us
 | L-16, L-17, L-28 | Chart fact placement and coherent capture (D-1a) | context is the smaller chart-fact candidate (L-17). The log half of capture validity is a published generation plus `expectGeneration` (L-28); the chart half needs a revision counter or native capture, then an A-3 proof |
 | L-18 | Complete replay route (§9) | dispatch/clock primitives and mapper bypass established by READ; pin and run a released pre-mapper runner with reset/build identity/oracle (EB-0) |
 | L-25, L-29 | Which input channels a replay must cover (§9) | the host declares its channels, and the log is a second guard only (L-29); witnesses for an uncovered admin reset (INCOMPATIBLE) and for an invisible one, refused on the declaration |
-| L-24, L-31 | Walk honesty for an undrawn chart (§8, A-7) | **owner (L-31):** the walk is M69, native; it reads the chart's drawn state from the chart panel, and uses #56's layout owner when that lands |
+| L-24, L-31, L-32 | Walk honesty for an undrawn chart (§8, A-7) — M69 shipped (L-32) | **owner (L-31):** the walk is M69, native; it reads the chart's drawn state from the chart panel, and uses #56's layout owner when that lands |
 | L-26 | Which “two bugs” the demo discussion meant (EB-0) | owner confirms or rejects the lead: #46 (closed, 1.25.0) and #56 (open) |

@@ -16,8 +16,8 @@ portable investigations **and a bounded replay → fix → comparison → respon
 viewer is optional. An inspection-only release can be an intermediate checkpoint, but is not completion
 of that requested delivery. Two days is a planning target, not grounds for waiving an acceptance check.
 
-**Owner direction, 2026-09-27: the spotlight walkthrough is needed regardless of this proposal.** It is built as its
-own analyser feature, **M69** ([`docs/specs/spec-spotlight-walks.md`](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-spotlight-walks.md) on `main`):
+**Owner direction, 2026-09-27: the spotlight walkthrough is needed regardless of this proposal.** It **shipped in
+1.26.0** (2026-09-28, PR #57, merged `5cdd12ec`) as its own analyser feature, **M69** ([`docs/specs/spec-spotlight-walks.md`](https://github.com/telaminai/fluxtionauditlog-analyser/blob/main/docs/specs/spec-spotlight-walks.md) on `main`):
 - forward/back arrows on the spotlight overlay, not a separate player;
 - walks stored in the project like reports;
 - a right-click on a live spotlight opens a save menu.
