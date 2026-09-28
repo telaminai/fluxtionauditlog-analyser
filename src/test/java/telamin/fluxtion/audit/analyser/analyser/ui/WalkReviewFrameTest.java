@@ -283,4 +283,111 @@ class WalkReviewFrameTest {
                             + walk(f).reason()));
         }
     }
+
+    // ---- W-A4: playback persists NOTHING, on the real frame, in bytes -----------------------------------------
+
+    /**
+     * "Once pending saves settle" (W-A4), deterministically: the project profile's write is coalesced behind
+     * {@code ProjectSession.requestSave()}, so a sleep proves nothing. Flushing it and the machine config forces
+     * anything playback changed IN MEMORY out to disk, which is what makes the byte comparison meaningful rather
+     * than merely quiet.
+     */
+    private static void settle(AsyncOpenInterleavingFrameTest.Frame f) throws Exception {
+        onEdt(() -> {
+            try {
+                var projectField = MainFrame.class.getDeclaredField("project");
+                projectField.setAccessible(true);
+                Object project = projectField.get(f.frame);
+                if (project != null) project.getClass().getMethod("flush").invoke(project);
+                var save = MainFrame.class.getDeclaredMethod("saveConfigQuietly");
+                save.setAccessible(true);
+                save.invoke(f.frame);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    /** The settings text as comparable lines, minus the timestamp comment a properties store always writes. */
+    private static List<String> lines(byte[] bytes) {
+        return new String(bytes, java.nio.charset.StandardCharsets.UTF_8).lines()
+                .filter(l -> !l.startsWith("#")).sorted().toList();
+    }
+
+    /** Every settings file this frame may write: the machine config and, when a project is open, its profile. */
+    private static Map<Path, byte[]> settingsBytes(Path home, Path profile) throws Exception {
+        Map<Path, byte[]> out = new java.util.LinkedHashMap<>();
+        for (Path f : List.of(home.resolve(".fluxtion-analyser").resolve("config"), profile)) {
+            out.put(f, java.nio.file.Files.exists(f) ? java.nio.file.Files.readAllBytes(f) : new byte[0]);
+        }
+        return out;
+    }
+
+    /**
+     * W-A4 — the half the response left unattempted: not "no save funnel was called" (the presenter tests assert
+     * that) but "both settings files are the same BYTES afterwards".
+     *
+     * <p>A dirty start first, because the leak this guards against is the walk carrying the person's state into a
+     * step and then writing it back: the opposite grouping mode, a dimension and text filter, another tab and
+     * another record, all in force before the walk starts.
+     */
+    @Test
+    @DisplayName("W-A4: a dirty start does not leak into step 1, and playback leaves both settings files byte-identical")
+    void playbackPersistsNothing(@TempDir Path tmp) throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless());
+        try (var f = opened(tmp)) {
+            Path home = Path.of(System.getProperty("user.home"));
+            Path profile = telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.pathFor(
+                    java.nio.file.Files.createDirectories(tmp.resolve("wa4Project")));
+            telamin.fluxtion.audit.analyser.analyser.config.ProjectProfile.save(profile,
+                    new telamin.fluxtion.audit.analyser.analyser.config.AppConfig(),
+                    new telamin.fluxtion.audit.analyser.analyser.config.SettingsShare());
+            call(f, "open", Map.of("project", profile.toString()));
+            // opening a project closes the log, which is the realistic order anyway: project, then log
+            call(f, "open", Map.of("log", Path.of("src/main/resources/demo/demo-quote-series.yaml")
+                    .toAbsolutePath().toString()));
+            AsyncOpenInterleavingFrameTest.awaitLoaded(f.ex);
+            Thread.sleep(300);
+
+            call(f, "walk", Map.of("name", "DEMO_wa4", "steps", List.of(
+                    Map.of("caption", "one", "view", Map.of("tab", "topology"),
+                            "targets", List.of(target("topology:node:priceListener", "here"))),
+                    Map.of("caption", "two", "view", Map.of("tab", "summary"),
+                            "targets", List.of(target("status", "and here"))),
+                    // a CHART step, because the persisting path W-A4 names is the chart one: selecting a chart
+                    // must not reach the save funnel that opening or editing one goes through
+                    Map.of("caption", "three", "view", Map.of("tab", "graph", "graph", "Graph 1"),
+                            "targets", List.of(target("status", "the chart"))))));
+
+            // the dirty start: the opposite grouping mode, a dimension and text filter, another tab, another record
+            call(f, "filter", Map.of("group", "RAW_EVENT", "text", "dirty"));
+            call(f, "goto", Map.of("recordIndex", 1));
+            call(f, "spotlight", Map.of("target", "tab:reports", "caption", "somewhere else"));
+            settle(f);                               // every save the setup asked for lands BEFORE the baseline
+
+            var before = settingsBytes(home, profile);
+            var walksBefore = List.copyOf(
+                    ((telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config")).walks);
+
+            call(f, "walk", Map.of("name", "DEMO_wa4", "play", true));
+            await("step 1 settled", () -> !"PREPARING".equals(walk(f).phase()));
+            call(f, "walk", Map.of("name", "DEMO_wa4", "play", true, "step", 2));
+            await("step 2 settled", () -> !"PREPARING".equals(walk(f).phase()));
+            call(f, "walk", Map.of("name", "DEMO_wa4", "play", true, "step", 3));
+            await("step 3 settled", () -> !"PREPARING".equals(walk(f).phase()));
+            call(f, "walk", Map.of("end", true));
+            settle(f);                               // and anything playback changed is forced out to disk
+
+            var after = settingsBytes(home, profile);
+            for (Path file : before.keySet()) {
+                assertEquals(lines(before.get(file)), lines(after.get(file)),
+                        "W-A4: playing a walk wrote to " + file.getFileName() + ". Playback restores a view; it "
+                                + "must never persist one, or replaying someone's explanation would quietly "
+                                + "rewrite the reader's own setup");
+            }
+            onEdt(() -> assertEquals(walksBefore,
+                    ((telamin.fluxtion.audit.analyser.analyser.config.AppConfig) field(f.frame, "config")).walks,
+                    "and the saved definitions are what they were"));
+        }
+    }
 }

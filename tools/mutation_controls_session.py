@@ -1046,4 +1046,11 @@ CONTROLS = [
      '                .anyMatch(t -> "record".equals(t.basis().kind()) || "chart".equals(t.basis().kind()));',
      '        return true;',
      'WalkPlaybackTest#aStructuralStepIsNotCaveated'),
+    # W-A4's own control, as the spec asks for it: "a control that plays through the persisting graph path fails".
+    # Selecting an open chart is transient; OPENING one goes through the funnel that writes savedGraphs, and the
+    # byte comparison catches it. This is the half of W-A4 the response left unattempted.
+    ('m69-wa4-playback-persists-nothing', UI + 'WalkPresenter.java',
+     '                g.selectGraph(view.graph());                 // transient: selecting persists nothing',
+     '                g.addGraph(view.graph() + " (walk)");',
+     'WalkReviewFrameTest#playbackPersistsNothing'),
 ]
