@@ -1,0 +1,29 @@
+identity (EXPECTED TO DIFFER — the manifest carries createdAt):
+    sha256:1a6b5d5e09033731 …
+
+member digests — THESE MUST MATCH on every machine:
+    graph/demo-quote-processor.graphml       2261b16d85b3c56ec504b25733ae2fa2…  12653 bytes
+    log/demo-quote-series.yaml               06a981faf8086b74c85c0e795e97f2ae…  309863 bytes
+    notes/NOTES.md                           e03eb8e5f9316a516b8085b27b968149…  137 bytes
+    profile/project.fluxtion-settings        cc8b965eaddfadd2ea5f5c4246780bca…  2385 bytes
+
+profile, with clocks and the nonce removed — MUST MATCH:
+    sha256:1429d691394b5c7b08020e946912dd7d133d8e9a1efa32f8c8235e691fc03d36
+
+the lines that bind evidence — MUST MATCH, line for line:
+    walk.0.fp.first=1767258004500
+    walk.0.fp.last=1767259092000
+    walk.0.fp.records=726
+    walk.0.run.0=06a981faf8086b74c85c0e795e97f2ae40702b6cd153d7ff04db3ca8b6d11b4c
+    walk.0.run.1=records\:726
+    walk.0.run.count=2
+    walk.0.s.0.t.0.basis.digest=sha256\:84cf48453226067a6725ebd15a4a084a965a7dd211620895385c5392721152d0
+    walk.0.s.0.t.0.basis=record
+    walk.0.s.0.t.0.target=records\:row\:5
+    walk.0.s.1.t.0.basis.digest=sha256\:ac87d75712406defbf8de5c9da4c1281d59f785e5bab132211712c7b37617410
+    walk.0.s.1.t.0.basis=chart
+    walk.0.s.1.t.0.target=graph\:DEMO mid and spread
+    walk.0.s.2.t.0.basis=none
+    walk.0.s.2.t.0.target=topology\:verdict
+
+this machine: Darwin arm64 | java java version "25.0.2" 2026-01-20 LTS
