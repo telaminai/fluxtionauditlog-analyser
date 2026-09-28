@@ -2,8 +2,8 @@
 
 **Range reviewed:** `ad61a37c..1d342499` (eleven commits). R4 (`1a6ddf63`) is baseline and was not reviewed.
 
-**Range I pushed, for review on its own: `1d342499..ceee3a66`** (five commits — this document, then three fixes,
-then the controls, spec, changelog and one withdrawal).
+**Range I pushed, for review on its own: `1d342499..HEAD`** (this document, three fixes, the controls/spec/changelog
+with one withdrawal, and W-A4).
 
 | finding | disposition |
 |---|---|
@@ -14,6 +14,7 @@ then the controls, spec, changelog and one withdrawal).
 | F5 unassessed log certifies as current | **fixed** in `a6105707` (a caveat, not a refusal) |
 | F6 restore does not report | **fixed** in `72609958` |
 | F7 misleading test name | **fixed** in `ceee3a66` |
+| W-A4 unattempted by the response | **done** in `f60a5891` — playback persists nothing |
 
 **Verdict on the branch as I received it: mergeable after F1.** With the commits above applied, **mergeable**.
 
@@ -211,10 +212,12 @@ the node. Its `@DisplayName` is accurate; the method name is not, and the method
 
 ## W-A4 and W-A11
 
-- **W-A4 (byte comparison of both settings files after a dirty start): follow-up, but schedule it before release,
-  not after.** R8 *increased* what playback touches — every step now writes the filter, including steps that
-  previously left it alone — so the "playback persists nothing" property is more load-bearing at `1d342499` than it
-  was when W-A4 was deferred. Not a merge blocker; the risk is a persisted filter, not a wrong verdict.
+- **W-A4: done** (`f60a5891`), because R8 increased what playback touches — every step now writes the filter,
+  including steps that previously left it alone — so "playback persists nothing" became more load-bearing than
+  when W-A4 was deferred. `WalkReviewFrameTest#playbackPersistsNothing` compares both settings files after a dirty
+  start and a three-step playback, settling the coalesced project save deterministically rather than sleeping.
+  **Playback persists nothing**, and the spec's own control ("a control that plays through the persisting graph
+  path fails") is registered and caught.
 - **W-A11 (native screenshot capture): follow-up.** It is evidence-capture convenience and blocks nothing here.
 
 ## Merge verdict
