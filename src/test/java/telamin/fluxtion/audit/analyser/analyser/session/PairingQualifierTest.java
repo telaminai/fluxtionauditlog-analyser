@@ -73,6 +73,22 @@ class PairingQualifierTest {
     }
 
     @Test
+    @DisplayName("spike round 3: a lifecycle change for the SAME pair wakes the qualifier, and it keeps the comparison")
+    void aLifecycleChangeForTheSamePairKeepsIt() {
+        // witness: PairingQualifier.onPairChanged clearing on every change. Since round 3 an append no longer wakes
+        // this node at all (it binds to the lifecycle, not the count), so aReScopeKeepsItStale holds structurally; an
+        // identity verdict is what wakes it for the same generation and graph revision.
+        SessionDriver d = pairOpen(new FakeSessionAdapter());
+        compare(d, wholeLog(600, List.of()));
+        assertNotNull(d.snapshot().qualifications(), "control: the comparison is held");
+
+        d.post(new SessionEvents.LogIdentityObserved(d.snapshot().logGeneration(), "UNVERIFIED", "changed on disk"));
+
+        assertNotNull(d.snapshot().qualifications(),
+                "the same log and the same graph: a verdict about the file does not make it a different pair");
+    }
+
+    @Test
     @DisplayName("a different graph, or a new log, clears the comparisons")
     void aDifferentPairClearsThem() {
         FakeSessionAdapter adapter = new FakeSessionAdapter();

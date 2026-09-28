@@ -80,6 +80,7 @@ import telamin.fluxtion.audit.analyser.analyser.session.node.IdentityBanner;
 import telamin.fluxtion.audit.analyser.analyser.session.node.IgnoredParameters;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence;
+import telamin.fluxtion.audit.analyser.analyser.session.node.LogLifecycle;
 import telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenGraph;
 import telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog;
@@ -180,6 +181,8 @@ public class SessionProcessor
       new telamin.fluxtion.audit.analyser.analyser.session.node.AuditInstallation(openGraph);;
   public final transient OpenLog openLog =
       new telamin.fluxtion.audit.analyser.analyser.session.node.OpenLog(operationGate);;
+  public final transient LogLifecycle logLifecycle =
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LogLifecycle(openLog);;
   public final transient Pairing pairing =
       new telamin.fluxtion.audit.analyser.analyser.session.node.Pairing(openLog, openGraph);;
   public final transient CoverageClaim coverageClaim =
@@ -187,7 +190,7 @@ public class SessionProcessor
           pairing, auditInstallation, openGraph, openLog);;
   public final transient PairingQualifier pairingQualifier =
       new telamin.fluxtion.audit.analyser.analyser.session.node.PairingQualifier(
-          openLog, openGraph, pairing);;
+          openLog, logLifecycle, openGraph, pairing);;
   public final transient SessionRecovery sessionRecovery =
       new telamin.fluxtion.audit.analyser.analyser.session.node.SessionRecovery(operationGate);;
   private final transient SubscriptionManagerNode subscriptionManager =
@@ -198,12 +201,13 @@ public class SessionProcessor
   public final transient EffectQueue effectQueue = new EffectQueue();
   public final transient IdentityBanner identityBannerView =
       new telamin.fluxtion.audit.analyser.analyser.session.node.IdentityBanner(
-          openLog, effectQueue);;
+          openLog, logLifecycle, effectQueue);;
   public final transient LogArrival logArrival =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogArrival(
           operationGate, pairing, openGraph, effectQueue);;
   public final transient LogEvidence logEvidence =
-      new telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence(openLog, effectQueue);;
+      new telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence(
+          openLog, logLifecycle, effectQueue);;
   public final transient LogOpening logOpening =
       new telamin.fluxtion.audit.analyser.analyser.session.node.LogOpening(
           operationGate, effectQueue);;
@@ -225,13 +229,14 @@ public class SessionProcessor
   //Measured saving on a 3-event-type graph: 0.098ns of a 5.61ns event on a JIT; nothing on native+PGO.
   private boolean callbacksPending = false;
   private final transient IdentityHashMap<Object, BooleanSupplier> dirtyFlagSupplierMap =
-      new IdentityHashMap<>(7);
+      new IdentityHashMap<>(8);
   private final transient IdentityHashMap<Object, Consumer<Boolean>> dirtyFlagUpdateMap =
-      new IdentityHashMap<>(7);
+      new IdentityHashMap<>(8);
 
   private boolean isDirty_activeProject = false;
   private boolean isDirty_auditInstallation = false;
   private boolean isDirty_logEvidence = false;
+  private boolean isDirty_logLifecycle = false;
   private boolean isDirty_openGraph = false;
   private boolean isDirty_openLog = false;
   private boolean isDirty_operationGate = false;
@@ -405,7 +410,7 @@ public class SessionProcessor
           new DescriptorSupport.Meta(
               null,
               "1.0.71",
-              "154b8423b4d8c6b0db0a91f423113187a5a522d3f41d414509bd8d87019b6a40",
+              "866f6fe03a28c2f5cc6d01b2add00857b1067e1dcd5822c3d8168054d91bd5f8",
               null));
 
   @Override
@@ -931,6 +936,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -954,6 +963,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -971,6 +984,10 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(openLog, "openLog", "onFollowToggled", typedEvent);
     isDirty_openLog = openLog.onFollowToggled(typedEvent);
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -993,6 +1010,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
     }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
@@ -1019,6 +1040,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1041,6 +1066,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
     }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
@@ -1065,6 +1094,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogAppended", typedEvent);
     isDirty_openLog = openLog.onLogAppended(typedEvent);
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1090,6 +1123,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogCleared", typedEvent);
     isDirty_openLog = openLog.onLogCleared(typedEvent);
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1115,6 +1152,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogClosed", typedEvent);
     isDirty_openLog = openLog.onLogClosed(typedEvent);
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1144,6 +1185,10 @@ public class SessionProcessor
     //Default, no filter methods
     auditInvocation(openLog, "openLog", "onLogIdentityObserved", typedEvent);
     isDirty_openLog = openLog.onLogIdentityObserved(typedEvent);
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1168,6 +1213,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
     }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
@@ -1194,6 +1243,10 @@ public class SessionProcessor
     }
     auditInvocation(openLog, "openLog", "onLogOpened", typedEvent);
     isDirty_openLog = openLog.onLogOpened(typedEvent);
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1250,6 +1303,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1287,6 +1344,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
     }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
@@ -1336,6 +1397,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1375,6 +1440,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1397,6 +1466,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
     }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
@@ -1454,6 +1527,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1476,6 +1553,10 @@ public class SessionProcessor
     if (guardCheck_auditInstallation()) {
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
+    }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
     }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
@@ -1903,6 +1984,10 @@ public class SessionProcessor
       auditInvocation(auditInstallation, "auditInstallation", "recomputeOnStateChange", typedEvent);
       isDirty_auditInstallation = auditInstallation.recomputeOnStateChange();
     }
+    if (guardCheck_logLifecycle()) {
+      auditInvocation(logLifecycle, "logLifecycle", "onOpenLogChanged", typedEvent);
+      isDirty_logLifecycle = logLifecycle.onOpenLogChanged();
+    }
     if (guardCheck_identityBannerView()) {
       auditInvocation(identityBannerView, "identityBannerView", "onStateChanged", typedEvent);
       identityBannerView.onStateChanged();
@@ -1945,6 +2030,7 @@ public class SessionProcessor
     auditor.nodeRegistered(ignoredParameters, "ignoredParameters");
     auditor.nodeRegistered(logArrival, "logArrival");
     auditor.nodeRegistered(logEvidence, "logEvidence");
+    auditor.nodeRegistered(logLifecycle, "logLifecycle");
     auditor.nodeRegistered(logOpening, "logOpening");
     auditor.nodeRegistered(openGraph, "openGraph");
     auditor.nodeRegistered(openLog, "openLog");
@@ -1977,6 +2063,7 @@ public class SessionProcessor
     isDirty_activeProject = false;
     isDirty_auditInstallation = false;
     isDirty_logEvidence = false;
+    isDirty_logLifecycle = false;
     isDirty_openGraph = false;
     isDirty_openLog = false;
     isDirty_operationGate = false;
@@ -2014,6 +2101,7 @@ public class SessionProcessor
       dirtyFlagSupplierMap.put(activeProject, () -> isDirty_activeProject);
       dirtyFlagSupplierMap.put(auditInstallation, () -> isDirty_auditInstallation);
       dirtyFlagSupplierMap.put(logEvidence, () -> isDirty_logEvidence);
+      dirtyFlagSupplierMap.put(logLifecycle, () -> isDirty_logLifecycle);
       dirtyFlagSupplierMap.put(openGraph, () -> isDirty_openGraph);
       dirtyFlagSupplierMap.put(openLog, () -> isDirty_openLog);
       dirtyFlagSupplierMap.put(operationGate, () -> isDirty_operationGate);
@@ -2028,6 +2116,7 @@ public class SessionProcessor
       dirtyFlagUpdateMap.put(activeProject, (b) -> isDirty_activeProject = b);
       dirtyFlagUpdateMap.put(auditInstallation, (b) -> isDirty_auditInstallation = b);
       dirtyFlagUpdateMap.put(logEvidence, (b) -> isDirty_logEvidence = b);
+      dirtyFlagUpdateMap.put(logLifecycle, (b) -> isDirty_logLifecycle = b);
       dirtyFlagUpdateMap.put(openGraph, (b) -> isDirty_openGraph = b);
       dirtyFlagUpdateMap.put(openLog, (b) -> isDirty_openLog = b);
       dirtyFlagUpdateMap.put(operationGate, (b) -> isDirty_operationGate = b);
@@ -2057,7 +2146,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_identityBannerView() {
-    return isDirty_openLog;
+    return isDirty_logLifecycle;
   }
 
   private boolean guardCheck_logArrival() {
@@ -2065,6 +2154,10 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_logEvidence() {
+    return isDirty_logLifecycle;
+  }
+
+  private boolean guardCheck_logLifecycle() {
     return isDirty_openLog;
   }
 
@@ -2081,7 +2174,7 @@ public class SessionProcessor
   }
 
   private boolean guardCheck_pairingQualifier() {
-    return isDirty_openGraph | isDirty_openLog | isDirty_pairing;
+    return isDirty_logLifecycle | isDirty_openGraph;
   }
 
   private boolean guardCheck_pairing() {
@@ -2142,6 +2235,8 @@ public class SessionProcessor
         return (T) logArrival;
       case "logEvidence":
         return (T) logEvidence;
+      case "logLifecycle":
+        return (T) logLifecycle;
       case "logOpening":
         return (T) logOpening;
       case "openGraph":
@@ -2218,6 +2313,9 @@ public class SessionProcessor
     }
     if (node == logEvidence) {
       return "logEvidence";
+    }
+    if (node == logLifecycle) {
+      return "logLifecycle";
     }
     if (node == logOpening) {
       return "logOpening";

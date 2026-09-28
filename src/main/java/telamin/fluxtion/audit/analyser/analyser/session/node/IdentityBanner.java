@@ -1,5 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
+import com.telamin.fluxtion.runtime.annotations.NoTriggerReference;
 import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
 import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.annotations.PushReference;
@@ -27,7 +28,11 @@ import java.util.Map;
  */
 public class IdentityBanner implements EventLogSource {
 
+    /** Spike round 3: read as DATA. An append moves its count and must not wake this node; {@link #lifecycle} does. */
+    @NoTriggerReference
     private final OpenLog openLog;
+    /** The trigger: dirty only when the log opens, closes, changes generation or changes identity. */
+    private final LogLifecycle lifecycle;
     @PushReference
     private final EffectQueue effects;
 
@@ -35,8 +40,9 @@ public class IdentityBanner implements EventLogSource {
     // Not final: node-local state (a final field is constructor-mapped by the generator).
     private IdentityBannerView emitted;
 
-    public IdentityBanner(OpenLog openLog, EffectQueue effects) {
+    public IdentityBanner(OpenLog openLog, LogLifecycle lifecycle, EffectQueue effects) {
         this.openLog = openLog;
+        this.lifecycle = lifecycle;
         this.effects = effects;
     }
 

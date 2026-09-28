@@ -1,5 +1,6 @@
 package telamin.fluxtion.audit.analyser.analyser.session.node;
 
+import com.telamin.fluxtion.runtime.annotations.NoTriggerReference;
 import com.telamin.fluxtion.runtime.annotations.OnEventHandler;
 import com.telamin.fluxtion.runtime.annotations.OnTrigger;
 import com.telamin.fluxtion.runtime.audit.EventLogSource;
@@ -25,8 +26,18 @@ import telamin.fluxtion.audit.analyser.analyser.topology.PairingQualifications;
  */
 public class PairingQualifier implements EventLogSource {
 
+    /** Spike round 3: read as DATA. An append moves its count and must not wake this node; {@link #lifecycle} does. */
+    @NoTriggerReference
     private final OpenLog openLog;
+    /** The trigger: dirty only when the log opens, closes, changes generation or changes identity. */
+    private final LogLifecycle lifecycle;
     private final OpenGraph openGraph;
+    /**
+     * Spike round 3: read as DATA. The pairing re-scopes on every Follow append (its count moves), but what this node
+     * binds to is WHICH pair is open — the log generation ({@link #lifecycle}) and the graph revision ({@link #openGraph})
+     * — and it reads the verdict only when a comparison arrives.
+     */
+    @NoTriggerReference
     private final Pairing pairing;
 
     private EventLogger auditLog = NullEventLogger.INSTANCE;
@@ -38,8 +49,9 @@ public class PairingQualifier implements EventLogSource {
     private String filterKey;
     private String lastSaid;
 
-    public PairingQualifier(OpenLog openLog, OpenGraph openGraph, Pairing pairing) {
+    public PairingQualifier(OpenLog openLog, LogLifecycle lifecycle, OpenGraph openGraph, Pairing pairing) {
         this.openLog = openLog;
+        this.lifecycle = lifecycle;
         this.openGraph = openGraph;
         this.pairing = pairing;
     }

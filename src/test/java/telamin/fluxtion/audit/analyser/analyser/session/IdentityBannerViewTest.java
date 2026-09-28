@@ -101,6 +101,21 @@ class IdentityBannerViewTest {
     }
 
     @Test
+    @DisplayName("Spike round 3: closing a log whose banner never showed draws nothing — the view did not change")
+    void closingWithNoBannerUpDrawsNothing() {
+        FakeSessionAdapter a = new FakeSessionAdapter();
+        SessionDriver d = driver(a);
+        assertFalse(a.identityBanners.get(a.identityBanners.size() - 1).shown(), "control: no banner is up");
+        int before = a.identityBanners.size();
+
+        d.post(new SessionEvents.LogCleared(d.snapshot().logGeneration()));
+
+        assertEquals(before, a.identityBanners.size(),
+                "the closed view equals the one every backend already shows; since round 3 an append never wakes this "
+                        + "node, so this is the path on which 'unchanged' is still decided");
+    }
+
+    @Test
     @DisplayName("An unchanged verdict is not re-drawn — this is why the element costs no records")
     void anUnchangedVerdictIsNotRedrawn() {
         FakeSessionAdapter a = new FakeSessionAdapter();

@@ -50,7 +50,8 @@ CONTROLS = [
     ('m44-rescope-keeps-qualifications', NODE + 'PairingQualifier.java',
      '        if (generation == boundGeneration && revision == boundRevision && openLog.isOpen() && openGraph.isOpen()) {',
      '        if (false) {',
-     'PairingQualifierTest#aReScopeKeepsItStale'),
+     # spike round 3: an append no longer wakes the qualifier, so the append witness cannot reach this branch
+     'PairingQualifierTest#aLifecycleChangeForTheSamePairKeepsIt'),
     ('m44-stale-comparison-refused', NODE + 'PairingQualifier.java',
      '        if (event.logGeneration() != openLog.generation() || event.graphRevision() != openGraph.revision()) {',
      '        if (false) {',
@@ -70,9 +71,10 @@ CONTROLS = [
     ('m44-journey-pending', SESSION + 'SessionSnapshot.java',
      '                p.operationGate.inFlightWhat() != null,', '                false,',
      'SessionLifecycleJourneysTest#aGraphOpenedDuringTheNextLoadIsJudgedAgainstTheNewLog'),
+    # re-anchored in spike round 3: the scoped verdict is computed once as `next`, before the change cutoff
     ('m44-journey-scope', NODE + 'Pairing.java',
-     '        verdict = GraphPairing.of(declared, logged).withScope(sampled, total);',
-     '        verdict = GraphPairing.of(declared, logged);',
+     '                : GraphPairing.of(declared, logged).withScope(nowSampled, nowTotal);',
+     '                : GraphPairing.of(declared, logged);',
      'SessionLifecycleJourneysTest#openOrderDoesNotChangeTheVerdict'),
     ('m44-journey-stale-by-size', J + 'topology/PairingQualification.java',
      '        return logRecordsNow > logRecords;', '        return false;',
@@ -658,7 +660,8 @@ CONTROLS = [
     # Changed-only emit: an append moves the open log but not the verdict, so it draws nothing.
     ('vm2-unchanged-verdict-not-drawn', NODE + 'IdentityBanner.java',
      'if (view.equals(emitted)) return false;', '',
-     'IdentityBannerViewTest#anAppendIsNotAVerdictChange'),
+     # spike round 3: an append no longer wakes the banner, so the append witness cannot reach this branch
+     'IdentityBannerViewTest#closingWithNoBannerUpDrawsNothing'),
     # The policy is the view's: a verdict that does not warn is not shown.
     ('vm2-policy-on-shown', SESSION + 'view/IdentityBannerView.java',
      'return new IdentityBannerView(generation, verdict, reason, warns(verdict));',
@@ -682,4 +685,19 @@ CONTROLS = [
      '            return element;\n',
      '            return "statusLine";\n',
      'IdentityBannerViewTest#aRenderAnswerReachesOnlyItsOwnNode'),
+
+    # --- Spike round 3 (PREDICTIONS-3.md): propagation — a narrow trigger, data-only references, changed-only statements
+    ('r3-lifecycle-cutoff', NODE + 'LogLifecycle.java',
+     '            return false;\n        }\n        open = nowOpen;',
+     '            return true;\n        }\n        open = nowOpen;',
+     'PropagationRoundThreeTest#anAppendWakesOnlyWhatItMoves'),
+    ('r3-lifecycle-sees-close', NODE + 'LogLifecycle.java',
+     'if (nowOpen == open && nowGeneration == generation', 'if (nowGeneration == generation',
+     'PropagationRoundThreeTest#aCloseAloneStillClearsTheEvidence'),
+    ('r3-coverage-not-restated', NODE + 'CoverageClaim.java',
+     '        if (now.equals(stated)) return false;', '',
+     'PropagationRoundThreeTest#anUnchangedDecisionIsNotRestated'),
+    ('r3-pairing-cannot-say-once', NODE + 'Pairing.java',
+     '            if (!line.equals(written)) {', '            if (true) {',
+     'PropagationRoundThreeTest#anUnchangedDecisionIsNotRestated'),
 ]

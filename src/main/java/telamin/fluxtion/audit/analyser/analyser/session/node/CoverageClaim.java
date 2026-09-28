@@ -42,6 +42,9 @@ public class CoverageClaim implements EventLogSource {
         this.auditLog = log;
     }
 
+    /** Spike round 3: what was last stated, so an unchanged recompute states nothing. */
+    private String stated;
+
     @OnTrigger
     public boolean recomputeOnStateChange() {
         assessment = CoveragePolicy.decide(
@@ -53,6 +56,10 @@ public class CoverageClaim implements EventLogSource {
                 pairing.sampled(),
                 pairing.total(),
                 openLog.mostVerboseLevel());
+        String now = assessment.claim() + "/" + assessment.reason() + "/" + openGraph.source() + "/"
+                + auditInstallation.verdict() + "/" + openLog.mostVerboseLevel();
+        if (now.equals(stated)) return false;            // unchanged: restating it is noise (nothing reads the flag)
+        stated = now;
         auditLog.info("coverageClaim", assessment.claim().name())
                 .info("claim", assessment.claim().name())
                 .info("whyNot", assessment.reason())

@@ -42,6 +42,9 @@ class StatusLineAuditVolumeTest {
         int appending = 0;
         java.util.Map<String, int[]> byKind = new java.util.TreeMap<>();   // event -> {records, bytes}
         java.util.List<String> entries = new java.util.ArrayList<>();
+        java.util.Map<String, Integer> appendedLines = new java.util.TreeMap<>();
+        int[] appendedRecords = {0};
+        int[] idleLines = {0};
         for (int poll = 0; poll < 1_000; poll++) {
             long before = sink.total();
             boolean appends = poll % 5 < 3;
@@ -68,6 +71,17 @@ class StatusLineAuditVolumeTest {
                 c[1] += r.getBytes(StandardCharsets.UTF_8).length;
                 r.lines().filter(l -> l.contains("- statusLineView:") && l.contains("render: statusLine"))
                         .forEach(entries::add);
+                // spike round 3: which nodes write a line in an appending poll's LogAppended record, and how many say
+                // nothing but that they ran (only thread and method)
+                if ("LogAppended".equals(kind)) {
+                    appendedRecords[0]++;
+                    r.lines().map(String::strip).filter(l -> l.startsWith("- ") && l.contains(": {")).forEach(l -> {
+                        String node = l.substring(2, l.indexOf(':'));
+                        appendedLines.merge(node, 1, Integer::sum);
+                        String body = l.substring(l.indexOf('{') + 1, l.lastIndexOf('}')).strip();
+                        if (body.split(", ").length <= 2 && body.startsWith("thread:")) idleLines[0]++;
+                    });
+                }
             }
         }
 
@@ -85,6 +99,11 @@ class StatusLineAuditVolumeTest {
                 bytes(entries) / (double) Math.max(1, entries.size()));
         System.out.printf("VOLUME new_kinds records=%d bytes=%d share_of_bytes=%.1f%% share_of_records=%.1f%%%n",
                 newRecords, newBytes, 100.0 * newBytes / allBytes, 100.0 * newRecords / written);
+        int lineTotal = appendedLines.values().stream().mapToInt(Integer::intValue).sum();
+        System.out.printf("VOLUME appended_records=%d node_lines_per_record=%.2f idle_lines_per_record=%.2f%n",
+                appendedRecords[0], lineTotal / (double) Math.max(1, appendedRecords[0]),
+                idleLines[0] / (double) Math.max(1, appendedRecords[0]));
+        appendedLines.forEach((n, c) -> System.out.printf("VOLUME appended_node=%s lines=%d%n", n, c));
         System.out.printf("VOLUME sample_entry=%s%n", entries.isEmpty() ? "" : entries.get(entries.size() - 1).strip());
 
         assertEquals(appending, renders, "one render per appending poll");

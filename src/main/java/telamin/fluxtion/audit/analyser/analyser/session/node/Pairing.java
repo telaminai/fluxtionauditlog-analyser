@@ -32,6 +32,12 @@ public class Pairing implements EventLogSource {
     private GraphPairing verdict;
     private int sampled;
     private int total;
+    // Spike round 3: what was last published and what was last written, kept apart — a re-scope under Follow is a
+    // change consumers can read (sampled, total), but "cannot say" is not worth writing down again
+    private boolean published;
+    private boolean publishedHaveGraph;
+    private boolean publishedHaveLog;
+    private String written;
 
     public Pairing(OpenLog openLog, OpenGraph openGraph) {
         this.openLog = openLog;
@@ -63,21 +69,40 @@ public class Pairing implements EventLogSource {
         boolean haveLog = openLog.isOpen();
         java.util.Set<String> declared = openGraph.declaredNodeIds();
         java.util.Set<String> logged = openLog.loggedNodeIds();
-        sampled = openLog.sampled();
-        total = openLog.total();
-        if (!haveGraph || !haveLog) {
+        int nowSampled = openLog.sampled();
+        int nowTotal = openLog.total();
+        GraphPairing next = !haveGraph || !haveLog ? null
+                : GraphPairing.of(declared, logged).withScope(nowSampled, nowTotal);
+        // Spike round 3: a recompute that changes nothing says nothing and reports no change. Everything a consumer
+        // reads — the verdict (a record, so equality is exact), its scope and which artefacts are open — is compared.
+        // logArrival's guard has no openLog term, so it relies on this being exact.
+        if (published && java.util.Objects.equals(next, verdict) && nowSampled == sampled && nowTotal == total
+                && haveGraph == publishedHaveGraph && haveLog == publishedHaveLog) {
+            return false;
+        }
+        published = true;
+        publishedHaveGraph = haveGraph;
+        publishedHaveLog = haveLog;
+        sampled = nowSampled;
+        total = nowTotal;
+        if (next == null) {
             // "Cannot say" is a verdict, not a gap. A pairing needs both artefacts, and inventing one
             // when a log is open on its own is how a graph gets judged against nothing.
             verdict = null;
-            auditLog.info("pairing", "cannotSay")
-                    .info("haveGraph", haveGraph)
-                    .info("haveLog", haveLog);
+            String line = "cannotSay/" + haveGraph + "/" + haveLog;
+            if (!line.equals(written)) {                   // stated once; a re-scope does not restate it
+                written = line;
+                auditLog.info("pairing", "cannotSay")
+                        .info("haveGraph", haveGraph)
+                        .info("haveLog", haveLog);
+            }
             return true;
         }
+        written = null;
         // M68.1 re-review R2: the verdict carries its scope, exactly as the frame's pairingAgainst does.
         // It used to be published unscoped, so a combined or graph-first open stated a 500-record sample
         // as a whole-log claim — and the frame, discovery and this node disagreed about one verdict.
-        verdict = GraphPairing.of(declared, logged).withScope(sampled, total);
+        verdict = next;
         // O3: the retention decision is not the fit. A kept pairing with nothing compared is logged as such.
         auditLog.info("pairing", verdict.auditLabel())
                 .info("applies", verdict.applies())

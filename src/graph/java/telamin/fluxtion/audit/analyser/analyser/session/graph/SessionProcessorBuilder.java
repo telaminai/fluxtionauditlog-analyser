@@ -90,17 +90,20 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         CoverageClaim coverageClaim = new CoverageClaim(pairing, auditInstallation, openGraph, openLog);
         IgnoredParameters ignoredParameters = new IgnoredParameters();
         // M44.4c: what wider comparisons say about the pairing, bound to the pair by generation and revision
-        PairingQualifier pairingQualifier = new PairingQualifier(openLog, openGraph, pairing);
+        // spike round 3: the open log's lifecycle without its count — the narrow trigger three nodes wake on
+        telamin.fluxtion.audit.analyser.analyser.session.node.LogLifecycle logLifecycle =
+                new telamin.fluxtion.audit.analyser.analyser.session.node.LogLifecycle(openLog);
+        PairingQualifier pairingQualifier = new PairingQualifier(openLog, logLifecycle, openGraph, pairing);
         // M44.5: the log's own derived state — producer findings and time order — and the decision of when to rescan
         telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence logEvidence =
-                new telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence(openLog, effects);
+                new telamin.fluxtion.audit.analyser.analyser.session.node.LogEvidence(openLog, logLifecycle, effects);
         // view-model spike: the status line as a node — what it states, and when it is told, decided here
         telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine statusLine =
                 new telamin.fluxtion.audit.analyser.analyser.session.node.StatusLine(openLog, logEvidence, effects);
         // view-model spike, second element: the file-identity banner. Reads only openLog — no new fact and no
         // consistency gate, which is why it measures the FLOOR cost of a view node (PREDICTIONS-2.md).
         telamin.fluxtion.audit.analyser.analyser.session.node.IdentityBanner identityBanner =
-                new telamin.fluxtion.audit.analyser.analyser.session.node.IdentityBanner(openLog, effects);
+                new telamin.fluxtion.audit.analyser.analyser.session.node.IdentityBanner(openLog, logLifecycle, effects);
 
         // These names become the instanceIds in nodeLogs and the node ids in the GraphML — they are
         // what a reader of the audit log sees, so they are the vocabulary of the rule, not of Java.
@@ -117,6 +120,7 @@ public class SessionProcessorBuilder implements FluxtionGraphBuilder {
         cfg.addNode(logOpening, "logOpening");
         cfg.addNode(coverageClaim, "coverageClaim");
         cfg.addNode(ignoredParameters, "ignoredParameters");
+        cfg.addNode(logLifecycle, "logLifecycle");
         cfg.addNode(pairingQualifier, "pairingQualifier");
         cfg.addNode(logEvidence, "logEvidence");
         cfg.addNode(statusLine, "statusLineView");
