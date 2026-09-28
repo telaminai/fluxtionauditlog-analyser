@@ -1,8 +1,28 @@
 # Review — M69 review-response fixes (PR #57), 2026-09-28
 
 **Range reviewed:** `ad61a37c..1d342499` (eleven commits). R4 (`1a6ddf63`) is baseline and was not reviewed.
-**Pushed by this review:** nothing. No fixes were pushed; every finding below is `suggested`.
-**Verdict: mergeable after F1, and after correcting the two claims in F2 and F6.** F3–F5 are follow-ups.
+
+**Range I pushed, for review on its own: `1d342499..ceee3a66`** (five commits — this document, then three fixes,
+then the controls, spec, changelog and one withdrawal).
+
+| finding | disposition |
+|---|---|
+| F1 import does not report | **fixed** in `72609958` |
+| F2 the "equivalent mutant" claim | **refuted**; F1's fix makes the author's argument sound |
+| F3 project transition | **withdrawn** — I tried to demonstrate it and disproved it (below) |
+| F4 topology is selection-dependent | **fixed** in `9d0295f3` |
+| F5 unassessed log certifies as current | **fixed** in `a6105707` (a caveat, not a refusal) |
+| F6 restore does not report | **fixed** in `72609958` |
+| F7 misleading test name | **fixed** in `ceee3a66` |
+
+**Verdict on the branch as I received it: mergeable after F1.** With the commits above applied, **mergeable**.
+
+**Gates after my changes:** `mvn -o clean test` **2696 / 0 / 0 / 146** from fresh Surefire XML (359 reports);
+`--mode preflight` **29 suites, 348 anchors**; the **nine new controls 9 of 9 caught**, each red at a named
+assertion and restored byte-identically; `mkdocs build --strict` green; `git diff --check` clean; rule-1 sweep
+clean. The +2 skips over the response's 144 are this document's two new frame tests under a headless run; they
+pass with `-Djava.awt.headless=false` (`WalkReviewFrameTest` 9/9). No regeneration was needed: no effect, fact or
+node constructor changed shape, and the generated-source checks stayed green.
 
 Checked, not taken on trust: every claim below was reproduced from the code at `1d342499`, and the gates were
 re-run here rather than read from `RESPONSE.md`.
