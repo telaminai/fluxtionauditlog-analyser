@@ -17,6 +17,9 @@ it"*.
 - **R-D4. Recording is not a Mongoose-wide setting.** Mongoose is multithreaded. Replay records are written at the
   single-threaded point of consumption: the processor, or the agent that drives it. A Mongoose-wide service may be
   the sink the records are written to.
+- **R-D5. Service invocations are dealt with separately.** A service call is a serialised method call, recorded and
+  replayed in the same stream as the events. That is its own piece of work (UP-FLX-24, M50.7), and this delivery
+  only names the gap (§3.4).
 
 ## 1. What the second delivery is for
 
@@ -281,7 +284,8 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 
 - Other encodings (a binary replay format, Chronicle); a replay stored in the cloud and linked, not carried (R-D1).
 - Windowed replay, and checkpoints (§4.3).
-- Service-call recording (UP-FLX-24, M50.7). The bundle states it; it does not fix it.
+- Service-call recording (R-D5): a serialised method call in the replay stream, its own work (UP-FLX-24, M50.7).
+  Until it lands the bundle names the gap and does not fix it.
 - Replaying into Mongoose (R-D2).
 - The UI side-by-side, and "prove the fix", which replays a changed build (M12).
 - Signing. A bundle is still unsigned (first delivery, D-3).
@@ -309,4 +313,5 @@ Every acceptance runs in `mvn test` from committed fixtures. The runner's end-to
 
 - **r1 (2026-09-28):** first draft, from the spike and the owner's decisions R-D1…R-D4. The same day it took two
   owner corrections: the JavaBean constraint is the YAML writer's, not replay's; and graph-raised events are matched
-  at the redispatch queue in replay mode (§3.2), rather than only excluded by a whitelist.
+  at the redispatch queue in replay mode (§3.2), rather than only excluded by a whitelist. A third decision, R-D5:
+  service invocations are a separate piece of work, as serialised method calls.
